@@ -30,7 +30,10 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broad.tribble.FeatureSource;
-import org.broad.tribble.dbsnp.DbSNPCodec;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
 import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
@@ -38,25 +41,25 @@ import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSource;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.CommandLineUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -71,44 +74,60 @@ import java.util.*;
  */
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class, PlatformUnitFilter.class})
 public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
-    @Output
-    PrintStream out;
+//    @Output
+//    PrintStream out;
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter vcf_writer = null;
 
-    @Argument(fullName="outputFile", shortName="O", doc="output file name (defaults to BED format)", required=true)
-    java.io.File bed_file;
+    @Argument(fullName="outputFile", shortName="O", doc="output file name (BED format). DEPRECATED> Use --bed", required=true)
+    @Deprecated
+    java.io.File output_file;
 
     @Argument(fullName = "metrics_file", shortName = "metrics", doc = "File to print callability metrics output", required = false)
     public PrintStream metricsWriter = null;
 
-    @Argument(fullName="1kg_format", shortName="1kg", doc="output in 1000 genomes format", required=false)
-    boolean FORMAT_1KG = false;
+//    @Argument(fullName="vcf_format", shortName="vcf", doc="generate output file in VCF format", required=false)
+//    boolean FORMAT_VCF = false;
+
 	@Argument(fullName="somatic", shortName="somatic",
 			doc="Perform somatic calls; two input alignment files (-I option) must be specified. Calls are performed from the second file (\"tumor\") against the first one (\"normal\").", required=false)
 	boolean call_somatic = false;
-	@Argument(fullName="verbose", shortName="verbose",
-			doc="Prints all calls (both germline and somatic if --somatic is used) with additional read/mismatch statistics into GATK output stream (redirect with -o).", required=false)
-	boolean verbose = false;
+
+	@Argument(fullName="verboseOutput", shortName="verbose",
+			doc="Verbose output file in text format", required=false)
+	java.io.File verboseOutput = null;
+
+    @Argument(fullName="bedOutput", shortName="bed",
+            doc="Lightweight bed output file (only positions and events, no stats/annotations)", required=false)
+    java.io.File bedOutput = null;
+
 	@Argument(fullName="minCoverage", shortName="minCoverage",
 			doc="indel calls will be made only at sites with coverage of minCoverage or more reads; with --somatic this value is applied to tumor sample", required=false)
 	int minCoverage = 6;
+
 	@Argument(fullName="minNormalCoverage", shortName="minNormalCoverage",
 			doc="used only with --somatic;  normal sample must have at least minNormalCoverage or more reads at the site to call germline/somatic indel, otherwise the indel (in tumor) is ignored", required=false)
 	int minNormalCoverage = 4;
+
 	@Argument(fullName="minFraction", shortName="minFraction",
 			doc="Minimum fraction of reads with CONSENSUS indel at a site, out of all reads covering the site, required for making a call"+
 			" (fraction of non-consensus indels at the site is not considered here, see minConsensusFraction)", required=false)
 	double minFraction = 0.3;
+
 	@Argument(fullName="minConsensusFraction", shortName="minConsensusFraction",
 			doc="Indel call is made only if fraction of CONSENSUS indel observations at a site wrt all indel observations at the site exceeds this threshold", required=false)
 	double minConsensusFraction = 0.7;
+
 	@Argument(fullName="minIndelCount", shortName="minCnt",
 			doc="Minimum count of reads supporting consensus indel required for making the call. "+
 			" This filter supercedes minFraction, i.e. indels with acceptable minFraction at low coverage "+
 			"(minIndelCount not met) will not pass.", required=false)
 	int minIndelCount = 0;
+
 	@Argument(fullName="refseq", shortName="refseq",
 			doc="Name of RefSeq transcript annotation file. If specified, indels will be annotated with GENOMIC/UTR/INTRON/CODING and with the gene name", required=false)
 	String RefseqFileName = null;
+
     @Argument(fullName="blacklistedLanes", shortName="BL",
             doc="Name of lanes (platform units) that should be ignored. Reads coming from these lanes will never be seen "+
                     "by this application, so they will not contribute indels to consider and will not be counted.", required=false)
@@ -138,6 +157,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 	private int NQS_WIDTH = 5; // 5 bases on each side of the indel for NQS-style statistics
 
+    private Writer bedWriter = null;
+    private Writer verboseWriter = null;
+
 
 	private static String annGenomic = "GENOMIC";
 	private static String annIntron = "INTRON";
@@ -146,14 +168,55 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 	private static String annUnknown = "UNKNOWN";
 
 	private SAMRecord lastRead;
+    private byte[] refBases;
+    private ReferenceDataSource refData;
 
-	// "/humgen/gsa-scr1/GATK_Data/refGene.sorted.txt"
+    // "/humgen/gsa-scr1/GATK_Data/refGene.sorted.txt"
+
+    private Set<VCFHeaderLine> getVCFHeaderInfo() {
+        Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
+
+        // first, the basic info
+        headerInfo.add(new VCFHeaderLine("source", "IndelGenotyperV2"));
+        headerInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
+
+        // FORMAT and INFO fields
+//        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings());
+
+        if ( call_somatic ) {
+            headerInfo.addAll(VCFIndelAttributes.getAttributeHeaderLines("N_","In NORMAL: "));
+            headerInfo.addAll(VCFIndelAttributes.getAttributeHeaderLines("T_","In TUMOR: "));
+            headerInfo.add(new VCFInfoHeaderLine(VCFConstants.SOMATIC_KEY, 0, VCFHeaderLineType.Flag, "Somatic event"));
+        }  else {
+            headerInfo.addAll(VCFIndelAttributes.getAttributeHeaderLines("",""));
+        }
+
+        // all of the arguments from the argument collection
+        Set<Object> args = new HashSet<Object>();
+        args.add(this);
+        args.addAll(getToolkit().getFilters());
+        Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(args);
+        for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
+            headerInfo.add(new VCFHeaderLine(String.format("IGv2_%s", commandLineArg.getKey()), commandLineArg.getValue()));
+        // also, the list of input bams
+        for ( File file : getToolkit().getArguments().samFiles )
+            headerInfo.add(new VCFHeaderLine("IGv2_bam_file_used", file.getName()));
+
+        return headerInfo;
+    }
+
 
 	@Override
 	public void initialize() {
 		normal_context = new WindowContext(0,WINDOW_SIZE);
 
+        if ( bedOutput != null && output_file != null ) {
+            throw new StingException("-O option is deprecated and -bed option replaces it; you can not use both at the same time");
+        }
+
 		if ( RefseqFileName != null ) {
+            logger.info("Using RefSeq annotations from "+RefseqFileName);
+
 			TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
             FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
 
@@ -162,10 +225,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             } catch (IOException e) {
                 throw new StingException("Unable to open file " + RefseqFileName, e);
             }
-            logger.info("Using RefSeq annotations from "+RefseqFileName);
 		}
 
-		if ( refseqIterator == null ) logger.info("No annotations available");
+		if ( refseqIterator == null ) logger.info("No gene annotations available");
 
 		int nSams = getToolkit().getArguments().samFiles.size();
 
@@ -192,11 +254,21 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 					"WARNING: Without --somatic option they will be merged and processed as a single sample");
 		}
 
-		try {
-			output = new java.io.FileWriter(bed_file);
-		} catch (IOException e) {
-			throw new StingException("Failed to open file for writing BED output");
-		}
+        try {
+            // we already checked that bedOutput and output_file are not set simultaneously
+            if ( bedOutput != null ) bedWriter = new FileWriter(bedOutput);
+            if ( output_file != null ) bedWriter = new FileWriter(output_file);
+        } catch (java.io.IOException e) {
+            throw new StingException("Failed to open BED file for writing. "+ e.getMessage());
+        }
+        try {
+            if ( verboseOutput != null ) verboseWriter = new FileWriter(verboseOutput);
+        } catch (java.io.IOException e) {
+            throw new StingException("Failed to open verbose file for writing. "+ e.getMessage());
+        }
+
+        vcf_writer.writeHeader(new VCFHeader(getVCFHeaderInfo(), SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader()))) ;
+        refData = new ReferenceDataSource(getToolkit().getArguments().referenceFile);
 	}
 
 
@@ -238,6 +310,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
                 normal_context.clear(); // reset coverage window; this will also set reference position to 0
                 if ( call_somatic) tumor_context.clear();
+
+                refBases = new String(refData.getReference().getSequence(read.getReferenceName()).getBases()).toUpperCase().getBytes();
             }
 
             // we have reset the window to the new contig if it was required and emitted everything we collected
@@ -317,9 +391,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 if ( rg == null ) throw new StingException("Read "+read.getReadName()+" has no read group in merged stream. RG is required for somatic calls.");
 
                 if ( normalReadGroups.contains(rg) ) {
-                    normal_context.add(read,ref.getBasesAsChars());
+                    normal_context.add(read,ref.getBases());
                 } else if ( tumorReadGroups.contains(rg) ) {
-                    tumor_context.add(read,ref.getBasesAsChars());
+                    tumor_context.add(read,ref.getBases());
                 } else {
                     throw new StingException("Unrecognized read group in merged stream: "+rg);
                 }
@@ -338,7 +412,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 
             } else {
-                normal_context.add(read, ref.getBasesAsChars());
+                normal_context.add(read, ref.getBases());
                 if ( normal_context.getReads().size() > MAX_READ_NUMBER ) {
                     System.out.println("WARNING: a count of "+MAX_READ_NUMBER+" reads reached in a window "+
                             refName+':'+normal_context.getStart()+'-'+normal_context.getStop()+". The whole window will be dropped");
@@ -350,12 +424,12 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 	}
 
 
-        /** Output indel calls up to the specified position and shift the window: after this method is executed, the                                     
-         * first element of the window maps onto 'position', if possible, or at worst a few bases to the left of 'position' if we may need more 
-         * reads to get full NQS-style statistics for an indel in the close proximity of 'position'.  
-         *                                                                                                
-         * @param position
-         */
+   /** Output indel calls up to the specified position and shift the window: after this method is executed, the
+    * first element of the window maps onto 'position', if possible, or at worst a few bases to the left of 'position' if we may need more
+    * reads to get full NQS-style statistics for an indel in the close proximity of 'position'.
+    *
+    * @param position
+    */
    private void emit(long position, boolean force) {
 
             long adjustedPosition = adjustPosition(position);
@@ -405,31 +479,25 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
                 location = GenomeLocParser.setStart(location,pos);
                 location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
-                RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
-
-                if ( normalCall.failsNQSMismatch() ) {
-                    String fullRecord = makeFullRecord(normalCall);
-                    String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
-                    out.println(fullRecord+
-                    "SAMPLE_TOO_DIRTY\t"+annotationString);
-                    normal_context.indelsAt(pos).clear();
-                        // we dealt with this indel; don't want to see it again
-                        // (we might otherwise in the case when 1) there is another indel that follows
-                        // within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
-                    continue; // too dirty
-                }
 
                 if ( normalCall.isCall() ) {
                     normalCallsMade++;
-                    String message = normalCall.makeBedLine(output);
-                    String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
+                    printVCFLine(vcf_writer,normalCall);
+                    if ( bedWriter != null ) normalCall.printBedLine(bedWriter);
 
-                    StringBuilder fullRecord = new StringBuilder();
-                    fullRecord.append(makeFullRecord(normalCall));
+                    if ( verboseWriter != null ) {
 
-                    if ( verbose ) {
-                        if ( refseqIterator == null ) out.println(fullRecord + "\t");
-                        else out.println(fullRecord + "\t"+ annotationString);
+                        RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+                        String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
+
+                        StringBuilder fullRecord = new StringBuilder();
+                        fullRecord.append(makeFullRecord(normalCall));
+                        fullRecord.append(annotationString);
+                        try {
+                            verboseWriter.write(fullRecord.toString());
+                        } catch (IOException e) {
+                            throw new StingException("Write failed (verbose writer). "+e.getMessage());
+                        }
                     }
                 }
 
@@ -564,52 +632,33 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
             location = GenomeLocParser.setStart(location,pos);
             location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
-            RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
-
-            if ( normalCall.failsNQSMismatch() ) {
-                String fullRecord = makeFullRecord(normalCall,tumorCall);
-                String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
-                out.println(fullRecord+
-                "NORMAL_TOO_DIRTY\t"+annotationString);
-                tumor_context.indelsAt(pos).clear();
-                normal_context.indelsAt(pos).clear();
-                    // we dealt with this indel; don't want to see it again
-                    // (we might otherwise in the case when 1) there is another indel that follows
-                    // within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
-                continue; // too dirty
-            }
-            if ( tumorCall.failsNQSMismatch() ) {
-                String fullRecord = makeFullRecord(normalCall,tumorCall);
-                String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
-                out.println(fullRecord+
-                "TUMOR_TOO_DIRTY\t"+annotationString);
-                tumor_context.indelsAt(pos).clear();
-                normal_context.indelsAt(pos).clear();
-                    // we dealt with this indel; don't want to see it again
-                    // (we might otherwise in the case when 1) there is another indel that follows
-                    // within MISMATCH_WIDTH bases and 2) we'd need to wait for more coverage for that next indel)
-                continue; // too dirty
-            }
 
             if ( tumorCall.isCall() ) {
                 tumorCallsMade++;
-                String message = tumorCall.makeBedLine(output);
-                String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
 
-                StringBuilder fullRecord = new StringBuilder();
-                fullRecord.append(makeFullRecord(normalCall,tumorCall));
+                printVCFLine(vcf_writer,normalCall,tumorCall);
 
-                if ( normalCall.getVariant() == null ) {
-                    fullRecord.append("SOMATIC");
-                } else {
-                    fullRecord.append("GERMLINE");
-                }
-                if ( verbose ) {
-                    if ( refseqIterator == null ) out.println(fullRecord + "\t");
-                    else out.println(fullRecord + "\t"+ annotationString);
+                if ( bedWriter != null ) tumorCall.printBedLine(bedWriter);
+
+                if ( verboseWriter != null ) {
+                    RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+                    String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
+
+                    StringBuilder fullRecord = new StringBuilder();
+                    fullRecord.append(makeFullRecord(normalCall,tumorCall));
+
+                    if ( normalCall.getVariant() == null ) {
+                        fullRecord.append("SOMATIC");
+                    } else {
+                        fullRecord.append("GERMLINE");
+                    }
+                    try {
+                        verboseWriter.write(fullRecord + "\t"+ annotationString);
+                    } catch (IOException e) {
+                        throw new StingException("Write failed (verbose writer). "+e.getMessage());
+                    }
                 }
             }
-
             tumor_context.indelsAt(pos).clear();
             normal_context.indelsAt(pos).clear();
                 // we dealt with this indel; don't want to see it again
@@ -668,6 +717,57 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
     }
 
+    public void printVCFLine(VCFWriter vcf, IndelPrecall call) {
+        int event_length = call.getVariant().lengthOnRef();
+        if ( event_length < 0 ) event_length = 0;
+
+        long start = call.getPosition()-1;
+        long stop = start;
+
+        List<Allele> alleles = new ArrayList<Allele>(2);
+
+        if ( event_length == 0 ) { // insertion
+             alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
+             alleles.add( Allele.create(call.getVariant().getBases(), false ));
+        } else { //deletion:
+             alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
+             alleles.add( Allele.create(call.getVariant().getBases(), true ));
+             stop += event_length;
+        }
+
+        VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, VariantContext.NO_GENOTYPES /* genotypes */,
+            -1.0 /* log error */, null /* filters */, call.makeStatsAttributes("",null));
+        vcf.add(vc,refBases[(int)start-1]);
+    }
+
+    public void printVCFLine(VCFWriter vcf, IndelPrecall nCall, IndelPrecall tCall) {
+        int event_length = tCall.getVariant().lengthOnRef();
+        if ( event_length < 0 ) event_length = 0;
+
+        long start = tCall.getPosition()-1;
+        long stop = start;
+
+        List<Allele> alleles = new ArrayList<Allele>(2);
+
+        if ( event_length == 0 ) { // insertion
+             alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
+             alleles.add( Allele.create(tCall.getVariant().getBases(), false ));
+        } else { //deletion:
+             alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
+             alleles.add( Allele.create(tCall.getVariant().getBases(), true ));
+             stop += event_length;
+        }
+
+        Map<String,Object> attrs = nCall.makeStatsAttributes("N_",null);
+        attrs = tCall.makeStatsAttributes("T_",attrs);
+
+        if ( nCall.getVariant() == null ) attrs.put(VCFConstants.SOMATIC_KEY,true);
+
+        VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, VariantContext.NO_GENOTYPES /* genotypes */,
+            -1.0 /* log error */, null /* filters */, attrs);
+        vcf.add(vc,refBases[(int)start-1]);
+    }
+
     @Override
     public void onTraversalDone(Integer result) {
         if ( call_somatic ) emit_somatic(1000000000, true);
@@ -676,10 +776,12 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         if ( metricsWriter != null ) {
             metricsWriter.println(String.format("Normal calls made     %d", normalCallsMade));
             metricsWriter.println(String.format("Tumor calls made      %d", tumorCallsMade));
+            metricsWriter.close();
         }
 
         try {
-            output.close();
+            if ( bedWriter != null ) bedWriter.close();
+            if ( verboseWriter != null ) verboseWriter.close();
         } catch (IOException e) {
             System.out.println("Failed to close output BED file gracefully, data may be lost");
             e.printStackTrace();
@@ -1022,16 +1124,16 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         public int getAllVariantCount() { return all_indel_count; }
         public int getConsensusVariantCount() { return consensus_indel_count; }
 
-        public boolean failsNQSMismatch() {
-            //TODO wrong fraction: mismatches are counted only in indel-containing reads, but total_coverage is used!
-            return ( indel_read_mismatches_in_nqs_window > NQS_MISMATCH_CUTOFF ) ||
-                    ( indel_read_mismatches_in_nqs_window > total_coverage * AV_MISMATCHES_PER_READ );
-        }
+//        public boolean failsNQSMismatch() {
+//            //TODO wrong fraction: mismatches are counted only in indel-containing reads, but total_coverage is used!
+//            return ( indel_read_mismatches_in_nqs_window > NQS_MISMATCH_CUTOFF ) ||
+//                    ( indel_read_mismatches_in_nqs_window > total_coverage * AV_MISMATCHES_PER_READ );
+//        }
 
         public IndelVariant getVariant() { return consensus_indel; }
 
         public boolean isCall() {
-            boolean ret = ! failsNQSMismatch() && ( consensus_indel_count >= minIndelCount &&
+            boolean ret =  ( consensus_indel_count >= minIndelCount &&
                     (double)consensus_indel_count > minFraction * total_coverage &&
                     (double) consensus_indel_count > minConsensusFraction*all_indel_count );
             if ( DEBUG && ! ret ) System.out.println("DEBUG>>  NOT a call: count="+consensus_indel_count+
@@ -1062,27 +1164,20 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         }
 
 
-        public String makeBedLine(java.io.Writer bedOutput) {
+
+        public void printBedLine(Writer bed) {
             int event_length = consensus_indel.lengthOnRef();
             if ( event_length < 0 ) event_length = 0;
+
             StringBuffer message = new StringBuffer();
             message.append(refName+"\t"+(pos-1)+"\t");
-            if ( FORMAT_1KG )
-                message.append(consensus_indel.getBases().length() + "\t" + (event_length > 0 ? "D" : "I") + "\t" +
-                        consensus_indel.getBases() + "\t" + consensus_indel.getSamples());
-            else
-                message.append((pos-1+event_length)+"\t"+(event_length>0? "-":"+")+consensus_indel.getBases() +":"+all_indel_count+"/"+total_coverage);
+            message.append((pos-1+event_length)+"\t"+(event_length>0? "-":"+")+consensus_indel.getBases() +":"+all_indel_count+"/"+total_coverage);
 
-            if ( bedOutput != null ) {
-                try {
-                    bedOutput.write(message.toString()+"\n");
-                } catch (IOException e) {
-                    System.out.println(e.getMessage());
-                    e.printStackTrace();
-                    throw new StingException("Error encountered while writing into output BED file");
-                }
-            }
-            return message.toString();
+           try {
+                bed.write(message.toString()+"\n");
+           } catch (IOException e) {
+                throw new StingException("Error encountered while writing into output BED file");
+           }
         }
 
         public String makeEventString() {
@@ -1121,6 +1216,33 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
              return message.toString();
          }
 
+        /**
+         * Places alignment statistics into attribute map and returns the map. If attr parameter is null,
+         * a new map is allocated, filled and returned. If attr is not null, new attributes are added to that
+         * preexisting map, and the same instance of the (updated) map is returned.
+         * @param prefix
+         * @param attr
+         * @return
+         */
+        public Map<String,Object> makeStatsAttributes(String prefix, Map<String,Object> attr) {
+             if ( attr == null ) attr = new HashMap<String, Object>();
+
+             VCFIndelAttributes.recordDepth(prefix,getConsensusVariantCount(),getAllVariantCount(),getCoverage(),attr);
+
+             VCFIndelAttributes.recordAvMM(prefix,getAvConsensusMismatches(),getAvRefMismatches(),attr);
+
+             VCFIndelAttributes.recordAvMapQ(prefix,getAvConsensusMapq(),getAvRefMapq(),attr);
+
+             VCFIndelAttributes.recordNQSMMRate(prefix,getNQSConsensusMMRate(),getNQSRefMMRate(),attr);
+
+             VCFIndelAttributes.recordNQSAvQ(prefix,getNQSConsensusAvQual(),getNQSRefAvQual(),attr);
+
+             PrimitivePair.Int strand_cons = getConsensusStrandCounts();
+             PrimitivePair.Int strand_ref = getRefStrandCounts();
+
+             VCFIndelAttributes.recordStrandCounts(prefix,strand_cons.first,strand_cons.second,strand_ref.first,strand_ref.second,attr);
+             return attr;
+         }
     }
 
     interface IndelListener {
@@ -1243,7 +1365,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 }
             }
 
-            public void add(SAMRecord read, char [] ref) {
+            public void add(SAMRecord read, byte [] ref) {
 
                 if ( read.getAlignmentStart() < start ) return; // silently ignore reads starting before the window start
 
@@ -1303,12 +1425,14 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         private byte[] expanded_quals;
         private int mms;
 
-        public ExpandedSAMRecord(SAMRecord r, char [] ref, long offset, IndelListener l) {
+        public ExpandedSAMRecord(SAMRecord r, byte [] ref, long offset, IndelListener l) {
 
             read = r;
             final long rStart = read.getAlignmentStart();
             final long rStop = read.getAlignmentEnd();
-            final String readBases = read.getReadString().toUpperCase();
+            final byte[] readBases = read.getReadString().toUpperCase().getBytes();
+
+            ref = new String(ref).toUpperCase().getBytes();
 
             mismatch_flags = new byte[(int)(rStop-rStart+1)];
             expanded_quals = new byte[(int)(rStop-rStart+1)];
@@ -1325,31 +1449,30 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
                 final CigarElement ce = c.getCigarElement(i);
                 IndelVariant.Type type = null;
-                String bases = null;
+                String indel_bases = null;
                 int eventPosition = posOnRef;
 
                 switch(ce.getOperator()) {
-                case H: break; // hard clipped reads do not have clipped bases in their sequence, so we just ignore the H element...
+                case H: break; // hard clipped reads do not have clipped indel_bases in their sequence, so we just ignore the H element...
                 case I:
                     type = IndelVariant.Type.I;
-                    bases = readBases.substring(posOnRead,posOnRead+ce.getLength());
+                    indel_bases = read.getReadString().substring(posOnRead,posOnRead+ce.getLength());
                     // will increment position on the read below, there's no 'break' statement yet...
                 case S:
-                    // here we also skip soft-clipped bases on the read; according to SAM format specification,
+                    // here we also skip soft-clipped indel_bases on the read; according to SAM format specification,
                     // alignment start position on the reference points to where the actually aligned
-                    // (not clipped) bases go, so we do not need to increment reference position here
+                    // (not clipped) indel_bases go, so we do not need to increment reference position here
                     posOnRead += ce.getLength();
                     break;
                 case D:
                     type = IndelVariant.Type.D;
-                    bases = new String( ref, posOnRef, ce.getLength() );
+                    indel_bases = new String( ref, posOnRef, ce.getLength() );
                     for( int k = 0 ; k < ce.getLength(); k++, posOnRef++ ) mismatch_flags[posOnRef] = expanded_quals[posOnRef] = -1;
 
                     break;
                 case M:
                     for ( int k = 0; k < ce.getLength(); k++, posOnRef++, posOnRead++ ) {
-                        if ( readBases.charAt(posOnRead) != //note: readBases was uppercased above!
-                             Character.toUpperCase(ref[posOnRef]) ) { // mismatch!
+                        if ( readBases[posOnRead] != ref[posOnRef] )  { // mismatch!
                             mms++;
                             mismatch_flags[posOnRef] = 1;
                         }
@@ -1368,7 +1491,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
                 // note that here we will be assigning indels to the first deleted base or to the first
                 // base after insertion, not to the last base before the event!
-                l.addObservation((int)(offset+eventPosition), type, bases, this);
+                l.addObservation((int)(offset+eventPosition), type, indel_bases, this);
             }
         }
 
@@ -1389,5 +1512,72 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         }
 
 
+    }
+
+}
+
+
+class VCFIndelAttributes {
+    public static String DEPTH_INDEL_KEY = VCFConstants.ALLELE_COUNT_KEY;
+    public static String DEPTH_TOTAL_KEY = VCFConstants.DEPTH_KEY;
+
+    public static String MAPQ_KEY = "MQ";
+
+    public static String MM_KEY = "MM";
+
+    public static String NQS_MMRATE_KEY = "NQSMM";
+
+    public static String NQS_AVQ_KEY = "NQSBQ";
+
+    public static String STRAND_COUNT_KEY = "SC";
+
+    public static Set<VCFInfoHeaderLine> getAttributeHeaderLines(String prefix, String descr_prefix) {
+        Set<VCFInfoHeaderLine> lines = new HashSet<VCFInfoHeaderLine>();
+
+        lines.add(new VCFInfoHeaderLine(prefix+DEPTH_INDEL_KEY, 2, VCFHeaderLineType.Integer, descr_prefix+"# of reads supporting consensus indel/any indel at the site"));
+        lines.add(new VCFInfoHeaderLine(prefix+DEPTH_TOTAL_KEY, 1, VCFHeaderLineType.Integer, descr_prefix+"total coverage at the site"));
+
+        lines.add(new VCFInfoHeaderLine(prefix+MAPQ_KEY, 2, VCFHeaderLineType.Float, descr_prefix+"average mapping quality of consensus indel-supporting reads/reference-supporting reads"));
+
+        lines.add(new VCFInfoHeaderLine(prefix+MM_KEY, 2, VCFHeaderLineType.Float, descr_prefix+"average # of mismatches per consensus indel-supporting read/per reference-supporting read"));
+
+        lines.add(new VCFInfoHeaderLine(prefix+NQS_MMRATE_KEY, 2, VCFHeaderLineType.Float, descr_prefix+"Within NQS window: fraction of mismatching bases in consensus indel-supporting reads/in reference-supporting reads"));
+
+        lines.add(new VCFInfoHeaderLine(prefix+NQS_AVQ_KEY, 2, VCFHeaderLineType.Float, descr_prefix+"Within NQS window: average quality of bases from consensus indel-supporting reads/from reference-supporting reads"));
+
+        lines.add(new VCFInfoHeaderLine(prefix+STRAND_COUNT_KEY, 4, VCFHeaderLineType.Integer, descr_prefix+"strandness: counts of forward-/reverse-aligned indel-supporting reads / forward-/reverse-aligned reference supporting reads"));
+
+        return lines;
+    }
+
+    public static Map<String,Object> recordStrandCounts(String prefix, int cnt_cons_fwd, int cnt_cons_rev, int cnt_ref_fwd, int cnt_ref_rev, Map<String,Object> attrs) {
+        attrs.put(prefix+STRAND_COUNT_KEY, new Integer[] {cnt_cons_fwd, cnt_cons_rev, cnt_ref_fwd, cnt_ref_rev} );
+        return attrs;
+    }
+
+    public static Map<String,Object> recordDepth(String prefix, int cnt_cons, int cnt_indel, int cnt_total, Map<String,Object> attrs) {
+        attrs.put(prefix+DEPTH_INDEL_KEY, new Integer[] {cnt_cons, cnt_indel} );
+        attrs.put(prefix+DEPTH_TOTAL_KEY, cnt_total);
+        return attrs;
+    }
+
+    public static Map<String,Object> recordAvMapQ(String prefix, double cons, double ref, Map<String,Object> attrs) {
+        attrs.put(prefix+MAPQ_KEY, new Float[] {(float)cons, (float)ref} );
+        return attrs;
+    }
+
+    public static Map<String,Object> recordAvMM(String prefix, double cons, double ref, Map<String,Object> attrs) {
+        attrs.put(prefix+MM_KEY, new Float[] {(float)cons, (float)ref} );
+        return attrs;
+    }
+
+    public static Map<String,Object> recordNQSMMRate(String prefix, double cons, double ref, Map<String,Object> attrs) {
+        attrs.put(prefix+NQS_MMRATE_KEY, new Float[] {(float)cons, (float)ref} );
+        return attrs;
+    }
+
+    public static Map<String,Object> recordNQSAvQ(String prefix, double cons, double ref, Map<String,Object> attrs) {
+        attrs.put(prefix+NQS_AVQ_KEY, new Float[] {(float)cons, (float)ref} );
+        return attrs;
     }
 }
