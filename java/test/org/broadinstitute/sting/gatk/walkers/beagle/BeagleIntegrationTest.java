@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.gatk.walkers;
+package org.broadinstitute.sting.gatk.walkers.beagle;
 
 import org.broadinstitute.sting.WalkerTest;
 import org.junit.Test;

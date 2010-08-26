@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.gatk.walkers.annotator;
+package org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -159,7 +159,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                     boolean matchFound = false;
                     for(String hapAlt : hapAltValue.split("[,\\\\/:|]")) {
                         if(!positiveStrand) {
-                            hapAlt = BaseUtils.simpleReverseComplement(hapAlt);
+                            hapAlt = new String(BaseUtils.simpleReverseComplement(hapAlt.getBytes()));
                         }
 
                         if(!hapAlt.isEmpty() && vcAlt.basesMatch(hapAlt)) {
@@ -228,9 +228,9 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
 
     /**
      * Combines the 2 values into a full key.
-     * @param rodBindingName
-     * @param columnName
-     * @return
+     * @param rodBindingName -B name
+     * @param columnName     column name
+     * @return info field key
      */
     public static String generateInfoFieldKey(String rodBindingName, String columnName ) {
         return rodBindingName + '.' + columnName;
@@ -241,7 +241,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
     /**
      * Replaces any characters that are not allowed in the info field of a VCF file.
      *
-     * @param value
+     * @param value info field value
      * @return the value with any illegal characters replaced by legal ones.
      */
     private static String scrubInfoFieldValue(String value) {

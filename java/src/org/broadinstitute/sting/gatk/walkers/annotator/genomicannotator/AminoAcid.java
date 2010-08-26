@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.gatk.walkers.annotator;
+package org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator;
 
 /**
  * Represents a single amino acid.

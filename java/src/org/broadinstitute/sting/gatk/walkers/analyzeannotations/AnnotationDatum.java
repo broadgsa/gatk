@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.variantoptimizer;
+package org.broadinstitute.sting.gatk.walkers.analyzeannotations;
 
 import org.broadinstitute.sting.utils.StingException;
 

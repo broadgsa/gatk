@@ -24,7 +24,7 @@
  */
 
 
-package org.broadinstitute.sting.playground.gatk.walkers.annotator;
+package org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator;
 
 import java.io.IOException;
 import java.util.*;

@@ -47,11 +47,8 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.playground.gatk.walkers.annotator.GenomicAnnotation;
-import org.broadinstitute.sting.playground.gatk.walkers.annotator.JoinTable;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
+import org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 
