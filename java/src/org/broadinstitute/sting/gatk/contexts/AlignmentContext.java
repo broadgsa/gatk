@@ -30,8 +30,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
-    import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
-import org.broadinstitute.sting.gatk.iterators.LocusOverflowTracker;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 
 import java.util.*;
 
@@ -47,7 +46,6 @@ import java.util.*;
 public class AlignmentContext {
     protected GenomeLoc loc = null;
     protected ReadBackedPileup basePileup = null;
-    private LocusOverflowTracker tracker;
 
     /**
      * The number of bases we've skipped over in the reference since the last map invocation.
@@ -190,22 +188,5 @@ public class AlignmentContext {
      */
     public long getSkippedBases() {
         return skippedBases;
-    }
-
-    /**
-     * a method for injecting the current locus overflow tracker into the alignment context.
-     * @param state
-     */
-    public void setLocusOverflowTracker(LocusOverflowTracker state) {
-        this.tracker = state;
-    }
-
-    /**
-     * have we exceeded the maximum pileup at the current locus?
-     * @return true if we have, false otherwise
-     */
-    public boolean hasExceededMaxPileup() {
-        if (this.tracker == null) return false;
-        return this.tracker.inDroppedRegion(getLocation());
     }
 }

@@ -132,57 +132,6 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
 
         Assert.assertTrue("Extended event pileup not found",foundExtendedEventPileup);
     }
-
-    @Test
-    public void testBasicWarnings() {
-        // create a bunch of fake records
-        List<SAMRecord> records = new ArrayList<SAMRecord>();
-        for (int x = 1; x < 50; x++)
-            records.add(ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, x, 20));
-
-        // create a test version of the Reads object
-        ReadProperties reads = new ReadProperties(new ArrayList<SAMReaderID>());
-        JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"maximumReadsAtLocus"),reads,MAX_READS);
-
-        // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(records.iterator()), reads);
-
-        // inject the testing version of the locus iterator watcher
-        li.setLocusOverflowTracker(new LocusIteratorOverride(MAX_READS));
-        ((LocusIteratorOverride)li.getLocusOverflowTracker()).resetWarningCount();
-        while (li.hasNext()) {
-            AlignmentContext context = li.next();
-            //System.err.println(context.getLocation() + " " + context.getPileup().size());
-        }
-        Assert.assertEquals(1, ((LocusIteratorOverride) li.getLocusOverflowTracker()).getWarningCount());
-    }
-
-    @Test
-    public void testTwoBigPiles() {
-        // create a bunch of fake records
-        List<SAMRecord> records = new ArrayList<SAMRecord>();
-        for (int x = 1; x < 50; x++)
-            records.add(ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, 1, 20));
-        for (int x = 1; x < 50; x++)
-            records.add(ArtificialSAMUtils.createArtificialRead(header, "readUno", 0, 100, 20));
-
-        // create a test version of the Reads object
-        ReadProperties reads = new ReadProperties(new ArrayList<SAMReaderID>());
-        JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"maximumReadsAtLocus"),reads,MAX_READS);
-
-        // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(records.iterator()), reads);
-
-        // inject the testing version of the locus iterator watcher
-        li.setLocusOverflowTracker(new LocusIteratorOverride(MAX_READS));
-        ((LocusIteratorOverride)li.getLocusOverflowTracker()).resetWarningCount();
-        while (li.hasNext()) {
-            AlignmentContext context = li.next();
-            //System.err.println(context.getLocation() + " " + context.getPileup().size());
-        }
-        li.getLocusOverflowTracker().cleanWarningQueue();
-        Assert.assertEquals(2, ((LocusIteratorOverride) li.getLocusOverflowTracker()).getWarningCount());
-    }
 }
 
 class FakeCloseableIterator<T> implements CloseableIterator<T> {

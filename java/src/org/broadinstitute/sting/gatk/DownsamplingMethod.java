@@ -25,6 +25,11 @@ public class DownsamplingMethod {
      */
     public final Double toFraction;
 
+    /**
+     * Expresses no downsampling applied at all.
+     */
+    public static final DownsamplingMethod NONE = new DownsamplingMethod(DownsampleType.NONE,null,null);
+
     public DownsamplingMethod(DownsampleType type, Integer toCoverage, Double toFraction) {
         // Do some basic sanity checks on the downsampling parameters passed in.
 
@@ -37,7 +42,7 @@ public class DownsamplingMethod {
             throw new StingException("Downsampling coverage and fraction are both specified.  Please choose only one.");
 
         // Experimental by sample downsampling does not work with a fraction of reads.
-        if(type == DownsampleType.EXPERIMENTAL_BY_SAMPLE && toFraction != null)
+        if(type == DownsampleType.BY_SAMPLE && toFraction != null)
             throw new StingException("Cannot downsample to fraction with new EXPERIMENTAL_BY_SAMPLE method");
 
         this.type = type;

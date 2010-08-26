@@ -67,21 +67,7 @@ public class ReadFormattingIterator implements StingSAMIterator {
      *         no next exists.
      */
     public SAMRecord next() {
-        SAMRecord read = wrappedIterator.next();
-
-        // if we don't have a read group, set one.
-        // TODO: Straw poll to see whether this is really required.        
-        if (read.getAttribute(SAMTag.RG.toString()) == null && read.getFileSource() != null && read.getFileSource().getReader() != null) {
-            List<SAMReadGroupRecord> readGroups = read.getFileSource().getReader().getFileHeader().getReadGroups();
-            if (readGroups.size() == 1) {
-                read.setAttribute(SAMTag.RG.toString(), readGroups.get(0).getReadGroupId());
-                read.setAttribute(SAMTag.SM.toString(), readGroups.get(0).getReadGroupId());
-            } else {
-                logger.warn("Unable to set read group of ungrouped read: unable to pick default group, there are " + readGroups.size() + " possible.");
-            }
-        }
-
-        return new GATKSAMRecord(read);
+        return new GATKSAMRecord(wrappedIterator.next());
     }
 
     /**

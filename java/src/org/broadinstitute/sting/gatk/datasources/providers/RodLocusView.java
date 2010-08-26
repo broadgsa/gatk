@@ -34,7 +34,6 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.MergingIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
-import org.broadinstitute.sting.gatk.iterators.LocusOverflowTracker;
 
 import java.util.*;
 
@@ -137,11 +136,6 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         long skippedBases = getSkippedBases( rodSite );
         lastLoc = site;
         return new AlignmentContext(site, new ReadBackedPileupImpl(site), skippedBases);
-    }
-
-    public LocusOverflowTracker getLocusOverflowTracker() {
-        // we don't have an overflow tracker
-        return null;  
     }
 
     private RefMetaDataTracker createTracker( Collection<RODRecordList> allTracksHere ) {

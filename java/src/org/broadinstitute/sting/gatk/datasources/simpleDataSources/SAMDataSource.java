@@ -560,14 +560,6 @@ public class SAMDataSource implements SimpleDataSource {
                 final SAMFileHeader header = reader.getFileHeader();
                 logger.debug(String.format("Sort order is: " + header.getSortOrder()));
 
-                if (reader.getFileHeader().getReadGroups().size() < 1) {
-                    SAMReadGroupRecord rec = new SAMReadGroupRecord(readerID.samFile.getName());
-                    rec.setLibrary(readerID.samFile.getName());
-                    rec.setSample(readerID.samFile.getName());
-
-                    reader.getFileHeader().addReadGroup(rec);
-                }
-
                 readers.put(readerID,reader);
             }
         }

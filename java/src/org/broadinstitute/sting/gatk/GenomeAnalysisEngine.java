@@ -337,8 +337,6 @@ public class GenomeAnalysisEngine {
     protected Collection<SamRecordFilter> createFiltersForWalker(GATKArgumentCollection args, Walker walker) {
         Set<SamRecordFilter> filters = new HashSet<SamRecordFilter>();
         filters.addAll(WalkerManager.getReadFilters(walker,filterManager));
-        if (args.filterZeroMappingQualityReads != null && args.filterZeroMappingQualityReads)
-            filters.add(new ZeroMappingQualityReadFilter());
         if (args.readGroupBlackList != null && args.readGroupBlackList.size() > 0)
             filters.add(new ReadGroupBlackListFilter(args.readGroupBlackList));
         for(String filterName: args.readFilters)
@@ -568,12 +566,12 @@ public class GenomeAnalysisEngine {
     private ReadProperties extractSourceInfo(Walker walker, Collection<SamRecordFilter> filters, GATKArgumentCollection argCollection) {
 
         DownsamplingMethod method = null;
-        if(argCollection.downsamplingType != DownsampleType.NONE)
-            method = new DownsamplingMethod(argCollection.downsamplingType,argCollection.downsampleCoverage,argCollection.downsampleFraction);
+        if(argCollection.getDownsamplingMethod() != null)
+            method = argCollection.getDownsamplingMethod();
         else if(WalkerManager.getDownsamplingMethod(walker) != null)
             method = WalkerManager.getDownsamplingMethod(walker);
         else
-            method = new DownsamplingMethod(DownsampleType.NONE,null,null);
+            method = argCollection.getDefaultDownsamplingMethod();
 
         return new ReadProperties(unpackBAMFileList(argCollection.samFiles),
                 argCollection.strictnessLevel,
@@ -581,7 +579,6 @@ public class GenomeAnalysisEngine {
                 method,
                 new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,
-                argCollection.readMaxPileup,
                 walker.includeReadsWithDeletionAtLoci(),
                 walker.generateExtendedEvents());
     }

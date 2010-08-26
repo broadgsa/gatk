@@ -32,7 +32,6 @@ public class ReadProperties {
     private DownsamplingMethod downsamplingMethod = null;
     private ValidationExclusion exclusionList = null;
     private Collection<SamRecordFilter> supplementalFilters = null;
-    protected int maximumReadsAtLocus = Integer.MAX_VALUE; // this should always be set, so we'll default it MAX_INT
     private boolean includeReadsWithDeletionAtLoci = false;
     private boolean generateExtendedEvents = false; // do we want to generate additional piles of "extended" events (indels)
 // immediately after the reference base such event is associated with?
@@ -92,14 +91,6 @@ public class ReadProperties {
     }
 
     /**
-     * get the maximum number of reads we allow at a locus for locus-by-hanger
-     * @return the maximum reads allowed in a pile-up
-     */
-    public Integer getMaxReadsAtLocus() {
-        return maximumReadsAtLocus;
-    }
-
-    /**
      * Return whether to 'verify' the reads as we pass through them.
      * @return Whether to verify the reads.
      */
@@ -117,7 +108,7 @@ public class ReadProperties {
      */
     public ReadProperties( List<SAMReaderID> readsFiles ) {
         this.readers = readsFiles;
-        this.downsamplingMethod = new DownsamplingMethod(DownsampleType.NONE,null,null);
+        this.downsamplingMethod = DownsamplingMethod.NONE;
         this.supplementalFilters = new ArrayList<SamRecordFilter>();
         this.exclusionList = new ValidationExclusion();
     }
@@ -144,7 +135,6 @@ public class ReadProperties {
            DownsamplingMethod downsamplingMethod,
            ValidationExclusion exclusionList,
            Collection<SamRecordFilter> supplementalFilters,
-           int maximumReadsAtLocus,
            boolean includeReadsWithDeletionAtLoci,
            boolean generateExtendedEvents) {
         this.readers = samFiles;
@@ -153,7 +143,6 @@ public class ReadProperties {
         this.downsamplingMethod = downsamplingMethod;
         this.exclusionList = exclusionList == null ? new ValidationExclusion() : exclusionList;
         this.supplementalFilters = supplementalFilters;
-        this.maximumReadsAtLocus = maximumReadsAtLocus;
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
         this.generateExtendedEvents = generateExtendedEvents;
     }

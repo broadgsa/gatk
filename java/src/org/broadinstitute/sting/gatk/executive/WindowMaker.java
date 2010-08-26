@@ -30,11 +30,6 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     private final StingSAMIterator readIterator;
 
     /**
-     * The locus overflow tracker.
-     */
-    private final LocusOverflowTracker locusOverflowTracker;
-
-    /**
      * The data source for reads.  Will probably come directly from the BAM file.
      */
     private final PeekableIterator<AlignmentContext> sourceIterator;
@@ -61,8 +56,6 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         this.readIterator = iterator;
 
         LocusIterator locusIterator = new LocusIteratorByState(iterator,sourceInfo,discards);
-
-        this.locusOverflowTracker = locusIterator.getLocusOverflowTracker();
 
         this.sourceIterator = new PeekableIterator<AlignmentContext>(locusIterator);
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
@@ -120,10 +113,6 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         public AlignmentContext next() {
             if(!hasNext()) throw new NoSuchElementException("WindowMakerIterator is out of elements for this interval.");
             return sourceIterator.next();
-        }
-
-        public LocusOverflowTracker getLocusOverflowTracker() {
-            return locusOverflowTracker;
         }
 
         public void seedNextLocus() {

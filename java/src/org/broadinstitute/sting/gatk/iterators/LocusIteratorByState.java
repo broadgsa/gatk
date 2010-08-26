@@ -50,12 +50,6 @@ public class LocusIteratorByState extends LocusIterator {
     //public static final EnumSet<Discard> NO_DISCARDS = EnumSet.noneOf(Discard.class);
     public static final List<LocusIteratorFilter> NO_FILTERS = Arrays.asList();
 
-    /**
-     * the overflow tracker, which makes sure we get a limited number of warnings for locus pile-ups that
-     * exceed the max depth
-     */
-    private LocusOverflowTracker overflowTracker;
-
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(LocusIteratorByState.class);
 
@@ -285,10 +279,9 @@ public class LocusIteratorByState extends LocusIterator {
         }
         // Add a null sample name as a catch-all for reads without samples
         if(!sampleNames.contains(null)) sampleNames.add(null);        
-        readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod(),readInformation.getMaxReadsAtLocus(),sampleNames);
+        readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod(),sampleNames);
         this.readInfo = readInformation;
         this.filters = filters;
-        overflowTracker = new LocusOverflowTracker(readInformation.getMaxReadsAtLocus());
     }
 
     public Iterator<AlignmentContext> iterator() {
@@ -301,14 +294,8 @@ public class LocusIteratorByState extends LocusIterator {
 
     public boolean hasNext() {
         lazyLoadNextAlignmentContext();
-        boolean r = (nextAlignmentContext != null);
+        return (nextAlignmentContext != null);
         //if ( DEBUG ) System.out.printf("hasNext() = %b%n", r);
-
-        // if we don't have a next record, make sure we clean the warning queue
-        // TODO: Note that this implementation requires that hasNext() always be called before next().
-        if (!r) overflowTracker.cleanWarningQueue();
-
-        return r;
     }
 
     public void printState() {
@@ -537,22 +524,6 @@ public class LocusIteratorByState extends LocusIterator {
         throw new UnsupportedOperationException("Can not remove records from a SAM file via an iterator!");
     }
 
-    /**
-     * a method for setting the overflow tracker, for dependency injection
-     * @param tracker
-     */
-    protected void setLocusOverflowTracker(LocusOverflowTracker tracker) {
-        this.overflowTracker = tracker;
-    }
-
-    /**
-     * a method for getting the overflow tracker
-     * @return the overflow tracker, null if none exists
-     */
-    public LocusOverflowTracker getLocusOverflowTracker() {
-        return this.overflowTracker;
-    }
-
     private class ReadStateManager  {
         private final PeekableIterator<SAMRecord> iterator;
         private final DownsamplingMethod downsamplingMethod;
@@ -563,15 +534,14 @@ public class LocusIteratorByState extends LocusIterator {
         private final Map<String,PerSampleReadStateManager> readStatesBySample = new HashMap<String,PerSampleReadStateManager>();
 
         private final int targetCoverage;
-        private final int maxReadsAtLocus;
 
         private int totalReadStates = 0;
 
-        public ReadStateManager(Iterator<SAMRecord> source, DownsamplingMethod downsamplingMethod, int maxReadsAtLocus, Collection<String> sampleNames) {
+        public ReadStateManager(Iterator<SAMRecord> source, DownsamplingMethod downsamplingMethod, Collection<String> sampleNames) {
             this.iterator = new PeekableIterator<SAMRecord>(source);
             this.downsamplingMethod = downsamplingMethod;
             switch(downsamplingMethod.type) {
-                case EXPERIMENTAL_BY_SAMPLE:
+                case BY_SAMPLE:
                     if(downsamplingMethod.toCoverage == null)
                         throw new StingException("Downsampling coverage (-dcov) must be specified when downsampling by sample");
                     this.targetCoverage = downsamplingMethod.toCoverage;
@@ -579,17 +549,16 @@ public class LocusIteratorByState extends LocusIterator {
                 default:
                     this.targetCoverage = Integer.MAX_VALUE;
             }
-            this.maxReadsAtLocus = maxReadsAtLocus;
 
             samplePartitioner = new SamplePartitioner(sampleNames);
             for(String sampleName: sampleNames)
                 readStatesBySample.put(sampleName,new PerSampleReadStateManager());
 
             ReadSelector primaryReadSelector = samplePartitioner;
-            if(downsamplingMethod.type == DownsampleType.EXPERIMENTAL_BY_SAMPLE)
+            if(downsamplingMethod.type == DownsampleType.BY_SAMPLE)
                 primaryReadSelector = new NRandomReadSelector(primaryReadSelector,targetCoverage);
 
-            chainedReadSelector = maxReadsAtLocus!=Integer.MAX_VALUE ? new FirstNReadSelector(primaryReadSelector,maxReadsAtLocus) : primaryReadSelector;
+            chainedReadSelector = primaryReadSelector;
         }
 
         public Iterator<SAMRecordState> iteratorForSample(final String sampleName) {
@@ -665,12 +634,7 @@ public class LocusIteratorByState extends LocusIterator {
 
                 if(numReads+newReads.size()<=targetCoverage || downsamplingMethod.type==DownsampleType.NONE) {
                     long readLimit = aggregator.getNumReadsSeen();
-                    boolean mrlViolation = false;
-                    if(readLimit > maxReadsAtLocus-totalReadStates) {
-                        readLimit = maxReadsAtLocus-totalReadStates;
-                        mrlViolation = true;
-                    }
-                    addReadsToSample(statesBySample,newReads,readLimit,mrlViolation);
+                    addReadsToSample(statesBySample,newReads,readLimit);
                     statesBySample.specifyNewDownsamplingExtent(downsamplingExtent);
                 }
                 else {
@@ -709,7 +673,7 @@ public class LocusIteratorByState extends LocusIterator {
                     }
                     downsamplingExtent = Math.max(downsamplingExtent,statesBySample.purge(toPurge));
                     
-                    addReadsToSample(statesBySample,newReads,targetCoverage-numReads,false);
+                    addReadsToSample(statesBySample,newReads,targetCoverage-numReads);
                     statesBySample.specifyNewDownsamplingExtent(downsamplingExtent);
                 }
             }
@@ -722,14 +686,9 @@ public class LocusIteratorByState extends LocusIterator {
          * @param reads Reads to add.  Selected reads will be pulled from this source.
          * @param maxReads Maximum number of reads to add.
          */
-        private void addReadsToSample(final PerSampleReadStateManager readStates, final Collection<SAMRecord> reads, final long maxReads, boolean atMaxReadsAtLocusLimit) {
+        private void addReadsToSample(final PerSampleReadStateManager readStates, final Collection<SAMRecord> reads, final long maxReads) {
             if(reads.isEmpty())
                 return;
-
-            GenomeLoc location = null;
-
-            // the farthest right a read extends
-            Integer rightMostEnd = -1;            
 
             Collection<SAMRecordState> newReadStates = new LinkedList<SAMRecordState>();
             int readCount = 0;
@@ -742,17 +701,8 @@ public class LocusIteratorByState extends LocusIterator {
                     if (state.hadIndel()) hasExtendedEvents = true;
                     readCount++;
                 }
-                if(atMaxReadsAtLocusLimit) {
-                    if (location == null)
-                        location = GenomeLocParser.createGenomeLoc(read);
-                    rightMostEnd = (read.getAlignmentEnd() > rightMostEnd) ? read.getAlignmentEnd() : rightMostEnd;                    
-                }
             }
             readStates.addStatesAtNextAlignmentStart(newReadStates);
-
-            if (location != null)
-                overflowTracker.exceeded(GenomeLocParser.createGenomeLoc(location.getContigIndex(),location.getStart(),rightMostEnd),
-                                         totalReadStates);            
         }
 
         private class PerSampleReadStateManager implements Iterable<SAMRecordState> {
@@ -938,72 +888,6 @@ interface ReadSelector {
      * Reset this collection to its pre-gathered state.
      */
     public void reset();
-}
-
-/**
- * Choose the first N reads from the submitted set.
- */
-class FirstNReadSelector implements ReadSelector {
-    private final ReadSelector chainedSelector;
-
-    private final Collection<SAMRecord> selectedReads = new LinkedList<SAMRecord>();
-    private final long readLimit;
-    private long readsSeen = 0;
-    private int downsamplingExtent = 0;
-
-    public FirstNReadSelector(ReadSelector chainedSelector, long readLimit) {
-        this.chainedSelector = chainedSelector;
-        this.readLimit = readLimit;
-    }
-
-    public void submitRead(SAMRecord read) {
-        if(readsSeen < readLimit) {
-            selectedReads.add(read);
-            if(chainedSelector != null)
-                chainedSelector.submitRead(read);
-        }
-        else
-            if(chainedSelector != null) {
-                chainedSelector.notifyReadRejected(read);
-                downsamplingExtent = Math.max(downsamplingExtent,read.getAlignmentEnd());
-            }
-        readsSeen++;
-    }
-
-    public void notifyReadRejected(SAMRecord read) {
-        if(chainedSelector != null)
-            chainedSelector.notifyReadRejected(read);
-        readsSeen++;
-    }
-
-    public void complete() {
-        if(chainedSelector != null)
-            chainedSelector.complete();
-    }
-
-    public long getNumReadsSeen() {
-        return readsSeen;
-    }
-
-    public long getNumReadsSelected() {
-        return selectedReads.size();
-    }
-
-    public int getDownsamplingExtent() {
-        return downsamplingExtent;
-    }
-
-    public Collection<SAMRecord> getSelectedReads() {
-        return selectedReads;
-    }
-
-    public void reset() {
-        selectedReads.clear();
-        readsSeen = 0;
-        downsamplingExtent = 0;
-        if(chainedSelector != null)
-            chainedSelector.reset();
-    }
 }
 
 /**

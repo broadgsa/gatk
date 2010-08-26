@@ -6,7 +6,6 @@ import java.util.Collections;
 
 import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.iterators.LocusOverflowTracker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.samtools.SAMRecord;
 /**
@@ -89,12 +88,6 @@ public class AllLocusView extends LocusView {
 
 
         return currentLocus;
-    }
-
-    @Override
-    public LocusOverflowTracker getLocusOverflowTracker() {
-        // we don't hold a overflow tracker
-        return null;
     }
 
     /**

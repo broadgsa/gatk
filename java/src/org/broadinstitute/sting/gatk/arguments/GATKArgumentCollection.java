@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.simpleframework.xml.*;
@@ -113,13 +114,18 @@ public class GATKArgumentCollection {
     @Input(fullName = "hapmap_chip", shortName = "hc", doc = "Hapmap chip file", required = false)
     public String HAPMAPChipFile = null;
 
-    @Element(required = false)
-    @Argument(fullName = "filterZeroMappingQualityReads", shortName = "fmq0", doc = "If true, mapping quality zero reads will be filtered at the lowest GATK level.  Vastly improves performance at areas with abnormal depth due to mapping Q0 reads", required = false)
-    public Boolean filterZeroMappingQualityReads = false;
+    /**
+     * The override mechanism in the GATK, by default, populates the command-line arguments, then
+     * the defaults from the walker annotations.  Unfortunately, walker annotations should be trumped
+     * by a user explicitly specifying command-line arguments.
+     * TODO: Change the GATK so that walker defaults are loaded first, then command-line arguments.
+     */
+    private static DownsampleType DEFAULT_DOWNSAMPLING_TYPE = DownsampleType.BY_SAMPLE;
+    private static int DEFAULT_DOWNSAMPLING_COVERAGE = 1000;
 
     @Element(required = false)
     @Argument(fullName = "downsampling_type", shortName="dt", doc="Type of reads downsampling to employ at a given locus.  Reads will be selected randomly to be removed from the pile based on the method described here.", required = false)
-    public DownsampleType downsamplingType = DownsampleType.NONE;
+    public DownsampleType downsamplingType = null;
 
     @Element(required = false)
     @Argument(fullName = "downsample_to_fraction", shortName = "dfrac", doc = "Fraction [0.0-1.0] of reads to downsample to", required = false)
@@ -128,6 +134,26 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus (use max_reads_at_locus to stop the engine from reading in all reads)", required = false)
     public Integer downsampleCoverage = null;
+
+    /**
+     * Gets the downsampling method explicitly specified by the user.  If the user didn't specify
+     * a default downsampling mechanism, return null.
+     * @return The explicitly specified downsampling mechanism, or null if none exists.
+     */
+    public DownsamplingMethod getDownsamplingMethod() {
+        if(downsamplingType == null && downsampleFraction == null && downsampleCoverage == null)
+            return null;
+        return new DownsamplingMethod(downsamplingType,downsampleCoverage,downsampleFraction);
+    }
+
+    /**
+     * Gets the default downsampling method, returned if the user didn't specify any downsampling
+     * method.
+     * @return The default downsampling mechanism, or null if none exists.
+     */
+    public DownsamplingMethod getDefaultDownsamplingMethod() {
+        return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,DEFAULT_DOWNSAMPLING_COVERAGE,null);
+    }
 
     @Element(required = false)
     @Argument(fullName="useOriginalQualities", shortName = "OQ", doc = "If set, use the original base quality scores from the OQ tag when present instead of the standard scores", required=false)
@@ -140,10 +166,6 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations, nothing will be checked at runtime.", required = false)
     public ValidationExclusion.TYPE unsafe;
-
-    @Element(required = false)
-    @Argument(fullName = "max_reads_at_locus", shortName = "mrl", doc = "Sets the upper limit for the number of reads presented at a single locus; use this argument if you are running into memory issues resulting from too many reads piled up at a given locus (but use downsample_to_coverage instead if you are trying to downsample); int.MAX_VALUE by default.", required = false)
-    public int readMaxPileup = Integer.MAX_VALUE;
 
     /** How many threads should be allocated to this analysis. */
     @Element(required = false)
@@ -293,13 +315,6 @@ public class GATKArgumentCollection {
             return false;
         }
         if (!other.unsafe.equals(this.unsafe)) {
-            return false;
-        }
-        if (other.readMaxPileup != this.readMaxPileup) {
-            return false;
-        }
-        if ((other.filterZeroMappingQualityReads == null && this.filterZeroMappingQualityReads != null) ||
-                (other.filterZeroMappingQualityReads != null && !other.filterZeroMappingQualityReads.equals(this.filterZeroMappingQualityReads))) {
             return false;
         }
         if ((other.downsampleFraction == null && this.downsampleFraction != null) ||
