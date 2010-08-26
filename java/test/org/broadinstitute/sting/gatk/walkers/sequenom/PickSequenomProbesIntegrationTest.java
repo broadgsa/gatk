@@ -11,7 +11,7 @@ public class PickSequenomProbesIntegrationTest extends WalkerTest {
         String testVCF = validationDataLocation + "complexExample.vcf4";
         String testArgs = "-R " + b36KGReference + " -T PickSequenomProbes -L 1:10,000,000-11,000,000 -B:input,VCF "+testVCF+" -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
-                Arrays.asList("71e717e1813791575231f884b51c0aa3"));
+                Arrays.asList("0f356354a4a78ff62b2848431ec11262"));
         executeTest("Test probes", spec);
     }
 
@@ -26,8 +26,6 @@ public class PickSequenomProbesIntegrationTest extends WalkerTest {
                 Arrays.asList("0ab37fe4db3fef345815c56e57e75cec"));
         executeTest("Test probes", spec);
     }
-
-    // 03c8cef968ae2d0ef5f51ac82b24f891
 
     @Test
     public void testProbesUsingDbSNPMaskWithNMW1() {
