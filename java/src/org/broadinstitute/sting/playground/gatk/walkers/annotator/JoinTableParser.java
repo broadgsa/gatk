@@ -56,7 +56,8 @@ public class JoinTableParser
     /**
      * Returns the header and returns it.
      * @param br source
-     * @return
+     * @return column names
+     * @throws IOException on read
      */
     public List<String> readHeader(BufferedReader br) throws IOException
     {
@@ -81,7 +82,8 @@ public class JoinTableParser
     /**
      * Parses the line into an ArrayList containing the values for each column.
      *
-     * @param line
+     * @param line to parse
+     * @return tokens
      */
     public ArrayList<String> parseLine(String line) {
 
@@ -99,14 +101,14 @@ public class JoinTableParser
      * Returns the header.
      * @param br The file to read.
      * @return ArrayList containing column names from the header.
-     * @throws IOException
+     * @throws IOException on reading
      */
     public static ArrayList<String> parseHeader(final BufferedReader br) throws IOException
     {
         ArrayList<String> header = null;
 
         //find the 1st line that's non-empty and not a comment
-        String line = null;
+        String line;
         while( (line = br.readLine()) != null ) {
             line = line.trim();
             if ( line.isEmpty() || line.startsWith("#") ) {

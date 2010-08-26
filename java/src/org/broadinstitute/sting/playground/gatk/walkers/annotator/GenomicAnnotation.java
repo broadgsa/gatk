@@ -120,9 +120,8 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
             //Otherwise, the HAPLOTYPE_REFERENCE_COLUMN is only considered to be matching the variant's reference if the string values of the two
             //are exactly equal (case-insensitive).
 
-            //The HAPLOTYPE_REFERENCE_COLUMN is matches the variant's reference allele based on a case-insensitive string comparison.
-            //The HAPLOTYPE_ALTERNATE_COLUMN is can optionally list more than allele separated by one of these chars: ,\/:|
-            //The matches if any of the
+            //The HAPLOTYPE_REFERENCE_COLUMN matches the variant's reference allele based on a case-insensitive string comparison.
+            //The HAPLOTYPE_ALTERNATE_COLUMN can optionally list more than allele separated by one of these chars: ,\/:|
             String hapAltValue = annotationsForRecord.get( generateInfoFieldKey(name, HAPLOTYPE_ALTERNATE_COLUMN) );
             if(hapAltValue != null)
             {

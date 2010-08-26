@@ -63,15 +63,21 @@ public class JoinTable
     //and the entry value is an ArrayList representing the entire join table record.
     private HashMap<String, ArrayList<String>> joinColumnValueToRecords = new HashMap<String, ArrayList<String>>();
 
+    private int maxSize;
     private boolean parsedFromFile = false;
+
+    public JoinTable(int maxSize) {
+        this.maxSize = maxSize;
+    }
 
     /**
      * Parses the table from the given file using the JoinTableParser.
      *
      * @param filename The file containing the table.
+     * @param localBindingName The binding name within the given file to join on.
      * @param localColumnName The column name within the given file to join on.
-     * @param externalBindingName The bindingName of another file (previously specified with either -B or -J).
-     * @param externalColumnName The columnName in this other file to join on.
+     * @param externalBindingName The binding name of another file (previously specified with either -B or -J).
+     * @param externalColumnName The column name in this other file to join on.
      */
     public void parseFromFile(String filename, String localBindingName, String localColumnName, String externalBindingName, String externalColumnName)  {
         if(parsedFromFile) {
@@ -135,7 +141,7 @@ public class JoinTable
     /**
      * If the -J arg was:  -J bindingName1,/path/to/file,bindingName1.columnName=bindingName2.columnName2,
      * this returns bindingName1.
-     * @return
+     * @return local binding name
      */
     public String getLocalBindingName() {
         return localBindingName;
@@ -159,7 +165,7 @@ public class JoinTable
     /**
      * If the -J arg was:  -J bindingName1,/path/to/file,bindingName1.columnName=bindingName2.columnName2,
      * this returns columnName2.
-     * @return
+     * @return external column name
      */
     public String getExternalColumnName() {
         return externalColumnName;
@@ -173,7 +179,7 @@ public class JoinTable
     /**
      * If the -J arg was:  -J bindingName1,/path/to/file,bindingName1.columnName=bindingName2.columnName2,
      * this returns bindingName2.
-     * @return
+     * @return external binding name
      */
     public String getExternalBindingName() {
         return externalBindingName;
@@ -187,7 +193,7 @@ public class JoinTable
     /**
      * Whether any join table records have the given value in the join column.
      * @param joinColumnValue value
-     * @return
+     * @return true if the given name value exists in the file
      */
     public boolean containsJoinColumnValue(String joinColumnValue) {
         return joinColumnValueToRecords.containsKey(joinColumnValue);
@@ -206,10 +212,13 @@ public class JoinTable
      * Adds the given record to the map.
      * @param joinColumnValue value
      * @param record row
+     * @param filename the source file name
      */
     protected void put(String joinColumnValue, ArrayList<String> record, String filename) {
         if ( joinColumnValueToRecords.containsKey(joinColumnValue) )
             throw new IllegalStateException("The file " + filename + " contains non-unique entries for the requested column, which isn't allowed.");
         joinColumnValueToRecords.put(joinColumnValue, record);
+        if ( joinColumnValueToRecords.size() > maxSize )
+            throw new IllegalStateException("The file " + filename + " contains more than the maximum number (" + maxSize + ") of allowed rows (see the --maxJoinTableSize argument).");
     }
 }

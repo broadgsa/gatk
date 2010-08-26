@@ -76,6 +76,9 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
     @Argument(fullName="oneToMany", shortName="m", doc="If more than one record from the same file matches a particular locus (for example, multiple dbSNP records with the same position), create multiple entries in the ouptut VCF file - one for each match. If a particular tabular file has J matches, and another tabular file has K matches for a given locus, then J*K output VCF records will be generated - one for each pair of K, J.   If this flag is not provided, the multiple records are still generated, but they are stored in the INFO field of a single output VCF record, with their annotation keys differentiated by appending '_i' with i varying from 1 to K*J. ", required=false)
     protected Boolean ONE_TO_MANY = false;
 
+    @Argument(fullName="maxJoinTableSize", shortName="maxJoin", doc="The maximum allowed size (i.e. number of rows) for a table provided with the -J argument", required=false)
+    protected Integer MAX_JOIN_TABLE_SIZE = 500000;
+
     private VariantAnnotatorEngine engine;
 
     /**
@@ -159,7 +162,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
             }
 
             //read in the file contents into a JoinTable object
-            final JoinTable joinTable = new JoinTable();
+            final JoinTable joinTable = new JoinTable(MAX_JOIN_TABLE_SIZE);
             joinTable.parseFromFile(filename, localBindingName, localColumnName, externalBindingName, externalColumnName);
             joinTables.add(joinTable);
 
