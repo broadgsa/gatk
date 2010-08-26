@@ -1,6 +1,8 @@
 #Before executing this file, save squid files as csv, then as tab deliminated files with only the column values as the header, change the format of all cells to numbers. Assign the path to these files to "samples" and "lanes" respectively. 
-#testcomment
-
+#TODO: make sure all font sizes readable
+#put everything into one decent looking pdf
+#set up database stuff for firehose and picard interface
+#
 
 stuffmaker<-function(args){
 
@@ -8,9 +10,9 @@ lanes<-args[1]
 samples<-args[2]
 sample_sets<-args[3]
 eval<-args[4]
-noveltitv<-args[5]
-knowntitv<-args[6]
-DOC<-args[7]
+titveval<-args[5]
+DOCi<-args[6]
+DOCs<-args[7]
 
 if(is.na(sample_sets)){
 	print("Please specify sample set for file naming and press enter.")
@@ -23,9 +25,10 @@ if(is.na(sample_sets)){
 		
 		if(typeof(lanes)=="character"){
 			read.delim(file=lanes, header= TRUE)->bylane;
-		 	}else{
+                        colnames(bylane)<-c('Initiative','Project','GSSR.ID','External.ID','WR.ID','Flowcell','Lane','Lane.Type','Library','AL_TOTAL_READS','AL_PF_READS','AL_PCT_PF_READS','AL_PF_NOISE_READS','AL_PF_READS_ALIGNED','AL_PCT_PF_READS_ALIGNED','AL_PF_HQ_ALIGNED_READS','AL_PF_HQ_ALIGNED_BASES','AL_PF_HQ_ALIGNED_Q20_BASES','AL_PF_HQ_MEDIAN_MISMATCHES','AL_MEAN_READ_LENGTH','AL_READS_ALIGNED_IN_PAIRS','AL_PCT_READS_ALIGNED_IN_PAIRS','AL_BAD_CYCLES','AL_PCT_STRAND_BALANCE','DUP_UNPAIRED_READS_EXAMINED','DUP_READ_PAIRS_EXAMINED','DUP_UNMAPPED_READS','DUP_UNPAIRED_READ_DUPLICATES','DUP_READ_PAIR_DUPLICATES','DUP_PERCENT_DUPLICATION','DUP_ESTIMATED_LIBRARY_SIZE','HS_BAIT_SET','HS_GENOME_SIZE','HS_LIBRARY_SIZE','HS_BAIT_TERRITORY','HS_TARGET_TERRITORY','HS_BAIT_DESIGN_EFFICIENCY','HS_TOTAL_READS','HS_PF_READS','HS_PF_UNIQUE_READS','HS_PCT_PF_READS','HS_PCT_PF_UQ_READS','HS_PCT_PF_UQ_READS_ALIGNED','HS_PF_UQ_READS_ALIGNED','HS_PF_UQ_BASES_ALIGNED','HS_ON_BAIT_BASES','HS_NEAR_BAIT_BASES','HS_OFF_BAIT_BASES','HS_ON_TARGET_BASES','HS_PCT_SELECTED_BASES','HS_PCT_OFF_BAIT','HS_ON_BAIT_VS_SELECTED','HS_MEAN_BAIT_COVERAGE','HS_MEAN_TARGET_COVERAGE','HS_FOLD_ENRICHMENT','HS_ZERO_CVG_TARGETS_PCT','HS_FOLD_80_BASE_PENALTY','HS_PCT_TARGET_BASES_2X','HS_PCT_TARGET_BASES_10X','HS_PCT_TARGET_BASES_20X','HS_PCT_TARGET_BASES_30X','HS_PENALTY_10X','HS_PENALTY_20X','HS_PENALTY_30X','SNP_TOTAL_SNPS','SNP_PCT_DBSNP','SNP_NUM_IN_DBSNP','Lane.IC.Matches','Lane.IC.PCT.Mean.RD1.Err.Rate','Lane.IC.PCT.Mean.RD2.Err.Rate','FP_PANEL_NAME','FP_PANEL_SNPS','FP_CONFIDENT_CALLS','FP_CONFIDENT_MATCHING_SNPS','FP_CONFIDENT_CALLED_PCT','FP_CONFIDENT_MATCHING_SNPS_PCT','LPCNCRD_REFERENCE','LPCNCRD_NON_REFERENCE','LPCNCRD_PCT_CONCORDANCE')
+                        }else{
 		 		lanes->bylane
-				colnames(bylane)<-c(Initiative,Project,GSSR.ID,External.ID,WR.ID,Flowcell,Lane,Lane.Type,Library,AL_TOTAL_READS,AL_PF_READS,AL_PCT_PF_READS,AL_PF_NOISE_READS,AL_PF_READS_ALIGNED,AL_PCT_PF_READS_ALIGNED,AL_PF_HQ_ALIGNED_READS,AL_PF_HQ_ALIGNED_BASES,AL_PF_HQ_ALIGNED_Q20_BASES,AL_PF_HQ_MEDIAN_MISMATCHES,AL_MEAN_READ_LENGTH,AL_READS_ALIGNED_IN_PAIRS,AL_PCT_READS_ALIGNED_IN_PAIRS,AL_BAD_CYCLES,AL_PCT_STRAND_BALANCE,DUP_UNPAIRED_READS_EXAMINED,DUP_READ_PAIRS_EXAMINED,DUP_UNMAPPED_READS,DUP_UNPAIRED_READ_DUPLICATES,DUP_READ_PAIR_DUPLICATES,DUP_PERCENT_DUPLICATION,DUP_ESTIMATED_LIBRARY_SIZE,HS_BAIT_SET,HS_GENOME_SIZE,HS_LIBRARY_SIZE,HS_BAIT_TERRITORY,HS_TARGET_TERRITORY,HS_BAIT_DESIGN_EFFICIENCY,HS_TOTAL_READS,HS_PF_READS,HS_PF_UNIQUE_READS,HS_PCT_PF_READS,HS_PCT_PF_UQ_READS,HS_PCT_PF_UQ_READS_ALIGNED,HS_PF_UQ_READS_ALIGNED,HS_PF_UQ_BASES_ALIGNED,HS_ON_BAIT_BASES,HS_NEAR_BAIT_BASES,HS_OFF_BAIT_BASES,HS_ON_TARGET_BASES,HS_PCT_SELECTED_BASES,HS_PCT_OFF_BAIT,HS_ON_BAIT_VS_SELECTED,HS_MEAN_BAIT_COVERAGE,HS_MEAN_TARGET_COVERAGE,HS_FOLD_ENRICHMENT,HS_ZERO_CVG_TARGETS_PCT,HS_FOLD_80_BASE_PENALTY,HS_PCT_TARGET_BASES_2X,HS_PCT_TARGET_BASES_10X,HS_PCT_TARGET_BASES_20X,HS_PCT_TARGET_BASES_30X,HS_PENALTY_10X,HS_PENALTY_20X,HS_PENALTY_30X,SNP_TOTAL_SNPS,SNP_PCT_DBSNP,SNP_NUM_IN_DBSNP,Lane.IC.Matches,Lane.IC.PCT.Mean.RD1.Err.Rate,Lane.IC.PCT.Mean.RD2.Err.Rate,FP_PANEL_NAME,FP_PANEL_SNPS,FP_CONFIDENT_CALLS,FP_CONFIDENT_MATCHING_SNPS,FP_CONFIDENT_CALLED_PCT,FP_CONFIDENT_MATCHING_SNPS_PCT,LPCNCRD_REFERENCE,LPCNCRD_NON_REFERENCE,LPCNCRD_PCT_CONCORDANCE)
+                                colnames(bylane)<-c('Initiative','Project','GSSR.ID','External.ID','WR.ID','Flowcell','Lane','Lane.Type','Library','AL_TOTAL_READS','AL_PF_READS','AL_PCT_PF_READS','AL_PF_NOISE_READS','AL_PF_READS_ALIGNED','AL_PCT_PF_READS_ALIGNED','AL_PF_HQ_ALIGNED_READS','AL_PF_HQ_ALIGNED_BASES','AL_PF_HQ_ALIGNED_Q20_BASES','AL_PF_HQ_MEDIAN_MISMATCHES','AL_MEAN_READ_LENGTH','AL_READS_ALIGNED_IN_PAIRS','AL_PCT_READS_ALIGNED_IN_PAIRS','AL_BAD_CYCLES','AL_PCT_STRAND_BALANCE','DUP_UNPAIRED_READS_EXAMINED','DUP_READ_PAIRS_EXAMINED','DUP_UNMAPPED_READS','DUP_UNPAIRED_READ_DUPLICATES','DUP_READ_PAIR_DUPLICATES','DUP_PERCENT_DUPLICATION','DUP_ESTIMATED_LIBRARY_SIZE','HS_BAIT_SET','HS_GENOME_SIZE','HS_LIBRARY_SIZE','HS_BAIT_TERRITORY','HS_TARGET_TERRITORY','HS_BAIT_DESIGN_EFFICIENCY','HS_TOTAL_READS','HS_PF_READS','HS_PF_UNIQUE_READS','HS_PCT_PF_READS','HS_PCT_PF_UQ_READS','HS_PCT_PF_UQ_READS_ALIGNED','HS_PF_UQ_READS_ALIGNED','HS_PF_UQ_BASES_ALIGNED','HS_ON_BAIT_BASES','HS_NEAR_BAIT_BASES','HS_OFF_BAIT_BASES','HS_ON_TARGET_BASES','HS_PCT_SELECTED_BASES','HS_PCT_OFF_BAIT','HS_ON_BAIT_VS_SELECTED','HS_MEAN_BAIT_COVERAGE','HS_MEAN_TARGET_COVERAGE','HS_FOLD_ENRICHMENT','HS_ZERO_CVG_TARGETS_PCT','HS_FOLD_80_BASE_PENALTY','HS_PCT_TARGET_BASES_2X','HS_PCT_TARGET_BASES_10X','HS_PCT_TARGET_BASES_20X','HS_PCT_TARGET_BASES_30X','HS_PENALTY_10X','HS_PENALTY_20X','HS_PENALTY_30X','SNP_TOTAL_SNPS','SNP_PCT_DBSNP','SNP_NUM_IN_DBSNP','Lane.IC.Matches','Lane.IC.PCT.Mean.RD1.Err.Rate','Lane.IC.PCT.Mean.RD2.Err.Rate','FP_PANEL_NAME','FP_PANEL_SNPS','FP_CONFIDENT_CALLS','FP_CONFIDENT_MATCHING_SNPS','FP_CONFIDENT_CALLED_PCT','FP_CONFIDENT_MATCHING_SNPS_PCT','LPCNCRD_REFERENCE','LPCNCRD_NON_REFERENCE','LPCNCRD_PCT_CONCORDANCE')
 		 		}
 		 if(typeof(samples)=="character"){
     		read.delim(file=samples, header= TRUE)->bysample; 
@@ -34,19 +37,19 @@ if(is.na(sample_sets)){
 		 		}
 		 		
 		#Calc by lane metrics
-	   	attach(bylane);
+	   attach(bylane);
 	   	
-	   	callable.target<-HS_TARGET_TERRITORY[1]; 
-   		singlelanes<-length(which(Lane.Type=="Single"));
-   		pairedlanes<-length(which(Lane.Type=="Paired"));
+	    callable.target<-HS_TARGET_TERRITORY[1]; 
+            singlelanes<-length(which(Lane.Type=="Single"));
+            pairedlanes<-length(which(Lane.Type=="Paired"));
    	    mean.read.lane<-signif(mean(AL_TOTAL_READS, na.rm=TRUE));
 	    sd.read.lane<-signif(sd(AL_TOTAL_READS, na.rm=TRUE));
 	    mean.ub.lane<-signif(mean(HS_ON_TARGET_BASES, na.rm=TRUE));
 	    sd.ub.lane<-signif(sd(HS_ON_TARGET_BASES, na.rm=TRUE));
 	    mean.cov.lane<-round(mean(HS_MEAN_TARGET_COVERAGE, na.rm=TRUE));
-    	sd.cov.lane<-round(sd(HS_MEAN_TARGET_COVERAGE, na.rm=TRUE));
-    	mean.10x.lane<-round(mean(HS_PCT_TARGET_BASES_10X, na.rm=TRUE));
-    	mean.20x.lane<-round(mean(HS_PCT_TARGET_BASES_20X, na.rm=TRUE));
+            sd.cov.lane<-round(sd(HS_MEAN_TARGET_COVERAGE, na.rm=TRUE));
+    	    mean.10x.lane<-round(mean(HS_PCT_TARGET_BASES_10X, na.rm=TRUE));
+    	    mean.20x.lane<-round(mean(HS_PCT_TARGET_BASES_20X, na.rm=TRUE));
     	mean.30x.lane<-round(mean(HS_PCT_TARGET_BASES_30X, na.rm=TRUE));
     	sd.10x.lane<-round(sd(HS_PCT_TARGET_BASES_10X, na.rm=TRUE));
     	sd.20x.lane<-round(sd(HS_PCT_TARGET_BASES_20X, na.rm=TRUE));
@@ -58,23 +61,29 @@ if(is.na(sample_sets)){
 			
 	    pdf(file=paste(sample_sets, "_SNPS.pdf", sep=""), width=0.2*length(SNP_TOTAL_SNPS), height=0.1*length(SNP_TOTAL_SNPS))        
   
-  		ticks<-c(match(unique(Flowcell), Flowcell) )
+  		ticks<-c(match(unique(Flowcell), sort(Flowcell)) )
   		ys=rep(c(min(SNP_TOTAL_SNPS, na.rm=TRUE)*0.96, max(SNP_TOTAL_SNPS, na.rm=TRUE)*1.04, max(SNP_TOTAL_SNPS, na.rm=TRUE)*1.04, min(SNP_TOTAL_SNPS, na.rm=TRUE)*0.96, min(SNP_TOTAL_SNPS, na.rm=TRUE)*0.96), ceiling(length(ticks)/2))
   
 		layout(matrix(c(1,1 , 2), 1, 3, byrow=FALSE), respect=TRUE)
     	par(mar=c(10, 6, 3, 8))
-    	plot(1:length(SNP_TOTAL_SNPS), main=paste(sample_sets, ": SNPs Called in Each Lane sorted by Flowcell", sep=""), SNP_TOTAL_SNPS, xlab="", ylab="SNPs Called in Lane", ylim = c(min(SNP_TOTAL_SNPS, na.rm=TRUE), max(SNP_TOTAL_SNPS, na.rm=TRUE)), xaxt="n", pch=NA, cex.main=2, cex.axis=1.25, cex.lab=1.5)
+    	plot(1:length(SNP_TOTAL_SNPS), main=paste(sample_sets, ": SNPs Called in Each Lane sorted by Flowcell", sep=""), SNP_TOTAL_SNPS[order(Flowcell)], xlab="", ylab="SNPs Called in Lane", ylim = c(min(SNP_TOTAL_SNPS, na.rm=TRUE), max(SNP_TOTAL_SNPS, na.rm=TRUE)), xaxt="n", pch=NA, cex.main=2, cex.axis=1.25, cex.lab=1.5)
 		
-		axis(side=1, at=(ticks+1), labels=unique(Flowcell), tick=FALSE, hadj=1, cex.axis=1.25, las=2)
+		axis(side=1, at=c(1:length(Flowcell))), labels=Lane[order(Flowcell)], tick=FALSE, hadj=1, cex.axis=1.25)
+		axis(side=1, at=(ticks), labels=sort(unique(Flowcell)), tick=FALSE, vadj=2, hadj=1, cex.axis=1.25, las=2)
         shader<-ticks[c(rep(c(1,1,2,2,1), ceiling(length(ticks)/2))+sort(rep(seq(0, length(ticks),by=2), 5)))]-0.5
         if((length(ticks)%%2 > 0)){
         	shader[(length(shader)-2):(length(shader)-1)]<-length(Flowcell)+0.5
         	}
-        
+        shader<-na.omit(shader)
         polygon(shader, ys, border="black", lty=0, col="gray")
-        points(1:length(SNP_TOTAL_SNPS), SNP_TOTAL_SNPS, col="blue", pch=19)
-        
-     	boxplot(SNP_TOTAL_SNPS, main="SNPs Called in Lane", ylab="SNPs Called")
+        cols<-rep("blue", length(SNP_TOTAL_SNPS))
+        cols[which(SNP_TOTAL_SNPS %in% boxplot.stats(SNP_TOTAL_SNPS)$out)]<-"red"
+        points(1:length(SNP_TOTAL_SNPS), SNP_TOTAL_SNPS, col=cols, pch=19)
+        if(length(boxplot.stats(SNP_TOTAL_SNPS)$out)>0){
+          legend("bottomright", legend=c("Normal SNP Call Counts", "Outlier SNP Call Counts"), pch=19, col=c("Blue", "red"), bg="White")
+        }
+           
+     	boxplot(SNP_TOTAL_SNPS, main="SNPs Called in Lane", ylab="SNPs Called", cex.axis=1.25  )
 
 
 		if(length(boxplot.stats(SNP_TOTAL_SNPS)$out)==0){
@@ -85,53 +94,7 @@ if(is.na(sample_sets)){
         
         
     		dev.off()
-    
-		    #makes SNP plot in log scale
-    
-   			pdf(file=paste(sample_sets, "_SNPS_log.pdf", sep=""), width=0.2*length(SNP_TOTAL_SNPS), height=0.1*length(SNP_TOTAL_SNPS))       
-  			
 
-			ys=rep(c((min(SNP_TOTAL_SNPS, na.rm=TRUE)+1)*0.96, max(SNP_TOTAL_SNPS, na.rm=TRUE)*1.04, max(SNP_TOTAL_SNPS, na.rm=TRUE)*1.04, (min(SNP_TOTAL_SNPS, na.rm=TRUE)+1)*0.96, (min(SNP_TOTAL_SNPS, na.rm=TRUE)+1)*0.96), ceiling(length(ticks)/2))
-  
-		layout(matrix(c(1,1 , 2), 1, 3, byrow=FALSE), respect=TRUE)
-    	par(mar=c(10, 6, 3, 8))
-    	plot(1:length(SNP_TOTAL_SNPS), main=paste(sample_sets, ": SNPs Called in Each Lane sorted by Flowcell", sep=""), SNP_TOTAL_SNPS, xlab="", log="y", ylab="SNPs Called in Lane (Log Scale)", ylim = c(min(SNP_TOTAL_SNPS, na.rm=TRUE)+1, max(SNP_TOTAL_SNPS, na.rm=TRUE)), xaxt="n", pch=NA, cex.main=2, cex.axis=1.25, cex.lab=1.5)
-    	par(ylog=TRUE)
-		axis(side=1, at=(ticks+1), labels=unique(Flowcell), tick=FALSE, hadj=1, cex.axis=1.25, las=2)
-        if((length(ticks)%%2 > 0)){
-        	shader[(length(shader)-2):(length(shader)-1)]<-length(Flowcell)+0.5
-        	}
-        
-        polygon(shader, ys, border="black", lty=0, col="gray")
-        points(1:length(SNP_TOTAL_SNPS), SNP_TOTAL_SNPS, col="blue", pch=19)
-        
-     	boxplot(SNP_TOTAL_SNPS, main="SNPs Called in Lane", ylab="SNPs Called")
-
-    		if(length(boxplot.stats(SNP_TOTAL_SNPS)$out)==0){
-            	mtext("No outliers",  side=1, line=4)
-    			}else{
-            		mtext(paste("Outlier SNP call counts in  ", length(boxplot.stats(SNP_TOTAL_SNPS)$out), "lanes"), side=1, line=4)
-   					}
-        
-    		dev.off()
-    
-   			 #makes a plot of snp calls ordered by lane
-    		pdf(file=paste(sample_sets, "_SNPS_lane.pdf", sep=""), width=0.2*length(SNP_TOTAL_SNPS), height=0.1*length(SNP_TOTAL_SNPS))       
-  
-			layout(matrix(c(1,1 , 2), 1, 3, byrow=FALSE), respect=TRUE)
-    		plot(1:length(SNP_TOTAL_SNPS), SNP_TOTAL_SNPS[order(Lane)], main=paste(sample_sets, ": SNPs Called in Each Lane sorted by Lane"),  xlab="", ylab="SNPs Called in Lane", xaxt="n", pch=16, col="blue")
-    		par(ylog=TRUE)
-			axis(side=1, at=(1:length(SNP_TOTAL_SNPS)), labels=names[order(Lane)], cex.axis=0.75, las=2)
-        
-     		boxplot(SNP_TOTAL_SNPS, main="SNPs Called in Lane", ylab="SNPs Called")	
-
-		    if(length(boxplot.stats(SNP_TOTAL_SNPS)$out)==0){
-        	    mtext("No outliers",  side=1, line=4)
-    			}else{
-            		mtext(paste("Outlier SNP call counts in  ", length(boxplot.stats(SNP_TOTAL_SNPS)$out), "lanes"), side=1, line=4)
-    			}
-    
-		    dev.off()    
         
     		#makes a plot of fingerprint calls and labels them good or bad
         	badsnps<-union(which(FP_CONFIDENT_MATCHING_SNPS<15), which(FP_CONFIDENT_MATCHING_SNPS<15))
@@ -139,12 +102,13 @@ if(is.na(sample_sets)){
 		    colors<-c(rep("Blue", length(FP_CONFIDENT_CALLS)))
     		colors[badsnps]<-"Red"
     		ticks<-c(match(unique(Flowcell), Flowcell) )
-  			ys=rep(c(min(SNP_TOTAL_SNPS, na.rm=TRUE)*0.96, max(SNP_TOTAL_SNPS, na.rm=TRUE)*1.04, max(SNP_TOTAL_SNPS, na.rm=TRUE)*1.04, min(SNP_TOTAL_SNPS, na.rm=TRUE)*0.96, min(SNP_TOTAL_SNPS, na.rm=TRUE)*0.96), ceiling(length(ticks)/2))
-    		#pdf(file=paste(sample_sets, "_Fingerprints.pdf", sep=""), width=.2*length(FP_CONFIDENT_CALLS), height=.1*length(FP_CONFIDENT_CALLS))
+  			ys=rep(c(0, 24*1.04, 24*1.04, 0, 0), ceiling(length(ticks)/2))
+    		pdf(file=paste(sample_sets, "_Fingerprints.pdf", sep=""), width=.2*length(FP_CONFIDENT_CALLS), height=.1*length(FP_CONFIDENT_CALLS))
     		par(mar=c(10, 6, 8, 3))
     		plot(1:length(FP_CONFIDENT_MATCHING_SNPS), FP_CONFIDENT_MATCHING_SNPS, pch=NA, ylim=c(0,24), ylab="Fingerprint calls", xlab="", xaxt="n", col=colors, main="Fingerprint Calling and Matching Sorted by lane", cex.main=3, cex.lab=2) 
     		axis(side=1, at=(ticks+1), labels=unique(Flowcell), tick=FALSE, hadj=1, cex.axis=1.25, las=2)
         shader<-ticks[c(rep(c(1,1,2,2,1), ceiling(length(ticks)/2))+sort(rep(seq(0, length(ticks),by=2), 5)))]-0.5
+        shader<-na.omit(shader)
         if((length(ticks)%%2 > 0)){
         	shader[(length(shader)-2):(length(shader)-1)]<-length(Flowcell)+0.5
         	}
@@ -220,6 +184,7 @@ if(is.na(sample_sets)){
 			}else{
 				eval->errpercycle
 				}
+		
 				
 		pdf(paste(sample_sets, "_errorrate_per_cycle.pdf", sep=""), width=6, height=5)
 	
@@ -245,63 +210,97 @@ if(is.na(sample_sets)){
     		}
 	
 	#Makes TI/TV known v novel graph
-	if(is.na(noveltitv)==FALSE && is.na(knowntitv) == FALSE){
-		pdf(paste(sample_set, "_TiTv.pdf", sep=""), width=6, height=5)
-		if(typeof(noveltitv)=="character"){
-			read.table(file=noveltitv, header=FALSE)->novels
-			}else{
-				noveltitv->novels
-				}
-		if(typeof(knowntitv)=="character"){
-			read.table(file=knowntitv, header=FALSE)->knowns
-			}else{
-				knowntitv->knowns
-				}
+	if(is.na(titveval)==FALSE){
+		##TODO: need ot make sure this is nice and prettified. 
+		titv<-read.csv(file=titveval, skip=1)
+		attach(titv)
 
-		plot(novels[,2], col="red", ylim=c(0, 3.5), main="Ti/Tv for 		Novel and Known SNP calls", ylab="Ti/Tv", xlab="", xaxt="n")
-		points(knowns[,2], col="blue")
+		pdf(file=paste(sample_sets, "_TI-TV.pdf", sep=""), width=0.2*length(unique(sample)), height=0.175*length(unique(sample)))
+		par(mar=c(11, 4, 4, 2))
+		plot(seq(1:length(unique(sample))), Ti.Tv[which(novelty_name=="novel" & filter_name=="called")], xaxt="n", ylim=c(1, 4), main="Ti/Tv for Novel and Known SNP calls", ylab="Ti/Tv", xlab="", col="red", pch=1)
 
- 		axis(side=1, at=(1:length(novels[,2])), labels=novels[,1], 		cex.axis=1, las=2)
+		points(seq(1:length(unique(sample))), Ti.Tv[which(novelty_name=="known" & filter_name=="called")], pch=1, col="blue")
 
-		legend("bottomright", legend=c("Known Variants", "Novel 		Variants"), col=c("blue", "red"), pch=1, xjust=0.5)
-		mtext("Lower Ti/Tv ratios indicated more false positive SNP calls.", side=1)
+		axis(side=1, at=(1:length(unique(sample))), labels=unique(sample), tick=FALSE, hadj=1, cex.axis=1, las=2)
+		
+		abline(a=mean(Ti.Tv[which(novelty_name=="all" & filter_name=="called")]),b=0)
+		
+		legend("bottomright", legend=c("Known Variants", "Novel 		Variants", "Mean Ti/Tv for all variants"), col=c("blue", "red", "black"), pch=c(1,1,NA_integer_), lty=c(0, 0, 1), xjust=0.5)
+		mtext(line=9,"Lower Ti/Tv ratios indicate potentially increased false positive SNP rates.", side=1)
+		
 		dev.off()
 		}else{
-			print("Transition/transversion ratio file paths not provided")
-			
+			print("TiTV filepath not provided")
 			}
 			
 	#Make DOC graph
-	if(is.na(DOC)==FALSE){
-		pdf(paste(sample_set, "_DOC.pdf", sep=""), width=6, height=5)
-	if(typeof(DOC)=="character"){
-		as.matrix(as.vector(read.delim(DOC, header=TRUE)[,2:502]))->DOCdata
-		DOCdata<-matrix(DOCdata*100/sum(DOCdata[1,]), nrow=501, ncol=29, byrow=TRUE)
-		colnames(DOCdata)<-read.delim(DOC, header=TRUE)[,1]
-		}else{
-			DOC->DOCdata
+	if(is.na(DOCi)==FALSE){
+		pdf(paste(sample_set, "_DOCi.pdf", sep=""), width=6, height=5)
+		if(typeof(DOCi)=="character"){
+			as.data.frame(read.delim(DOCi))->DOC
+			}else{
+			DOCi->DOCdata
 			}
 	
+		colnames(DOC)->cols
+		apply(DOC[,grep("mean", cols)], 1, median)->medianofmeans
+		apply(DOC[,grep("mean", cols)], 1, quantile, probs=3/4)->q3s
+		apply(DOC[,grep("mean", cols)], 1, quantile, probs=1/4)->q1s
+
+		par(ylog=FALSE, mar=c(5, 4, 4, 2))
+		plot(c(1:3122),sort(medianofmeans, decreasing=TRUE), type="l", lwd="1",log="y",ylab="Coverage", xlab="Targets sorted by median average coverage across sample",xaxt="n", main="Coverage Across All Targets")
+
+		abline(h=15, lty="dotted")
+
+		lines(c(1:3122),q3s[order(medianofmeans, decreasing=TRUE)])
+
+		lines(c(1:3122),q1s[order(medianofmeans, decreasing=TRUE)])
+
+		legend("bottomleft", "15x coverage", box.lty=0, lty="dotted")
+
+		dev.off()
+		
+		pdf(paste(sample_set, "_DOCiy.pdf", sep=""), width=6, height=5)
+		yuck<-DOC[which(medianofmeans<15),grep("mean", cols)]
+		yuck<-yuck+0.1
+		par(mar=c(16, 4, 4, 2))
+		boxplot(t(yuck[order(medianofmeans[which(medianofmeans<15)], decreasing=TRUE),]),log="y", yaxt="n", xaxt="n", ylab="Average coverage accross all samples", main="Targets with low coverage accross samples")
+
+		axis(2, at=axTicks(2)+c(0, rep(0.1, length(axTicks(2))-1)), labels=c(0.0, axTicks(2)[2:length(axTicks(2))]))
+		mtext("Target", side=1, line=14)
+		axis(1, at=c(1:length(which(medianofmeans<15))), labels=DOC[which(medianofmeans<15),1][order(medianofmeans[which(medianofmeans<15)])], las=2)
 	
-	oddies<-which(apply(DOCdata, 2, max)>10) #can be assigned any particular heuristic
-	ncolors<-rainbow(ncol(DOCdata), s=0.5, v=0.5)
-	ncolors[oddies]<-rainbow(length(oddies))
-	nweights<-rep(1, ncol(DOCdata))
-	nweights[oddies]<-2
-	matplot(DOCdata, type="l", main="Depth of Coverage by Sample", ylab="Percent bases covered to a given depth", xlab="log(Depth)", log="x", col=ncolors,  lty="solid", lwd=nweights)
-	
-	if(length(oddies)>0){
-		legend("topright", title="Unusual Cases", legend=colnames(DOCdata)[oddies], lty="solid", lwd=2, col=ncolors[oddies], xjust=0.5)
+		dev.off()
+		
+		
 		}else{
-			legend("topright", legend="No unusual cases.", bty="n")
-			}
-	
-	dev.off()
-	
-		}else{
-			print("Depth of Coverage filepath not provided")
+			print("Depth of Coverage--intervals filepath not provided")
 			}		
-	
+
+	if(is.na(DOCs)==FALSE){
+		pdf(paste(sample_set, "_DOCs.pdf", sep=""), width=6, height=5)
+		if(typeof(DOCs)=="character"){
+			as.data.frame(read.delim(DOCs))->DOC
+			}else{
+			DOCs->DOCdata
+			}
+		par(mar=c(10, 4, 4, 2))
+		boxplot(t(DOC2[,2:ncol(DOC2)]+0.1), log="y", main="Depth of Coverage by Sample", xaxt="n", yaxt="n", ylab="Coverage")
+
+		axis(1, at=c(1:nrow(DOC2)), labels=DOC2[,1], las=2)
+
+		axis(2, at=axTicks(2)+c(0, rep(0.1, length(axTicks(2))-1)), labels=floor(c(0.0, axTicks(2)[2:length(axTicks(2))])))
+
+		labels=floor(c(0.0, axTicks(2)[2:length(axTicks(2))]))
+
+		mtext("Samples", side=1, line=9)
+		
+		dev.off()
+		
+		}else{
+			print("Depth of Coverage--samples filepath not provided")
+			}
+
 }
 if(length(commandArgs(TRUE))>0){
 	stuffmaker(commandArgs(TRUE))
