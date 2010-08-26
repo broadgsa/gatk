@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
@@ -132,10 +133,6 @@ public class UnifiedGenotyperEngine {
         if ( !BaseUtils.isRegularBase(ref) )
             return null;
 
-        // don't try to call if we couldn't read in all reads at this locus (since it wasn't properly downsampled)
-        if ( rawContext.hasExceededMaxPileup() )
-            return null;
-
         VariantCallContext call;
         BadReadPileupFilter badReadPileupFilter = new BadReadPileupFilter(refContext);
 
@@ -198,7 +195,16 @@ public class UnifiedGenotyperEngine {
             }
         }
 
-        if ( call != null ) call.setRefBase(ref);
+        if ( call != null && call.vc != null ) {
+            call.setRefBase(ref);
+
+            // if the site was downsampled, record that fact
+            if ( false ) { //rawContext.hasPileupBeenDownsampled() ) {
+                Map<String, Object> attrs = new HashMap<String, Object>(call.vc.getAttributes());
+                attrs.put(VCFConstants.DOWNSAMPLED_KEY, true);
+                VariantContextUtils.modifyAttributes(call.vc, attrs);
+            }
+        }
         return call;
     }
 
