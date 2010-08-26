@@ -314,23 +314,23 @@ public class VariantAnnotatorEngine {
         final String fullyQualifiedExternalColumnName = GenomicAnnotation.generateInfoFieldKey(externalBindingName, externalColumnName);
 
         //find the externalJoinColumnValue in the current info field, and then look up any joinTable records that have this value for the localJoinColumnValue
-        List<ArrayList<String>> matchingJoinTableRecords = null; //record(s) in the join table whose joinColumnValue(s) matches the joinColumnValue inside the current outputRecordInfoField. Since the join keys don't have to be unique, there may be more than one record in the join table thtat matches.
+        ArrayList<String> matchingJoinTableRecord = null; //record in the join table whose joinColumnValue matches the joinColumnValue inside the current outputRecordInfoField.
         final Object numInfoFieldKeysToCheckObj = outputRecordInfoField.get(GenomicAnnotation.generateInfoFieldKey(externalBindingName, GenomicAnnotation.NUM_MATCHES_SPECIAL_INFO_FIELD));
         if(numInfoFieldKeysToCheckObj == null) {
-            //only 1 record in the externalBindingName -B AnnotatoInfoTable overlapped the current position
+            //only 1 record in the externalBindingName -B AnnotationInfoTable overlapped the current position
             Object externalColumnValue = outputRecordInfoField.get(fullyQualifiedExternalColumnName);
             if(externalColumnValue != null) {
-                matchingJoinTableRecords = joinTable.get(externalColumnValue.toString());
-                //System.err.println("Found matching record(s) in join table for record: " + outputRecordInfoField + " where " + fullyQualifiedExternalColumnName  + "==" + externalColumnValue +  ":  " + matchingJoinTableRecords);
+                matchingJoinTableRecord = joinTable.get(externalColumnValue.toString());
+                //System.err.println("Found matching record in join table for record: " + outputRecordInfoField + " where " + fullyQualifiedExternalColumnName  + "==" + externalColumnValue +  ":  " + matchingJoinTableRecords);
             }
         } else {
-            //multiple records in the externalBindingName -B AnnotatoInfoTable overlapped the current position
+            //multiple records in the externalBindingName -B AnnotationInfoTable overlapped the current position
             final int numInfoFieldKeysToCheck = Integer.parseInt(numInfoFieldKeysToCheckObj.toString());
-            for(int i = 0; i < numInfoFieldKeysToCheck; i++) {
+            for (int i = 0; i < numInfoFieldKeysToCheck; i++) {
                 final Object externalColumnValue = outputRecordInfoField.get(fullyQualifiedExternalColumnName + "_" + i);
-                if(externalColumnValue != null) {
-                    matchingJoinTableRecords = joinTable.get(externalColumnValue.toString());
-                    if(matchingJoinTableRecords != null) {
+                if ( externalColumnValue != null ) {
+                    matchingJoinTableRecord = joinTable.get(externalColumnValue.toString());
+                    if ( matchingJoinTableRecord != null ) {
                         //System.err.println("Found matching record(s) in join table for record: " + outputRecordInfoField + " where " + fullyQualifiedExternalColumnName  + "==" + externalColumnValue +  ":  " + matchingJoinTableRecords);
                         break;
                     }
@@ -338,25 +338,20 @@ public class VariantAnnotatorEngine {
             }
         }
 
-        //if match(s) for the externalJoinColumnValue in the current outputRecordInfoField have been found in the join table, perform the join.
-        if(matchingJoinTableRecords != null)
+        //if a match for the externalJoinColumnValue in the current outputRecordInfoField has been found in the join table, perform the join.
+        if ( matchingJoinTableRecord != null )
         {
             final String joinTableBindingName = joinTable.getLocalBindingName();
 
             //convert the List<ArrayList<String>> to List<Map<String, String>> by hashing the values from the ArrayList<String> by their column names.
             final List<Map<String, String>> matchingJoinTableRecordsConverted = new LinkedList<Map<String,String>>();
-            for(ArrayList<String> columnValues : matchingJoinTableRecords) {
-                final List<String> columnNames = joinTable.getColumnNames();
+            final List<String> columnNames = joinTable.getColumnNames();
 
-                final Map<String, String> matchingRecord = new LinkedHashMap<String, String>();
-                for(int i = 0; i < columnNames.size(); i++) {
-                    matchingRecord.put(columnNames.get(i), columnValues.get(i));
-                }
+            final Map<String, String> matchingRecord = new LinkedHashMap<String, String>();
+            for (int i = 0; i < columnNames.size(); i++)
+                matchingRecord.put(columnNames.get(i), matchingJoinTableRecord.get(i));
 
-                matchingJoinTableRecordsConverted.add(GenomicAnnotation.convertRecordToAnnotations(joinTableBindingName, matchingRecord));
-            }
-
-
+            matchingJoinTableRecordsConverted.add(GenomicAnnotation.convertRecordToAnnotations(joinTableBindingName, matchingRecord));
 
             // do the join between the outputRecordInfoField and the matchingJoinTableRecords, then add the results to to infoAnnotationOutputsList
             List<Map<String, Object>> tempList = new LinkedList<Map<String, Object>>();

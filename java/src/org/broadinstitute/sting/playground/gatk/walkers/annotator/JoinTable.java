@@ -30,7 +30,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.broadinstitute.sting.utils.StingException;
@@ -62,7 +61,7 @@ public class JoinTable
 
     //stores a map entry for each record in the join table. The entry's key is the value of the join column in a given record (eg. bindingName.columnName in the above example),
     //and the entry value is an ArrayList representing the entire join table record.
-    private HashMap<String, List<ArrayList<String>>> joinColumnValueToRecords = new HashMap<String, List<ArrayList<String>>>();
+    private HashMap<String, ArrayList<String>> joinColumnValueToRecords = new HashMap<String, ArrayList<String>>();
 
     private boolean parsedFromFile = false;
 
@@ -73,9 +72,8 @@ public class JoinTable
      * @param localColumnName The column name within the given file to join on.
      * @param externalBindingName The bindingName of another file (previously specified with either -B or -J).
      * @param externalColumnName The columnName in this other file to join on.
-     * @param strict Whether to throw an exception if the number of columnNames in the header doesn't match the number of values in any row in the file specified by filename.
      */
-    public void parseFromFile(String filename, String localBindingName, String localColumnName, String externalBindingName, String externalColumnName, boolean strict)  {
+    public void parseFromFile(String filename, String localBindingName, String localColumnName, String externalBindingName, String externalColumnName)  {
         if(parsedFromFile) {
             throw new StingException("parseFromFile(" + filename +", ..) called more than once");
         }
@@ -89,16 +87,15 @@ public class JoinTable
         try
         {
             br = new BufferedReader(new FileReader(filename));
-            final JoinTableParser parser = new JoinTableParser(strict);
+            final JoinTableParser parser = new JoinTableParser();
 
             //read in the header
-            final List<String> header = parser.readHeader(br);
-            columnNames = header;
+            columnNames = parser.readHeader(br);
 
             //get the index of the localJoinColumnName
             int localColumnNameIdx = -1;
-            for(int i = 0; i < header.size(); i++) {
-                final String columnName = header.get(i);
+            for(int i = 0; i < columnNames.size(); i++) {
+                final String columnName = columnNames.get(i);
                 if(columnName.equals(localColumnName)) {
                     localColumnNameIdx = i;
                     break;
@@ -109,13 +106,14 @@ public class JoinTable
                 throw new StingException("The -J arg specifies an unknown column name: \"" + localColumnName + "\". It's not one of the column names in the header " + columnNames + " of the file: " + filename);
             }
 
-
             //read in all records and create a map entry for each
-            String line = null;
+            String line;
             while((line = br.readLine()) != null) {
                 final ArrayList<String> columnValues = parser.parseLine(line);
+                if ( columnValues.size() < columnNames.size() )
+                    throw new IllegalStateException("The file: " + filename + " is malformed as there are not a sufficient number of columns for this line: " + line);
                 final String joinColumnValue = columnValues.get(localColumnNameIdx);
-                put(joinColumnValue, columnValues);
+                put(joinColumnValue, columnValues, filename);
             }
         }
         catch(IOException e)
@@ -134,8 +132,6 @@ public class JoinTable
         }
     }
 
-
-
     /**
      * If the -J arg was:  -J bindingName1,/path/to/file,bindingName1.columnName=bindingName2.columnName2,
      * this returns bindingName1.
@@ -148,7 +144,6 @@ public class JoinTable
     public void setLocalBindingName(String localBindingName) {
         this.localBindingName = localBindingName;
     }
-
 
     /**
      * @return the list of join table column names parsed out of the file header.
@@ -175,7 +170,6 @@ public class JoinTable
         this.externalColumnName = externalColumnName;
     }
 
-
     /**
      * If the -J arg was:  -J bindingName1,/path/to/file,bindingName1.columnName=bindingName2.columnName2,
      * this returns bindingName2.
@@ -192,7 +186,7 @@ public class JoinTable
 
     /**
      * Whether any join table records have the given value in the join column.
-     * @param value
+     * @param joinColumnValue value
      * @return
      */
     public boolean containsJoinColumnValue(String joinColumnValue) {
@@ -201,24 +195,21 @@ public class JoinTable
 
     /**
      * Returns all records in the table where the join column has the given value.
-     * @param joinColumnValue
-     * @return
+     * @param joinColumnValue column value
+     * @return row
      */
-    public List<ArrayList<String>> get(String joinColumnValue) {
+    public ArrayList<String> get(String joinColumnValue) {
         return joinColumnValueToRecords.get(joinColumnValue);
     }
 
     /**
      * Adds the given record to the map.
-     * @param joinColumnValue
-     * @param record
+     * @param joinColumnValue value
+     * @param record row
      */
-    protected void put(String joinColumnValue, ArrayList<String> record) {
-        List<ArrayList<String>> list = joinColumnValueToRecords.get(joinColumnValue);
-        if(list == null) {
-            list = new LinkedList<ArrayList<String>>();
-            joinColumnValueToRecords.put(joinColumnValue, list);
-        }
-        list.add(record);
+    protected void put(String joinColumnValue, ArrayList<String> record, String filename) {
+        if ( joinColumnValueToRecords.containsKey(joinColumnValue) )
+            throw new IllegalStateException("The file " + filename + " contains non-unique entries for the requested column, which isn't allowed.");
+        joinColumnValueToRecords.put(joinColumnValue, record);
     }
 }

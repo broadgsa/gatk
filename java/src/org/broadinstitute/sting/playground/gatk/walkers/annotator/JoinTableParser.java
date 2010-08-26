@@ -47,23 +47,15 @@ public class JoinTableParser
 
     private List<String> header; //column names parsed out of the header line
 
-    /** Whether to throw an exception if a row contains a different number of columns than the header. */
-    private boolean strict;
-
 
     /**
      * Constructor.
-     *
-     * @param source The file to read.
-     * @param strict Whether to throw an exception if a row contains a different number of columns than the header.
      */
-    public JoinTableParser(boolean strict)  {
-        this.strict = strict;
-    }
+    public JoinTableParser()  {}
 
     /**
      * Returns the header and returns it.
-     * @param source
+     * @param br source
      * @return
      */
     public List<String> readHeader(BufferedReader br) throws IOException
@@ -95,7 +87,7 @@ public class JoinTableParser
 
         final ArrayList<String> values = Utils.split(line, DELIMITER, header.size());
 
-        if ( strict && values.size() != header.size() ) {
+        if ( values.size() != header.size() ) {
             throw new StingException(String.format("Encountered a row with %d columns which is different from the number or columns in the header: %d\nHeader: " + header + "\nLine: " + values, values.size(), header.size()));
         }
 
@@ -103,12 +95,9 @@ public class JoinTableParser
     }
 
 
-
-
-
     /**
      * Returns the header.
-     * @param source The file to read.
+     * @param br The file to read.
      * @return ArrayList containing column names from the header.
      * @throws IOException
      */

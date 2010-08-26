@@ -46,7 +46,6 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 /**
@@ -68,7 +67,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
     @Argument(fullName="sampleName", shortName="sample", doc="The sample (NA-ID) corresponding to the variant input (for non-VCF input only)", required=false)
     protected String sampleName = null;
 
-    @Argument(fullName="select", shortName="s", doc="Optionally specifies which subset of columns from which -B inputs should be used for annotations. For example, -B mydbsnp,AnnotatorInputTable,/path/to/mydbsnp.txt -B mytable,AnnotatorInputTable,/path/mytable.txt -s mydbsnp.avHet,mydbsnp.name,mytable.column3 will cause annotations to only be generated from the 3 columns specified using -s.", required=false)
+    @Argument(fullName="select", shortName="s", doc="Optionally specifies which subset of columns from which -B inputs should be used for annotations. For example, -B:mydbsnp,AnnotatorInputTable /path/to/mydbsnp.txt -B:mytable,AnnotatorInputTable /path/mytable.txt -s mydbsnp.avHet,mydbsnp.name,mytable.column3 will cause annotations to only be generated from the 3 columns specified using -s.", required=false)
     protected String[] SELECT_COLUMNS = {};
 
     @Argument(fullName="join", shortName="J", doc="Optionally specifies a file and column within that file that should be LEFT-JOIN'ed to a column in a previously-specified file. The file provided to -J must be tab-delimited, with the first non-comment/non-empty line containing column names. (example: -B name,AnnotatorInputTable,/path/to/file1   -J name2,/path/to/file2,name.columnName=name2.columnName2  - this will join the table in file2 to the table in file1) ", required=false)
@@ -79,17 +78,10 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
 
     private VariantAnnotatorEngine engine;
 
-    private boolean strict = true;
-
     /**
      * Prepare the output file and the list of available features.
      */
     public void initialize() {
-
-        // get the list of all sample names from the various VCF input rods
-        TreeSet<String> samples = new TreeSet<String>();
-        SampleUtils.getUniquifiedSamplesFromRods(getToolkit(), samples, new HashMap<Pair<String, String>, String>());
-
 
         //read all ROD file headers and construct a set of all column names to be used for validation of command-line args
         final Set<String> allFullyQualifiedColumnNames = new LinkedHashSet<String>();
@@ -110,7 +102,6 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
             throw new StingException("Failed when attempting to read file header. ", e);
         }
 
-
         //parse the JOIN_COLUMNS args, read in the specified files, and validate column names in the = relation. This end result of this loop is to populate the List of joinTables with one entry per -J arg.
         final List<JoinTable> joinTables = new LinkedList<JoinTable>();
         for(String joinArg : JOIN_ARGS) {
@@ -125,9 +116,8 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
             final String columnsToJoin = arg[2];
 
             if(allBindingNames.contains(bindingName)) {
-                throw new StingException("The name \"" + bindingName + "\" in the -J arg: \"" + joinArg + "\" has already been used.");
+                throw new StingException("The name \"" + bindingName + "\" in the -J arg: \"" + joinArg + "\" has already been used in another binding.");
             }
-
 
             String[] splitOnEquals = columnsToJoin.split("=+");
             if(splitOnEquals.length != 2) {
@@ -139,7 +129,6 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
             if(splitOnDot1.length != 2 || splitOnDot2.length != 2) {
                 throw new StingException("The -J arg: \"" + joinArg + "\" must fully specify the columns to join on. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
             }
-
 
             final String bindingName1 = splitOnDot1[0];
             final String columnName1 = splitOnDot1[1];
@@ -160,7 +149,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
                 externalBindingName = bindingName1;
                 externalColumnName = columnName1;
             } else {
-                throw new StingException("The -J arg: \"" + joinArg + "\" must fully specify the columns to join on. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
+                throw new StingException("The name \"" + bindingName + "\" in the -J arg: \"" + joinArg + "\" must be specified in one the columns to join on. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
             }
 
             //validate externalColumnName
@@ -171,56 +160,51 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
 
             //read in the file contents into a JoinTable object
             final JoinTable joinTable = new JoinTable();
-            joinTable.parseFromFile(filename, localBindingName, localColumnName, externalBindingName, externalColumnName, strict);
+            joinTable.parseFromFile(filename, localBindingName, localColumnName, externalBindingName, externalColumnName);
             joinTables.add(joinTable);
 
             //validate localColumnName, and add all column names in this file to the list of allFullyQualifiedColumnNames so that they can be referenced from subsequent -J args.
             final List<String> columnNames = joinTable.getColumnNames();
             final List<String> fullyQualifiedColumnNames = new LinkedList<String>();
             boolean found = false;
-            for(int i = 0; i < columnNames.size(); i++) {
-                final String columnName = columnNames.get(i);
-                if(columnName.equals(localColumnName)) {
-                    found = true;
-                }
-                fullyQualifiedColumnNames.add(localBindingName + '.' + columnName);
+            for ( String columnName : columnNames ) {
+                 if ( columnName.equals(localColumnName) )
+                     found = true;
+                 fullyQualifiedColumnNames.add(localBindingName + '.' + columnName);
             }
-
-            if(!found) {
+            if ( !found )
                 throw new StingException("The -J arg: \"" + joinArg + "\" specifies an unknown column name: \"" + localColumnName + "\". It's not one of the column names in the header " + columnNames + " of the file: " + filename);
-            }
 
             allFullyQualifiedColumnNames.addAll(fullyQualifiedColumnNames);
         }
 
         //parse the SELECT_COLUMNS arg and validate the column names
         List<String> parsedSelectColumns = new LinkedList<String>();
-        for(String token : SELECT_COLUMNS) {
+        for ( String token : SELECT_COLUMNS )
             parsedSelectColumns.addAll(Arrays.asList(token.split(",")));
-        }
         SELECT_COLUMNS = parsedSelectColumns.toArray(SELECT_COLUMNS);
 
-        for(String columnName : SELECT_COLUMNS) {
-            if(!allFullyQualifiedColumnNames.contains(columnName)) {
+        for ( String columnName : SELECT_COLUMNS ) {
+            if ( !allFullyQualifiedColumnNames.contains(columnName) )
                 throw new StingException("The column name '" + columnName + "' provided to -s doesn't match any of the column names in any of the -B files. Here is the list of available column names: " + allFullyQualifiedColumnNames);
-            }
         }
 
-        //instanciate the VariantAnnotatorEngine
+        //instantiate the VariantAnnotatorEngine
         ArrayList<String> annotationsToUse = new ArrayList<String>();
         annotationsToUse.add("GenomicAnnotation");
         engine = new VariantAnnotatorEngine(getToolkit(), new ArrayList<String>(), annotationsToUse);
-        engine.setOneToMany( Boolean.TRUE.equals( ONE_TO_MANY ) );
+        engine.setOneToMany(ONE_TO_MANY);
         engine.setRequestedColumns(SELECT_COLUMNS);
         engine.setJoinTables(joinTables);
 
-        // setup the header fields
+        // set up the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), Arrays.asList("variant")));
-        hInfo.add(new VCFHeaderLine("source", "Annotator"));
-        hInfo.add(new VCFHeaderLine("annotatorReference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.addAll(engine.getVCFAnnotationDescriptions());
 
+        Set<String> rodName = new HashSet<String>();
+        rodName.add("variant");
+        TreeSet<String> samples = new TreeSet<String>(SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName));
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }
