@@ -495,6 +495,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                         fullRecord.append(annotationString);
                         try {
                             verboseWriter.write(fullRecord.toString());
+                            verboseWriter.write('\n');
                         } catch (IOException e) {
                             throw new StingException("Write failed (verbose writer). "+e.getMessage());
                         }
@@ -654,6 +655,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                     }
                     try {
                         verboseWriter.write(fullRecord + "\t"+ annotationString);
+                        verboseWriter.write('\n');
                     } catch (IOException e) {
                         throw new StingException("Write failed (verbose writer). "+e.getMessage());
                     }
