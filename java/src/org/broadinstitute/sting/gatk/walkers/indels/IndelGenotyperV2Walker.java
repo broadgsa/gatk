@@ -154,6 +154,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 	private Set<String> normalReadGroups; // we are going to remember which read groups are normals and which are tumors in order to be able 
 	private Set<String> tumorReadGroups ; // to properly assign the reads coming from a merged stream
+    private Set<String> normalSamples; // we are going to remember which samples are normal and which are tumor:
+    private Set<String> tumorSamples ; // these are used only to generate genotypes for vcf output
 
 	private int NQS_WIDTH = 5; // 5 bases on each side of the indel for NQS-style statistics
 
@@ -234,6 +236,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 		location = GenomeLocParser.createGenomeLoc(0,1);
 
 		List<Set<String>> readGroupSets = getToolkit().getMergedReadGroupsByReaders();
+        List<Set<String>> sampleSets = getToolkit().getSamplesByReaders();
+
+        normalSamples = sampleSets.get(0);
 
 		if ( call_somatic ) {
 			if ( nSams != 2 ) {
@@ -249,6 +254,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 			tumorReadGroups = readGroupSets.get(1); // second -I option must specify tumor.bam
                         System.out.println(tumorReadGroups.size() + " tumor read groups");
                         // for ( String rg : tumorReadGroups ) System.out.println("Tumor RG: "+rg);
+
+            tumorSamples = sampleSets.get(1);
 		} else {
 			if ( nSams != 1 ) System.out.println("WARNING: multiple input files specified. \n"+
 					"WARNING: Without --somatic option they will be merged and processed as a single sample");
@@ -737,7 +744,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
              stop += event_length;
         }
 
-        VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, VariantContext.NO_GENOTYPES /* genotypes */,
+        Map<String,Genotype> genotypes = new HashMap<String,Genotype>();
+
+        for ( String sample : normalSamples ) {
+            genotypes.put(sample,new Genotype(sample, alleles));
+        }
+               
+        VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
             -1.0 /* log error */, null /* filters */, call.makeStatsAttributes("",null));
         vcf.add(vc,refBases[(int)start-1]);
     }
@@ -749,23 +762,49 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         long start = tCall.getPosition()-1;
         long stop = start;
 
+        Map<String,Object> attrs = nCall.makeStatsAttributes("N_",null);
+        attrs = tCall.makeStatsAttributes("T_",attrs);
+
+        boolean isSomatic = false;
+        if ( nCall.getVariant() == null ) {
+            isSomatic = true;
+            attrs.put(VCFConstants.SOMATIC_KEY,true);
+        }
+
         List<Allele> alleles = new ArrayList<Allele>(2);
+        List<Allele> homRefAlleles = isSomatic ? new ArrayList<Allele>(2) : null ; // we need this only for somatic calls
 
         if ( event_length == 0 ) { // insertion
              alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
              alleles.add( Allele.create(tCall.getVariant().getBases(), false ));
+             if ( isSomatic ) {
+                 // create alleles of hom-ref genotype for normal sample
+                 homRefAlleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
+                 homRefAlleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
+             }
         } else { //deletion:
              alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
              alleles.add( Allele.create(tCall.getVariant().getBases(), true ));
              stop += event_length;
+            if ( isSomatic ) {
+                // create alleles of hom-ref genotype for normal sample
+                homRefAlleles.add( Allele.create(tCall.getVariant().getBases(), true ));
+                homRefAlleles.add( Allele.create(tCall.getVariant().getBases(), true ));
+            }
         }
 
-        Map<String,Object> attrs = nCall.makeStatsAttributes("N_",null);
-        attrs = tCall.makeStatsAttributes("T_",attrs);
 
-        if ( nCall.getVariant() == null ) attrs.put(VCFConstants.SOMATIC_KEY,true);
+        Map<String,Genotype> genotypes = new HashMap<String,Genotype>();
 
-        VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, VariantContext.NO_GENOTYPES /* genotypes */,
+        for ( String sample : normalSamples ) {
+            genotypes.put(sample,new Genotype(sample, isSomatic ? homRefAlleles : alleles,0));
+        }
+
+        for ( String sample : tumorSamples ) {
+            genotypes.put(sample,new Genotype(sample, alleles,0) );
+        }
+
+        VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
             -1.0 /* log error */, null /* filters */, attrs);
         vcf.add(vc,refBases[(int)start-1]);
     }
