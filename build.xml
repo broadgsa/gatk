@@ -457,7 +457,7 @@
     <property name="queue.test.classes" value="${queue.classes}/testclasses"/>
     <property name="queue.test.sources" value="scala/test"/>
     <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
-    <property name="test.maxmemory" value="2g"/>
+    <property name="test.maxmemory" value="4g"/>
 
     <!-- TEST -->
     <macrodef name="run-test">
