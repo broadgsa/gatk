@@ -81,11 +81,12 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
     private void convertAndWrite(VariantContext vc, ReferenceContext ref) {
 
-        final Interval fromInterval = new Interval(vc.getChr(), vc.getStart(), vc.getEnd());
+        final Interval fromInterval = new Interval(vc.getChr(), vc.getStart(), vc.getStart(), false, String.format("%s:%d", vc.getChr(), vc.getStart()));
+        final int length = vc.getEnd() - vc.getStart();
         final Interval toInterval = liftOver.liftOver(fromInterval);
 
         if ( toInterval != null ) {
-            vc = VariantContextUtils.modifyLocation(vc, GenomeLocParser.createPotentiallyInvalidGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getEnd()));
+            vc = VariantContextUtils.modifyLocation(vc, GenomeLocParser.createPotentiallyInvalidGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length));
             writer.add(vc, ref.getBase());
             successfulIntervals++;
         } else {
