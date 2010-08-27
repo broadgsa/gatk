@@ -80,6 +80,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs for constructing the alternate references.")
     protected boolean USE_KNOWN_INDELS_ONLY = false;
 
+    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
+                "If too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool may run out of memory.", required=false)
+    protected int MAX_RECORDS_IN_RAM = 500000;
+    
     // ADVANCED OPTIONS FOLLOW
 
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
@@ -236,6 +240,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         writer.writeHeader(header);
         writer.setPresorted(false);
+        writer.setMaxRecordsInRam(MAX_RECORDS_IN_RAM);
     }
 
     private void emit(final SAMRecord read) {
