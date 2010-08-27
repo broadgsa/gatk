@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2010.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.gatk.walkers.qc;
+package org.broadinstitute.sting.gatk.walkers.qc;
 
 import org.broadinstitute.sting.gatk.walkers.ReadPairWalker;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;

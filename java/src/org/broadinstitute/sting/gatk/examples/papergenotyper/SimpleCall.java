@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.papergenotyper;
+package org.broadinstitute.sting.gatk.examples.papergenotyper;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
