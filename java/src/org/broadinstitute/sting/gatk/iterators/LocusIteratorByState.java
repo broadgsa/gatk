@@ -541,8 +541,8 @@ public class LocusIteratorByState extends LocusIterator {
 
         public ReadStateManager(Iterator<SAMRecord> source, DownsamplingMethod downsamplingMethod, Collection<String> sampleNames) {
             this.iterator = new PeekableIterator<SAMRecord>(source);
-            this.downsamplingMethod = downsamplingMethod;
-            switch(downsamplingMethod.type) {
+            this.downsamplingMethod = downsamplingMethod.type != null ? downsamplingMethod : DownsamplingMethod.NONE;
+            switch(this.downsamplingMethod.type) {
                 case BY_SAMPLE:
                     if(downsamplingMethod.toCoverage == null)
                         throw new StingException("Downsampling coverage (-dcov) must be specified when downsampling by sample");

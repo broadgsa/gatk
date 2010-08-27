@@ -143,6 +143,8 @@ public class GATKArgumentCollection {
     public DownsamplingMethod getDownsamplingMethod() {
         if(downsamplingType == null && downsampleFraction == null && downsampleCoverage == null)
             return null;
+        if(downsamplingType == null && downsampleCoverage != null)
+            return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,downsampleCoverage,null);
         return new DownsamplingMethod(downsamplingType,downsampleCoverage,downsampleFraction);
     }
 
