@@ -49,14 +49,18 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
 
     public SAMFileWriterStorage( SAMFileWriterStub stub, File file ) {
         this.file = file;
+        SAMFileWriterFactory factory = new SAMFileWriterFactory();
+        if(stub.getMaxRecordsInRam() != null)
+            factory.setMaxRecordsInRam(stub.getMaxRecordsInRam());
+
         if(stub.getSAMFile() != null) {
             if( stub.getCompressionLevel() != null )
-                this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file, stub.getCompressionLevel() );
+                this.writer = factory.makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file, stub.getCompressionLevel() );
             else
-                this.writer = new SAMFileWriterFactory().makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file );
+                this.writer = factory.makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file );
         }
         else if(stub.getSAMOutputStream() != null){
-            this.writer = new SAMFileWriterFactory().makeSAMWriter( stub.getFileHeader(), stub.isPresorted(), stub.getSAMOutputStream());
+            this.writer = factory.makeSAMWriter( stub.getFileHeader(), stub.isPresorted(), stub.getSAMOutputStream());
         }
         else
             throw new StingException("Unable to write to SAM file; neither a target file nor a stream has been specified");

@@ -22,4 +22,10 @@ public interface StingSAMFileWriter extends SAMFileWriter {
      * @param presorted True if the BAM file is presorted.  False otherwise.
      */    
     public void setPresorted(boolean presorted);
+
+    /**
+     * Set how many records in RAM the BAM file stores when sorting on-the-fly.
+     * @param maxRecordsInRam Max number of records in RAM.
+     */
+    public void setMaxRecordsInRam(int maxRecordsInRam);
 }

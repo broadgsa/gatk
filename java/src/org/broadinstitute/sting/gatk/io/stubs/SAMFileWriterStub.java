@@ -76,6 +76,12 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
     private boolean presorted = true;
 
     /**
+     * How many records should the BAM writer store in RAM while
+     * sorting the BAM on-the-fly?
+     */
+    private Integer maxRecordsInRam = null;
+
+    /**
      * Connects this stub with an external stream capable of serving the
      * requests of the consumer of this stub.
      */
@@ -164,6 +170,24 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
         if(writeStarted)
             throw new StingException("User attempted to change the presorted state of a file with alignments already in it.");
         this.presorted = presorted;
+    }
+
+    /**
+     * Get the maximum number of reads to hold in RAM when sorting a BAM on-the-fly.
+     * @return Max records in RAM, or null if unset.
+     */
+    public Integer getMaxRecordsInRam() {
+        return this.maxRecordsInRam;
+    }
+
+    /**
+     * Sets the maximum number of reads to hold in RAM when sorting a BAM on-the-fly.
+     * @param maxRecordsInRam Max number of records in RAM.
+     */
+    public void setMaxRecordsInRam(int maxRecordsInRam) {
+        if(writeStarted)
+            throw new StingException("User attempted to change the max records in RAM of a file with alignments already in it.");
+        this.maxRecordsInRam = maxRecordsInRam;
     }
 
     /**
