@@ -63,9 +63,12 @@ public class IndelConsistencyReadCounter extends ReadWalker<Integer, Integer> {
         }
 
         if ( indel != null ) {
+            if ( read.getAlignmentEnd() == indel.getStart() )
+                return 0;
+
             if ( !containsAnyIndel(read) || !containsIndel(read, indel) )
                 misalignedReads++;
-            else
+             else
                 consistentReads++;
         }
 
