@@ -46,8 +46,19 @@ class fullCallingPipeline extends QScript {
   var snpClusterWindow = 7
 
   @Input(doc="dbSNP version",shortName="D")
-  var dbSNP: File = _           
+  var dbSNP: File = _
 
+  @Input(doc="target titv for recalibration",shortName="titv",required=false)
+  var target_titv = 2.1
+
+  @Input(doc="downsampling coverage",shortname="dcov",required=false)
+  var downsampling_coverage = 200
+
+  @Input(doc="Number of jobs to scatter unifeid genotyper",shortname="snpScatter",required=false)
+  var num_snp_scatter_jobs = 50
+
+  @Input(doc="Number of jobs to scatter indel genotyper",shortname="indelScatter",required=false)
+  var num_indel_scatter_jobs = 5
 
 
   trait CommandLineGATKArgs extends CommandLineGATK {
@@ -128,11 +139,12 @@ class fullCallingPipeline extends QScript {
       snps.rodBind :+= RodBind( "comp1KG_CEU", "VCF", qscript.comp1KGCEU )
     }
 
-    snps.scatterCount = 50
+    snps.scatterCount = qscript.num_snp_scatter_jobs
 
 
     // indel genotyper does one sample at a time
     val indelCallFiles = List.empty[RodBind]
+    val indelGenotypers = List.empty[IndelGenotyperV2]
     val loopNo = 0
     val priority = ""
     for ( bam <- bamFiles ) {
@@ -141,6 +153,10 @@ class fullCallingPipeline extends QScript {
       indel.out = swapExt(bam,".bam",".indels.vcf")
       indel.downsample_to_coverage = Some(500)
       indelCallFiles :+= new RodBind("v"+loopNo.toString, "VCF", indel.out)
+      indel.scatterCount = qscript.num_indel_scatter_jobs
+
+      indelGenotypers :+= indel
+
       if ( loopNo == 0 ) {
         priority = "v0"
       } else {
@@ -206,7 +222,7 @@ class fullCallingPipeline extends QScript {
     recalibrate.rodBind :+= RodBind("input", "VCF", masker.out)
     recalibrate.out = swapExt(masker.out,".vcf",".optimized.vcf")
     // todo -- inputs for Ti/Tv expectation and other things -- command line
-    recalibrate.target_titv = 2.1
+    recalibrate.target_titv = qscript.target_titv
 
 
     // 3.iii apply variant cuts to the clusters
@@ -227,7 +243,14 @@ class fullCallingPipeline extends QScript {
     eval.evalModule ++= List("CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
     eval.out = new File(base+".eval")
 
-    add(snps,indels,annotated,masker,handFilter,clusters,recalibrate,cut,eval)
+    add(snps)
+
+    for ( igv2 <- indelGenotypers ) {
+      add(igv2)
+    }
+
+    add(mergeIndels,annotated,masker,handFilter,clusters,recalibrate,cut,eval)
+
   }
 
 }
