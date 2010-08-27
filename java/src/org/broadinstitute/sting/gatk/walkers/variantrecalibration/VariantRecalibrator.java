@@ -214,16 +214,13 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     final VariantContext vcHapMap = tracker.getVariantContext(ref, "hapmap", null, context.getLocation(), false);
                     final VariantContext vc1KG = tracker.getVariantContext(ref, "1kg", null, context.getLocation(), false);
 
-                    variantDatum.isKnown = false;
+                    variantDatum.isKnown = (dbsnp!=null);
                     double knownPrior_qScore = PRIOR_NOVELS;
                     if( vcHapMap != null ) {
-                        variantDatum.isKnown = true;
                         knownPrior_qScore = PRIOR_HAPMAP;
                     } else if( vc1KG != null ) {
-                        variantDatum.isKnown = true;
                         knownPrior_qScore = PRIOR_1KG;
                     } else if( dbsnp != null ) {
-                        variantDatum.isKnown = true;
                         knownPrior_qScore = PRIOR_DBSNP;
                     }
                     final double knownPrior = QualityUtils.qualToProb(knownPrior_qScore);

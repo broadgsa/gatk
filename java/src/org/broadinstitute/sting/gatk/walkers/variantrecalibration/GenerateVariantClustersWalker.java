@@ -181,22 +181,19 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                     variantDatum.annotations = annotationValues;
                     variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
 
-                    variantDatum.isKnown = false;
-                    variantDatum.weight = WEIGHT_NOVELS;
                     variantDatum.qual = vc.getPhredScaledQual();
 
                     final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                     final VariantContext vcHapMap = tracker.getVariantContext(ref, "hapmap", null, context.getLocation(), false);
                     final VariantContext vc1KG = tracker.getVariantContext(ref, "1kg", null, context.getLocation(), false);
 
+                    variantDatum.isKnown = (dbsnp!=null);
+                    variantDatum.weight = WEIGHT_NOVELS;                   
                     if( vcHapMap != null ) {
-                        variantDatum.isKnown = true;
                         variantDatum.weight = WEIGHT_HAPMAP;
                     } else if( vc1KG != null ) {
-                        variantDatum.isKnown = true;
                         variantDatum.weight = WEIGHT_1KG;
                     } else if( dbsnp != null ) {
-                        variantDatum.isKnown = true;
                         variantDatum.weight = WEIGHT_DBSNP;
                     }
 
