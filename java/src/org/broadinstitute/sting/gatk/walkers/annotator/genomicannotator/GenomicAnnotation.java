@@ -122,58 +122,56 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
 
             //The HAPLOTYPE_REFERENCE_COLUMN matches the variant's reference allele based on a case-insensitive string comparison.
             //The HAPLOTYPE_ALTERNATE_COLUMN can optionally list more than allele separated by one of these chars: ,\/:|
-            String hapAltValue = annotationsForRecord.get( generateInfoFieldKey(name, HAPLOTYPE_ALTERNATE_COLUMN) );
-            if(hapAltValue != null)
-            {
-                if(!hapAltValue.equals("*"))
-                {
-                    Set<Allele> alternateAlleles = vc.getAlternateAlleles();
-                    //if(alternateAlleles.isEmpty()) {
-                        //handle a site that has been called monomorphic reference
-                        //alternateAlleles.add(vc.getReference());
-                        //continue;            //TODO If this site is monomorphic in the VC, and the current record specifies a particular alternate allele, skip this record. Right?
-                    //} else
-                    if(alternateAlleles.size() > 1) {
-                        throw new StingException("Record [" + vc + "] contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
-                    }
+            // only check this value for SNPs
+            String hapAltValue = vc.isSNP() ? annotationsForRecord.get( generateInfoFieldKey(name, HAPLOTYPE_ALTERNATE_COLUMN) ) : null;
+            if ( hapAltValue != null && !hapAltValue.equals("*") ) {
+                Set<Allele> alternateAlleles = vc.getAlternateAlleles();
+                //if(alternateAlleles.isEmpty()) {
+                    //handle a site that has been called monomorphic reference
+                    //alternateAlleles.add(vc.getReference());
+                    //continue;            //TODO If this site is monomorphic in the VC, and the current record specifies a particular alternate allele, skip this record. Right?
+                //} else
+                if(alternateAlleles.size() > 1) {
+                    throw new StingException("Record [" + vc + "] contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
+                }
 
-                    boolean positiveStrand = true; //if HAPLOTYPE_STRAND_COLUMN isn't specified, assume positive strand.
-                    String hapStrandValue = annotationsForRecord.get( generateInfoFieldKey(name, HAPLOTYPE_STRAND_COLUMN) );
-                    if(hapStrandValue != null ) {
-                        hapStrandValue = hapStrandValue.trim().toLowerCase();
-                        if(hapStrandValue.equals("-") || hapStrandValue.equals("r")) {
-                            positiveStrand = false;
-                        } else if(!hapStrandValue.equals("+") && !hapStrandValue.equals("f")) {
-                            throw new StingException("Record (" + gatkFeature.getUnderlyingObject() + ") in " + name + " has an invalid value for " + HAPLOTYPE_STRAND_COLUMN + ". This value is: \"" + hapStrandValue + "\"");
-                        }
+                boolean positiveStrand = true; //if HAPLOTYPE_STRAND_COLUMN isn't specified, assume positive strand.
+                String hapStrandValue = annotationsForRecord.get( generateInfoFieldKey(name, HAPLOTYPE_STRAND_COLUMN) );
+                if(hapStrandValue != null ) {
+                    hapStrandValue = hapStrandValue.trim().toLowerCase();
+                    if(hapStrandValue.equals("-") || hapStrandValue.equals("r")) {
+                        positiveStrand = false;
+                    } else if(!hapStrandValue.equals("+") && !hapStrandValue.equals("f")) {
+                        throw new StingException("Record (" + gatkFeature.getUnderlyingObject() + ") in " + name + " has an invalid value for " + HAPLOTYPE_STRAND_COLUMN + ". This value is: \"" + hapStrandValue + "\"");
                     }
+                }
 
 
-                    Allele vcAlt;
-                    if(alternateAlleles.isEmpty()) {
-                        vcAlt = vc.getReference();
-                    } else {
-                        vcAlt = alternateAlleles.iterator().next();
+                Allele vcAlt;
+                if(alternateAlleles.isEmpty()) {
+                    vcAlt = vc.getReference();
+                } else {
+                    vcAlt = alternateAlleles.iterator().next();
+                }
+
+                boolean matchFound = false;
+                for(String hapAlt : hapAltValue.split("[,\\\\/:|]")) {
+                    if(!positiveStrand) {
+                        hapAlt = new String(BaseUtils.simpleReverseComplement(hapAlt.getBytes()));
                     }
 
-                    boolean matchFound = false;
-                    for(String hapAlt : hapAltValue.split("[,\\\\/:|]")) {
-                        if(!positiveStrand) {
-                            hapAlt = new String(BaseUtils.simpleReverseComplement(hapAlt.getBytes()));
-                        }
-
-                        if(!hapAlt.isEmpty() && vcAlt.basesMatch(hapAlt)) {
-                            matchFound = true;
-                            break;
-                        }
+                    if(!hapAlt.isEmpty() && vcAlt.basesMatch(hapAlt)) {
+                        matchFound = true;
+                        break;
                     }
-                    if(!matchFound) {
-                        continue; //skip record - none of its alternate alleles match the variant's alternate allele
-                    }
+                }
+                if(!matchFound) {
+                    continue; //skip record - none of its alternate alleles match the variant's alternate allele
                 }
             }
 
-            String hapRefValue = annotationsForRecord.get( generateInfoFieldKey(name, HAPLOTYPE_REFERENCE_COLUMN) );
+            // only check this value for SNPs
+            String hapRefValue = vc.isSNP() ? annotationsForRecord.get( generateInfoFieldKey(name, HAPLOTYPE_REFERENCE_COLUMN) ) : null;
             if(hapRefValue != null)
             {
                 hapRefValue = hapRefValue.trim();
