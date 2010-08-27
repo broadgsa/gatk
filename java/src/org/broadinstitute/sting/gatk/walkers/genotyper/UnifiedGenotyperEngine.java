@@ -202,7 +202,7 @@ public class UnifiedGenotyperEngine {
             if ( rawContext.hasPileupBeenDownsampled() ) {
                 Map<String, Object> attrs = new HashMap<String, Object>(call.vc.getAttributes());
                 attrs.put(VCFConstants.DOWNSAMPLED_KEY, true);
-                VariantContextUtils.modifyAttributes(call.vc, attrs);
+                call.vc = VariantContextUtils.modifyAttributes(call.vc, attrs);
             }
         }
         return call;
