@@ -37,8 +37,10 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -114,7 +116,7 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
                         List<SAMRecord> sub_reads = MathUtils.sliceListByIndices(subset_indices, reads);
                         List<Integer> sub_offsets = MathUtils.sliceListByIndices(subset_indices, offsets);
 
-                        AlignmentContext subContext = new AlignmentContext(context.getLocation(), sub_reads, sub_offsets);
+                        AlignmentContext subContext = new AlignmentContext(context.getLocation(), new ReadBackedPileupImpl(context.getLocation(),sub_reads, sub_offsets));
 
                         VariantCallContext calls = UG.runGenotyper(tracker, ref, subContext);
 

@@ -46,6 +46,7 @@ import java.util.*;
 public class AlignmentContext {
     protected GenomeLoc loc = null;
     protected ReadBackedPileup basePileup = null;
+    protected boolean hasPileupBeenDownsampled;
 
     /**
      * The number of bases we've skipped over in the reference since the last map invocation.
@@ -53,40 +54,19 @@ public class AlignmentContext {
      */
     private long skippedBases = 0;
 
-    /**
-     * Default constructor for AlignmentContext object
-     * since private objects are already set to null we
-     * don't need to do anything
-     */
-    public AlignmentContext() { /*   private objects already set to null    */  }
-
-    /**
-     * Create a new AlignmentContext object
-     *
-     * @param loc
-     * @param reads
-     * @param offsets
-     */
-    @Deprecated
-    public AlignmentContext(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets) {
-        this(loc, reads, offsets, 0);
-    }
-
-    @Deprecated
-    public AlignmentContext(GenomeLoc loc, List<SAMRecord> reads, List<Integer> offsets, long skippedBases ) {
-        if ( loc == null ) throw new StingException("BUG: GenomeLoc in Alignment context is null");
-        if ( skippedBases < 0 ) throw new StingException("BUG: skippedBases is -1 in Alignment context");
-
-        this.loc = loc;
-        this.basePileup = new ReadBackedPileupImpl(loc, reads, offsets);
-        this.skippedBases = skippedBases;
-    }
-
     public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup) {
-        this(loc, basePileup, 0);
+        this(loc, basePileup, 0, false);
     }
 
-    public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup, long skippedBases ) {
+    public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup, boolean hasPileupBeenDownsampled) {
+        this(loc, basePileup, 0, hasPileupBeenDownsampled);
+    }
+
+    public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup, long skippedBases) {
+        this(loc, basePileup, skippedBases, false);
+    }
+
+    public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup, long skippedBases,boolean hasPileupBeenDownsampled ) {
         if ( loc == null ) throw new StingException("BUG: GenomeLoc in Alignment context is null");
         if ( basePileup == null ) throw new StingException("BUG: ReadBackedPileup in Alignment context is null");
         if ( skippedBases < 0 ) throw new StingException("BUG: skippedBases is -1 in Alignment context");
@@ -94,6 +74,7 @@ public class AlignmentContext {
         this.loc = loc;
         this.basePileup = basePileup;
         this.skippedBases = skippedBases;
+        this.hasPileupBeenDownsampled = hasPileupBeenDownsampled;
     }
 
     /** Returns base pileup over the current genomic location. Deprectated. Use getBasePileup() to make your intentions
@@ -137,6 +118,12 @@ public class AlignmentContext {
     public boolean hasExtendedEventPileup() { return basePileup instanceof ReadBackedExtendedEventPileup; }
 
     /**
+     * Returns true if any reads have been filtered out of the pileup due to excess DoC.
+     * @return True if reads have been filtered out.  False otherwise.
+     */
+    public boolean hasPileupBeenDownsampled() { return hasPileupBeenDownsampled; }
+
+    /**
      * get all of the reads within this context
      * 
      * @return
@@ -178,6 +165,7 @@ public class AlignmentContext {
 
     public void downsampleToCoverage(int coverage) {
         basePileup = basePileup.getDownsampledPileup(coverage);
+        hasPileupBeenDownsampled = true;
     }
 
     /**

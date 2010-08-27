@@ -116,12 +116,6 @@ public interface ReadBackedPileup extends Iterable<PileupElement> {
     public ReadBackedPileup getDownsampledPileup(int desiredCoverage);
 
     /**
-     * Returns true if any reads have been filtered out of the pileup due to excess DoC.
-     * @return True if reads have been filtered out.  False otherwise.
-     */
-    public boolean hasPileupBeenDownsampled();
-
-    /**
      * Gets a collection of all the read groups represented in this pileup.
      * @return A collection of all the read group ids represented in this pileup.
      */

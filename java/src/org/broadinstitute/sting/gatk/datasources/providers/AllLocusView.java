@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 /**
  * User: hanna
  * Date: May 13, 2009
@@ -95,7 +96,7 @@ public class AllLocusView extends LocusView {
      * @param site Site at which to create the blank locus context.
      * @return empty context.
      */
-    private AlignmentContext createEmptyLocus( GenomeLoc site ) {
-        return new AlignmentContext(site, new ArrayList<SAMRecord>(), new ArrayList<Integer>());
+    private AlignmentContext createEmptyLocus( GenomeLoc site ) {        
+        return new AlignmentContext(site,new ReadBackedPileupImpl(site,new ArrayList<SAMRecord>(), new ArrayList<Integer>()));
     }
 }

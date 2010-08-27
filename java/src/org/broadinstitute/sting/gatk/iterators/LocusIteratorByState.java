@@ -358,10 +358,11 @@ public class LocusIteratorByState extends LocusIterator {
                 // are associated with the *previous* reference base
                 GenomeLoc loc = GenomeLocParser.incPos(our1stState.getLocation(),-1);
 
+                boolean hasBeenSampled = false;
                 for(String sampleName: sampleNames) {
                     Iterator<SAMRecordState> iterator = readStates.iteratorForSample(sampleName);
                     ArrayList<ExtendedEventPileupElement> indelPile = new ArrayList<ExtendedEventPileupElement>(readStates.size());
-                    boolean hasBeenSampled = loc.getStart() <= readStates.readStatesBySample.get(sampleName).getDownsamplingExtent();
+                    hasBeenSampled |= loc.getStart() <= readStates.readStatesBySample.get(sampleName).getDownsamplingExtent();
 
                     size = 0;
                     nDeletions = 0;
@@ -414,21 +415,22 @@ public class LocusIteratorByState extends LocusIterator {
                             nMQ0Reads++;
                         }
                     }
-                    if( indelPile.size() != 0 ) fullExtendedEventPileup.put(sampleName,new ReadBackedExtendedEventPileupImpl(loc,indelPile,size,maxDeletionLength,nInsertions,nDeletions,nMQ0Reads,hasBeenSampled));
+                    if( indelPile.size() != 0 ) fullExtendedEventPileup.put(sampleName,new ReadBackedExtendedEventPileupImpl(loc,indelPile,size,maxDeletionLength,nInsertions,nDeletions,nMQ0Reads));
                 }
                 hasExtendedEvents = false; // we are done with extended events prior to current ref base
 //                System.out.println("Indel(s) at "+loc);
 //               for ( ExtendedEventPileupElement pe : indelPile ) { if ( pe.isIndel() ) System.out.println("  "+pe.toString()); }
-                nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc, fullExtendedEventPileup));
+                nextAlignmentContext = new AlignmentContext(loc, new ReadBackedExtendedEventPileupImpl(loc, fullExtendedEventPileup), hasBeenSampled);
             }  else {
                 GenomeLoc location = getLocation();
                 Map<String,ReadBackedPileupImpl> fullPileup = new HashMap<String,ReadBackedPileupImpl>();
 
                 // todo -- performance problem -- should be lazy, really
+                boolean hasBeenSampled = false;
                 for(String sampleName: sampleNames) {
                     Iterator<SAMRecordState> iterator = readStates.iteratorForSample(sampleName);
                     ArrayList<PileupElement> pile = new ArrayList<PileupElement>(readStates.size());
-                    boolean hasBeenSampled = location.getStart() <= readStates.readStatesBySample.get(sampleName).getDownsamplingExtent();
+                    hasBeenSampled |= location.getStart() <= readStates.readStatesBySample.get(sampleName).getDownsamplingExtent();
 
                     size = 0;
                     nDeletions = 0;
@@ -458,12 +460,12 @@ public class LocusIteratorByState extends LocusIterator {
                             nMQ0Reads++;
                         }
                     }
-                    if( pile.size() != 0 ) fullPileup.put(sampleName,new ReadBackedPileupImpl(location,pile,size,nDeletions,nMQ0Reads,hasBeenSampled));
+                    if( pile.size() != 0 ) fullPileup.put(sampleName,new ReadBackedPileupImpl(location,pile,size,nDeletions,nMQ0Reads));
                 }
 
                 updateReadStates(); // critical - must be called after we get the current state offsets and location
                 // if we got reads with non-D/N over the current position, we are done
-                if ( !fullPileup.isEmpty() ) nextAlignmentContext = new AlignmentContext(location, new ReadBackedPileupImpl(location,fullPileup));
+                if ( !fullPileup.isEmpty() ) nextAlignmentContext = new AlignmentContext(location, new ReadBackedPileupImpl(location,fullPileup),hasBeenSampled);
             }
         }
     }

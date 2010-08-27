@@ -34,10 +34,6 @@ import net.sf.samtools.SAMRecord;
 public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<ReadBackedExtendedEventPileupImpl,ExtendedEventPileupElement> implements ReadBackedExtendedEventPileup {
     private int nInsertions;
     private int maxDeletionLength;      // cached value of the length of the longest deletion observed at the site
-    /**
-     * True if this pileup has been downsampled due to excessive coverage depth.  False otherwise.
-     */
-    private boolean hasBeenDownsampled;
 
     public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, List<ExtendedEventPileupElement> pileupElements) {
         super(loc,pileupElements);
@@ -53,8 +49,8 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
      * @param pileup
      */
     public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, List<ExtendedEventPileupElement> pileup, int size,
-                                         int maxDeletionLength, int nInsertions, int nDeletions, int nMQ0Reads, boolean hasPileupBeenDownsampled ) {
-        super(loc,pileup,size,nDeletions,nMQ0Reads,hasPileupBeenDownsampled);
+                                         int maxDeletionLength, int nInsertions, int nDeletions, int nMQ0Reads) {
+        super(loc,pileup,size,nDeletions,nMQ0Reads);
         this.maxDeletionLength = maxDeletionLength;
         this.nInsertions = nInsertions;
     }

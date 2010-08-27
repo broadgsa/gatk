@@ -56,8 +56,8 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
      * @param loc
      * @param pileup
      */
-    public ReadBackedPileupImpl(GenomeLoc loc, List<PileupElement> pileup, int size, int nDeletions, int nMQ0Reads, boolean hasPileupBeenDownsampled ) {
-        super(loc,pileup,size,nDeletions,nMQ0Reads,hasPileupBeenDownsampled);
+    public ReadBackedPileupImpl(GenomeLoc loc, List<PileupElement> pileup, int size, int nDeletions, int nMQ0Reads) {
+        super(loc,pileup,size,nDeletions,nMQ0Reads);
     }
 
     protected ReadBackedPileupImpl(GenomeLoc loc, PileupElementTracker<PileupElement> tracker) {
