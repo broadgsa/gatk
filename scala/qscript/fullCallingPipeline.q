@@ -45,6 +45,9 @@ class fullCallingPipeline extends QScript {
   @Input(doc="SNP cluster filter -- window size",shortName="snpClusterWindow",required=false)
   var snpClusterWindow = 7
 
+  @Input(doc="dbSNP version",shortName="D")
+  var dbSNP: File = _           
+
 
 
   trait CommandLineGATKArgs extends CommandLineGATK {
@@ -110,7 +113,6 @@ class fullCallingPipeline extends QScript {
     snps.standard_min_confidence_threshold_for_emitting = Some(10)
     snps.min_mapping_quality_score = Some(20)
     snps.min_base_quality_score = Some(20)
-    snps.downsampling_type = Some(DownsampleType.EXPERIMENTAL_BY_SAMPLE)
     snps.downsample_to_coverage = Some(200)
     snps.annotation :+= "QualByDepthV2"
 
@@ -129,16 +131,32 @@ class fullCallingPipeline extends QScript {
     snps.scatterCount = 50
 
 
-    val indels = new UnifiedGenotyper with CommandLineGATKArgs
-    indels.input_file = bamFiles
-    indels.downsampling_type = Some(DownsampleType.EXPERIMENTAL_BY_SAMPLE)
-    indels.downsample_to_coverage = Some(200)
-    indels.variants_out = base+".indels.vcf"
-    indels.genotype_model = Some(Model.INDELS)
-    indels.scatterCount = 50
+    // indel genotyper does one sample at a time
+    val indelCallFiles = List.empty[RodBind]
+    val loopNo = 0
+    val priority = ""
+    for ( bam <- bamFiles ) {
+      val indel = new IndelGenotyperV2 with CommandLineGATKArgs
+      indel.input_file :+= bam
+      indel.out = swapExt(bam,".bam",".indels.vcf")
+      indel.downsample_to_coverage = Some(500)
+      indelCallFiles :+= new RodBind("v"+loopNo.toString, "VCF", indel.out)
+      if ( loopNo == 0 ) {
+        priority = "v0"
+      } else {
+        priority += ",v"+loopNo.toString
+      }
+      loopNo += 1
+    }
+    val mergeIndels = new CombineVariants with CommandLineGATKArgs
+    mergeIndels.out = qscript.project+".indels.vcf"
+    mergeIndels.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE
+    mergeIndels.priority = priority
+    mergeIndels.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
+    mergeIndels.rodBind = indelCallFiles
 
 
-    // 1b. genomically annotate SNPs -- slow, but scatter it
+    // 1b. genomically annotate SNPs -- no longer slow
     val annotated = new GenomicAnnotator with CommandLineGATKArgs
     annotated.rodBind :+= RodBind("variant", "VCF", new File(snps.variants_out))
     annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.refseqTable)
@@ -146,13 +164,12 @@ class fullCallingPipeline extends QScript {
     annotated.vcfOutput = swapExt(new File(snps.variants_out),".vcf",".annotated.vcf").getAbsolutePath
     annotated.select :+= "dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet"
     annotated.rodToIntervalTrackName = "variant"
-    annotated.scatterCount = 100
 
 
     // 2.a filter on cluster and near indels
     val masker = new VariantFiltration with CommandLineGATKArgs
     masker.rodBind :+= RodBind("variant", "VCF", new File(annotated.vcfOutput))
-    masker.rodBind :+= RodBind("mask", "VCF", new File(indels.variants_out))
+    masker.rodBind :+= RodBind("mask", "VCF", new File(mergeIndels.out))
     masker.maskName = "NearIndel"
     masker.clusterWindowSize = Some(qscript.snpClusterWindow)
     masker.clusterSize = Some(qscript.snpsInCluster)
@@ -173,7 +190,8 @@ class fullCallingPipeline extends QScript {
     // todo -- args for resources (properties file)
     val clusters = new GenerateVariantClusters with CommandLineGATKArgs
     clusters.rodBind :+= RodBind("input", "VCF", masker.out)
-    val clusters_clusterFile = swapExt(new File(snps.variants_out),".vcf",".cluster").getAbsolutePath
+    val clusters_clusterFile = swapExt(new File(snps.variants_out),".vcf",".cluster")
+    clusters.clusterFile = clusters_clusterFile
     clusters.memoryLimit = Some(8)
     clusters.jobQueue = "hugemem"
 
