@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
+import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -45,6 +46,7 @@ import java.io.PrintStream;
  */
 @Reference(window=@Window(start=-20,stop=20))
 @By(DataSource.REFERENCE)
+@Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
 public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics> {
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();

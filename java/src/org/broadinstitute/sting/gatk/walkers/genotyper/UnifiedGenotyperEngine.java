@@ -199,7 +199,7 @@ public class UnifiedGenotyperEngine {
             call.setRefBase(ref);
 
             // if the site was downsampled, record that fact
-            if ( false ) { //rawContext.hasPileupBeenDownsampled() ) {
+            if ( rawContext.hasPileupBeenDownsampled() ) {
                 Map<String, Object> attrs = new HashMap<String, Object>(call.vc.getAttributes());
                 attrs.put(VCFConstants.DOWNSAMPLED_KEY, true);
                 VariantContextUtils.modifyAttributes(call.vc, attrs);
