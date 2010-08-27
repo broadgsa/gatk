@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
@@ -70,21 +71,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected double MISMATCH_THRESHOLD = 0.15;
 
     @Output(required=false, doc="Output bam")
-    protected String writerFilename = null;
+    protected StingSAMFileWriter writer = null;
 
     @Argument(fullName="output",shortName="O",doc="Please use --out instead")
     @Deprecated
     protected String oldOArg;
 
-    @Argument(fullName="bam_compression", shortName="compress", required=false, doc="Compression level to use for output bams [default:5]")
-    protected Integer compressionLevel = 5;
-
     @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs for constructing the alternate references.")
     protected boolean USE_KNOWN_INDELS_ONLY = false;
-
-    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
-                "If too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool may run out of memory.", required=false)
-    protected int MAX_RECORDS_IN_RAM = 500000;
 
     // ADVANCED OPTIONS FOLLOW
 
@@ -141,9 +135,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private final ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
     private final IdentityHashMap<Object, VariantContext> knownIndelsToTry = new IdentityHashMap<Object, VariantContext>();
 
-    // the wrapper around the SAM writer
-    private SAMFileWriter writer = null;
-
     // random number generator
     private static final long RANDOM_SEED = 1252863495;
     private static final Random generator = new Random(RANDOM_SEED);
@@ -187,14 +178,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
         // set up the output writer(s)
-        if ( writerFilename != null ) {
-            SAMFileWriterFactory factory = new SAMFileWriterFactory();
-            factory.setMaxRecordsInRam(MAX_RECORDS_IN_RAM);
-
-            SAMFileHeader header = getToolkit().getSAMFileHeader();
-            File file = new File(writerFilename);
-            writer = makeWriter(factory, header, file);
-        }
+        if ( writer != null )
+            setupWriter(getToolkit().getSAMFileHeader());
 
         if ( OUT_INDELS != null ) {
             try {
@@ -225,7 +210,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private SAMFileWriter makeWriter(SAMFileWriterFactory factory, SAMFileHeader header, File file) {
+    private void setupWriter(SAMFileHeader header) {
         if ( SORT_IN_COORDINATE_ORDER )
             header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
         else
@@ -249,9 +234,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             header.setProgramRecords(newRecords);
         }
 
-        SAMFileWriter writer = factory.makeBAMWriter(header, false, file, compressionLevel);
-
-        return writer;
+        writer.writeHeader(header);
+        writer.setPresorted(false);
     }
 
     private void emit(final SAMRecord read) {
@@ -370,9 +354,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             readsNotToClean.addAll(readsToClean.getReads());
             emit(readsNotToClean);
         }
-
-        if ( writer != null )
-            writer.close();
 
         if ( OUT_INDELS != null ) {
             try {
