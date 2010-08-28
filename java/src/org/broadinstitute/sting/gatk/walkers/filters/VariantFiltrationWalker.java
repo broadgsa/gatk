@@ -112,9 +112,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         }
 
         if ( !NO_VCF_HEADER_LINE ) {
-            Set<Object> args = new HashSet<Object>();
-            args.add(this);
-            hInfo.add(new VCFHeaderLine("VariantFiltration", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
+            hInfo.add(new VCFHeaderLine("VariantFiltration", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
         }
 
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));

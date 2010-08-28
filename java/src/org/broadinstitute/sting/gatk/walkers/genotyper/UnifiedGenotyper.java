@@ -156,9 +156,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         // all of the arguments from the argument collection
         if ( !NO_VCF_HEADER_LINE ) {
-            Set<Object> args = new HashSet<Object>();
-            args.add(UAC);
-            headerInfo.add(new VCFHeaderLine("UnifiedGenotyper", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
+            headerInfo.add(new VCFHeaderLine("UnifiedGenotyper", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
         }
         
         return headerInfo;

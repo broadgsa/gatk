@@ -123,6 +123,8 @@ public class GenomeAnalysisEngine {
      */
     private final FilterManager filterManager;
 
+    private Date startTime = null; // the start time for execution
+
     /**
      * our constructor, where all the work is done
      * <p/>
@@ -149,6 +151,7 @@ public class GenomeAnalysisEngine {
     public Object execute(GATKArgumentCollection args, Walker<?, ?> my_walker, Collection<SamRecordFilter> filters) {
         //HeapSizeMonitor monitor = new HeapSizeMonitor();
         //monitor.start();
+        startTime = new java.util.Date();
 
         // validate our parameters
         if (args == null) {
@@ -187,6 +190,14 @@ public class GenomeAnalysisEngine {
 
         return result;
     }
+
+    /**
+     * @return the start time when the execute() function was last called
+     */
+    public Date getStartTime() {
+        return startTime;
+    }
+
 
     /**
      * Setup the intervals to be processed

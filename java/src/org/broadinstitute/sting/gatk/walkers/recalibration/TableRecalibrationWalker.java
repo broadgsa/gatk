@@ -262,10 +262,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
             programRecord.setProgramVersion( headerInfo.getString("org.broadinstitute.sting.gatk.version") );
 
-            HashSet<Object> args = new HashSet<Object>();
-            args.add(RAC);
             StringBuffer sb = new StringBuffer();
-            sb.append(CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()));
+            sb.append(CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this));
             sb.append(" Covariates=[");
             for( Covariate cov : requestedCovariates ) {
                 sb.append(cov.getClass().getSimpleName());

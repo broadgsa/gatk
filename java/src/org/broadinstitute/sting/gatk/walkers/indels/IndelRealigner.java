@@ -224,9 +224,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
             final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
             programRecord.setProgramVersion(headerInfo.getString("org.broadinstitute.sting.gatk.version"));
-            HashSet<Object> args = new HashSet<Object>();
-            args.add(this);
-            programRecord.setCommandLine(CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()));
+            programRecord.setCommandLine(CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this));
 
             List<SAMProgramRecord> oldRecords = header.getProgramRecords();
             List<SAMProgramRecord> newRecords = new ArrayList<SAMProgramRecord>(oldRecords.size()+1);

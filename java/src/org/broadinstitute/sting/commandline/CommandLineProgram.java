@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.commandline;
 
 import org.apache.log4j.*;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
 
@@ -143,7 +144,7 @@ public abstract class CommandLineProgram {
      *
      * @return the return code to exit the program with
      */
-    protected abstract int execute();
+    protected abstract int execute() throws Exception;
 
     static {
         // setup a basic log configuration
@@ -245,9 +246,6 @@ public abstract class CommandLineProgram {
 
             // call the execute
             CommandLineProgram.result = clp.execute();
-
-            // return the result
-            //System.exit(result);     // todo -- is this safe -- why exit here?  I want to run the GATK like normal
         }
         catch (ArgumentException e) {
             clp.parser.printHelp(clp.getApplicationDetails());
@@ -258,27 +256,8 @@ public abstract class CommandLineProgram {
             // we catch all exceptions here. if it makes it to this level, we're in trouble.  Let's bail!
             // TODO: what if the logger is the exception? hmm...
             logger.fatal("\n");
-            toErrorLog(clp, e);
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * generate an error log
-     * @param clp the command line program
-     * @param e the exception
-     */
-    private static void toErrorLog(CommandLineProgram clp, Exception e) {
-        File logFile = new File("GATK_Error.log");
-        PrintStream stream;
-        try {
-            stream = new PrintStream(logFile);
-        } catch (Exception e1) { // catch all the exceptions here, if we can't create the file, do the alternate path
-            if ( e.getCause() != null ) logger.fatal("with cause: " + e.getCause());
-            throw new RuntimeException(e);
-        }
-        clp.generateErrorLog(stream, e);
-        stream.close();
     }
 
     /**
@@ -399,16 +378,6 @@ public abstract class CommandLineProgram {
      */
     public static void exitSystemWithError(Exception e) {
         exitSystemWithError(e.getMessage(), e);
-    }
-
-    /**
-     * generate an error log, given the stream to write to and the execption that was generated
-     *
-     * @param stream the output stream
-     * @param e      the exception
-     */
-    public void generateErrorLog(PrintStream stream, Exception e) {
-        e.printStackTrace(stream);
     }
 
     /**

@@ -361,22 +361,64 @@ public class ParsingEngine {
     }
 
     private static List<ArgumentSource> extractArgumentSources(Class sourceClass, Field[] parentFields) {
-        List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
+        // now simply call into the truly general routine extract argument bindings but with a null
+        // object so bindings aren't computed
+        Map<ArgumentSource, Object> bindings = extractArgumentBindings(null, sourceClass, parentFields);
+        return new ArrayList<ArgumentSource>(bindings.keySet());
+    }
+
+//        List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
+//        while( sourceClass != null ) {
+//            Field[] fields = sourceClass.getDeclaredFields();
+//            for( Field field: fields ) {
+//                if( ArgumentTypeDescriptor.isArgumentAnnotationPresent(field) )
+//                    argumentSources.add( new ArgumentSource(parentFields, field) );
+//                if( field.isAnnotationPresent(ArgumentCollection.class) ) {
+//                    Field[] newParentFields = Arrays.copyOf(parentFields, parentFields.length + 1);
+//                    newParentFields[parentFields.length] = field;
+//                    argumentSources.addAll( extractArgumentSources(field.getType(), newParentFields) );
+//                }
+//            }
+//            sourceClass = sourceClass.getSuperclass();
+//        }
+//        return argumentSources;
+//    }
+
+    public static Map<ArgumentSource, Object> extractArgumentBindings(Object obj) {
+        if ( obj == null ) throw new IllegalArgumentException("Incoming object cannot be null");
+        return extractArgumentBindings(obj, obj.getClass(), new Field[0]);
+    }
+
+    /**
+     * Extract all the argument sources from a given object, along with their bindings if obj != null .
+     * @param obj the object corresponding to the sourceClass
+     * @param sourceClass class to act as sources for other arguments.
+     * @param parentFields
+     * @return A map of sources associated with this object and its aggregated objects and bindings to their bindings values
+     */
+    private static Map<ArgumentSource, Object> extractArgumentBindings(Object obj, Class sourceClass, Field[] parentFields) {
+        Map<ArgumentSource, Object> bindings = new HashMap<ArgumentSource, Object>();
+
         while( sourceClass != null ) {
             Field[] fields = sourceClass.getDeclaredFields();
             for( Field field: fields ) {
-                if( ArgumentTypeDescriptor.isArgumentAnnotationPresent(field) )
-                    argumentSources.add( new ArgumentSource(parentFields, field) );
+                if( ArgumentTypeDescriptor.isArgumentAnnotationPresent(field) ) {
+                    Object val = obj != null ? JVMUtils.getFieldValue(field, obj) : null;
+                    bindings.put( new ArgumentSource(parentFields, field), val );
+                }
                 if( field.isAnnotationPresent(ArgumentCollection.class) ) {
+                    Object val = obj != null ? JVMUtils.getFieldValue(field, obj) : null;
                     Field[] newParentFields = Arrays.copyOf(parentFields, parentFields.length + 1);
                     newParentFields[parentFields.length] = field;
-                    argumentSources.addAll( extractArgumentSources(field.getType(), newParentFields) );
+                    bindings.putAll( extractArgumentBindings(val, field.getType(), newParentFields) );
                 }
             }
+
             sourceClass = sourceClass.getSuperclass();
         }
-        return argumentSources;
-    }    
+
+        return bindings;
+    }
 
     /**
      * Determines whether a token looks like the name of an argument.

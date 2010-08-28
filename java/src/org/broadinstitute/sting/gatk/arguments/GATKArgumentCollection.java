@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
@@ -73,6 +74,10 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
     public Integer readBufferSize = null;
+
+    @Element(required = false)
+    @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate?  Standard is the default, can be verbose or NO_ET so nothing is posted to the run repository", required = false)
+    public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.NO_ET;
 
     @ElementList(required = false)
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually.", required = false)
@@ -335,6 +340,9 @@ public class GATKArgumentCollection {
         }
         if ((other.RODToInterval == null && RODToInterval != null) ||
             (other.RODToInterval != null && !other.RODToInterval.equals(RODToInterval))) {
+            return false;
+        }
+        if (other.phoneHomeType != this.phoneHomeType) {
             return false;
         }
         if (BTIMergeRule != other.BTIMergeRule)

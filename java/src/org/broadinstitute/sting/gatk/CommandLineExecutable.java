@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -35,6 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.*;
 
 import net.sf.picard.filter.SamRecordFilter;
@@ -68,22 +70,44 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      *
      * @return the return code to exit the program with
      */
-    protected int execute() {
-        GATKResult = executeGATK();
-        return 0;
-    }
-
-    protected Object executeGATK() {
+    protected int execute() throws Exception {
         Walker<?,?> mWalker = GATKEngine.getWalkerByName(getAnalysisName());
         Collection<SamRecordFilter> filters = GATKEngine.createFiltersForWalker(getArgumentCollection(),mWalker);
 
         // load the arguments into the walker / filters.
         loadArgumentsIntoObject(mWalker);
-        for(SamRecordFilter filter: filters)
+        for (SamRecordFilter filter: filters)
             loadArgumentsIntoObject(filter);
 
         // set the analysis name in the argument collection
-        return GATKEngine.execute(getArgumentCollection(), mWalker, filters);
+        try {
+            GATKResult = GATKEngine.execute(getArgumentCollection(), mWalker, filters);
+            generateGATKRunReport(mWalker);
+        } catch ( Exception e ) {
+            generateGATKRunReport(mWalker, e);
+            throw e;
+        }
+
+        // always return 0
+        return 0;
+    }
+
+    /**
+     * generate an error log
+     * @param e the exception, can be null if no exception occurred
+     */
+    private void generateGATKRunReport(Walker<?,?> mWalker, Exception e) {
+        if ( getArgumentCollection().phoneHomeType != GATKRunReport.PhoneHomeOption.NO_ET ) {
+            GATKRunReport report = new GATKRunReport(mWalker, e, GATKEngine);
+            if ( getArgumentCollection().phoneHomeType == GATKRunReport.PhoneHomeOption.STDOUT )
+                report.postReport(System.out);
+            else
+                report.postReport();
+        }
+    }
+
+    private void generateGATKRunReport(Walker<?,?> mWalker) {
+        generateGATKRunReport(mWalker, null);
     }
 
     /**

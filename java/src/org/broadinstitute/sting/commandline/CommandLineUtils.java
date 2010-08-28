@@ -53,12 +53,12 @@ public class CommandLineUtils {
         Map<String,String> commandLineArguments = new LinkedHashMap<String,String>();
 
         for(Object argumentProvider: argumentProviders) {
-            List<ArgumentSource> argumentSources = ParsingEngine.extractArgumentSources(argumentProvider.getClass());
-            for(ArgumentSource argumentSource: argumentSources) {
-                Object argumentValue = JVMUtils.getFieldValue(argumentSource.field,argumentProvider);
+            Map<ArgumentSource, Object> argBindings = ParsingEngine.extractArgumentBindings(argumentProvider);
+            for(Map.Entry<ArgumentSource, Object> elt: argBindings.entrySet()) {
+                Object argumentValue = elt.getValue();
                 String argumentValueString = argumentValue != null ? argumentValue.toString() : null;
 
-                for(ArgumentDefinition definition: argumentSource.createArgumentDefinitions()) {
+                for(ArgumentDefinition definition: elt.getKey().createArgumentDefinitions()) {
                     String argumentName = definition.fullName;
                     commandLineArguments.put(argumentName,argumentValueString);
                 }
@@ -68,15 +68,39 @@ public class CommandLineUtils {
         return commandLineArguments;
     }
 
-    public static String createApproximateCommandLineArgumentString(GenomeAnalysisEngine toolkit, Collection<Object> otherArgumentProviders, Class<? extends Walker> walkerType) {
+//    public static Map<String,String> getApproximateCommandLineArguments(Collection<Object> argumentProviders) {
+//        Map<String,String> commandLineArguments = new LinkedHashMap<String,String>();
+//
+//        for(Object argumentProvider: argumentProviders) {
+//            Map<ArgumentSource, Object> argBings = ParsingEngine.extractArgumentBindings(argumentProvider);
+//            List<ArgumentSource> argumentSources = ParsingEngine.extractArgumentSources(argumentProvider.getClass());
+//            for(ArgumentSource argumentSource: argumentSources) {
+//                Object argumentValue = JVMUtils.getFieldValue(argumentSource.field,argumentProvider);
+//                String argumentValueString = argumentValue != null ? argumentValue.toString() : null;
+//
+//                for(ArgumentDefinition definition: argumentSource.createArgumentDefinitions()) {
+//                    String argumentName = definition.fullName;
+//                    commandLineArguments.put(argumentName,argumentValueString);
+//                }
+//            }
+//        }
+//
+//        return commandLineArguments;
+//    }
 
+    public static String createApproximateCommandLineArgumentString(GenomeAnalysisEngine toolkit, Walker walker) {
+        return createApproximateCommandLineArgumentString(toolkit, null, walker);
+    }
+
+    public static String createApproximateCommandLineArgumentString(GenomeAnalysisEngine toolkit, Collection<Object> otherArgumentProviders, Walker walker) {
         StringBuffer sb = new StringBuffer();
         sb.append("analysis_type=");
-        sb.append(toolkit.getWalkerName(walkerType));
+        sb.append(toolkit.getWalkerName(walker.getClass()));
 
         ArrayList<Object> allArgumentProviders = new ArrayList<Object>();
         allArgumentProviders.add(toolkit.getArguments());
-        allArgumentProviders.addAll(otherArgumentProviders);
+        allArgumentProviders.add(walker);
+        if (otherArgumentProviders != null) allArgumentProviders.addAll(otherArgumentProviders);
 
         Map<String,String> commandLineArgs = getApproximateCommandLineArguments(allArgumentProviders);
 

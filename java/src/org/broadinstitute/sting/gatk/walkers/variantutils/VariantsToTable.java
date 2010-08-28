@@ -64,10 +64,13 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     public int MAX_RECORDS = -1;
     int nRecords = 0;
 
+    @Argument(fullName="allowMultiAllelic", shortName="AMA", doc="If provided, we will not require the site to be biallelic", required=false)
+    public boolean allowMultiAllelic = false;
+
     private List<String> fieldsToTake;
 
     public void initialize() {
-        fieldsToTake = Arrays.asList(FIELDS.toUpperCase().split(","));
+        fieldsToTake = Arrays.asList(FIELDS.split(","));
 
         out.println(Utils.join("\t", fieldsToTake));
     }
@@ -111,21 +114,23 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
             Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
             for ( VariantContext vc : vcs) {
-                List<String> vals = new ArrayList<String>();
+                if ( allowMultiAllelic || vc.isBiallelic() ) {
+                    List<String> vals = new ArrayList<String>();
 
-                for ( String field : fieldsToTake ) {
-                    String val = "UNK";
+                    for ( String field : fieldsToTake ) {
+                        String val = "UNK";
 
-                    if ( getters.containsKey(field) ) {
-                        val = getters.get(field).get(vc);
-                    } else if ( vc.hasAttribute(field) ) {
-                        val = vc.getAttributeAsString(field);
+                        if ( getters.containsKey(field) ) {
+                            val = getters.get(field).get(vc);
+                        } else if ( vc.hasAttribute(field) ) {
+                            val = vc.getAttributeAsString(field);
+                        }
+
+                        vals.add(val);
                     }
 
-                    vals.add(val);
+                    out.println(Utils.join("\t", vals));
                 }
-
-                out.println(Utils.join("\t", vals));
             }
 
             return 1;

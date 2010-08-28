@@ -146,9 +146,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
                 hInfo.add(line);
         }
         if ( !NO_VCF_HEADER_LINE ) {
-            Set<Object> args = new HashSet<Object>();
-            args.add(this);
-            hInfo.add(new VCFHeaderLine("VariantAnnotator", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), args, getClass()) + "\""));
+            hInfo.add(new VCFHeaderLine("VariantAnnotator", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
         }
 
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);

@@ -65,18 +65,6 @@ public class CommandLineGATK extends CommandLineExecutable {
                 getAdditionalHelp());
     }
 
-    /**
-     * generate an error log, given the stream to write to and the exception that was thrown
-     *
-     * @param stream the output stream
-     * @param e      the exception
-     */
-    @Override
-    public void generateErrorLog(PrintStream stream, Exception e) {
-        GATKErrorReport report = new GATKErrorReport(e, this.argCollection);
-        report.reportToStream(stream);
-    }
-
     @Override
     protected String getAnalysisName() {
         return analysisName;
@@ -114,17 +102,22 @@ public class CommandLineGATK extends CommandLineExecutable {
      * @return The application header.
      */
     public static List<String> createApplicationHeader() {
-        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
-
-        String versionNumber = headerInfo.containsKey("org.broadinstitute.sting.gatk.version") ? headerInfo.getString("org.broadinstitute.sting.gatk.version") : "<unknown>";
-        String timestamp = headerInfo.containsKey("build.timestamp") ? headerInfo.getString("build.timestamp") : "<unknown>";
-
         List<String> header = new ArrayList<String>();
-        header.add(String.format("The Genome Analysis Toolkit (GATK) v%s, Compiled %s",versionNumber,timestamp));
+        header.add(String.format("The Genome Analysis Toolkit (GATK) v%s, Compiled %s",getVersionNumber(), getBuildTime()));
         header.add("Copyright (c) 2009 The Broad Institute");
         header.add("Please view our documentation at http://www.broadinstitute.org/gsa/wiki");
         header.add("For support, please view our support site at http://getsatisfaction.com/gsa");
         return header;
+    }
+
+    public static String getVersionNumber() {
+        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
+        return headerInfo.containsKey("org.broadinstitute.sting.gatk.version") ? headerInfo.getString("org.broadinstitute.sting.gatk.version") : "<unknown>";
+    }
+
+    public static String getBuildTime() {
+        ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
+        return headerInfo.containsKey("build.timestamp") ? headerInfo.getString("build.timestamp") : "<unknown>";
     }
 
     /**

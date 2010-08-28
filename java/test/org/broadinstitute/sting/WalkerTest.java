@@ -273,9 +273,11 @@ public class WalkerTest extends BaseTest {
         System.out.println(String.format("Executing test %s with GATK arguments: %s", name, Utils.join(" ",command)));
 
         // add the logging level to each of the integration test commands
-        String[] cmd2 = Arrays.copyOf(command, command.length + 2);
+        String[] cmd2 = Arrays.copyOf(command, command.length + 4);
         cmd2[command.length] = "-l";
         cmd2[command.length+1] = "WARN";
+        cmd2[command.length+2] = "-et";
+        cmd2[command.length+3] = "NO_ET";
 
         // run the executable
         CommandLineExecutable.start(instance, cmd2);
