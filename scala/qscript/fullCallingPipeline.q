@@ -51,13 +51,13 @@ class fullCallingPipeline extends QScript {
   @Input(doc="target titv for recalibration",shortName="titv",required=false)
   var target_titv = 2.1
 
-  @Input(doc="downsampling coverage",shortname="dcov",required=false)
+  @Input(doc="downsampling coverage",shortName="dcov",required=false)
   var downsampling_coverage = 200
 
-  @Input(doc="Number of jobs to scatter unifeid genotyper",shortname="snpScatter",required=false)
+  @Input(doc="Number of jobs to scatter unifeid genotyper",shortName="snpScatter",required=false)
   var num_snp_scatter_jobs = 50
 
-  @Input(doc="Number of jobs to scatter indel genotyper",shortname="indelScatter",required=false)
+  @Input(doc="Number of jobs to scatter indel genotyper",shortName="indelScatter",required=false)
   var num_indel_scatter_jobs = 5
 
 
@@ -74,9 +74,9 @@ class fullCallingPipeline extends QScript {
     val cleanedBase: String = projectBase + ".cleaned"
     val uncleanedBase: String = projectBase + ".uncleaned"
     // there are commands that use all the bam files
-    var cleanBamFiles = List.empty[File]
+    var cleanBamFiles = List.empty[NamedFile]
 
-    for ( bam <- bamFiles ) {
+    for ( bam <- qscript.bamFiles ) {
 
       // put unclean bams in unclean genotypers
 
@@ -88,7 +88,7 @@ class fullCallingPipeline extends QScript {
       // create the cleaning commands
 
       val targetCreator = new RealignerTargetCreator with CommandLineGATKArgs
-      targetCreator.input_file :+= bam
+      targetCreator.input_file :+= bam.toNamedFile
       targetCreator.out = indel_targets
 
       val realigner = new IndelRealigner with CommandLineGATKArgs
@@ -103,17 +103,17 @@ class fullCallingPipeline extends QScript {
 
       // put clean bams in clean genotypers
 
-      cleanBamFiles :+= realigner.out
+      cleanBamFiles :+= realigner.out.toNamedFile
 
       add(targetCreator,realigner)
     }
 
     // actually make calls
-    endToEnd(uncleanedBase,bamFiles)
+    endToEnd(uncleanedBase,qscript.bamFiles)
     endToEnd(cleanedBase,cleanBamFiles)
   }
 
-  def endToEnd(base: String, bamFiles: List[File]) = {
+  def endToEnd(base: String, bamFiles: List[NamedFile]) = {
 
     // step through the un-indel-cleaned graph:
     // 1a. call snps and indels
@@ -143,16 +143,16 @@ class fullCallingPipeline extends QScript {
 
 
     // indel genotyper does one sample at a time
-    val indelCallFiles = List.empty[RodBind]
-    val indelGenotypers = List.empty[IndelGenotyperV2]
-    val loopNo = 0
-    val priority = ""
-    for ( bam <- bamFiles ) {
+    var indelCallFiles = List.empty[RodBind]
+    var indelGenotypers = List.empty[IndelGenotyperV2 with CommandLineGATKArgs]
+    var loopNo = 0
+    var priority = ""
+    for ( bam <- qscript.bamFiles ) {
       val indel = new IndelGenotyperV2 with CommandLineGATKArgs
-      indel.input_file :+= bam
+      indel.input_file :+= bam.toNamedFile
       indel.out = swapExt(bam,".bam",".indels.vcf")
       indel.downsample_to_coverage = Some(500)
-      indelCallFiles :+= new RodBind("v"+loopNo.toString, "VCF", indel.out)
+      indelCallFiles :+= RodBind("v"+loopNo.toString, "VCF", indel.out)
       indel.scatterCount = qscript.num_indel_scatter_jobs
 
       indelGenotypers :+= indel
@@ -165,10 +165,10 @@ class fullCallingPipeline extends QScript {
       loopNo += 1
     }
     val mergeIndels = new CombineVariants with CommandLineGATKArgs
-    mergeIndels.out = qscript.project+".indels.vcf"
-    mergeIndels.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE
+    mergeIndels.out = new File(qscript.project+".indels.vcf")
+    mergeIndels.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE)
     mergeIndels.priority = priority
-    mergeIndels.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
+    mergeIndels.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
     mergeIndels.rodBind = indelCallFiles
 
 
@@ -185,7 +185,7 @@ class fullCallingPipeline extends QScript {
     // 2.a filter on cluster and near indels
     val masker = new VariantFiltration with CommandLineGATKArgs
     masker.rodBind :+= RodBind("variant", "VCF", new File(annotated.vcfOutput))
-    masker.rodBind :+= RodBind("mask", "VCF", new File(mergeIndels.out))
+    masker.rodBind :+= RodBind("mask", "VCF", new File(mergeIndels.out.getAbsolutePath))
     masker.maskName = "NearIndel"
     masker.clusterWindowSize = Some(qscript.snpClusterWindow)
     masker.clusterSize = Some(qscript.snpsInCluster)
@@ -195,7 +195,7 @@ class fullCallingPipeline extends QScript {
     // 2.b hand filter with standard filter
     val handFilter = new VariantFiltration with CommandLineGATKArgs
     handFilter.rodBind :+= RodBind("variant", "VCF", new File(annotated.vcfOutput))
-    handFilter.rodBind :+= RodBind("mask", "VCF", new File(indels.variants_out))
+    handFilter.rodBind :+= RodBind("mask", "VCF", mergeIndels.out)
     handFilter.filterName ++= List("StrandBias","AlleleBalance","QualByDepth","HomopolymerRun")
     handFilter.filterExpression ++= List("\"SB>=0.10\"","\"AB>=0.75\"","QD<5","\"HRun>=4\"")
     handFilter.out = swapExt(new File(annotated.vcfOutput),".vcf",".handfiltered.vcf")
