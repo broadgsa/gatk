@@ -93,7 +93,10 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     }
 
     /**
-     * generate an error log
+     * Generate the GATK run report for this walker using the current GATKEngine, if -et is enabled.
+     * This report will be written to either STDOUT or to the run repository, depending on the options
+     * for -et.
+     *
      * @param e the exception, can be null if no exception occurred
      */
     private void generateGATKRunReport(Walker<?,?> mWalker, Exception e) {
@@ -106,6 +109,12 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         }
     }
 
+    /**
+     * Convenience method for fully parameterized generateGATKRunReport when an exception has
+     * not occurred
+     * 
+     * @param mWalker
+     */
     private void generateGATKRunReport(Walker<?,?> mWalker) {
         generateGATKRunReport(mWalker, null);
     }

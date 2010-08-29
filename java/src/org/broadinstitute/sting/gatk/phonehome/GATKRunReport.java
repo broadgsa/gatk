@@ -40,6 +40,7 @@ import org.simpleframework.xml.stream.Format;
 import org.simpleframework.xml.stream.HyphenStyle;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -51,10 +52,13 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  * @author depristo
- *         <p/>
- *         Class GATKRunReport
- *         <p/>
- *         A detailed description of a GATK run, and error if applicable
+ *
+ * A detailed description of a GATK run, and error if applicable.  Simply create a GATKRunReport
+ * with the constructor, providing the walker that was run and the fully instantiated GenomeAnalysisEngine
+ * <b>after the run finishes</b> and the GATKRunReport will collect all of the report information
+ * into this object.  Call postReport to write out the report, as an XML document, to either STDOUT,
+ * a file (in which case the output is gzipped), or with no arguments the report will be posted to the
+ * GATK run report database.
  */
 public class GATKRunReport {
     /**
@@ -116,9 +120,6 @@ public class GATKRunReport {
     @Element(required = true, name = "java_tmp_directory")
     private static String tmpDir;
 
-    @Element(required = true, name = "domain_name")
-    private static String domainName;
-
     @Element(required = true, name = "user_name")
     private static String userName;
 
@@ -140,12 +141,10 @@ public class GATKRunReport {
     @Element(required = true, name = "read_metrics")
     private static String readMetrics;
 
-    // not done
-    //- walker-specific args
-    //+ md5 all filenames
-    //- size of filenames
-    //- # reads/loci
-    //- free memory on machine
+    // TODO
+    // todo md5 all filenames
+    // todo size of filenames
+    // todo free memory on machine
 
     public enum PhoneHomeOption {
         NO_ET,
@@ -160,12 +159,18 @@ public class GATKRunReport {
         currentPath = System.getProperty("user.dir");
     }
 
-    /** Create a new RunReport and population all of the fields with values from the walker and engine */
+    /**
+     * Create a new RunReport and population all of the fields with values from the walker and engine
+     *
+     * @param walker the GATK walker that we ran
+     * @param e the exception caused by running this walker, or null if we completed successfully
+     * @param engine the GAE we used to run the walker, so we can fetch runtime, args, etc
+     */
     public GATKRunReport(Walker<?,?> walker, Exception e, GenomeAnalysisEngine engine) {
         this.mCollection = engine.getArguments();
         this.mException = e == null ? null : new ExceptionToXML(e);
 
-        startTime = dateFormat.format(engine.getStartTime()); // fixme
+        startTime = dateFormat.format(engine.getStartTime());
         Date end = new java.util.Date();
         endTime = dateFormat.format(end);
         runTime = (end.getTime() - engine.getStartTime().getTime()) / 1000L; // difference in seconds
@@ -178,13 +183,36 @@ public class GATKRunReport {
         readMetrics = engine.getCumulativeMetrics().toString();
         memory = Runtime.getRuntime().totalMemory();
         tmpDir = System.getProperty("java.io.tmpdir");
-        domainName = "Need to figure this out";
-        hostName = "Need to figure this out";
+
         userName = System.getProperty("user.name");
         java = Utils.join("-", Arrays.asList(System.getProperty("java.vendor"), System.getProperty("java.version")));
         machine = Utils.join("-", Arrays.asList(System.getProperty("os.name"), System.getProperty("os.arch")));
+
+        resolveHostname();
     }
 
+    /**
+     * Helper utility that calls into the InetAddress system to resolve the hostname.  If this fails,
+     * unresolvable gets returned instead.
+     *
+     * @return
+     */
+    private String resolveHostname() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        }
+        catch (java.net.UnknownHostException uhe) { // [beware typo in code sample -dmw]
+            return "unresolvable";
+            // handle exception
+        }
+    }
+
+    /**
+     * Write an XML representation of this report to the stream, throwing a StingException if the marshalling
+     * fails for any reason.
+     *
+     * @param stream
+     */
     public void postReport(OutputStream stream) {
         Serializer serializer = new Persister(new Format(new HyphenStyle()));
         try {
@@ -195,7 +223,13 @@ public class GATKRunReport {
         }
     }
 
-    public void postReport(File destination) throws FileNotFoundException, IOException {
+    /**
+     * Opens the destination file and writes a gzipped version of the XML report there.
+     *
+     * @param destination
+     * @throws IOException
+     */
+    public void postReport(File destination) throws IOException {
         BufferedOutputStream out =
                 new BufferedOutputStream(
                         new GZIPOutputStream(
@@ -207,9 +241,14 @@ public class GATKRunReport {
         }
     }
 
+    /**
+     * Main entry point to writing reports to disk.  Posts the XML report to the common GATK run report repository.
+     * If this process fails for any reason, all exceptions are handled and this routine merely prints a warning.
+     * That is, postReport() is guarenteed not to fail for any reason.
+     */
     public void postReport() {
         try {
-            if ( sentinelExists() ) {
+            if ( repositoryIsOnline() ) {
                 String filename = org.apache.commons.lang.RandomStringUtils.randomAlphanumeric(32) + ".report.xml.gz";
                 File file = new File(REPORT_SUBMIT_DIR, filename);
                 postReport(file);
@@ -223,11 +262,19 @@ public class GATKRunReport {
         }
     }
 
-    private boolean sentinelExists() {
+    /**
+     * Returns true if and only if the common run report repository is available and online to receive reports
+     *
+     * @return
+     */
+    private boolean repositoryIsOnline() {
         return REPORT_SENTINEL.exists();
     }
 
-    class ExceptionToXML {
+    /**
+     * A helper class for formatting in XML the throwable chain starting at e.
+     */
+    private class ExceptionToXML {
         @Element(required = false, name = "message")
         String message = null;
 
@@ -244,7 +291,6 @@ public class GATKRunReport {
             }
 
             if ( e.getCause() != null ) {
-                //message += " because " + e.getCause().getMessage();
                 cause = new ExceptionToXML(e.getCause());
             }
         }
