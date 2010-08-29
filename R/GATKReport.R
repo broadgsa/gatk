@@ -1,3 +1,24 @@
+# Load a table into the specified environment.  Make sure that each new table gets a unique name (this allows one to cat a bunch of tables with the same name together and load them into R without each table overwriting the last.
+.assignGATKTableToEnvironment <- function(tableName, tableHeader, tableRows, tableEnv) {
+    d = data.frame(tableRows, row.names=NULL, stringsAsFactors=FALSE);
+    colnames(d) = tableHeader;
+
+    for (i in 1:ncol(d)) {
+        v = suppressWarnings(as.numeric(d[,i]));
+
+        d[,i] = v;
+    }
+
+    usedNames = ls(envir=tableEnv, pattern=tableName);
+
+    if (length(usedNames) > 0) {
+        tableName = paste(tableName, ".", length(usedNames), sep="");
+    }
+
+    assign(tableName, d, envir=tableEnv);
+}
+
+# Load all GATKReport tables from a file
 read.gatkreport <- function(filename) {
     con = file(filename, "r", blocking = TRUE);
     lines = readLines(con);
@@ -10,14 +31,11 @@ read.gatkreport <- function(filename) {
     tableRows = c();
 
     for (line in lines) {
-        if (length(grep("^#:table[[:space:]]+", line, ignore.case=TRUE)) > 0) {
+        if (length(grep("^##:GATKReport.v0.1[[:space:]]+", line, ignore.case=TRUE)) > 0) {
             headerFields = unlist(strsplit(line, "[[:space:]]+"));
 
             if (!is.na(tableName)) {
-                d = data.frame(tableRows, row.names=NULL, stringsAsFactors=FALSE);
-                colnames(d) = tableHeader;
-
-                assign(tableName, d, envir=tableEnv);
+                .assignGATKTableToEnvironment(tableName, tableHeader, tableRows, tableEnv);
             }
 
             tableName = headerFields[2];
@@ -37,10 +55,7 @@ read.gatkreport <- function(filename) {
     }
 
     if (!is.na(tableName)) {
-        d = data.frame(tableRows, row.names=NULL);
-        colnames(d) = tableHeader;
-
-        assign(tableName, d, envir=tableEnv);
+        .assignGATKTableToEnvironment(tableName, tableHeader, tableRows, tableEnv);
     }
 
     gatkreport = as.list(tableEnv);
