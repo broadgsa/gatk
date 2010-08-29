@@ -40,6 +40,7 @@ import java.util.*;
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.
  */
+@Reference(window=@Window(start=0,stop=100))
 @Requires(value={},referenceMetaData=@RMD(name="variant",type= VariantContext.class))
 public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
 
@@ -56,17 +57,23 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         writer.writeHeader(vcfHeader);
     }
 
-    private void filterAndWrite(byte ref, VariantContext vc) {
+    private void filterAndWrite(byte[] ref, VariantContext vc) {
 
         totalLocs++;
 
-        byte recordRef = vc.getReference().getBases()[0];
-
-        if ( recordRef != ref ) {
-            failedLocs++;
-        } else {
-            writer.add(vc, ref);
+        boolean failed = false;
+        byte[] recordRef = vc.getReference().getBases();
+        for (int i = 0; i < recordRef.length; i++) {
+            if ( recordRef[i] != ref[i + (vc.isSNP() ? 0 : 1)] ) {
+                failed = true;
+                break;
+            }
         }
+
+        if ( failed )
+            failedLocs++;
+        else
+            writer.add(vc, ref[0]);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -75,7 +82,7 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
 
         Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
         for ( VariantContext vc : VCs )
-            filterAndWrite(ref.getBase(), vc);
+            filterAndWrite(ref.getBases(), vc);
 
         return 0;
     }
