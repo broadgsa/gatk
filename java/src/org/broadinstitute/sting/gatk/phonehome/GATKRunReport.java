@@ -167,28 +167,33 @@ public class GATKRunReport {
      * @param engine the GAE we used to run the walker, so we can fetch runtime, args, etc
      */
     public GATKRunReport(Walker<?,?> walker, Exception e, GenomeAnalysisEngine engine) {
+	// what did we run?
+        cmdLine = CommandLineUtils.createApproximateCommandLineArgumentString(engine, walker);
         this.mCollection = engine.getArguments();
-        this.mException = e == null ? null : new ExceptionToXML(e);
+        walkerName = engine.getWalkerName(walker.getClass());
+        svnVersion = CommandLineGATK.getVersionNumber();
 
+	// runtime performance metrics
         startTime = dateFormat.format(engine.getStartTime());
         Date end = new java.util.Date();
         endTime = dateFormat.format(end);
         runTime = (end.getTime() - engine.getStartTime().getTime()) / 1000L; // difference in seconds
-
-        cmdLine = CommandLineUtils.createApproximateCommandLineArgumentString(engine, walker);
-        walkerName = engine.getWalkerName(walker.getClass());
-        svnVersion = CommandLineGATK.getVersionNumber();
         nIterations = engine.getCumulativeMetrics().getNumIterations();
         nReads = engine.getCumulativeMetrics().getNumReadsSeen();
         readMetrics = engine.getCumulativeMetrics().toString();
         memory = Runtime.getRuntime().totalMemory();
         tmpDir = System.getProperty("java.io.tmpdir");
 
+	// user and hostname -- information about the runner of the GATK
         userName = System.getProperty("user.name");
+        hostName = resolveHostname();
+
+	// basic java information
         java = Utils.join("-", Arrays.asList(System.getProperty("java.vendor"), System.getProperty("java.version")));
         machine = Utils.join("-", Arrays.asList(System.getProperty("os.name"), System.getProperty("os.arch")));
 
-        resolveHostname();
+	// if there was an exception, capture it
+        this.mException = e == null ? null : new ExceptionToXML(e);
     }
 
     /**
@@ -199,7 +204,7 @@ public class GATKRunReport {
      */
     private String resolveHostname() {
         try {
-            return InetAddress.getLocalHost().getHostName();
+            return InetAddress.getLocalHost().getCanonicalHostName();
         }
         catch (java.net.UnknownHostException uhe) { // [beware typo in code sample -dmw]
             return "unresolvable";
