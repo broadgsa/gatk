@@ -2,28 +2,6 @@ library(ellipse);
 library(hexbin);
 library(rgl);
 
-args = commandArgs(TRUE);
-
-plotRoot = args[1];
-if (is.na(plotRoot)) { plotRoot = "test"; }
-
-clusterFile = args[2];
-if (is.na(clusterFile)) { clusterFile = "/Volumes/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v8/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized"; }
-
-vcfTable = args[3];
-if (is.na(vcfTable)) { vcfTable = "/Volumes/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v8/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.table"; }
-
-lociFile = args[4];
-if (is.na(lociFile) | lociFile == "NA" ) { lociFile = NA; }
-
-maxVariants = args[5];
-if (is.na(maxVariants)) { maxVariants = 5000; }
-maxVariants = as.integer(maxVariants)
-
-greedy = args[6]
-if (is.na(greedy)) { greedy = -1; }
-greedy = as.integer(greedy)
-
 getAnnIndex <- function(d, ann) {
     index = -1;
     for (i in c(1:length(names(d)))) {
@@ -47,13 +25,11 @@ getClusterAnnIndex <- function(c, ann) {
     index;
 }
 
-plotAnn <- function(d.known, d.novel, d.loci, ann, plotfile) {
+plotAnn <- function(d.known, d.novel, d.loci, ann) {
     index = getAnnIndex(d.known, ann);
 
     k = hist(d.known[,index], breaks=100, plot=FALSE);
     n = hist(d.novel[,index], breaks=100, plot=FALSE);
-
-    pdf(plotfile);
 
     plot(k$mids, k$density, type="b", col="blue", ylim=c(0, max(k$density)), lwd=2, xlab=ann, ylab="Density", bty="n");
     points(n$mids, n$density, type="b", col="red", lwd=2);
@@ -69,8 +45,6 @@ plotAnn <- function(d.known, d.novel, d.loci, ann, plotfile) {
             points(d.loci[i, index], 0, col="yellow3", pch=18, cex=2.0);
         }
     }
-
-    dev.off();
 }
 
 read.clusters <- function(filename) {
@@ -168,8 +142,6 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     xlims = c(min(xvalsForLims), 1.2*max(xvalsForLims)); 
     ylims = c(min(yvalsForLims), max(yvalsForLims)); 
 
-    pdf(filename);
-
     # par(mar=c(5, 6, 2, 5));
     plot(0, 0, type="n", xaxt="n", yaxt="n", xlim=xlims, ylim=ylims, xlab=ann1, ylab=ann2, bty="n");
 
@@ -225,9 +197,29 @@ plotClusters <- function(d.known, d.novel, d.loci, c, ann1, ann2, filename, maxV
     if (!is.na(d.loci)) {
         points((d.loci[,index1] - off1)/mult1, (d.loci[,index2] - off2)/mult2, pch=19, cex=0.8, col="yellow3");
     }
-
-    dev.off();
 }
+
+args = commandArgs(TRUE);
+
+plotRoot = args[1];
+if (is.na(plotRoot)) { plotRoot = "test"; }
+
+clusterFile = args[2];
+if (is.na(clusterFile)) { clusterFile = "/Volumes/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v8/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized"; }
+
+vcfTable = args[3];
+if (is.na(vcfTable)) { vcfTable = "/Volumes/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v8/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.table"; }
+
+lociFile = args[4];
+if (is.na(lociFile) | lociFile == "NA" ) { lociFile = NA; }
+
+maxVariants = args[5];
+if (is.na(maxVariants)) { maxVariants = 5000; }
+maxVariants = as.integer(maxVariants)
+
+greedy = args[6]
+if (is.na(greedy)) { greedy = -1; }
+greedy = as.integer(greedy)
 
 l = c();
 if (!is.na(lociFile)) {
@@ -246,14 +238,18 @@ if (length(l) > 0) {
     d.loci = d[which(d$POS %in% l),];
 }
 
+pdf(paste(plotRoot, ".clusterReport.pdf", sep=""));
+
 for (ann1 in c[[1]]$anns) {
     print(ann1)
-    plotAnn(d.known, d.novel, d.loci, ann1, paste(plotRoot, ".anndist.", ann1, ".pdf", sep=""));
+    plotAnn(d.known, d.novel, d.loci, ann1);
 
     for (ann2 in c[[1]]$anns) {
         if (ann1 != ann2) {
 	    print(paste("-- v ", ann2))
-            plotClusters(d.known, d.novel, d.loci, c, ann1, ann2, paste(plotRoot, ".cluster.", ann1, "_vs_", ann2, ".pdf", sep=""), maxVariants=maxVariants);
+            plotClusters(d.known, d.novel, d.loci, c, ann1, ann2, maxVariants=maxVariants);
         }
     }
 }
+
+dev.off();
