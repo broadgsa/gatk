@@ -181,7 +181,7 @@ class fullCallingPipeline extends QScript {
     annotated.rodBind :+= RodBind("variant", "VCF", snps.out)
     annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.refseqTable)
     annotated.rodBind :+= RodBind("dbsnp", "AnnotatorInputTable", qscript.dbsnpTable)
-    annotated.vcfOutput = swapExt(new File(snps.variants_out),".vcf",".annotated.vcf").getAbsolutePath
+    annotated.vcfOutput = swapExt(snps.out,".vcf",".annotated.vcf").getAbsolutePath
     annotated.select :+= "dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet"
     annotated.rodToIntervalTrackName = "variant"
 
