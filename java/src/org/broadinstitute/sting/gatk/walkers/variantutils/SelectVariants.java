@@ -203,6 +203,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             return 0;
 
         VariantContext vc = tracker.getVariantContext(ref, "variant", null, context.getLocation(), true);
+	if ( vc == null ){
+	    return 0;
+	}
         VariantContext sub = subsetRecord(vc, samples);
 
         if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
