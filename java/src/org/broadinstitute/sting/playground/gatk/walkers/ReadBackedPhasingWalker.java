@@ -55,11 +55,12 @@ import static org.broadinstitute.sting.utils.vcf.VCFUtils.getVCFHeadersFromRods;
 @Requires(value = {DataSource.READS, DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
 @By(DataSource.READS)
 
-@ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
+@ReadFilters({ZeroMappingQualityReadFilter.class})
+// Filter out all reads with zero mapping quality
 
 public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, PhasingStats> {
 
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc = "File to which variants should be written", required = true)
     protected VCFWriter writer = null;
 
     @Argument(fullName = "cacheWindowSize", shortName = "cacheWindow", doc = "The window size (in bases) to cache variant sites and their reads; [default:20000]", required = false)
@@ -68,8 +69,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     @Argument(fullName = "maxPhaseSites", shortName = "maxSites", doc = "The maximum number of successive heterozygous sites permitted to be used by the phasing algorithm; [default:20]", required = false)
     protected Integer maxPhaseSites = 20; // 2^20 == 10^6 biallelic haplotypes
 
-    @Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:4.77]", required = false)
-    protected Double phaseQualityThresh = 4.77; // PQ = 4.77 <=> P(error) = 10^(-4.77/10) = 0.33, P(correct) = 0.66, so that we have odds ratio of >= 2
+    @Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:10.0]", required = false)
+    protected Double phaseQualityThresh = 10.0; // PQ = 10.0 <=> P(error) = 10^(-10/10) = 0.1, P(correct) = 0.9
 
     @Argument(fullName = "variantStatsFilePrefix", shortName = "variantStats", doc = "The prefix of the VCF/phasing statistics files", required = false)
     protected String variantStatsFilePrefix = null;
@@ -78,7 +79,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     private LinkedList<VariantAndReads> phasedSites = null; // the phased VCs to be emitted, and the alignment bases at these positions
 
     private static PreciseNonNegativeDouble ZERO = new PreciseNonNegativeDouble(0.0);
-    private static boolean DEBUG_DETAILED = true;
 
     private LinkedList<String> rodNames = null;
     private PhasingQualityStatsWriter statsWriter = null;
@@ -125,7 +125,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
      * @return statistics of and list of all phased VariantContexts and their base pileup that have gone out of cacheWindow range.
      */
     public PhasingStatsAndOutput map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if (tracker == null || ref == null)
+        if (tracker == null)
             return null;
 
         PhasingStats phaseStats = new PhasingStats();
@@ -192,7 +192,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private List<VariantContext> discardIrrelevantPhasedSites() {
         List<VariantContext> vcList = new LinkedList<VariantContext>();
-        
+
         VariantContext nextToPhaseVc = null;
         if (!unphasedSiteQueue.isEmpty())
             nextToPhaseVc = unphasedSiteQueue.peek().variant;
@@ -215,6 +215,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
        ASSUMES: All VariantContexts in unphasedSiteQueue are in positions downstream of vc (head of queue).
      */
+
     private VariantAndReads finalizePhasing(VariantAndReads vr, PhasingStats phaseStats) {
         if (!vr.processVariant)
             return vr; // return vr as is
@@ -388,15 +389,13 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 continue;
 
             numUsedReads++;
-            if (DEBUG_DETAILED)
-                logger.debug("rd = " + rd + "\tname = " + nameToReads.getKey() + (rd.isGapped() ? "\tGAPPED" : ""));
+            logger.debug("rd = " + rd + "\tname = " + nameToReads.getKey() + (rd.isGapped() ? "\tGAPPED" : ""));
 
             for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
                 PhasingScore score = rd.matchHaplotypeClassScore(pte.getHaplotypeClass());
                 pte.getScore().integrateReadScore(score);
 
-                if (DEBUG_DETAILED)
-                    logger.debug("score(" + rd + ", " + pte.getHaplotypeClass() + ") = " + score);
+                logger.debug("score(" + rd + ", " + pte.getHaplotypeClass() + ") = " + score);
             }
         }
         logger.debug("\nPhasing table [AFTER CALCULATION]:\n" + sampleHaps + "\n");
@@ -545,6 +544,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     /*
        Inner classes:
      */
+
     private static class Biallele {
         public Allele top;
         public Allele bottom;
@@ -666,7 +666,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             else
                 sb.append(" -- ");
 
-            sb.append(VariantContextUtils.getLocation(vr.variant));            
+            sb.append(VariantContextUtils.getLocation(vr.variant));
         }
         return sb.toString();
     }
@@ -722,6 +722,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 // FUNCTION WILL RETURN VARIABLE-LENGTH Byte ARRAYS.  IN THAT CASE, BaseArray/Haplotype/Read WILL NEED TO BE REPLACED WITH
 // AN ArrayList OF Allele [OR SIMILAR OBJECT], and WON'T USE: getSingleBase(alleleI)
 //
+
     private static abstract class HaplotypeTableCreator {
         protected Genotype[] genotypes;
 
@@ -931,9 +932,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
     }
 }
-
-
-
 
 
 class PhasingScore extends PreciseNonNegativeDouble {
