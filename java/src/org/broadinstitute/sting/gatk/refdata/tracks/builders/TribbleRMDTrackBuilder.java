@@ -140,7 +140,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         // we might not know the index type, try loading with the default reader constructor
         logger.info("Attempting to blindly load " + inputFile + " as a tabix indexed file");
         try {
-            return new Pair<BasicFeatureSource, SAMSequenceDictionary>(new BasicFeatureSource(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
+            return new Pair<BasicFeatureSource, SAMSequenceDictionary>(BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
         } catch (IOException e) {
             throw new StingException("Unable to create feature reader from file " + inputFile);
         }
