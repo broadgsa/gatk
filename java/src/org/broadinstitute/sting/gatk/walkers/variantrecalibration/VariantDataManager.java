@@ -53,7 +53,7 @@ public class VariantDataManager {
         numVariants = dataList.size();
         data = dataList.toArray( new VariantDatum[numVariants] );
         if( numVariants <= 0 ) {
-            throw new StingException( "There are zero variants with > 0 clustering weight! Please provide training sets using the dbsnp, hapmap, or 1kg rod bindings. Clustering weights can be specified using -weightDBSNP, -weightHapMap, and -weight1KG" );
+            throw new StingException( "There are zero variants with > 0 clustering weight! Please provide sets of known polymorphic loci to be used as training data using the dbsnp, hapmap, or 1kg rod bindings. Clustering weights can be specified using -weightDBSNP, -weightHapMap, and -weight1KG" );
         }
         if( _annotationKeys == null ) {
             numAnnotations = 0;
