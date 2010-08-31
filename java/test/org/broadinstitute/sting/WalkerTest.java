@@ -45,7 +45,7 @@ import java.util.*;
 public class WalkerTest extends BaseTest {
     // the default output path for the integration test
     private File outputFileLocation = null;
-    private static final boolean ENABLE_REPORTING = true;
+    private static final boolean ENABLE_REPORTING = false;
 
     /**
      * Subdirectory under the ant build directory where we store integration test md5 results
