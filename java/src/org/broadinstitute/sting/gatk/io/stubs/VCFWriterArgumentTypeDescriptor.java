@@ -98,7 +98,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public Object createTypeDefault(ArgumentSource source,Class type) {
-        VCFWriterStub stub = new VCFWriterStub(engine, defaultOutputStream, false);
+        VCFWriterStub stub = new VCFWriterStub(defaultOutputStream, false);
         engine.addOutput(stub);
         return stub;
     }
@@ -120,7 +120,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         boolean compress = writerFileName != null && SUPPORTED_ZIPPED_SUFFIXES.contains(getFileSuffix(writerFileName));
 
         // Create a stub for the given object.
-        VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile, compress) : new VCFWriterStub(engine, System.out, compress);
+        VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(writerFile, compress) : new VCFWriterStub(System.out, compress);
 
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(stub,getArgumentTags(matches));

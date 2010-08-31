@@ -6,11 +6,9 @@ import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 
 import java.io.*;
-import java.util.Set;
 
 import net.sf.samtools.util.BlockCompressedOutputStream;
 
@@ -68,8 +66,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
             throw new StingException("Unable to open target output stream",ex);
         }
         writer = new StandardVCFWriter(this.stream);
-        Set<String> samples = SampleUtils.getSAMFileSamples(stub.getSAMFileHeader());
-        writer.writeHeader(new VCFHeader(null, samples));
+        writer.writeHeader(stub.getVCFHeader());
     }
 
     public void add(VariantContext vc, byte ref) {
@@ -109,7 +106,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
 
             reader.close();
         } catch (IOException e) {
-            throw new StingException("Error reading file " + file + " in GATKVCFWriter: ", e);
+            throw new StingException("Error reading file " + file + " in VCFWriterStorage: ", e);
         }
     }    
 }

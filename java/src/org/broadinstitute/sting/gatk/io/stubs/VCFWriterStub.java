@@ -33,8 +33,6 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import net.sf.samtools.SAMFileHeader;
 
 /**
  * A stub for routing and management of genotype reading and writing.
@@ -43,11 +41,6 @@ import net.sf.samtools.SAMFileHeader;
  * @version 0.1
  */
 public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
-
-    /**
-     * Engine to use for collecting attributes for the output SAM file.
-     */
-    private final GenomeAnalysisEngine engine;
 
     /**
      * The file that this stub should write to.  Should be mutually
@@ -62,6 +55,11 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
     private final PrintStream genotypeStream;
 
     /**
+     * The cached VCF header (initilized to null)
+     */
+    private VCFHeader vcfHeader = null;
+
+    /**
      * Should we emit a compressed output stream?
      */
     private final boolean isCompressed;
@@ -74,12 +72,10 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
 
     /**
      * Create a new stub given the requested file.
-     * @param engine        GATK engine.
      * @param genotypeFile  file to (ultimately) create.
      * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed) {
-        this.engine = engine;
+    public VCFWriterStub(File genotypeFile, boolean isCompressed) {
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
         this.isCompressed = isCompressed;
@@ -87,12 +83,10 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
 
     /**
      * Create a new stub given the requested file.
-     * @param engine        GATK engine.
      * @param genotypeStream  stream to (ultimately) write.
      * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed) {
-        this.engine = engine;
+    public VCFWriterStub(OutputStream genotypeStream, boolean isCompressed) {
         this.genotypeFile = null;
         this.genotypeStream = new PrintStream(genotypeStream);
         this.isCompressed = isCompressed;
@@ -126,8 +120,8 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * Retrieves the header to use when creating the new file.
      * @return header to use when creating the new file.
      */
-    public SAMFileHeader getSAMFileHeader() {
-        return engine.getSAMFileHeader();
+    public VCFHeader getVCFHeader() {
+        return vcfHeader;
     }
 
     /**
@@ -139,6 +133,7 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
     }
 
     public void writeHeader(VCFHeader header) {
+        vcfHeader = header;
         outputTracker.getStorage(this).writeHeader(header);
     }
 
