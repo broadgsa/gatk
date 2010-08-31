@@ -687,7 +687,9 @@ public class GenomeAnalysisEngine {
         // compare the tracks to the reference, if they have a sequence dictionary
         for (RMDTrack track : tracks) {
             SAMSequenceDictionary trackDict = track.getSequenceDictionary();
-            if (trackDict == null) {
+
+            // hack: if the sequence dictionary is empty (as well as null which means it doesn't have a dictionary), skip validation
+            if (trackDict == null || trackDict.size() == 0) {
                 logger.info("Track " + track.getName() + " doesn't have a sequence dictionary built in, skipping dictionary validation");
                 continue;
             }
