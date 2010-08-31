@@ -219,6 +219,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
     public ExpandingArrayList<VariantDatum> reduce( final ExpandingArrayList<VariantDatum> mapValue, final ExpandingArrayList<VariantDatum> reduceSum ) {
         reduceSum.addAll( mapValue );
+
         return reduceSum;
     }
 
