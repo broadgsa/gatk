@@ -156,7 +156,7 @@ class fullCallingPipeline extends QScript {
     var indelGenotypers = List.empty[IndelGenotyperV2 with CommandLineGATKArgs]
     var loopNo = 0
     var priority = ""
-    for ( bam <- qscript.bamFiles ) {
+    for ( bam <- bamFiles ) {
       val indel = new IndelGenotyperV2 with CommandLineGATKArgs
       indel.input_file :+= bam.toNamedFile
       indel.out = swapExt(bam,".bam",".indels.vcf")
