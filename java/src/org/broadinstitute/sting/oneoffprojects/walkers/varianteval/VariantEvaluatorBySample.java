@@ -53,8 +53,8 @@ public abstract class VariantEvaluatorBySample extends VariantEvaluator {
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         for ( String sample : vc1.getSampleNames() ) {
             if ( includeGenotype(vc1.getGenotype(sample)) ) {
-                if ( ! evalBySample.sampleAndEvalResults.containsKey(sample) ) {
-                    evalBySample.sampleAndEvalResults.put(sample,getDataPoints());
+                if ( ! evalBySample.containsKey(sample) ) {
+                    evalBySample.put(sample,getDataPoints());
                 }
 
                 for ( SampleDataPoint dp : evalBySample.sampleAndEvalResults.get(sample) ) {
@@ -72,8 +72,8 @@ public abstract class VariantEvaluatorBySample extends VariantEvaluator {
         }
         for ( String sample : vc1.getSampleNames() ) {
             if ( includeGenotype(vc1.getGenotype(sample)) ) {
-                if ( ! evalBySample.sampleAndEvalResults.containsKey(sample) ) {
-                    evalBySample.sampleAndEvalResults.put(sample,getDataPoints());
+                if ( ! evalBySample.containsKey(sample) ) {
+                    evalBySample.put(sample,getDataPoints());
                 }
 
                 for ( SampleDataPoint dp : evalBySample.sampleAndEvalResults.get(sample) ) {
@@ -94,6 +94,7 @@ public abstract class VariantEvaluatorBySample extends VariantEvaluator {
 
 abstract class SampleDataPoint {
     public String name;
+    public String sampleName;
 
     public SampleDataPoint(String name) {
         this.name = name;
@@ -101,6 +102,10 @@ abstract class SampleDataPoint {
 
     public String getName() {
         return name;
+    }
+
+    public void setSampleName(String sName) {
+        sampleName = sName;
     }
 
     public abstract String toString();
@@ -180,8 +185,15 @@ class EvalBySample implements TableType {
         }
     }
 
-    public boolean hasSample(String sample) {
+    public boolean containsKey(String sample) {
         return sampleAndEvalResults.containsKey(sample);
+    }
+
+    public void put(String sample, List<SampleDataPoint> dataPoints) {
+        for ( SampleDataPoint dp : dataPoints ) {
+            dp.setSampleName(sample);
+        }
+        sampleAndEvalResults.put(sample,dataPoints);
     }
 
 }
