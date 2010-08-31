@@ -49,3 +49,77 @@ cumhist <- function(d) {
 revcumsum <- function(x) {
    return(rev(cumsum(rev(x))))
 }
+
+phred <- function(x) {
+    log10(max(x,10^(-9.9)))*-10
+}
+
+pOfB <- function(b, B, Q) {
+    #print(paste(b, B, Q))
+    p = 1 - 10^(-Q/10)
+    if ( b == B )
+        return(p) 
+    else
+        return(1 - p)
+}
+
+pOfG <- function(bs, qs, G) {
+    a1 = G[1]
+    a2 = G[2]
+    
+    log10p = 0
+    for ( i in 1:length(bs) ) {
+        b = bs[i]
+        q = qs[i]
+        p1 = pOfB(b, a1, q) / 2 + pOfB(b, a2, q) / 2
+        log10p = log10p + log10(p1)
+    }
+    
+    return(log10p)
+}
+
+pOfGs <- function(nAs, nBs, Q) {
+    bs = c(rep("a", nAs), rep("t", nBs))
+    qs = rep(Q, nAs + nBs)
+    G1 = c("a", "a")
+    G2 = c("a", "t")
+    G3 = c("t", "t")
+
+    log10p1 = pOfG(bs, qs, G1)
+    log10p2 = pOfG(bs, qs, G2)
+    log10p3 = pOfG(bs, qs, G3)
+    Qsample = phred(1 - 10^log10p2 / sum(10^(c(log10p1, log10p2, log10p3))))
+    
+    return(list(p1=log10p1, p2=log10p2, p3=log10p3, Qsample=Qsample)) 
+}
+
+QsampleExpected <- function(depth, Q) {
+    weightedAvg = 0
+    for ( d in 1:(depth*3) ) {
+        Qsample = 0
+        pOfD = dpois(d, depth)
+        for ( nBs in 0:d ) {
+            pOfnB = dbinom(nBs, d, 0.5)
+            nAs = d - nBs
+            Qsample = pOfGs(nAs, nBs, Q)$Qsample
+            #Qsample = 1
+            weightedAvg = weightedAvg + Qsample * pOfD * pOfnB
+            print(as.data.frame(list(d=d, nBs = nBs, pOfD=pOfD, pOfnB = pOfnB, Qsample=Qsample, weightedAvg = weightedAvg)))
+        }
+    }
+    
+    return(weightedAvg)
+}
+
+plotQsamples <- function(depths, Qs, Qmax) {
+    cols = rainbow(length(Qs))
+    plot(depths, rep(Qmax, length(depths)), type="n", ylim=c(0,Qmax), xlab="Average sequencing coverage", ylab="Qsample", main = "Expected Qsample values, including depth and allele sampling")
+    
+    for ( i in 1:length(Qs) ) {
+        Q = Qs[i]
+        y = as.numeric(lapply(depths, function(x) QsampleExpected(x, Q)))
+        points(depths, y, col=cols[i], type="b")
+    }
+
+    legend("topleft", paste("Q", Qs), fill=cols)
+}
