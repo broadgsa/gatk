@@ -117,8 +117,11 @@ public class GATKRunReport {
     @Element(required = true, name = "svn_version")
     private String svnVersion;
 
-    @Element(required = true, name = "memory")
-    private long memory;
+    @Element(required = true, name = "total_memory")
+    private long totalMemory;
+
+    @Element(required = true, name = "max_memory")
+    private long maxMemory;
 
     @Element(required = true, name = "java_tmp_directory")
     private String tmpDir;
@@ -181,9 +184,13 @@ public class GATKRunReport {
         runTime = (end.getTime() - engine.getStartTime().getTime()) / 1000L; // difference in seconds
         nIterations = engine.getCumulativeMetrics().getNumIterations();
         nReads = engine.getCumulativeMetrics().getNumReadsSeen();
-        //readMetrics = engine.getCumulativeMetrics().toString();
-        memory = Runtime.getRuntime().totalMemory();      // todo -- expand
         tmpDir = System.getProperty("java.io.tmpdir");
+
+        // deal with memory usage
+        Runtime.getRuntime().gc(); // call GC so totalMemory is ~ used memory
+        maxMemory = Runtime.getRuntime().maxMemory();
+        totalMemory = Runtime.getRuntime().totalMemory();
+
 
         // user and hostname -- information about the runner of the GATK
         userName = System.getProperty("user.name");
