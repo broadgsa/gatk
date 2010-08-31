@@ -1,6 +1,7 @@
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
 import org.broadinstitute.sting.queue.extensions.gatk._
+import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.QScript
 
 class fullCallingPipeline extends QScript {
@@ -70,6 +71,7 @@ class fullCallingPipeline extends QScript {
     this.reference_sequence = qscript.reference
   }
 
+
   // ------------ SETUP THE PIPELINE ----------- //
 
 
@@ -105,11 +107,14 @@ class fullCallingPipeline extends QScript {
       realigner.setupGatherFunction = { case (f: BamGatherFunction, _) => f.jarFile = qscript.picardFixMatesJar }
       realigner.jobQueue = "week"
 
+      var samtoolsindex = new SamtoolsIndexFunction
+      samtoolsindex.bamFile = cleaned_bam
+
       // put clean bams in clean genotypers
 
       cleanBamFiles :+= realigner.out.toNamedFile
 
-      add(targetCreator,realigner)
+      add(targetCreator,realigner,samtoolsindex)
     }
 
     // actually make calls
