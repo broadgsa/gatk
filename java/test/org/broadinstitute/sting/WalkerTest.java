@@ -45,6 +45,7 @@ import java.util.*;
 public class WalkerTest extends BaseTest {
     // the default output path for the integration test
     private File outputFileLocation = null;
+    private static final boolean ENABLE_REPORTING = true;
 
     /**
      * Subdirectory under the ant build directory where we store integration test md5 results
@@ -277,7 +278,7 @@ public class WalkerTest extends BaseTest {
         cmd2[command.length] = "-l";
         cmd2[command.length+1] = "WARN";
         cmd2[command.length+2] = "-et";
-        cmd2[command.length+3] = "NO_ET";
+        cmd2[command.length+3] = ENABLE_REPORTING ? "STANDARD" : "NO_ET";
 
         // run the executable
         CommandLineExecutable.start(instance, cmd2);

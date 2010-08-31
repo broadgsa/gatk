@@ -85,7 +85,10 @@ public class GATKRunReport {
 
     // the listing of the fields is somewhat important; this is the order that the simple XML will output them
     @ElementList(required = true, name = "gatk_header_Information")
-    private static List<String> mGATKHeader;
+    private List<String> mGATKHeader;
+
+    @Element(required = false, name = "id")
+    private final String id;
 
     @Element(required = false, name = "exception")
     private final ExceptionToXML mException;
@@ -94,57 +97,56 @@ public class GATKRunReport {
     private final GATKArgumentCollection mCollection;
 
     @Element(required = true, name = "working_directory")
-    private static String currentPath;
+    private String currentPath;
 
     @Element(required = true, name = "start_time")
-    private static String startTime;
+    private String startTime;
 
     @Element(required = true, name = "end_time")
-    private static String endTime;
+    private String endTime;
 
     @Element(required = true, name = "run_time")
-    private static long runTime;
+    private long runTime;
 
     @Element(required = true, name = "command_line")
-    private static String cmdLine;
+    private String cmdLine;
 
     @Element(required = true, name = "walker_name")
-    private static String walkerName;
+    private String walkerName;
 
     @Element(required = true, name = "svn_version")
-    private static String svnVersion;
+    private String svnVersion;
 
     @Element(required = true, name = "memory")
-    private static long memory;
+    private long memory;
 
     @Element(required = true, name = "java_tmp_directory")
-    private static String tmpDir;
+    private String tmpDir;
 
     @Element(required = true, name = "user_name")
-    private static String userName;
+    private String userName;
 
     @Element(required = true, name = "host_name")
-    private static String hostName;
+    private String hostName;
 
     @Element(required = true, name = "java")
-    private static String java;
+    private String java;
 
     @Element(required = true, name = "machine")
-    private static String machine;
+    private String machine;
 
     @Element(required = true, name = "iterations")
-    private static long nIterations;
+    private long nIterations;
 
     @Element(required = true, name = "reads")
-    private static long nReads;
+    private long nReads;
 
-    @Element(required = true, name = "read_metrics")
-    private static String readMetrics;
+//    @Element(required = true, name = "read_metrics")
+//    private String readMetrics;
 
     // TODO
     // todo md5 all filenames
     // todo size of filenames
-    // todo free memory on machine
 
     public enum PhoneHomeOption {
         NO_ET,
@@ -154,11 +156,6 @@ public class GATKRunReport {
 
     private static final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH.mm.ss");
 
-    static {
-        GATKRunReport.mGATKHeader = CommandLineGATK.createApplicationHeader();
-        currentPath = System.getProperty("user.dir");
-    }
-
     /**
      * Create a new RunReport and population all of the fields with values from the walker and engine
      *
@@ -167,34 +164,43 @@ public class GATKRunReport {
      * @param engine the GAE we used to run the walker, so we can fetch runtime, args, etc
      */
     public GATKRunReport(Walker<?,?> walker, Exception e, GenomeAnalysisEngine engine) {
-	// what did we run?
+        mGATKHeader = CommandLineGATK.createApplicationHeader();
+        currentPath = System.getProperty("user.dir");
+
+        // what did we run?
+        id = org.apache.commons.lang.RandomStringUtils.randomAlphanumeric(32);
         cmdLine = CommandLineUtils.createApproximateCommandLineArgumentString(engine, walker);
         this.mCollection = engine.getArguments();
         walkerName = engine.getWalkerName(walker.getClass());
         svnVersion = CommandLineGATK.getVersionNumber();
 
-	// runtime performance metrics
+        // runtime performance metrics
         startTime = dateFormat.format(engine.getStartTime());
         Date end = new java.util.Date();
         endTime = dateFormat.format(end);
         runTime = (end.getTime() - engine.getStartTime().getTime()) / 1000L; // difference in seconds
         nIterations = engine.getCumulativeMetrics().getNumIterations();
         nReads = engine.getCumulativeMetrics().getNumReadsSeen();
-        readMetrics = engine.getCumulativeMetrics().toString();
-        memory = Runtime.getRuntime().totalMemory();
+        //readMetrics = engine.getCumulativeMetrics().toString();
+        memory = Runtime.getRuntime().totalMemory();      // todo -- expand
         tmpDir = System.getProperty("java.io.tmpdir");
 
-	// user and hostname -- information about the runner of the GATK
+        // user and hostname -- information about the runner of the GATK
         userName = System.getProperty("user.name");
         hostName = resolveHostname();
 
-	// basic java information
+        // basic java information
         java = Utils.join("-", Arrays.asList(System.getProperty("java.vendor"), System.getProperty("java.version")));
         machine = Utils.join("-", Arrays.asList(System.getProperty("os.name"), System.getProperty("os.arch")));
 
-	// if there was an exception, capture it
+        // if there was an exception, capture it
         this.mException = e == null ? null : new ExceptionToXML(e);
     }
+
+    public String getID() {
+        return id;
+    }
+
 
     /**
      * Helper utility that calls into the InetAddress system to resolve the hostname.  If this fails,
@@ -254,7 +260,7 @@ public class GATKRunReport {
     public void postReport() {
         try {
             if ( repositoryIsOnline() ) {
-                String filename = org.apache.commons.lang.RandomStringUtils.randomAlphanumeric(32) + ".report.xml.gz";
+                String filename = getID() + ".report.xml.gz";
                 File file = new File(REPORT_SUBMIT_DIR, filename);
                 postReport(file);
                 logger.info("Wrote report to " + file);
@@ -288,7 +294,7 @@ public class GATKRunReport {
 
         @Element(required = false, name = "cause")
         ExceptionToXML cause = null;
-        
+
         public ExceptionToXML(Throwable e) {
             message = e.getMessage();
             for (StackTraceElement element : e.getStackTrace()) {
