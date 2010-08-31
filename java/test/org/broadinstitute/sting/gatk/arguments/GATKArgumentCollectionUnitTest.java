@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.arguments;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.junit.After;
 import static org.junit.Assert.fail;
 import org.junit.Before;
@@ -83,8 +82,6 @@ public class GATKArgumentCollectionUnitTest extends BaseTest {
         collect.strictnessLevel = SAMFileReader.ValidationStringency.STRICT;
         collect.referenceFile = new File("referenceFile".toLowerCase());
         collect.DBSNPFile = "DBSNPFile".toLowerCase();
-        collect.HAPMAPFile = "HAPMAPFile".toLowerCase();
-        collect.HAPMAPChipFile = "HAPMAPChipFile".toLowerCase();
         collect.unsafe = ValidationExclusion.TYPE.ALL;
         collect.downsampleFraction = null;
         collect.downsampleCoverage = null;

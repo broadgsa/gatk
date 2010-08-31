@@ -371,14 +371,7 @@ public class GenomeAnalysisEngine {
         validateSuppliedReferenceAgainstWalker(my_walker, argCollection);
         referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
 
-        //
-        // please don't use these in the future, use the new syntax <- if we're not using these please remove them
-        //
         if (argCollection.DBSNPFile != null) bindConvenienceRods(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile);
-        if (argCollection.HAPMAPFile != null)
-            bindConvenienceRods("hapmap", "HapMapAlleleFrequencies", argCollection.HAPMAPFile);
-        if (argCollection.HAPMAPChipFile != null)
-            bindConvenienceRods("hapmap-chip", "GFF", argCollection.HAPMAPChipFile);
         // TODO: The ROD iterator currently does not understand multiple intervals file.  Fix this by cleaning the ROD system.
         if (argCollection.intervals != null && argCollection.intervals.size() == 1) {
             bindConvenienceRods("interval", "Intervals", argCollection.intervals.get(0).replaceAll(",", ""));

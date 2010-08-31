@@ -33,7 +33,6 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persister;
@@ -110,14 +109,6 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Input(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
     public String DBSNPFile = null;
-
-    @Element(required = false)
-    @Input(fullName = "hapmap", shortName = "H", doc = "Hapmap file", required = false)
-    public String HAPMAPFile = null;
-
-    @Element(required = false)
-    @Input(fullName = "hapmap_chip", shortName = "hc", doc = "Hapmap chip file", required = false)
-    public String HAPMAPChipFile = null;
 
     /**
      * The override mechanism in the GATK, by default, populates the command-line arguments, then
@@ -313,12 +304,6 @@ public class GATKArgumentCollection {
             return false;
         }
         if (!other.DBSNPFile.equals(this.DBSNPFile)) {
-            return false;
-        }
-        if (!other.HAPMAPFile.equals(this.HAPMAPFile)) {
-            return false;
-        }
-        if (!other.HAPMAPChipFile.equals(this.HAPMAPChipFile)) {
             return false;
         }
         if (!other.unsafe.equals(this.unsafe)) {
