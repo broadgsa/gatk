@@ -5,16 +5,45 @@ onCMDLine = ! is.na(args[1])
 if ( onCMDLine ) { 
    print(paste("Reading data from", args[1]))
    d = read.table(args[1], header=T, sep="\t")
+   d$start.time = as.Date(d$start.time)
+   d$end.time = as.Date(d$end.time)
 } # only read into d if its' available, otherwise assume the data is already loaded
 
 reportCountingPlot <- function(values, name, moreMargin = 0, ...) {
     par(las=2) # make label text perpendicular to axis
+    oldMar <- par("mar")
     par(mar=c(5,8+moreMargin,4,2)) # increase y-axis margin.
     barplot(sort(table(values)), horiz=TRUE, cex.names = 0.5, main = name, xlab="Counts", ...)
+    par("mar" = oldMar)
+    par("las" = 1)
 }
 
 reportHist <- function(values, name, ...) {
-    hist(values, main=name, 20, xlab="", col="cornflowerblue", ...)
+    if ( ! all(is.na(values) ) )
+        hist(values, main=name, 20, xlab="", col="cornflowerblue", ...)
+}
+
+myTable <- function(x, y, reqRowNonZero = F) {
+    table <- prop.table(table(x, y), 2)
+    ncols = dim(table)[2]
+
+    print(table)    
+    if ( reqRowNonZero )
+        table = table[addmargins(table)[1:dim(table)[1],ncols] > 0,]
+
+    return(table)
+}
+
+plotTable <- function(table, name) {
+    ncols = dim(table)[2]
+    nrows = dim(table)[1]
+    cols = rainbow(nrows)
+    plot( as.numeric(table[1,]), type="n", ylim=c(0,1), main = name, ylab="Frequency", xlab="Date", xaxt="n")
+    axis(1, 1:ncols, labels=colnames(table))
+    for ( i in 1:nrows )
+        points(table[i,], type="b", col=cols[i])
+    legend("topright", row.names(table), fill=cols, cex=0.5)
+    #return(table)
 }
 
 RUNNING_GATK_RUNTIME <- 60 * 5 #  5 minutes => bad failure
@@ -22,29 +51,53 @@ excepted <- subset(d, exception.msg != "NA")
 badExcepted <- subset(excepted, run.time > RUNNING_GATK_RUNTIME)
 
 if ( onCMDLine ) pdf(args[2])
-reportCountingPlot(d$walker.name, "Walker invocations")
-reportCountingPlot(d$svn.version, "GATK SVN version")
-reportCountingPlot(d$java.tmp.directory, "Java tmp directory")
-reportCountingPlot(d$working.directory, "Working directory")
-reportCountingPlot(d$user.name, "User")
-reportCountingPlot(d$host.name, "host")
-reportCountingPlot(d$java, "Java version")
-reportCountingPlot(d$machine, "Machine")
 
-Gb <- 1024^3
-reportHist(d$total.memory / Gb, "Used memory")
-reportHist(d$max.memory / Gb, "Max memory")
+generateOneReport <- function(d, header) {
+    head <- function(s) {
+        return(paste("Section:", header, ":", s))
+    }
+    
+    par("mar", c(5, 4, 4, 2))
+    frame()
+    title(paste("Section:", header), cex=2)
+    
+    reportCountingPlot(d$walker.name, head("Walker invocations"))
+    reportCountingPlot(d$svn.version, head("GATK SVN version"))
+    reportCountingPlot(d$java.tmp.directory, head("Java tmp directory"))
+    reportCountingPlot(d$working.directory, head("Working directory"))
+    reportCountingPlot(d$user.name, head("User"))
+    reportCountingPlot(d$host.name, head("host"))
+    reportCountingPlot(d$java, head("Java version"))
+    reportCountingPlot(d$machine, head("Machine"))
+    
+    Gb <- 1024^3
+    reportHist(d$total.memory / Gb, head("Used memory"))
+    reportHist(d$max.memory / Gb, head("Max memory"))
+    
+    min <- 60
+    reportHist(log10(d$run.time / min), head("Run time (log10[min])"))
+    
+    exceptionColor = "red"
+    reportCountingPlot(excepted$walker.name, head("Walker exceptions"), col=exceptionColor)
+    reportCountingPlot(subset(excepted, run.time > RUNNING_GATK_RUNTIME)$walker.name, paste(head("Long-running walker exceptions (>"),RUNNING_GATK_RUNTIME,"seconds runtime)"), col=exceptionColor)
+    reportCountingPlot(subset(excepted, run.time < RUNNING_GATK_RUNTIME)$walker.name, paste(head("Start-up walker exceptions (<"),RUNNING_GATK_RUNTIME,"seconds runtime)"), col=exceptionColor)
+    reportCountingPlot(excepted$user.name, head("Usernames generating exceptions"), col=exceptionColor)
+    reportCountingPlot(excepted$exception.msg, head("Exception messages"), 12)
+    reportCountingPlot(excepted$exception.at, head("Exception locations"), 12)
+}
 
-min <- 60
-reportHist(log10(d$run.time / min), "Run time (log10[min])")
+RUNME = T
+if ( RUNME ) {
+generateOneReport(d, "Overall")
 
-exceptionColor = "red"
-reportCountingPlot(excepted$walker.name, "Walker exceptions", col=exceptionColor)
-reportCountingPlot(subset(excepted, run.time > RUNNING_GATK_RUNTIME)$walker.name, paste("Long-running walker exceptions (>",RUNNING_GATK_RUNTIME,"seconds runtime)"), col=exceptionColor)
-reportCountingPlot(subset(excepted, run.time < RUNNING_GATK_RUNTIME)$walker.name, paste("Start-up walker exceptions (<",RUNNING_GATK_RUNTIME,"seconds runtime)"), col=exceptionColor)
-reportCountingPlot(excepted$user.name, "Usernames generating exceptions", col=exceptionColor)
-reportCountingPlot(excepted$exception.msg, "Exception messages", 12)
-reportCountingPlot(excepted$exception.at, "Exception locations", 12)
+lastWeek = levels(cut(d$start.time, "weeks"))[-1]
+generateOneReport(subset(d, start.time == lastWeek), "Just last week to date")
+
+# cuts by time
+plotTable(myTable(d$svn.version, d$start.time), "SVN version by day")
+plotTable(myTable(d$svn.version, cut(d$start.time, "weeks")), "SVN version by week")
+plotTable(myTable(excepted$walker.name, cut(excepted$start.time, "weeks"), reqRowNonZero = T), "Walkers with exceptions by week")
+}
 
 if ( onCMDLine ) dev.off()
 

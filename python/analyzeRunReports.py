@@ -37,12 +37,15 @@ def main():
     handler.initialize(files)
 
     # parse all of the incoming files
+    counter = 0
     for report in readReports(files):
         # todo -- add matching here
         handler.processRecord(report)
+        counter += 1
 
     handler.finalize(files)
     out.close()
+    print 'Processed records:', counter 
 
 #
 # Stage HANDLERS
