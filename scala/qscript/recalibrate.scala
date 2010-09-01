@@ -1,3 +1,4 @@
+import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 import org.broadinstitute.sting.queue.QScript
@@ -16,8 +17,14 @@ class recalibrate extends QScript {
   @Argument(doc="Assume initial count covariates has completed", required=false)
   var skipInitialCountCovariates: Boolean = false
 
+  @Argument(doc="", required=false)
+  var skipUQUpdateArg: Boolean = false
+
   @Argument(shortName = "R", doc="ref")
   var referenceFile: File = _
+
+  @Argument(doc="X", required=false)
+  var picardMergeSamFilesJar: File = new File("/seq/software/picard/current/bin/MergeSamFiles.jar")
 
   trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; reference_sequence = referenceFile;  }
 
@@ -33,6 +40,8 @@ def script = {
       val tableRecal = new TableRecalibrate(bamIn, recalData, recalBam) { useOriginalQualities = true }
       if ( scatter ) {
           tableRecal.intervals = new File("/humgen/gsa-hpprojects/GATK/data/chromosomes.hg18.interval_list")
+	  //tableRecal.scatterClass = classOf[ContigScatterFunction]
+	  tableRecal.setupGatherFunction = { case (f: PicardBamJarFunction, _) => f.jarFile = picardMergeSamFilesJar; f.memoryLimit = Some(4) }
       	  tableRecal.scatterCount = 25
       }
       add(tableRecal)
@@ -69,6 +78,7 @@ class TableRecalibrate(bamInArg: File, recalDataIn: File, bamOutArg: File) exten
     this.output_bam = bamOutArg
     this.logging_level = "INFO"
     this.memoryLimit = Some(2)
+    this.skipUQUpdate = skipUQUpdateArg
 
     override def dotString = "TableRecalibrate: %s => %s".format(bamInArg.getName, bamOutArg.getName, if (this.useOriginalQualities) " -OQ" else "")
 }
