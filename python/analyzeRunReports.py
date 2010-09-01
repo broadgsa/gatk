@@ -29,6 +29,10 @@ def main():
     parser.add_option("", "--max_days", dest="maxDays",
                         type='int', default=None,
                         help="if provided, only records generated within X days of today will be included")
+
+    parser.add_option("", "--D", dest="reallyDeleteInArchiveMode",
+                        action='store_true', default=False,
+                        help="if provided, we'll actually delete records when running in archive mode")
          
     (OPTIONS, args) = parser.parse_args()
     if len(args) == 0:
@@ -39,6 +43,8 @@ def main():
 
     # open up the output file
     if OPTIONS.output != None:
+        if stage == "archive" and os.path.exists(OPTIONS.output):
+            raise "archive output file already exists, aborting!", OPTIONS.output
         out = openFile(OPTIONS.output,'w')
     else:
         out = sys.stdout
@@ -182,9 +188,11 @@ class Archive(RecordAsXML):
         RecordAsXML.__init__(self, name, out)
 
     def finalize(self, args):
+        RecordAsXML.finalize(self, args)
         for arg in args:
             print 'Deleting file: ', arg
-            os.remove(arg)
+            if OPTIONS.reallyDeleteInArchiveMode:
+                os.remove(arg)
 
 addHandler('archive', Archive)
 
