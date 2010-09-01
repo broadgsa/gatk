@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
+import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -482,15 +483,39 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
 
     /**
      * Gets the pileup for a given read group.  Horrendously inefficient at this point.
-     * @param readGroupId Identifier for the read group.
+     * @param targetReadGroupId Identifier for the read group.
      * @return A read-backed pileup containing only the reads in the given read group.
      */
     @Override
-    public RBP getPileupForReadGroup(String readGroupId) {
-        UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
-        for(PileupElement pileupElement: this)
-            filteredTracker.add((PE)pileupElement);
-        return (RBP)createNewPileup(loc,filteredTracker);
+    public RBP getPileupForReadGroup(String targetReadGroupId) {
+        if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
+            PerSamplePileupElementTracker<PE> filteredTracker = new PerSamplePileupElementTracker<PE>();
+
+            for(String sampleName: tracker.getSamples()) {
+                PileupElementTracker<PE> perSampleElements = tracker.getElements(sampleName);
+                AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getPileupForReadGroup(targetReadGroupId);
+                if(pileup != null)
+                    filteredTracker.addElements(sampleName,pileup.pileupElementTracker);
+            }
+            return (RBP)createNewPileup(loc,filteredTracker);
+
+        }
+        else {
+            UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+            for(PE p: pileupElementTracker) {
+                SAMRecord read = p.getRead();
+                if(targetReadGroupId != null) {
+                    if(read.getReadGroup() != null && targetReadGroupId.equals(read.getReadGroup().getReadGroupId()))
+                        filteredTracker.add(p);
+                }
+                else {
+                    if(read.getReadGroup() == null || read.getReadGroup().getReadGroupId() == null)
+                        filteredTracker.add(p);
+                }
+            }
+            return filteredTracker.size()>0 ? (RBP)createNewPileup(loc,filteredTracker) : null;
+        }
     }
 
     public Collection<String> getSamples() {
