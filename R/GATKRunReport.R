@@ -34,6 +34,8 @@ myTable <- function(x, y, reqRowNonZero = F) {
     return(table)
 }
 
+# todo -- must be robust to smaller sizes
+
 plotTable <- function(table, name) {
     ncols = dim(table)[2]
     nrows = dim(table)[1]
@@ -47,25 +49,34 @@ plotTable <- function(table, name) {
 }
 
 RUNNING_GATK_RUNTIME <- 60 * 5 #  5 minutes => bad failure
-excepted <- subset(d, exception.msg != "NA")
-badExcepted <- subset(excepted, run.time > RUNNING_GATK_RUNTIME)
 
 if ( onCMDLine ) pdf(args[2])
 
-generateOneReport <- function(d, header) {
+generateOneReport <- function(d, header, includeByWeek = T) {
     head <- function(s) {
         return(paste("Section:", header, ":", s))
     }
     
+    excepted <- subset(d, exception.msg != "NA")
+    badExcepted <- subset(excepted, run.time > RUNNING_GATK_RUNTIME)
+
     par("mar", c(5, 4, 4, 2))
     frame()
     title(paste("Section:", header), cex=2)
     
     reportCountingPlot(d$walker.name, head("Walker invocations"))
     reportCountingPlot(d$svn.version, head("GATK SVN version"))
-    reportCountingPlot(d$java.tmp.directory, head("Java tmp directory"))
+
+    # cuts by time
+    plotTable(myTable(d$svn.version, d$start.time), head("SVN version by day"))
+    if ( includeByWeek ) {
+        plotTable(myTable(d$svn.version, cut(d$start.time, "weeks")), head("SVN version by week"))
+        plotTable(myTable(excepted$walker.name, cut(excepted$start.time, "weeks"), reqRowNonZero = T), head("Walkers with exceptions by week"))
+    }
+
+    # reportCountingPlot(d$java.tmp.directory, head("Java tmp directory"))
     reportCountingPlot(d$working.directory, head("Working directory"))
-    reportCountingPlot(d$user.name, head("User"))
+    reportCountingPlot(d$user.name, head("user"))
     reportCountingPlot(d$host.name, head("host"))
     reportCountingPlot(d$java, head("Java version"))
     reportCountingPlot(d$machine, head("Machine"))
@@ -88,15 +99,9 @@ generateOneReport <- function(d, header) {
 
 RUNME = T
 if ( RUNME ) {
-generateOneReport(d, "Overall")
-
-lastWeek = levels(cut(d$start.time, "weeks"))[-1]
-generateOneReport(subset(d, start.time == lastWeek), "Just last week to date")
-
-# cuts by time
-plotTable(myTable(d$svn.version, d$start.time), "SVN version by day")
-plotTable(myTable(d$svn.version, cut(d$start.time, "weeks")), "SVN version by week")
-plotTable(myTable(excepted$walker.name, cut(excepted$start.time, "weeks"), reqRowNonZero = T), "Walkers with exceptions by week")
+    lastWeek = levels(cut(d$start.time, "weeks"))[-1]
+    generateOneReport(d, "Overall")
+    #generateOneReport(subset(d, start.time >= lastWeek), "Just last week to date", includeByWeek = F)
 }
 
 if ( onCMDLine ) dev.off()

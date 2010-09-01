@@ -8,6 +8,13 @@ import itertools
 import re
 import vcfReader
 import string
+import gzip
+
+def openMaybeGZ(filename):
+    if ( filename.endswith(".gz") ):
+        return gzip.open(filename)
+    else:
+        return open(filename)
 
 def average(l):
     sum = reduce(operator.add, l, 0)
@@ -35,7 +42,7 @@ class Sample:
     
 def flatFileIterator(file, fields = None, skip = 0):
     count = 0
-    for line in open(file):
+    for line in openMaybeGZ(file):
         count += 1
         if count > skip:
             s = map(string.strip, line.split('\t'))
@@ -99,7 +106,7 @@ def findVariantEvalResults(key, file, type=str):
         else:
             return None
 
-    return [val for val in map(capture1, open(file)) if val != None]
+    return [val for val in map(capture1, openMaybeGZ(file)) if val != None]
 
 
 def getDBSNPRate(file):
@@ -121,7 +128,7 @@ def countMappedBases(samples, alignmentIndex):
     if ( OPTIONS.coverageFile != None ): 
         # read from summary file, looking for the line:
         # Total   340710  1187.14 N/A     N/A     N/A
-        for parts in map( string.split, open(OPTIONS.coverageFile) ):
+        for parts in map( string.split, openMaybeGZ(OPTIONS.coverageFile) ):
             if parts[0] == "Total":
                 return -1, int(parts[1])
     else:
@@ -156,7 +163,7 @@ def countSNPs(samples, snpsVCF, useIndels = False):
     total = 0
     novel = 0
     
-    header, columnNames, remainingLines = vcfReader.readVCFHeader(open(snpsVCF))
+    header, columnNames, remainingLines = vcfReader.readVCFHeader(openMaybeGZ(snpsVCF))
     sampleIDs = columnNames[9:]
 
     print 'Counting SNPs...'
@@ -204,7 +211,7 @@ def countIndels(samples, indelsVCF):
 
 def readSamples(vcf):
     print 'Reading samples for', OPTIONS.population
-    header, columnNames, remainingLines = vcfReader.readVCFHeader(open(vcf))
+    header, columnNames, remainingLines = vcfReader.readVCFHeader(openMaybeGZ(vcf))
     samples = map(Sample, columnNames[9:])
     if ( OPTIONS.onlySample != None ):
         samples = filter( lambda x: x.getName() == OPTIONS.onlySample, samples )
