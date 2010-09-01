@@ -112,7 +112,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     private ExpandingArrayList<String> annotationKeys;
     private Set<String> ignoreInputFilterSet = null;
     private Set<String> inputNames = new HashSet<String>();
-
+    VariantGaussianMixtureModel theModel = new VariantGaussianMixtureModel();
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -174,7 +174,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     int iii = 0;
                     for( final String key : annotationKeys ) {
-                        annotationValues[iii++] = VariantGaussianMixtureModel.decodeAnnotation( key, vc, true );
+                        annotationValues[iii++] = theModel.decodeAnnotation( key, vc, true );
                     }
 
                     final VariantDatum variantDatum = new VariantDatum();
@@ -234,7 +234,6 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
 
         // Create either the Gaussian Mixture Model or the Nearest Neighbors model and run it
-        VariantGaussianMixtureModel theModel;
         switch (OPTIMIZATION_MODEL) {
             case GAUSSIAN_MIXTURE_MODEL:
                 theModel = new VariantGaussianMixtureModel( dataManager, MAX_GAUSSIANS, MAX_ITERATIONS, FORCE_INDEPENDENT,

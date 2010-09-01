@@ -60,7 +60,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private final int maxGaussians;
     private final int maxIterations;
     private final static long RANDOM_SEED = 91801305;
-    private final static Random rand = new Random( RANDOM_SEED );
+    private final Random rand = new Random( RANDOM_SEED );
     private final double MIN_PROB_CONVERGENCE = 1E-5;
 
     private final double SHRINKAGE;
@@ -84,6 +84,23 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
     private static final Pattern ANNOTATION_PATTERN = Pattern.compile("^@!ANNOTATION.*");
     private static final Pattern CLUSTER_PATTERN = Pattern.compile("^@!CLUSTER.*");
+
+    public VariantGaussianMixtureModel() {
+        dataManager = null;
+        maxGaussians = 0;
+        maxIterations = 0;
+        SHRINKAGE = 0;
+        DIRICHLET_PARAMETER = 0;
+        FORCE_INDEPENDENT_ANNOTATIONS = false;
+        mu = null;
+        sigma = null;
+        sigmaInverse = null;
+        determinant = null;
+        stdThreshold = 0;
+        hyperParameter_a = null;
+        hyperParameter_b = null;
+        hyperParameter_lambda = null;
+    }
 
     public VariantGaussianMixtureModel( final VariantDataManager _dataManager, final int _maxGaussians, final int _maxIterations,
                                         final boolean _forceIndependent, final double _stdThreshold, final double _shrinkage, final double _dirichlet) {
@@ -398,7 +415,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
-    public static double decodeAnnotation( final String annotationKey, final VariantContext vc, final boolean jitter ) {
+    public double decodeAnnotation( final String annotationKey, final VariantContext vc, final boolean jitter ) {
         double value;
         //if( annotationKey.equals("AB") && !vc.getAttributes().containsKey(annotationKey) ) {
         //    value = (0.5 - 0.005) + (0.01 * rand.nextDouble()); // HomVar calls don't have an allele balance
