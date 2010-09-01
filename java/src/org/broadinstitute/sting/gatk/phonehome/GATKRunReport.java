@@ -182,8 +182,6 @@ public class GATKRunReport {
         Date end = new java.util.Date();
         endTime = dateFormat.format(end);
         runTime = (end.getTime() - engine.getStartTime().getTime()) / 1000L; // difference in seconds
-        nIterations = engine.getCumulativeMetrics().getNumIterations();
-        nReads = engine.getCumulativeMetrics().getNumReadsSeen();
         tmpDir = System.getProperty("java.io.tmpdir");
 
         // deal with memory usage
@@ -191,6 +189,12 @@ public class GATKRunReport {
         maxMemory = Runtime.getRuntime().maxMemory();
         totalMemory = Runtime.getRuntime().totalMemory();
 
+        // we can only do some operations if an error hasn't occurred
+        if ( engine.getCumulativeMetrics() != null ) {
+            // it's possible we aborted so early that these data structures arent initialized
+            nIterations = engine.getCumulativeMetrics().getNumIterations();
+            nReads = engine.getCumulativeMetrics().getNumReadsSeen();
+        }
 
         // user and hostname -- information about the runner of the GATK
         userName = System.getProperty("user.name");

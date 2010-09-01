@@ -976,7 +976,7 @@ public class GenomeAnalysisEngine {
      * @return cumulative metrics about the entire run.
      */
     public ReadMetrics getCumulativeMetrics() {
-        return readsDataSource.getCumulativeReadMetrics();
+        return readsDataSource == null ? null : readsDataSource.getCumulativeReadMetrics();
     }
 
     /**
