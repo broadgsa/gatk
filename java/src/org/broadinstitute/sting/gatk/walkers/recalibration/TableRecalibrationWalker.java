@@ -334,6 +334,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
      */
     public SAMRecord map( ReferenceContext refBases, SAMRecord read, ReadMetaDataTracker metaDataTracker  ) {
 
+        if( read.getReadLength() == 0 ) { // Some reads have '*' as the SEQ field and samtools returns length zero. We don't touch these reads.
+            return read;
+        }
+
         RecalDataManager.parseSAMRecord( read, RAC );
 
         byte[] originalQuals = read.getBaseQualities();
