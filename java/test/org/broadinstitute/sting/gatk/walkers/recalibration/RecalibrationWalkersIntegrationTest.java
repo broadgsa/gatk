@@ -69,7 +69,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " -I " + bam +
                                 ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
                                     ? " -L 1:10,800,000-10,810,000" : " -L 1:10,100,000-10,300,000" ) +
-                                " -outputBam %s" +
+                                " -o %s" +
                                 " --no_pg_tag" +
                                 " --solid_recal_mode SET_Q_ZERO" +
                                 " -recalFile " + paramsFile,
@@ -120,7 +120,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " -I " + bam +
                                 ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
                                     ? " -L 1:10,800,000-10,810,000" : " -L 1:10,100,000-10,300,000" ) +
-                                " -outputBam %s" +
+                                " -o %s" +
                                 " --no_pg_tag" +
                                 " -maxQ 70" +
                                 " --solid_recal_mode SET_Q_ZERO" +
@@ -175,7 +175,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                         "-R " + b36KGReference +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
-                                " -outputBam %s" +
+                                " -o %s" +
                                 " --no_pg_tag" +
                                 " -U" +
                                 " -L 1:10,000,000-20,000,000" +
@@ -289,7 +289,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " -T TableRecalibration" +
                                 " -I " + bam +
                                 " -L 1:10,100,000-10,300,000" +
-                                " -outputBam %s" +
+                                " -o %s" +
                                 " --no_pg_tag" +
                                 " --solid_recal_mode SET_Q_ZERO" +
                                 " --default_read_group DefaultReadGroup" +
@@ -343,7 +343,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                         "-R " + b36KGReference +
                                 " -T TableRecalibration" +
                                 " -I " + bam +
-                                " -outputBam %s" +
+                                " -o %s" +
                                 " --no_pg_tag" +
                                 " --solid_recal_mode DO_NOTHING" +
                                 " -recalFile " + paramsFile +

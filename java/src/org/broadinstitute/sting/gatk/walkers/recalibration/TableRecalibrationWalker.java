@@ -82,13 +82,14 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Input(fullName="recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file")
     public File RECAL_FILE = new File("output.recal_data.csv");
 
-    @Output
-    private PrintStream out;
-
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Output(fullName="output_bam", shortName="outputBam", doc="The output BAM file", required=true)
+    @Argument(fullName="output_bam", shortName="outputBam", doc="Please use --out instead", required=false)
+    @Deprecated
+    protected String outbam;
+
+    @Output(doc="The output BAM file", required=true)
     private StingSAMFileWriter OUTPUT_BAM = null;
     @Argument(fullName="preserve_qscores_less_than", shortName="pQ",
         doc="Bases with quality scores less than this threshold won't be recalibrated, default=5. In general it's unsafe to change qualities scores below < 5, since base callers use these values to indicate random or bad bases", required=false)
@@ -501,10 +502,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     public SAMFileWriter reduce( SAMRecord read, SAMFileWriter output ) {
         if( output != null ) {
             output.addAlignment(read);
-        } else {
-            out.println(read.format());
         }
-
         return output;
     }
 
