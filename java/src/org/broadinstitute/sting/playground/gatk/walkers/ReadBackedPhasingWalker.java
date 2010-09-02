@@ -134,7 +134,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
         for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly)) {
             boolean processVariant = true;
-            if (!vc.isSNP() || !vc.isBiallelic() || vc.isFiltered())
+            if (!isUnfilteredBiallelicSNP(vc))
                 processVariant = false;
 
             VariantAndReads vr = new VariantAndReads(vc, context, processVariant);
@@ -272,7 +272,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
             String samp = sampGtEntry.getKey();
             Genotype gt = sampGtEntry.getValue();
-            Biallele biall = new Biallele(gt);
+            BialleleSNP biall = new BialleleSNP(gt);
             HashMap<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
 
             if (gt.isHet()) {
@@ -331,7 +331,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     PhaseResult pr = phaseSample(samp, sampleWindowVaList, phasingSiteIndex);
                     genotypesArePhased = (pr.phaseQuality >= phaseQualityThresh);
                     if (genotypesArePhased) {
-                        Biallele prevBiall = new Biallele(prevGenotype);
+                        BialleleSNP prevBiall = new BialleleSNP(prevGenotype);
 
                         logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevBiall + "\n");
                         logger.debug("THE PHASE CHOSEN HERE:\n" + biall + "\n\n");
@@ -429,7 +429,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         Ensure that curBiall is phased relative to prevBiall as specified by hap.
      */
 
-    public static void ensurePhasing(Biallele curBiall, Biallele prevBiall, Haplotype hap) {
+    public static void ensurePhasing(BialleleSNP curBiall, BialleleSNP prevBiall, Haplotype hap) {
         if (hap.size() < 2)
             throw new StingException("LOGICAL ERROR: Only considering haplotypes of length > 2!");
 
@@ -466,7 +466,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         byte refBase;
         if (!vc.isIndel()) {
             Allele varAllele = vc.getReference();
-            refBase = getSingleBase(varAllele);
+            refBase = BialleleSNP.getSingleBase(varAllele);
         }
         else {
             refBase = vc.getReferenceBaseForIndel();
@@ -532,92 +532,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         return reads;
     }
 
-    protected static byte getSingleBase(byte[] bases) {
-        return bases[0];
-    }
-
-    protected static byte getSingleBase(Allele all) {
-        return getSingleBase(all.getBases());
-    }
-
 
     /*
        Inner classes:
      */
-
-    private static class Biallele {
-        public Allele top;
-        public Allele bottom;
-
-        public Biallele(Genotype gt) {
-            if (gt.getPloidy() != 2)
-                throw new StingException("Doesn't support phasing for ploidy that is not 2!");
-
-            this.top = gt.getAllele(0);
-            this.bottom = gt.getAllele(1);
-        }
-
-        public void swapAlleles() {
-            Allele tmp = top;
-            top = bottom;
-            bottom = tmp;
-        }
-
-        public List<Allele> getAllelesAsList() {
-            List<Allele> allList = new ArrayList<Allele>(2);
-            allList.add(0, top);
-            allList.add(1, bottom);
-            return allList;
-        }
-
-        public byte getTopBase() {
-            byte[] topBases = top.getBases();
-            if (topBases.length != 1)
-                throw new StingException("LOGICAL ERROR: should not process non-SNP sites!");
-
-            return getSingleBase(topBases);
-        }
-
-        public byte getBottomBase() {
-            byte[] bottomBases = bottom.getBases();
-            if (bottomBases.length != 1)
-                throw new StingException("LOGICAL ERROR: should not process non-SNP sites!");
-
-            return getSingleBase(bottomBases);
-        }
-
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Top:\t" + top.getBaseString() + "\n");
-            sb.append("Bot:\t" + bottom.getBaseString() + "\n");
-            return sb.toString();
-        }
-
-        public boolean matchesTopBase(byte base) {
-            boolean matchesTop;
-            if (BaseUtils.basesAreEqual(base, getTopBase()))
-                matchesTop = true;
-            else if (BaseUtils.basesAreEqual(base, getBottomBase()))
-                matchesTop = false;
-            else
-                throw new StingException("LOGICAL ERROR: base MUST match either TOP or BOTTOM!");
-
-            return matchesTop;
-        }
-
-        public byte getOtherBase(byte base) {
-            byte topBase = getTopBase();
-            byte botBase = getBottomBase();
-
-            if (BaseUtils.basesAreEqual(base, topBase))
-                return botBase;
-            else if (BaseUtils.basesAreEqual(base, botBase))
-                return topBase;
-            else
-                throw new StingException("LOGICAL ERROR: base MUST match either TOP or BOTTOM!");
-        }
-    }
-
     private static class VariantAndReads {
         public VariantContext variant;
         public HashMap<String, ReadBasesAtPosition> sampleReadBases;
@@ -751,7 +669,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 byte[] hapBases = new byte[numSites];
                 for (int i = 0; i < numSites; i++) {
                     Allele alleleI = genotypes[i].getAllele(alleleInds[i]);
-                    hapBases[i] = getSingleBase(alleleI);
+                    hapBases[i] = BialleleSNP.getSingleBase(alleleI);
                 }
                 allHaps.add(new Haplotype(hapBases));
             }
@@ -784,16 +702,16 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private static class BiallelicComplementHaplotypeTableCreator extends HaplotypeTableCreator {
-        private Biallele[] bialleles;
+        private BialleleSNP[] bialleleSNPs;
         private int startIndex;
         private int marginalizeLength;
 
         public BiallelicComplementHaplotypeTableCreator(List<VariantAndReads> vaList, String sample, int startIndex, int marginalizeLength) {
             super(vaList, sample);
 
-            this.bialleles = new Biallele[genotypes.length];
+            this.bialleleSNPs = new BialleleSNP[genotypes.length];
             for (int i = 0; i < genotypes.length; i++)
-                bialleles[i] = new Biallele(genotypes[i]);
+                bialleleSNPs[i] = new BialleleSNP(genotypes[i]);
 
             this.startIndex = startIndex;
             this.marginalizeLength = marginalizeLength;
@@ -804,7 +722,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
             PhasingTable table = new PhasingTable();
             for (Haplotype hap : getAllHaplotypes()) {
-                if (bialleles[startIndex].matchesTopBase(hap.getBase(startIndex))) {
+                if (bialleleSNPs[startIndex].matchesTopBase(hap.getBase(startIndex))) {
                     /* hap is the "representative" haplotype [DEFINED here to be
                       the one with the top base at the startIndex position.
                       NOTE that it is CRITICAL that this definition be consistent with the representative sub-haplotypes defined below!]
@@ -824,14 +742,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         private Haplotype complement(Haplotype hap) {
-            int numSites = bialleles.length;
+            int numSites = bialleleSNPs.length;
             if (hap.size() != numSites)
                 throw new StingException("INTERNAL ERROR: hap.size() != numSites");
 
             // Take the other base at EACH position of the Haplotype:
             byte[] complementBases = new byte[numSites];
             for (int i = 0; i < numSites; i++)
-                complementBases[i] = bialleles[i].getOtherBase(hap.getBase(i));
+                complementBases[i] = bialleleSNPs[i].getOtherBase(hap.getBase(i));
 
             return new Haplotype(complementBases);
         }
@@ -930,6 +848,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.phaseQuality = phaseQuality;
             this.numReads = numReads;
         }
+    }
+
+    public static boolean isUnfilteredBiallelicSNP(VariantContext vc) {
+        return (vc.isSNP() && vc.isBiallelic() && !vc.isFiltered());
     }
 }
 
