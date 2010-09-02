@@ -146,17 +146,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                 throw new StingException( "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
 
-        // setup the header fields
-        final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        final TreeSet<String> samples = new TreeSet<String>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
-        hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
-        samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
-
-        final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
-        vcfWriter.writeHeader(vcfHeader);
-
         boolean foundDBSNP = false;
         for( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
             if( d.getName().startsWith("input") ) {
@@ -179,6 +168,18 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         if(!foundDBSNP) {
             throw new StingException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
         }
+
+        // setup the header fields
+        final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        final TreeSet<String> samples = new TreeSet<String>();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
+        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
+        hInfo.add(new VCFHeaderLine("source", "VariantRecalibrator"));
+        samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
+
+        final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
+        vcfWriter.writeHeader(vcfHeader);
+
 
         // Set up default values for the FDR tranches if necessary
         if( FDR_TRANCHES == null ) {

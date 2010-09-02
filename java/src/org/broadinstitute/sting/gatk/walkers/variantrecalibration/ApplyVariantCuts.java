@@ -163,7 +163,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
-        hInfo.add(new VCFHeaderLine("source", "VariantOptimizer"));
+        hInfo.add(new VCFHeaderLine("source", "ApplyVariantCuts"));
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getSampleListWithVCFHeader(getToolkit(), null));
         
