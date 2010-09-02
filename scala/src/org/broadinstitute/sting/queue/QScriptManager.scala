@@ -49,6 +49,7 @@ object QScriptManager extends Logging {
 
       val settings = new Settings((error: String) => logger.error(error))
       val outdir = IOUtils.tempDir("Q-classes")
+      settings.deprecation.value = true
       settings.outdir.value = outdir.getPath
 
       // Set the classpath to the current class path.

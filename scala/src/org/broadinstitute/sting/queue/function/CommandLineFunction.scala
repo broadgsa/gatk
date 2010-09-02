@@ -94,7 +94,7 @@ trait CommandLineFunction extends QFunction with Logging {
   def outputs = getFieldFiles(outputFields)
 
   /**
-   * Gets the files from the fields.  The fields must be a File, a FileProvider, or a List or Set of either.
+   * Gets the files from the fields.  The fields must be a File, a FileExtension, or a List or Set of either.
    * @param fields Fields to get files.
    * @return Set[File] for the fields.
    */
@@ -121,7 +121,7 @@ trait CommandLineFunction extends QFunction with Logging {
   }
 
   /**
-   * Gets the files from the field.  The field must be a File, a FileProvider, or a List or Set of either.
+   * Gets the files from the field.  The field must be a File, a FileExtension, or a List or Set of either.
    * @param fields Field to get files.
    * @return Set[File] for the field.
    */
@@ -136,7 +136,7 @@ trait CommandLineFunction extends QFunction with Logging {
   }
 
   /**
-   * Gets the file from the field.  The field must be a File or a FileProvider and not a List or Set.
+   * Gets the file from the field.  The field must be a File or a FileExtension and not a List or Set.
    * @param field Field to get the file.
    * @return File for the field.
    */
@@ -144,17 +144,16 @@ trait CommandLineFunction extends QFunction with Logging {
     fieldValueToFile(field, getFieldValue(field))
 
   /**
-   * Converts the field value to a file.  The field must be a File or a FileProvider.
+   * Converts the field value to a file.  The field must be a File or a FileExtension.
    * @param field Field to get the file.
-   * @param value Value of the File or FileProvider or null.
+   * @param value Value of the File or FileExtension or null.
    * @return Null if value is null, otherwise the File.
-   * @throws QException if the value is not a File or FileProvider.
+   * @throws QException if the value is not a File or FileExtension.
    */
   private def fieldValueToFile(field: ArgumentSource, value: Any): File = value match {
     case file: File => file
-    case fileProvider: FileProvider => fileProvider.file
     case null => null
-    case unknown => throw new QException("Non-file found.  Try removing the annotation, change the annotation to @Argument, or implement FileProvider: %s: %s".format(field.field, unknown))
+    case unknown => throw new QException("Non-file found.  Try removing the annotation, change the annotation to @Argument, or extend File with FileExtension: %s: %s".format(field.field, unknown))
   }
 
   /**
@@ -164,14 +163,18 @@ trait CommandLineFunction extends QFunction with Logging {
    */
   def resetFieldFile(field: ArgumentSource, tempDir: File): File = {
     getFieldValue(field) match {
+      case fileExtension: FileExtension => {
+        val newFile = IOUtils.resetParent(tempDir, fileExtension)
+        val newFileExtension = fileExtension.withPath(newFile.getPath)
+        setFieldValue(field, newFileExtension)
+        newFileExtension
+      }
       case file: File => {
+        if (file.getClass == classOf[File])
+          throw new QException("Extensions of file must also extend with FileExtension so that the path can be modified.");
         val newFile = IOUtils.resetParent(tempDir, file)
         setFieldValue(field, newFile)
         newFile
-      }
-      case fileProvider: FileProvider => {
-        fileProvider.file = IOUtils.resetParent(tempDir, fileProvider.file)
-        fileProvider.file
       }
       case null => null
       case unknown =>
@@ -242,8 +245,14 @@ trait CommandLineFunction extends QFunction with Logging {
    */
   protected def canon(value: Any) = {
     value match {
-      case file: File => absolute(file)
-      case fileProvider: FileProvider => fileProvider.file = absolute(fileProvider.file); fileProvider
+      case fileExtension: FileExtension =>
+        val newFile = absolute(fileExtension);
+        val newFileExtension = fileExtension.withPath(newFile.getPath)
+        newFileExtension
+      case file: File =>
+        if (file.getClass != classOf[File])
+          throw new QException("Extensions of file must also extend with FileExtension so that the path can be modified.");
+        absolute(file)
       case x => x
     }
   }

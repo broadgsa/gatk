@@ -110,8 +110,9 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     public static List<? extends ArgumentField> getArgumentFields(Class<?> classType) {
         List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
         for (ArgumentSource argumentSource: ParsingEngine.extractArgumentSources(classType))
-            for (ArgumentDefinition argumentDefinition: argumentSource.createArgumentDefinitions())
-                argumentFields.addAll(getArgumentFields(argumentDefinition));
+            if (!argumentSource.isDeprecated())
+                for (ArgumentDefinition argumentDefinition: argumentSource.createArgumentDefinitions())
+                    argumentFields.addAll(getArgumentFields(argumentDefinition));
         return argumentFields;
     }
 
@@ -131,7 +132,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
             //return Collections.<ArgumentField>emptyList();
 
         } else if ("input_file".equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
-            return Arrays.asList(new InputNamedFileDefinitionField(argumentDefinition), new IndexFilesField());
+            return Arrays.asList(new InputTaggedFileDefinitionField(argumentDefinition), new IndexFilesField());
 
         } else if (argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Collections.singletonList(new InputArgumentField(argumentDefinition));
@@ -327,15 +328,15 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     /**
      * Named input_files.
      */
-    public static class InputNamedFileDefinitionField extends ArgumentDefinitionField {
-        public InputNamedFileDefinitionField(ArgumentDefinition argumentDefinition) {
+    public static class InputTaggedFileDefinitionField extends ArgumentDefinitionField {
+        public InputTaggedFileDefinitionField(ArgumentDefinition argumentDefinition) {
             super(argumentDefinition);
         }
-        @Override protected Class<?> getInnerType() { return null; } // NamedFile does not need to be imported.
-        @Override protected String getFieldType() { return "List[NamedFile]"; }
+        @Override protected Class<?> getInnerType() { return null; } // TaggedFile does not need to be imported.
+        @Override protected String getFieldType() { return "List[File]"; }
         @Override protected String getDefaultValue() { return "Nil"; }
         @Override protected String getCommandLineTemplate() {
-            return " + repeat(\"\", %3$s, format=NamedFile.formatCommandLine(\"%1$s\"))";
+            return " + repeat(\"\", %3$s, format=TaggedFile.formatCommandLine(\"%1$s\"))";
         }
     }
 
@@ -354,8 +355,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected String getRawFieldName() { return "index_files"; }
         @Override protected String getFreezeFields() {
             return String.format(
-                    "index_files ++= input_file.filter(bam => bam != null && bam.file.getName.endsWith(\".bam\")).map(bam => new File(bam.file.getPath + \".bai\"))%n" +
-                    "index_files ++= input_file.filter(sam => sam != null && sam.file.getName.endsWith(\".sam\")).map(sam => new File(sam.file.getPath + \".sai\"))%n");
+                    "index_files ++= input_file.filter(bam => bam != null && bam.getName.endsWith(\".bam\")).map(bam => new File(bam.getPath + \".bai\"))%n" +
+                    "index_files ++= input_file.filter(sam => sam != null && sam.getName.endsWith(\".sam\")).map(sam => new File(sam.getPath + \".sai\"))%n");
         }
     }
 

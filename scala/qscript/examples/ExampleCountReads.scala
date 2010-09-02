@@ -55,7 +55,7 @@ class ExampleCountReads extends QScript {
         singleCountReads.jarFile = gatkJar
         singleCountReads.reference_sequence = referenceFile
         // ':+' is the scala List append operator
-        singleCountReads.input_file :+= bamFile.toNamedFile
+        singleCountReads.input_file :+= bamFile
         add(singleCountReads)
       }
     }

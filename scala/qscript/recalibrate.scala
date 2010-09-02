@@ -64,7 +64,6 @@ class CountCovariates(bamIn: File, recalDataIn: File) extends org.broadinstitute
     this.recal_file = recalDataIn
     this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod")
     this.logging_level = "INFO"
-    this.max_reads_at_locus = Some(20000)
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.memoryLimit = Some(3)
     
@@ -75,7 +74,7 @@ class TableRecalibrate(bamInArg: File, recalDataIn: File, bamOutArg: File) exten
     this.jarFile = gatkJarFile
     this.input_file :+= bamInArg
     this.recal_file = recalDataIn
-    this.output_bam = bamOutArg
+    this.out = bamOutArg
     this.logging_level = "INFO"
     this.memoryLimit = Some(2)
     this.skipUQUpdate = skipUQUpdateArg

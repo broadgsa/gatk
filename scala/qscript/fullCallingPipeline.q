@@ -80,7 +80,7 @@ class fullCallingPipeline extends QScript {
     val cleanedBase: String = projectBase + ".cleaned"
     val uncleanedBase: String = projectBase + ".uncleaned"
     // there are commands that use all the bam files
-    var cleanBamFiles = List.empty[NamedFile]
+    var cleanBamFiles = List.empty[File]
 
     for ( bam <- qscript.bamFiles ) {
 
@@ -94,7 +94,7 @@ class fullCallingPipeline extends QScript {
       // create the cleaning commands
 
       val targetCreator = new RealignerTargetCreator with CommandLineGATKArgs
-      targetCreator.input_file :+= bam.toNamedFile
+      targetCreator.input_file :+= bam
       targetCreator.out = indel_targets
 
       val realigner = new IndelRealigner with CommandLineGATKArgs
@@ -112,7 +112,7 @@ class fullCallingPipeline extends QScript {
 
       // put clean bams in clean genotypers
 
-      cleanBamFiles :+= realigner.out.toNamedFile
+      cleanBamFiles :+= realigner.out
 
       add(targetCreator,realigner,samtoolsindex)
     }
@@ -122,7 +122,7 @@ class fullCallingPipeline extends QScript {
     endToEnd(cleanedBase,cleanBamFiles)
   }
 
-  def endToEnd(base: String, bamFiles: List[NamedFile]) = {
+  def endToEnd(base: String, bamFiles: List[File]) = {
 
     // step through the un-indel-cleaned graph:
     // 1a. call snps and indels
@@ -158,7 +158,7 @@ class fullCallingPipeline extends QScript {
     var priority = ""
     for ( bam <- bamFiles ) {
       val indel = new IndelGenotyperV2 with CommandLineGATKArgs
-      indel.input_file :+= bam.toNamedFile
+      indel.input_file :+= bam
       indel.out = swapExt(bam,".bam",".indels.vcf")
       indel.downsample_to_coverage = Some(500)
       indelCallFiles :+= RodBind("v"+loopNo.toString, "VCF", indel.out)
@@ -186,28 +186,28 @@ class fullCallingPipeline extends QScript {
     annotated.rodBind :+= RodBind("variant", "VCF", snps.out)
     annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.refseqTable)
     annotated.rodBind :+= RodBind("dbsnp", "AnnotatorInputTable", qscript.dbsnpTable)
-    annotated.vcfOutput = swapExt(snps.out,".vcf",".annotated.vcf").getAbsolutePath
+    annotated.out = swapExt(snps.out,".vcf",".annotated.vcf")
     annotated.select :+= "dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet"
     annotated.rodToIntervalTrackName = "variant"
 
 
     // 2.a filter on cluster and near indels
     val masker = new VariantFiltration with CommandLineGATKArgs
-    masker.rodBind :+= RodBind("variant", "VCF", new File(annotated.vcfOutput))
-    masker.rodBind :+= RodBind("mask", "VCF", new File(mergeIndels.out.getAbsolutePath))
+    masker.rodBind :+= RodBind("variant", "VCF", annotated.out)
+    masker.rodBind :+= RodBind("mask", "VCF", mergeIndels.out)
     masker.maskName = "NearIndel"
     masker.clusterWindowSize = Some(qscript.snpClusterWindow)
     masker.clusterSize = Some(qscript.snpsInCluster)
-    masker.out = swapExt(new File(annotated.vcfOutput),".vcf",".indel.masked.vcf")
+    masker.out = swapExt(annotated.out,".vcf",".indel.masked.vcf")
 
 
     // 2.b hand filter with standard filter
     val handFilter = new VariantFiltration with CommandLineGATKArgs
-    handFilter.rodBind :+= RodBind("variant", "VCF", new File(annotated.vcfOutput))
+    handFilter.rodBind :+= RodBind("variant", "VCF", annotated.out)
     handFilter.rodBind :+= RodBind("mask", "VCF", mergeIndels.out)
     handFilter.filterName ++= List("StrandBias","AlleleBalance","QualByDepth","HomopolymerRun")
     handFilter.filterExpression ++= List("\"SB>=0.10\"","\"AB>=0.75\"","QD<5","\"HRun>=4\"")
-    handFilter.out = swapExt(new File(annotated.vcfOutput),".vcf",".handfiltered.vcf")
+    handFilter.out = swapExt(annotated.out,".vcf",".handfiltered.vcf")
 
 
     // 3.i generate gaussian clusters on the masked vcf

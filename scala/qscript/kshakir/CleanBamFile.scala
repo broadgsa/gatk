@@ -131,15 +131,11 @@ class CleanBamFile extends QScript {
     var fixedBam: File = null
 
     if (realigner.scatterCount > 1) {
-      realigner.output = baseFile(".cleaned.bam")
+      realigner.out = baseFile(".cleaned.bam")
       // While gathering run fix mates.
       realigner.setupScatterFunction = {
         case (scatter: IntervalScatterFunction, _) =>
           scatter.splitIntervalsScript = indelRealignerScatterScript
-      }
-      realigner.gatherClass = {
-        case source if (source.field.getName=="output") =>
-          classOf[BamGatherFunction]
       }
       realigner.setupGatherFunction = {
         case (gather: BamGatherFunction, _) =>
@@ -151,9 +147,9 @@ class CleanBamFile extends QScript {
           gather.mergeTextScript = mergeTextScript
       }
 
-      fixedBam = realigner.output
+      fixedBam = realigner.out
     } else {
-      realigner.output = baseFile(".unfixed.cleaned.bam")
+      realigner.out = baseFile(".unfixed.cleaned.bam")
 
       // Explicitly run fix mates if the function won't be scattered.
       var fixMates = new PicardBamJarFunction {
@@ -165,7 +161,7 @@ class CleanBamFile extends QScript {
       }
       fixMates.memoryLimit = Some(4)
       fixMates.jarFile = fixMatesJar
-      fixMates.unfixed = realigner.output
+      fixMates.unfixed = realigner.out
       fixMates.fixed = baseFile(".cleaned.bam")
 
       fixedBam = fixMates.fixed
