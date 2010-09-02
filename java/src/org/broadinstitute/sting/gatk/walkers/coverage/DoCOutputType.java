@@ -31,7 +31,7 @@ package org.broadinstitute.sting.gatk.walkers.coverage;
  * @version 0.1
  */
 public class DoCOutputType {
-    public enum Partition { readgroup, sample, library }
+    public enum Partition { readgroup, sample, library, platform, center, sample_by_platform, sample_by_center, sample_by_platform_by_center }
     public enum Aggregation { locus, interval, gene, cumulative }
     public enum FileType { summary, statistics, coverage_counts, coverage_proportions }
 

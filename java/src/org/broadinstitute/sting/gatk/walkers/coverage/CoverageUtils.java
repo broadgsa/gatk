@@ -45,6 +45,16 @@ public class CoverageUtils {
             return String.format("%s_rg_%s",r.getSample(),r.getReadGroupId());
         } else if ( type == DoCOutputType.Partition.library ) {
             return r.getLibrary();
+        } else if ( type == DoCOutputType.Partition.center ) {
+            return r.getSequencingCenter();
+        } else if ( type == DoCOutputType.Partition.platform ) {
+            return r.getPlatform();
+        } else if ( type == DoCOutputType.Partition.sample_by_center ) {
+            return String.format("%s_cn_%s",r.getSample(),r.getSequencingCenter());
+        } else if ( type == DoCOutputType.Partition.sample_by_platform) {
+            return String.format("%s_pl_%s",r.getSample(),r.getPlatform());
+        } else if ( type == DoCOutputType.Partition.sample_by_platform_by_center ) {
+            return String.format("%s_pl_%s_cn_%s",r.getSample(),r.getPlatform(),r.getSequencingCenter());
         } else {
             throw new StingException("Invalid type ID sent to getTypeID. This is a BUG!");
         }

@@ -205,6 +205,26 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
                     partition.add(l);
                 }
             }
+        } else if ( type == DoCOutputType.Partition.center ) {
+            for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
+                partition.add(rg.getSequencingCenter());
+            }
+        } else if ( type == DoCOutputType.Partition.platform ) {
+            for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
+                partition.add(rg.getPlatform());
+            }
+        } else if ( type == DoCOutputType.Partition.sample_by_center ) {
+            for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
+                partition.add(String.format("%s_cn_%s",rg.getSample(),rg.getSequencingCenter()));
+            }
+        } else if ( type == DoCOutputType.Partition.sample_by_platform ) {
+            for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
+                partition.add(String.format("%s_pl_%s",rg.getSample(),rg.getPlatform()));
+            }
+        } else if ( type == DoCOutputType.Partition.sample_by_platform_by_center ) {
+            for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader().getReadGroups() ) {
+                partition.add(String.format("%s_pl_%s_cn_%s",rg.getSample(),rg.getPlatform(),rg.getSequencingCenter()));
+            }
         } else {
             throw new StingException("Invalid aggregation type sent to getSamplesFromToolKit");
         }
