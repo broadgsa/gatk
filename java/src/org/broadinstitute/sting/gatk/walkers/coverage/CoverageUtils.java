@@ -86,7 +86,7 @@ public class CoverageUtils {
         Map<SAMReadGroupRecord, int[]> countsByRG = new HashMap<SAMReadGroupRecord,int[]>();
         for ( PileupElement e : context.getBasePileup() ) {
             if ( e.getMappingQual() >= minMapQ && e.getMappingQual() <= maxMapQ && ( e.getQual() >= minBaseQ && e.getQual() <= maxBaseQ || e.isDeletion() ) ) {
-                SAMReadGroupRecord readGroup = e.getRead().getReadGroup();
+                SAMReadGroupRecord readGroup = getReadGroup(e.getRead());
                 if ( ! countsByRG.keySet().contains(readGroup) ) {
                     countsByRG.put(readGroup,new int[6]);
                     updateCounts(countsByRG.get(readGroup),e);
@@ -111,5 +111,17 @@ public class CoverageUtils {
                 throw new StingException("Expected a simple base, but actually received"+(char)e.getBase());
             }
         }
+    }
+
+    private static SAMReadGroupRecord getReadGroup(SAMRecord r) {
+        SAMReadGroupRecord rg = r.getReadGroup();
+        if ( rg == null ) {
+            String msg = "Read "+r.getReadName()+" lacks read group information.";
+            msg += " Please associate all reads with read groups [recommended]\n";
+            msg += " Or run with -rf MissingReadGroup [not recommended]";
+            throw new StingException(msg);
+        }
+
+        return rg;
     }
 }
