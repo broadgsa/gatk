@@ -24,11 +24,22 @@
 
 package org.broadinstitute.sting.utils.genotype;
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 public class Haplotype {
     protected byte[] bases = null;
     protected double[] quals = null;
+    private GenomeLoc genomeLocation = null;
+    private boolean isReference = false;
 
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
@@ -56,6 +67,16 @@ public class Haplotype {
         this(bases, 0);
     }
 
+    public Haplotype(byte[] bases, GenomeLoc loc) {
+        this(bases);
+        this.genomeLocation = loc;
+    }
+
+    public Haplotype(byte[] bases, GenomeLoc loc, boolean isRef) {
+        this(bases, loc);
+        this.isReference = isRef;
+    }
+
 
     public String toString() { return new String(this.bases); }
 
@@ -73,4 +94,54 @@ public class Haplotype {
     public byte[] getBasesAsBytes() {
         return bases;
     }
+
+    public long getStartPosition() {
+        return genomeLocation.getStart();
+    }
+
+    public boolean isReference() {
+        return isReference;
+    }
+
+
+    public static List<Haplotype> makeHaplotypeListFromVariantContextAlleles(VariantContext vc, ReferenceContext ref, final int haplotypeSize) {
+
+
+        List<Haplotype> haplotypeList = new ArrayList<Haplotype>();
+
+        byte[] refBases = ref.getBases();
+
+        int numPrefBases = 5; // haplotypeSize/2;
+
+        int startIdxInReference = (int)(1+vc.getStart()-numPrefBases-ref.getWindow().getStart());
+        //int numPrefBases = (int)(vc.getStart()-ref.getWindow().getStart()+1); // indel vc starts one before event
+
+ 
+        byte[] basesBeforeVariant = Arrays.copyOfRange(refBases,startIdxInReference,startIdxInReference+numPrefBases);
+        byte[] basesAfterVariant = Arrays.copyOfRange(refBases,
+                startIdxInReference+numPrefBases+vc.getReference().getBases().length, refBases.length);
+
+
+        // Create location for all haplotypes
+        long startLoc = ref.getWindow().getStart() + startIdxInReference;
+        long stopLoc = startLoc + haplotypeSize-1;
+
+        GenomeLoc locus = GenomeLocParser.createGenomeLoc(ref.getLocus().getContigIndex(),startLoc,
+                 stopLoc);
+
+
+        for (Allele a : vc.getAlleles()) {
+
+            byte[] alleleBases = a.getBases();
+            // use string concatenation
+            String haplotypeString = new String(basesBeforeVariant) + new String(alleleBases) + new String(basesAfterVariant);
+            haplotypeString = haplotypeString.substring(0,haplotypeSize);
+
+           haplotypeList.add(new Haplotype(haplotypeString.getBytes(), locus, a.isReference()));
+
+        }
+
+        return haplotypeList;
+    }
+
 }
