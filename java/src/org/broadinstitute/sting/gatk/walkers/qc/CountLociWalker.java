@@ -1,16 +1,23 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import net.sf.samtools.SAMFileWriter;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 
+import java.io.PrintStream;
+
 /**
  * Walks over the input data set, calculating the total number of covered loci for diagnostic purposes.
  * Simplest example of a locus walker.
  */
 public class CountLociWalker extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
+    @Output(doc="Write count to this file instead of STDOUT")
+    PrintStream out;
+
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         return 1;
     }

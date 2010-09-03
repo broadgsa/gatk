@@ -98,22 +98,24 @@ public class VariantAnnotatorEngine {
 
         HashSet<Class> classes = new HashSet<Class>();
         // get the classes from the provided groups (interfaces)
-        for ( String group : annotationGroupsToUse ) {
-            Class interfaceClass = classMap.get(group);
-            if ( interfaceClass == null )
-                interfaceClass = classMap.get(group + "Annotation");
-            if ( interfaceClass == null )
-                throw new StingException("Class " + group + " is not found; please check that you have specified the class name correctly");
-            classes.addAll(PackageUtils.getClassesImplementingInterface(interfaceClass));
-        }
-        // get the specific classes provided
-        for ( String annotation : annotationsToUse ) {
-            Class annotationClass = classMap.get(annotation);
-            if ( annotationClass == null )
-                annotationClass = classMap.get(annotation + "Annotation");
-            if ( annotationClass == null )
-                throw new StingException("Class " + annotation + " is not found; please check that you have specified the class name correctly");
-            classes.add(annotationClass);
+        if ( annotationGroupsToUse.size() != 1 || ! annotationGroupsToUse.get(0).toLowerCase().equals("none") ) {
+            for ( String group : annotationGroupsToUse ) {
+                Class interfaceClass = classMap.get(group);
+                if ( interfaceClass == null )
+                    interfaceClass = classMap.get(group + "Annotation");
+                if ( interfaceClass == null )
+                    throw new StingException("Class " + group + " is not found; please check that you have specified the class name correctly");
+                classes.addAll(PackageUtils.getClassesImplementingInterface(interfaceClass));
+            }
+            // get the specific classes provided
+            for ( String annotation : annotationsToUse ) {
+                Class annotationClass = classMap.get(annotation);
+                if ( annotationClass == null )
+                    annotationClass = classMap.get(annotation + "Annotation");
+                if ( annotationClass == null )
+                    throw new StingException("Class " + annotation + " is not found; please check that you have specified the class name correctly");
+                classes.add(annotationClass);
+            }
         }
 
         // get the instances
