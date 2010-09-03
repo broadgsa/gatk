@@ -48,6 +48,7 @@ public abstract class BaseTest {
     protected static String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
     protected static String validationDataLocation = GATKDataLocation + "Validation_Data/";
     protected static String evaluationDataLocation = GATKDataLocation + "Evaluation_Data/";
+    protected static String comparisonDataLocation = GATKDataLocation + "Comparisons/";
 
     protected static String testDir = "testdata/";
     protected static boolean alreadySetup = false;

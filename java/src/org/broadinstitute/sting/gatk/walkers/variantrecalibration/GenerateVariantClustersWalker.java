@@ -139,10 +139,8 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                 foundDBSNP = true;
             } else if ( d.getName().equals("hapmap") ) {
                 logger.info("Found HapMap track for use in training with weight = " + WEIGHT_HAPMAP);
-                foundDBSNP = true;
             } else if ( d.getName().equals("1kg") ) {
                 logger.info("Found 1KG track for use in training with weight = " + WEIGHT_1KG);
-                foundDBSNP = true;
             } else {
                 logger.info("Not evaluating ROD binding " + d.getName());
             }
@@ -228,8 +226,8 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
-        logger.info( "There are " + dataManager.numVariants + " variants with > 0 clustering weight and " + dataManager.numAnnotations + " annotations." );
-        logger.info( "The annotations are: " + annotationKeys );
+        logger.info( "There are " + dataManager.numVariants + " variants with > 0 clustering weight and qual > threshold (--qualThreshold = " + QUAL_THRESHOLD + ")" );
+        logger.info( "The annotations used for clustering are: " + annotationKeys );
 
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
 

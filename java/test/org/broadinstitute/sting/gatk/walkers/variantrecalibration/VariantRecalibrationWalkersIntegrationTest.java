@@ -14,8 +14,8 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testGenerateVariantClusters() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "cb3e8d9072d478243c3f9d0ee09fef3b" );
-        e.put( validationDataLocation + "lowpass.N3.chr1.raw.0.vcf", "0d4fee916a886ca98c286d3b7fed0ff6" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "7c5431a560e9ca257523cf68b808b058" );
+        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "a438635bc96a80c5e6f090d82a394819" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -24,11 +24,12 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
                             " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
-                            " -B:hapmap,VCF " + validationDataLocation + "CEU_hapmap_nogt_23.vcf" +
-                            " -weightDBSNP 1.0 -weightHapMap 1.0" +
+                            " -B:hapmap,VCF " + comparisonDataLocation + "Validated/HapMap/3.2/genotypes_r27_nr.b36_fwd.vcf" +
+                            " -weightDBSNP 0.2 -weightHapMap 1.0" +
                             " -T GenerateVariantClusters" +
                             " -B:input,VCF " + vcf +
-                            " -L 1:1-100,000,000" +
+                            " -L 1:50,000,000-200,000,000" +
+                            " -qual 50.0" +
                             " --ignore_filter GATK_STANDARD" +
                             " -an QD -an HRun -an SB" +
                             " -clusterFile %s",
@@ -43,9 +44,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testVariantRecalibrator() {
         HashMap<String, List<String>> e = new HashMap<String, List<String>>();
         e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
-                Arrays.asList("9c25a88c9fa48d7373029d2bfb40ad54", "937080353c7e03e11f8a70fc0004bf76","5b89fa5a4edf0080d64230d4103d2b8d")); // Each test checks the md5 of three output files
-        e.put( validationDataLocation + "lowpass.N3.chr1.raw.0.vcf",
-                Arrays.asList("074462f829ff553584e9b5e330be6d4b", "f7c5c6cff9dd5280b25e24e0591e4cb0","1de1473db5720b882edf1381fa3dd039")); // Each test checks the md5 of three output files
+                Arrays.asList("dad6d1458a453a1b720bd79be922df73", "2a70516b26f6ccf9db638153661eee62","c1952240ff3105354e04363c18a8eab9")); // Each test checks the md5 of three output files
+        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf",
+                Arrays.asList("89d7e43d9f1086c859abb38fb1b51d40", "d2471d2dd956392de7e776463299e28d","eeafcb907f93ace2ac47a98497b52b0d")); // Each test checks the md5 of three output files
 
         for ( Map.Entry<String, List<String>> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -56,10 +57,10 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                 WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                         "-R " + b36KGReference +
                                 " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
-                                " -B:hapmap,VCF " + validationDataLocation + "CEU_hapmap_nogt_23.vcf" +
+                                " -B:hapmap,VCF " + comparisonDataLocation + "Validated/HapMap/3.2/genotypes_r27_nr.b36_fwd.vcf" +
                                 " -T VariantRecalibrator" +
                                 " -B:input,VCF " + vcf +
-                                " -L 1:40,000,000-100,000,000" +
+                                " -L 1:20,000,000-100,000,000" +
                                 " --ignore_filter GATK_STANDARD" +
                                 " --ignore_filter HARD_TO_VALIDATE" +
                                 " -clusterFile " + clusterFile +
@@ -81,8 +82,8 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testApplyVariantCuts() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "5b00a80b2a8fd078d6c2aa16924920e4" );
-        e.put( validationDataLocation + "lowpass.N3.chr1.raw.0.vcf", "d785380792da88f8d64fe1cf1133eeb0" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "5511e26689ddd1486049db083dcd79c0" );
+        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "4f7f13d1f190e882a466003ce0917222" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -96,7 +97,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         "-R " + b36KGReference +
                                 " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                                 " -T ApplyVariantCuts" +
-                                " -L 1:40,000,000-100,000,000" +
+                                " -L 1:20,000,000-100,000,000" +
                                 " -B:input,VCF " + inputVCFFile +
                                 " -o %s" +
                                 " -tranchesFile " + tranchesFile,

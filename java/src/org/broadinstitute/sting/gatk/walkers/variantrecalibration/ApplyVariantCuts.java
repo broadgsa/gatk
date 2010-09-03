@@ -134,7 +134,6 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     public void initialize() {
 
         // todo -- ryan, it's always best to use a data structure, I need to read these in too.
-        // todo -- I would have updated your code but there's no integration test to protect me from unexpected effects
         boolean firstLine = true;
         try {
             for( final String line : new XReadLines( TRANCHES_FILE ) ) {

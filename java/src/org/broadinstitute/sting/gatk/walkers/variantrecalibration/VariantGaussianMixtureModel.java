@@ -68,7 +68,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private double[] pClusterLog10;
     private final double[] determinant;
     private final double stdThreshold;
-    private double singletonFPRate = -1; // Est. FP rate for singleton calls.  Used to estimate FP rate as a function of AC
+    private double singletonFPRate = -1; // Estimated FP rate for singleton calls.  Used to estimate FP rate as a function of AC
 
     private double[] empiricalMu;
     private Matrix empiricalSigma;
@@ -181,15 +181,19 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         // Only cluster with a good set of knowns. Filter based on being too many std's away from the mean annotation value
         // Filtering based on known status and qual threshold happens in GenerateVariantClusters
+        long numAboveSTD = 0L;
         for( int iii = 0; iii < dataManager.data.length; iii++ ) {
             final VariantDatum datum = dataManager.data[iii];
             for( final double val : datum.annotations ) {
                 if( Math.abs(val) > stdThreshold ) {
                     datum.weight = 0.0;
+                    numAboveSTD++;
                     break;
                 }
             }
         }
+
+        logger.info( numAboveSTD + " variants were rejected from the training set for having annotation values more than X standard deviations away from the mean. (--stdThreshold = " + stdThreshold + ")" );
 
         generateEmpricalStats( dataManager.data );
 
@@ -338,7 +342,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                     if(rand.nextBoolean()) {
                         randSigma[ppp][jjj] *= -1.0;
                     }
-                    if(jjj != ppp) { randSigma[jjj][ppp] = 0.0; } // Sigma is a symmetric, positive-definite matrix created by taking a lower diagonal matrix and multiplying by its transpose
+                    if(jjj != ppp) { randSigma[jjj][ppp] = 0.0; } // Sigma is a symmetric, positive-definite matrix created by taking a lower diagonal matrix and multiplying it by its transpose
                 }
             }
             if( FORCE_INDEPENDENT_ANNOTATIONS ) {
