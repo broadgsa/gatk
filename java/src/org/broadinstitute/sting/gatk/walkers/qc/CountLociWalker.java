@@ -35,4 +35,8 @@ public class CountLociWalker extends LocusWalker<Integer, Long> implements TreeR
     public Long treeReduce(Long lhs, Long rhs) {
         return lhs + rhs;
     }
+
+    public void onTraversalDone( Long c ) {
+        out.println(c);
+    }
 }
