@@ -731,6 +731,12 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         if ( event_length < 0 ) event_length = 0;
 
         long start = call.getPosition()-1;
+        // If the beginning of the chromosome is deleted (possible, however unlikely), it's unclear how to proceed.
+        // The suggestion is instead of putting the base before the indel, to put the base after the indel.
+        // For now, just don't print out that site.
+        if ( start == 0 )
+            return;
+
         long stop = start;
 
         List<Allele> alleles = new ArrayList<Allele>(2);
