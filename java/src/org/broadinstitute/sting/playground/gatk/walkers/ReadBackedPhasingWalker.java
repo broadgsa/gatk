@@ -41,6 +41,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.playground.gatk.walkers.phasing.*;
 
 import java.io.*;
 import java.util.*;
