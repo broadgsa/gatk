@@ -55,7 +55,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -L chr1:1-50,000,000" +
                         " -OQ" +
                         " -recalFile " + evaluationDataLocation + "NA12878.GAII.chr1.50MB.recal.csv" +
-                        " -outputBam /dev/null",
+                        " -o /dev/null",
                 0,
                 new ArrayList<String>(0));
         executeTest("testTableRecalibratorWholeGenome", spec);
@@ -70,7 +70,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -L " + evaluationDataLocation + "whole_exome_agilent_designed_120.targets.chr1.interval_list" +
                         " -OQ" +
                         " -recalFile " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.recal.csv" +
-                        " -outputBam /dev/null",
+                        " -o /dev/null",
                 0,
                 new ArrayList<String>(0));
         executeTest("testTableRecalibratorWholeExome", spec);
