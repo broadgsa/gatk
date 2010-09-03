@@ -51,7 +51,7 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Window;
 
 
-@Reference(window=@Window(start=-5,stop=50))
+@Reference(window=@Window(start=-10,stop=80))
 @Allows({DataSource.READS, DataSource.REFERENCE})
 public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
     @Output
@@ -69,6 +69,9 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
     double alphaDeletionProbability = 0.01;
 
 
+    @Argument(fullName="haplotypeSize",shortName="hsize",doc="Size of haplotypes to evaluate calls.",required=true)
+    int HAPLOTYPE_SIZE = 40;
+
 
 
     @Override
@@ -80,7 +83,6 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
 
     private HaplotypeIndelErrorModel model;
 
-    private static final int HAPLOTYPE_SIZE = 20;
     private static final int MAX_READ_LENGTH = 200; // TODO- make this dynamic
 
 
@@ -196,7 +198,7 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         else
             newG = "OTHER";
 
-        out.format("NewG %s OldG %s\n", oldG, newG);
+        out.format("NewG %s OldG %s\n", newG, oldG);
 
 
 /*
