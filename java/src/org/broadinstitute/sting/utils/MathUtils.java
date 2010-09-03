@@ -58,6 +58,12 @@ public class MathUtils {
         return s;
     }
 
+    public static double sum(List<Double> values) {
+        double s = 0.0;
+        for ( double v : values) s += v;
+        return s;
+    }
+
     public static double sumLog10(double[] log10values) {
         double s = 0.0;
         for ( double v : log10values) s += Math.pow(10.0, v);

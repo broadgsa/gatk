@@ -146,6 +146,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
             HashMap<String, Object> attributes = new HashMap<String, Object>();
             attributes.put(VCFConstants.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
 
+            // todo -- replace with GenotypeLikelihoods object in Tribble library
             double[] likelihoods = GLs.get(sample).getLikelihoods();
             String GL = String.format("%.2f,%.2f,%.2f",
                     likelihoods[refGenotype.ordinal()],
