@@ -28,9 +28,6 @@ import org.broad.tribble.util.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class BialleleSNP extends Biallele {
 
     public BialleleSNP(Genotype gt) {
