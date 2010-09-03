@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
+use Data::Dumper;
 
 sub usage {
     print "Usage: $0 <input.vcf> <input.maf> <output.vcf>\n";
@@ -62,16 +63,17 @@ while (my $vcfline = <VCF_IN>) {
     if ($vcfline =~ /##/) {
         print VCF_OUT "$vcfline\n";
     } elsif ($vcfline =~ /#CHROM/) {
+
         print VCF_OUT "##source=AnnotateVCFwithMAF\n";
-        print VCF_OUT "##INFO=cDNAchange,1,String,cDNAchange\n";
-        print VCF_OUT "##INFO=classification,1,String,classification\n";
-        print VCF_OUT "##INFO=codonchange,1,String,codonchange\n";
-        print VCF_OUT "##INFO=gene,1,String,gene\n";
-        print VCF_OUT "##INFO=genomechange,1,String,genomechange\n";
-        print VCF_OUT "##INFO=proteinchange,1,String,proteinchange\n";
-        print VCF_OUT "##INFO=strand,1,String,strand\n";
-        print VCF_OUT "##INFO=transcript,1,String,transcript\n";
-        print VCF_OUT "##INFO=type,1,String,type\n";
+        print VCF_OUT "##INFO=<ID=cDNAchange,Number=1,Type=String,Description=\"cDNAchange\">\n";
+        print VCF_OUT "##INFO=<ID=classification,Number=1,Type=String,Description=\"classification\">\n";
+        print VCF_OUT "##INFO=<ID=codonchange,Number=1,Type=String,Description=\"codonchange\">\n";
+        print VCF_OUT "##INFO=<ID=gene,Number=1,Type=String,Description=\"gene\">\n";
+        print VCF_OUT "##INFO=<ID=genomechange,Number=1,Type=String,Description=\"genomechange\">\n";
+        print VCF_OUT "##INFO=<ID=proteinchange,Number=1,Type=String,Description=\"proteinchange\">\n";
+        print VCF_OUT "##INFO=<ID=strand,Number=1,Type=String,Description=\"strand\">\n";
+        print VCF_OUT "##INFO=<ID=transcript,Number=1,Type=String,Description=\"transcript\">\n";
+        print VCF_OUT "##INFO=<ID=type,Number=1,Type=String,Description=\"type\">\n";
         print VCF_OUT "$vcfline\n";
 
         $vcfline =~ s/#//g;
@@ -110,7 +112,11 @@ while (my $vcfline = <VCF_IN>) {
 
         my @newinfo;
         foreach my $infokey (sort { $a cmp $b } keys(%info)) {
-            push(@newinfo, "$infokey=$info{$infokey}");
+            if (!defined($info{$infokey})) {
+                #print "$infokey is missing\n";
+            } else {
+                push(@newinfo, "$infokey=$info{$infokey}");
+            }
         }
         $vcfentry{'INFO'} = join(";", @newinfo);
 
