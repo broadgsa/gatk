@@ -74,7 +74,7 @@ public class ClipReadsWalkersIntegrationTest extends WalkerTest {
                         " -OQ -QT 4 -CR WRITE_Q0S" +
                         " -o %s -ob %s",
                 2,
-                Arrays.asList("55c01ccc2e84481b22d3632cdb06c8ba", "12eeaaa8df3d742f68cdd8838b203825"));
+                Arrays.asList("55c01ccc2e84481b22d3632cdb06c8ba", "22db22749f811d30216215e047461621"));
         executeTest("clipOriginalQuals", spec);
     }
 }

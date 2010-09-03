@@ -86,7 +86,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
      * @return
      */
     protected Set<List<SAMRecord>> uniqueReadSets(List<SAMRecord> reads) {
-        Set<List<SAMRecord>> readSets = new HashSet<List<SAMRecord>>();
+        Set<List<SAMRecord>> readSets = new LinkedHashSet<List<SAMRecord>>();
 
         // for each read, find duplicates, and either add the read to its duplicate list or start a new one
         for ( SAMRecord read : reads ) {

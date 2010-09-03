@@ -341,7 +341,7 @@ public class IntervalSharder {
             nextBin = null;
             while(wrappedIterator.hasNext() && nextBin == null) {
                 Bin bin = wrappedIterator.next();
-                if(index.getLevelForBin(bin) == index.getNumIndexLevels()-1)
+                if(index.getLevelForBin(bin) == AbstractBAMFileIndex.getNumIndexLevels()-1)
                     nextBin = bin;
             }
         }

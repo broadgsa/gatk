@@ -20,8 +20,8 @@ public class DuplicatesWalkersIntegrationTest extends WalkerTest {
         List<File> result = executeTest(name, spec).getFirst();
     }
 
-    @Test public void testChr110Mb() { testCounter("testChr1-10mb", "-L chr1:1-10,000,000 --quietLocus", "fa8bfdd0b62a13a543bae90f7c674db7"); }
-    @Test public void testIntervalVerbose() { testCounter("testIntervalVerbose", "-L chr1:6,527,154-6,528,292", "1ebcc10b85af16805a54391721776657"); }
+    @Test public void testChr110Mb() { testCounter("testChr1-10mb", "-L chr1:1-10,000,000 --quietLocus", "d3c329a634904d95c4b180d0d63eadfc"); }
+    @Test public void testIntervalVerbose() { testCounter("testIntervalVerbose", "-L chr1:6,527,154-6,528,292", "5fbb930020df6ca7d0f724524fc43b3e"); }
 
     public void testCombiner(String name, String args, String md51, String md52) {
         WalkerTestSpec spec = new WalkerTestSpec(
@@ -35,6 +35,6 @@ public class DuplicatesWalkersIntegrationTest extends WalkerTest {
         List<File> result = executeTest(name, spec).getFirst();
     }
 
-    @Test public void testIntervalCombine() { testCombiner("testIntervalCombine", "-L chr1:6,527,154-6,528,292 -maxQ 50", "d41d8cd98f00b204e9800998ecf8427e", "e2501d7e20564df9f7519fadef8cf283"); }
-    @Test public void testIntervalCombineQ60() { testCombiner("testIntervalCombine", "-L chr1:6,527,154-6,528,292 -maxQ 60", "d41d8cd98f00b204e9800998ecf8427e", "b23f6436d230f57f969502ddd8d48c18"); }
+    @Test public void testIntervalCombine() { testCombiner("testIntervalCombine", "-L chr1:6,527,154-6,528,292 -maxQ 50", "d41d8cd98f00b204e9800998ecf8427e", "4541f57820637039bc2f5a97bcaadfe4"); }
+    @Test public void testIntervalCombineQ60() { testCombiner("testIntervalCombine", "-L chr1:6,527,154-6,528,292 -maxQ 60", "d41d8cd98f00b204e9800998ecf8427e", "8c0350c0a697e4083aab6ead3f404de4"); }
 }
