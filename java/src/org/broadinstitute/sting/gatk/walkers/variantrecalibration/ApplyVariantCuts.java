@@ -165,7 +165,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
         hInfo.add(new VCFHeaderLine("source", "ApplyVariantCuts"));
         final TreeSet<String> samples = new TreeSet<String>();
-        samples.addAll(SampleUtils.getSampleListWithVCFHeader(getToolkit(), null));
+        samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
         
         for( int iii = 1; iii < filterName.size(); iii++ ) {
             hInfo.add(new VCFFilterHeaderLine(filterName.get(iii), String.format("FDR tranche level at qual " + qCuts.get(iii))));

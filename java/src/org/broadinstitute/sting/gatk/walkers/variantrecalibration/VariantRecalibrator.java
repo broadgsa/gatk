@@ -175,7 +175,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
         hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
         hInfo.add(new VCFHeaderLine("source", "VariantRecalibrator"));
-        samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
+        samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);

@@ -51,11 +51,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
     protected final static Logger logger = Logger.getLogger(VariantGaussianMixtureModel.class);
 
-    /**
-     * Est. FP rate for singleton calls.  Used to estimate FP rate as a function of AC
-     */
-    private double singletonFPRate = -1;
-
     public final VariantDataManager dataManager;
     private final int maxGaussians;
     private final int maxIterations;
@@ -65,7 +60,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
     private final double SHRINKAGE;
     private final double DIRICHLET_PARAMETER;
-
     private final boolean FORCE_INDEPENDENT_ANNOTATIONS;
 
     private final double[][] mu; // The means for each cluster
@@ -74,6 +68,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private double[] pClusterLog10;
     private final double[] determinant;
     private final double stdThreshold;
+    private double singletonFPRate = -1; // Est. FP rate for singleton calls.  Used to estimate FP rate as a function of AC
 
     private double[] empiricalMu;
     private Matrix empiricalSigma;
