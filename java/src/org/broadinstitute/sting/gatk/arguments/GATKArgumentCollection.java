@@ -162,7 +162,7 @@ public class GATKArgumentCollection {
     public SAMFileReader.ValidationStringency strictnessLevel = SAMFileReader.ValidationStringency.SILENT;
 
     @Element(required = false)
-    @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations, nothing will be checked at runtime.", required = false)
+    @Argument(fullName = "unsafe", shortName = "U", doc = "If set, enables unsafe operations: nothing will be checked at runtime.  For expert users only who know what they are doing.  We do not support usage of this argument.", required = false)
     public ValidationExclusion.TYPE unsafe;
 
     /** How many threads should be allocated to this analysis. */
