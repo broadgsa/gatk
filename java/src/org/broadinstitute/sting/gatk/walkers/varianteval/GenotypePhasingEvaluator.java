@@ -1,21 +1,15 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
-import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.playground.gatk.walkers.Biallele;
-import org.broadinstitute.sting.playground.gatk.walkers.BialleleSNP;
-import org.broadinstitute.sting.playground.gatk.walkers.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.util.*;
 
