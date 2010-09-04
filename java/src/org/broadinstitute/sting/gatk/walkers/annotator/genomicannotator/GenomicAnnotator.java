@@ -79,6 +79,9 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
     @Argument(fullName="maxJoinTableSize", shortName="maxJoin", doc="The maximum allowed size (i.e. number of rows) for a table provided with the -J argument", required=false)
     protected Integer MAX_JOIN_TABLE_SIZE = 500000;
 
+    @Argument(fullName="ignoreFilteredSites", shortName="noFilt", doc="If specified, don't annotate sites marked as filtered out")
+    protected Boolean IGNORE_FILTERED_SITES = false;
+
     private VariantAnnotatorEngine engine;
 
     /**
@@ -240,7 +243,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
 
         Set<VariantContext> results = new LinkedHashSet<VariantContext>();
         for (VariantContext vc : tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false)) {
-            if ( vc.isFiltered() ||
+            if ( (vc.isFiltered() && IGNORE_FILTERED_SITES) ||
                     (vc.isVariant() && !vc.isBiallelic()) ) {
                 results.add(vc);
             } else {
