@@ -134,16 +134,16 @@ eval.getMetrics <- function(eval, jexl_expression) {
     callset.counts.titv = eval$TiTv[which(eval$TiTv$evaluation_name == "eval" & eval$TiTv$comparison_name == "dbsnp" & eval$TiTv$jexl_expression == jexl_expression),]; 
 
     callset.calledCounts = callset.counts[which(callset.counts$filter_name == "called" & callset.counts$novelty_name == "all"),]$nVariantLoci;
-    callset.calledCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "called" & callset.counts.titv$novelty_name == "all"),]$ti.tv.ratio;
+    callset.calledCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "called" & callset.counts.titv$novelty_name == "all"),]$ti.tv_ratio;
 
     callset.knownCounts = callset.counts[which(callset.counts$filter_name == "called" & callset.counts$novelty_name == "known"),]$nVariantLoci;
-    callset.knownCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "called" & callset.counts.titv$novelty_name == "known"),]$ti.tv.ratio;
+    callset.knownCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "called" & callset.counts.titv$novelty_name == "known"),]$ti.tv_ratio;
 
     callset.novelCounts = callset.counts[which(callset.counts$filter_name == "called" & callset.counts$novelty_name == "novel"),]$nVariantLoci;
-    callset.novelCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "called" & callset.counts.titv$novelty_name == "novel"),]$ti.tv.ratio;
+    callset.novelCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "called" & callset.counts.titv$novelty_name == "novel"),]$ti.tv_ratio;
 
     callset.filteredCounts = callset.counts[which(callset.counts$filter_name == "filtered" & callset.counts$novelty_name == "all"),]$nVariantLoci;
-    callset.filteredCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "filtered" & callset.counts.titv$novelty_name == "all"),]$ti.tv.ratio;
+    callset.filteredCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "filtered" & callset.counts.titv$novelty_name == "all"),]$ti.tv_ratio;
     
     metrics = list(
         all = callset.calledCounts,
@@ -181,8 +181,8 @@ plot.callsetConcordance <- function(eval, col=c("#FF6342", "#63C6DE", "#ADDE63")
         filtered = intersection$filtered + aonly$filtered + bonly$filtered
     );
 
-    par.def = par(no.readonly = TRUE);
-    par(mar=c(0.1, 0.1, 0.1, 0.1));
+    #par.def = par(no.readonly = TRUE);
+    #par(mar=c(0.1, 0.1, 0.1, 0.1));
 
     plot.venn(aonly$all + intersection$all, bonly$all + intersection$all, 0, intersection$all, 0, 0, pos=c(0.32, 0.32, 0.68, 0.70), col=col);
 
@@ -190,14 +190,10 @@ plot.callsetConcordance <- function(eval, col=c("#FF6342", "#63C6DE", "#ADDE63")
     text(0.5, 0.75, cex=1.2, adj=c(0.5, 0.33), .plot.callsetConcordance.getLabelText("Intersection", intersection, union));
     text(1, 0.5, cex=1.2, pos=2, .plot.callsetConcordance.getLabelText(eval$CallsetNames[2], bonly, union));
 
-    par(par.def);
+    #par(par.def);
 }
 
 plot.callsetConcordanceByAC <- function(eval, normalize=TRUE, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
-    #aonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[1]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    #intersection = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & eval$MetricsByAc$jexl_expression == "Intersection" & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    #bonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[2]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-
     aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
     intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
     bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
@@ -214,6 +210,9 @@ plot.callsetConcordanceByAC <- function(eval, normalize=TRUE, novelty_name="all"
         bonly$n = 0;
     }
 
+    #par.def = par(no.readonly = TRUE);
+    #par(mar=c(5, 5, 3, 5));
+
     if (normalize == TRUE) {
         norm = aonly$n + intersection$n + bonly$n;
         matnorm = rbind(aonly$n/norm, intersection$n/norm, bonly$n/norm);
@@ -226,13 +225,11 @@ plot.callsetConcordanceByAC <- function(eval, normalize=TRUE, novelty_name="all"
     }
 
     legend("topright", c(eval$CallsetOnlyNames[1], "Intersection", eval$CallsetOnlyNames[2]), fill=col);
+
+    #par(par.def);
 }
 
 plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
-    #aonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[1]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    #intersection = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & eval$MetricsByAc$jexl_expression == "Intersection" & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    #bonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[2]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-
     aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
     intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
     bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
@@ -262,10 +259,6 @@ eval.getMetricsByAc <- function(eval, jexl_expression, novelty_name="all") {
 }
 
 plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
-    #aonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[1]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    #intersection = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & eval$MetricsByAc$jexl_expression == "Intersection" & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-    #bonly = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(eval$CallsetOnlyNames[2]) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
-
     aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
     intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
     bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
