@@ -10,11 +10,13 @@ sub usage {
 }
 
 my %args;
-($args{'VCF_IN'}, $args{'MAF_IN'}, $args{'VCF_OUT'}) = @ARGV;
+($args{'VCF_IN'}, $args{'MAF_IN'}) = @ARGV;
 
-if (!defined($args{'VCF_IN'}) || !defined($args{'MAF_IN'}) || !defined($args{'VCF_OUT'})) {
+if (!defined($args{'VCF_IN'}) || !defined($args{'MAF_IN'})) {
     &usage();
 }
+
+($args{'VCF_OUT'} = $args{'VCF_IN'}) =~ s/\.vcf/.maf_annotated.vcf/;
 
 my %ignoreEntries = (
     'normal_barcode' => 1,
