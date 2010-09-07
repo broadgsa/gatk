@@ -50,15 +50,6 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
 
     SamplePreviousGenotypes samplePrevGenotypes = null;
 
-    //
-    //
-    //
-    HashMap<String, Genotype> prevCompGenotypes = new HashMap<String, Genotype>();
-    HashMap<String, Genotype> prevEvalGenotypes = new HashMap<String, Genotype>();
-    //
-    //
-    //
-
     public GenotypePhasingEvaluator(VariantEvalWalker parent) {
         super(parent);
         this.samplePhasingStatistics = new SamplePhasingStatistics(getVEWalker().minPhaseQuality);
@@ -91,70 +82,99 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         logger.debug("update2() locus: " + curLocus);
         logger.debug("comp = " + comp + " eval = " + eval);
 
-        if (!isUsable(comp) || !isUsable(eval))
-            return interesting;
-
-        if (!comp.isBiallelic() || !eval.isBiallelic() || !comp.getAlternateAllele(0).equals(eval.getAlternateAllele(0))) // these are not the same biallelic variants
-            return interesting;
-
-        Map<String, Genotype> compSampGenotypes = comp.getGenotypes();
-        Map<String, Genotype> evalSampGenotypes = eval.getGenotypes();
-
         Set<String> allSamples = new HashSet<String>();
-        allSamples.addAll(comp.getSampleNames());
-        allSamples.addAll(eval.getSampleNames());
+
+        Map<String, Genotype> compSampGenotypes = null;
+        if (isRelevantToPhasing(comp)) {
+            allSamples.addAll(comp.getSampleNames());
+            compSampGenotypes = comp.getGenotypes();
+        }
+
+        Map<String, Genotype> evalSampGenotypes = null;
+        if (isRelevantToPhasing(eval)) {
+            allSamples.addAll(eval.getSampleNames());
+            evalSampGenotypes = eval.getGenotypes();
+        }
 
         for (String samp : allSamples) {
             logger.debug("sample = " + samp);
 
-            Genotype compSampGt = compSampGenotypes.get(samp);
-            Genotype evalSampGt = evalSampGenotypes.get(samp);
-            if (compSampGt != null && evalSampGt != null && compSampGt.isHet() && evalSampGt.isHet()) {
-                CompEvalGenotypes prevCompAndEval = samplePrevGenotypes.get(samp);
-                if (prevCompAndEval != null && !prevCompAndEval.getLocus().onSameContig(curLocus)) // exclude curLocus if it is "phased" relative to a different chromosome
-                    prevCompAndEval = null;
+            Genotype compSampGt = null;
+            if (compSampGenotypes != null)
+                compSampGt = compSampGenotypes.get(samp);
 
-                // Replace the previous with current:
-                samplePrevGenotypes.put(samp, curLocus, compSampGt, evalSampGt);
-                if (prevCompAndEval != null) {
-                    logger.debug("Potentially phaseable locus: " + curLocus);
-                    Genotype prevCompSampGt = prevCompAndEval.getCompGenotpye();
-                    Genotype prevEvalSampGt = prevCompAndEval.getEvalGenotype();
+            Genotype evalSampGt = null;
+            if (evalSampGenotypes != null)
+                evalSampGt = evalSampGenotypes.get(samp);
 
-                    PhaseStats ps = samplePhasingStatistics.ensureSampleStats(samp);
+            if (compSampGt == null || evalSampGt == null) {
+                // Having a hom site (or an unphased het site) breaks the phasing for the sample - hence, must reset phasing knowledge for both comp and eval [put a null CompEvalGenotypes]:
+                if ((compSampGt != null && !permitsTransitivePhasing(compSampGt)) || (evalSampGt != null && !permitsTransitivePhasing(evalSampGt)))
+                    samplePrevGenotypes.put(samp, null);
+            }
+            else { // Both comp and eval have a non-null Genotype at this site:
+                Biallele compBiallele = new Biallele(compSampGt);
+                Biallele evalBiallele = new Biallele(evalSampGt);
 
-                    boolean compSampIsPhased = genotypesArePhasedAboveThreshold(compSampGt);
-                    boolean evalSampIsPhased = genotypesArePhasedAboveThreshold(evalSampGt);
-                    if (compSampIsPhased || evalSampIsPhased) {
-                        if (!evalSampIsPhased)
-                            ps.onlyCompPhased++;
-                        else if (!compSampIsPhased)
-                            ps.onlyEvalPhased++;
-                        else {
-                            Biallele prevCompBiallele = new Biallele(prevCompSampGt);
-                            Biallele compBiallele = new Biallele(compSampGt);
+                boolean breakPhasing = false;
+                if (!compSampGt.isHet() || !evalSampGt.isHet())
+                    breakPhasing = true;
+                else { // both are het
+                    boolean topMatchesTopAndBottomMatchesBottom = (topMatchesTop(compBiallele, evalBiallele) && bottomMatchesBottom(compBiallele, evalBiallele));
+                    boolean topMatchesBottomAndBottomMatchesTop = (topMatchesBottom(compBiallele, evalBiallele) && bottomMatchesTop(compBiallele, evalBiallele));
+                    if (!topMatchesTopAndBottomMatchesBottom && !topMatchesBottomAndBottomMatchesTop)
+                        breakPhasing = true; // since the 2 VCFs have different diploid genotypes for this sample
+                }
 
-                            Biallele prevEvalBiallele = new Biallele(prevEvalSampGt);
-                            Biallele evalBiallele = new Biallele(evalSampGt);
+                if (breakPhasing) {
+                    samplePrevGenotypes.put(samp, null); // nothing to do for this site, AND must remove any history for the future
+                }
+                else { // comp and eval have the same het Genotype at this site:
+                    CompEvalGenotypes prevCompAndEval = samplePrevGenotypes.get(samp);
+                    if (prevCompAndEval != null && !prevCompAndEval.getLocus().onSameContig(curLocus)) // exclude curLocus if it is "phased" relative to a different chromosome
+                        prevCompAndEval = null;
 
-                            boolean topsMatch = (prevCompBiallele.getTopAllele().equals(prevEvalBiallele.getTopAllele()) && compBiallele.getTopAllele().equals(evalBiallele.getTopAllele()));
-                            boolean topMatchesBottom = (prevCompBiallele.getTopAllele().equals(prevEvalBiallele.getBottomAllele()) && compBiallele.getTopAllele().equals(evalBiallele.getBottomAllele()));
+                    // Replace the previous with current:
+                    samplePrevGenotypes.put(samp, curLocus, compSampGt, evalSampGt);
+                    if (prevCompAndEval != null) {
+                        logger.debug("Potentially phaseable locus: " + curLocus);
+                        Genotype prevCompSampGt = prevCompAndEval.getCompGenotpye();
+                        Genotype prevEvalSampGt = prevCompAndEval.getEvalGenotype();
 
-                            if (topsMatch || topMatchesBottom) {
-                                ps.phasesAgree++;
-                            }
+                        PhaseStats ps = samplePhasingStatistics.ensureSampleStats(samp);
+
+                        boolean compSampIsPhased = genotypesArePhasedAboveThreshold(compSampGt);
+                        boolean evalSampIsPhased = genotypesArePhasedAboveThreshold(evalSampGt);
+                        if (compSampIsPhased || evalSampIsPhased) {
+                            if (!evalSampIsPhased)
+                                ps.onlyCompPhased++;
+                            else if (!compSampIsPhased)
+                                ps.onlyEvalPhased++;
                             else {
-                                ps.phasesDisagree++;
+                                Biallele prevCompBiallele = new Biallele(prevCompSampGt);
+                                Biallele prevEvalBiallele = new Biallele(prevEvalSampGt);
+
+                                // Sufficient to check only the top of comp, since we ensured that comp and eval have the same diploid genotypes for this sample:
+                                boolean topsMatch = (topMatchesTop(prevCompBiallele, prevEvalBiallele) && topMatchesTop(compBiallele, evalBiallele));
+                                boolean topMatchesBottom = (topMatchesBottom(prevCompBiallele, prevEvalBiallele) && topMatchesBottom(compBiallele, evalBiallele));
+
+                                if (topsMatch || topMatchesBottom) {
+                                    ps.phasesAgree++;
+                                }
+                                else {
+                                    ps.phasesDisagree++;
+                                    logger.debug("SWITCHED locus: " + curLocus);
+                                    if (interesting == null)
+                                        interesting = "SWITCH=";
+                                    interesting += samp + ": " + toString(prevCompBiallele, compBiallele) + " -> " + toString(prevEvalBiallele, evalBiallele) + ";";
+                                }
                             }
                         }
-                    }
-                    else {
-                        ps.neitherPhased++;
+                        else {
+                            ps.neitherPhased++;
+                        }
                     }
                 }
-            }
-            else { // This site (either non-existent or homozygous for at least one of them) breaks the phase of the next position:
-                samplePrevGenotypes.put(samp, null);
             }
         }
         logger.debug("\n" + samplePhasingStatistics + "\n");
@@ -162,7 +182,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         return interesting;
     }
 
-    public static boolean isUsable(VariantContext vc) {
+    public static boolean isRelevantToPhasing(VariantContext vc) {
         return (vc != null && !vc.isFiltered());
     }
 
@@ -174,86 +194,28 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         return (pq == null || (new Double(pq.toString()) >= getVEWalker().minPhaseQuality));
     }
 
-    //
-    //
-    //
-    public String update3(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
-        this.group = group;
-
-        String interesting = null;
-        if (comp == null && eval == null)
-            return interesting;
-
-        if (comp != null && comp.isFiltered()) // ignore existence of filtered variants in comp [NOTE that eval will be checked BOTH filtered and unfiltered (by VariantEvalWalker)]
-            return interesting;
-
-        Set<String> allSamples = new HashSet<String>();
-
-        boolean compIsUsable = (comp != null && comp.isBiallelic());
-        boolean evalIsUsable = (eval != null && eval.isBiallelic());
-        if (compIsUsable && evalIsUsable && !comp.getAlternateAllele(0).equals(eval.getAlternateAllele(0))) { // these are not the same biallelic variants
-            compIsUsable = false;
-            evalIsUsable = false;
-        }
-
-        Map<String, Genotype> compSampGenotypes = null;
-        if (compIsUsable) {
-            compSampGenotypes = comp.getGenotypes();
-            allSamples.addAll(comp.getSampleNames());
-        }
-
-        Map<String, Genotype> evalSampGenotypes = null;
-        if (evalIsUsable) {
-            evalSampGenotypes = eval.getGenotypes();
-            allSamples.addAll(eval.getSampleNames());
-        }
-
-        // Note that missing or incompatible VariantContext (e.g., comp) might break the phase of the other VariantContext (e.g., eval):
-        for (String samp : allSamples) {
-            Genotype compSampGt = null;
-            if (compSampGenotypes != null)
-                compSampGt = compSampGenotypes.get(samp);
-            boolean compIsHetForSample = (compIsUsable && compSampGt != null && compSampGt.isHet());
-
-            Genotype evalSampGt = null;
-            if (evalSampGenotypes != null)
-                evalSampGt = evalSampGenotypes.get(samp);
-            boolean evalIsHetForSample = (evalIsUsable && evalSampGt != null && evalSampGt.isHet());
-
-            // Only compare phasing at het positions after het positions:
-            if (compIsHetForSample && evalIsHetForSample) {
-                
-
-                // Put het genotypes into previous Genotypes:
-                prevCompGenotypes.put(samp, compSampGt);
-                prevEvalGenotypes.put(samp, evalSampGt);
-            }
-            else { // at least one is not a biallelic het site for samp:
-                breakPhaseForUnphasedOrHomozygousSite(evalSampGt, samp, prevEvalGenotypes);
-                breakPhaseForUnphasedOrHomozygousSite(compSampGt, samp, prevCompGenotypes);
-            }
-        }
-
-        /*
-        Biallele compBiallele = new Biallele();
-        Biallele evalBiallele = null;
-        */
-
-        //interesting = determineStats(eval, validation);
-
-        return interesting; // we don't capture any interesting sites
+    public boolean permitsTransitivePhasing(Genotype gt) {
+        return (gt != null && gt.isHet() && genotypesArePhasedAboveThreshold(gt)); // only a phased het site lets the phase pass through
     }
-    //
-    //
-    //
 
-    private void breakPhaseForUnphasedOrHomozygousSite(Genotype gt, String samp, HashMap<String, Genotype> prevVcGenotypes) {
-        if (gt == null)
-            return;
+    public boolean topMatchesTop(Biallele b1, Biallele b2) {
+        return b1.getTopAllele().equals(b2.getTopAllele());
+    }
 
-        // Break the phase of gt [i.e., set the previous Genotype to null] since it is unphased (or homozygous):
-        if (!genotypesArePhasedAboveThreshold(gt) || gt.isHom()) // otherwise, a phased het site lets the phase pass through
-            prevVcGenotypes.put(samp, null);
+    public boolean topMatchesBottom(Biallele b1, Biallele b2) {
+        return b1.getTopAllele().equals(b2.getBottomAllele());
+    }
+
+    public boolean bottomMatchesTop(Biallele b1, Biallele b2) {
+        return topMatchesBottom(b2, b1);
+    }
+
+    public boolean bottomMatchesBottom(Biallele b1, Biallele b2) {
+        return b1.getBottomAllele().equals(b2.getBottomAllele());
+    }
+
+    public String toString(Biallele prev, Biallele cur) {
+        return prev.getTopAllele().getBaseString() + "," + cur.getTopAllele().getBaseString() + "|" + prev.getBottomAllele().getBaseString() + "," + cur.getBottomAllele().getBaseString();
     }
 
     public void finalizeEvaluation() {
