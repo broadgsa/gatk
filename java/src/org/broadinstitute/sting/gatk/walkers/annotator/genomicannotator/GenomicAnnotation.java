@@ -51,7 +51,9 @@ import org.broadinstitute.sting.utils.StingException;
  */
 public class GenomicAnnotation implements InfoFieldAnnotation {
 
-    public static final String CHRPOS_COLUMN = "chrpos";
+    public static final String CHR_COLUMN = "chr";
+    public static final String START_COLUMN = "start";
+    public static final String END_COLUMN = "end";
     public static final String HAPLOTYPE_REFERENCE_COLUMN = "haplotypeReference";
     public static final String HAPLOTYPE_ALTERNATE_COLUMN = "haplotypeAlternate";
     public static final String HAPLOTYPE_STRAND_COLUMN = "haplotypeStrand";

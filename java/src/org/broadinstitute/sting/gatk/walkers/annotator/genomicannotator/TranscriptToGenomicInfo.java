@@ -82,34 +82,47 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> impleme
     private final char[] ALLELES = {'A','C','G','T'};
 
     /** Output columns */
-    private final String OUTPUT_CHRPOS = GenomicAnnotation.CHRPOS_COLUMN;
-    private final String OUTPUT_HAPLOTYPE_REFERENCE = GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN;
-    private final String OUTPUT_HAPLOTYPE_ALTERNATE = GenomicAnnotation.HAPLOTYPE_ALTERNATE_COLUMN;
-    private final String OUTPUT_HAPLOTYPE_STRAND = GenomicAnnotation.HAPLOTYPE_STRAND_COLUMN;
+    private static final String[] GENOMIC_ANNOTATION_COLUMNS = {
+            GenomicAnnotation.CHR_COLUMN,
+            GenomicAnnotation.START_COLUMN,
+            GenomicAnnotation.END_COLUMN,
+            GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN,
+            GenomicAnnotation.HAPLOTYPE_ALTERNATE_COLUMN,
+            GenomicAnnotation.HAPLOTYPE_STRAND_COLUMN };
 
-    private final String OUTPUT_IN_CODING_REGION = "inCodingRegion"; //eg. true
-
-    private final String OUTPUT_FRAME = "frame"; //eg. 0,1,2
-    private final String OUTPUT_POSITION_TYPE = "positionType"; //eg. utr5, cds, utr3, intron, intergenic
-
-    private final String OUTPUT_MRNA_COORD = "mrnaCoord"; //1-based offset within the transcript
-
-    private final String OUTPUT_SPLICE_DISTANCE = "spliceDist"; //eg. integer, bp to nearest exon/intron boundary
-
-    private final String OUTPUT_CODON_NUMBER = "codonCoord"; //eg. 20
-    private final String OUTPUT_REFERENCE_CODON = "referenceCodon";
-    private final String OUTPUT_REFERENCE_AA = "referenceAA";
-    private final String OUTPUT_VARIANT_CODON = "variantCodon";
-    private final String OUTPUT_VARIANT_AA = "variantAA";
-
-    private final String OUTPUT_CHANGES_AMINO_ACID = "changesAA"; //eg. true
-    private final String OUTPUT_FUNCTIONAL_CLASS = "functionalClass"; //eg. missense
-
-    private final String OUTPUT_CODING_COORD_STR = "codingCoordStr";
-    private final String OUTPUT_PROTEIN_COORD_STR = "proteinCoordStr";
-
-    private final String OUTPUT_SPLICE_INFO = "spliceInfo"; //(eg "splice-donor -4", or "splice-acceptor 3") for the 10bp surrounding each exon/intron boundary
-    private final String OUTPUT_UORF_CHANGE = "uorfChange"; // (eg +1 or -1, indicating the addition or interruption of an ATG trinucleotide in the annotated utr5)
+    private static final String OUTPUT_IN_CODING_REGION = "inCodingRegion"; //eg. true
+    private static final String OUTPUT_FRAME = "frame"; //eg. 0,1,2
+    private static final String OUTPUT_POSITION_TYPE = "positionType"; //eg. utr5, cds, utr3, intron, intergenic
+    private static final String OUTPUT_MRNA_COORD = "mrnaCoord"; //1-based offset within the transcript
+    private static final String OUTPUT_SPLICE_DISTANCE = "spliceDist"; //eg. integer, bp to nearest exon/intron boundary
+    private static final String OUTPUT_CODON_NUMBER = "codonCoord"; //eg. 20
+    private static final String OUTPUT_REFERENCE_CODON = "referenceCodon";
+    private static final String OUTPUT_REFERENCE_AA = "referenceAA";
+    private static final String OUTPUT_VARIANT_CODON = "variantCodon";
+    private static final String OUTPUT_VARIANT_AA = "variantAA";
+    private static final String OUTPUT_CHANGES_AMINO_ACID = "changesAA"; //eg. true
+    private static final String OUTPUT_FUNCTIONAL_CLASS = "functionalClass"; //eg. missense
+    private static final String OUTPUT_CODING_COORD_STR = "codingCoordStr";
+    private static final String OUTPUT_PROTEIN_COORD_STR = "proteinCoordStr";
+    private static final String OUTPUT_SPLICE_INFO = "spliceInfo"; //(eg "splice-donor -4", or "splice-acceptor 3") for the 10bp surrounding each exon/intron boundary
+    private static final String OUTPUT_UORF_CHANGE = "uorfChange"; // (eg +1 or -1, indicating the addition or interruption of an ATG trinucleotide in the annotated utr5)
+    private static final String[] TRANSCRIPT_COLUMNS = {
+            OUTPUT_POSITION_TYPE,
+            OUTPUT_FRAME,
+            OUTPUT_MRNA_COORD,
+            OUTPUT_CODON_NUMBER,
+            OUTPUT_SPLICE_DISTANCE,
+            OUTPUT_REFERENCE_CODON,
+            OUTPUT_REFERENCE_AA,
+            OUTPUT_VARIANT_CODON,
+            OUTPUT_VARIANT_AA,
+            OUTPUT_CHANGES_AMINO_ACID,
+            OUTPUT_FUNCTIONAL_CLASS,
+            OUTPUT_CODING_COORD_STR,
+            OUTPUT_PROTEIN_COORD_STR,
+            OUTPUT_IN_CODING_REGION,
+            OUTPUT_SPLICE_INFO,
+            OUTPUT_UORF_CHANGE };
 
     //This list specifies the order of output columns in the big table.
     private final List<String> outputColumnNames = new LinkedList<String>();
@@ -150,6 +163,10 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> impleme
             }
         }
 
+        // sanity check
+        if ( transcriptsDataSource == null )
+            throw new IllegalStateException("No rod bound to " + ROD_NAME + " found in rod sources");
+
         final ArrayList<String> header;
         try {
             header = AnnotatorInputTableCodec.readHeader(transcriptsDataSource.getReferenceOrderedData().getFile());
@@ -157,37 +174,15 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> impleme
             throw new StingException("Failed when attempting to read header from file: " + transcriptsDataSource.getReferenceOrderedData().getFile(), e);
         }
 
-        for(String columnName : GENE_NAME_COLUMNS) {
-            if(!header.contains(columnName)) {
+        for ( String columnName : GENE_NAME_COLUMNS ) {
+            if ( !header.contains(columnName) )
                 throw new StingException("The column name '" + columnName + "' provided to -n doesn't match any of the column names in: " + transcriptsDataSource.getReferenceOrderedData().getFile());
-            }
         }
 
         //init outputColumnNames list
-        outputColumnNames.addAll( Arrays.asList(new String[] { OUTPUT_CHRPOS,OUTPUT_HAPLOTYPE_REFERENCE,OUTPUT_HAPLOTYPE_ALTERNATE,OUTPUT_HAPLOTYPE_STRAND,}) );
-        outputColumnNames.addAll( Arrays.asList(GENE_NAME_COLUMNS) );
-        outputColumnNames.addAll( Arrays.asList(new String[] {
-                OUTPUT_POSITION_TYPE,
-
-                OUTPUT_FRAME,
-                OUTPUT_MRNA_COORD,
-                OUTPUT_CODON_NUMBER,
-                OUTPUT_SPLICE_DISTANCE,
-
-                OUTPUT_REFERENCE_CODON,
-                OUTPUT_REFERENCE_AA,
-                OUTPUT_VARIANT_CODON,
-                OUTPUT_VARIANT_AA,
-                OUTPUT_CHANGES_AMINO_ACID,
-                OUTPUT_FUNCTIONAL_CLASS,
-
-                OUTPUT_CODING_COORD_STR,
-                OUTPUT_PROTEIN_COORD_STR,
-
-                OUTPUT_IN_CODING_REGION,
-                OUTPUT_SPLICE_INFO,
-                OUTPUT_UORF_CHANGE,
-        }) );
+        outputColumnNames.addAll(Arrays.asList(GENOMIC_ANNOTATION_COLUMNS));
+        outputColumnNames.addAll(Arrays.asList(GENE_NAME_COLUMNS));
+        outputColumnNames.addAll(Arrays.asList(TRANSCRIPT_COLUMNS));
 
         //init OUTPUT_HEADER_LINE
         StringBuilder outputHeaderLine = new StringBuilder();
@@ -459,14 +454,15 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> impleme
                     final int intronStart = (intronStart_5prime < intronEnd_5prime ? intronStart_5prime : intronEnd_5prime) ;
                     final int intronEnd = (intronEnd_5prime > intronStart_5prime ? intronEnd_5prime : intronStart_5prime);
                     outputLineFields.clear();
-                    outputLineFields.put(OUTPUT_CHRPOS, parsedTranscriptRod.txChrom + ":" + intronStart +  "-" + intronEnd);
-                    outputLineFields.put(OUTPUT_HAPLOTYPE_REFERENCE, Character.toString( '*' ) );
-                    outputLineFields.put(OUTPUT_HAPLOTYPE_ALTERNATE, Character.toString( '*' ) );
-                    outputLineFields.put(OUTPUT_HAPLOTYPE_STRAND, positiveStrand ? "+" : "-");
+                    outputLineFields.put(GenomicAnnotation.CHR_COLUMN, parsedTranscriptRod.txChrom);
+                    outputLineFields.put(GenomicAnnotation.START_COLUMN, String.valueOf(intronStart));
+                    outputLineFields.put(GenomicAnnotation.END_COLUMN, String.valueOf(intronEnd));
+                    outputLineFields.put(GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN, Character.toString( '*' ) );
+                    outputLineFields.put(GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN, Character.toString( '*' ) );
+                    outputLineFields.put(GenomicAnnotation.HAPLOTYPE_STRAND_COLUMN, positiveStrand ? "+" : "-");
                     for(int i = 0; i < GENE_NAME_COLUMNS.length; i++) {
                         outputLineFields.put(GENE_NAME_COLUMNS[i], parsedTranscriptRod.geneNames[i] );
                     }
-
 
                     outputLineFields.put(OUTPUT_POSITION_TYPE, positionType.toString() );
 
@@ -566,10 +562,12 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> impleme
                     }
 
                     //compute simple OUTPUT fields.
-                    outputLineFields.put(OUTPUT_CHRPOS, parsedTranscriptRod.txChrom + ":" + txCoord_5to3);
-                    outputLineFields.put(OUTPUT_HAPLOTYPE_REFERENCE, Character.toString( haplotypeReference ) );
-                    outputLineFields.put(OUTPUT_HAPLOTYPE_ALTERNATE, Character.toString( haplotypeAlternate ) );
-                    outputLineFields.put(OUTPUT_HAPLOTYPE_STRAND, positiveStrand ? "+" : "-");
+                    outputLineFields.put(GenomicAnnotation.CHR_COLUMN, parsedTranscriptRod.txChrom);
+                    outputLineFields.put(GenomicAnnotation.START_COLUMN, String.valueOf(txCoord_5to3));
+                    outputLineFields.put(GenomicAnnotation.END_COLUMN, String.valueOf(txCoord_5to3));
+                    outputLineFields.put(GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN, Character.toString( haplotypeReference ) );
+                    outputLineFields.put(GenomicAnnotation.HAPLOTYPE_ALTERNATE_COLUMN, Character.toString( haplotypeAlternate ) );
+                    outputLineFields.put(GenomicAnnotation.HAPLOTYPE_STRAND_COLUMN, positiveStrand ? "+" : "-");
                     for(int i = 0; i < GENE_NAME_COLUMNS.length; i++) {
                         outputLineFields.put(GENE_NAME_COLUMNS[i], parsedTranscriptRod.geneNames[i] );
                     }

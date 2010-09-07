@@ -92,7 +92,7 @@ public class TranscriptToInfo extends RodWalker<TreeMap<String, String>, TreeMap
     private final char[] ALLELES = {'A','C','G','T'};
 
     /** Output columns */
-    private final String OUTPUT_CHRPOS = GenomicAnnotation.CHRPOS_COLUMN;
+    private final String OUTPUT_CHRPOS = "chrpos";
     private final String OUTPUT_HAPLOTYPE_REFERENCE = GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN;
     private final String OUTPUT_HAPLOTYPE_ALTERNATE = GenomicAnnotation.HAPLOTYPE_ALTERNATE_COLUMN;
     private final String OUTPUT_HAPLOTYPE_STRAND = GenomicAnnotation.HAPLOTYPE_STRAND_COLUMN;

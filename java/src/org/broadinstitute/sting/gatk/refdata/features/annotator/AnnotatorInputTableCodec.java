@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
@@ -72,12 +73,17 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
 
     @Override
     public Feature decodeLoc(String line) {
-        int tabIndex = line.indexOf(DELIMITER);
-        if(tabIndex <= 0) {
-            throw new CodecLineParsingException("Couldn't parse GenomeLoc out the following line because line.indexOf(DELIMITER) returned " + tabIndex + ".\nLine: " + line);
-        }
-        GenomeLoc loc = GenomeLocParser.parseGenomeLoc(line.substring(0, tabIndex));
-        return new AnnotatorInputTableFeature(loc.getContig(), (int) loc.getStart(), (int) loc.getStop());
+        StringTokenizer st = new StringTokenizer(line, DELIMITER);
+        if ( st.countTokens() < 1 )
+            throw new CodecLineParsingException("Couldn't parse GenomeLoc out of the following line because there aren't enough tokens.\nLine: " + line);
+
+        GenomeLoc loc;
+        String chr = st.nextToken();
+        if ( chr.indexOf(":") != -1 )
+            loc = GenomeLocParser.parseGenomeInterval(chr);
+        else
+            loc = GenomeLocParser.createGenomeLoc(chr, Integer.valueOf(st.nextToken()), Integer.valueOf(st.nextToken()));
+        return new AnnotatorInputTableFeature(loc.getContig(), (int)loc.getStart(), (int)loc.getStop());
     }
 
 
@@ -99,17 +105,19 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
             feature.putColumnValue(header.get(i), values.get(i));
         }
 
-        final GenomeLoc loc = GenomeLocParser.parseGenomeLoc(values.get(0)); //GenomeLocParser.parseGenomeInterval(values.get(0)); - TODO switch to this
+        GenomeLoc loc;
+        if ( values.get(0).indexOf(":") != -1 )
+            loc = GenomeLocParser.parseGenomeInterval(values.get(0));
+        else
+            loc = GenomeLocParser.createGenomeLoc(values.get(0), Integer.valueOf(values.get(1)), Integer.valueOf(values.get(2)));
 
         //parse the location
         feature.setChr(loc.getContig());
-        feature.setStart((int) loc.getStart());
-        feature.setEnd((int) loc.getStop());
+        feature.setStart((int)loc.getStart());
+        feature.setEnd((int)loc.getStop());
 
         return feature;
     }
-
-
 
     /**
      * Returns the header.
