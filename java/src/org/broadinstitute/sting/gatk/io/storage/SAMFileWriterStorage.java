@@ -58,6 +58,11 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
             factory.setMaxRecordsInRam(stub.getMaxRecordsInRam());
 
         if(stub.getSAMFile() != null) {
+            // HACK: Turn setCreateIndex off if the SAM file is null.  Picard has pledged to fix this
+            //       during the week of 14 Sept 2010.  Eliminate this check when they do.
+            if(stub.getSAMFile().getPath().equals("/dev/null"))
+                factory.setCreateIndex(false);
+            
             if( stub.getCompressionLevel() != null )
                 this.writer = factory.makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file, stub.getCompressionLevel() );
             else
