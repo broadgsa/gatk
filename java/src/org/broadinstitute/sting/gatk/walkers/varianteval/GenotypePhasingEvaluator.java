@@ -42,13 +42,6 @@ import java.util.*;
 public class GenotypePhasingEvaluator extends VariantEvaluator {
     protected final static Logger logger = Logger.getLogger(GenotypePhasingEvaluator.class);
 
-    //
-    //@Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to consider eval track phasing; [default:20.0]", required = false)
-    //
-    protected Double phaseQualityThresh = 20.0; // PQ = 20.0 <=> P(error) = 10^(-20/10) = 0.01, P(correct) = 0.99
-    //
-    //
-    
     private VariantEvalWalker.EvaluationContext group = null;
 
     // a mapping from sample to stats
@@ -68,7 +61,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
 
     public GenotypePhasingEvaluator(VariantEvalWalker parent) {
         super(parent);
-        this.samplePhasingStatistics = new SamplePhasingStatistics(phaseQualityThresh);
+        this.samplePhasingStatistics = new SamplePhasingStatistics(getVEWalker().minPhaseQuality);
         this.samplePrevGenotypes = new SamplePreviousGenotypes();
     }
 
@@ -98,7 +91,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         logger.debug("update2() locus: " + curLocus);
         logger.debug("comp = " + comp + " eval = " + eval);
 
-        if (comp == null || eval == null || comp.isFiltered()) // ignore existence of filtered variants in comp [NOTE that eval will be checked BOTH filtered and unfiltered (by VariantEvalWalker)]
+        if (!isUsable(comp) || !isUsable(eval))
             return interesting;
 
         if (!comp.isBiallelic() || !eval.isBiallelic() || !comp.getAlternateAllele(0).equals(eval.getAlternateAllele(0))) // these are not the same biallelic variants
@@ -169,12 +162,16 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         return interesting;
     }
 
+    public static boolean isUsable(VariantContext vc) {
+        return (vc != null && !vc.isFiltered());
+    }
+
     public boolean genotypesArePhasedAboveThreshold(Genotype gt) {
         if (!gt.genotypesArePhased())
             return false;
 
         Object pq = gt.getAttributes().get("PQ");
-        return (pq == null || (new Double(pq.toString()) >= phaseQualityThresh));
+        return (pq == null || (new Double(pq.toString()) >= getVEWalker().minPhaseQuality));
     }
 
     //
@@ -370,11 +367,11 @@ class PhaseStats {
  */
 class SamplePhasingStatistics implements TableType {
     private HashMap<String, PhaseStats> sampleStats = null;
-    private double phaseQualityThresh;
+    private double minPhaseQuality;
 
-    public SamplePhasingStatistics(double phaseQualityThresh) {
+    public SamplePhasingStatistics(double minPhaseQuality) {
         this.sampleStats = new HashMap<String, PhaseStats>();
-        this.phaseQualityThresh = phaseQualityThresh;
+        this.minPhaseQuality = minPhaseQuality;
     }
 
     public PhaseStats ensureSampleStats(String samp) {
@@ -409,7 +406,7 @@ class SamplePhasingStatistics implements TableType {
     }
 
     public String getName() {
-        return "Sample Phasing Statistics (for PQ >= " + phaseQualityThresh + ")";
+        return "Sample Phasing Statistics (for PQ >= " + minPhaseQuality + ")";
     }
 
     public String toString() {

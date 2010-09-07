@@ -210,6 +210,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=false)
     private String TRANCHE_FILENAME = null;
 
+    // For GenotypePhasingEvaluator:
+    @Argument(fullName = "minPhaseQuality", shortName = "minPQ", doc = "The minimum phasing quality (PQ) score required to consider phasing; [default:20.0]", required = false)
+    protected Double minPhaseQuality = 20.0; // PQ = 20.0 <=> P(error) = 10^(-20/10) = 0.01, P(correct) = 0.99
 
     // --------------------------------------------------------------------------------------------------------------
     //
