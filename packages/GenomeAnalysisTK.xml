@@ -21,6 +21,8 @@
       <package name="org.broad.tribble.*" />
       <!-- Basic qc walkers -->
       <class name="org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker" />
+      <class name="org.broadinstitute.sting.gatk.walkers.coverage.DoCOutputMultiplexer" />
+
       <class name="org.broadinstitute.sting.gatk.refdata.tracks.builders.RODTrackBuilder" />
       <class name="org.broadinstitute.sting.gatk.walkers.PileupWalker" />
       <class name="org.broadinstitute.sting.gatk.walkers.PrintReadsWalker" />
