@@ -67,8 +67,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     @Argument(fullName = "cacheWindowSize", shortName = "cacheWindow", doc = "The window size (in bases) to cache variant sites and their reads; [default:20000]", required = false)
     protected Integer cacheWindow = 20000;
 
-    @Argument(fullName = "maxPhaseSites", shortName = "maxSites", doc = "The maximum number of successive heterozygous sites permitted to be used by the phasing algorithm; [default:20]", required = false)
-    protected Integer maxPhaseSites = 20; // 2^20 == 10^6 biallelic haplotypes
+    @Argument(fullName = "maxPhaseSites", shortName = "maxSites", doc = "The maximum number of successive heterozygous sites permitted to be used by the phasing algorithm; [default:10]", required = false)
+    protected Integer maxPhaseSites = 10; // 2^10 == 10^3 biallelic haplotypes
 
     @Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:10.0]", required = false)
     protected Double phaseQualityThresh = 10.0; // PQ = 10.0 <=> P(error) = 10^(-10/10) = 0.1, P(correct) = 0.9
