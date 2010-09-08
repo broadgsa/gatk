@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
 import net.sf.samtools.util.StringUtil;
+import net.sf.samtools.util.SequenceUtil;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.*;
@@ -83,7 +84,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
                 "If too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool may run out of memory.", required=false)
     protected int MAX_RECORDS_IN_RAM = 500000;
-    
+
     // ADVANCED OPTIONS FOLLOW
 
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
@@ -583,8 +584,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         // however we don't have enough info to use the proper MAQ scoring system.
                         // For now, we will just arbitrarily add 10 to the mapping quality. [EB, 6/7/2010].
                         // TODO -- we need a better solution here
-                        aRead.getRead().setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + 10, 254));
-                        aRead.getRead().setAttribute("NM", AlignmentUtils.numMismatches(aRead.getRead(), reference, aRead.getRead().getAlignmentStart()-(int)leftmostIndex));
+                        SAMRecord read = aRead.getRead();
+                        read.setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + 10, 254));
+
+                        // fix the attribute tags
+                        if ( read.getAttribute(SAMTag.NM.name()) != null )
+                            read.setAttribute("NM", SequenceUtil.calculateSamNmTag(read, reference, (int)leftmostIndex-1));
+                        if ( read.getAttribute(SAMTag.UQ.name()) != null )
+                            read.setAttribute("UQ", SequenceUtil.sumQualitiesOfMismatches(read, reference, (int)leftmostIndex-1));
                     }
                 }
             }
@@ -1210,25 +1217,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( newStart != read.getAlignmentStart() )
                     read.setAttribute(ORIGINAL_POSITION_TAG, read.getAlignmentStart());
             }
-            
-            // if it's a paired end read, we need to update the insert size
-            if ( read.getReadPairedFlag() ) {
-                int insertSize = read.getInferredInsertSize();
-                if ( insertSize > 0 ) {
-                    read.setCigar(newCigar);
-                    read.setInferredInsertSize(insertSize + read.getAlignmentStart() - newStart);
-                    read.setAlignmentStart(newStart);
-                } else {
-                    // note that the correct order of actions is crucial here (we can't set the new cigar too early)
-                    int oldEnd = read.getAlignmentEnd();
-                    read.setCigar(newCigar);
-                    read.setAlignmentStart(newStart);
-                    read.setInferredInsertSize(insertSize + oldEnd - read.getAlignmentEnd());
-                }
-            } else {
-                read.setCigar(newCigar);
-                read.setAlignmentStart(newStart);
-            }
+
+            read.setCigar(newCigar);
+            read.setAlignmentStart(newStart);
+
             return true;
         }
 
