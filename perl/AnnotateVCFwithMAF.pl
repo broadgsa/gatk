@@ -2,6 +2,7 @@
 
 use strict;
 use Data::Dumper;
+use File::Basename;
 
 sub usage {
     print "Usage: $0 <input.vcf> <input.maf> <output.vcf>\n";
@@ -16,7 +17,7 @@ if (!defined($args{'VCF_IN'}) || !defined($args{'MAF_IN'})) {
     &usage();
 }
 
-($args{'VCF_OUT'} = $args{'VCF_IN'}) =~ s/\.vcf/.maf_annotated.vcf/;
+($args{'VCF_OUT'} = basename($args{'VCF_IN'})) =~ s/\.vcf/.maf_annotated.vcf/;
 
 my %ignoreEntries = (
     'normal_barcode' => 1,
