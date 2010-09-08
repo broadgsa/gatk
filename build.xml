@@ -54,21 +54,27 @@
       <exclude name="bcel*.jar" />
     </patternset>
     
-    <path id="runtime.dependencies">
+    <path id="external.dependencies">
       <fileset dir="lib">
+        <patternset refid="dependency.mask" />
+      </fileset>
+    </path>
+
+    <path id="build.results">
+      <fileset dir="dist">
         <patternset refid="dependency.mask" />
       </fileset>
     </path>
 
     <!-- Path to queue dependencies. -->
     <path id="queue.dependencies">
-        <path refid="runtime.dependencies" />
+        <path refid="external.dependencies" />
         <pathelement location="${java.classes}" />
     </path>
 
     <!-- Path to queue-extendsions dependencies. -->
     <path id="queue-extensions.dependencies">
-        <path refid="runtime.dependencies" />
+        <path refid="external.dependencies" />
         <pathelement location="${java.classes}" />
         <pathelement location="${queue.classes}" />
         <!-- Need the resources as we will be running a command line program which needs the help text. -->
@@ -190,7 +196,7 @@
     <target name="gatk.compile" depends="tribble,init,resolve"
             description="compile the source">
       <!-- Compile the java code from ${src} into build -->
-      <javac srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="runtime.dependencies">
+      <javac srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies">
           <exclude name="**/examples/**" />
         <exclude name="**/playground/**" unless="include.playground"/>
         <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
@@ -230,12 +236,12 @@
 	    description="Extract help key/value pair file from the JavaDoc tags."
 	    unless="disable.help">
         <path id="doclet.classpath">
-          <path refid="runtime.dependencies" />
+          <path refid="external.dependencies" />
           <pathelement location="${java.classes}" />
         </path>
       <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
 	       docletpathref="doclet.classpath"
-	       classpathref="runtime.dependencies"
+	       classpathref="external.dependencies"
 	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${resource.path}">
 	<packageset refid="java.source.files"/>
       </javadoc>
@@ -254,6 +260,7 @@
         <jar jarfile="${dist.dir}/StingUtils.jar">
             <fileset dir="${java.classes}" includes="**/utils/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
+            <fileset dir="${java.classes}" includes="net/sf/picard/**/*.class"/>
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
             </manifest>
@@ -390,7 +397,7 @@
         <javac destdir="${java.test.classes}" debug="true" optimize="on">
             <src path="${java.test.sources}"/>
             <classpath>
-                <path refid="runtime.dependencies" />
+                <path refid="external.dependencies" />
                 <pathelement location="${java.classes}"/>
                 <pathelement location="lib/junit-4.4.jar"/>
             </classpath>
@@ -469,10 +476,8 @@
                 <formatter type="brief" usefile="false" />
                 <formatter type="xml"/>
                 <classpath>
-                    <path refid="runtime.dependencies"/>
-                    <pathelement location="${java.classes}"/>
+                    <path refid="build.results"/>
                     <pathelement location="${java.test.classes}"/>
-                    <pathelement location="${queue.classes}"/>
                     <pathelement location="${queue.test.classes}"/>
                     <pathelement location="lib/junit-4.4.jar"/>
                 </classpath>
@@ -549,7 +554,7 @@
     <target name="javadoc" depends="init.buildall,resolve,queue-extensions.generate" description="generates javadoc">
       <mkdir dir="javadoc"/>
       <javadoc destdir="javadoc"
-               classpathref="runtime.dependencies">
+               classpathref="external.dependencies">
         <packageset refid="java.source.files"/>
       </javadoc>
 
