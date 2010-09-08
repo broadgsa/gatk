@@ -43,28 +43,13 @@ public class AnnotatorInputTableFeature implements Feature {
     private String chr;
     private int start;
     private int end;
-
-
-    // Temporary attributes were added to make it easier to implement certain
-    // optimizations for RODs that span an interval. For example, if a Walker
-    // needs to do a time-consuming computation on data from a ROD, it would normally
-    // have to repeat this computation every time its map(..) method is called.
-    // If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
-    // However, many computations (including validation and parsing) are done per ROD rather than
-    // per position. Therefore, substantial optimizations are possible if the result
-    // of the first computation is cached and reused on subsequent map(..) calls.
-    // Temporary attributes provide a convenient place to store these results,
-    // freeing the Walkers from having to maintain their own ROD -> result hashmaps.
-    private Map<Object, Object> temporaryAttributes;
-
-
-
+    private String strRep = null;
 
     /**
      * Constructor.
-     * @param chr The chromosome name.
-     * @param start
-     * @param end
+     * @param chr    The chromosome name.
+     * @param start  The start position
+     * @param end    The end position
      */
     public AnnotatorInputTableFeature(String chr, int start, int end) {
         this.chr = chr;
@@ -85,8 +70,7 @@ public class AnnotatorInputTableFeature implements Feature {
 
 
     /**
-     * Returns the list of column names from the file header.
-     * @return
+     * @return the list of column names from the file header.
      */
     public ArrayList<String> getHeader() {
         return columnNames;
@@ -99,12 +83,12 @@ public class AnnotatorInputTableFeature implements Feature {
      * @param columnName The column name as it appears in the file header.
      * @return The value
      */
-    public String getColumnValue(final Object columnName) {
+    public String getColumnValue(final String columnName) {
         return columnValues.get(columnName);
     }
 
 
-    public boolean containsColumnName(final Object columnName) {
+    public boolean containsColumnName(final String columnName) {
         return columnValues.containsKey(columnName);
     }
 
@@ -121,9 +105,7 @@ public class AnnotatorInputTableFeature implements Feature {
     }
 
     /**
-     * Returns all values in this line, hashed by their column names.
-     *
-     * @return
+     * @return all values in this line, hashed by their column names.
      */
     public Map<String,String> getColumnValues() {
         return Collections.unmodifiableMap(columnValues);
@@ -154,124 +136,23 @@ public class AnnotatorInputTableFeature implements Feature {
         this.end = end;
     }
 
-
-    /**
-     * Checks whether an attribute has been set for the given key.
-     *
-     * Temporary attributes make it easier to implement certain
-     * optimizations for RODs that span an interval. For example, if a Walker
-     * needs to do a time-consuming computation on data from a ROD, it would normally
-     * have to repeat this computation every time its map(..) method is called.
-     * If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
-     * However, many computations (including validation and parsing) are done per ROD rather than
-     * per position. Therefore, substantial optimizations are possible if the result
-     * of the first computation is cached and reused on subsequent map(..) calls.
-     * Temporary attributes provide a convenient place to store these results,
-     * freeing the Walkers from having to maintain their own ROD -> result hashmaps.
-     *
-     * @param key key
-     * @return True if an attribute has been set for this key.
-     */
-    public boolean containsTemporaryAttribute(Object key) {
-        if(temporaryAttributes != null) {
-            return temporaryAttributes.containsKey(key);
-        }
-        return false;
-    }
-
-    /**
-     * Sets the key to the given value, replacing any previous value. The previous
-     * value is returned.
-     *
-     * Temporary attributes make it easier to implement certain
-     * optimizations for RODs that span an interval. For example, if a Walker
-     * needs to do a time-consuming computation on data from a ROD, it would normally
-     * have to repeat this computation every time its map(..) method is called.
-     * If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
-     * However, many computations (including validation and parsing) are done per ROD rather than
-     * per position. Therefore, substantial optimizations are possible if the result
-     * of the first computation is cached and reused on subsequent map(..) calls.
-     * Temporary attributes provide a convenient place to store these results,
-     * freeing the Walkers from having to maintain their own ROD -> result hashmaps.
-     *
-     * @param key    key
-     * @param value  value
-     * @return attribute
-     */
-    public Object setTemporaryAttribute(Object key, Object value) {
-        if(temporaryAttributes == null) {
-            temporaryAttributes = new HashMap<Object, Object>();
-        }
-        return temporaryAttributes.put(key, value);
-    }
-
-    /**
-     * Looks up the value associated with the given key.
-     *
-     * Temporary attributes make it easier to implement certain
-     * optimizations for RODs that span an interval. For example, if a Walker
-     * needs to do a time-consuming computation on data from a ROD, it would normally
-     * have to repeat this computation every time its map(..) method is called.
-     * If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
-     * However, many computations (including validation and parsing) are done per ROD rather than
-     * per position. Therefore, substantial optimizations are possible if the result
-     * of the first computation is cached and reused on subsequent map(..) calls.
-     * Temporary attributes provide a convenient place to store these results,
-     * freeing the Walkers from having to maintain their own ROD -> result hashmaps.
-     *
-     * @param key key
-     * @return The value, or null.
-     */
-    public Object getTemporaryAttribute(Object key) {
-        if(temporaryAttributes != null) {
-            return temporaryAttributes.get(key);
-        }
-        return null;
-    }
-
-    /**
-     * Removes the attribute that has the given key.
-     *
-     * Temporary attributes make it easier to implement certain
-     * optimizations for RODs that span an interval. For example, if a Walker
-     * needs to do a time-consuming computation on data from a ROD, it would normally
-     * have to repeat this computation every time its map(..) method is called.
-     * If a ROD spans an interval, the Walker's map(..) method will be called for every position in ROD.
-     * However, many computations (including validation and parsing) are done per ROD rather than
-     * per position. Therefore, substantial optimizations are possible if the result
-     * of the first computation is cached and reused on subsequent map(..) calls.
-     * Temporary attributes provide a convenient place to store these results,
-     * freeing the Walkers from having to maintain their own ROD -> result hashmaps.
-     *
-     * @param key key
-     * @return The value that was associated with this key, or null.
-     */
-    public Object removeTemporaryAttribute(Object key) {
-         if(temporaryAttributes != null) {
-             return temporaryAttributes.remove(key);
-         }
-         return null;
-    }
-
-
-
-
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
+        if ( strRep == null ) {
+            StringBuilder sb = new StringBuilder();
 
-        for(String columnName : columnNames ) {
-            if(sb.length() == 0) {
-                sb.append("[");
-            } else {
-                sb.append(", ");
+            for(String columnName : columnNames ) {
+                if ( sb.length() == 0 )
+                    sb.append("[");
+                else
+                    sb.append(", ");
+                sb.append(columnName + "=" + columnValues.get(columnName));
             }
-            sb.append(columnName + "=" + columnValues.get(columnName));
+            sb.append("]");
+
+            strRep = sb.toString();
         }
-        sb.append("]");
-        return sb.toString();
+
+        return strRep;
     }
-
-
-
 }

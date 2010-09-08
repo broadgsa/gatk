@@ -66,7 +66,7 @@ import org.broadinstitute.sting.utils.StingException;
 @By(DataSource.REFERENCE)
 @Requires(value={DataSource.REFERENCE}, referenceMetaData={ @RMD(name=TranscriptToGenomicInfo.ROD_NAME,type=AnnotatorInputTableFeature.class) } )
 public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
-    private static final String ROD_NAME = "transcripts";
+    public static final String ROD_NAME = "transcripts";
 
     //@Argument(fullName="pass-through", shortName="t", doc="Optionally specifies which columns from the transcript table should be copied verbatim (aka. passed-through) to the records in the output table. For example, -B transcripts,AnnotatorInputTable,/data/refGene.txt -t id will cause the refGene id column to be copied to the output table.", required=false)
     //protected String[] PASS_THROUGH_COLUMNS = {};
@@ -140,6 +140,11 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
         intergenic, intron, utr5, CDS, utr3, non_coding_exon, non_coding_intron
     }
 
+    /**
+     * Store rods until we hit their ends so that we don't have to recompute
+     * basic information every time we see them in map().
+      */
+    private Map<String, TranscriptTableRecord> storedTranscriptInfo = new HashMap<String, TranscriptTableRecord>();
 
     /**
      * Prepare the output file and the list of available features.
@@ -219,10 +224,12 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
         for ( Object transcriptRodObject : transcriptRODs ) {
             //parse this ROD if it hasn't been already.
             final AnnotatorInputTableFeature transcriptRod = (AnnotatorInputTableFeature) transcriptRodObject;
-            TranscriptTableRecord parsedTranscriptRod = (TranscriptTableRecord) transcriptRod.getTemporaryAttribute("parsedTranscriptRod");
-            if( parsedTranscriptRod == null ) {
+            String featureKey = transcriptRod.toString();
+
+            TranscriptTableRecord parsedTranscriptRod = storedTranscriptInfo.get(featureKey);
+            if ( parsedTranscriptRod == null ) {
                 parsedTranscriptRod = new TranscriptTableRecord(transcriptRod, GENE_NAME_COLUMNS);
-                transcriptRod.setTemporaryAttribute("parsedTranscriptRod", parsedTranscriptRod);
+                storedTranscriptInfo.put(featureKey, parsedTranscriptRod);
             }
 
             //populate parsedTranscriptRod.txSequence
@@ -273,6 +280,9 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
                 catch(IOException e) {
                     throw new RuntimeException(Thread.currentThread().getName() + " - Unexpected error occurred at position: [" + parsedTranscriptRod.txChrom + ":" + position + "] in transcript: " + parsedTranscriptRod, e);
                 }
+
+                // remove it from the cache
+                storedTranscriptInfo.put(featureKey, null);
 
                 transcriptsProcessedCounter++;
                 if ( transcriptsProcessedCounter % 100 == 0 )
