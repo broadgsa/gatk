@@ -592,6 +592,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                             read.setAttribute("NM", SequenceUtil.calculateSamNmTag(read, reference, (int)leftmostIndex-1));
                         if ( read.getAttribute(SAMTag.UQ.name()) != null )
                             read.setAttribute("UQ", SequenceUtil.sumQualitiesOfMismatches(read, reference, (int)leftmostIndex-1));
+                        // TODO -- this is only temporary until Tim adds code to recalculate this value
+                        if ( read.getAttribute(SAMTag.MD.name()) != null )
+                            read.setAttribute("MD", null);
                     }
                 }
             }
