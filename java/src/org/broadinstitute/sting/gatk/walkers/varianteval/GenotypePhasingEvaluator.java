@@ -42,8 +42,6 @@ import java.util.*;
 public class GenotypePhasingEvaluator extends VariantEvaluator {
     protected final static Logger logger = Logger.getLogger(GenotypePhasingEvaluator.class);
 
-    private VariantEvalWalker.EvaluationContext group = null;
-
     // a mapping from sample to stats
     @DataPoint(name = "samples", description = "the phasing statistics for each sample")
     SamplePhasingStatistics samplePhasingStatistics = null;
@@ -73,11 +71,10 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     }
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
-        String interesting = null;
+        Reasons interesting = new Reasons();
         if (ref == null)
-            return interesting;
+            return interesting.toString();
         GenomeLoc curLocus = ref.getLocus();
-        this.group = group;
 
         logger.debug("update2() locus: " + curLocus);
         logger.debug("comp = " + comp + " eval = " + eval);
@@ -136,23 +133,25 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
 
                     // Replace the previous with current:
                     samplePrevGenotypes.put(samp, curLocus, compSampGt, evalSampGt);
+
                     if (prevCompAndEval != null) {
                         logger.debug("Potentially phaseable locus: " + curLocus);
-                        Genotype prevCompSampGt = prevCompAndEval.getCompGenotpye();
-                        Genotype prevEvalSampGt = prevCompAndEval.getEvalGenotype();
-
                         PhaseStats ps = samplePhasingStatistics.ensureSampleStats(samp);
 
                         boolean compSampIsPhased = genotypesArePhasedAboveThreshold(compSampGt);
                         boolean evalSampIsPhased = genotypesArePhasedAboveThreshold(evalSampGt);
                         if (compSampIsPhased || evalSampIsPhased) {
-                            if (!evalSampIsPhased)
+                            if (!evalSampIsPhased) {
                                 ps.onlyCompPhased++;
-                            else if (!compSampIsPhased)
+                                interesting.addReason("ONLY_COMP", samp, group, "");
+                            }
+                            else if (!compSampIsPhased) {
                                 ps.onlyEvalPhased++;
-                            else {
-                                Biallele prevCompBiallele = new Biallele(prevCompSampGt);
-                                Biallele prevEvalBiallele = new Biallele(prevEvalSampGt);
+                                interesting.addReason("ONLY_EVAL", samp, group, "");
+                            }
+                            else {                        
+                                Biallele prevCompBiallele = new Biallele(prevCompAndEval.getCompGenotpye());
+                                Biallele prevEvalBiallele = new Biallele(prevCompAndEval.getEvalGenotype());
 
                                 // Sufficient to check only the top of comp, since we ensured that comp and eval have the same diploid genotypes for this sample:
                                 boolean topsMatch = (topMatchesTop(prevCompBiallele, prevEvalBiallele) && topMatchesTop(compBiallele, evalBiallele));
@@ -164,9 +163,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                                 else {
                                     ps.phasesDisagree++;
                                     logger.debug("SWITCHED locus: " + curLocus);
-                                    if (interesting == null)
-                                        interesting = "SWITCH=";
-                                    interesting += samp + ": " + toString(prevCompBiallele, compBiallele) + " -> " + toString(prevEvalBiallele, evalBiallele) + ";";
+                                    interesting.addReason("SWITCH", samp, group, toString(prevCompBiallele, compBiallele) + " -> " + toString(prevEvalBiallele, evalBiallele));
                                 }
                             }
                         }
@@ -179,7 +176,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         }
         logger.debug("\n" + samplePhasingStatistics + "\n");
 
-        return interesting;
+        return interesting.toString();
     }
 
     public static boolean isRelevantToPhasing(VariantContext vc) {
@@ -219,6 +216,25 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     }
 
     public void finalizeEvaluation() {
+    }
+
+    private static class Reasons {
+        private StringBuilder sb;
+
+        public Reasons() {
+            sb = new StringBuilder();
+        }
+
+        public void addReason(String category, String sample, VariantEvalWalker.EvaluationContext evalGroup, String reason) {
+             sb.append(category + "(" + sample + " [" + evalGroup.compTrackName + ", " + evalGroup.evalTrackName + "]): " + reason + ";");
+        }
+
+        public String toString() {
+            if (sb.length() == 0)
+                return null;
+
+            return "reasons=" + sb.toString();
+        }
     }
 }
 
