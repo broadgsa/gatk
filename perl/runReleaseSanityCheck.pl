@@ -14,6 +14,10 @@ $command_prefix = "java -Xmx4096m -jar $sting -R /seq/references/Homo_sapiens_as
 $random_number = rand();
 $tmp_bam = "/tmp/$random_number.bam";
 
+print "Executing DepthOfCoverage...";
+$command = "$command_prefix -T DepthOfCoverage -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.bam -L chr1:10000000-10100000 -o /dev/null";
+run($command, $dry);
+
 print "Executing CountCovariatesWholeExome...";
 $command = "$command_prefix -T CountCovariates -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.bam -L /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/whole_exome_agilent_designed_120.targets.chr1.interval_list -standard -OQ -recalFile /dev/null -XL chr1:1,000,000-247179187";
 run($command, $dry);
@@ -23,11 +27,11 @@ $command = "$command_prefix -T CountCovariates -I /humgen/gsa-hpprojects/GATK/da
 run($command, $dry);
 
 print "Executing TableRecalibratorWholeExome...";
-$command = "$command_prefix -T TableRecalibration -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.bam -L /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/whole_exome_agilent_designed_120.targets.chr1.interval_list -OQ -recalFile /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.recal.csv -outputBam $tmp_bam -XL chr1:1,000,000-247179187";
+$command = "$command_prefix -T TableRecalibration -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.bam -L /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/whole_exome_agilent_designed_120.targets.chr1.interval_list -OQ -recalFile /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.recal.csv --out $tmp_bam -XL chr1:1,000,000-247179187";
 run($command, $dry);
 
 print "Executing TableRecalibratorWholeGenome...";
-$command = "$command_prefix -T TableRecalibration -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.bam -L chr1:1,950,000-2,000,000 -OQ -recalFile /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.recal.csv -outputBam $tmp_bam";
+$command = "$command_prefix -T TableRecalibration -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.bam -L chr1:1,950,000-2,000,000 -OQ -recalFile /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.recal.csv --out $tmp_bam";
 run($command, $dry);
 
 print "Executing IndelRealignerWholeExome...";

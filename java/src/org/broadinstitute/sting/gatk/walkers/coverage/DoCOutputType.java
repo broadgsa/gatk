@@ -52,6 +52,9 @@ public class DoCOutputType {
         if(partition == null)
             return baseName;
 
+        if(baseName.trim().equals("/dev/null"))
+            return "/dev/null";
+
         // mhanna 22 Aug 2010 - Deliberately force this header replacement to make sure integration tests pass.
         // TODO: Update integration tests and get rid of this.
         String partitionType = (partition == DoCOutputType.Partition.readgroup ? "read_group" : partition.toString());        
