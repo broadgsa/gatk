@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
@@ -283,10 +284,14 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
         }
 
         for(DoCOutputType.Partition partition: partitionTypes) {
-            printIntervalStats(statsByInterval,
-                    getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.summary),
-                    getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.statistics),
-                    partition);
+            if ( checkType(statsByInterval.get(0).getSecond().getCoverageByAggregationType(partition) ,partition) ) {
+                printIntervalStats(statsByInterval,
+                        getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.summary),
+                        getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.statistics),
+                        partition);
+            } else {
+                throw new StingException("Partition type "+partition.toString()+" had no entries. Please check that your .bam header has all appropriate partition types.");
+            }
         }
 
         onTraversalDone(mergeAll(statsByInterval));
@@ -769,6 +774,16 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
         }
     }
 
+    public boolean checkType(DepthOfCoverageStats stats, DoCOutputType.Partition type ) {
+        if ( stats.getHistograms().size() < 1 ) {
+            Utils.warnUser("The histogram per partition type "+type.toString()+" was empty\n"+
+                    "Do your read groups have this type? (Check your .bam header).");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
 }
 
 class DoCOutputMultiplexer implements Multiplexer<DoCOutputType> {
@@ -838,6 +853,7 @@ class DoCOutputMultiplexer implements Multiplexer<DoCOutputType> {
     public String transformArgument(final DoCOutputType outputType, final String argument) {
         return outputType.getFileName(argument);
     }
+
 }
 
 class CoveragePartitioner {
