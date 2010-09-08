@@ -43,7 +43,6 @@ import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
@@ -65,9 +64,8 @@ import org.broadinstitute.sting.utils.StingException;
  */
 @Reference(window=@Window(start=-4,stop=4))
 @By(DataSource.REFERENCE)
-@Requires(value={DataSource.REFERENCE}, referenceMetaData={ @RMD(name="transcripts",type=AnnotatorInputTableFeature.class) } )
-public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> implements TreeReducible<Integer>
-{
+@Requires(value={DataSource.REFERENCE}, referenceMetaData={ @RMD(name=TranscriptToGenomicInfo.ROD_NAME,type=AnnotatorInputTableFeature.class) } )
+public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
     private static final String ROD_NAME = "transcripts";
 
     //@Argument(fullName="pass-through", shortName="t", doc="Optionally specifies which columns from the transcript table should be copied verbatim (aka. passed-through) to the records in the output table. For example, -B transcripts,AnnotatorInputTable,/data/refGene.txt -t id will cause the refGene id column to be copied to the output table.", required=false)
@@ -272,7 +270,7 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> impleme
                 try {
                     generateOutputRecordsForROD(parsedTranscriptRod);
                 }
-                catch(Exception e) {
+                catch(IOException e) {
                     throw new RuntimeException(Thread.currentThread().getName() + " - Unexpected error occurred at position: [" + parsedTranscriptRod.txChrom + ":" + position + "] in transcript: " + parsedTranscriptRod, e);
                 }
 
@@ -759,8 +757,6 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> impleme
     }
 
     public Integer reduce(Integer value, Integer sum) { return sum + value; }
-
-    public Integer treeReduce(Integer lhs, Integer rhs) { return lhs + rhs; }
 
     public void onTraversalDone(Integer result) {
         logger.info("Skipped " + skippedPositionsCounter + " in-transcript genomic positions out of "+ totalPositionsCounter + " total (" + ( totalPositionsCounter == 0 ? 0 : (100*skippedPositionsCounter)/totalPositionsCounter) + "%)");
