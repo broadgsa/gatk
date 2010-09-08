@@ -18,6 +18,10 @@ def main():
                         action='store_true', default=False,
                         help="If provided, verbose progress will be enabled")         
 
+    parser.add_option("", "--overwrite", dest="overwrite",
+                        action='store_true', default=False,
+                        help="If provided, archive mode will overwrite destination file, if it exists (DANGEROUS)")         
+
     parser.add_option("-o", "--o", dest="output",
                         type='string', default=None,
                         help="if provided, output will go here instead of stdout")
@@ -30,7 +34,7 @@ def main():
                         type='int', default=None,
                         help="if provided, only records generated within X days of today will be included")
 
-    parser.add_option("", "--D", dest="reallyDeleteInArchiveMode",
+    parser.add_option("-D", "--delete_while_archiving", dest="reallyDeleteInArchiveMode",
                         action='store_true', default=False,
                         help="if provided, we'll actually delete records when running in archive mode")
          
@@ -43,7 +47,7 @@ def main():
 
     # open up the output file
     if OPTIONS.output != None:
-        if stage == "archive" and os.path.exists(OPTIONS.output):
+        if stage == "archive" and os.path.exists(OPTIONS.output) and not OPTIONS.overwrite:
             raise "archive output file already exists, aborting!", OPTIONS.output
         out = openFile(OPTIONS.output,'w')
     else:
@@ -95,7 +99,10 @@ def eltIsException(elt):
     return elt.tag == "exception"
     
 def parseException(elt):
-    return elt.find("message").text, elt.find("stacktrace").find("string").text
+    msgElt = elt.find("message")
+    msgText = "MISSING"
+    if msgElt != None: msgText = msgElt.text
+    return  msgText, elt.find("stacktrace").find("string").text
 
 
 class RecordDecoder:
@@ -227,7 +234,7 @@ class ExceptionReport(StageHandler):
         commonExceptions = sorted(commonExceptions, None, lambda x: x.counts)   
             
         for common in commonExceptions:
-            msg, at, svns, walkers, counts, ids, duration = common.toStrings()
+            msg, at, svns, walkers, counts, ids, duration, users = common.toStrings()
 
             print >> self.out, ''.join(['*'] * 80)
             print >> self.out, 'Exception       :', msg
@@ -236,6 +243,7 @@ class ExceptionReport(StageHandler):
             print >> self.out, '    svns        :', svns
             print >> self.out, '    duration    :', duration
             print >> self.out, '    occurrences :', counts
+            print >> self.out, '    users       :', users
             print >> self.out, '    ids         :', ids
             
 class CommonException:
@@ -245,6 +253,7 @@ class CommonException:
         self.msgs = set([ex['exception-msg']])
         self.at = ex['exception-at']
         self.svns = set([ex['svn-version']])
+        self.users = set([ex['user-name']])
         self.counts = 1
         self.times = set([decodeTime(ex['start-time'])])
         self.walkers = set([ex['walker-name']])
@@ -256,6 +265,7 @@ class CommonException:
     def update(self, ex):
         self.msgs.add(ex['exception-msg'])
         self.svns.add(ex['svn-version'])
+        self.users.add(ex['user-name'])
         self.counts += 1
         self.walkers.add(ex['walker-name'])
         self.times.add(decodeTime(ex['start-time']))
@@ -279,7 +289,7 @@ class CommonException:
         return "-".join(map(lambda x: x.strftime("%m/%d/%y"), [x[0], x[-1]]))
         
     def toStrings(self):
-        return [self.bestExample(self.msgs), self.at, self.setString(self.svns), self.setString(self.walkers), self.counts, self.setString(self.ids), self.duration()] 
+        return [self.bestExample(self.msgs), self.at, self.setString(self.svns), self.setString(self.walkers), self.counts, self.setString(self.ids), self.duration(), self.setString(self.users)] 
 
 addHandler('exceptions', ExceptionReport)
 
@@ -365,6 +375,7 @@ def passesFilters(elt):
 def readReports(files):
     #print files
     for file in files:
+        if OPTIONS.verbose: print 'Reading file', file
         input = openFile(file)
         tree = ElementTree(file=input)
         elem = tree.getroot()
