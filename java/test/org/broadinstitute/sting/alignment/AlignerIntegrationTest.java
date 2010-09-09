@@ -16,7 +16,7 @@ public class AlignerIntegrationTest extends WalkerTest {
     public void testBasicAlignment() {
         String md5 = "c6d95d8ae707e78fefdaa7375f130995";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                "-R /humgen/gsa-scr1/GATK_Data/bwa/human_b36_both.fasta" +
+                        "-R " + b36KGReference +
                         " -T Align" +
                         " -I " + validationDataLocation + "NA12878_Pilot1_20.trimmed.unmapped.bam" +
                         " -ob %s",
