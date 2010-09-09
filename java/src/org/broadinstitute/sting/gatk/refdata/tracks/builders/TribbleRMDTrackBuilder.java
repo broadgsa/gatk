@@ -107,6 +107,12 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         return new TribbleTrack(targetClass, name, inputFile, pair.first, pair.second, createCodec(targetClass, name));
     }
 
+    /**
+     * create a tribble feature reader class, given the target class and the input file
+     * @param targetClass the target class, of a Tribble Codec type
+     * @param inputFile the input file, that corresponds to the feature type
+     * @return a pair of <BasicFeatureSource, SAMSequenceDictionary>
+     */
     public Pair<BasicFeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, File inputFile) {
         return createFeatureReader(targetClass, "anonymous", inputFile);
     }
@@ -147,6 +153,12 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         }
     }
 
+    /**
+     * add a name to the codec, if it takes one
+     * @param targetClass the class to create a codec for
+     * @param name the name to assign this codec
+     * @return the feature codec itself
+     */
     private FeatureCodec createCodec(Class targetClass, String name) {
         FeatureCodec codex = this.createByType(targetClass);
         if ( codex instanceof NameAwareCodec )
