@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.genotyper.BatchedCallsMerger;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
@@ -110,7 +111,15 @@ public class QSampleWalker extends RodWalker<Integer, Integer> implements TreeRe
         if ( genotypesVC == null )
             return 0; // protect ourselves for runs with BTI
 
-        VariantCallContext vcc = UG_engine.runGenotyper(tracker, ref, context);
+        // set of het samples
+        Set<String> hetSamples = new HashSet<String>();
+        for ( String sample : samples ) {
+            if ( genotypesVC.getGenotype(sample).isHet() )
+                hetSamples.add(sample);
+        }
+
+        AlignmentContext hetsContext = BatchedCallsMerger.filterForSamples(context.getBasePileup(), hetSamples);
+        VariantCallContext vcc = UG_engine.runGenotyper(tracker, ref, hetsContext);
 
         logger.info(String.format("Visiting site %s", context.getLocation()));
         for ( String sample : samples ) {
@@ -135,7 +144,7 @@ public class QSampleWalker extends RodWalker<Integer, Integer> implements TreeRe
     private static int HET_INDEX = 1;
     private double scoreSample(String sample, VariantCallContext vcc) {
         if ( vcc == null || vcc.vc == null || vcc.vc.getGenotype(sample) == null )
-            return 0.0;
+            return 0.33;
         else {
             // get GLs
             GenotypeLikelihoods gl = vcc.vc.getGenotype(sample).getLikelihoods();
