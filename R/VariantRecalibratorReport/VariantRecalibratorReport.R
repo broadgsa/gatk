@@ -1,6 +1,5 @@
 library(ellipse);
 library(hexbin);
-library(rgl);
 
 getAnnIndex <- function(d, ann) {
     index = -1;
@@ -231,8 +230,8 @@ print("Greedy reading")
 d = read.table(vcfTable, header=TRUE, nrows = greedy);
 c = read.clusters(clusterFile);
 
-d.known = d[which(d$DB == 1),];
-d.novel = d[which(d$DB == 0),];
+d.known = d[which(d$DB == 1 | d$ID != "."),];
+d.novel = d[which(d$DB == 0 | d$ID == "."),];
 d.loci = NA;
 if (length(l) > 0) {
     d.loci = d[which(d$POS %in% l),];
