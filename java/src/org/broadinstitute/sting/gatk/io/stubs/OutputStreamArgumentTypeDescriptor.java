@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
@@ -117,13 +118,13 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             return getConstructorForClass(type).newInstance(outputStream);
         }
         catch( InstantiationException ex ) {
-            throw new StingException("Could not instantiate class with OutputStream constructor: " + type.getName());
+            throw new GATKException("Could not instantiate class with OutputStream constructor: " + type.getName());
         }
         catch( IllegalAccessException ex ) {
-            throw new StingException("Could not access class with OutputStream constructor: " + type.getName());
+            throw new GATKException("Could not access class with OutputStream constructor: " + type.getName());
         }
         catch( InvocationTargetException ex ) {
-            throw new StingException("Could not invoke constructor for class with OutputStream constructor: " + type.getName());
+            throw new GATKException("Could not invoke constructor for class with OutputStream constructor: " + type.getName());
         }
     }
 }

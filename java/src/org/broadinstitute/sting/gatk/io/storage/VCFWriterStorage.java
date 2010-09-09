@@ -5,6 +5,7 @@ import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 
@@ -48,7 +49,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
             this.stream = stub.getOutputStream();
         }
         else
-            throw new StingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
+            throw new GATKException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
 
         writer = new StandardVCFWriter(stream);
     }

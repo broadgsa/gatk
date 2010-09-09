@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 
@@ -29,7 +30,7 @@ public class IntervalRod extends BasicReferenceOrderedDatum {
 	}
 
 	public String repl() {
-		throw new StingException("repl() is not implemented yet");
+		throw new GATKException("repl() is not implemented yet");
 	}
 
 	public String toSimpleString() { return loc.toString(); }

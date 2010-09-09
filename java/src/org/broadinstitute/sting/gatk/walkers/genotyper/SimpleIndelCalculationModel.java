@@ -71,7 +71,7 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
                 alleles.add( Allele.create(bestEvent.substring(1), true ));
                 loc = GenomeLocParser.setStop(loc, loc.getStop() + bestEvent.length()-1);
             } else
-                throw new StingException("Internal error (probably a bug): event does not conform to expected format: "+ bestEvent);
+                throw new GATKException("Internal error (probably a bug): event does not conform to expected format: "+ bestEvent);
         }
 
         VariantContext vc = new VariantContext("UG_Indel_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles, new HashMap<String, Genotype>() /* genotypes */,

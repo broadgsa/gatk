@@ -31,6 +31,7 @@ import net.sf.samtools.util.SequenceUtil;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -333,7 +334,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 currentInterval = intervals.hasNext() ? intervals.next() : null;
             } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
         } catch (StingException e) {
-            throw new StingException(e.getMessage() + " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***");
+            throw new UserError.MissortedFile(new File(intervalsFile), " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***", e);
         }
 
 
@@ -531,7 +532,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         statsOutput.write("\n");
                         statsOutput.flush();
                     } catch (Exception e) {
-                        throw new StingException(e.getMessage());
+                        throw new UserError.CouldNotCreateOutputFile("statsOutput", "Failed to write stats output file", e);
                     }
                 }
             } else {
@@ -558,7 +559,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         indelOutput.write(str.toString());
                         indelOutput.flush();
                     } catch (Exception e) {
-                        throw new StingException(e.getMessage());
+                        throw new UserError.CouldNotCreateOutputFile("indelOutput", "Failed to write indel output file", e);
                     }
                 }
                 if ( statsOutput != null ) {
@@ -572,7 +573,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         statsOutput.write("\n");
                         statsOutput.flush();
                     } catch (Exception e) {
-                        throw new StingException(e.getMessage());
+                        throw new UserError.CouldNotCreateOutputFile("statsOutput", "Failed to write stats output file", e);
                     }
                 }
 
@@ -607,7 +608,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         currentInterval.toString(), improvement));
                 statsOutput.flush();
             } catch (Exception e) {
-                throw new StingException(e.getMessage());
+                throw new UserError.CouldNotCreateOutputFile("statsOutput", "Failed to write stats output file", e);
             }
         }
     }
@@ -1047,7 +1048,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 snpsOutput.write(sb.toString());
                 snpsOutput.flush();
             } catch (Exception e) {
-                throw new StingException(e.getMessage());                
+                throw new UserError.CouldNotCreateOutputFile("snpsOutput", "Failed to write SNPs output file", e);
             }
         }
         return reduces;

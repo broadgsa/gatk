@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 /**
@@ -124,7 +125,7 @@ public class BWT {
      */
     protected byte getBase(long index) {
         if(index == inverseSA0)
-            throw new StingException(String.format("Base at index %d does not have a text representation",index));
+            throw new GATKException(String.format("Base at index %d does not have a text representation",index));
 
         SequenceBlock block = getSequenceBlock(index);
         int position = getSequencePosition(index);

@@ -5,8 +5,10 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.util.*;
 
@@ -106,8 +108,8 @@ public class RefMetaDataTracker {
 
         Object obj = objects.get(0).getUnderlyingObject();
         if (!(clazz.isAssignableFrom(obj.getClass())))
-            throw new StingException("Unable to case track named " + name + " to type of " + clazz.toString()
-                                     + " it's of type " + obj.getClass());
+            throw new UserError.CommandLineError("Unable to case track named " + name + " to type of " + clazz.toString()
+                    + " it's of type " + obj.getClass());
 
         return (T)obj;
     }
@@ -289,7 +291,7 @@ public class RefMetaDataTracker {
         Collection<VariantContext> contexts = getVariantContexts(ref, name, allowedTypes, curLocation, requireStartHere, false );
 
         if ( contexts.size() > 1 )
-            throw new StingException("Requested a single VariantContext object for track " + name + " but multiple variants were present at position " + curLocation);
+            throw new GATKException("Requested a single VariantContext object for track " + name + " but multiple variants were present at position " + curLocation);
         else if ( contexts.size() == 0 )
             return null;
         else

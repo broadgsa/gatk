@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
@@ -120,7 +121,7 @@ public class AlignmentValidationWalker extends ReadWalker<Integer,Integer> {
                     logger.error(String.format("    Mapping quality: %s%n", alignmentsByScore[i].getMappingQuality()));
                 }
             }
-            throw new StingException(String.format("Read %s mismatches!", read.getReadName()));
+            throw new GATKException(String.format("Read %s mismatches!", read.getReadName()));
         }
 
         return 1;

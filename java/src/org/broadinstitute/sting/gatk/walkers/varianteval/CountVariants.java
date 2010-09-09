@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 
@@ -112,7 +113,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                 nComplex++;
                 break;
             default:
-                throw new StingException("Unexpected VariantContext type " + vc1.getType());
+                throw new GATKException("Unexpected VariantContext type " + vc1.getType());
         }
 
         for (Genotype g : vc1.getGenotypes().values()) {
@@ -130,7 +131,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     nHomVar++;
                     break;
                 default:
-                    throw new StingException("BUG: Unexpected genotype type: " + g);
+                    throw new GATKException("BUG: Unexpected genotype type: " + g);
             }
         }
 

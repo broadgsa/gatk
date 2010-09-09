@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.simpleframework.xml.Element;
@@ -241,7 +242,7 @@ public class GATKRunReport {
             serializer.write(this, stream);
             //throw new StingException("test");
         } catch (Exception e) {
-            throw new StingException("Failed to marshal the data to the file " + stream, e);
+            throw new GATKException("Failed to marshal the data to the file " + stream, e);
         }
     }
 

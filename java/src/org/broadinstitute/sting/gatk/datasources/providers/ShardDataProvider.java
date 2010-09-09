@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.ArrayList;
@@ -110,7 +111,7 @@ public abstract class ShardDataProvider {
             Collection<Class<? extends View>> conflicts = registeredView.getConflictingViews();
             for( Class<? extends View> conflict: conflicts ) {
                 if( conflict.isInstance(view) )
-                    throw new StingException(String.format("Tried to register two conflicting views: %s and %s",
+                    throw new GATKException(String.format("Tried to register two conflicting views: %s and %s",
                                                            registeredView.getClass().getSimpleName(),
                                                            view.getClass().getSimpleName()));
             }
@@ -120,7 +121,7 @@ public abstract class ShardDataProvider {
         for( Class<? extends View> conflict: view.getConflictingViews() ) {
             for( View registeredView: registeredViews ) {
                 if( conflict.isInstance(registeredView) )
-                    throw new StingException(String.format("Tried to register two conflicting views: %s and %s",
+                    throw new GATKException(String.format("Tried to register two conflicting views: %s and %s",
                                                            registeredView.getClass().getSimpleName(),
                                                            view.getClass().getSimpleName()));
             }

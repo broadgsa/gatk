@@ -8,8 +8,10 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.util.*;
 
@@ -140,7 +142,7 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
             } else if ( x == 1 ) {
                 return String.valueOf(falsePositiveHist[y]);
             } else {
-                throw new StingException( "Unknown row in " + getName() + ", row = " + x );
+                throw new GATKException( "Unknown row in " + getName() + ", row = " + x );
             }
         }
 
@@ -400,7 +402,7 @@ class SampleStats implements TableType {
         if ( concordanceStats.containsKey(sample) )
             concordanceStats.get(sample)[truth.ordinal()][called.ordinal()]++;
         else if ( called != Genotype.Type.NO_CALL )
-            throw new StingException("Sample " + sample + " has not been seen in a previous eval; this analysis module assumes that all samples are present in each variant context");
+            throw new UserError.CommandLineError("Sample " + sample + " has not been seen in a previous eval; this analysis module assumes that all samples are present in each variant context");
     }
 
     /**
@@ -552,7 +554,7 @@ class SampleSummaryStats implements TableType {
 
             final long[][] stats = sampleStats.concordanceStats.get(sample);
             final double[] summary = concordanceSummary.get(sample);
-            if( stats == null ) { throw new StingException( "SampleStats and SampleSummaryStats contain different samples! sample = " + sample ); }
+            if( stats == null ) { throw new GATKException( "SampleStats and SampleSummaryStats contain different samples! sample = " + sample ); }
 
             long numer, denom;
 

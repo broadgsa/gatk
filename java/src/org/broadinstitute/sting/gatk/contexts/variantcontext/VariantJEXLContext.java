@@ -27,9 +27,11 @@ import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broad.tribble.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.util.*;
 
@@ -272,7 +274,7 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
         try {
             jexl.put (exp, (Boolean) exp.exp.evaluate(jContext));
         } catch (Exception e) {
-            throw new StingException(e.getMessage());
+            throw new UserError.CommandLineError(String.format("Invalid JEXL expression detected for %s with message %s", exp.name, e.getMessage()));
         }
     }
 

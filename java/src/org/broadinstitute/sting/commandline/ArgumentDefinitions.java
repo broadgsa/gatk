@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Set;
@@ -56,9 +57,9 @@ public class ArgumentDefinitions implements Iterable<ArgumentDefinition> {
             if( definition.fullName.length() == 0 )
                 throw new IllegalArgumentException( "Argument cannot have 0-length fullname." );
             if( hasArgumentDefinition( definition.fullName, FullNameDefinitionMatcher ) )
-                throw new StingException("Duplicate definition of argument with full name: " + definition.fullName);
+                throw new GATKException("Duplicate definition of argument with full name: " + definition.fullName);
             if( definition.shortName != null && hasArgumentDefinition( definition.shortName, ShortNameDefinitionMatcher ) )
-                throw new StingException("Duplicate definition of argument with short name: " + definition.shortName);
+                throw new GATKException("Duplicate definition of argument with short name: " + definition.shortName);
 
             argumentDefinitions.add( definition );
         }

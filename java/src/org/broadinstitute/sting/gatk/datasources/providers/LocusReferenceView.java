@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
@@ -88,8 +89,8 @@ public class LocusReferenceView extends ReferenceView {
         if( walker.getClass().isAnnotationPresent(Reference.class) ) {
             Window window = walker.getClass().getAnnotation(Reference.class).window();
 
-            if( window.start() > 0 ) throw new StingException( "Reference window starts after current locus" );
-            if( window.stop() < 0 ) throw new StingException( "Reference window ends before current locus" );
+            if( window.start() > 0 ) throw new GATKException( "Reference window starts after current locus" );
+            if( window.stop() < 0 ) throw new GATKException( "Reference window ends before current locus" );
 
             windowStart = window.start();
             windowStop = window.stop();
@@ -124,7 +125,7 @@ public class LocusReferenceView extends ReferenceView {
         if ( bounds==null || loc==null) return; // can bounds be null actually???
         if ( isLocationWithinBounds(loc) ) return;
         if ( loc.getContigIndex() != bounds.getContigIndex() )
-            throw new StingException("Illegal attempt to expand reference view bounds to accommodate location on a different contig.");
+            throw new GATKException("Illegal attempt to expand reference view bounds to accommodate location on a different contig.");
 
         bounds = GenomeLocParser.createGenomeLoc(bounds.getContigIndex(),
                                                  Math.min(bounds.getStart(),loc.getStart()),

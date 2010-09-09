@@ -4,7 +4,9 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.*;
@@ -56,7 +58,7 @@ public class CoverageUtils {
         } else if ( type == DoCOutputType.Partition.sample_by_platform_by_center ) {
             return String.format("%s_pl_%s_cn_%s",r.getSample(),r.getPlatform(),r.getSequencingCenter());
         } else {
-            throw new StingException("Invalid type ID sent to getTypeID. This is a BUG!");
+            throw new GATKException("Invalid type ID sent to getTypeID. This is a BUG!");
         }
     }
 
@@ -118,7 +120,7 @@ public class CoverageUtils {
             try {
                 counts[BaseUtils.simpleBaseToBaseIndex(e.getBase())]++;
             } catch (ArrayIndexOutOfBoundsException exc) {
-                throw new StingException("Expected a simple base, but actually received"+(char)e.getBase());
+                throw new GATKException("Expected a simple base, but actually received"+(char)e.getBase());
             }
         }
     }
@@ -126,10 +128,8 @@ public class CoverageUtils {
     private static SAMReadGroupRecord getReadGroup(SAMRecord r) {
         SAMReadGroupRecord rg = r.getReadGroup();
         if ( rg == null ) {
-            String msg = "Read "+r.getReadName()+" lacks read group information.";
-            msg += " Please associate all reads with read groups [recommended]\n";
-            msg += " Or run with -rf MissingReadGroup [not recommended]";
-            throw new StingException(msg);
+            String msg = "Read "+r.getReadName()+" lacks read group information; Please associate all reads with read groups";
+            throw new UserError.MalformedBam(r, msg);
         }
 
         return rg;

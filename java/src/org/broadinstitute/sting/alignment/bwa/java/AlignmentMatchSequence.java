@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.bwa.java.AlignmentState;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Deque;
@@ -33,7 +34,7 @@ public class AlignmentMatchSequence implements Cloneable {
             copy = (AlignmentMatchSequence)super.clone(); 
         }
         catch( CloneNotSupportedException ex ) {
-            throw new StingException("Unable to clone AlignmentMatchSequence.");
+            throw new GATKException("Unable to clone AlignmentMatchSequence.");
         }
 
         copy.entries = new ArrayDeque<AlignmentMatchSequenceEntry>();
@@ -53,7 +54,7 @@ public class AlignmentMatchSequence implements Cloneable {
                 case MATCH_MISMATCH: operator = CigarOperator.MATCH_OR_MISMATCH; break;
                 case INSERTION: operator = CigarOperator.INSERTION; break;
                 case DELETION: operator = CigarOperator.DELETION; break;
-                default: throw new StingException("convertToCigar: cannot process state: " + entry.getAlignmentState());
+                default: throw new GATKException("convertToCigar: cannot process state: " + entry.getAlignmentState());
             }
             cigar.add( new CigarElement(entry.count,operator) );
         }
@@ -129,7 +130,7 @@ public class AlignmentMatchSequence implements Cloneable {
                 return (AlignmentMatchSequenceEntry)super.clone(); 
             }
             catch( CloneNotSupportedException ex ) {
-                throw new StingException("Unable to clone AlignmentMatchSequenceEntry.");
+                throw new GATKException("Unable to clone AlignmentMatchSequenceEntry.");
             }
         }
 

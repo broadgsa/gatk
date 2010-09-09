@@ -26,6 +26,7 @@
 package net.sf.picard.reference;
 
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSourceProgressListener;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import static net.sf.picard.reference.FastaSequenceIndexBuilder.Status.*;
 
@@ -33,6 +34,7 @@ import java.io.*;
 import java.util.Iterator;
 
 import net.sf.picard.reference.FastaSequenceIndex;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 /**
  * Builds FastaSequenceIndex from fasta file.
@@ -83,7 +85,7 @@ public class FastaSequenceIndexBuilder {
             in = new DataInputStream(new BufferedInputStream(new FileInputStream(fastaFile)));
         }
         catch (Exception e) {
-            throw new StingException(String.format("Could not read fasta file %s", fastaFile.getAbsolutePath()));
+            throw new UserError.CouldNotReadInputFile(fastaFile, "Could not read fasta file", e);
         }
 
         /*
@@ -166,7 +168,7 @@ public class FastaSequenceIndexBuilder {
                         // validate base character
                         else {
                             if (!isValidBase(currentByte))
-                                throw new StingException(String.format("An invalid base was found in the contig: %s", contig));
+                                throw new UserError.MalformedFile(fastaFile, String.format("An invalid base was found in the contig: %s", contig));
                         }
                         break;
 
@@ -192,7 +194,7 @@ public class FastaSequenceIndexBuilder {
                                     // error if next char is a valid base, end of contig otherwise
                                 else if (basesThisLine != basesPerLine || bytesPerLine != bytesRead - endOfLastLine) {
                                     if (isValidBase(nextByte) && nextByte != -1) {
-                                        throw new StingException(String.format("An invalid line was found in the contig: %s", contig));
+                                        throw new UserError.MalformedFile(fastaFile, String.format("An invalid line was found in the contig: %s", contig));
                                     }
                                     else
                                         finishReadingContig(sequenceIndex);
@@ -204,7 +206,7 @@ public class FastaSequenceIndexBuilder {
                         // validate base character
                         else {
                             if (!isValidBase(currentByte))
-                                throw new StingException(String.format("An invalid base was found in the contig: %s", contig));
+                                throw new UserError.MalformedFile(fastaFile, String.format("An invalid base was found in the contig: %s", contig));
                         }
                         break;
                 }
@@ -212,9 +214,10 @@ public class FastaSequenceIndexBuilder {
             return sequenceIndex;
         }
         catch (IOException e) {
-            throw new StingException(String.format("Could not read fasta file %s", fastaFile.getAbsolutePath()), e);        }
+            throw new UserError.CouldNotReadInputFile(fastaFile, String.format("Could not read fasta file"), e);
+        }
         catch (Exception e) {
-            throw new StingException(e.getMessage(), e);
+            throw new GATKException(e.getMessage(), e);
         }
     }
 
@@ -270,8 +273,7 @@ public class FastaSequenceIndexBuilder {
             out = new BufferedWriter(new FileWriter(faiFile));
         }
         catch (Exception e) {
-            throw new StingException(String.format("Could not open file %s for writing. Check that GATK is permitted to write to disk.",
-                    faiFile.getAbsolutePath()), e);
+            throw new UserError.CouldNotCreateOutputFile(faiFile, e);
         }
 
         try {
@@ -282,7 +284,7 @@ public class FastaSequenceIndexBuilder {
             out.close();
         }
         catch (Exception e) {
-            throw new StingException(String.format("An error occurred while writing file %s", e));
+            throw new UserError.CouldNotCreateOutputFile(faiFile, e);
         }
     }
 

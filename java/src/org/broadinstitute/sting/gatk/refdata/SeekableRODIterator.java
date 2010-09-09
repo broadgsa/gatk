@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
@@ -131,7 +132,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
      */
      public RODRecordList next() {
          if ( ! next_is_allowed )
-             throw new StingException("Illegal use of iterator: Can not advance iterator with next() after seek-forward query of length > 1");
+             throw new GATKException("Illegal use of iterator: Can not advance iterator with next() after seek-forward query of length > 1");
 
          curr_position++;
  //        curr_query_end = -1;
@@ -178,7 +179,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
              r = it.next(); // we got here only if we do need next record, time to load it for real
 
              long stop = r.getLocation().getStop();
-             if ( stop < curr_position ) throw new StingException("DEBUG: encountered contig that should have been loaded earlier"); // this should never happen
+             if ( stop < curr_position ) throw new GATKException("DEBUG: encountered contig that should have been loaded earlier"); // this should never happen
              if ( stop > max_position ) max_position = stop; // max_position keeps the rightmost stop position across all loaded records
              records.add(r);
          }
@@ -257,14 +258,14 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
     public RODRecordList seekForward(GenomeLoc interval) {
 
         if ( interval.getContigIndex() < curr_contig )
-            throw new StingException("Out of order query: query contig "+interval.getContig()+" is located before "+
+            throw new GATKException("Out of order query: query contig "+interval.getContig()+" is located before "+
                                      "the iterator's current contig");
         if ( interval.getContigIndex() == curr_contig ) {
             if ( interval.getStart() < curr_position )
-                throw new StingException("Out of order query: query position "+interval +" is located before "+
+                throw new GATKException("Out of order query: query position "+interval +" is located before "+
                         "the iterator's current position "+curr_contig + ":" + curr_position);
             if ( interval.getStop() < curr_query_end )
-                throw new StingException("Unsupported querying sequence: current query interval " +
+                throw new GATKException("Unsupported querying sequence: current query interval " +
                         interval+" ends before the end of previous query interval ("+curr_query_end+")");
         }
 

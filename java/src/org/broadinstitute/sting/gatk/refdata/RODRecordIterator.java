@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.Utils;
@@ -115,7 +116,7 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
         try {
             reader = new PushbackIterator<String>(new XReadLines(file));
         } catch (FileNotFoundException e) {
-            Utils.scareUser("Couldn't open file: " + file);
+            throw new UserError.CouldNotReadInputFile(file, e);
         }
         this.file = file;
         this.name = name;
@@ -124,7 +125,7 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
             named_constructor = type.getConstructor(String.class);
         }
         catch (java.lang.NoSuchMethodException e) {
-            throw new StingException("ROD class "+type.getName()+" does not have constructor that accepts a single String argument (track name)");
+            throw new GATKException("ROD class "+type.getName()+" does not have constructor that accepts a single String argument (track name)");
         }
         ROD rod = instantiateROD(name);
         fieldDelimiter = rod.delimiterRegex(); // get delimiter from the ROD itself
@@ -232,11 +233,11 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
         try {
             return (ROD) named_constructor.newInstance(name);
         } catch (java.lang.InstantiationException e) {
-            throw new StingException("Failed to instantiate ROD object of class "+type.getName());
+            throw new GATKException("Failed to instantiate ROD object of class "+type.getName());
         } catch (java.lang.IllegalAccessException e) {
-            throw new StingException("Access violation attempt while instantiating ROD object of class "+type.getName());
+            throw new GATKException("Access violation attempt while instantiating ROD object of class "+type.getName());
         } catch (InvocationTargetException e) {
-            throw new StingException("InvocationTargetException: Failed to instantiate ROD object of class "+type.getName());
+            throw new GATKException("InvocationTargetException: Failed to instantiate ROD object of class "+type.getName());
         }
     }
 

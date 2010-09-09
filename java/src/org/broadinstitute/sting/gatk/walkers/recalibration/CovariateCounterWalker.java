@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -186,7 +187,7 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
             }
         }
         if( !foundDBSNP && !RUN_WITHOUT_DBSNP ) {
-            throw new StingException("This calculation is critically dependent on being able to skip over known variant sites. Please provide a dbSNP ROD or a VCF file containing known sites of genetic variation.");
+            throw new UserError.CommandLineError("This calculation is critically dependent on being able to skip over known variant sites. Please provide a dbSNP ROD or a VCF file containing known sites of genetic variation.");
         }
 
         // Initialize the requested covariates by parsing the -cov argument
@@ -195,7 +196,7 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
             requestedCovariates.add( new ReadGroupCovariate() ); // Order is important here
             requestedCovariates.add( new QualityScoreCovariate() );
         } else {
-            throw new StingException("There are more required covariates than expected. The instantiation list needs to be updated with the new required covariate and in the correct order.");
+            throw new UserError.CommandLineError("There are more required covariates than expected. The instantiation list needs to be updated with the new required covariate and in the correct order.");
         }
         // Next add the standard covariates if -standard was specified by the user
         if( USE_STANDARD_COVARIATES ) {
@@ -213,9 +214,9 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
                             final Covariate covariate = (Covariate)covClass.newInstance();
                             requestedCovariates.add( covariate );
                         } catch ( InstantiationException e ) {
-                            throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
+                            throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
                         } catch ( IllegalAccessException e ) {
-                            throw new StingException( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                            throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
                         }
                     }
                 }
@@ -234,16 +235,16 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
                                 final Covariate covariate = (Covariate)covClass.newInstance();
                                 requestedCovariates.add( covariate );
                             } catch ( InstantiationException e ) {
-                                throw new StingException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
+                                throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
                             } catch ( IllegalAccessException e ) {
-                                throw new StingException( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                                throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
                             }
                         }
                     }
                 }
 
                 if( !foundClass ) {
-                    throw new StingException( "The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates." );
+                    throw new UserError.CommandLineError( "The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates." );
                 }
             }
         }

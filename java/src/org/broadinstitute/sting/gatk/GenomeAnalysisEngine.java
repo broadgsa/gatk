@@ -31,6 +31,7 @@ import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -42,7 +43,6 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.*;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -155,12 +155,12 @@ public class GenomeAnalysisEngine {
 
         // validate our parameters
         if (args == null) {
-            throw new StingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
+            throw new GATKException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
         }
 
         // validate our parameters              
         if (my_walker == null)
-            throw new StingException("The walker passed to GenomeAnalysisEngine can not be null.");
+            throw new GATKException("The walker passed to GenomeAnalysisEngine can not be null.");
 
         // save our argument parameter
         this.argCollection = args;
@@ -267,7 +267,7 @@ public class GenomeAnalysisEngine {
 
             // check to make sure we have a rod of that name
             if (!rodNames.containsKey(rodName))
-                throw new StingException("--rodToIntervalTrackName (-BTI) was pass the name '"+rodName+"', which wasn't given as a ROD name in the -B option");
+                throw new UserError.CommandLineError("--rodToIntervalTrackName (-BTI) was passed the name '"+rodName+"', which wasn't given as a ROD name in the -B option");
 
             for (String str : rodNames.keySet())
                 if (str.equals(rodName)) {
@@ -400,7 +400,7 @@ public class GenomeAnalysisEngine {
         // Temporarily require all walkers to have a reference, even if that reference is not conceptually necessary.
         if ((my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker || my_walker instanceof ReadPairWalker) && 
                 argCollection.referenceFile == null) {
-            Utils.scareUser(String.format("Read-based traversals require a reference file but none was given"));
+            throw new UserError.CommandLineError("Read-based traversals require a reference file but none was given");
         }
 
         return MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource.getReference(),rodDataSources,argCollection.numberOfThreads);
@@ -720,7 +720,7 @@ public class GenomeAnalysisEngine {
             error.append(String.format(compareToName + " contigs:     %s%n", prettyPrintSequenceRecords(comparedToDictionary)));
             error.append(String.format("Reference contigs: %s%n", prettyPrintSequenceRecords(referenceDictionary)));
             logger.error(error.toString());
-            Utils.scareUser("No overlap exists between sequence dictionary of " + compareToName + " and the sequence dictionary of the reference.");
+            throw new UserError.IncompatibleSequenceDictionaries(referenceDictionary, comparedToDictionary, compareToName);
         }
 
         // If the two datasets are not equal and neither is a strict subset of the other, warn the user.
@@ -773,20 +773,20 @@ public class GenomeAnalysisEngine {
         // sharding system; it's required with the new sharding system only for locus walkers.
         if(readsDataSource != null && !readsDataSource.hasIndex() ) { 
             if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM))
-                throw new StingException("The GATK cannot currently process unindexed BAM files without the -U ALLOW_UNINDEXED_BAM");
+                throw new UserError.CommandLineError("The GATK cannot currently process unindexed BAM files without the -U ALLOW_UNINDEXED_BAM");
             if(intervals != null && WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE)
-                throw new StingException("Cannot shard input by interval when walker is not driven by reference.");
+                throw new UserError.CommandLineError("Cannot perform interval processing when walker is not driven by reference and no index is available.");
 
             Shard.ShardType shardType;
             if(walker instanceof LocusWalker) {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
-                    Utils.scareUser("Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file.");                
+                    throw new UserError.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file(s).");
                 shardType = Shard.ShardType.LOCUS;
             }
             else if(walker instanceof ReadWalker || walker instanceof DuplicateWalker || walker instanceof ReadPairWalker)
                 shardType = Shard.ShardType.READ;
             else
-                throw new StingException("The GATK cannot currently process unindexed BAM files");
+                throw new UserError.CommandLineError("The GATK cannot currently process unindexed BAM files");
 
             List<GenomeLoc> region;
             if(intervals != null)
@@ -810,7 +810,7 @@ public class GenomeAnalysisEngine {
 
             if (intervals != null && !intervals.isEmpty()) {
                 if(!readsDataSource.isEmpty() && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
-                    Utils.scareUser("Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file.");
+                    throw new UserError.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file(s).");
 
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource.getReference(),
@@ -844,9 +844,9 @@ public class GenomeAnalysisEngine {
             }
         } else if (walker instanceof ReadPairWalker) {
             if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.queryname)
-                Utils.scareUser("Read pair walkers can only walk over query name-sorted data.  Please resort your input BAM file.");            
+                throw new UserError.MissortedBAM(SAMFileHeader.SortOrder.queryname, "Read pair walkers can only walk over query name-sorted data.  Please resort your input BAM file.");
             if(intervals != null && !intervals.isEmpty())
-                Utils.scareUser("Pairs traversal cannot be used in conjunction with intervals.");
+                throw new UserError.CommandLineError("Pairs traversal cannot be used in conjunction with intervals.");
 
             shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                     referenceDataSource.getReference(),
@@ -854,7 +854,7 @@ public class GenomeAnalysisEngine {
                     drivingDataSource.getSequenceDictionary(),
                     SHARD_SIZE);
         } else
-            throw new StingException("Unable to support walker of type" + walker.getClass().getName());
+            throw new GATKException("Unable to support walker of type" + walker.getClass().getName());
 
         return shardStrategy;
     }
@@ -996,7 +996,7 @@ public class GenomeAnalysisEngine {
                         unpackedReads.add(new SAMReaderID(new File(fileName),getTags(inputFile)));
                 }
                 catch( FileNotFoundException ex ) {
-                    throw new StingException("Unable to find file while unpacking reads", ex);
+                    throw new UserError.CouldNotReadInputFile(inputFile, "Unable to find file while unpacking reads", ex);
                 }
             }
             else if(inputFile.getName().toLowerCase().endsWith(".bam")) {
@@ -1006,9 +1006,9 @@ public class GenomeAnalysisEngine {
                 unpackedReads.add(new SAMReaderID(new File("/dev/stdin"),Collections.<String>emptyList()));
             }
             else {
-                Utils.scareUser(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
-                                              "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
-                                              "of BAM files is in the correct format, update the extension, and try again.",inputFile.getName()));
+                throw new UserError.CommandLineError(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
+                        "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
+                        "of BAM files is in the correct format, update the extension, and try again.",inputFile.getName()));
             }
         }
         return unpackedReads;

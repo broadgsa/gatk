@@ -27,8 +27,10 @@ package org.broadinstitute.sting.gatk.contexts;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.pileup.*;
 
 import java.util.*;
@@ -73,7 +75,7 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
             case REVERSE:
                 return new AlignmentContext(loc,basePileup.getNegativeStrandPileup());
             default:
-                throw new StingException("Unable to get alignment context for type = " + type);
+                throw new GATKException("Unable to get alignment context for type = " + type);
         }
     }
 
@@ -113,8 +115,9 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
             if(sampleName != null)
                 contexts.put(sampleName,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             else {
-                if(assumedSingleSample == null)
-                    throw new StingException("Missing read group for read " + pileupBySample.iterator().next().getRead());
+                if(assumedSingleSample == null) {
+                    throw new UserError.MalformedBam(pileupBySample.iterator().next().getRead(), "Missing read group for read");
+                }
                 contexts.put(assumedSingleSample,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             }
         }
@@ -144,9 +147,9 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
         boolean isExtended = contexts.iterator().next().basePileup instanceof ReadBackedExtendedEventPileup;
         for(StratifiedAlignmentContext context: contexts) {
             if(!loc.equals(context.getLocation()))
-                throw new StingException("Illegal attempt to join contexts from different genomic locations");
+                throw new GATKException("Illegal attempt to join contexts from different genomic locations");
             if(isExtended != (context.basePileup instanceof ReadBackedExtendedEventPileup))
-                throw new StingException("Illegal attempt to join simple and extended contexts");
+                throw new GATKException("Illegal attempt to join simple and extended contexts");
         }
 
         AlignmentContext jointContext;

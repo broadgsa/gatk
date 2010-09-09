@@ -30,12 +30,10 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.features.sampileup.SAMPileupFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.Arrays;
@@ -61,8 +59,8 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
         if ( truePileup == null ) {
             out.printf("No truth pileup data available at %s%n", pileup.getPileupString(ref.getBaseAsChar()));
             if ( ! CONTINUE_AFTER_AN_ERROR ) {
-                Utils.scareUser(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
-                                context.getLocation(), new String(pileup.getBases())));
+                throw new UserError.CommandLineError(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
+                        context.getLocation(), new String(pileup.getBases())));
             }
         } else {
             String pileupDiff = pileupDiff(pileup, truePileup, true);
@@ -141,7 +139,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
         else if( pileup.hasIndelGenotype() )
             return pileup.getIndelGenotype();
         else
-            throw new StingException("Unsupported pileup type: " + pileup);
+            throw new GATKException("Unsupported pileup type: " + pileup);
     }
 }
 

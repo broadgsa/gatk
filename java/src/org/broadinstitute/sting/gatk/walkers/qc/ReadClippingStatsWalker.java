@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -76,7 +77,7 @@ public class ReadClippingStatsWalker extends ReadWalker<ReadClippingStatsWalker.
         ReadClippingInfo info = new ReadClippingInfo();
         info.rg = read.getReadGroup();
 
-        if ( info.rg == null ) throw new StingException("Read "+read.getReadName()+" is not assigned to any read group");
+        if ( info.rg == null ) throw new UserError.ReadMissingReadGroup(read);
 
         for ( CigarElement elt : read.getCigar().getCigarElements() ) {
             if ( elt.getOperator() != CigarOperator.N )

@@ -162,7 +162,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
         return ! discontinuousP( that );
     }
 
-    public GenomeLoc merge( GenomeLoc that ) throws StingException {
+    public GenomeLoc merge( GenomeLoc that ) throws GATKException {
         if (!(this.contiguousP(that))) {
             throw new StingException("The two genome loc's need to be contigous");
         }
@@ -172,7 +172,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
                              Math.max( getStop(), that.getStop()) );
     }
 
-    public GenomeLoc intersect( GenomeLoc that ) throws StingException {
+    public GenomeLoc intersect( GenomeLoc that ) throws GATKException {
         if (!(this.overlapsP(that))) {
             throw new StingException("GenomeLoc::intersect(): The two genome loc's need to overlap");
         }

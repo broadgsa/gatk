@@ -45,11 +45,13 @@ import org.broadinstitute.sting.playground.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory;
 import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
@@ -307,7 +309,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         }
         ReportFormat.AcceptableOutputType type = (outputLocation == null) ? ReportFormat.AcceptableOutputType.STREAM : ReportFormat.AcceptableOutputType.FILE;
         if (!VE2ReportFactory.isCompatibleWithOutputType(type,reportType))
-            throw new StingException("The report format requested is not compatible with your output location.  You specified a " + type + " output type which isn't an option for " + reportType);
+            throw new UserError.CommandLineError("The report format requested is not compatible with your output location.  You specified a " + type + " output type which isn't an option for " + reportType);
         if ( LIST )
             listModulesAndExit();
 
@@ -375,7 +377,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             for ( String line : new XReadLines(rsIDFile) ) {
                 String parts[] = line.split(" ");
                 if ( parts.length != 2 )
-                    throw new StingException("Invalid rsID / build pair at " + n + " line = " + line );
+                    throw new UserError.MalformedFile(rsIDFile, "Invalid rsID / build pair at " + n + " line = " + line );
                 //System.out.printf("line %s %s %s%n", line, parts[0], parts[1]);
                 if ( Integer.valueOf(parts[1]) > maxRsIDBuild ) {
                     //System.out.printf("Excluding %s%n", line);
@@ -387,7 +389,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                     logger.info(String.format("Read %d rsIDs from rsID -> build file", n));
             }
         } catch (FileNotFoundException e) {
-            throw new StingException(e.getMessage());
+            throw new UserError.CouldNotReadInputFile(rsIDFile, e);
         }
 
         logger.info(String.format("Excluding %d of %d (%.2f%%) rsIDs found from builds > %d",
@@ -422,7 +424,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         // get the specific classes provided
         for ( String module : modulesToUse ) {
             if ( !classMap.containsKey(module) )
-                throw new StingException("Class " + module + " is not found; please check that you have specified the class name correctly");
+                throw new UserError.CommandLineError("Module " + module + " could not be found; please check that you have specified the class name correctly");
             evaluationClasses.add(classMap.get(module));
         }
 
@@ -675,7 +677,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         for ( String name : names ) {
             Collection<VariantContext> contexts = tracker.getVariantContexts(ref, name, ALLOW_VARIANT_CONTEXT_TYPES, context.getLocation(), true, true);
             if ( contexts.size() > 1 )
-                throw new StingException("Found multiple variant contexts at " + context.getLocation());
+                throw new UserError.CommandLineError("Found multiple variant contexts found in " + name + " at " + context.getLocation() + "; VariantEval assumes one variant per position");
 
             VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
 
@@ -713,7 +715,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         for ( EvaluationContext group : contexts ) {
             String[] parts = group.getDisplayName().split(CONTEXT_SEPARATOR);
             if ( parts.length != N_CONTEXT_NAME_PARTS ) {
-                throw new StingException("Unexpected number of eval name parts " + group.getDisplayName() + " length = " + parts.length + ", expected " + N_CONTEXT_NAME_PARTS);
+                throw new GATKException("Unexpected number of eval name parts " + group.getDisplayName() + " length = " + parts.length + ", expected " + N_CONTEXT_NAME_PARTS);
             } else {
                 for ( int i = 0; i < parts.length; i++ )
                     nameSizes[i] = Math.max(nameSizes[i], parts[i].length());

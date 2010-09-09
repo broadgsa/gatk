@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.bed.BedParser;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
@@ -96,7 +97,7 @@ public class GenomeLocParser {
      */
     public static int getContigIndex(final String contig, boolean exceptionOut) {
         if (contigInfo.getSequenceIndex(contig) == -1 && exceptionOut)
-            Utils.scareUser(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
+            throw new UserError.CommandLineError(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
 
         return contigInfo.getSequenceIndex(contig);
     }
@@ -121,9 +122,8 @@ public class GenomeLocParser {
      */
     public static boolean setupRefContigOrdering(final SAMSequenceDictionary seqDict) {
         if (seqDict == null) { // we couldn't load the reference dictionary
-            logger.info("Failed to load reference dictionary, falling back to lexicographic order for contigs");
-            Utils.scareUser("Failed to load reference dictionary");
-            return false;
+            //logger.info("Failed to load reference dictionary, falling back to lexicographic order for contigs");
+            throw new UserError.CommandLineError("Failed to load reference dictionary");
         } else if (contigInfo == null) {
             contigInfo = seqDict;
             logger.debug(String.format("Prepared reference sequence contig dictionary"));

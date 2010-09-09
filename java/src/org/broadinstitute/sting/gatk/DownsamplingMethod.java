@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 /**
  * Describes the method for downsampling reads at a given locus.
@@ -35,15 +36,15 @@ public class DownsamplingMethod {
 
         // Can't leave toFraction and toCoverage null unless type is experimental naive duplicate eliminator.
         if(type != DownsampleType.NONE && toFraction == null && toCoverage == null)
-            throw new StingException("Must specify either toFraction or toCoverage when downsampling.");
+            throw new UserError.CommandLineError("Must specify either toFraction or toCoverage when downsampling.");
 
         // Fraction and coverage cannot both be specified.
         if(toFraction != null && toCoverage != null)
-            throw new StingException("Downsampling coverage and fraction are both specified.  Please choose only one.");
+            throw new UserError.CommandLineError("Downsampling coverage and fraction are both specified.  Please choose only one.");
 
         // Experimental by sample downsampling does not work with a fraction of reads.
         if(type == DownsampleType.BY_SAMPLE && toFraction != null)
-            throw new StingException("Cannot downsample to fraction with new EXPERIMENTAL_BY_SAMPLE method");
+            throw new UserError.CommandLineError("Cannot downsample to fraction with new EXPERIMENTAL_BY_SAMPLE method");
 
         this.type = type;
         this.toCoverage = toCoverage;

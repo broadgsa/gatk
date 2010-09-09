@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
@@ -191,7 +192,7 @@ public class GATKArgumentCollection {
         try {
             serializer.write(collection, result);
         } catch (Exception e) {
-            throw new StingException("Failed to marshal the data to the file " + outputFile, e);
+            throw new GATKException("Failed to marshal the data to the file " + outputFile, e);
         }
     }
 
@@ -206,7 +207,7 @@ public class GATKArgumentCollection {
         try {
             serializer.write(collection, outputFile);
         } catch (Exception e) {
-            throw new StingException("Failed to marshal the data to the file " + outputFile, e);
+            throw new GATKException("Failed to marshal the data to the file " + outputFile, e);
         }
     }
 
@@ -222,7 +223,7 @@ public class GATKArgumentCollection {
             GATKArgumentCollection example = serializer.read(GATKArgumentCollection.class, source);
             return example;
         } catch (Exception e) {
-            throw new StingException("Failed to marshal the data from file " + filename, e);
+            throw new GATKException("Failed to marshal the data from file " + filename, e);
         }
     }
 
@@ -237,7 +238,7 @@ public class GATKArgumentCollection {
             GATKArgumentCollection example = serializer.read(GATKArgumentCollection.class, file);
             return example;
         } catch (Exception e) {
-            throw new StingException("Failed to marshal the data from file " + file.toString(), e);
+            throw new GATKException("Failed to marshal the data from file " + file.toString(), e);
         }
     }
 

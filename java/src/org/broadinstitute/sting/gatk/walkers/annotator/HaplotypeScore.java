@@ -197,7 +197,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         String b = haplotypeB.toString();
 
         if (a.length() != b.length())
-            throw new StingException("Haplotypes a and b must be of same length");
+            throw new GATKException("Haplotypes a and b must be of same length");
 
         char chA, chB;
         char wc = REGEXP_WILDCARD.charAt(0);

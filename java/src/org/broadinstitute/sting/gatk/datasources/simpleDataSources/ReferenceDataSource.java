@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.picard.reference.FastaSequenceIndexBuilder;
 import net.sf.picard.sam.CreateSequenceDictionary;
@@ -68,7 +69,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
             try {
                 // get exclusive lock
                 if (!indexLock.exclusiveLock())
-                    throw new StingException("Index file could not be written because a lock could not be obtained." +
+                    throw new GATKException("Index file could not be written because a lock could not be obtained." +
                             "If you are running multiple instances of GATK, another process is probably creating this " +
                             "file now. Please wait until it is finished and try again.");
                 FastaSequenceIndexBuilder faiBuilder = new FastaSequenceIndexBuilder(fastaFile, this);
@@ -82,7 +83,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
             catch (Exception e) {
                 // If lock creation succeeded, the failure must have been generating the index.
                 // If lock creation failed, just skip over index creation entirely.
-                throw new StingException("Index file does not exist and could not be created because " + e.getMessage(), e);
+                throw new GATKException("Index file does not exist and could not be created because " + e.getMessage(), e);
             }
             finally {
                 indexLock.unlock();
@@ -108,7 +109,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
             try {
                 // get shared lock on dict file so nobody else can start creating it
                 if (!dictLock.exclusiveLock())
-                    throw new StingException("Dictionary file could not be written because a lock could not be obtained." +
+                    throw new GATKException("Dictionary file could not be written because a lock could not be obtained." +
                             "If you are running multiple instances of GATK, another process is probably creating this " +
                             "file now. Please wait until it is finished and try again.");
                 // dict will be written to random temporary file in same directory (see note above)
@@ -121,7 +122,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
                 new CreateSequenceDictionary().instanceMain(args);
 
                 if (!tempFile.renameTo(dictFile))
-                    throw new StingException("Error transferring temp file " + tempFile + " to dict file " + dictFile);
+                    throw new GATKException("Error transferring temp file " + tempFile + " to dict file " + dictFile);
             }
             catch(FileSystemInabilityToLockException ex) {
                 logger.info("Unable to create write lock: " + ex.getMessage());
@@ -130,7 +131,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
             catch (Exception e) {
                 // If lock creation succeeded, the failure must have been generating the index.
                 // If lock creation failed, just skip over index creation entirely.
-                throw new StingException("Dictionary file does not exist and could not be created because " + e.getMessage(), e);
+                throw new GATKException("Dictionary file does not exist and could not be created because " + e.getMessage(), e);
             }
             finally {
                 dictLock.unlock();
@@ -149,7 +150,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
         try {
             try {
                 if (!dictLock.sharedLock()) {
-                    throw new StingException("Could not open dictionary file because a lock could not be obtained.");
+                    throw new GATKException("Could not open dictionary file because a lock could not be obtained.");
                 }
             }
             catch(FileSystemInabilityToLockException ex) {
@@ -159,7 +160,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
 
             try {
                 if (!indexLock.sharedLock()) {
-                    throw new StingException("Could not open index file because a lock could not be obtained.");
+                    throw new GATKException("Could not open index file because a lock could not be obtained.");
                 }
             }
             catch(FileSystemInabilityToLockException ex) {

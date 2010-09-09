@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.List;
@@ -69,7 +70,7 @@ public class ArgumentDefinitionGroup implements Iterable<ArgumentDefinition> {
      */
     public ArgumentDefinitionGroup merge( ArgumentDefinitionGroup other ) {
         if( !groupNameMatches(other) )
-            throw new StingException("Unable to merge two argument groups with differing names.");
+            throw new GATKException("Unable to merge two argument groups with differing names.");
 
         // Create a merged definition group.
         List<ArgumentDefinition> mergedDefinitions = new ArrayList<ArgumentDefinition>();

@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Comparator;
@@ -53,7 +54,7 @@ public class SuffixArray {
         this.bwt = bwt;
 
         if(sequenceInterval != 1 && bwt == null)
-            throw new StingException("A BWT must be provided if the sequence interval is not 1");
+            throw new GATKException("A BWT must be provided if the sequence interval is not 1");
     }
 
     /**
@@ -118,7 +119,7 @@ public class SuffixArray {
                 inverseSA0 = i;
         }
         if(inverseSA0 < 0)
-            throw new StingException("Unable to find first inverse SA entry in generated suffix array.");
+            throw new GATKException("Unable to find first inverse SA entry in generated suffix array.");
 
         return new SuffixArray(inverseSA0,occurrences,suffixArray);
     }    

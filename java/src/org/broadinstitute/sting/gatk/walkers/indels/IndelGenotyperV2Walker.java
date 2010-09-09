@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 import org.broad.tribble.FeatureSource;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -51,6 +48,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSource;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.collections.CircularArray;
@@ -213,7 +211,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 		normal_context = new WindowContext(0,WINDOW_SIZE);
 
         if ( bedOutput != null && output_file != null ) {
-            throw new StingException("-O option is deprecated and -bed option replaces it; you can not use both at the same time");
+            throw new UserError.DeprecatedArgument("-O", "-O option is deprecated and -bed option replaces it; you can not use both at the same time");
         }
 
 		if ( RefseqFileName != null ) {
@@ -225,7 +223,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             try {
                 refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
             } catch (IOException e) {
-                throw new StingException("Unable to open file " + RefseqFileName, e);
+                throw new UserError.CouldNotReadInputFile(new File(RefseqFileName), "Write failed", e);
             }
 		}
 
@@ -266,12 +264,12 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             if ( bedOutput != null ) bedWriter = new FileWriter(bedOutput);
             if ( output_file != null ) bedWriter = new FileWriter(output_file);
         } catch (java.io.IOException e) {
-            throw new StingException("Failed to open BED file for writing. "+ e.getMessage());
+            throw new UserError.CouldNotReadInputFile(bedOutput, "Failed to open BED file for writing.", e);
         }
         try {
             if ( verboseOutput != null ) verboseWriter = new FileWriter(verboseOutput);
         } catch (java.io.IOException e) {
-            throw new StingException("Failed to open verbose file for writing. "+ e.getMessage());
+            throw new UserError.CouldNotReadInputFile(verboseOutput, "Failed to open BED file for writing.", e);
         }
 
         vcf_writer.writeHeader(new VCFHeader(getVCFHeaderInfo(), SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader()))) ;
@@ -301,7 +299,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 // we just jumped onto a new contig
                 if ( DEBUG ) System.out.println("DEBUG>>> Moved to contig "+read.getReferenceName());
                 if ( read.getReferenceIndex() < currentContigIndex ) // paranoidal
-                    throw new StingException("Read "+read.getReadName()+": contig is out of order; input BAM file is unsorted");
+                    throw new UserError.MissortedBAM(SAMFileHeader.SortOrder.coordinate, read, "Read "+read.getReadName()+": contig is out of order; input BAM file is unsorted");
 
                 // print remaining indels from the previous contig (if any);
                 if ( call_somatic ) emit_somatic(1000000000, true);
@@ -329,10 +327,10 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             // tumor_context are synchronized exactly (windows are always shifted together by emit_somatic), so it's safe
 
             if ( read.getAlignmentStart() < currentPosition ) // oops, read out of order?
-                throw new StingException("Read "+read.getReadName() +" out of order on the contig\n"+
-                                         "Read starts at "+refName+":"+read.getAlignmentStart()+"; last read seen started at "+refName+":"+currentPosition
-					+"\nLast read was: "+lastRead.getReadName()+" RG="+lastRead.getAttribute("RG")+" at "+lastRead.getAlignmentStart()+"-"
-					+lastRead.getAlignmentEnd()+" cigar="+lastRead.getCigarString());
+                throw new UserError.MissortedBAM(SAMFileHeader.SortOrder.coordinate, read, "Read "+read.getReadName() +" out of order on the contig\n"+
+                        "Read starts at "+refName+":"+read.getAlignmentStart()+"; last read seen started at "+refName+":"+currentPosition
+                        +"\nLast read was: "+lastRead.getReadName()+" RG="+lastRead.getAttribute("RG")+" at "+lastRead.getAlignmentStart()+"-"
+                        +lastRead.getAlignmentEnd()+" cigar="+lastRead.getCigarString());
 
             currentPosition = read.getAlignmentStart();
             lastRead = read;
@@ -384,7 +382,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 // let's double check now that the read fits after the shift
                 if ( read.getAlignmentEnd() > normal_context.getStop()) {
                     // ooops, looks like the read does not fit into the window even after the latter was shifted!!
-                    throw new StingException("Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small.\n"+
+                    throw new UserError.MissortedBAM(SAMFileHeader.SortOrder.coordinate, read, "Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small.\n"+
                                              "Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
                                              read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+
                                              "; window start (after trying to accomodate the read)="+normal_context.getStart()+
@@ -395,14 +393,15 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             if ( call_somatic ) {
 
                 String rg = (String)read.getAttribute("RG");
-                if ( rg == null ) throw new StingException("Read "+read.getReadName()+" has no read group in merged stream. RG is required for somatic calls.");
+                if ( rg == null )
+                    throw new UserError.MalformedBam(read, "Read "+read.getReadName()+" has no read group in merged stream. RG is required for somatic calls.");
 
                 if ( normalReadGroups.contains(rg) ) {
                     normal_context.add(read,ref.getBases());
                 } else if ( tumorReadGroups.contains(rg) ) {
                     tumor_context.add(read,ref.getBases());
                 } else {
-                    throw new StingException("Unrecognized read group in merged stream: "+rg);
+                    throw new UserError.MalformedBam(read, "Unrecognized read group in merged stream: "+rg);
                 }
                 if ( tumor_context.getReads().size() > MAX_READ_NUMBER ) {
                     System.out.println("WARNING: a count of "+MAX_READ_NUMBER+" reads reached in a window "+
@@ -504,7 +503,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                             verboseWriter.write(fullRecord.toString());
                             verboseWriter.write('\n');
                         } catch (IOException e) {
-                            throw new StingException("Write failed (verbose writer). "+e.getMessage());
+                            throw new UserError.CouldNotCreateOutputFile(verboseOutput, "Write failed", e);
                         }
                     }
                 }
@@ -664,7 +663,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                         verboseWriter.write(fullRecord + "\t"+ annotationString);
                         verboseWriter.write('\n');
                     } catch (IOException e) {
-                        throw new StingException("Write failed (verbose writer). "+e.getMessage());
+                        throw new UserError.CouldNotCreateOutputFile(verboseOutput, "Write failed", e);
                     }
                 }
             }
@@ -1223,7 +1222,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
            try {
                 bed.write(message.toString()+"\n");
            } catch (IOException e) {
-                throw new StingException("Error encountered while writing into output BED file");
+               throw new UserError.CouldNotCreateOutputFile(bedOutput, "Error encountered while writing into output BED file", e);
            }
         }
 

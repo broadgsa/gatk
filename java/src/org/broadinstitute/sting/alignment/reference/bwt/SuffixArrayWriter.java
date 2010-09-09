@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedOutputStream;
 
@@ -27,7 +28,7 @@ public class SuffixArrayWriter {
             this.outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
         }
         catch( FileNotFoundException ex ) {
-            throw new StingException("Unable to open input file", ex);
+            throw new GATKException("Unable to open input file", ex);
         }
     }
 
@@ -48,7 +49,7 @@ public class SuffixArrayWriter {
             uintPackedOutputStream.write(suffixArray.sequence,1,suffixArray.sequence.length-1);
         }
         catch( IOException ex ) {
-            throw new StingException("Unable to read BWT from input stream.", ex);
+            throw new GATKException("Unable to read BWT from input stream.", ex);
         }
     }
 
@@ -61,7 +62,7 @@ public class SuffixArrayWriter {
             outputStream.close();
         }
         catch( IOException ex ) {
-            throw new StingException("Unable to close input file", ex);
+            throw new GATKException("Unable to close input file", ex);
         }
     }
 }

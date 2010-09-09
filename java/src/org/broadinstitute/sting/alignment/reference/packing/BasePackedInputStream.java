@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.packing;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.*;
@@ -51,7 +52,7 @@ public class BasePackedInputStream<T> {
 
     public BasePackedInputStream( Class<T> type, FileInputStream inputStream, ByteOrder byteOrder ) {
         if( type != Integer.class )
-            throw new StingException("Only bases packed into 32-bit words are currently supported by this input stream.  Type specified: " + type.getName());
+            throw new GATKException("Only bases packed into 32-bit words are currently supported by this input stream.  Type specified: " + type.getName());
         this.type = type;
         this.targetInputStream = inputStream;
         this.targetInputChannel = inputStream.getChannel();

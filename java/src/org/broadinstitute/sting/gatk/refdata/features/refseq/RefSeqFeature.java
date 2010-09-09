@@ -4,6 +4,7 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.refdata.Transcript;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
@@ -60,7 +61,7 @@ public class RefSeqFeature implements Transcript, Feature {
 
     /** Genomic location of the n-th exon; throws an exception if n is out of bounds */
     public GenomeLoc getExonLocation(int n) {
-        if ( n >= exons.size() || n < 0 ) throw new StingException("Index out-of-bounds. Transcript has " + exons.size() +" exons; requested: "+n);
+        if ( n >= exons.size() || n < 0 ) throw new GATKException("Index out-of-bounds. Transcript has " + exons.size() +" exons; requested: "+n);
         return exons.get(n);
     }
 

@@ -32,6 +32,7 @@ import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 /**
@@ -67,7 +68,7 @@ public class BufferingReadIterator implements CloseableIterator<SAMRecord> {
     }
 
     public void remove() {
-        throw new StingException("Unable to remove from a BufferingReadIterator");
+        throw new GATKException("Unable to remove from a BufferingReadIterator");
     }
 
     /**

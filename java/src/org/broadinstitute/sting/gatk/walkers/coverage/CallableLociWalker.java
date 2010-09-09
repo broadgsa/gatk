@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -91,7 +92,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
             PrintStream summaryOut = new PrintStream(summaryFile);
             summaryOut.close();
         } catch (FileNotFoundException e) {
-            throw new StingException("Cannot write to summary file " + summaryFile);
+            throw new UserError.CouldNotCreateOutputFile(summaryFile, e);
         }
     }
 
@@ -219,7 +220,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
 
                 summaryOut.close();
             } catch (FileNotFoundException e) {
-                throw new StingException(e.getMessage());
+                throw new UserError.CouldNotCreateOutputFile(summaryFile, e);
             }
         }
     }

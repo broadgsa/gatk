@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.concurrent.Callable;
@@ -83,7 +84,7 @@ public class ShardTraverser implements Callable {
         catch(Throwable t) {
             // Notify that an exception has occurred and rethrow it.
             microScheduler.notifyOfTraversalError(t);
-            throw new StingException("An error has occurred during traversal",t);
+            throw new GATKException("An error has occurred during traversal",t);
         }
         finally {
             synchronized(this) {
@@ -115,7 +116,7 @@ public class ShardTraverser implements Callable {
             }
         }
         catch( InterruptedException ex ) {
-            throw new StingException("Interrupted while waiting for more output to be finalized.",ex);
+            throw new GATKException("Interrupted while waiting for more output to be finalized.",ex);
         }
     }
 

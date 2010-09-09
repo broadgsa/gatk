@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.io.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.ReadMetrics;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
@@ -110,7 +111,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             mbs.registerMBean(this, name);
         }
         catch (JMException ex) {
-            throw new StingException("Unable to register microscheduler with JMX", ex);
+            throw new GATKException("Unable to register microscheduler with JMX", ex);
         }
     }
 
@@ -130,7 +131,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         while (isShardTraversePending() || isTreeReducePending()) {
             // Check for errors during execution.
             if(hasTraversalErrorOccurred())
-                throw new StingException("An error has occurred during the traversal.",getTraversalError());
+                throw new GATKException("An error has occurred during the traversal.",getTraversalError());
 
             // Too many files sitting around taking up space?  Merge them.
             if (isMergeLimitExceeded())
@@ -159,7 +160,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             notifyTraversalDone(walker,result);
         }
         catch (Exception ex) {
-            throw new StingException("Unable to retrieve result", ex);
+            throw new GATKException("Unable to retrieve result", ex);
         }
 
         outputTracker.close();
@@ -359,7 +360,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
     private synchronized Throwable getTraversalError() {
         if(!hasTraversalErrorOccurred())
-            throw new StingException("User has attempted to retrieve a traversal error when none exists");
+            throw new GATKException("User has attempted to retrieve a traversal error when none exists");
         return error;
     }
 

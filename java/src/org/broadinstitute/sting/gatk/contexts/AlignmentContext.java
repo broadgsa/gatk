@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.contexts;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -68,8 +69,8 @@ public class AlignmentContext {
 
     public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup, long skippedBases,boolean hasPileupBeenDownsampled ) {
         if ( loc == null ) throw new StingException("BUG: GenomeLoc in Alignment context is null");
-        if ( basePileup == null ) throw new StingException("BUG: ReadBackedPileup in Alignment context is null");
-        if ( skippedBases < 0 ) throw new StingException("BUG: skippedBases is -1 in Alignment context");
+        if ( basePileup == null ) throw new GATKException("BUG: ReadBackedPileup in Alignment context is null");
+        if ( skippedBases < 0 ) throw new GATKException("BUG: skippedBases is -1 in Alignment context");
 
         this.loc = loc;
         this.basePileup = basePileup;
@@ -90,7 +91,7 @@ public class AlignmentContext {
      */
     public ReadBackedPileup getBasePileup() {
         if(!hasBasePileup())
-            throw new StingException("No base pileup is available.  Please check for a base pileup with hasBasePileup() before attempting to retrieve a pileup.");
+            throw new GATKException("No base pileup is available.  Please check for a base pileup with hasBasePileup() before attempting to retrieve a pileup.");
         return basePileup;
     }
 
@@ -100,7 +101,7 @@ public class AlignmentContext {
      */
     public ReadBackedExtendedEventPileup getExtendedEventPileup() {
         if(!hasExtendedEventPileup())
-            throw new StingException("No extended event pileup is present.");
+            throw new GATKException("No extended event pileup is present.");
         return (ReadBackedExtendedEventPileup)basePileup; 
     }
 

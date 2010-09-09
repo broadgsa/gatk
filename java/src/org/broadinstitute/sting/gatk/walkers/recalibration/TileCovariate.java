@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.util.IlluminaUtil;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 /**
  * @author alecw@broadinstitute.org
@@ -47,7 +48,7 @@ public class TileCovariate implements ExperimentalCovariate {
         Integer tile = IlluminaUtil.getTileFromReadName(read.getReadName());
         if (tile == null) {
             if( exceptionWhenNoTile ) {
-                throw new StingException( "Tile number not defined for read: " + read.getReadName() );
+                throw new UserError.MalformedBam(read, "Tile covariate specified but tile number not defined for read: " + read.getReadName() );
             } else {
                 return -1;
             }

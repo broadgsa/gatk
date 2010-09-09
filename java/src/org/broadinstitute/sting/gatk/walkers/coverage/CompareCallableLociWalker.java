@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broad.tribble.bed.FullBEDFeature;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.util.*;
 import java.io.PrintStream;
@@ -94,7 +95,7 @@ public class CompareCallableLociWalker extends RodWalker<List<CallableLociWalker
         //System.out.printf("tracker %s%n", tracker);
         List<Object> bindings = tracker.getReferenceMetaData(track);
         if ( bindings.size() != 1 || ! (bindings.get(0) instanceof FullBEDFeature)) {
-            throw new StingException(String.format("%s track isn't a properly formated CallableBases object!", track));
+            throw new UserError.MalformedFile(String.format("%s track isn't a properly formated CallableBases object!", track));
         }
 
         FullBEDFeature bed = (FullBEDFeature)bindings.get(0);

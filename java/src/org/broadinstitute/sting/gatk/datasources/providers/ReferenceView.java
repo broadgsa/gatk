@@ -1,10 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.*;
 
 import java.util.Collections;
 import java.util.Collection;
@@ -84,7 +81,7 @@ public class ReferenceView implements View {
         int overhang = (int)(genomeLoc.getStop() - stop);
         if ( overhang > 0 ) {
             if ( overhang > BUFFER ) // todo -- this is a bit dangerous
-                throw new StingException("Insufficient buffer size for Xs overhanging genome -- expand BUFFER");
+                throw new GATKException("Insufficient buffer size for Xs overhanging genome -- expand BUFFER");
             byte[] all = new byte[subsequence.getBases().length + overhang];
             System.arraycopy(subsequence.getBases(), 0, all, 0, subsequence.getBases().length);
             System.arraycopy(Xs, 0, all, subsequence.getBases().length, overhang);

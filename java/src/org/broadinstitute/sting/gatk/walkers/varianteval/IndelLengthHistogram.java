@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 /**
@@ -77,7 +78,7 @@ public class IndelLengthHistogram extends VariantEvaluator {
 
         private int len2index(int len) {
             if ( len > limit || len < -limit ) {
-                throw new StingException("Indel length exceeds limit of "+limit+" please increase indel limit size");
+                throw new GATKException("Indel length exceeds limit of "+limit+" please increase indel limit size");
             }
             return len + limit;
         }
@@ -105,7 +106,7 @@ public class IndelLengthHistogram extends VariantEvaluator {
             } else if ( vc1.isDeletion() ) {
                 indelHistogram.update(-vc1.getReference().length());
             } else {
-                throw new StingException("Indel type that is not insertion or deletion.");
+                throw new GATKException("Indel type that is not insertion or deletion.");
             }
         }
 

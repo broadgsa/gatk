@@ -2,6 +2,7 @@ package org.broadinstitute.sting.alignment.bwa.c;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
@@ -29,15 +30,15 @@ public class BWACAligner extends BWAAligner {
     public BWACAligner(BWTFiles bwtFiles, BWAConfiguration configuration) {
         super(bwtFiles,configuration);
         if(thunkPointer != 0)
-            throw new StingException("BWA/C attempting to reinitialize.");
+            throw new GATKException("BWA/C attempting to reinitialize.");
 
-        if(!bwtFiles.annFile.exists()) throw new StingException("ANN file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!bwtFiles.ambFile.exists()) throw new StingException("AMB file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!bwtFiles.pacFile.exists()) throw new StingException("PAC file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!bwtFiles.forwardBWTFile.exists()) throw new StingException("Forward BWT file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!bwtFiles.forwardSAFile.exists()) throw new StingException("Forward SA file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!bwtFiles.reverseBWTFile.exists()) throw new StingException("Reverse BWT file is missing; please rerun 'bwa aln' to regenerate it.");
-        if(!bwtFiles.reverseSAFile.exists()) throw new StingException("Reverse SA file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.annFile.exists()) throw new GATKException("ANN file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.ambFile.exists()) throw new GATKException("AMB file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.pacFile.exists()) throw new GATKException("PAC file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.forwardBWTFile.exists()) throw new GATKException("Forward BWT file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.forwardSAFile.exists()) throw new GATKException("Forward SA file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.reverseBWTFile.exists()) throw new GATKException("Reverse BWT file is missing; please rerun 'bwa aln' to regenerate it.");
+        if(!bwtFiles.reverseSAFile.exists()) throw new GATKException("Reverse SA file is missing; please rerun 'bwa aln' to regenerate it.");
 
         thunkPointer = create(bwtFiles,configuration);
     }
@@ -60,7 +61,7 @@ public class BWACAligner extends BWAAligner {
     @Override
     public void updateConfiguration(BWAConfiguration configuration) {
         if(thunkPointer != 0)
-            throw new StingException("BWA/C: attempting to update configuration of uninitialized aligner.");
+            throw new GATKException("BWA/C: attempting to update configuration of uninitialized aligner.");
         updateConfiguration(thunkPointer,configuration);
     }
 
@@ -70,7 +71,7 @@ public class BWACAligner extends BWAAligner {
     @Override
     public void close() {
         if(thunkPointer == 0)
-            throw new StingException("BWA/C close attempted, but BWA/C is not properly initialized.");
+            throw new GATKException("BWA/C close attempted, but BWA/C is not properly initialized.");
         destroy(thunkPointer);
     }
 
@@ -82,7 +83,7 @@ public class BWACAligner extends BWAAligner {
     @Override
     public Alignment getBestAlignment(final byte[] bases) {
         if(thunkPointer == 0)
-            throw new StingException("BWA/C getBestAlignment attempted, but BWA/C is not properly initialized.");
+            throw new GATKException("BWA/C getBestAlignment attempted, but BWA/C is not properly initialized.");
         return getBestAlignment(thunkPointer,bases);
     }
 
@@ -193,7 +194,7 @@ public class BWACAligner extends BWAAligner {
      */
     public BWAPath[] getPaths(byte[] bases) {
         if(thunkPointer == 0)
-            throw new StingException("BWA/C getPaths attempted, but BWA/C is not properly initialized.");
+            throw new GATKException("BWA/C getPaths attempted, but BWA/C is not properly initialized.");
         return getPaths(thunkPointer,bases);
     }
 
@@ -226,7 +227,7 @@ public class BWACAligner extends BWAAligner {
      */
     protected Alignment[] convertPathsToAlignments(byte[] bases, BWAPath[] paths) {
         if(thunkPointer == 0)
-            throw new StingException("BWA/C convertPathsToAlignments attempted, but BWA/C is not properly initialized.");
+            throw new GATKException("BWA/C convertPathsToAlignments attempted, but BWA/C is not properly initialized.");
         return convertPathsToAlignments(thunkPointer,bases,paths);
     }
 

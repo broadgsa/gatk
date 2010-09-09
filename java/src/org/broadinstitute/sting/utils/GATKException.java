@@ -22,31 +22,18 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.commandline;
+package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
-
-import java.lang.annotation.Annotation;
-
-public enum ArgumentIOType {
-    INPUT(Input.class), OUTPUT(Output.class), ARGUMENT(Argument.class);
-
-    public final Class<? extends Annotation> annotationClass;
-
-    ArgumentIOType(Class<? extends Annotation> annotationClass) {
-        this.annotationClass = annotationClass;
+/**
+ * Temp class to track split from Sting exception to UserError
+ */
+public class GATKException extends StingException {
+    public GATKException(String msg) {
+        super(msg);
     }
 
-    /**
-     * Returns the ArgumentIOType for the annotation.
-     * @param annotation @Input or @Output
-     * @return ArgumentIOType.Input, Output, or Unknown
-     */
-    public static ArgumentIOType getIOType(Annotation annotation) {
-        for (ArgumentIOType ioType: ArgumentIOType.values())
-            if (ioType.annotationClass.isAssignableFrom(annotation.getClass()))
-                return ioType;
-        throw new GATKException("Unknown annotation type: " + annotation);
+    public GATKException(String message, Throwable throwable) {
+        super(message, throwable);
     }
 }
+

@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.*;
@@ -233,7 +234,7 @@ public class RecalDataManager {
                 readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
                 ((GATKSAMRecord)read).setReadGroup( readGroup );
             } else {
-                throw new StingException("The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName() +
+                throw new UserError.MalformedBam(read, "The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName() +
                                          " Users must set both the default read group using the --default_read_group <String> argument and the default platform using the --default_platform <String> argument." );
             }
         }
@@ -259,7 +260,7 @@ public class RecalDataManager {
                 }
                 readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
             } else {
-                throw new StingException("The input .bam file contains reads with no platform information. First observed at read with name = " + read.getReadName() +
+                throw new UserError.MalformedBam(read, "The input .bam file contains reads with no platform information. First observed at read with name = " + read.getReadName() +
                                          " Users must set the default platform using the --default_platform <String> argument." );
             }
         }
@@ -292,14 +293,14 @@ public class RecalDataManager {
                     int iii;
                     byte prevBase = colorSpace[0]; // The sentinel
                     for( iii = 0; iii < readBases.length; iii++ ) {
-                        final byte thisBase = getNextBaseFromColor( prevBase, colorSpace[iii + 1] );
+                        final byte thisBase = getNextBaseFromColor( read, prevBase, colorSpace[iii + 1] );
                         inconsistency[iii] = (byte)( thisBase == readBases[iii] ? 0 : 1 );
                         prevBase = readBases[iii];
                     }
                     read.setAttribute( RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency );
 
                 } else {
-                    throw new StingException("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
+                    throw new UserError.MalformedBam(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
                                             " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
                 }
             }
@@ -324,7 +325,7 @@ public class RecalDataManager {
             if( attr instanceof String ) {
                 colorSpace = ((String)attr).getBytes();
             } else {
-                throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+                throw new GATKException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
             }
 
             // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
@@ -338,7 +339,7 @@ public class RecalDataManager {
             final int[] inconsistency = new int[readBases.length];
             byte prevBase = colorSpace[0]; // The sentinel
             for( int iii = 0; iii < readBases.length; iii++ ) {
-                final byte thisBase = getNextBaseFromColor( prevBase, colorSpace[iii + 1] );
+                final byte thisBase = getNextBaseFromColor( read, prevBase, colorSpace[iii + 1] );
                 colorImpliedBases[iii] = thisBase;
                 inconsistency[iii] = ( thisBase == readBases[iii] ? 0 : 1 );
                 prevBase = readBases[iii];
@@ -356,8 +357,8 @@ public class RecalDataManager {
             }
 
         } else {
-            throw new StingException("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
-                                    " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
+            throw new UserError.MalformedBam(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
+                    " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
         }
 
         return originalQualScores;
@@ -371,7 +372,7 @@ public class RecalDataManager {
                 if( attr instanceof String ) {
                     colorSpace = ((String)attr).substring(1).getBytes(); // trim off the Sentinel
                 } else {
-                    throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+                    throw new GATKException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
                 }
 
                 for( byte color : colorSpace ) {
@@ -381,7 +382,7 @@ public class RecalDataManager {
                 }
 
             } else {
-                throw new StingException("Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
+                throw new UserError.MalformedBam(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
                                         " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
             }
         }
@@ -446,7 +447,7 @@ public class RecalDataManager {
                 colorSpaceQuals = x.getBytes();
                 SAMUtils.fastqToPhred(colorSpaceQuals);
             } else {
-                throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+                throw new GATKException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG, read.getReadName()));
             }
 
             for( int iii = 1; iii < inconsistency.length - 1; iii++ ) {
@@ -491,7 +492,7 @@ public class RecalDataManager {
             }
             read.setReadBases( readBases );
         } else { // No color space quality tag in file
-            throw new StingException("REMOVE_REF_BIAS recal mode requires color space qualities but they can't be found for read: " + read.getReadName());
+            throw new UserError.MalformedBam(read, "REMOVE_REF_BIAS recal mode requires color space qualities but they can't be found for read: " + read.getReadName());
         }
     }
 
@@ -501,7 +502,7 @@ public class RecalDataManager {
      * @param color The color
      * @return The next base in the sequence
      */
-    private static byte getNextBaseFromColor( final byte prevBase, final byte color ) {
+    private static byte getNextBaseFromColor( SAMRecord read, final byte prevBase, final byte color ) {
         switch(color) {
             case '0':
                 return prevBase;
@@ -512,7 +513,7 @@ public class RecalDataManager {
             case '3':
                 return performColorThree( prevBase );
             default:
-                throw new StingException( "Unrecognized color space in SOLID read, color = " + (char)color +
+                throw new UserError.MalformedBam(read, "Unrecognized color space in SOLID read, color = " + (char)color +
                                           " Unfortunately this bam file can not be recalibrated without full color space information because of potential reference bias.");
         }
     }

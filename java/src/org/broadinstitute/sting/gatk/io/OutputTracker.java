@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.ArgumentSource;
@@ -140,7 +141,7 @@ public abstract class OutputTracker {
      */
     protected <T> T getTargetStream( Stub<T> stub ) {
         if( !outputs.containsKey(stub) )
-            throw new StingException("OutputTracker was not notified that this stub exists: " + stub);
+            throw new GATKException("OutputTracker was not notified that this stub exists: " + stub);
         Storage<T> storage = outputs.get(stub);
         if( storage == null ) {
             storage = StorageFactory.createStorage(stub);

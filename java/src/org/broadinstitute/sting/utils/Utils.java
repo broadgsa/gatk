@@ -74,23 +74,7 @@ public class Utils {
         return fullyQualifiedName.substring (0, lastDot);
     }
 
-    public static void warnUser(final String msg) {
-        logger.warn(String.format("********************************************************************************"));
-        logger.warn(String.format("* WARNING:"));
-        logger.warn(String.format("*"));
-        prettyPrintWarningMessage(msg);
-        logger.warn(String.format("********************************************************************************"));
-    }
 
-    public static void scareUser(final String msg) {
-        //System.out.printf("********************************************************************************%n");
-        //System.out.printf("* ERROR:%n");
-        //System.out.printf("*%n");
-        //System.out.printf("* %s%n", msg);
-        //System.out.printf("********************************************************************************%n");
-        logger.fatal(msg);
-        throw new StingException(msg);
-    }
 
     /**
      * Compares two objects, either of which might be null.
@@ -112,6 +96,15 @@ public class Utils {
         if (l != null) l2.addAll(l);
         return l2;
     }
+
+    public static void warnUser(final String msg) {
+        logger.warn(String.format("********************************************************************************"));
+        logger.warn(String.format("* WARNING:"));
+        logger.warn(String.format("*"));
+        prettyPrintWarningMessage(msg);
+        logger.warn(String.format("********************************************************************************"));
+    }
+    
 
     /**
      * pretty print the warning message supplied

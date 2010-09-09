@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
@@ -184,7 +185,7 @@ public abstract class Accumulator {
          */
         public void accumulate( ShardDataProvider provider, Object result ) {
             if(!(provider instanceof LocusShardDataProvider))
-                throw new StingException("Unable to reduce by interval on reads traversals at this time.");
+                throw new GATKException("Unable to reduce by interval on reads traversals at this time.");
 
             GenomeLoc location = ((LocusShardDataProvider)provider).getLocus();
 

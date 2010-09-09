@@ -11,8 +11,10 @@ import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.IOException;
 import java.util.List;
@@ -155,7 +157,7 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
             return null;
         }
         else {
-            throw new StingException("Unable to find a ROD iterator for segments of type " + segment.getClass());
+            throw new GATKException("Unable to find a ROD iterator for segments of type " + segment.getClass());
         }
     }
 
@@ -223,7 +225,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureSource, Location
         try {
             resource.close();
         } catch (IOException e) {
-            throw new StingException("Unable to close reader for rod named " + rod.getName(),e);
+            throw new UserError.CouldNotReadInputFile("Unable to close reader for rod named " + rod.getName(),e);
         }
     }
 }

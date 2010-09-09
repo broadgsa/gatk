@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
@@ -71,7 +72,7 @@ public class ShardStrategyFactory {
             case READS_EXPERIMENTAL:
                 return new ReadShardStrategy(readsDataSource,null);
             default:
-                throw new StingException("Strategy: " + strat + " isn't implemented for this type of shatter request");
+                throw new GATKException("Strategy: " + strat + " isn't implemented for this type of shatter request");
         }
 
     }
@@ -109,7 +110,7 @@ public class ShardStrategyFactory {
             case READS_EXPERIMENTAL:
                 return new ReadShardStrategy(readsDataSource,lst);
             default:
-                throw new StingException("Strategy: " + strat + " isn't implemented");
+                throw new GATKException("Strategy: " + strat + " isn't implemented");
         }
 
     }

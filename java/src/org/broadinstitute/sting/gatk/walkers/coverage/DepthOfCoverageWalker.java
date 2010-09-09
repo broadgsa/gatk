@@ -36,13 +36,11 @@ import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.*;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.File;
 import java.io.IOException;
@@ -227,7 +225,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
                 partition.add(String.format("%s_pl_%s_cn_%s",rg.getSample(),rg.getPlatform(),rg.getSequencingCenter()));
             }
         } else {
-            throw new StingException("Invalid aggregation type sent to getSamplesFromToolKit");
+            throw new GATKException("Invalid aggregation type sent to getSamplesFromToolKit");
         }
 
         return partition;
@@ -290,7 +288,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
                         getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.statistics),
                         partition);
             } else {
-                throw new StingException("Partition type "+partition.toString()+" had no entries. Please check that your .bam header has all appropriate partition types.");
+                throw new GATKException("Partition type "+partition.toString()+" had no entries. Please check that your .bam header has all appropriate partition types.");
             }
         }
 
@@ -405,7 +403,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
         try {
             return new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
         } catch (IOException e) {
-            throw new StingException("Unable to open file " + refSeqGeneList, e);
+            throw new UserError.CouldNotReadInputFile(refSeqGeneList, "Unable to open file", e);
         }
     }
 
@@ -615,7 +613,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     private PrintStream getCorrectStream(DoCOutputType.Partition partition, DoCOutputType.Aggregation aggregation, DoCOutputType.FileType fileType) {
         DoCOutputType outputType = new DoCOutputType(partition,aggregation,fileType);
         if(!out.containsKey(outputType))
-            throw new StingException(String.format("Unable to find appropriate stream for partition = %s, aggregation = %s, file type = %s",partition,aggregation,fileType));
+            throw new UserError.CommandLineError(String.format("Unable to find appropriate stream for partition = %s, aggregation = %s, file type = %s",partition,aggregation,fileType));
         return out.get(outputType);
     }
 
@@ -767,7 +765,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
             int index = 0;
             for ( String s : namesInAg ) {
                 if ( ! s.equalsIgnoreCase(order.get(index)) ) {
-                    throw new StingException("IDs are out of order for type "+t+"! Aggregator has different ordering");
+                    throw new GATKException("IDs are out of order for type "+t+"! Aggregator has different ordering");
                 }
                 index++;
             }
@@ -776,7 +774,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
 
     public boolean checkType(DepthOfCoverageStats stats, DoCOutputType.Partition type ) {
         if ( stats.getHistograms().size() < 1 ) {
-            Utils.warnUser("The histogram per partition type "+type.toString()+" was empty\n"+
+            logger.warn("The histogram per partition type "+type.toString()+" was empty\n"+
                     "Do your read groups have this type? (Check your .bam header).");
             return false;
         } else {

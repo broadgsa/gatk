@@ -25,10 +25,12 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
 import org.apache.log4j.Logger;
@@ -293,9 +295,9 @@ public class ParsingEngine {
         // Grab the first argument definition and report that one as the failure.  Theoretically, we should notify of all failures.
         List<ArgumentDefinition> definitions = argumentSource.createArgumentDefinitions();
         if(definitions.size() < 1)
-            throw new StingException("Internal error.  Argument source creates no definitions.");
+            throw new GATKException("Internal error.  Argument source creates no definitions.");
         ArgumentDefinition definition = definitions.get(0);
-        throw new StingException(String.format("The parameter %s is deprecated.  %s",definition.fullName,definition.doc));
+        throw new UserError.DeprecatedArgument(definition.fullName,definition.doc);
     }
 
     /**
@@ -314,7 +316,7 @@ public class ParsingEngine {
 
         // Abort if no home is found for the object.
         if( targets.size() == 0 )
-            throw new StingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
+            throw new GATKException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
 
         for( Object target: targets ) {
             Object value = (argumentMatches.size() != 0) ? source.parse(this,argumentMatches) : source.createDefault();

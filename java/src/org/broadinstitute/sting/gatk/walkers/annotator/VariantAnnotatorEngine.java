@@ -49,6 +49,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator.*;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.exceptions.UserError;
@@ -168,7 +169,7 @@ public class VariantAnnotatorEngine {
         Collection<VariantContext> results = this.annotateContext(tracker, ref, EMPTY_STRATIFIED_ALIGNMENT_CONTEXT, vc);
 
         if ( results.size() != 1 )
-            throw new StingException("BUG: annotateContext call requires 1 resulting annotated VC, but got " + results);
+            throw new GATKException("BUG: annotateContext call requires 1 resulting annotated VC, but got " + results);
 
         return results.iterator().next();
 

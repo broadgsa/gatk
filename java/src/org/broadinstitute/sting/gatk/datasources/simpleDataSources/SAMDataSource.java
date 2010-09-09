@@ -41,7 +41,9 @@ import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.File;
 import java.util.*;
@@ -126,7 +128,7 @@ public class SAMDataSource implements SimpleDataSource {
 
             // Validate that all input files are sorted in the same order.
             if(this.sortOrder != null && this.sortOrder != sortOrder)
-                throw new StingException(String.format("Attempted to process mixed of files sorted as %s and %s.",this.sortOrder,sortOrder));
+                throw new UserError.MissortedBAM(String.format("Attempted to process mixed of files sorted as %s and %s.",this.sortOrder,sortOrder));
 
             // Update the sort order.
             this.sortOrder = sortOrder;
@@ -293,7 +295,7 @@ public class SAMDataSource implements SimpleDataSource {
      */
     public void fillShard(BAMFormatAwareShard shard) {
         if(!shard.buffersReads())
-            throw new StingException("Attempting to fill a non-buffering shard.");
+            throw new GATKException("Attempting to fill a non-buffering shard.");
 
         SAMReaders readers = resourcePool.getAvailableReaders();
         // Cache the most recently viewed read so that we can check whether we've reached the end of a pair.
@@ -325,7 +327,7 @@ public class SAMDataSource implements SimpleDataSource {
             return seekMonolithic(shard);
 
         if(!(shard instanceof BAMFormatAwareShard))
-            throw new StingException("BlockDrivenSAMDataSource cannot operate on shards of type: " + shard.getClass());
+            throw new GATKException("BlockDrivenSAMDataSource cannot operate on shards of type: " + shard.getClass());
         BAMFormatAwareShard bamAwareShard = (BAMFormatAwareShard)shard;
 
         if(bamAwareShard.buffersReads()) {
@@ -348,7 +350,7 @@ public class SAMDataSource implements SimpleDataSource {
             if(readers.getReader(id) == read.getFileSource().getReader())
                 return id;
         }
-        throw new StingException("Unable to find id for reader associated with read " + read.getReadName());
+        throw new GATKException("Unable to find id for reader associated with read " + read.getReadName());
     }
 
     /**
@@ -507,7 +509,7 @@ public class SAMDataSource implements SimpleDataSource {
 
         public synchronized void releaseReaders(SAMReaders readers) {
             if(!allResources.contains(readers))
-                throw new StingException("Tried to return readers from the pool that didn't originate in the pool.");
+                throw new GATKException("Tried to return readers from the pool that didn't originate in the pool.");
             availableResources.add(readers);
         }
 
@@ -522,12 +524,12 @@ public class SAMDataSource implements SimpleDataSource {
                 if(id != null)
                     return id;
             }
-            throw new StingException("No such reader id is available");
+            throw new GATKException("No such reader id is available");
         }
 
         private synchronized void createNewResource() {
             if(allResources.size() > maxEntries)
-                throw new StingException("Cannot create a new resource pool.  All resources are in use.");
+                throw new GATKException("Cannot create a new resource pool.  All resources are in use.");
             SAMReaders readers = new SAMReaders(readProperties);
             allResources.add(readers);
             availableResources.add(readers);

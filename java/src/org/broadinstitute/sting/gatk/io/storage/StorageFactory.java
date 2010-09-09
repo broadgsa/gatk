@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
@@ -85,7 +86,7 @@ public class StorageFactory {
                 storage = new VCFWriterStorage(vcfWriterStub);
         }
         else
-            throw new StingException("Unsupported stub type: " + stub.getClass().getName());
+            throw new GATKException("Unsupported stub type: " + stub.getClass().getName());
 
         return storage;
     }

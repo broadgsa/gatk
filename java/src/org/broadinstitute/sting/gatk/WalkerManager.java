@@ -30,6 +30,7 @@ import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
@@ -168,7 +169,7 @@ public class WalkerManager extends PluginManager<Walker> {
     public static DataSource getWalkerDataSource(Class<? extends Walker> walkerClass) {
         By byDataSource = walkerClass.getAnnotation(By.class);
         if( byDataSource == null )
-            throw new StingException("Unable to find By annotation for walker class " + walkerClass.getName());
+            throw new GATKException("Unable to find By annotation for walker class " + walkerClass.getName());
         return byDataSource.value();
     }
 
@@ -397,7 +398,7 @@ public class WalkerManager extends PluginManager<Walker> {
     private static Requires getWalkerRequirements(Class<? extends Walker> walkerClass) {
         Requires requiresDataSource = walkerClass.getAnnotation(Requires.class);
         if( requiresDataSource == null )
-            throw new StingException( "Unable to find data types required by walker class " + walkerClass.getName());
+            throw new GATKException( "Unable to find data types required by walker class " + walkerClass.getName());
         return requiresDataSource;
     }
 

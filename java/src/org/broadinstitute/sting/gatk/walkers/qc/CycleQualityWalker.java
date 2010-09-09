@@ -30,8 +30,10 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -80,7 +82,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
     private Map<String,CycleStats[]> cyclesByLibraryMapOrig = null;
 
     public void initialize() {
-        if ( PREFIX == null ) throw new StingException("Prefix for output file(s) must be specified");
+        if ( PREFIX == null ) throw new GATKException("Prefix for output file(s) must be specified");
         cyclesByLaneMap = new HashMap<String,CycleStats[]>();
         cyclesByLibraryMap = new HashMap<String,CycleStats[]>();
         cyclesByLaneMapOrig = new HashMap<String,CycleStats[]>();
@@ -94,23 +96,25 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
 
         SAMReadGroupRecord rg = read.getReadGroup();
 
-        if ( rg == null ) throw new StingException("Read "+read.getReadName()+" is not assigned to any read group");
+        if ( rg == null ) throw new UserError.ReadMissingReadGroup(read);
 
         String lane = read.getReadGroup().getPlatformUnit();
         String library = read.getReadGroup().getLibrary();
 
-        if ( lane == null ) throw new StingException("Read "+read.getReadName()+" has no platform unit information");
-        if ( library == null ) throw new StingException("Read "+read.getReadName()+" has no library information");
+        if ( lane == null ) throw new UserError.MalformedBam(read, "Read "+read.getReadName()+" has no platform unit information");
+        if ( library == null ) throw new UserError.MalformedBam(read, "Read "+read.getReadName()+" has no library information");
 
         int end = 0;
 
         if ( read.getReadPairedFlag() ) {
 
             if ( read.getFirstOfPairFlag() ) {
-                if ( read.getSecondOfPairFlag() ) throw new StingException("Read "+read.getReadName()+" has conflicting first/second in pair attributes");
+                if ( read.getSecondOfPairFlag() )
+                    throw new UserError.MalformedBam(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
                 end = 1;
             } else {
-                if ( ! read.getSecondOfPairFlag() ) throw new StingException("Read "+read.getReadName()+" has conflicting first/second in pair attributes");
+                if ( ! read.getSecondOfPairFlag() )
+                    throw new UserError.MalformedBam(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
                 end = 2;
             }
         }
@@ -357,7 +361,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
             }
 
         } catch (IOException ioe) {
-            throw new StingException("Failed to write report into the file "+f+":\n"+ioe.getMessage());
+            throw new UserError.CouldNotCreateOutputFile(f, "Failed to write report", ioe);
         }
     }
 
@@ -403,8 +407,8 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
         }
 
         public void add(byte[] quals) {
-            if ( quals.length > cycleQualsAv.length ) throw new StingException("A read of length "+quals.length+
-                    " encountered, which exceeds specified maximum read length");
+            if ( quals.length > cycleQualsAv.length )
+                throw new UserError("A read of length "+quals.length+" encountered, which exceeds specified maximum read length");
             if ( quals.length > maxL ) maxL = quals.length;
             if ( quals.length < minL ) minL = quals.length;
             readCount++;

@@ -5,6 +5,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -52,7 +53,7 @@ public class CycleCovariate implements StandardCovariate {
                 RAC.DEFAULT_PLATFORM.contains( "454" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "SOLID" ) || RAC.DEFAULT_PLATFORM.equalsIgnoreCase( "ABI_SOLID" ) ) {
                 // nothing to do
             } else {
-                throw new StingException( "The requested default platform (" + RAC.DEFAULT_PLATFORM +") is not a recognized platform. Implemented options are illumina, 454, and solid");
+                throw new UserError.CommandLineError("The requested default platform (" + RAC.DEFAULT_PLATFORM +") is not a recognized platform. Implemented options are illumina, 454, and solid");
             }
         }
     }

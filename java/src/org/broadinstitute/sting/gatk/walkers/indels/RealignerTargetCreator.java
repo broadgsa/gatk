@@ -33,11 +33,13 @@ import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
@@ -83,7 +85,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
     public void initialize() {
         if ( windowSize < 2 )
-            throw new StingException("Window Size must be an integer greater than 1");
+            throw new UserError.BadArgumentValue("windowSize", "Window Size must be an integer greater than 1");
     }
 
     public Event map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

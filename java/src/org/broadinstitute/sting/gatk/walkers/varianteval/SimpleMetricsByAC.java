@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.ArrayList;
@@ -74,7 +75,7 @@ public class SimpleMetricsByAC extends VariantEvaluator implements StandardEval 
                 case 3: return String.valueOf(nTi + nTv);
                 case 4: return String.valueOf(ratio(nTi, nTv));
                 default:
-                    throw new StingException("Unexpected column " + i);
+                    throw new GATKException("Unexpected column " + i);
             }
         }
     }
