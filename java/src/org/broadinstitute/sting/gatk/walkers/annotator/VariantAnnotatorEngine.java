@@ -51,6 +51,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 
 public class VariantAnnotatorEngine {
@@ -104,7 +105,7 @@ public class VariantAnnotatorEngine {
                 if ( interfaceClass == null )
                     interfaceClass = classMap.get(group + "Annotation");
                 if ( interfaceClass == null )
-                    throw new StingException("Class " + group + " is not found; please check that you have specified the class name correctly");
+                    throw new UserError.BadArgumentValue("group", "Class " + group + " is not found; please check that you have specified the class name correctly");
                 classes.addAll(PackageUtils.getClassesImplementingInterface(interfaceClass));
             }
             // get the specific classes provided
@@ -113,7 +114,7 @@ public class VariantAnnotatorEngine {
                 if ( annotationClass == null )
                     annotationClass = classMap.get(annotation + "Annotation");
                 if ( annotationClass == null )
-                    throw new StingException("Class " + annotation + " is not found; please check that you have specified the class name correctly");
+                    throw new UserError.BadArgumentValue("annotation", "Class " + annotation + " is not found; please check that you have specified the class name correctly");
                 classes.add(annotationClass);
             }
         }

@@ -33,6 +33,7 @@ import java.util.List;
 
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 /**
  * Used to parse files passed to the GenomicAnnotator via the -J arg.
@@ -90,7 +91,7 @@ public class JoinTableParser
         final ArrayList<String> values = Utils.split(line, DELIMITER, header.size());
 
         if ( values.size() != header.size() ) {
-            throw new StingException(String.format("Encountered a row with %d columns which is different from the number or columns in the header: %d\nHeader: " + header + "\nLine: " + values, values.size(), header.size()));
+            throw new UserError.MalformedFile(String.format("Encountered a row with %d columns which is different from the number or columns in the header: %d\nHeader: " + header + "\nLine: " + values, values.size(), header.size()));
         }
 
         return values;

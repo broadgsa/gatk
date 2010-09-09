@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.io.storage;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.storage.Storage;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.*;
 import java.nio.channels.FileChannel;
@@ -72,7 +73,7 @@ public class OutputStreamStorage extends OutputStream implements Storage<OutputS
             return new FileOutputStream( file );
         }
         catch(FileNotFoundException ex) {
-            throw new StingException("Unable to open output stream for file: " + file);
+            throw new UserError.CouldNotCreateOutputFile(file, "Unable to open output stream for file", ex);
         }
     }
 
@@ -135,10 +136,10 @@ public class OutputStreamStorage extends OutputStream implements Storage<OutputS
             file.delete();
         }
         catch( FileNotFoundException ex ) {
-            throw new StingException("Unable to open input stream for file: " + file,ex);
+            throw new UserError.CouldNotReadInputFile(file, "Unable to open input stream for file", ex);
         }
         catch( IOException ex ) {
-            throw new StingException("Unable to transfer contents of file:" + file,ex);
+            throw new UserError.CouldNotReadInputFile(file, "Unable to transfer contents of file", ex);
         }
     }
 }

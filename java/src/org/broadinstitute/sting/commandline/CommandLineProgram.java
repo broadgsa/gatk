@@ -27,6 +27,7 @@ package org.broadinstitute.sting.commandline;
 
 import org.apache.log4j.*;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
 
@@ -161,7 +162,7 @@ public abstract class CommandLineProgram {
      * @param args the command line arguments passed in
      */
     @SuppressWarnings("unchecked")
-    public static void start(CommandLineProgram clp, String[] args) {
+    public static void start(CommandLineProgram clp, String[] args) throws Exception {
 
         try {
             // setup our log layout
@@ -256,7 +257,7 @@ public abstract class CommandLineProgram {
             // we catch all exceptions here. if it makes it to this level, we're in trouble.  Let's bail!
             // TODO: what if the logger is the exception? hmm...
             logger.fatal("\n");
-            throw new RuntimeException(e);
+            throw e;
         }
     }
 
@@ -310,19 +311,12 @@ public abstract class CommandLineProgram {
 
     /**
      * a function used to indicate an error occurred in the command line tool
-     *
-     * @param msg message to display
      */
-    private static void printExitSystemMsg(final String msg) {
-        System.out.printf("The following error has occurred:%n%n");
-        System.out.printf("%s:%n%n", msg);
-        System.out.printf("Please check your command line arguments for any typos or inconsistencies.%n");
-        System.out.printf("Also, please review our documentation at:%n");
-        System.out.printf("        http://www.broadinstitute.org/gsa/wiki %n%n");
-        System.out.printf("To report bugs or to get help resolving undocumented issues, please contact us via our support site at:%n");
-        System.out.printf("        http://getsatisfaction.com/gsa %n%n");
-        System.out.printf("Please be sure to include the stack trace below when posting a message on the support site:%n");
+    private static void printDocumentationReference() {
+        errorPrintf("Visit our wiki for extensive documentation http://www.broadinstitute.org/gsa/wiki%n");
+        errorPrintf("Visit our forum to view answers to commonly asked questions http://getsatisfaction.com/gsa%n");
     }
+
 
     /**
      * Do a cursory search for the given argument.
@@ -346,15 +340,18 @@ public abstract class CommandLineProgram {
         System.exit(0);
     }
 
-    /**
-     * used to indicate an error occured
-     *
-     * @param msg the message to display
-     */
-    public static void exitSystemWithError(final String msg) {
-        printExitSystemMsg(msg);
-        System.exit(1);
+    private static void errorPrintf(String format, Object... s) {
+        String formatted = String.format(format, s);
+
+        if ( formatted.trim().equals("") )
+            System.out.println("##### ERROR");
+        else {
+            for ( String part : formatted.split("\n") ) {
+                System.out.println("##### ERROR " + part);
+            }
+        }
     }
+
 
     /**
      * used to indicate an error occured
@@ -363,13 +360,34 @@ public abstract class CommandLineProgram {
      * @param e   the error
      */
     public static void exitSystemWithError(final String msg, Exception e) {
-        System.out.printf("------------------------------------------------------------------------------------------%n");
-        printExitSystemMsg(msg);
-        System.out.printf("------------------------------------------------------------------------------------------%n");
+        errorPrintf("------------------------------------------------------------------------------------------%n");
+        errorPrintf("stack trace %n");
         e.printStackTrace();
-        System.out.printf("------------------------------------------------------------------------------------------%n");
+
+        errorPrintf("------------------------------------------------------------------------------------------%n");
+        errorPrintf("A GATK RUNTIME ERROR has occurred:%n");
+        errorPrintf("%n");
+        errorPrintf("Please visit to wiki to see if this is a known problem%n");
+        errorPrintf("If not, please post the error, with stack trace, to the GATK forum%n");
+        printDocumentationReference();
+        errorPrintf("%n");
+        errorPrintf("MESSAGE: %s%n", msg.trim());
+        errorPrintf("------------------------------------------------------------------------------------------%n");
         System.exit(1);
     }
+
+    public static void exitSystemWithUserError(UserError e) {
+        errorPrintf("------------------------------------------------------------------------------------------%n");
+        errorPrintf("A USER ERROR has occurred.  The invalid arguments or inputs must be corrected before the GATK can proceed%n");
+        errorPrintf("%n");
+        errorPrintf("See the documentation (rerun with -h) for this tool to view allowable command-line argument.%n");
+        printDocumentationReference();
+        errorPrintf("%n");
+        errorPrintf("MESSAGE: %s%n", e.getMessage().trim());
+        errorPrintf("------------------------------------------------------------------------------------------%n");
+        System.exit(1);
+    }
+
 
     /**
      * used to indicate an error occured

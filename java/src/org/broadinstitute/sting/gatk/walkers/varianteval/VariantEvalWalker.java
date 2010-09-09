@@ -127,7 +127,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     //        "set == \"HiSeq.WGS.cleaned.ug.vcf\" || set == \"Intersection\"",
     //        "set == \"HiSeq.WGS.raw.OQ.ug.vcf\"",
     //        "set == \"HiSeq.WGS.raw.OQ.ug.vcf\" || set == \"Intersection\""};
-    
+
     @Argument(shortName="selectName", doc="Names to use for the list of stratifications (must be a 1-to-1 mapping)", required=false)
     protected ArrayList<String> SELECT_NAMES = new ArrayList<String>();
     //protected String[] SELECT_NAMES = {"Intersection", "x1", "x2", "x3", "x4"};
@@ -205,7 +205,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     protected boolean aatUseCodons = false;
 
     @Argument(shortName="disI", fullName="discordantInteresting", doc="If passed, write discordant sites as interesting", required=false)
-		protected boolean DISCORDANT_INTERESTING = false;
+    protected boolean DISCORDANT_INTERESTING = false;
 
     @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=false)
     private String TRANCHE_FILENAME = null;
@@ -546,20 +546,20 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                                     comp.getNegLog10PError() < (minCompQualScore / 10.0) )
                                 comp = null;
 
-														String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
+                            String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
 
-														/** TODO 
-																-- for Eric: Fix me (current implementation causes GenotypeConcordance
-																to treat sites that don't match JEXL as no-calls)
+                            /** TODO
+                             -- for Eric: Fix me (current implementation causes GenotypeConcordance
+                             to treat sites that don't match JEXL as no-calls)
 
-														String interesting = null;
-														if (evalWantsVC)
-														{
-																interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
-														}
-														**/
+                             String interesting = null;
+                             if (evalWantsVC)
+                             {
+                             interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
+                             }
+                             **/
 
-														
+
                             if ( interesting != null ) interestingReasons.add(interesting);
                             break;
                         default:

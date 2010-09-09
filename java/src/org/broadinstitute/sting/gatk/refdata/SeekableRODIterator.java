@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -164,12 +165,12 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
              }
              int that_contig = r.getLocation().getContigIndex();
              if ( curr_contig > that_contig )
-                 throw new StingException("LocationAwareSeekableRODIterator: contig " +r.getLocation().getContig() +
+                 throw new UserError("LocationAwareSeekableRODIterator: contig " +r.getLocation().getContig() +
                          " occurs out of order in track " + r.getName() );
              if ( curr_contig < that_contig ) break; // next record is on a higher contig, we do not need it yet...
 
              if ( r.getLocation().getStart() < curr_position )
-                 throw new StingException("LocationAwareSeekableRODIterator: track "+r.getName() +
+                 throw new UserError("LocationAwareSeekableRODIterator: track "+r.getName() +
                          " is out of coordinate order on contig "+r.getLocation() + " compared to " + curr_contig + ":" + curr_position);
 
              if ( r.getLocation().getStart() > curr_position ) break; // next record starts after the current position; we do not need it yet

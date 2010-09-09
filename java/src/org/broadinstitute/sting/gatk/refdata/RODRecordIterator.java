@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.StingException;
@@ -130,7 +131,7 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
         try {
             header = rod.initialize(file);
         } catch (FileNotFoundException e) {
-            throw new StingException("ROD "+type.getName() + " failed to initialize properly from file "+file);
+            throw new UserError.CouldNotReadInputFile(file, "ROD "+type.getName() + " failed to initialize properly from file "+file);
         }
 
     }
@@ -194,9 +195,9 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
                  parsed_ok =  n.parseLine(header,parts) ;
              }
              catch ( Exception e ) {
-                     throw new StingException("Failed to parse ROD data ("+type.getName()+") from file "+ file + " at line #"+linenum+
-                                             "\nOffending line: "+line+
-                                             "\nReason ("+e.getClass().getName()+"): "+e.getMessage(),e);
+                 throw new UserError.MalformedFile(file, "Failed to parse ROD data ("+type.getName()+") from file "+ file + " at line #"+linenum+
+                         "\nOffending line: "+line+
+                         "\nReason ("+e.getClass().getName()+")", e);
              }
         }
 

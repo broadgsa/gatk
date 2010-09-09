@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 /**
  * This is a container that holds all data corresponding to a single join table as specified by one -J arg (ex: -J bindingName1,/path/to/file,bindingName1.columnName=bindingName2.columnName2).
@@ -109,7 +111,7 @@ public class JoinTable
             }
 
             if(localColumnNameIdx == -1) {
-                throw new StingException("The -J arg specifies an unknown column name: \"" + localColumnName + "\". It's not one of the column names in the header " + columnNames + " of the file: " + filename);
+                throw new UserError.BadArgumentValue("-J", "The -J arg specifies an unknown column name: \"" + localColumnName + "\". It's not one of the column names in the header " + columnNames + " of the file: " + filename);
             }
 
             //read in all records and create a map entry for each
@@ -124,7 +126,7 @@ public class JoinTable
         }
         catch(IOException e)
         {
-            throw new StingException("Unable to parse file: " + filename, e);
+            throw new UserError.CouldNotReadInputFile(new File(filename), "Unable to parse file", e);
         }
         finally
         {

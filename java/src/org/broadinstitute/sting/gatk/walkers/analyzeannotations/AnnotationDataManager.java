@@ -3,7 +3,9 @@ package org.broadinstitute.sting.gatk.walkers.analyzeannotations;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
+import java.io.File;
 import java.util.*;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -106,12 +108,12 @@ public class AnnotationDataManager {
         // For each annotation we've seen
         for( final String annotationKey : data.keySet() ) {
 
+            String filename = OUTPUT_PREFIX + annotationKey + ".dat";
             PrintStream output;
             try {
-                output = new PrintStream(OUTPUT_PREFIX + annotationKey + ".dat"); // Create the intermediate data file for this annotation
+                output = new PrintStream(filename); // Create the intermediate data file for this annotation
             } catch ( FileNotFoundException e ) {
-                throw new StingException("Can't create intermediate output annotation data file. Does the output directory exist? " +
-                                            OUTPUT_PREFIX + annotationKey + ".dat");
+                throw new UserError.CouldNotCreateOutputFile(new File(filename), "Can't create intermediate output annotation data file. Does the output directory exist?", e);
             }
 
             // Output a header line
@@ -162,7 +164,7 @@ public class AnnotationDataManager {
             try {
                 Runtime.getRuntime().exec( rScriptCommandLine );
             } catch ( IOException e ) {
-                throw new StingException( "Unable to execute RScript command: " + rScriptCommandLine );
+                throw new UserError.CannotExecuteRScript( rScriptCommandLine, e );
             }
         }
     }

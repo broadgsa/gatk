@@ -34,6 +34,7 @@ import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 /**
@@ -93,7 +94,7 @@ public class ReadGroupBlackListFilter implements SamRecordFilter {
                 if (parentFile != null) {
                     message += ", " + parentFile.getAbsolutePath() + ":" + parentLineNum;
                 }
-                throw new StingException(message, e);
+                throw new UserError(message);
             }
         } else {
             String[] filterEntry = filter.split(":", 2);
@@ -110,7 +111,7 @@ public class ReadGroupBlackListFilter implements SamRecordFilter {
                     message += ", " + parentFile.getAbsolutePath() + ":" + parentLineNum;
                 }
                 message += ", format is <TAG>:<SUBSTRING>";
-                throw new StingException(message);
+                throw new UserError(message);
             }
 
             if (!filters.containsKey(filterEntry[0]))

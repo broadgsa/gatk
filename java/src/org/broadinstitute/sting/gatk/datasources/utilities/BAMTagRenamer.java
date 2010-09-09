@@ -88,7 +88,12 @@ public class BAMTagRenamer extends CommandLineProgram {
      */
     public static void main(String[] argv) {
         BAMTagRenamer instance = new BAMTagRenamer();
-        start(instance, argv);
+        try {
+            start(instance, argv);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         System.exit(CommandLineProgram.result);
     }
 }

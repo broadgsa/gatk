@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 /**
  * Generic class for handling misc parsing exceptions.
  */
-public class ArgumentException extends StingException {
+public class ArgumentException extends UserError {
     public ArgumentException( String message ) {
         super( message );
     }

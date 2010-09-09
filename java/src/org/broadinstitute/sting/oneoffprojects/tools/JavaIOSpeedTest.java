@@ -66,7 +66,11 @@ public class JavaIOSpeedTest extends CommandLineProgram {
 
     public static void main(String args[])
     {
-        CommandLineProgram.start(new JavaIOSpeedTest(), args);
+        try {
+            CommandLineProgram.start(new JavaIOSpeedTest(), args);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

@@ -124,7 +124,7 @@ public class LocusReferenceView extends ReferenceView {
         if ( bounds==null || loc==null) return; // can bounds be null actually???
         if ( isLocationWithinBounds(loc) ) return;
         if ( loc.getContigIndex() != bounds.getContigIndex() )
-            throw new StingException("Illegal attempt to expand reference view bounds to accomodate location on a different contig.");
+            throw new StingException("Illegal attempt to expand reference view bounds to accommodate location on a different contig.");
 
         bounds = GenomeLocParser.createGenomeLoc(bounds.getContigIndex(),
                                                  Math.min(bounds.getStart(),loc.getStart()),

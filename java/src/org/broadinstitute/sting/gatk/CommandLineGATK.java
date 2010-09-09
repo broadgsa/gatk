@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.commandline.*;
@@ -91,6 +92,8 @@ public class CommandLineGATK extends CommandLineExecutable {
             CommandLineGATK instance = new CommandLineGATK();
             start(instance, argv);
             System.exit(CommandLineProgram.result); // todo -- this is a painful hack
+        } catch (UserError e) {
+            exitSystemWithUserError(e);
         } catch (Exception e) {
             exitSystemWithError(e);
         }

@@ -42,6 +42,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 
@@ -102,7 +103,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
     public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
         // return a feature reader track
         Pair<BasicFeatureSource, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
-        if (pair == null) throw new StingException("Unable to make the feature reader for input file " + inputFile);
+        if (pair == null) throw new UserError.CouldNotReadInputFile(inputFile, "Unable to make the feature reader for input file");
         return new TribbleTrack(targetClass, name, inputFile, pair.first, pair.second, createCodec(targetClass, name));
     }
 
@@ -142,7 +143,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
         try {
             return new Pair<BasicFeatureSource, SAMSequenceDictionary>(BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
         } catch (IOException e) {
-            throw new StingException("Unable to create feature reader from file " + inputFile);
+            throw new UserError.CouldNotReadInputFile(inputFile, "Unable to create feature reader from file", e);
         }
     }
 
@@ -169,9 +170,9 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
                                                                                                 createCodec(targetClass, name)),
                                                                                                 sequenceSetToDictionary(index.getSequenceNames()));
         } catch (FileNotFoundException e) {
-            throw new StingException("Unable to create reader with file " + inputFile, e);
+            throw new UserError.CouldNotReadInputFile(inputFile, "Unable to create reader with file", e);
         } catch (IOException e) {
-            throw new StingException("Unable to make the index file for " + inputFile, e);
+            throw new UserError("Unable to make the index file for " + inputFile, e);
         }
         return reader;
     }

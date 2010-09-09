@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.*;
 import java.lang.reflect.Method;
@@ -41,7 +42,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
         try {
             str = new BufferedReader(new FileReader(new File(filename)));
         } catch (FileNotFoundException e) {
-            throw new StingException("Unable to load the ROD input file " + filename,e);
+            throw new UserError.CouldNotReadInputFile(new File(filename), "Unable to load the ROD input file", e);
         }
         String line = "NO LINES READ IN";
         try {
@@ -50,7 +51,7 @@ public class ReferenceOrderedData<ROD extends ReferenceOrderedDatum> implements 
                 else logger.warn("the following file line didn't parsing into a triplet -> " + line);
             }
         } catch (IOException e) {
-            throw new StingException("Failed reading the input rod file " + filename + " last line read was " + line,e);
+            throw new UserError.CouldNotReadInputFile(new File(filename), "Failed reading the input rod file; last line read was " + line, e);
         }
     }
 

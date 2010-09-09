@@ -304,7 +304,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
 }
 
 public class AnalyzeCovariates {
-    public static void main(String args[]) {
+    public static void main(String args[]) throws Exception {
         AnalyzeCovariatesCLP clp = new AnalyzeCovariatesCLP();
         CommandLineProgram.start( clp, args );
         System.exit(0);

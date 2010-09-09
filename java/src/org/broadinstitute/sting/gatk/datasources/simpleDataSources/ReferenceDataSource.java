@@ -30,6 +30,7 @@ import net.sf.picard.reference.FastaSequenceIndexBuilder;
 import net.sf.picard.sam.CreateSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.FastaSequenceIndex;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 
@@ -81,7 +82,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
             catch (Exception e) {
                 // If lock creation succeeded, the failure must have been generating the index.
                 // If lock creation failed, just skip over index creation entirely.
-                throw new StingException("Index file does not exist and could not be created. See error below.", e);
+                throw new StingException("Index file does not exist and could not be created because " + e.getMessage(), e);
             }
             finally {
                 indexLock.unlock();
@@ -120,7 +121,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
                 new CreateSequenceDictionary().instanceMain(args);
 
                 if (!tempFile.renameTo(dictFile))
-                    throw new StingException("Error transferring temp file to dict file");
+                    throw new StingException("Error transferring temp file " + tempFile + " to dict file " + dictFile);
             }
             catch(FileSystemInabilityToLockException ex) {
                 logger.info("Unable to create write lock: " + ex.getMessage());
@@ -129,7 +130,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
             catch (Exception e) {
                 // If lock creation succeeded, the failure must have been generating the index.
                 // If lock creation failed, just skip over index creation entirely.
-                throw new StingException("Dictionary file does not exist and could not be created. See error below.", e);
+                throw new StingException("Dictionary file does not exist and could not be created because " + e.getMessage(), e);
             }
             finally {
                 dictLock.unlock();
@@ -170,7 +171,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
 
         }
         catch (Exception e) {
-            throw new StingException(String.format("Error reading fasta file %s.", fastaFile.getAbsolutePath()), e);
+            throw new UserError.CouldNotReadInputFile(fastaFile, e);
         }
         finally {
             dictLock.unlock();

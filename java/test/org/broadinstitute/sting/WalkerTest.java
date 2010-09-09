@@ -281,7 +281,11 @@ public class WalkerTest extends BaseTest {
         cmd2[command.length+3] = ENABLE_REPORTING ? "STANDARD" : "NO_ET";
 
         // run the executable
-        CommandLineExecutable.start(instance, cmd2);
+        try {
+            CommandLineExecutable.start(instance, cmd2);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         // catch failures from the integration test
         if (CommandLineExecutable.result != 0) {

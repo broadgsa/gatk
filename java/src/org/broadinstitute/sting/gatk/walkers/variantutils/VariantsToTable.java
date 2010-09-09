@@ -64,8 +64,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     public int MAX_RECORDS = -1;
     int nRecords = 0;
 
-    @Argument(fullName="allowMultiAllelic", shortName="AMA", doc="If provided, we will not require the site to be biallelic", required=false)
-    public boolean allowMultiAllelic = false;
+    @Argument(fullName="ignoreMultiAllelic", shortName="IMA", doc="If provided, we will not require the site to be biallelic", required=false)
+    public boolean ignoreMultiAllelic = false;
 
     private List<String> fieldsToTake;
 
@@ -114,7 +114,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
             Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
             for ( VariantContext vc : vcs) {
-                if ( allowMultiAllelic || vc.isBiallelic() ) {
+                if ( ! ignoreMultiAllelic || vc.isBiallelic() ) {
                     List<String> vals = new ArrayList<String>();
 
                     for ( String field : fieldsToTake ) {
