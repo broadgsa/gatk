@@ -14,8 +14,8 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testGenerateVariantClusters() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "7c5431a560e9ca257523cf68b808b058" );
-        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "a438635bc96a80c5e6f090d82a394819" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "c8a0eaeed9a4f8c12b90d89c65ad3405" );
+        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "ead6836dcc9fde2dd26f42317395e92d" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -44,9 +44,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testVariantRecalibrator() {
         HashMap<String, List<String>> e = new HashMap<String, List<String>>();
         e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
-                Arrays.asList("dad6d1458a453a1b720bd79be922df73", "2a70516b26f6ccf9db638153661eee62","c1952240ff3105354e04363c18a8eab9")); // Each test checks the md5 of three output files
+                Arrays.asList("274b58b7e45619411b061610d2ae0b3f", "e96c86d63be4401414dbadd43181e433","acd93e4747f5abb6ab81755a229168b5")); // Each test checks the md5 of three output files
         e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf",
-                Arrays.asList("89d7e43d9f1086c859abb38fb1b51d40", "d2471d2dd956392de7e776463299e28d","eeafcb907f93ace2ac47a98497b52b0d")); // Each test checks the md5 of three output files
+                Arrays.asList("80176c57b9d9bbacee36e8dec9ec2c93", "f12879c5d4aa214c50d50f2d0fd6a60b","59f0f0d2bdb9f2f3c112a71f38dc834f")); // Each test checks the md5 of three output files
 
         for ( Map.Entry<String, List<String>> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -82,8 +82,8 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testApplyVariantCuts() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "5511e26689ddd1486049db083dcd79c0" );
-        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "4f7f13d1f190e882a466003ce0917222" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "52538fbc9113271e1a0bf0ae3c904c93" );
+        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "b70686bf091d0306fd23daef729d05fb" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String vcf = entry.getKey();
