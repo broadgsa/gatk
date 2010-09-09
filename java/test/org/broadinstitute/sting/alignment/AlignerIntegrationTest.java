@@ -4,8 +4,6 @@ import org.junit.Test;
 import org.broadinstitute.sting.WalkerTest;
 
 import java.util.Arrays;
-import java.util.List;
-import java.io.File;
 
 /**
  * Integration tests for the aligner.
@@ -24,7 +22,6 @@ public class AlignerIntegrationTest extends WalkerTest {
                         " -ob %s",
                 1, // just one output file
                 Arrays.asList(md5));
-        //executeTest("testBasicAlignment", spec);
-        System.err.println("Test disabled until we get more memory on the build machine.");
+        executeTest("testBasicAlignment", spec);
     }
 }
