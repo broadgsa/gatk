@@ -22,10 +22,6 @@ public class AlignerIntegrationTest extends WalkerTest {
                         " -ob %s",
                 1, // just one output file
                 Arrays.asList(md5));
-        //executeTest("testBasicAlignment", spec);
-        System.err.println("*********************************************************");
-        System.err.println("FIX THIS TEST SE TEAM");
-        System.err.println("*********************************************************");
-                
+        executeTest("testBasicAlignment", spec);
     }
 }
