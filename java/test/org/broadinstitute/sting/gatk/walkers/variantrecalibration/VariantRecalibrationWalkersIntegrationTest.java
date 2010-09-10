@@ -65,6 +65,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " --ignore_filter HARD_TO_VALIDATE" +
                                 " -clusterFile " + clusterFile +
                                 " -titv 2.07" +
+                                " -qScale 20.0" + 
                                 " -o %s" +
                                 " -tranchesFile %s" +
                                 " -reportDatFile %s",                                

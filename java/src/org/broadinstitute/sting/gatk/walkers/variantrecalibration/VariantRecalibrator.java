@@ -109,7 +109,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName="singleton_fp_rate", shortName="fp_rate", doc="Prior expectation that a singleton call would be a FP", required=false)
     private double SINGLETON_FP_RATE = 0.5;
     @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
-    private double QUALITY_SCALE_FACTOR = 20.0;
+    private double QUALITY_SCALE_FACTOR = 100.0;
 
     /////////////////////////////
     // Private Member Variables
