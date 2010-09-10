@@ -48,6 +48,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     private static final String COMPRESSION_FULLNAME = "bam_compression";
     private static final String COMPRESSION_SHORTNAME = "compress";
 
+    private static final String CREATE_INDEX_FULLNAME = "index_output_bam_on_the_fly";
+
     /**
      * The engine into which output stubs should be fed.
      */
@@ -76,7 +78,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     @Override
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
         return Arrays.asList( createBAMArgumentDefinition(source),
-                              createBAMCompressionArgumentDefinition(source) );
+                              createBAMCompressionArgumentDefinition(source),
+                              createWriteIndexArgumentDefinition(source));
     }
 
     @Override
@@ -103,6 +106,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         Integer compressionLevel = compressionLevelText != null ? Integer.valueOf(compressionLevelText) : null;
         if( compressionLevel != null )
             stub.setCompressionLevel(compressionLevel);
+
+        stub.setIndexOnTheFly(argumentIsPresent(createWriteIndexArgumentDefinition(source),matches));
 
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(stub,getArgumentTags(matches));
@@ -146,6 +151,23 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        COMPRESSION_FULLNAME,
                                        COMPRESSION_SHORTNAME,
                                        "Compression level to use for writing BAM files",
+                                       false,
+                                       false,
+                                       false,
+                                       source.isHidden(),
+                                       null,
+                                       null,
+                                       null,
+                                       null );
+    }
+
+    private ArgumentDefinition createWriteIndexArgumentDefinition(ArgumentSource source) {
+        Annotation annotation = this.getArgumentAnnotation(source);
+        return new ArgumentDefinition( ArgumentIOType.getIOType(annotation),
+                                       boolean.class,
+                                       CREATE_INDEX_FULLNAME,
+                                       null,
+                                       "Create a BAM index on-the-fly while writing the resulting file.",
                                        false,
                                        false,
                                        false,

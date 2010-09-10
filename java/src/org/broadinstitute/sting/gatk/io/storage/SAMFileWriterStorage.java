@@ -52,7 +52,7 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
         this.file = file;
         SAMFileWriterFactory factory = new SAMFileWriterFactory();
         // Enable automatic index creation for pre-sorted BAMs.
-        if (stub.getFileHeader().getSortOrder().equals(SAMFileHeader.SortOrder.coordinate))
+        if (stub.getFileHeader().getSortOrder().equals(SAMFileHeader.SortOrder.coordinate) && stub.getIndexOnTheFly())
             factory.setCreateIndex(true);
         // Adjust max records in RAM.
         if(stub.getMaxRecordsInRam() != null)

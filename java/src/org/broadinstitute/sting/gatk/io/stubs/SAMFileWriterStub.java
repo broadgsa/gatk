@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 /**
  * A stub for routing and management of SAM file reading and writing.
@@ -70,6 +71,11 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * The validation stringency to apply when reading this file.
      */
     private Integer compressionLevel = null;
+
+    /**
+     * Should the GATK index the output BAM on-the-fly?
+     */
+    private boolean indexOnTheFly = false;
 
     /**
      * Should this BAM be presorted?
@@ -153,6 +159,24 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
         if(writeStarted)
             throw new GATKException("Attempted to change the compression level of a file with alignments already in it.");
         this.compressionLevel = compressionLevel;
+    }
+
+    /**
+     * Gets whether to index this output stream on-the-fly.
+     * @return True means create an index.  False means skip index creation.
+     */
+    public Boolean getIndexOnTheFly() {
+        return indexOnTheFly;
+    }
+
+    /**
+     * Controls whether to index this output stream on-the-fly.
+     * @param indexOnTheFly True means create an index.  False means skip index creation.
+     */
+    public void setIndexOnTheFly( boolean indexOnTheFly ) {
+        if(writeStarted)
+            throw new UserError("Attempted to index a BAM on the fly of a file with alignments already in it.");
+        this.indexOnTheFly = indexOnTheFly;
     }
 
     /**
