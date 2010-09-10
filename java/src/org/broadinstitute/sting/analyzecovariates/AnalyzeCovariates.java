@@ -28,6 +28,7 @@ package org.broadinstitute.sting.analyzecovariates;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.walkers.recalibration.*;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
@@ -140,11 +141,8 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                                     try {
                                         Covariate covariate = (Covariate)covClass.newInstance();
                                         requestedCovariates.add( covariate );
-
-                                    } catch ( InstantiationException e ) {
-                                        throw new RuntimeException( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
-                                    } catch ( IllegalAccessException e ) {
-                                        throw new RuntimeException( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                                    } catch (Exception e) {
+                                        throw new DynamicClassResolutionException(covClass, e);
                                     }
                                 }
                             }

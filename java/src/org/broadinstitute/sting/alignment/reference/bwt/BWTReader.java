@@ -67,7 +67,7 @@ public class BWTReader {
             }
         }
         catch( IOException ex ) {
-            throw new StingException("Unable to read BWT from input stream.", ex);
+            throw new GATKException("Unable to read BWT from input stream.", ex);
         }
 
         return new BWT(inverseSA0, new Counts(count,true), sequenceBlocks);

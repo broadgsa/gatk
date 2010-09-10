@@ -35,7 +35,7 @@ public class ReservoirDownsampler<T> {
      */
     public ReservoirDownsampler(final int maxElements) {
         if(maxElements < 0)
-            throw new StingException("Unable to work with an negative size collection of elements");
+            throw new GATKException("Unable to work with an negative size collection of elements");
         this.reservoir = new ArrayList<T>(maxElements);
         this.maxElements = maxElements;
     }

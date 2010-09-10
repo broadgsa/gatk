@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -83,8 +84,8 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      *
      */
     public AbstractReadBackedPileup(GenomeLoc loc, List<PE> pileup) {
-        if ( loc == null ) throw new StingException("Illegal null genomeloc in ReadBackedPileup");
-        if ( pileup == null ) throw new StingException("Illegal null pileup in ReadBackedPileup");
+        if ( loc == null ) throw new GATKException("Illegal null genomeloc in ReadBackedPileup");
+        if ( pileup == null ) throw new GATKException("Illegal null pileup in ReadBackedPileup");
 
         this.loc = loc;
         this.pileupElementTracker = new UnifiedPileupElementTracker<PE>(pileup);
@@ -97,8 +98,8 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      * @param pileup
      */
     public AbstractReadBackedPileup(GenomeLoc loc, List<PE> pileup, int size, int nDeletions, int nMQ0Reads) {
-        if ( loc == null ) throw new StingException("Illegal null genomeloc in UnifiedReadBackedPileup");
-        if ( pileup == null ) throw new StingException("Illegal null pileup in UnifiedReadBackedPileup");
+        if ( loc == null ) throw new GATKException("Illegal null genomeloc in UnifiedReadBackedPileup");
+        if ( pileup == null ) throw new GATKException("Illegal null pileup in UnifiedReadBackedPileup");
 
         this.loc = loc;
         this.pileupElementTracker = new UnifiedPileupElementTracker<PE>(pileup);
@@ -159,9 +160,9 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      * @return
      */
     private PileupElementTracker<PE> readsOffsets2Pileup(List<SAMRecord> reads, List<Integer> offsets ) {
-        if ( reads == null ) throw new StingException("Illegal null read list in UnifiedReadBackedPileup");
-        if ( offsets == null ) throw new StingException("Illegal null offsets list in UnifiedReadBackedPileup");
-        if ( reads.size() != offsets.size() ) throw new StingException("Reads and offset lists have different sizes!");
+        if ( reads == null ) throw new GATKException("Illegal null read list in UnifiedReadBackedPileup");
+        if ( offsets == null ) throw new GATKException("Illegal null offsets list in UnifiedReadBackedPileup");
+        if ( reads.size() != offsets.size() ) throw new GATKException("Reads and offset lists have different sizes!");
 
         UnifiedPileupElementTracker<PE> pileup = new UnifiedPileupElementTracker<PE>();
         for ( int i = 0; i < reads.size(); i++ ) {
@@ -179,8 +180,8 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      * @return
      */
     private PileupElementTracker<PE> readsOffsets2Pileup(List<SAMRecord> reads, int offset ) {
-        if ( reads == null ) throw new StingException("Illegal null read list in UnifiedReadBackedPileup");
-        if ( offset < 0 ) throw new StingException("Illegal offset < 0 UnifiedReadBackedPileup");
+        if ( reads == null ) throw new GATKException("Illegal null read list in UnifiedReadBackedPileup");
+        if ( offset < 0 ) throw new GATKException("Illegal offset < 0 UnifiedReadBackedPileup");
 
         UnifiedPileupElementTracker<PE> pileup = new UnifiedPileupElementTracker<PE>();
         for ( int i = 0; i < reads.size(); i++ ) {

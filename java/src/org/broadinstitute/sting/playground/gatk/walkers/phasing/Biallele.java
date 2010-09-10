@@ -25,6 +25,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.phasing;
 
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ public class Biallele {
 
     public Biallele(Genotype gt) {
         if (gt.getPloidy() != 2)
-            throw new StingException("Biallele must have ploidy of 2!");
+            throw new GATKException("Biallele must have ploidy of 2!");
 
         this.top = gt.getAllele(0);
         this.bottom = gt.getAllele(1);

@@ -51,6 +51,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
@@ -478,14 +479,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                 Constructor constructor = c.getConstructor(argTypes);
                 VariantEvaluator eval = (VariantEvaluator)constructor.newInstance(args);
                 evals.add(eval);
-            } catch (InstantiationException e) {
-                throw new StingException(String.format("Cannot instantiate class '%s': must be concrete class", c.getSimpleName()));
-            } catch (NoSuchMethodException e) {
-                throw new StingException(String.format("Cannot find expected constructor for class '%s': must have constructor accepting a single VariantEval2Walker object", c.getSimpleName()));
-            } catch (IllegalAccessException e) {
-                throw new StingException(String.format("Cannot instantiate class '%s' (Illegal Access):", c.getSimpleName()));
-            } catch (InvocationTargetException e) {
-                throw new StingException(String.format("Cannot instantiate class '%s' (Invocation): %s", c.getSimpleName(), e.getMessage()));
+            } catch (Exception e) {
+                throw new DynamicClassResolutionException(c, e);
             }
         }
 
@@ -565,7 +560,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                             if ( interesting != null ) interestingReasons.add(interesting);
                             break;
                         default:
-                            throw new StingException("BUG: Unexpected evaluation order " + evaluation);
+                            throw new GATKException("BUG: Unexpected evaluation order " + evaluation);
                     }
                 }
             }

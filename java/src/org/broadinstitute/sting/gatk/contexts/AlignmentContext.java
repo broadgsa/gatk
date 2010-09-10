@@ -68,7 +68,7 @@ public class AlignmentContext {
     }
 
     public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup, long skippedBases,boolean hasPileupBeenDownsampled ) {
-        if ( loc == null ) throw new StingException("BUG: GenomeLoc in Alignment context is null");
+        if ( loc == null ) throw new GATKException("BUG: GenomeLoc in Alignment context is null");
         if ( basePileup == null ) throw new GATKException("BUG: ReadBackedPileup in Alignment context is null");
         if ( skippedBases < 0 ) throw new GATKException("BUG: skippedBases is -1 in Alignment context");
 

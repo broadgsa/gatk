@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.interval;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.StringToGenomeLocIteratorAdapter;
@@ -52,11 +53,13 @@ import java.io.FileNotFoundException;
  * iterator is a merging one).
  */
 public class IntervalFileMergingIterator implements Iterator<GenomeLoc> {
-
     private PushbackIterator<GenomeLoc> it ;
     private IntervalMergingRule myRule;
+    private File myFile;
 
     public IntervalFileMergingIterator(File f, IntervalMergingRule rule) {
+        myFile = f;
+
         try {
             XReadLines reader = new XReadLines(f);
 
@@ -68,7 +71,7 @@ public class IntervalFileMergingIterator implements Iterator<GenomeLoc> {
                                                               StringToGenomeLocIteratorAdapter.FORMAT.GATK ) ) ;
             }
         } catch ( FileNotFoundException e ) {
-            throw new StingException("Can not open interval file "+f);
+            throw new UserError.CouldNotReadInputFile(f, e);
         }
         myRule = rule;
     }
@@ -91,7 +94,7 @@ public class IntervalFileMergingIterator implements Iterator<GenomeLoc> {
             GenomeLoc next = it.next();
 
             if ( next.isBefore(current)) {
-                throw new StingException("Interval "+next+" in the interval file is out of order.");
+                throw new UserError.MalformedFile(myFile, "Interval "+next+" in the interval file is out of order.");
             }
 
             if (current.overlapsP(next)) {

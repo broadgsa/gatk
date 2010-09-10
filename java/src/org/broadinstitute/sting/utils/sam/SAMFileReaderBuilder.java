@@ -29,6 +29,7 @@ import net.sf.samtools.SAMFileReader;
 
 import java.io.File;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 /**
@@ -72,9 +73,9 @@ public class SAMFileReaderBuilder {
      */
     public SAMFileReader build() {
         if( samFile == null )
-            throw new StingException( "Filename for output sam file must be supplied.");
+            throw new GATKException( "Filename for output sam file must be supplied.");
         if( validationStringency == null )
-            throw new StingException( "Header for output sam file must be supplied.");
+            throw new GATKException( "Header for output sam file must be supplied.");
 
         SAMFileReader reader = new SAMFileReader( samFile );
         reader.setValidationStringency( validationStringency );

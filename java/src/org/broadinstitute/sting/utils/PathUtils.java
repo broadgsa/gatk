@@ -112,7 +112,7 @@ public class PathUtils {
         }
 
         if (dir.listFiles() == null) {
-            throw new StingException("The volume '" + dir.getAbsolutePath() + "' could not be accessed.");
+            throw new GATKException("The volume '" + dir.getAbsolutePath() + "' could not be accessed.");
         }
     }
 

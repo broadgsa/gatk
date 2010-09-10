@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.playground.utils;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
@@ -60,7 +61,7 @@ public class ProcessUtils {
 
 			return result;
 		} catch (Exception e) {
-			throw new StingException("Error running command:" + command, e);
+			throw new GATKException("Error running command:" + command, e);
 		}
 	}
 }

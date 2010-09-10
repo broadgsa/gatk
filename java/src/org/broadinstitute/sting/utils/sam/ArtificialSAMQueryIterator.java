@@ -6,6 +6,7 @@ import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 
@@ -126,7 +127,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
         // sanity check that we have an actual matching read next
         SAMRecord rec = this.peek();
         if (rec == null) {
-            throw new StingException("The next read doesn't match");
+            throw new GATKException("The next read doesn't match");
         }
         // set the seeked variable to true
         seeked = true;
@@ -165,7 +166,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
             super.next();
         }
         if (!super.hasNext()) {
-            throw new StingException("Unable to find the target chromosome");
+            throw new GATKException("Unable to find the target chromosome");
         }
         while (super.hasNext() && this.peek().getAlignmentStart() < start) {
             super.next();
@@ -173,7 +174,7 @@ public class ArtificialSAMQueryIterator extends ArtificialSAMIterator {
         // sanity check that we have an actual matching read next
         SAMRecord rec = this.peek();
         if (!matches(rec)) {
-            throw new StingException("The next read doesn't match");
+            throw new GATKException("The next read doesn't match");
         }
         // set the seeked variable to true
         seeked = true;

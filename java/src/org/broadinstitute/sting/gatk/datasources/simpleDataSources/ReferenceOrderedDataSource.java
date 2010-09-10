@@ -216,7 +216,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureSource, Location
                 return new SeekableRODIterator(new FeatureToGATKFeatureIterator(resource.iterator(),rod.getName()));
             }
         } catch (IOException e) {
-            throw new StingException("Unable to create iterator for rod named " + rod.getName(),e);
+            throw new GATKException("Unable to create iterator for rod named " + rod.getName(),e);
         }
     }
 

@@ -164,7 +164,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
 
     public GenomeLoc merge( GenomeLoc that ) throws GATKException {
         if (!(this.contiguousP(that))) {
-            throw new StingException("The two genome loc's need to be contigous");
+            throw new GATKException("The two genome loc's need to be contigous");
         }
 
         return new GenomeLoc(getContig(), this.contigIndex,
@@ -174,7 +174,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
 
     public GenomeLoc intersect( GenomeLoc that ) throws GATKException {
         if (!(this.overlapsP(that))) {
-            throw new StingException("GenomeLoc::intersect(): The two genome loc's need to overlap");
+            throw new GATKException("GenomeLoc::intersect(): The two genome loc's need to overlap");
         }
 
         return new GenomeLoc(getContig(), this.contigIndex,

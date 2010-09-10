@@ -28,7 +28,9 @@ package org.broadinstitute.sting.utils.classloader;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ClasspathHelper;
@@ -95,10 +97,8 @@ public class PackageUtils {
     public static <T> T getSimpleInstance(Class<T> c) {
         try {
             return c.newInstance();
-        } catch (InstantiationException e) {
-            throw new StingException(String.format("Cannot instantiate class '%s': must be concrete class", c.getSimpleName()));
-        } catch (IllegalAccessException e) {
-            throw new StingException(String.format("Cannot instantiate class '%s': must have no-arg constructor", c.getSimpleName()));
+        } catch (Exception e) {
+            throw new DynamicClassResolutionException(c, e);
         }
     }
 
@@ -138,7 +138,7 @@ public class PackageUtils {
           method.invoke(ClassLoader.getSystemClassLoader(), url);
           resetReflections();
       } catch (Exception e) {
-          throw new StingException("Error adding url to the current classloader.", e);
+          throw new GATKException("Error adding url to the current classloader.", e);
       }
     }
 

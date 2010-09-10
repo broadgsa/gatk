@@ -333,7 +333,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             do {
                 currentInterval = intervals.hasNext() ? intervals.next() : null;
             } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
-        } catch (StingException e) {
+        } catch (GATKException e) {
             throw new UserError.MissortedFile(new File(intervalsFile), " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***", e);
         }
 

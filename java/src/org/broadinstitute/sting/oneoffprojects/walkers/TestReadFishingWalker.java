@@ -34,6 +34,7 @@ import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -41,6 +42,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -85,7 +87,7 @@ public class TestReadFishingWalker extends ReadWalker<Integer,Long> {
             indelCallInputStream = new FileInputStream(indelCalls);
         }
         catch(IOException ex) {
-            throw new StingException("Unable to load indel calls.");
+            throw new UserError.CouldNotReadInputFile(indelCalls, ex);
         }
 
         Scanner indelCallReader = new Scanner(indelCallInputStream);
@@ -127,7 +129,7 @@ public class TestReadFishingWalker extends ReadWalker<Integer,Long> {
                 System.arraycopy(referenceSequence.getBases(),eventStart,revisedReference,eventStart+eventLength,bufferWidth);
             }
             else
-                throw new StingException("Invalid indel type: " + type);                
+                throw new GATKException("Invalid indel type: " + type);
 
             aligners.put(GenomeLocParser.createGenomeLoc(contig,start,stop),new BWACAligner(revisedReference,new BWAConfiguration()));
             if(++numAlignersCreated % 100 == 0)

@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -95,7 +96,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
                     out.printf("Read %d header lines%n", header.getMetaData().size());
                 }
                 catch (FileNotFoundException e ) {
-                    throw new StingException(e.getMessage());
+                    throw new GATKException(e.getMessage());
                 }
 
                 final Set<String> vcfSamples = header.getGenotypeSamples();

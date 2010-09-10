@@ -26,6 +26,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.phasing;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 public class BialleleSNP extends Biallele {
@@ -34,9 +35,9 @@ public class BialleleSNP extends Biallele {
         super(gt);
 
         if (getTopAllele().getBases().length != 1)
-            throw new StingException("LOGICAL ERROR: BialleleSNP may not contain non-SNP site!");
+            throw new GATKException("LOGICAL ERROR: BialleleSNP may not contain non-SNP site!");
         if (getBottomAllele().getBases().length != 1)
-            throw new StingException("LOGICAL ERROR: BialleleSNP may not contain non-SNP site!");
+            throw new GATKException("LOGICAL ERROR: BialleleSNP may not contain non-SNP site!");
     }
 
     public byte getTopBase() {
@@ -62,7 +63,7 @@ public class BialleleSNP extends Biallele {
         else if (BaseUtils.basesAreEqual(base, botBase))
             return topBase;
         else
-            throw new StingException("LOGICAL ERROR: base MUST match either TOP or BOTTOM!");
+            throw new GATKException("LOGICAL ERROR: base MUST match either TOP or BOTTOM!");
     }
 
     public static byte getSingleBase(byte[] bases) {

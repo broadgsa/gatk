@@ -40,7 +40,7 @@ public class HeapSizeMonitor {
             monitorThread.join();
         }
         catch(InterruptedException ex) {
-            throw new StingException("Unable to connect to monitor thread");
+            throw new GATKException("Unable to connect to monitor thread");
         }
         monitorThread = null;        
     }
@@ -72,7 +72,7 @@ public class HeapSizeMonitor {
                     Thread.sleep(monitorFrequencyMillis);
                 }
                 catch(InterruptedException ex) {
-                    throw new StingException("Unable to continue monitoring heap consumption",ex);
+                    throw new GATKException("Unable to continue monitoring heap consumption",ex);
                 }
             }
         }

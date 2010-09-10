@@ -47,6 +47,7 @@ import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.Utils;
@@ -191,12 +192,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                                     try {
                                         Covariate covariate = (Covariate)covClass.newInstance();
                                         requestedCovariates.add( covariate );
-
-                                    } catch ( InstantiationException e ) {
-                                        throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
-                                    } catch ( IllegalAccessException e ) {
-                                        throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                                    } catch (Exception e) {
+                                        throw new DynamicClassResolutionException(covClass, e);
                                     }
+
                                 }
                             }
 

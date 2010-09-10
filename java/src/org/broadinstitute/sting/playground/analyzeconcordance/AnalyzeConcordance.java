@@ -27,6 +27,7 @@ package org.broadinstitute.sting.playground.analyzeconcordance;
 
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
@@ -91,11 +92,8 @@ public class AnalyzeConcordance extends CommandLineProgram {
 			logger.info("Generating html report...");
 			generateHtmlReport();
 			logger.info("...Done!");
-			
-        } catch (StingException se) {
-            throw se;
         } catch (Exception e) {
-            throw new StingException("Error analyzing concordance", e);
+            throw new GATKException("Error analyzing concordance", e);
         }
 
         return result;
@@ -105,7 +103,7 @@ public class AnalyzeConcordance extends CommandLineProgram {
         // create the output directory where all the data tables and plots will go
         File outputDir = new File(this.outputDir);
         if (!outputDir.exists() && !outputDir.mkdirs()) {
-            throw new StingException("Couldn't create directory: " + this.outputDir);
+            throw new GATKException("Couldn't create directory: " + this.outputDir);
         }
     }
 

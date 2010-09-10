@@ -31,6 +31,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
@@ -146,7 +147,7 @@ public class AlignmentUtils {
                 case H:
                 case P:
                     break;
-                default: throw new StingException("The " + ce.getOperator() + " cigar element is not currently supported");
+                default: throw new GATKException("The " + ce.getOperator() + " cigar element is not currently supported");
             }
 
         }
@@ -298,7 +299,7 @@ public class AlignmentUtils {
             case P:
                 break;
             default:
-                throw new StingException( "Unsupported cigar operator: " + ce.getOperator() );
+                throw new GATKException( "Unsupported cigar operator: " + ce.getOperator() );
             }
         }
         return alignment;
@@ -337,7 +338,7 @@ public class AlignmentUtils {
             case P:
                 break;
             default:
-                throw new StingException( "Unsupported cigar operator: " + ce.getOperator() );
+                throw new GATKException( "Unsupported cigar operator: " + ce.getOperator() );
             }
         }
         return alignment;

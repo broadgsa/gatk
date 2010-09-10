@@ -19,6 +19,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.File;
@@ -42,7 +43,7 @@ public class IndelAnnotator extends RodWalker<Integer,Long> {
             try {
                 refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
             } catch (IOException e) {
-                throw new StingException("Unable to open file " + RefseqFileName, e);
+                throw new UserError.CouldNotReadInputFile(RefseqFileName, e);
             }
 
             logger.info("Using RefSeq annotations from " + RefseqFileName);

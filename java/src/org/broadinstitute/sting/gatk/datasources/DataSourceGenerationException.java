@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 /**
@@ -20,7 +21,7 @@ import org.broadinstitute.sting.utils.StingException;
  * This exception is throw when we're unable to generate a data source,
  * most likely due to an incomplete input source list
  */
-public class DataSourceGenerationException extends StingException {
+public class DataSourceGenerationException extends GATKException {
     public DataSourceGenerationException(String message) {
         super(message);
     }

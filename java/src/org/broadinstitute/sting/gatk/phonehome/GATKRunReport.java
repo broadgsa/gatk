@@ -155,6 +155,7 @@ public class GATKRunReport {
     public enum PhoneHomeOption {
         NO_ET,
         STANDARD,
+        DEV,
         STDOUT
     }
 
@@ -167,7 +168,10 @@ public class GATKRunReport {
      * @param e the exception caused by running this walker, or null if we completed successfully
      * @param engine the GAE we used to run the walker, so we can fetch runtime, args, etc
      */
-    public GATKRunReport(Walker<?,?> walker, Exception e, GenomeAnalysisEngine engine) {
+    public GATKRunReport(Walker<?,?> walker, Exception e, GenomeAnalysisEngine engine, PhoneHomeOption type) {
+        if ( type == PhoneHomeOption.NO_ET )
+            throw new GATKException("Trying to create a run report when type is NO_ET!");
+
         mGATKHeader = CommandLineGATK.createApplicationHeader();
         currentPath = System.getProperty("user.dir");
 

@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.gatk.walkers.Multiplex;
 import org.broadinstitute.sting.gatk.walkers.Multiplexer;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.lang.annotation.Annotation;
@@ -348,16 +349,13 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 Constructor ctor = type.getConstructor(String.class);
                 result = ctor.newInstance(value);
             }
-        }
-        catch (NoSuchMethodException e) {
-            throw new GATKException("constructFromString:NoSuchMethodException: Failed conversion " + e.getMessage());
-        } catch (IllegalAccessException e) {
-            throw new GATKException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
         } catch (InvocationTargetException e) {
             throw new GATKException("constructFromString:InvocationTargetException: Failed conversion - this is most likely caused by using an incorrect data type (e.g. a double when an int is required)");
-        } catch (InstantiationException e) {
-            throw new GATKException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
+        } catch (Exception e) {
+            throw new DynamicClassResolutionException(String.class, e);
         }
+
+
         // WARNING: Side effect!
         parsingEngine.addTags(result,tags);
 

@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.utils.report;
 import org.broadinstitute.sting.playground.utils.report.templates.*;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 
 import java.io.*;
 import java.util.List;
@@ -84,13 +85,8 @@ public class VE2ReportFactory {
     public static ReportFormat createByType(Class formatType) {
         try {
             return ((Class<? extends ReportFormat>) formatType).newInstance();
-        }
-        catch (InstantiationException ex) {
-            throw new StingException(String.format("Unable to instantiate %s", formatType), ex);
-        }
-        catch (IllegalAccessException ex) {
-            throw new StingException(String.format("Unable to access %s", formatType), ex);
+        } catch (Exception e) {
+            throw new DynamicClassResolutionException(formatType, e);
         }
     }
-
 }

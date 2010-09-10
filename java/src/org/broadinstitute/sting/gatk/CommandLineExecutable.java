@@ -101,7 +101,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     private void generateGATKRunReport(Walker<?,?> mWalker, Exception e) {
         if ( getArgumentCollection().phoneHomeType != GATKRunReport.PhoneHomeOption.NO_ET ) {
-            GATKRunReport report = new GATKRunReport(mWalker, e, GATKEngine);
+            GATKRunReport report = new GATKRunReport(mWalker, e, GATKEngine, getArgumentCollection().phoneHomeType );
             if ( getArgumentCollection().phoneHomeType == GATKRunReport.PhoneHomeOption.STDOUT )
                 report.postReport(System.out);
             else

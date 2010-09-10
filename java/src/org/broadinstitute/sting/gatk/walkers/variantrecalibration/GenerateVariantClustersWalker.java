@@ -41,6 +41,7 @@ import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.File;
 import java.io.IOException;
@@ -147,7 +148,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         }
 
         if(!foundDBSNP) {
-            throw new StingException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
+            throw new UserError.CommandLineError("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
         }
     }
 
@@ -239,7 +240,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
             //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
             //    break;
             default:
-                throw new StingException( "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
+                throw new UserError.BadArgumentValue("OPTIMIZATION_MODEL", "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
         
         theModel.run( CLUSTER_FILE );

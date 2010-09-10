@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
@@ -115,7 +116,7 @@ public class ArtificialSAMUtils {
      */
     public static SAMFileHeader createEnumeratedReadGroups( SAMFileHeader header, List<String> readGroupIDs, List<String> sampleNames ) {
         if (readGroupIDs.size() != sampleNames.size()) {
-            throw new StingException("read group count and sample name count must be the same");
+            throw new GATKException("read group count and sample name count must be the same");
         }
 
         List<SAMReadGroupRecord> readGroups = new ArrayList<SAMReadGroupRecord>();
@@ -145,7 +146,7 @@ public class ArtificialSAMUtils {
     public static SAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, int length ) {
         if( (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart != SAMRecord.NO_ALIGNMENT_START) ||
             (refIndex != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX && alignmentStart == SAMRecord.NO_ALIGNMENT_START) )
-            throw new StingException("Invalid alignment start for artificial read, start = " + alignmentStart);
+            throw new GATKException("Invalid alignment start for artificial read, start = " + alignmentStart);
         SAMRecord record = new SAMRecord(header);
         record.setReadName(name);
         record.setReferenceIndex(refIndex);
@@ -183,7 +184,7 @@ public class ArtificialSAMUtils {
      */
     public static SAMRecord createArtificialRead( SAMFileHeader header, String name, int refIndex, int alignmentStart, byte[] bases, byte[] qual ) {
         if (bases.length != qual.length) {
-            throw new StingException("Passed in read string is different length then the quality array");
+            throw new GATKException("Passed in read string is different length then the quality array");
         }
         SAMRecord rec = createArtificialRead(header, name, refIndex, alignmentStart, bases.length);
         rec.setReadBases(bases);

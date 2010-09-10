@@ -27,9 +27,11 @@ package org.broadinstitute.sting.utils.exceptions;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * Represents the common user errors detected by Sting / GATK
@@ -40,7 +42,7 @@ import java.io.File;
  * Date: Sep 3, 2010
  * Time: 2:24:09 PM
  */
-public class UserError extends StingException {
+public class UserError extends GATKException {
     public UserError(String msg) { super(msg); }
     public UserError(String msg, Throwable e) { super(msg, e); }
     private UserError(Throwable e) { super("", e); } // cannot be called, private access                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
@@ -48,6 +50,12 @@ public class UserError extends StingException {
     public static class CommandLineError extends UserError {
         public CommandLineError(String message) {
             super(String.format("Invalid command line: %s", message));
+        }
+    }
+
+    public static class BadInput extends UserError {
+        public BadInput(String message) {
+            super(String.format("Bad input: %s", message));
         }
     }
 
@@ -156,7 +164,11 @@ public class UserError extends StingException {
         public MalformedFile(File f, String message, Exception e) {
             super(String.format("File %s is malformed: %s caused by %s", f.getAbsolutePath(), message, e.getMessage()));
         }
-    }
+
+        public MalformedFile(String name, String message, Exception e) {
+            super(String.format("File associated with name %s is malformed: %s caused by %s", name, message, e.getMessage()));
+        }
+     }
 
     public static class CannotExecuteRScript extends UserError {
         public CannotExecuteRScript(String message, Exception e) {
@@ -183,5 +195,4 @@ public class UserError extends StingException {
             super(String.format("Walker %s is not available: %s", walkerName, message));
         }
     }
-
 }

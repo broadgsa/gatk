@@ -185,7 +185,7 @@ public class WilcoxonRankSum {
                 U = n1 < n2 ? U1 : U2;
                 break;
             default:
-                throw new StingException("Unexpected WILCOXON H0: " + h0);
+                throw new GATKException("Unexpected WILCOXON H0: " + h0);
         }
 
         // data is nA nB then
@@ -232,7 +232,7 @@ public class WilcoxonRankSum {
                 pvalue = NORMAL.cdf(z);
                 break;
             default:
-                throw new StingException("Unexpected WILCOXON H0: " + h0);
+                throw new GATKException("Unexpected WILCOXON H0: " + h0);
         }
 
         return pvalue;

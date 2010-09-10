@@ -51,6 +51,7 @@ import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.File;
 import java.io.IOException;
@@ -120,7 +121,7 @@ public class HybSelPerformanceWalker extends LocusWalker<Integer, HybSelPerforma
             try {
                 refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(), "refseq"));
             } catch (IOException e) {
-                throw new StingException("Unable to open file " + REFSEQ_FILE, e);
+                throw new UserError.CouldNotReadInputFile(REFSEQ_FILE, e);
             }
 
             logger.info("Using RefSeq annotations from "+REFSEQ_FILE);

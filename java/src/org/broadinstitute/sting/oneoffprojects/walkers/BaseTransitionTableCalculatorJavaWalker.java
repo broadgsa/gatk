@@ -33,8 +33,10 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
+import java.io.File;
 import java.util.*;
 import java.io.PrintStream;
 import java.io.FileNotFoundException;
@@ -85,7 +87,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
 
     public void initialize() {
         if ( nPreviousBases > 3 || ( nPreviousReadBases > 3 && readBasesMustMatchRef ) ) {
-            throw new StingException("You have opted to use a number of previous bases in excess of 3. In order to do this you must change the reference window size in the walker itself.");
+            throw new UserError.CommandLineError("You have opted to use a number of previous bases in excess of 3. In order to do this you must change the reference window size in the walker itself.");
         }
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.baseModel = BaseMismatchModel.THREE_STATE;
@@ -149,7 +151,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
             String errMsg = "Parallelization cannot be used with UsePreviousBases due to the fact that internal walker data specifies whether a previous reference base is usable or not.";
             String errMsg2 = " This can cause cause concurrency issues and unpredictable behavior when used with parallelization. Either do not specify -nt, or try a the conjunction of ";
             String errMsg3 = "--usePreviousReadBases and --forcePreviousReadBasesToMatchRef.";
-            throw new StingException(errMsg+errMsg2+errMsg3);
+            throw new UserError.CommandLineError(errMsg+errMsg2+errMsg3);
         }
         return reduce(reduce1,reduce2);
     }
@@ -162,7 +164,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
             try {
                 output = new PrintStream(outFilePath);
             } catch ( FileNotFoundException e ) {
-                throw new StingException("File given as input to -of, "+outFilePath+" could not be opened.",e);
+                throw new UserError.CouldNotCreateOutputFile(new File(outFilePath), e);
             }
         }
         output.print(createHeaderFromConditions());

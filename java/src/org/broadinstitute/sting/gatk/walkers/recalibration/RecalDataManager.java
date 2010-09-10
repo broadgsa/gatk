@@ -281,7 +281,7 @@ public class RecalDataManager {
                     if( attr instanceof String ) {
                         colorSpace = ((String)attr).getBytes();
                     } else {
-                        throw new StingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+                        throw new UserError.MalformedBam(read, String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
                     }
 
                     // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read

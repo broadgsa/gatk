@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
@@ -196,7 +197,7 @@ class IntervalInfoBuilder {
                     }
                 }
             } else {
-                throw new StingException("Attempting to update an IntervalInfoBuilder twice with the same (non-TCGA) gene: "+gene);
+                throw new GATKException("Attempting to update an IntervalInfoBuilder twice with the same (non-TCGA) gene: "+gene);
             }
         } else {
 

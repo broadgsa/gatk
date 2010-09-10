@@ -9,10 +9,12 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.analysis.AminoAcid;
 import org.broadinstitute.sting.utils.analysis.AminoAcidTable;
 import org.broadinstitute.sting.utils.analysis.AminoAcidUtils;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -143,11 +145,11 @@ public class AminoAcidTransition extends VariantEvaluator {
             infoValueSplit = parent.aminoAcidTransitionSplit;
             useCodons = parent.aatUseCodons;
             if ( infoKey == null ) {
-                throw new StingException("No info-field key provided for amino acid tabulation. Please provide the appropriate key with -aatk.");
+                throw new UserError.CommandLineError("No info-field key provided for amino acid tabulation. Please provide the appropriate key with -aatk.");
             }
 
             if ( infoValueSplit == null ) {
-                throw new StingException("No split string provided for amino acid tabulation. Please provide the split string with -aats");
+                throw new UserError.CommandLineError("No split string provided for amino acid tabulation. Please provide the split string with -aats");
             }
         }
     }

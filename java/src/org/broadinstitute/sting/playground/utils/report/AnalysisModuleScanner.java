@@ -26,6 +26,7 @@ package org.broadinstitute.sting.playground.utils.report;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.tags.Param;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.lang.annotation.Annotation;
@@ -74,7 +75,7 @@ public class AnalysisModuleScanner {
     /** scan the class and find all appropriate fields and tables */
     public void scan() {
         if (cls == null || !cls.isAnnotationPresent(Analysis.class))
-            throw new StingException("The class passed in cannot be null, " + "" +
+            throw new GATKException("The class passed in cannot be null, " + "" +
                                      "and must contain the @Analysis annotation, class " + cls + " was the input");
 
         // get the annotation off of the class

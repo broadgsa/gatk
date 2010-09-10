@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 
@@ -251,7 +252,7 @@ public abstract class GLFRecord {
      * @return the minimum value
      */
     protected static double findMin(double vals[]) {
-        if (vals.length < 1) throw new StingException("findMin: an array of size < 1 was passed in");
+        if (vals.length < 1) throw new GATKException("findMin: an array of size < 1 was passed in");
 
         double min = vals[0];
         for (double d : vals)

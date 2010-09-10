@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.classloader;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.lang.reflect.Modifier;
@@ -127,7 +128,7 @@ public class JVMUtils {
             field.set(instance, value);
         }
         catch( IllegalAccessException ex ) {
-            throw new StingException(String.format("Could not set %s in instance %s to %s",field.getName(),instance.getClass().getName(),value.toString()));
+            throw new GATKException(String.format("Could not set %s in instance %s to %s",field.getName(),instance.getClass().getName(),value.toString()));
         }
     }
 
@@ -143,7 +144,7 @@ public class JVMUtils {
             return field.get(instance);
         }
         catch( IllegalAccessException ex ) {
-            throw new StingException(String.format("Could not retrieve %s in instance %s",field.getName(),instance.getClass().getName()));
+            throw new GATKException(String.format("Could not retrieve %s in instance %s",field.getName(),instance.getClass().getName()));
         }
     }
 

@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.StingException;
@@ -90,7 +91,7 @@ public class CoverageAcrossBaitsWalker extends LocusWalker<Pair<Integer, Integer
         IntervalRod intervalROD = tracker.lookup("interval",IntervalRod.class);
 
         GenomeLoc interval = intervalROD == null ? null : intervalROD.getLocation();
-        if (interval == null) { throw new StingException("No intervals at locus; should not happen"); }
+        if (interval == null) { throw new GATKException("No intervals at locus; should not happen"); }
         int offset = (int)(context.getPosition() - interval.getStart());
 
         int depth[] = new int[2];

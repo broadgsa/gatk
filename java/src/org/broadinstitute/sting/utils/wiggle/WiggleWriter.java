@@ -1,7 +1,9 @@
 package org.broadinstitute.sting.utils.wiggle;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.*;
 
@@ -40,12 +42,15 @@ public class WiggleWriter {
     private StepType type = StepType.variable;
     // the type of step for the wiggle file, todo -- allow this to change
 
+    private String myFile = "unknown";
+
     public WiggleWriter(File outputFile) {
+        myFile = outputFile.getAbsolutePath();
         FileOutputStream outputStream;
         try {
             outputStream = new FileOutputStream(outputFile);
         } catch ( FileNotFoundException e ) {
-            throw new StingException("Unable to create a wiggle file at location: %s"+outputFile.getAbsolutePath(),e);
+            throw new UserError.CouldNotCreateOutputFile(outputFile, "Unable to create a wiggle file ", e);
         }
 
         wWriter = new BufferedWriter(new OutputStreamWriter(outputStream));
@@ -72,7 +77,7 @@ public class WiggleWriter {
             write(wWriter,String.format("%d\t%s",loc.getStart(),dataPoint.toString()));
         } else {
             // todo -- maybe allow this to open a new file for the new chromosome?
-            throw new StingException("Attempting to write multiple contigs into wiggle file, first contig was "+firstLoc.getContig()+" most recent "+loc.getContig());
+            throw new GATKException("Attempting to write multiple contigs into wiggle file, first contig was "+firstLoc.getContig()+" most recent "+loc.getContig());
         }
     }
 
@@ -82,7 +87,7 @@ public class WiggleWriter {
             w.flush();
             // flush required so writing to output stream will work
         } catch (IOException e) {
-            throw new StingException(String.format("Error writing the wiggle line %s",s),e);
+            throw new UserError.CouldNotCreateOutputFile(myFile, String.format("Error writing the wiggle line %s", s), e);
         }
     }
 }

@@ -17,7 +17,7 @@ package org.broadinstitute.sting.utils;
  * bad sequence id out of bounds, etc.
  */
 
-public class MalformedGenomeLocException extends StingException {
+public class MalformedGenomeLocException extends GATKException {
     /**
      * Create a new MalformedGenomeLocException with the given message.  Does not preserve the existing stack trace.
      * @param message The message.

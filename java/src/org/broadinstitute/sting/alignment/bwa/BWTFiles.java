@@ -230,7 +230,7 @@ public class BWTFiles {
      * Convert the given reference sequence into a form suitable for building into
      * on-the-fly sequences.
      * @param referenceSequence The reference sequence to normalize.
-     * @throws StingException if normalized sequence cannot be generated.
+     * @throws GATKException if normalized sequence cannot be generated.
      */
     private static void normalizeReferenceSequence(byte[] referenceSequence) {
         StringUtil.toUpperCase(referenceSequence);

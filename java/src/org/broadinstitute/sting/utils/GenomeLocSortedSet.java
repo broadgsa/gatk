@@ -109,7 +109,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         } else {
             int loc = Collections.binarySearch(mArray,e);
             if (loc >= 0) {
-                throw new StingException("Genome Loc Sorted Set already contains the GenomicLoc " + e.toString());
+                throw new GATKException("Genome Loc Sorted Set already contains the GenomicLoc " + e.toString());
             } else {
                 mArray.add((loc+1) * -1,e);
                 return true;
@@ -193,7 +193,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
             } else if ( e.getStop() < p.getStart() ) {
                 toExclude.pop();                 // p starts after e stops, e is done
             } else {
-                throw new StingException("BUG: unexpected condition: p=" + p + ", e=" + e);
+                throw new GATKException("BUG: unexpected condition: p=" + p + ", e=" + e);
             }
 
             if ( i++ % 10000 == 0 )

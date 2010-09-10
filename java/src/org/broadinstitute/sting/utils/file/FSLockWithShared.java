@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils.file;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
@@ -143,7 +144,7 @@ public class FSLockWithShared {
                 channel.close();
         }
         catch (Exception e) {
-            throw new StingException("An error occurred while unlocking file", e);
+            throw new GATKException("An error occurred while unlocking file", e);
         }
     }
 }

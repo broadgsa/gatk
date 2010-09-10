@@ -10,6 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -93,7 +94,7 @@ public class ArtificialSAMFileReader extends SAMFileReader {
             return new ByteArrayInputStream(byteArray);
         }
         catch( UnsupportedEncodingException ex ) {
-            throw new StingException("Unable to build empty input stream",ex);
+            throw new GATKException("Unable to build empty input stream",ex);
         }
     }
 }

@@ -4,6 +4,7 @@ import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -39,7 +40,7 @@ public class IntervalUtils {
                 if (argument.equals("all")) {
                     if (argList.size() != 1) {
                         // throw error if '-L all' is not only interval - potentially conflicting commands
-                        throw new StingException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
+                        throw new UserError.CommandLineError(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
                     }
                     return null;
                 }
@@ -53,9 +54,7 @@ public class IntervalUtils {
                             rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval));
                         }
                         catch (Exception e) {
-                            throw new StingException(String.format("Interval file %s could not be parsed in either format. " +
-                                    "The problem is:%n%s",
-                                    fileOrInterval, e.getMessage()), e);
+                            throw new UserError.MalformedFile(fileOrInterval, "Interval file could not be parsed in either format.", e);
                         }
                     }
 
@@ -147,11 +146,11 @@ public class IntervalUtils {
             if (file.exists())
                 return true;
             else
-                throw new StingException(String.format("The interval file %s does not exist.", file.getAbsolutePath()));
+                throw new UserError.CouldNotReadInputFile(file, "The interval file does not exist.");
         }
 
         if(file.exists())
-            throw new StingException(String.format("The interval file %s does not have one of " +
+            throw new UserError.CouldNotReadInputFile(file, String.format("The interval file %s does not have one of " +
                     "the supported extensions (.bed, .list, .picard, .interval_list, or .intervals). " +
                     "Please rename your file with the appropriate extension. If %s is NOT supposed to be a file, " +
                     "please move or rename the file at location %s", str, str, file.getAbsolutePath()));

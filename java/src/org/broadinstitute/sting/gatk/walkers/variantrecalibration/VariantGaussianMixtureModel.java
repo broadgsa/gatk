@@ -28,9 +28,11 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import Jama.*; 
@@ -130,11 +132,11 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 } else if( CLUSTER_PATTERN.matcher(line).matches() ) {
                     clusterLines.add(line);
                 } else {
-                    throw new StingException("Malformed input file: " + clusterFile);
+                    throw new UserError.MalformedFile(clusterFile, "Could not parse line: " + line);
                 }
             }
         } catch ( FileNotFoundException e ) {
-            throw new StingException("Can not find input file: " + clusterFile);
+            throw new UserError.CouldNotReadInputFile(clusterFile, e);
         }
 
         dataManager = new VariantDataManager( annotationLines );
@@ -427,9 +429,8 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         } else {
             try {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
-            } catch( Exception e ) {
-                throw new StingException("No double value detected for annotation = " + annotationKey +
-                        " in variant at " + VariantContextUtils.getLocation(vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ) );
+            } catch( NumberFormatException e ) {
+                throw new UserError.MalformedFile(vc.getName(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
             }
         }
         return value;
@@ -488,10 +489,11 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         int annIndex = 0;
         for( final String annotation : dataManager.annotationKeys ) {
             PrintStream outputFile;
+            File file = new File(outputPrefix + "." + annotation + ".dat");
             try {
-                outputFile = new PrintStream( outputPrefix + "." + annotation + ".dat" );
-            } catch (Exception e) {
-                throw new StingException( "Unable to create output file: " + outputPrefix + ".dat" );
+                outputFile = new PrintStream( file );
+            } catch (FileNotFoundException e) {
+                throw new UserError.CouldNotCreateOutputFile( file, e );
             }
 
             outputFile.println("annotationValue,knownDist,novelDist");
@@ -506,7 +508,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
-    public final void outputOptimizationCurve( final VariantDatum[] data, final PrintStream outputReportDatFile, final PrintStream outputTranchesFile,
+    public final void outputOptimizationCurve( final VariantDatum[] data, final PrintStream outputReportDatFile, final PrintStream tranchesOutputFile,
                                                final int desiredNumVariants, final Double[] FDRtranches, final double QUAL_STEP ) {
 
         final int numVariants = data.length;
@@ -530,19 +532,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             markedVariant[iii] = false;
         }
 
-        PrintStream outputFile;
-        try {
-            outputFile = new PrintStream( outputReportDatFile );
-        } catch (Exception e) {
-            throw new StingException( "Unable to create output file: " + outputReportDatFile );
-        }
-        PrintStream tranchesOutputFile;
-        try {
-            tranchesOutputFile = new PrintStream( outputTranchesFile );
-            tranchesOutputFile.println("FDRtranche,novelTITV,pCut,numNovel,filterName");
-        } catch (Exception e) {
-            throw new StingException( "Unable to create output file: " + outputTranchesFile );
-        }
+        tranchesOutputFile.println("FDRtranche,novelTITV,pCut,numNovel,filterName");
 
         int numKnown = 0;
         int numNovel = 0;
@@ -552,7 +542,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         int numNovelTv = 0;
         boolean foundDesiredNumVariants = false;
         int jjj = 0;
-        outputFile.println("pCut,numKnown,numNovel,knownTITV,novelTITV");
+        outputReportDatFile.println("pCut,numKnown,numNovel,knownTITV,novelTITV");
         for( double qCut = MAX_QUAL; qCut >= -0.001; qCut -= QUAL_STEP ) {
             for( int iii = 0; iii < numVariants; iii++ ) {
                 if( !markedVariant[iii] ) {
@@ -584,7 +574,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 logger.info("\t" + String.format("%.4f novel Ti/Tv ratio", ((double)numNovelTi) / ((double)numNovelTv)));
                 foundDesiredNumVariants = true;
             }
-            outputFile.println( qCut + "," + numKnown + "," + numNovel + "," +
+            outputReportDatFile.println( qCut + "," + numKnown + "," + numNovel + "," +
                     ( numKnownTi == 0 || numKnownTv == 0 ? "NaN" : ( ((double)numKnownTi) / ((double)numKnownTv) ) ) + "," +
                     ( numNovelTi == 0 || numNovelTv == 0 ? "NaN" : ( ((double)numNovelTi) / ((double)numNovelTv) ) ));
 
@@ -710,7 +700,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
                     logger.warn("About to throw exception due to numerical instability. Try running with fewer annotations and then with fewer Gaussians. " +
                             "It is best to only use the annotations which appear to be Gaussianly distributed for this Gaussian mixture model.");
-                    throw new StingException("Numerical Instability! Found NaN after performing log10: " + pVarInClusterLog10[kkk] + ", cluster = " + kkk + ", variant index = " + iii);
+                    throw new GATKException("Numerical Instability! Found NaN after performing log10: " + pVarInClusterLog10[kkk] + ", cluster = " + kkk + ", variant index = " + iii);
                 }
             }
 
@@ -720,7 +710,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 if( Double.isNaN(pVarInCluster[kkk][iii]) ) {
                     logger.warn("About to throw exception due to numerical instability. Try running with fewer annotations and then with fewer Gaussians. " +
                             "It is best to only use the annotations which appear to be Gaussianly distributed for this Gaussian mixture model.");
-                    throw new StingException("Numerical Instability! Found NaN after rescaling log10 values: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
+                    throw new GATKException("Numerical Instability! Found NaN after rescaling log10 values: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
                 }
             }
         }
@@ -786,7 +776,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 if( Double.isNaN(prob) ) {
                     logger.warn("About to throw exception due to numerical instability. Try running with fewer annotations and then with fewer Gaussians. " +
                             "It is best to only use the annotations which appear to be Gaussianly distributed for this Gaussian mixture model.");
-                    throw new StingException("Numerical Instability! Found NaN in M-step: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
+                    throw new GATKException("Numerical Instability! Found NaN in M-step: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
                 }
                 sumProb += prob;
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {

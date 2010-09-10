@@ -35,7 +35,7 @@ public class CardinalityCounter implements Iterator<int[]>, Iterable<int[]> {
 
     public int[] next() {
         if (!hasNext())
-            throw new StingException("CANNOT iterate past end!");
+            throw new GATKException("CANNOT iterate past end!");
 
         // Copy the assignment to be returned:
         int[] nextList = new int[valList.length];

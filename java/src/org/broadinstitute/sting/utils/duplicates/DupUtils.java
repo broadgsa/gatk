@@ -40,7 +40,7 @@ public class DupUtils {
         try {
             return (SAMRecord)read.clone();
         } catch ( CloneNotSupportedException e ) {
-            throw new StingException("Unexpected Clone failure!");
+            throw new GATKException("Unexpected Clone failure!");
         }
     }
 

@@ -7,6 +7,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.util.*;
 import java.io.File;
@@ -59,11 +60,12 @@ public class MatePairLibrarySize extends ReadWalker<Integer, Integer> {
         String[] libraries = matePairSize.keySet().toArray(new String[1]);
 
         for (String library : libraries) {
+            File file =  new File(String.format("%s/%s.pairdist", OUT_DIR.getAbsolutePath(), library));
             try {
                 Integer[] sizes = matePairSize.get(library).keySet().toArray(new Integer[1]);
 
                 if (sizes != null && sizes.length > 1) {
-                    PrintWriter pw = new PrintWriter(String.format("%s/%s.pairdist", OUT_DIR.getAbsolutePath(), library));
+                    PrintWriter pw = new PrintWriter(file);
                     Arrays.sort(sizes);
 
                     pw.printf("%s\t%s%n", "insert", "frequency");
@@ -77,7 +79,7 @@ public class MatePairLibrarySize extends ReadWalker<Integer, Integer> {
                     pw.close();
                 }
             } catch (IOException e) {
-                throw new StingException("Unable to initialize output files.");
+                throw new UserError.CouldNotCreateOutputFile(file, e);
             }
         }
     }

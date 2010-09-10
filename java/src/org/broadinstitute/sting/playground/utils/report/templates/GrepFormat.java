@@ -2,6 +2,7 @@ package org.broadinstitute.sting.playground.utils.report.templates;
 
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,7 +32,7 @@ public class GrepFormat implements ReportFormat {
         try {
             stream = new PrintWriter(baseFile);
         } catch (FileNotFoundException e) {
-            throw new StingException("Unable to write to file " + baseFile, e);
+            throw new UserError.CouldNotCreateOutputFile(baseFile, e);
         }
         privateWrite(baseNode);
     }

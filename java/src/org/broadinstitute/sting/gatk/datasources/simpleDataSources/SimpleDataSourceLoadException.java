@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 /**
@@ -28,7 +29,7 @@ import org.broadinstitute.sting.utils.StingException;
  * <p/>
  * Generate this on a simple data source load exception
  */
-public class SimpleDataSourceLoadException extends StingException {
+public class SimpleDataSourceLoadException extends GATKException {
     public SimpleDataSourceLoadException(String msg) {
         super(msg);
     }

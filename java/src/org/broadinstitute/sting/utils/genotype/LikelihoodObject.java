@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.genotype;
 import edu.mit.broad.picard.genotype.DiploidGenotype;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.HashMap;
@@ -234,15 +235,15 @@ public class LikelihoodObject {
         switch (mLikelihoodType) {
             case NEGATIVE_LOG:
                 if (score < 0)
-                    throw new StingException("Likelikhood score of " + score + " is invalid, for NEGATIVE_LOG it must be greater than or equal to 0");
+                    throw new GATKException("Likelikhood score of " + score + " is invalid, for NEGATIVE_LOG it must be greater than or equal to 0");
                 break;
             case LOG:
                 if (score > 0)
-                    throw new StingException("Likelikhood score of " + score + " is invalid, for LOG it must be less than or equal to 0");
+                    throw new GATKException("Likelikhood score of " + score + " is invalid, for LOG it must be less than or equal to 0");
                 break;
             case RAW:
                 if (score < 0 || score > 1)
-                    throw new StingException("Likelikhood score of " + score + " is invalid, for RAW it must be [0,1]");
+                    throw new GATKException("Likelikhood score of " + score + " is invalid, for RAW it must be [0,1]");
                 break;
         }
     }

@@ -17,6 +17,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -68,7 +69,7 @@ public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
                     windowStart,
                     windowStop);
         } catch (IOException e) {
-            throw new StingException("Unable to query dbSNP track due to IO Exception",e);
+            throw new UserError.CouldNotReadInputFile(myDbSNPFile, e);
         }
 
         // count the number of dbSNPs we've seen

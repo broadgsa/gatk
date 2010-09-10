@@ -38,6 +38,7 @@ import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -213,10 +214,8 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
                         try {
                             final Covariate covariate = (Covariate)covClass.newInstance();
                             requestedCovariates.add( covariate );
-                        } catch ( InstantiationException e ) {
-                            throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
-                        } catch ( IllegalAccessException e ) {
-                            throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                        } catch (Exception e) {
+                            throw new DynamicClassResolutionException(covClass, e);
                         }
                     }
                 }
@@ -234,10 +233,8 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
                                 // Now that we've found a matching class, try to instantiate it
                                 final Covariate covariate = (Covariate)covClass.newInstance();
                                 requestedCovariates.add( covariate );
-                            } catch ( InstantiationException e ) {
-                                throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must be concrete class.", covClass.getSimpleName()) );
-                            } catch ( IllegalAccessException e ) {
-                                throw new UserError.CommandLineError( String.format("Can not instantiate covariate class '%s': must have no-arg constructor.", covClass.getSimpleName()) );
+                            } catch (Exception e) {
+                                throw new DynamicClassResolutionException(covClass, e);
                             }
                         }
                     }

@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.utils.text;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
@@ -110,7 +111,7 @@ public class TextFormattingUtils {
                 bundle = new PropertyResourceBundle(new StringReader(""));
             }
             catch(IOException ioe) {
-                throw new StingException("No resource bundle found, and unable to create an empty placeholder.",ioe);
+                throw new GATKException("No resource bundle found, and unable to create an empty placeholder.",ioe);
             }
         }
         return bundle;

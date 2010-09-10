@@ -25,9 +25,13 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import java.io.File;
 import java.io.IOException;
+
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.commandline.Argument;
@@ -166,7 +170,7 @@ public class QualityScoreByStrandWalker extends LocusWalker<StrandedCounts,Stran
             pairOut.close();
         }
 	} catch ( IOException e ) {
-	    throw new StingException("Outputfile could not be opened");
+	    throw new UserError.CouldNotCreateOutputFile(new File(pairOutput), e);
 	}
     }
 }
@@ -207,7 +211,7 @@ class StrandedCounts {
 
     public void updateReadPair( int fQual, int rQual, int fOff, int rOff ) {  // hehe f Off
         if ( rOff < 0 || fOff < 0 )
-	    throw new StingException("Offset is negative. Should never happen.");
+	    throw new GATKException("Offset is negative. Should never happen.");
 	forwardCountsByOffset[fOff][fQual < 0 ? 0 : fQual > 40 ? 40 : fQual]++;
         reverseCountsByOffset[rOff][rQual < 0 ? 0 : rQual > 40 ? 40 : rQual]++;
     }

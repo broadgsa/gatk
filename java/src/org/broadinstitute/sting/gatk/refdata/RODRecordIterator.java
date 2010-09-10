@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.Utils;
@@ -232,12 +233,8 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
     private ROD instantiateROD(final String name) {
         try {
             return (ROD) named_constructor.newInstance(name);
-        } catch (java.lang.InstantiationException e) {
-            throw new GATKException("Failed to instantiate ROD object of class "+type.getName());
-        } catch (java.lang.IllegalAccessException e) {
-            throw new GATKException("Access violation attempt while instantiating ROD object of class "+type.getName());
-        } catch (InvocationTargetException e) {
-            throw new GATKException("InvocationTargetException: Failed to instantiate ROD object of class "+type.getName());
+        } catch (Exception e) {
+            throw new DynamicClassResolutionException(named_constructor.getDeclaringClass(), e);
         }
     }
 

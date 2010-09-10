@@ -98,7 +98,7 @@ public class OutputStreamStorage extends OutputStream implements Storage<OutputS
             outputStream.close();
         }
         catch( IOException ex ) {
-            throw new StingException( "Unable to close output stream" );
+            throw new UserError.CouldNotCreateOutputFile(file, "Unable to close output stream", ex );
         }
     }
 

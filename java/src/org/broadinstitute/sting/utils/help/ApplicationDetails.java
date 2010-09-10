@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.help;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
@@ -80,7 +81,7 @@ public class ApplicationDetails {
             runningInstructions = JVMUtils.getLocationFor( application ).getName();
         }
         catch( IOException ex ) {
-            throw new StingException("Unable to determine running instructions", ex);
+            throw new GATKException("Unable to determine running instructions", ex);
         }
 
         if( runningInstructions.endsWith(".jar") )

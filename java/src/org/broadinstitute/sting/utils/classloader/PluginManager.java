@@ -25,8 +25,10 @@
 
 package org.broadinstitute.sting.utils.classloader;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -84,17 +86,13 @@ public abstract class PluginManager<PluginType> {
      * @return The plugin object if found; null otherwise.
      */
     public PluginType createByName(String pluginName) {
+        Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
         try {
-            Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
             if( plugin == null )
-                throw new StingException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
+                throw new GATKException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
             return plugin.newInstance();
-        }
-        catch( InstantiationException ex ) {
-            throw new StingException(String.format("Unable to instantiate %s %s",pluginCategory,pluginName), ex);
-        }
-        catch( IllegalAccessException ex ) {
-            throw new StingException(String.format("Unable to access %s %s",pluginCategory,pluginName), ex);
+        } catch (Exception e) {
+            throw new DynamicClassResolutionException(plugin, e);
         }
     }
 
@@ -107,12 +105,8 @@ public abstract class PluginManager<PluginType> {
     public PluginType createByType(Class pluginType) {
         try {
             return ((Class<? extends PluginType>) pluginType).newInstance();
-        }
-        catch( InstantiationException ex ) {
-            throw new StingException(String.format("Unable to instantiate %s",pluginCategory), ex);
-        }
-        catch( IllegalAccessException ex ) {
-            throw new StingException(String.format("Unable to access %s",pluginCategory), ex);
+        } catch (Exception e) {
+            throw new DynamicClassResolutionException(pluginType, e);
         }
     }
 
