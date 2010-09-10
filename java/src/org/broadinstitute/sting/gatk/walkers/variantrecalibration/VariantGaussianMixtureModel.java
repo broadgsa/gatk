@@ -402,13 +402,13 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             if( Math.pow(10.0, pClusterLog10[kkk]) > 1E-4 ) { // BUGBUG: make this a command line argument
                 final double sigmaVals[][] = sigma[kkk].getArray();
                 clusterFile.print("@!CLUSTER");
-                clusterFile.print("," + Math.pow(10.0, pClusterLog10[kkk]));
+                clusterFile.print(String.format(",%.8f", Math.pow(10.0, pClusterLog10[kkk])));
                 for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                    clusterFile.print("," + mu[kkk][jjj]);
+                    clusterFile.print(String.format(",%.8f", mu[kkk][jjj]));
                 }
                 for(int jjj = 0; jjj < numAnnotations; jjj++ ) {
                     for(int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                        clusterFile.print("," + (sigmaVals[jjj][ppp] / hyperParameter_a[kkk]) );
+                        clusterFile.print(String.format(",%.8f", (sigmaVals[jjj][ppp] / hyperParameter_a[kkk]) ));
                     }
                 }
                 clusterFile.println();
@@ -574,9 +574,9 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 logger.info("\t" + String.format("%.4f novel Ti/Tv ratio", ((double)numNovelTi) / ((double)numNovelTv)));
                 foundDesiredNumVariants = true;
             }
-            outputReportDatFile.println( qCut + "," + numKnown + "," + numNovel + "," +
-                    ( numKnownTi == 0 || numKnownTv == 0 ? "NaN" : ( ((double)numKnownTi) / ((double)numKnownTv) ) ) + "," +
-                    ( numNovelTi == 0 || numNovelTv == 0 ? "NaN" : ( ((double)numNovelTi) / ((double)numNovelTv) ) ));
+            outputReportDatFile.println( String.format("%.6f,%d,%d,%.4f,%.4f", qCut, numKnown, numNovel,
+                    ( numKnownTv == 0 ? 0.0 : ( ((double)numKnownTi) / ((double)numKnownTv) ) ),
+                    ( numNovelTv == 0 ? 0.0 : ( ((double)numNovelTi) / ((double)numNovelTv) ) )));
 
             numKnownAtCut[jjj] = numKnown;
             numNovelAtCut[jjj] = numNovel;
@@ -592,7 +592,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         for( jjj = NUM_BINS-1; jjj >= 0; jjj-- ) {
 
             if( tranche >= 0 && novelTiTvAtCut[jjj] >= fdrCutAsTiTv[tranche] ) {
-                tranchesOutputFile.println(String.format("%.2f,%.2f,%.2f,%d,FDRtranche%.2fto%.2f",
+                tranchesOutputFile.println(String.format("%.2f,%.4f,%.4f,%d,FDRtranche%.2fto%.2f",
                         FDRtranches[tranche],novelTiTvAtCut[jjj],theCut[jjj],numNovelAtCut[jjj],
                         (tranche == 0 ? 0.0 : FDRtranches[tranche-1]) ,FDRtranches[tranche]));
                 tranche--;

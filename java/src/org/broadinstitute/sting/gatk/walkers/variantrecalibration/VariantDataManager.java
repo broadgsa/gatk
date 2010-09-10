@@ -135,7 +135,7 @@ public class VariantDataManager {
 
     public void printClusterFileHeader( PrintStream outputFile ) {
         for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-            outputFile.println("@!ANNOTATION," + annotationKeys.get(jjj) + "," + meanVector[jjj] + "," + varianceVector[jjj]);
+            outputFile.println(String.format("@!ANNOTATION," + annotationKeys.get(jjj) + ",%.8f,%.8f", meanVector[jjj], varianceVector[jjj]));
         }
     }
 }
