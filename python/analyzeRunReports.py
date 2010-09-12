@@ -127,7 +127,7 @@ class RecordDecoder:
             self.fields.extend(fields)
             self.formatters[key] = zip(fields, funcs)
     
-        add(["id", "walker-name", "svn-version"], id)
+        add(["id", "walker-name", "svn-version", "phone-home-type"], id)
         add(["start-time", "end-time"], toString)      
         add(["run-time", "java-tmp-directory", "working-directory", "user-name", "host-name"], id)
         add(["java", "machine"], toString)
