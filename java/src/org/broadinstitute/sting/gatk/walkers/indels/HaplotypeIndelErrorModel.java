@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -63,6 +64,15 @@ public class HaplotypeIndelErrorModel {
     private final double logInsertionEndProbability;
     private final double logOneMinusInsertionEndProbability;
 
+    private boolean DEBUG = false;
+    private boolean doSimpleCalculationModel = false;
+
+    public  HaplotypeIndelErrorModel(int mrdl, double insStart, double insEnd, double alpha, int haplotypeSize, int maxReadLength,
+                                     boolean dosimple, boolean deb) {
+        this(mrdl, insStart, insEnd, alpha, haplotypeSize, maxReadLength);
+        this.DEBUG = deb;
+        this.doSimpleCalculationModel = dosimple;
+    }
     public  HaplotypeIndelErrorModel(int mrdl, double insStart, double insEnd, double alpha, int haplotypeSize, int maxReadLength) {
         this.maxReadDeletionLength = mrdl;
         this.noDeletionProbability = 1-alpha;
@@ -115,56 +125,133 @@ public class HaplotypeIndelErrorModel {
     }
 
     public double computeReadLikelihoodGivenHaplotype(Haplotype haplotype, SAMRecord read) {
-
+        long numStartClippedBases = read.getAlignmentStart() - read.getUnclippedStart();
+        long numEndClippedBases = read.getUnclippedEnd() - read.getAlignmentEnd();
         final long readStartPosition = read.getAlignmentStart();
         final long haplotypeStartPosition = haplotype.getStartPosition();
-        final long readEndPosition = read.getUnclippedEnd();
-        final long haplotypeEndPosition = haplotype.getStartPosition() + haplotypeSize-1;
-        final byte[] readBases = read.getReadBases();
-        final byte[] readQuals = read.getBaseQualities();
+        //final long readEndPosition = read.getUnclippedEnd();
+        //final long haplotypeEndPosition = haplotype.getStartPosition() + haplotypeSize-1;
+
+        byte[] readBases = Arrays.copyOfRange(read.getReadBases(),(int)numStartClippedBases,
+                (int)(read.getReadBases().length-numEndClippedBases));
+
+        byte[] readQuals = Arrays.copyOfRange(read.getBaseQualities(),(int)numStartClippedBases,
+                (int)(read.getReadBases().length-numEndClippedBases));
 
         double[] previousPathMetricArray = new double[2*PATH_METRIC_TABLE_LENGTH];
         int readStartIdx, initialIndexInHaplotype;
 
-  /*      List<AlignmentBlock> b = read.getAlignmentBlocks();
-        // TODO temp hack, dont take realigned reads for now
-        if (b.size()>1) {
-            rrc++;
-            //System.out.format("found realigned read %d\n", rrc);
-                return 0.0;
-        
-        }
-    */
-        // case 1: read started before haplotype start position, we need to iterate only over remainder of read
         if (readStartPosition < haplotypeStartPosition) {
-            if (readEndPosition<= haplotypeEndPosition)
-                readStartIdx = (int)(haplotypeStartPosition - (readEndPosition - read.getReadBases().length)-1);
-            else
-                readStartIdx = (int)(haplotypeStartPosition- readStartPosition);
+            readStartIdx = (int)(haplotypeStartPosition- readStartPosition);
             initialIndexInHaplotype = 0; // implicit above
-
+            if ((readStartPosition+readBases.length-1) < haplotypeStartPosition)
+                // when ignoring read CIGAR alignment, this read actually didn't overlap with haplotype:
+                // just ignore read
+                return INFINITE;
         }
         else {
             readStartIdx = 0;
             initialIndexInHaplotype = (int)(readStartPosition-haplotypeStartPosition);
         }
 
+        if (DEBUG) {
+            System.out.println("READ: "+read.getReadName());
 
+            System.out.println(haplotypeStartPosition);
+            System.out.println(readStartPosition);
+            System.out.println(readStartIdx);
+            System.out.println(initialIndexInHaplotype);
+        }
+
+        double pRead = 0;
+        if (doSimpleCalculationModel) {
+            // No Viterbi algorithm - assume no sequencing indel artifacts,
+            // so we can collapse computations and pr(read | haplotype) is just probability of observing overlap
+            // of read with haplotype.
+            int haplotypeIndex = initialIndexInHaplotype;
+            double c =  0.0;//deletionErrorProbabilities[1] +logOneMinusInsertionStartProbability;
+            // compute likelihood of portion of base to the left of the haplotype
+            for (int indR=readStartIdx-1; indR >= 0; indR--) {
+                byte readBase = readBases[indR];
+                byte readQual = readQuals[indR];
+                if (readQual <= 2)
+                    continue;
+                double pBaseRead = getProbabilityOfReadBaseGivenXandI((byte)0, readBase, readQual, LEFT_ALIGN_INDEX, 0);
+
+                // pBaseRead has -10*log10(Prob(base[i]|haplotype[i])
+                pRead += pBaseRead;
+
+            }
+            //System.out.format("\nSt: %d Pre-Likelihood:%f\n",readStartIdx, pRead);
+
+            for (int indR=readStartIdx; indR < readBases.length; indR++) {
+                byte readBase = readBases[indR];
+                byte readQual = readQuals[indR];
+
+                byte haplotypeBase;
+                if (haplotypeIndex < RIGHT_ALIGN_INDEX)
+                    haplotypeBase = haplotype.getBasesAsBytes()[haplotypeIndex];
+                else
+                    haplotypeBase = (byte)0; // dummy
+
+                double pBaseRead = getProbabilityOfReadBaseGivenXandI(haplotypeBase, readBase, readQual, haplotypeIndex, 0);
+                if (haplotypeBase != 0)
+                    pBaseRead += c;
+
+                // pBaseRead has -10*log10(Prob(base[i]|haplotype[i])
+                if (readQual > 3)
+                    pRead += pBaseRead;
+                haplotypeIndex++;
+                if (haplotypeIndex >= haplotype.getBasesAsBytes().length)
+                    haplotypeIndex = RIGHT_ALIGN_INDEX;
+                //System.out.format("H:%c R:%c RQ:%d HI:%d %4.5f %4.5f\n", haplotypeBase, readBase, (int)readQual, haplotypeIndex, pBaseRead, pRead);
+             }
+            //System.out.format("\nSt: %d Post-Likelihood:%f\n",readStartIdx, pRead);
+
+            if (DEBUG) {
+                System.out.println(read.getReadName());
+                System.out.print("Haplotype:");
+
+                for (int k=0; k <haplotype.getBasesAsBytes().length; k++) {
+                    System.out.format("%c ", haplotype.getBasesAsBytes()[k]);
+                }
+                System.out.println();
+
+                System.out.print("Read bases: ");
+                for (int k=0; k <readBases.length; k++) {
+                    System.out.format("%c ", readBases[k]);
+                }
+                System.out.format("\nLikelihood:%f\n",pRead);
+
+            }
+/*
+            if (read.getReadName().contains("106880")) {
+                
+                System.out.println("aca");
+
+                System.out.println("Haplotype:");
+
+                for (int k=initialIndexInHaplotype; k <haplotype.getBasesAsBytes().length; k++) {
+                    System.out.format("%c ", haplotype.getBasesAsBytes()[k]);
+                }
+                System.out.println();
+
+                System.out.println("Read bases: ");
+                for (int k=readStartIdx; k <readBases.length; k++) {
+                    System.out.format("%c ", readBases[k]);
+                }
+
+            }   */
+            return pRead;
+
+        }
         // initialize path metric array to hard-code certainty that initial position is aligned
         for (int k=0; k < 2*PATH_METRIC_TABLE_LENGTH; k++)
             pathMetricArray[k] = INFINITE;
 
         pathMetricArray[initialIndexInHaplotype] = 0;
 
-        /*
-        System.out.println(read.getReadName());
 
-        System.out.println(haplotypeStartPosition);
-         System.out.println(readStartPosition);
-        System.out.println(readStartIdx);
-        System.out.println(initialIndexInHaplotype);
-          */
-        
         // Update path metric computations based on branch metric (Add/Compare/Select operations)
         // do forward direction first, ie from anchor to end of read
         // outer loop
@@ -199,7 +286,7 @@ public class HaplotypeIndelErrorModel {
             pathMetricArray[k] = INFINITE;
 
         pathMetricArray[initialIndexInHaplotype] = 0;
-        
+
         // do now backward direction (from anchor to start of read)
         // outer loop
         for (int indR=readStartIdx-1; indR >= 0; indR--) {
@@ -223,42 +310,44 @@ public class HaplotypeIndelErrorModel {
 
         // for debugging only: compute backtracking to find optimal route through trellis. Since I'm only interested
         // in log-likelihood of best state, this isn't really necessary.
-/*
-        int[] bestIndexArray = new int[readBases.length+1];
-         
+        if (DEBUG) {
 
-        int bestIndex = MathUtils.minElementIndex(forwardPathMetricArray);
-        bestIndexArray[readBases.length] = bestIndex;
+            int[] bestIndexArray = new int[readBases.length+1];
 
-        for (int k=readBases.length-1; k>=0; k--) {
-            bestIndex = bestStateIndexArray[k][bestIndex];
-            bestIndexArray[k] = bestIndex;
+
+            int bestIndex = MathUtils.minElementIndex(forwardPathMetricArray);
+            bestIndexArray[readBases.length] = bestIndex;
+
+            for (int k=readBases.length-1; k>=0; k--) {
+                bestIndex = bestStateIndexArray[k][bestIndex];
+                bestIndexArray[k] = bestIndex;
+            }
+
+
+            System.out.println(read.getReadName());
+            System.out.print("Haplotype:");
+
+            for (int k=0; k <haplotype.getBasesAsBytes().length; k++) {
+                System.out.format("%c ", haplotype.getBasesAsBytes()[k]);
+            }
+            System.out.println();
+
+            System.out.print("Read bases: ");
+            for (int k=0; k <readBases.length; k++) {
+                System.out.format("%c ", readBases[k]);
+            }
+            System.out.println();
+
+            System.out.print("Alignment: ");
+            for (int k=0; k <readBases.length; k++) {
+                System.out.format("%d ", bestIndexArray[k]);
+            }
+            System.out.println();
         }
-        
-
-        System.out.println(read.getReadName());
-        System.out.print("Haplotype:");
-
-        for (int k=0; k <haplotype.getBasesAsBytes().length; k++) {
-            System.out.format("%c ", haplotype.getBasesAsBytes()[k]);
-        }
-        System.out.println();
-
-        System.out.print("Read bases: ");
-        for (int k=0; k <readBases.length; k++) {
-            System.out.format("%c ", readBases[k]);
-        }
-        System.out.println();
-
-        System.out.print("Alignment: ");
-        for (int k=0; k <readBases.length; k++) {
-            System.out.format("%d ", bestIndexArray[k]);
-        }
-        System.out.println();
-
-        */
         // now just take optimum along all path metrics: that's the log likelihood of best alignment
         double backwardMetric = MathUtils.arrayMin(pathMetricArray);
+        if (DEBUG)
+            System.out.format("Likelihood: %5.4f\n", forwardMetric + backwardMetric);
         return forwardMetric + backwardMetric;
 
     }
@@ -313,7 +402,7 @@ public class HaplotypeIndelErrorModel {
 
 
                 }
-            }            
+            }
         }
         else {
             for (int indXold = indX+1; indXold <=this.maxReadDeletionLength + indX; indXold++){
@@ -390,7 +479,7 @@ public class HaplotypeIndelErrorModel {
     private double getProbabilityOfReadBaseGivenXandI(byte haplotypeBase, byte readBase, byte readQual, int indX, int indI) {
 
 
-        if (indX == this.haplotypeSize  || indX == 0) {
+        if (indX == RIGHT_ALIGN_INDEX  || indX == LEFT_ALIGN_INDEX) {
             // X = L or R
             double baseProb = QualityUtils.qualToProb(readQual);
             return probToQual(baseProb);

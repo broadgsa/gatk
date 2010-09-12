@@ -51,7 +51,7 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Window;
 
 
-@Reference(window=@Window(start=-10,stop=80))
+@Reference(window=@Window(start=-100,stop=100))
 @Allows({DataSource.READS, DataSource.REFERENCE})
 public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
     @Output
@@ -73,6 +73,14 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
     int HAPLOTYPE_SIZE = 40;
 
 
+    @Argument(fullName="indelHeterozygozity",shortName="indhet",doc="Indel Heterozygosity (assumed 1/6500 from empirical human data)",required=false)
+    double indelHeterozygosity = (double)1.0/6500.0;
+
+    @Argument(fullName="doSimpleCalculationModel",shortName="simple",doc="Use Simple Calculation Model for Pr(Reads | Haplotype)",required=false)
+    boolean doSimple = false;
+
+    @Argument(fullName="enableDebugOutput",shortName="debugout",doc="Output debug data",required=false)
+    boolean DEBUG = false;
 
     @Override
     public boolean generateExtendedEvents() { return true; }
@@ -83,7 +91,7 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
 
     private HaplotypeIndelErrorModel model;
 
-    private static final int MAX_READ_LENGTH = 200; // TODO- make this dynamic
+    private static final int MAX_READ_LENGTH = 1000; // TODO- make this dynamic
 
 
 
@@ -91,20 +99,12 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
     @Override
     public void initialize() {
         model = new HaplotypeIndelErrorModel(maxReadDeletionLength, insertionStartProbability,
-                insertionEndProbability, alphaDeletionProbability, HAPLOTYPE_SIZE, MAX_READ_LENGTH);
+                insertionEndProbability, alphaDeletionProbability, HAPLOTYPE_SIZE, MAX_READ_LENGTH, doSimple, DEBUG);
 
     }
 
 
-    /*   private void countIndels(ReadBackedExtendedEventPileup p) {
-         for ( ExtendedEventPileupElement pe : p.toExtendedIterable() ) {
-             if ( ! pe.isIndel() ) continue;
-             if ( pe.getEventLength() > MAX_LENGTH ) continue;
-             if ( pe.isInsertion() ) insCounts[pe.getEventLength()-1]++;
-             else delCounts[pe.getEventLength()-1]++;
-         }
-     }
-    */
+
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
             return 0;
@@ -132,6 +132,36 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         ReadBackedPileup pileup =  context.getBasePileup().getPileupWithoutMappingQualityZeroReads();
 
 
+        // compute prior likelihoods on haplotypes, and initialize haplotype likelihood matrix with them.
+        // In general, we'll assume: even spread of indels throughout genome (not true, but simplifying assumption),
+        // and memoryless spread (i.e. probability that an indel lies in an interval A is independent of probability of
+        // another indel lying in interval B iff A and B don't overlap), then we can approximate inter-indel distances
+        // by an exponential distribution of mean 1/theta (theta = heterozygozity), and the number of indels on an interval
+        // of size L is Poisson-distributed with parameter lambda = theta*L.
+
+        // Since typically, for small haplotype sizes and human heterozygozity, lambda will be <<1, we'll further approximate it
+        // by assuming that only one indel can happen in a particular interval, with Pr(indel present) = lambda*exp(-lambda), and
+        // pr(no indel) = 1-lambda*exp(-lambda) ~= exp(-lambda) for small lambda.
+
+        // We also assume that a deletion is equally likely as an insertion (empirical observation, see e.g. Mills et al, Genome Research 2006)
+        // and we assume the following frequency spectrum for indel sizes Pr(event Length = L)= K*abs(L)^(-1.89)*10^(-0.015*abs(L)),
+        // taking positive L = insertions, negative L = deletions. K turns out to be about 1.5716 for probabilities to sum to one.
+        // so -10*log10(Pr event Length = L) =-10*log10(K)+ 18.9*log10(abs(L)) + 0.15*abs(L).
+        // Hence, Pr(observe event size = L in interval) ~ Pr(observe event L | event present) Pr (event present in interval)
+        // and -10*log10(above) = -10*log10(K)+ 18.9*log10(abs(L)) + 0.15*abs(L) - 10*log10(theta*L), and we ignore terms that would be
+        // added to ref hypothesis.
+        // Equation above is prior model.
+        int eventLength = vc.getReference().getBaseString().length() - vc.getAlternateAllele(0).getBaseString().length(); // assume only one alt allele for now
+        if (eventLength<0)
+            eventLength = - eventLength;
+        
+        double lambda = (double)HAPLOTYPE_SIZE * indelHeterozygosity;
+        double altPrior = HaplotypeIndelErrorModel.probToQual(lambda)-HaplotypeIndelErrorModel.probToQual(eventLength)*1.89 + 0.15*eventLength
+                + HaplotypeIndelErrorModel.probToQual(1.5716)+ HaplotypeIndelErrorModel.probToQual(0.5);
+
+        haplotypeLikehoodMatrix[0][1] = altPrior;
+        haplotypeLikehoodMatrix[1][1] = 2*altPrior;
+
         int bestIndexI =0, bestIndexJ=0;
         for (int i=0; i < haplotypesInVC.size(); i++) {
             for (int j=i; j < haplotypesInVC.size(); j++){
@@ -140,9 +170,13 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
                     // compute Pr(r | hi, hj) = 1/2*(Pr(r|hi) + Pr(r|hj)
 
                     double readLikelihood[] = new double[2];
-                    readLikelihood[0]= -model.computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(i), read)/10.0;
-                    if (i != j)
-                        readLikelihood[1] = -model.computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(j), read)/10.0;
+                    double readLikeGivenH;
+                    readLikeGivenH = model.computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(i), read);
+                    readLikelihood[0]= -readLikeGivenH/10.0;
+                    if (i != j){
+                        readLikeGivenH = model.computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(j), read);
+                        readLikelihood[1] = -readLikeGivenH/10.0;
+                    }
                     else
                         readLikelihood[1] = readLikelihood[0];
 
@@ -150,6 +184,11 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
                     // sumlog10 computes 10^x[0]+10^x[1]+...
                     double probRGivenHPair = MathUtils.sumLog10(readLikelihood)/2;
                     haplotypeLikehoodMatrix[i][j] += HaplotypeIndelErrorModel.probToQual(probRGivenHPair);
+                    /*System.out.print(read.getReadName()+" ");
+                    System.out.format("%d %d S:%d US:%d E:%d UE:%d C:%s %3.4f %3.4f\n",i, j, read.getAlignmentStart(),
+                            read.getUnclippedStart(), read.getAlignmentEnd(), read.getUnclippedEnd(),
+                            read.getCigarString(), probRGivenHPair, haplotypeLikehoodMatrix[i][j]);
+                     */
 
                 }
 
