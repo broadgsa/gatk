@@ -4,7 +4,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.oneoffprojects.variantcontext.Allele;
 import org.broadinstitute.sting.oneoffprojects.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.fasta.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.junit.BeforeClass;

@@ -3,7 +3,6 @@ package org.broadinstitute.sting.utils.genotype.glf;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 import org.junit.Assert;
 import org.junit.Before;
@@ -11,7 +10,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;

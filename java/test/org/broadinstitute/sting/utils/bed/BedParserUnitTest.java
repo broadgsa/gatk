@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.utils.bed;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.junit.BeforeClass;
@@ -10,7 +8,6 @@ import org.junit.Test;
 import org.junit.Assert;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.List;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
