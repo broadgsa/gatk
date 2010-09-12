@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.qc;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
 
@@ -58,7 +58,7 @@ public class ReadValidationWalker extends ReadWalker<SAMRecord, SAMRecord> {
         try {
             m = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            throw new GATKException("Unable to get the MD5 algorithm. Get a more eXtreme version of JAVA!@!@!!");
+            throw new ReviewedStingException("Unable to get the MD5 algorithm. Get a more eXtreme version of JAVA!@!@!!");
         }
     }
 

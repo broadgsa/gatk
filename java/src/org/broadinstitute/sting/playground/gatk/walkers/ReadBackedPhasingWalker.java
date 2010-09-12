@@ -38,7 +38,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -301,7 +301,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                         }
                     }
                     if (logger.isDebugEnabled() && (phasingSiteIndex == -1 || phasingSiteIndex == 0))
-                        throw new GATKException("Internal error: could NOT find vr and/or prevVr!");
+                        throw new ReviewedStingException("Internal error: could NOT find vr and/or prevVr!");
 
                     if (sampleWindowVaList.size() > maxPhaseSites) {
                         logger.warn("Trying to phase sample " + samp + " at locus " + VariantContextUtils.getLocation(vc) + " within a window of " + cacheWindow + " bases yields " + sampleWindowVaList.size() + " heterozygous sites to phase:\n" + toStringVRL(sampleWindowVaList));
@@ -433,7 +433,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     public static void ensurePhasing(BialleleSNP curBiall, BialleleSNP prevBiall, Haplotype hap) {
         if (hap.size() < 2)
-            throw new GATKException("LOGICAL ERROR: Only considering haplotypes of length > 2!");
+            throw new ReviewedStingException("LOGICAL ERROR: Only considering haplotypes of length > 2!");
 
         byte prevBase = hap.getBase(0); // The 1st base in the haplotype
         byte curBase = hap.getBase(1);  // The 2nd base in the haplotype
@@ -746,7 +746,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private Haplotype complement(Haplotype hap) {
             int numSites = bialleleSNPs.length;
             if (hap.size() != numSites)
-                throw new GATKException("INTERNAL ERROR: hap.size() != numSites");
+                throw new ReviewedStingException("INTERNAL ERROR: hap.size() != numSites");
 
             // Take the other base at EACH position of the Haplotype:
             byte[] complementBases = new byte[numSites];
@@ -954,7 +954,7 @@ class Haplotype extends BaseArray implements Cloneable {
 
     public void updateBase(int index, Byte base) {
         if (base == null) {
-            throw new GATKException("Internal error: CANNOT have null for a missing Haplotype base!");
+            throw new ReviewedStingException("Internal error: CANNOT have null for a missing Haplotype base!");
         }
         super.updateBase(index, base);
     }
@@ -1054,7 +1054,7 @@ class Read extends BaseArray {
 
         int sz = this.bases.length;
         if (sz != hap.bases.length)
-            throw new GATKException("Read and Haplotype should have same length to be compared!");
+            throw new ReviewedStingException("Read and Haplotype should have same length to be compared!");
 
         for (int i = 0; i < sz; i++) {
             Byte thisBase = this.getBase(i);

@@ -31,7 +31,7 @@ import java.util.*;
 import java.io.PrintStream;
 import java.io.IOException;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -181,7 +181,7 @@ public class ResourceBundleExtractorDoclet {
         for(Tag tag: element.tags()) {
             if(tag.name().equals("@"+DisplayNameTaglet.NAME)) {
                 if(name != null)
-                    throw new GATKException("Only one display name tag can be used per package / walker.");
+                    throw new ReviewedStingException("Only one display name tag can be used per package / walker.");
                 name = tag.text();
             }
             else if(tag.name().equals("@"+VERSION_TAGLET_NAME))

@@ -35,7 +35,7 @@ import java.util.*;
 
 import net.sf.samtools.*;
 import net.sf.picard.util.PeekableIterator;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  * Shard intervals based on position within the BAM file.
@@ -124,7 +124,7 @@ public class IntervalSharder {
 
         for(GenomeLoc location: loci) {
             if(!location.getContig().equals(contig))
-                throw new GATKException("Location outside bounds of contig");
+                throw new ReviewedStingException("Location outside bounds of contig");
 
             if(!binIterator.hasNext())
                 break;
@@ -191,7 +191,7 @@ public class IntervalSharder {
                 }
                 else {
                     if(lastFilePointer == null)
-                        throw new GATKException("Illegal state: initializer failed to create cached file pointer.");
+                        throw new ReviewedStingException("Illegal state: initializer failed to create cached file pointer.");
 
                     // The start of the region overlaps the bin.  Add the overlapping subset.
                     final int regionStop = Math.min(locationStop,binStop);
@@ -475,7 +475,7 @@ class BinQueueState implements Comparable<BinQueueState> {
         // Both BinQueueStates have next bins.  Before proceeding, make sure the bin cache is valid.
         if(this.firstLocusInCurrentBin <= 0 || this.lastLocusInCurrentBin <= 0 ||
            other.firstLocusInCurrentBin <= 0 || other.lastLocusInCurrentBin <= 0) {
-            throw new GATKException("Sharding mechanism error - bin->locus cache is invalid.");
+            throw new ReviewedStingException("Sharding mechanism error - bin->locus cache is invalid.");
         }
 
         // Straight integer subtraction works here because lhsStart, rhsStart always positive.

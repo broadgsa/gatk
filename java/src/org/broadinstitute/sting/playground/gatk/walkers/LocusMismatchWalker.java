@@ -39,7 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -155,7 +155,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
         if ( g.isHomRef() ) return "HOM-REF";
         else if ( g.isHet() ) return "HET";
         else if ( g.isHom() ) return "HOM-NONREF";
-        else throw new GATKException("Unexpected genotype in getGenotypeClass " + g);
+        else throw new ReviewedStingException("Unexpected genotype in getGenotypeClass " + g);
     }
 
     public boolean useRead( PileupElement e ) {

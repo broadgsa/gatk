@@ -41,7 +41,7 @@ import java.util.Arrays;
  * Date: Sep 3, 2010
  * Time: 2:24:09 PM
  */
-public class UserException extends GATKException {
+public class UserException extends ReviewedStingException {
     public UserException(String msg) { super(msg); }
     public UserException(String msg, Throwable e) { super(msg, e); }
     private UserException(Throwable e) { super("", e); } // cannot be called, private access

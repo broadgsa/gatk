@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -208,7 +208,7 @@ public class ArgumentSource {
      */
     public MultiplexArgumentTypeDescriptor createDependentTypeDescriptor(Object containingObject) {
         if(!isDependent())
-            throw new GATKException("Field " + field.getName() + " is independent; no dependent type descriptor can be derived.");
+            throw new ReviewedStingException("Field " + field.getName() + " is independent; no dependent type descriptor can be derived.");
         return ((MultiplexArgumentTypeDescriptor)typeDescriptor).createCustomTypeDescriptor(this,containingObject);
     }
 

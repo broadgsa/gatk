@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
@@ -139,7 +139,7 @@ public abstract class OutputTracker {
      */
     protected <T> T getTargetStream( Stub<T> stub ) {
         if( !outputs.containsKey(stub) )
-            throw new GATKException("OutputTracker was not notified that this stub exists: " + stub);
+            throw new ReviewedStingException("OutputTracker was not notified that this stub exists: " + stub);
         Storage<T> storage = outputs.get(stub);
         if( storage == null ) {
             storage = StorageFactory.createStorage(stub);

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.gatk.walkers.Multiplex;
 import org.broadinstitute.sting.gatk.walkers.Multiplexer;
@@ -83,7 +83,7 @@ public abstract class ArgumentTypeDescriptor {
             if( descriptor.supports(type) )
                 return descriptor;
         }
-        throw new GATKException("Can't process command-line arguments of type: " + type.getName());
+        throw new ReviewedStingException("Can't process command-line arguments of type: " + type.getName());
     }
 
     /**
@@ -265,7 +265,7 @@ public abstract class ArgumentTypeDescriptor {
         for (Class annotation: ARGUMENT_ANNOTATIONS)
             if (source.field.isAnnotationPresent(annotation))
                 return source.field.getAnnotation(annotation);
-        throw new GATKException("ArgumentAnnotation is not present for the argument field: " + source.field.getName());
+        throw new ReviewedStingException("ArgumentAnnotation is not present for the argument field: " + source.field.getName());
     }
 
     /**
@@ -333,7 +333,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 for (Object val : vals) {
                     if (String.valueOf(val).equalsIgnoreCase(value)) return val;
                     try { if (type.getField(val.toString()).isAnnotationPresent(EnumerationArgumentDefault.class)) defaultEnumeration = val; }
-                    catch (NoSuchFieldException e) { throw new GATKException("parsing " + type.toString() + "doesn't contain the field " + val.toString()); }
+                    catch (NoSuchFieldException e) { throw new ReviewedStingException("parsing " + type.toString() + "doesn't contain the field " + val.toString()); }
                 }
                 // if their argument has no value (null), and there's a default, return that default for the enum value
                 if (defaultEnumeration != null && value == null)
@@ -349,7 +349,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 result = ctor.newInstance(value);
             }
         } catch (InvocationTargetException e) {
-            throw new GATKException("constructFromString:InvocationTargetException: Failed conversion - this is most likely caused by using an incorrect data type (e.g. a double when an int is required)");
+            throw new ReviewedStingException("constructFromString:InvocationTargetException: Failed conversion - this is most likely caused by using an incorrect data type (e.g. a double when an int is required)");
         } catch (Exception e) {
             throw new DynamicClassResolutionException(String.class, e);
         }
@@ -416,11 +416,11 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             }
             catch (InstantiationException e) {
                 logger.fatal("ArgumentParser: InstantiationException: cannot convert field " + source.field.getName());
-                throw new GATKException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
+                throw new ReviewedStingException("constructFromString:InstantiationException: Failed conversion " + e.getMessage());
             }
             catch (IllegalAccessException e) {
                 logger.fatal("ArgumentParser: IllegalAccessException: cannot convert field " + source.field.getName());
-                throw new GATKException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
+                throw new ReviewedStingException("constructFromString:IllegalAccessException: Failed conversion " + e.getMessage());
             }
 
             for( ArgumentMatch match: matches ) {
@@ -452,7 +452,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             }
         }
         else
-            throw new GATKException("Unsupported compound argument type: " + type);
+            throw new ReviewedStingException("Unsupported compound argument type: " + type);
 
         // WARNING: Side effect!
         parsingEngine.addTags(result,tags);
@@ -520,7 +520,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public Object createTypeDefault(ArgumentSource source,Class type) {
         if(multiplexer == null || multiplexedIds == null)
-            throw new GATKException("No multiplexed ids available");
+            throw new ReviewedStingException("No multiplexed ids available");
 
         Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
         Class componentType = getCollectionComponentType(source.field);
@@ -539,7 +539,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     @Override
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches) {
         if(multiplexedIds == null)
-            throw new GATKException("Cannot directly parse a MultiplexArgumentTypeDescriptor; must create a derivative type descriptor first.");
+            throw new ReviewedStingException("Cannot directly parse a MultiplexArgumentTypeDescriptor; must create a derivative type descriptor first.");
 
         Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
 
@@ -570,14 +570,14 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 if(!source.field.getName().equals(sourceField))
                     continue;
                 if(source.field.isAnnotationPresent(Multiplex.class))
-                    throw new GATKException("Command-line arguments can only depend on independent fields");
+                    throw new ReviewedStingException("Command-line arguments can only depend on independent fields");
                 sourceTypes[currentField] = source.field.getType();
                 sourceValues[currentField] = JVMUtils.getFieldValue(source.field,containingObject);
                 currentField++;
                 fieldFound = true;
             }
             if(!fieldFound)
-                throw new GATKException(String.format("Unable to find source field %s, referred to by dependent field %s",sourceField,dependentArgument.field.getName()));
+                throw new ReviewedStingException(String.format("Unable to find source field %s, referred to by dependent field %s",sourceField,dependentArgument.field.getName()));
         }
 
         Class<? extends Multiplexer> multiplexerType = dependentArgument.field.getAnnotation(Multiplex.class).value();
@@ -587,7 +587,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             multiplexerConstructor.setAccessible(true);
         }
         catch(NoSuchMethodException ex) {
-            throw new GATKException(String.format("Unable to find constructor for class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+            throw new ReviewedStingException(String.format("Unable to find constructor for class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
         }
 
         Multiplexer multiplexer = null;
@@ -595,13 +595,13 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             multiplexer = multiplexerConstructor.newInstance(sourceValues);
         }
         catch(IllegalAccessException ex) {
-            throw new GATKException(String.format("Constructor for class %s with parameters %s is inaccessible",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+            throw new ReviewedStingException(String.format("Constructor for class %s with parameters %s is inaccessible",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
         }
         catch(InstantiationException ex) {
-            throw new GATKException(String.format("Can't create class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+            throw new ReviewedStingException(String.format("Can't create class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
         }
         catch(InvocationTargetException ex) {
-            throw new GATKException(String.format("Can't invoke constructor of class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
+            throw new ReviewedStingException(String.format("Can't invoke constructor of class %s with parameters %s",multiplexerType.getName(),Arrays.deepToString(sourceFields)),ex);
         }
 
         return new MultiplexArgumentTypeDescriptor(multiplexer,multiplexer.multiplex());

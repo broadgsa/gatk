@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils.collections;
 
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.*;
@@ -42,10 +42,10 @@ public class MergingIterator implements Iterator<RODRecordList>, Iterable<RODRec
         public Element(Iterator<RODRecordList> it) {
             if ( it instanceof LocationAwareSeekableRODIterator) {
                 this.it = (LocationAwareSeekableRODIterator)it;
-                if ( ! it.hasNext() ) throw new GATKException("Iterator is empty");
+                if ( ! it.hasNext() ) throw new ReviewedStingException("Iterator is empty");
                 update();
             } else {
-                throw new GATKException("Iterator passed to MergingIterator is not LocationAwareSeekableRODIterator");
+                throw new ReviewedStingException("Iterator passed to MergingIterator is not LocationAwareSeekableRODIterator");
             }
         }
 

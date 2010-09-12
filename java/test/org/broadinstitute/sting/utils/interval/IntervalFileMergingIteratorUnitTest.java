@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.interval;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.Assert;
@@ -101,7 +101,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
                     GenomeLoc l_expected = check_it.next();
 //                    System.out.println("int: "+l+" expected: "+l_expected) ;
                 }
-            } catch ( GATKException e) {
+            } catch ( ReviewedStingException e) {
                     Assert.assertEquals( e.getMessage(), "Interval chr5:7414 in the interval file is out of order.");
             }
         }

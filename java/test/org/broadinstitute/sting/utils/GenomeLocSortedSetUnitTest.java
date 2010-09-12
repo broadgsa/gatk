@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -81,7 +81,7 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
     }
 
 
-    @Test(expected = GATKException.class)
+    @Test(expected = ReviewedStingException.class)
     public void testAddDupplicate() {
         assertTrue(mSortedSet.size() == 0);
         GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 0, 0);

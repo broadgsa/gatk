@@ -33,7 +33,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.*;
 
@@ -197,7 +197,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         String b = haplotypeB.toString();
 
         if (a.length() != b.length())
-            throw new GATKException("Haplotypes a and b must be of same length");
+            throw new ReviewedStingException("Haplotypes a and b must be of same length");
 
         char chA, chB;
         char wc = REGEXP_WILDCARD.charAt(0);

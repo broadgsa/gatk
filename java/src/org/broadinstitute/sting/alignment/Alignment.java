@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 
@@ -189,7 +189,7 @@ public class Alignment {
             read = (SAMRecord)unmappedRead.clone();
         }
         catch(CloneNotSupportedException ex) {
-            throw new GATKException("Unable to create aligned read from template.");
+            throw new ReviewedStingException("Unable to create aligned read from template.");
         }
 
         if(newSAMHeader != null)

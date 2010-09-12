@@ -5,7 +5,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -290,7 +290,7 @@ public class RefMetaDataTracker {
         Collection<VariantContext> contexts = getVariantContexts(ref, name, allowedTypes, curLocation, requireStartHere, false );
 
         if ( contexts.size() > 1 )
-            throw new GATKException("Requested a single VariantContext object for track " + name + " but multiple variants were present at position " + curLocation);
+            throw new ReviewedStingException("Requested a single VariantContext object for track " + name + " but multiple variants were present at position " + curLocation);
         else if ( contexts.size() == 0 )
             return null;
         else

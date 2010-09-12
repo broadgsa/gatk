@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.classloader;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 
 import java.util.HashMap;
@@ -87,7 +87,7 @@ public abstract class PluginManager<PluginType> {
         Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
         try {
             if( plugin == null )
-                throw new GATKException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
+                throw new ReviewedStingException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
             return plugin.newInstance();
         } catch (Exception e) {
             throw new DynamicClassResolutionException(plugin, e);

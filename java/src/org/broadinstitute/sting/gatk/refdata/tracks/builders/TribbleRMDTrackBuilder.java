@@ -36,7 +36,7 @@ import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -227,7 +227,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
             locked = lock.sharedLock();
         }
         catch(FileSystemInabilityToLockException ex) {
-            throw new GATKException("Unexpected inability to lock exception", ex);
+            throw new ReviewedStingException("Unexpected inability to lock exception", ex);
         }
         Index idx;
         try {
@@ -294,7 +294,7 @@ public class TribbleRMDTrackBuilder extends PluginManager<FeatureCodec> implemen
             return index;
         }
         catch(FileSystemInabilityToLockException ex) {
-            throw new GATKException("Unexpected inability to lock exception", ex);
+            throw new ReviewedStingException("Unexpected inability to lock exception", ex);
         }
         finally {
             if (locked) lock.unlock();

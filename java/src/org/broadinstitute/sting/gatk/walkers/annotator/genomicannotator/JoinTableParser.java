@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -63,7 +63,7 @@ public class JoinTableParser
     public List<String> readHeader(BufferedReader br) throws IOException
     {
         if(header != null) {
-            throw new GATKException("readHeader(..) called more than once. Header is currently set to: " + header);
+            throw new ReviewedStingException("readHeader(..) called more than once. Header is currently set to: " + header);
         }
 
         header = Collections.unmodifiableList(parseHeader(br));

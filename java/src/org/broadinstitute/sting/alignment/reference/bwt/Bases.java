@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -87,7 +87,7 @@ public class Bases implements Iterable<Byte>
             if( entry.getValue().equals(ascii) )
                 return entry.getKey();
         }
-        throw new GATKException(String.format("Base %c is an invalid base to pack", (char)ascii));
+        throw new ReviewedStingException(String.format("Base %c is an invalid base to pack", (char)ascii));
     }
 
     /**

@@ -2,7 +2,7 @@ package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.File;
@@ -61,7 +61,7 @@ public class AlignerTestHarness {
                 alignmentCleaned = (SAMRecord)read.clone();
             }
             catch( CloneNotSupportedException ex ) {
-                throw new GATKException("SAMRecord clone not supported", ex);
+                throw new ReviewedStingException("SAMRecord clone not supported", ex);
             }
 
             if( alignmentCleaned.getReadNegativeStrandFlag() )

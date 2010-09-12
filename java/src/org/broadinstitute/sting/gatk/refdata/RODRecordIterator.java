@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -123,7 +123,7 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
             named_constructor = type.getConstructor(String.class);
         }
         catch (java.lang.NoSuchMethodException e) {
-            throw new GATKException("ROD class "+type.getName()+" does not have constructor that accepts a single String argument (track name)");
+            throw new ReviewedStingException("ROD class "+type.getName()+" does not have constructor that accepts a single String argument (track name)");
         }
         ROD rod = instantiateROD(name);
         fieldDelimiter = rod.delimiterRegex(); // get delimiter from the ROD itself

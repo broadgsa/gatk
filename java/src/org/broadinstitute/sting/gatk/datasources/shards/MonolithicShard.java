@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.ReadProperties;
@@ -42,7 +42,7 @@ public class MonolithicShard implements Shard {
     public MonolithicShard(SAMDataSource readsDataSource, ShardType shardType, List<GenomeLoc> locs) {
         this.readsDataSource = readsDataSource;
         if(shardType != ShardType.LOCUS && shardType != ShardType.READ)
-            throw new GATKException("Invalid shard type for monolithic shard: " + shardType);
+            throw new ReviewedStingException("Invalid shard type for monolithic shard: " + shardType);
         this.shardType = shardType;
         this.locs = locs;
     }

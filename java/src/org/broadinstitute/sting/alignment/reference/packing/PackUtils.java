@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.packing;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,14 +58,14 @@ public class PackUtils {
             long typeSize = type.getField("MAX_VALUE").getLong(null) - type.getField("MIN_VALUE").getLong(null)+1;
             long intTypeSize = (long)Integer.MAX_VALUE - (long)Integer.MIN_VALUE + 1;
             if( typeSize > intTypeSize )
-                throw new GATKException("Cannot determine number of bits available in type: " + type.getName());
+                throw new ReviewedStingException("Cannot determine number of bits available in type: " + type.getName());
             return (int)(Math.log(typeSize)/Math.log(2));
         }
         catch( NoSuchFieldException ex ) {
-            throw new GATKException("Cannot determine number of bits available in type: " + type.getName(),ex);
+            throw new ReviewedStingException("Cannot determine number of bits available in type: " + type.getName(),ex);
         }
         catch( IllegalAccessException ex ) {
-            throw new GATKException("Cannot determine number of bits available in type: " + type.getName(),ex);
+            throw new ReviewedStingException("Cannot determine number of bits available in type: " + type.getName(),ex);
         }
     }
 
@@ -85,7 +85,7 @@ public class PackUtils {
             case 'T':
                 return 3;
             default:
-                throw new GATKException("Unknown base type: " + base);
+                throw new ReviewedStingException("Unknown base type: " + base);
         }
     }
 
@@ -105,7 +105,7 @@ public class PackUtils {
             case 3:
                 return 'T';
             default:
-                throw new GATKException("Unknown pack type: " + pack);
+                throw new ReviewedStingException("Unknown pack type: " + pack);
         }
     }
 

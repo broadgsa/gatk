@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.utils.instrumentation;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
@@ -73,7 +73,7 @@ public class Sizeof {
      */
     public static long getObjectSize(Object o) {
         if(!isEnabled())
-            throw new GATKException("Sizeof operator is currently disabled!  To enable, review the documentation in Sizeof.java");
+            throw new ReviewedStingException("Sizeof operator is currently disabled!  To enable, review the documentation in Sizeof.java");
         return instrumentation.getObjectSize(o);
     }
 
@@ -84,7 +84,7 @@ public class Sizeof {
      */
     public static long getObjectGraphSize(Object o) {
         if(!isEnabled())
-            throw new GATKException("Sizeof operator is currently disabled!  To enable, review the documentation in Sizeof.java");
+            throw new ReviewedStingException("Sizeof operator is currently disabled!  To enable, review the documentation in Sizeof.java");
         IdentityHashMap<Object,Object> objectsSeen = new IdentityHashMap<Object,Object>();
         return getObjectGraphSize(o,objectsSeen);
     }
@@ -134,7 +134,7 @@ public class Sizeof {
                     fieldValue = field.get(o);
                 }
                 catch(IllegalAccessException ex) {
-                    throw new GATKException("Unable to access field " + field.getName(),ex);
+                    throw new ReviewedStingException("Unable to access field " + field.getName(),ex);
                 }
                 totalSize += getObjectGraphSize(fieldValue,objectsSeen);
             }

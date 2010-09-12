@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.Assert;
@@ -28,7 +28,7 @@ public class PathUtilsUnitTest extends BaseTest {
 
         try {
             PathUtils.refreshVolume(new File(filename));
-        } catch (GATKException e) {
+        } catch (ReviewedStingException e) {
             result = false;
         }
 

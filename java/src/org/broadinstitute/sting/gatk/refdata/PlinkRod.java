@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broad.tribble.util.variantcontext.Allele;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
@@ -65,7 +65,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         try {
             plink.initialize(file);
         } catch (FileNotFoundException e) {
-            throw new GATKException("Unable to find file " + file);
+            throw new ReviewedStingException("Unable to find file " + file);
         }
         return plink;
     }
@@ -188,9 +188,9 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
             return seqVars;
 
         } catch ( FileNotFoundException e ) {
-            throw new GATKException("File "+file.getAbsolutePath()+" could not be found. This was checked earlier. Should never happen.",e);
+            throw new ReviewedStingException("File "+file.getAbsolutePath()+" could not be found. This was checked earlier. Should never happen.",e);
         } catch ( IOException e ) {
-            throw new GATKException("Error reading file "+file.getAbsolutePath()+".",e);
+            throw new ReviewedStingException("Error reading file "+file.getAbsolutePath()+".",e);
         }
     }
 
@@ -200,7 +200,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         }
 
         if ( plinkFileType != PlinkFileType.STANDARD_PED )
-            throw new GATKException("Plink file is likely of .raw or recoded format. Please use an uncoded .ped file.");
+            throw new ReviewedStingException("Plink file is likely of .raw or recoded format. Please use an uncoded .ped file.");
 
         StringTokenizer st = new StringTokenizer(plinkLine, "\t");
         int offset = 0;
@@ -224,7 +224,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         // if the first line is not a comment (what we're used to seeing),
         // then it's the raw header (comes from de-binary-ing a .bed file)
         if ( !header.startsWith("#") )
-            throw new GATKException("Plink file is likely of .raw or recoded format. Please use an uncoded .ped file.");
+            throw new ReviewedStingException("Plink file is likely of .raw or recoded format. Please use an uncoded .ped file.");
 
         plinkFileType = PlinkFileType.STANDARD_PED;
 
@@ -281,7 +281,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         try {
             reader = new BufferedReader( new FileReader( bimFile ));
         } catch ( FileNotFoundException e) {
-            throw new GATKException("The SNP information file accompanying the binary ped file was not found (the .bim file). "+
+            throw new ReviewedStingException("The SNP information file accompanying the binary ped file was not found (the .bim file). "+
                                      "Please ensure that it is in the same directory as the .bed and .fam files. The file we "+
                                      "Were looking for was "+bimFile.getAbsolutePath(),e);
         }
@@ -300,7 +300,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
                 line = reader.readLine();
             }
         } catch ( IOException e ) {
-            throw new GATKException("There was an error reading the .bim file "+bimFile.getAbsolutePath(), e);
+            throw new ReviewedStingException("There was an error reading the .bim file "+bimFile.getAbsolutePath(), e);
         }
 
         return variants;
@@ -311,7 +311,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         try {
             reader = new BufferedReader( new FileReader( famFile ));
         } catch ( FileNotFoundException e) {
-            throw new GATKException("The Family information file accompanying the binary ped file was not found (the .fam file). "+
+            throw new ReviewedStingException("The Family information file accompanying the binary ped file was not found (the .fam file). "+
                                      "Please ensure that it is in the same directory as the .bed and .bim files. The file we "+
                                      "Were looking for was "+famFile.getAbsolutePath(),e);
         }
@@ -327,7 +327,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
                 }
             } while ( line != null );
         } catch (IOException e) {
-            throw new GATKException("There was an error reading the .fam file "+famFile.getAbsolutePath(),e);
+            throw new ReviewedStingException("There was an error reading the .fam file "+famFile.getAbsolutePath(),e);
         }
 
         return sampleNames;
@@ -338,7 +338,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
         try {
             inStream = new FileInputStream(bedFile);
         } catch (FileNotFoundException e) {
-            throw new GATKException("The Binary pedigree file file accompanying the family file was not found (the .bed file). "+
+            throw new ReviewedStingException("The Binary pedigree file file accompanying the family file was not found (the .bed file). "+
                                      "Please ensure that it is in the same directory as the .bim and .fam files. The file we "+
                                      "Were looking for was "+bedFile.getAbsolutePath(),e);
         }
@@ -378,7 +378,7 @@ public class PlinkRod extends BasicReferenceOrderedDatum implements Iterator<Pli
                 }
             } while ( genotype != -1 );
         } catch ( IOException e) {
-            throw new GATKException("Error reading binary ped file "+bedFile.getAbsolutePath(), e);
+            throw new ReviewedStingException("Error reading binary ped file "+bedFile.getAbsolutePath(), e);
         }
 
         return variants;

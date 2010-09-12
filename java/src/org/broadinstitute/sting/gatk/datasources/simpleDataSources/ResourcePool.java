@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
@@ -88,10 +88,10 @@ abstract class ResourcePool <T,I extends Iterator> {
 
             // make sure we actually removed the assignment
             if (obj == null)
-                    throw new GATKException("Failed to remove resource assignment; target key had no associated value in the resource assignment map");
+                    throw new ReviewedStingException("Failed to remove resource assignment; target key had no associated value in the resource assignment map");
             // Return the resource to the pool.
             if( !allResources.contains(resource) )
-                throw new GATKException("Iterator does not belong to the given pool.");
+                throw new ReviewedStingException("Iterator does not belong to the given pool.");
             availableResources.add(resource);
         }
     }

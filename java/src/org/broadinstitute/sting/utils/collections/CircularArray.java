@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.collections;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 
 /** This class, closely resembling a deque (except that it is not dynamically grown), 
@@ -69,7 +69,7 @@ public class CircularArray <T> {
 	
 	/** Creates an array of fixed length */
 	public CircularArray(int length) {
-		if ( length <= 0 ) throw new GATKException("CircularArray length must be positive. Passed: "+length);
+		if ( length <= 0 ) throw new ReviewedStingException("CircularArray length must be positive. Passed: "+length);
 		data = new Object[length]; 
 		offset = 0;
 	}
@@ -150,7 +150,7 @@ public class CircularArray <T> {
 		
 		/** Creates an array of fixed length */
 		public Int(int length) {
-			if ( length <= 0 ) throw new GATKException("CircularArray length must be positive. Passed: "+length);
+			if ( length <= 0 ) throw new ReviewedStingException("CircularArray length must be positive. Passed: "+length);
 			data = new int[length]; // automaticaly initialized to zeros
 			offset = 0;
 		}

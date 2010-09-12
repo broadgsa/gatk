@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.packing;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -134,7 +134,7 @@ public class BasePackedOutputStream<T> {
         else if( type == Byte.class )
             buffer.put((byte)packedBases);
         else
-            throw new GATKException("Cannot pack bases into type " + type.getName());
+            throw new ReviewedStingException("Cannot pack bases into type " + type.getName());
         targetOutputStream.write(buffer.array());        
     }
 }

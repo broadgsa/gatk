@@ -28,7 +28,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 import java.io.File;
 import java.io.IOException;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -210,7 +210,7 @@ class StrandedCounts {
 
     public void updateReadPair( int fQual, int rQual, int fOff, int rOff ) {  // hehe f Off
         if ( rOff < 0 || fOff < 0 )
-	    throw new GATKException("Offset is negative. Should never happen.");
+	    throw new ReviewedStingException("Offset is negative. Should never happen.");
 	forwardCountsByOffset[fOff][fQual < 0 ? 0 : fQual > 40 ? 40 : fQual]++;
         reverseCountsByOffset[rOff][rQual < 0 ? 0 : rQual > 40 ? 40 : rQual]++;
     }

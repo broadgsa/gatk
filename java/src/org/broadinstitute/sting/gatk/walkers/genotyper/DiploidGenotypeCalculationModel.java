@@ -30,7 +30,7 @@ import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
@@ -192,7 +192,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
 
         public void incrementFrequency() {
             if ( frequency == 2 * N )
-                throw new GATKException("Frequency was incremented past N; how is this possible?");
+                throw new ReviewedStingException("Frequency was incremented past N; how is this possible?");
             frequency++;
 
             double greedy = VALUE_NOT_CALCULATED;
@@ -219,7 +219,7 @@ public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalcul
                 // so we can ignore that case
             }
             if ( greedyIndex == -1 )
-                throw new GATKException("There is no best choice for a new alternate allele; how is this possible?");
+                throw new ReviewedStingException("There is no best choice for a new alternate allele; how is this possible?");
 
             if ( indexes[greedyIndex] == GenotypeType.HET.ordinal() )
                 indexes[greedyIndex] = GenotypeType.HOM.ordinal();

@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  * Represents the Burrows-Wheeler Transform of a reference sequence.
@@ -124,7 +124,7 @@ public class BWT {
      */
     protected byte getBase(long index) {
         if(index == inverseSA0)
-            throw new GATKException(String.format("Base at index %d does not have a text representation",index));
+            throw new ReviewedStingException(String.format("Base at index %d does not have a text representation",index));
 
         SequenceBlock block = getSequenceBlock(index);
         int position = getSequencePosition(index);

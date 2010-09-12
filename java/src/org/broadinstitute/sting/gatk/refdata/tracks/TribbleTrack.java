@@ -30,7 +30,7 @@ import org.broad.tribble.FeatureSource;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -115,7 +115,7 @@ public class TribbleTrack extends RMDTrack implements QueryableTrack {
         try {
             reader.close();
         } catch (IOException e) {
-            throw new GATKException("Unable to close reader " + reader.toString(),e);
+            throw new ReviewedStingException("Unable to close reader " + reader.toString(),e);
         }
         reader = null;
     }

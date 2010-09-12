@@ -31,7 +31,7 @@ import net.sf.samtools.util.SequenceUtil;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -334,7 +334,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             do {
                 currentInterval = intervals.hasNext() ? intervals.next() : null;
             } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
-        } catch (GATKException e) {
+        } catch (ReviewedStingException e) {
             throw new UserException.MissortedFile(new File(intervalsFile), " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***", e);
         }
 

@@ -23,7 +23,7 @@
  */
 package org.broadinstitute.sting.utils.pileup;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 
@@ -140,7 +140,7 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
                 case INSERTION: v[i] = 'I'; break;
                 case DELETION: v[i] = 'D'; break;
                 case NOEVENT: v[i] = '.'; break;
-                default: throw new GATKException("Unknown event type encountered: "+e.getType());
+                default: throw new ReviewedStingException("Unknown event type encountered: "+e.getType());
             }
             i++;
         }
@@ -190,7 +190,7 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
                     indel = getDeletionString(e.getEventLength(),refBases);
                     break;
                 case NOEVENT: continue;
-                default: throw new GATKException("Unknown event type encountered: "+e.getType());
+                default: throw new ReviewedStingException("Unknown event type encountered: "+e.getType());
             }
 
             cnt = events.get(indel);

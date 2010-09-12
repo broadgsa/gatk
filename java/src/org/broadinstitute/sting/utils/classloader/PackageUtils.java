@@ -27,7 +27,7 @@ package org.broadinstitute.sting.utils.classloader;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
@@ -136,7 +136,7 @@ public class PackageUtils {
           method.invoke(ClassLoader.getSystemClassLoader(), url);
           resetReflections();
       } catch (Exception e) {
-          throw new GATKException("Error adding url to the current classloader.", e);
+          throw new ReviewedStingException("Error adding url to the current classloader.", e);
       }
     }
 

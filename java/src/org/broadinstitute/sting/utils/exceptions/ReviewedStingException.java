@@ -24,17 +24,17 @@
 
 package org.broadinstitute.sting.utils.exceptions;
 
-import org.broadinstitute.sting.utils.exceptions.StingException;
-
 /**
- * Temp class to track split from Sting exception to UserException
+ * A trivial extension around StingException to mark exceptions that have been reviewed for correctness,
+ * completeness, etc.  By using this exception you are saying "this is the right error message".  StingException
+ * is now just a catch all for lazy users.
  */
-public class GATKException extends StingException {
-    public GATKException(String msg) {
+public class ReviewedStingException extends StingException {
+    public ReviewedStingException(String msg) {
         super(msg);
     }
 
-    public GATKException(String message, Throwable throwable) {
+    public ReviewedStingException(String message, Throwable throwable) {
         super(message, throwable);
     }
 }

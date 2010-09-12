@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.analyzeannotations;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Comparator;
 
@@ -114,7 +114,7 @@ public class AnnotationDatum implements Comparator<AnnotationDatum> {
     final public float calcTiTv( final int INDEX ) {
 
         if( ti[INDEX] < 0 || tv[INDEX] < 0 ) {
-            throw new GATKException( "Integer overflow detected! There are too many variants piled up in one annotation bin." );
+            throw new ReviewedStingException( "Integer overflow detected! There are too many variants piled up in one annotation bin." );
         }
 
         if( tv[INDEX] == 0 ) { // Don't divide by zero

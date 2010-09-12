@@ -31,7 +31,7 @@ import net.sf.picard.reference.ReferenceSequence;
 
 import java.io.*;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
 
 /**
@@ -182,7 +182,7 @@ public class CreateBWTFromReference {
 
         for( int i = 0; i < bwt.length(); i++ ) {
             if( bwtSequence[i] != existingBWTSequence[i] )
-                throw new GATKException("BWT mismatch at " + i);
+                throw new ReviewedStingException("BWT mismatch at " + i);
         }
 
         File existingSAFile = new File(inputFileName+".sa");
@@ -193,7 +193,7 @@ public class CreateBWTFromReference {
             if( i % 10000 == 0 )
                 System.out.printf("Validating suffix array entry %d%n", i);
             if( suffixArray.get(i) != existingSuffixArray.get(i) )
-                throw new GATKException(String.format("Suffix array mismatch at %d; SA is %d; should be %d",i,existingSuffixArray.get(i),suffixArray.get(i)));
+                throw new ReviewedStingException(String.format("Suffix array mismatch at %d; SA is %d; should be %d",i,existingSuffixArray.get(i),suffixArray.get(i)));
         }
     }
 

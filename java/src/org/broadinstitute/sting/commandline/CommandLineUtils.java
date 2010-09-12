@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 
@@ -123,7 +123,7 @@ public class CommandLineUtils {
         try {
             return annotation.getClass().getMethod(method).invoke(annotation);
         } catch (Exception e) {
-            throw new GATKException("Unable to access method " + method + " on annotation " + annotation.getClass(), e);
+            throw new ReviewedStingException("Unable to access method " + method + " on annotation " + annotation.getClass(), e);
         }
     }
 }

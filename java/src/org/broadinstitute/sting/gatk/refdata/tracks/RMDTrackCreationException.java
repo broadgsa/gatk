@@ -23,7 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 
 /**
@@ -34,7 +34,7 @@ import org.broadinstitute.sting.utils.exceptions.GATKException;
  *
  * if we fail for some reason to make a track, throw this exception
  */
-public class RMDTrackCreationException extends GATKException {
+public class RMDTrackCreationException extends ReviewedStingException {
     public RMDTrackCreationException(String msg) {
         super(msg);
     }

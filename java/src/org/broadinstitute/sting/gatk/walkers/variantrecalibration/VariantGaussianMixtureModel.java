@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -699,7 +699,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
                     logger.warn("About to throw exception due to numerical instability. Try running with fewer annotations and then with fewer Gaussians. " +
                             "It is best to only use the annotations which appear to be Gaussianly distributed for this Gaussian mixture model.");
-                    throw new GATKException("Numerical Instability! Found NaN after performing log10: " + pVarInClusterLog10[kkk] + ", cluster = " + kkk + ", variant index = " + iii);
+                    throw new ReviewedStingException("Numerical Instability! Found NaN after performing log10: " + pVarInClusterLog10[kkk] + ", cluster = " + kkk + ", variant index = " + iii);
                 }
             }
 
@@ -709,7 +709,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 if( Double.isNaN(pVarInCluster[kkk][iii]) ) {
                     logger.warn("About to throw exception due to numerical instability. Try running with fewer annotations and then with fewer Gaussians. " +
                             "It is best to only use the annotations which appear to be Gaussianly distributed for this Gaussian mixture model.");
-                    throw new GATKException("Numerical Instability! Found NaN after rescaling log10 values: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
+                    throw new ReviewedStingException("Numerical Instability! Found NaN after rescaling log10 values: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
                 }
             }
         }
@@ -775,7 +775,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 if( Double.isNaN(prob) ) {
                     logger.warn("About to throw exception due to numerical instability. Try running with fewer annotations and then with fewer Gaussians. " +
                             "It is best to only use the annotations which appear to be Gaussianly distributed for this Gaussian mixture model.");
-                    throw new GATKException("Numerical Instability! Found NaN in M-step: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
+                    throw new ReviewedStingException("Numerical Instability! Found NaN in M-step: " + pVarInCluster[kkk][iii] + ", cluster = " + kkk + ", variant index = " + iii);
                 }
                 sumProb += prob;
                 for( int jjj = 0; jjj < numAnnotations; jjj++ ) {

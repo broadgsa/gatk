@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -96,7 +96,7 @@ public class Counts implements Cloneable {
             other = (Counts)super.clone();
         }
         catch(CloneNotSupportedException ex) {
-            throw new GATKException("Unable to clone counts object", ex);
+            throw new ReviewedStingException("Unable to clone counts object", ex);
         }
         other.counts = new HashMap<Byte,Long>(counts);
         other.cumulativeCounts = new HashMap<Byte,Long>(cumulativeCounts);

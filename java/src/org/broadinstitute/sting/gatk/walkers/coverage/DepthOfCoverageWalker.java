@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
@@ -226,7 +226,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
                 partition.add(String.format("%s_pl_%s_cn_%s",rg.getSample(),rg.getPlatform(),rg.getSequencingCenter()));
             }
         } else {
-            throw new GATKException("Invalid aggregation type sent to getSamplesFromToolKit");
+            throw new ReviewedStingException("Invalid aggregation type sent to getSamplesFromToolKit");
         }
 
         return partition;
@@ -289,7 +289,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
                         getCorrectStream(partition, DoCOutputType.Aggregation.interval, DoCOutputType.FileType.statistics),
                         partition);
             } else {
-                throw new GATKException("Partition type "+partition.toString()+" had no entries. Please check that your .bam header has all appropriate partition types.");
+                throw new ReviewedStingException("Partition type "+partition.toString()+" had no entries. Please check that your .bam header has all appropriate partition types.");
             }
         }
 
@@ -766,7 +766,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
             int index = 0;
             for ( String s : namesInAg ) {
                 if ( ! s.equalsIgnoreCase(order.get(index)) ) {
-                    throw new GATKException("IDs are out of order for type "+t+"! Aggregator has different ordering");
+                    throw new ReviewedStingException("IDs are out of order for type "+t+"! Aggregator has different ordering");
                 }
                 index++;
             }

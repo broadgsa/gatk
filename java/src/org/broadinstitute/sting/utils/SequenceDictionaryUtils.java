@@ -29,7 +29,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
@@ -116,7 +116,7 @@ public class SequenceDictionaryUtils {
             case OUT_OF_ORDER:
                 throw new UserException.IncompatibleSequenceDictionaries("Order of contigs differences, which is unsafe", name1, dict1, name2, dict2);
             default:
-                throw new GATKException("Unexpected SequenceDictionaryComparison type");
+                throw new ReviewedStingException("Unexpected SequenceDictionaryComparison type");
         }
     }
 

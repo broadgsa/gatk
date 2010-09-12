@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
 import javax.management.MBeanServer;
@@ -109,7 +109,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             mbs.registerMBean(this, name);
         }
         catch (JMException ex) {
-            throw new GATKException("Unable to register microscheduler with JMX", ex);
+            throw new ReviewedStingException("Unable to register microscheduler with JMX", ex);
         }
     }
 
@@ -129,7 +129,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         while (isShardTraversePending() || isTreeReducePending()) {
             // Check for errors during execution.
             if(hasTraversalErrorOccurred())
-                throw new GATKException("An error has occurred during the traversal.",getTraversalError());
+                throw new ReviewedStingException("An error has occurred during the traversal.",getTraversalError());
 
             // Too many files sitting around taking up space?  Merge them.
             if (isMergeLimitExceeded())
@@ -158,7 +158,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             notifyTraversalDone(walker,result);
         }
         catch (Exception ex) {
-            throw new GATKException("Unable to retrieve result", ex);
+            throw new ReviewedStingException("Unable to retrieve result", ex);
         }
 
         outputTracker.close();
@@ -358,7 +358,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
     private synchronized Throwable getTraversalError() {
         if(!hasTraversalErrorOccurred())
-            throw new GATKException("User has attempted to retrieve a traversal error when none exists");
+            throw new ReviewedStingException("User has attempted to retrieve a traversal error when none exists");
         return error;
     }
 

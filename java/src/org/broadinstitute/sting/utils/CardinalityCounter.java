@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Iterator;
 
@@ -37,7 +37,7 @@ public class CardinalityCounter implements Iterator<int[]>, Iterable<int[]> {
 
     public int[] next() {
         if (!hasNext())
-            throw new GATKException("CANNOT iterate past end!");
+            throw new ReviewedStingException("CANNOT iterate past end!");
 
         // Copy the assignment to be returned:
         int[] nextList = new int[valList.length];

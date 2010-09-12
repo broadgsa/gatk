@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
@@ -83,7 +83,7 @@ public class JoinTable
      */
     public void parseFromFile(String filename, String localBindingName, String localColumnName, String externalBindingName, String externalColumnName)  {
         if(parsedFromFile) {
-            throw new GATKException("parseFromFile(" + filename +", ..) called more than once");
+            throw new ReviewedStingException("parseFromFile(" + filename +", ..) called more than once");
         }
         parsedFromFile = true;
 
@@ -135,7 +135,7 @@ public class JoinTable
                     br.close();
                 }
             } catch(IOException e) {
-                throw new GATKException("Unable to close file: " + filename, e);
+                throw new ReviewedStingException("Unable to close file: " + filename, e);
             }
         }
     }

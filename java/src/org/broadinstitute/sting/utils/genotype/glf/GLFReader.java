@@ -3,7 +3,7 @@ package org.broadinstitute.sting.utils.genotype.glf;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.RuntimeEOFException;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 
@@ -225,7 +225,7 @@ public class GLFReader implements Iterator<GLFRecord> {
     }
 
     public void remove() {
-        throw new GATKException("GLFReader doesn't support remove()");
+        throw new ReviewedStingException("GLFReader doesn't support remove()");
     }
 
     public void close() {

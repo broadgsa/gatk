@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.gatk.contexts;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
@@ -66,9 +66,9 @@ public class AlignmentContext {
     }
 
     public AlignmentContext(GenomeLoc loc, ReadBackedPileup basePileup, long skippedBases,boolean hasPileupBeenDownsampled ) {
-        if ( loc == null ) throw new GATKException("BUG: GenomeLoc in Alignment context is null");
-        if ( basePileup == null ) throw new GATKException("BUG: ReadBackedPileup in Alignment context is null");
-        if ( skippedBases < 0 ) throw new GATKException("BUG: skippedBases is -1 in Alignment context");
+        if ( loc == null ) throw new ReviewedStingException("BUG: GenomeLoc in Alignment context is null");
+        if ( basePileup == null ) throw new ReviewedStingException("BUG: ReadBackedPileup in Alignment context is null");
+        if ( skippedBases < 0 ) throw new ReviewedStingException("BUG: skippedBases is -1 in Alignment context");
 
         this.loc = loc;
         this.basePileup = basePileup;
@@ -89,7 +89,7 @@ public class AlignmentContext {
      */
     public ReadBackedPileup getBasePileup() {
         if(!hasBasePileup())
-            throw new GATKException("No base pileup is available.  Please check for a base pileup with hasBasePileup() before attempting to retrieve a pileup.");
+            throw new ReviewedStingException("No base pileup is available.  Please check for a base pileup with hasBasePileup() before attempting to retrieve a pileup.");
         return basePileup;
     }
 
@@ -99,7 +99,7 @@ public class AlignmentContext {
      */
     public ReadBackedExtendedEventPileup getExtendedEventPileup() {
         if(!hasExtendedEventPileup())
-            throw new GATKException("No extended event pileup is present.");
+            throw new ReviewedStingException("No extended event pileup is present.");
         return (ReadBackedExtendedEventPileup)basePileup; 
     }
 

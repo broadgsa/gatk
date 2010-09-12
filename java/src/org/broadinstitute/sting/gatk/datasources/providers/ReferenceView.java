@@ -10,7 +10,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 /**
  * User: hanna
  * Date: May 22, 2009
@@ -80,7 +80,7 @@ public class ReferenceView implements View {
         int overhang = (int)(genomeLoc.getStop() - stop);
         if ( overhang > 0 ) {
             if ( overhang > BUFFER ) // todo -- this is a bit dangerous
-                throw new GATKException("Insufficient buffer size for Xs overhanging genome -- expand BUFFER");
+                throw new ReviewedStingException("Insufficient buffer size for Xs overhanging genome -- expand BUFFER");
             byte[] all = new byte[subsequence.getBases().length + overhang];
             System.arraycopy(subsequence.getBases(), 0, all, 0, subsequence.getBases().length);
             System.arraycopy(Xs, 0, all, subsequence.getBases().length, overhang);

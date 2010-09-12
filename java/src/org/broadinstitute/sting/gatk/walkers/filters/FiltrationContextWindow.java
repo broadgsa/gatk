@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.filters;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -80,9 +80,9 @@ public class FiltrationContextWindow {
      */
     public FiltrationContext[] getWindow(int elementsToLeft, int elementsToRight) {
         if ( elementsToLeft > maxWindowElements() || elementsToRight > maxWindowElements() )
-            throw new GATKException("Too large a window requested");
+            throw new ReviewedStingException("Too large a window requested");
         if ( elementsToLeft < 0 || elementsToRight < 0 )
-            throw new GATKException("Window size cannot be negative");
+            throw new ReviewedStingException("Window size cannot be negative");
 
         FiltrationContext[] array = new FiltrationContext[elementsToLeft + elementsToRight + 1];
         ListIterator<FiltrationContext> iter = window.listIterator(currentContext - elementsToLeft);

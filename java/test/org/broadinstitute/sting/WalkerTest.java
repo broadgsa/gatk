@@ -28,7 +28,7 @@ package org.broadinstitute.sting;
 import junit.framework.Assert;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
 import org.junit.Test;
@@ -62,7 +62,7 @@ public class WalkerTest extends BaseTest {
         if ( ! dir.exists() ) {
             System.out.printf("##### Creating MD5 db %s%n", MD5_FILE_DB_SUBDIR);
             if ( ! dir.mkdir() ) {
-                throw new GATKException("Infrastructure failure: failed to create md5 directory " + MD5_FILE_DB_SUBDIR);
+                throw new ReviewedStingException("Infrastructure failure: failed to create md5 directory " + MD5_FILE_DB_SUBDIR);
             }
         }
     }
@@ -81,7 +81,7 @@ public class WalkerTest extends BaseTest {
             try {
                 FileUtils.copyFile(resultsFile, dbFile);
             } catch ( IOException e ) {
-                throw new GATKException(e.getMessage());
+                throw new ReviewedStingException(e.getMessage());
             }
         } else {
             System.out.printf("##### MD5 file is up to date: %s%n", dbFile.getPath());
@@ -213,7 +213,7 @@ public class WalkerTest extends BaseTest {
         }
 
         public Class getExpectedException() {
-            if ( ! expectsException() ) throw new GATKException("Tried to get expection for walker test that doesn't expect one");
+            if ( ! expectsException() ) throw new ReviewedStingException("Tried to get expection for walker test that doesn't expect one");
             return expectedException;
         }
 
@@ -261,7 +261,7 @@ public class WalkerTest extends BaseTest {
             fl.deleteOnExit();
             return fl;
         } catch (IOException ex) {
-            throw new GATKException("Cannot create temp file: " + ex.getMessage(), ex);
+            throw new ReviewedStingException("Cannot create temp file: " + ex.getMessage(), ex);
         }
     }
 

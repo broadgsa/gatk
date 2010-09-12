@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.Assert;
@@ -355,7 +355,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.validate();
     }
 
-    @Test(expected= GATKException.class)
+    @Test(expected= ReviewedStingException.class)
     public void duplicateLongNameTest() {
         parsingEngine.addArgumentSource( DuplicateLongNameProvider.class );
     }
@@ -368,7 +368,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         public Integer bar;
     }
 
-    @Test(expected=GATKException.class)
+    @Test(expected= ReviewedStingException.class)
     public void duplicateShortNameTest() {
         parsingEngine.addArgumentSource( DuplicateShortNameProvider.class );
     }
@@ -593,7 +593,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         RequiredArgProvider rap = new RequiredArgProvider();
     }
 
-    @Test(expected=GATKException.class)
+    @Test(expected= ReviewedStingException.class)
     public void multipleArgumentCollectionTest() {
         parsingEngine.addArgumentSource( MultipleArgumentCollectionProvider.class );
     }

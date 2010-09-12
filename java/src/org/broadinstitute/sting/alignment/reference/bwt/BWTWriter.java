@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedOutputStream;
 import org.broadinstitute.sting.alignment.reference.packing.BasePackedOutputStream;
 
@@ -28,7 +28,7 @@ public class BWTWriter {
             this.outputStream = new BufferedOutputStream(new FileOutputStream(outputFile));
         }
         catch( FileNotFoundException ex ) {
-            throw new GATKException("Unable to open output file", ex);
+            throw new ReviewedStingException("Unable to open output file", ex);
         }
     }
 
@@ -53,7 +53,7 @@ public class BWTWriter {
             intPackedOutputStream.write(bwt.counts.toArray(false));
         }
         catch( IOException ex ) {
-            throw new GATKException("Unable to read BWT from input stream.", ex);
+            throw new ReviewedStingException("Unable to read BWT from input stream.", ex);
         }
     }
 
@@ -65,7 +65,7 @@ public class BWTWriter {
             outputStream.close();
         }
         catch( IOException ex ) {
-            throw new GATKException("Unable to close input file", ex);
+            throw new ReviewedStingException("Unable to close input file", ex);
         }
     }
 }

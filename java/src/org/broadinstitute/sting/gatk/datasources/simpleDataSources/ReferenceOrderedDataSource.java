@@ -11,7 +11,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -156,7 +156,7 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
             return null;
         }
         else {
-            throw new GATKException("Unable to find a ROD iterator for segments of type " + segment.getClass());
+            throw new ReviewedStingException("Unable to find a ROD iterator for segments of type " + segment.getClass());
         }
     }
 
@@ -215,7 +215,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureSource, Location
                 return new SeekableRODIterator(new FeatureToGATKFeatureIterator(resource.iterator(),rod.getName()));
             }
         } catch (IOException e) {
-            throw new GATKException("Unable to create iterator for rod named " + rod.getName(),e);
+            throw new ReviewedStingException("Unable to create iterator for rod named " + rod.getName(),e);
         }
     }
 

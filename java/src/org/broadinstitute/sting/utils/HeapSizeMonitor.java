@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -42,7 +42,7 @@ public class HeapSizeMonitor {
             monitorThread.join();
         }
         catch(InterruptedException ex) {
-            throw new GATKException("Unable to connect to monitor thread");
+            throw new ReviewedStingException("Unable to connect to monitor thread");
         }
         monitorThread = null;        
     }
@@ -74,7 +74,7 @@ public class HeapSizeMonitor {
                     Thread.sleep(monitorFrequencyMillis);
                 }
                 catch(InterruptedException ex) {
-                    throw new GATKException("Unable to continue monitoring heap consumption",ex);
+                    throw new ReviewedStingException("Unable to continue monitoring heap consumption",ex);
                 }
             }
         }

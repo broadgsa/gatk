@@ -44,7 +44,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
@@ -973,7 +973,7 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
          */
         public int computeInitialCodingCoord() {
             if(!isProteinCodingTranscript()) {
-                throw new GATKException("This method should only be called for protein-coding transcripts");
+                throw new ReviewedStingException("This method should only be called for protein-coding transcripts");
             }
 
             if(positiveStrand)

@@ -2,7 +2,7 @@ package org.broadinstitute.sting;
 
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.junit.*;
 
 import java.io.*;
@@ -141,13 +141,13 @@ public abstract class BaseTest {
         try {
             digest = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            throw new GATKException("Unable to find MD5 digest");
+            throw new ReviewedStingException("Unable to find MD5 digest");
         }
         InputStream is;
         try {
             is = new FileInputStream(file);
         } catch (FileNotFoundException e) {
-            throw new GATKException("Unable to open file " + file);
+            throw new ReviewedStingException("Unable to open file " + file);
         }
         byte[] buffer = new byte[8192];
         int read;
@@ -161,14 +161,14 @@ public abstract class BaseTest {
 
         }
         catch (IOException e) {
-            throw new GATKException("Unable to process file for MD5", e);
+            throw new ReviewedStingException("Unable to process file for MD5", e);
         }
         finally {
             try {
                 is.close();
             }
             catch (IOException e) {
-                throw new GATKException("Unable to close input stream for MD5 calculation", e);
+                throw new ReviewedStingException("Unable to close input stream for MD5 calculation", e);
             }
         }
     }

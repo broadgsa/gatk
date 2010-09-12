@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.fasta;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.PrintStream;
 
@@ -23,7 +23,7 @@ public class FastaSequence {
     }
 
     public void setName(String name) {
-        if ( printedHeader ) throw new GATKException("Can not set name for FASTA record: header is already printed.");
+        if ( printedHeader ) throw new ReviewedStingException("Can not set name for FASTA record: header is already printed.");
         this.name = name;
     }
 

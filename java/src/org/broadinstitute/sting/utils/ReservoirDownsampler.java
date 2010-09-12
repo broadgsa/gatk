@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -35,7 +35,7 @@ public class ReservoirDownsampler<T> {
      */
     public ReservoirDownsampler(final int maxElements) {
         if(maxElements < 0)
-            throw new GATKException("Unable to work with an negative size collection of elements");
+            throw new ReviewedStingException("Unable to work with an negative size collection of elements");
         this.reservoir = new ArrayList<T>(maxElements);
         this.maxElements = maxElements;
     }

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -326,7 +326,7 @@ public class RecalDataManager {
             if( attr instanceof String ) {
                 colorSpace = ((String)attr).getBytes();
             } else {
-                throw new GATKException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+                throw new ReviewedStingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
             }
 
             // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
@@ -373,7 +373,7 @@ public class RecalDataManager {
                 if( attr instanceof String ) {
                     colorSpace = ((String)attr).substring(1).getBytes(); // trim off the Sentinel
                 } else {
-                    throw new GATKException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+                    throw new ReviewedStingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
                 }
 
                 for( byte color : colorSpace ) {
@@ -448,7 +448,7 @@ public class RecalDataManager {
                 colorSpaceQuals = x.getBytes();
                 SAMUtils.fastqToPhred(colorSpaceQuals);
             } else {
-                throw new GATKException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG, read.getReadName()));
+                throw new ReviewedStingException(String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG, read.getReadName()));
             }
 
             for( int iii = 1; iii < inconsistency.length - 1; iii++ ) {

@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.datasources.utilities;
 
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 
 import java.io.File;
@@ -58,7 +58,7 @@ public class BAMFileStat extends CommandLineProgram {
     public int execute() {
         switch(command) {
             case ShowBlocks:
-                throw new GATKException("The BAM block inspector has been disabled.");
+                throw new ReviewedStingException("The BAM block inspector has been disabled.");
             case ShowIndex:
                 showIndexBins(new File(bamFileName),range);
                 break;
@@ -171,7 +171,7 @@ public class BAMFileStat extends CommandLineProgram {
             }
         }
         catch(IllegalAccessException ex) {
-            throw new GATKException("Unable to examine cached index",ex);
+            throw new ReviewedStingException("Unable to examine cached index",ex);
         }
 
         System.out.printf("%nOverall: %d bins, %d chunks, %d linear index entries",numBins,numChunks,numLinearIndexEntries);

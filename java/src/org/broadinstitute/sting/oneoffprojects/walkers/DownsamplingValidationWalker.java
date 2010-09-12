@@ -29,7 +29,7 @@ import org.broadinstitute.sting.gatk.refdata.features.samread.SAMReadFeature;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.commandline.Argument;
 
@@ -71,7 +71,7 @@ public class DownsamplingValidationWalker extends LocusWalker<Integer,Long> {
         int matchingReadsFound = 0;
         if(unsampledReadsStartingAtThisLocus.isEmpty()) {
             if(!sampledReadsStartingAtThisLocus.isEmpty())
-                throw new GATKException("Downsampler hallucinated a read starting at locus "+ref.getLocus());
+                throw new ReviewedStingException("Downsampler hallucinated a read starting at locus "+ref.getLocus());
         }
         else {
             boolean foundMatch = false;
@@ -86,10 +86,10 @@ public class DownsamplingValidationWalker extends LocusWalker<Integer,Long> {
             }
 
             if(!foundMatch)
-                throw new GATKException("Downsampler failed to include any read starting at locus "+ref.getLocus());
+                throw new ReviewedStingException("Downsampler failed to include any read starting at locus "+ref.getLocus());
 
             if(matchingReadsFound > maxExpectedNumberOfReads)
-                throw new GATKException("Downsampler found too many reads starting at locus "+ref.getLocus());
+                throw new ReviewedStingException("Downsampler found too many reads starting at locus "+ref.getLocus());
         }
 
         return matchingReadsFound;

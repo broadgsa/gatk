@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -163,9 +163,9 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
         return ! discontinuousP( that );
     }
 
-    public GenomeLoc merge( GenomeLoc that ) throws GATKException {
+    public GenomeLoc merge( GenomeLoc that ) throws ReviewedStingException {
         if (!(this.contiguousP(that))) {
-            throw new GATKException("The two genome loc's need to be contigous");
+            throw new ReviewedStingException("The two genome loc's need to be contigous");
         }
 
         return new GenomeLoc(getContig(), this.contigIndex,
@@ -173,9 +173,9 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
                              Math.max( getStop(), that.getStop()) );
     }
 
-    public GenomeLoc intersect( GenomeLoc that ) throws GATKException {
+    public GenomeLoc intersect( GenomeLoc that ) throws ReviewedStingException {
         if (!(this.overlapsP(that))) {
-            throw new GATKException("GenomeLoc::intersect(): The two genome loc's need to overlap");
+            throw new ReviewedStingException("GenomeLoc::intersect(): The two genome loc's need to overlap");
         }
 
         return new GenomeLoc(getContig(), this.contigIndex,

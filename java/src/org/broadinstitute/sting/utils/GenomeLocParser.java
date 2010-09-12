@@ -42,7 +42,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.bed.BedParser;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -428,10 +428,10 @@ public class GenomeLocParser {
     public static GenomeLoc createGenomeLoc(int contigIndex, final long start, final long stop) {
         checkSetup();
         if (start < 0) {
-            throw new GATKException("Bad start position " + start);
+            throw new ReviewedStingException("Bad start position " + start);
         }
         if (stop < -1) {
-            throw new GATKException("Bad stop position " + stop);
+            throw new ReviewedStingException("Bad stop position " + stop);
         }    // a negative -1 indicates it's not a meaningful end position
 
 
@@ -498,16 +498,16 @@ public class GenomeLocParser {
      */
     private static GenomeLoc exceptionOnInvalidGenomeLoc(GenomeLoc toReturn) {
         if (toReturn.getStart() < 0) {
-            throw new GATKException("Parameters to GenomeLocParser are incorrect: the start position is less than 0");
+            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the start position is less than 0");
         }
         if ((toReturn.getStop() != -1) && (toReturn.getStop() < 0)) {
-            throw new GATKException("Parameters to GenomeLocParser are incorrect: the stop position is less than 0");
+            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the stop position is less than 0");
         }
         if (toReturn.getContigIndex() < 0) {
-            throw new GATKException("Parameters to GenomeLocParser are incorrect: the contig index is less than 0");
+            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the contig index is less than 0");
         }
         if (toReturn.getContigIndex() >= contigInfo.getSequences().size()) {
-            throw new GATKException("Parameters to GenomeLocParser are incorrect: the contig index is greater then the stored sequence count");
+            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the contig index is greater then the stored sequence count");
 
         }
         return toReturn;
@@ -528,11 +528,11 @@ public class GenomeLocParser {
     private static void exceptionOnInvalidGenomeLocBounds(GenomeLoc locus) {
         int contigSize = contigInfo.getSequence(locus.getContigIndex()).getSequenceLength();
         if(locus.getStart() > contigSize)
-            throw new GATKException(String.format("GenomeLoc is invalid: locus start %d is after the end of contig %s",locus.getStart(),locus.getContig()));
+            throw new ReviewedStingException(String.format("GenomeLoc is invalid: locus start %d is after the end of contig %s",locus.getStart(),locus.getContig()));
         if(locus.getStop() > contigSize)
-            throw new GATKException(String.format("GenomeLoc is invalid: locus stop %d is after the end of contig %s",locus.getStop(),locus.getContig()));
+            throw new ReviewedStingException(String.format("GenomeLoc is invalid: locus stop %d is after the end of contig %s",locus.getStop(),locus.getContig()));
         if (locus.getStart() > locus.getStop()) {
-            throw new GATKException("Parameters to GenomeLocParser are incorrect: the start position is greater than the end position");
+            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the start position is greater than the end position");
         }
     }
 
@@ -624,7 +624,7 @@ public class GenomeLocParser {
 
         int index = -1;
         if ((index = contigInfo.getSequenceIndex(contig)) < 0) {
-            throw new GATKException("Contig name ( " + contig + " ) not in the set sequence dictionary.");
+            throw new ReviewedStingException("Contig name ( " + contig + " ) not in the set sequence dictionary.");
         }
         return exceptionOnInvalidGenomeLoc(new GenomeLoc(contig, index, loc.start, loc.getStop()));
     }
@@ -637,7 +637,7 @@ public class GenomeLocParser {
     public static GenomeLoc setContigIndex(GenomeLoc loc, int contig) {
         checkSetup();
         if ((contig >= GenomeLocParser.contigInfo.getSequences().size()) || (contig < 0)) {
-            throw new GATKException("Contig index ( " + contig + " ) is not in the sequence dictionary set.");
+            throw new ReviewedStingException("Contig index ( " + contig + " ) is not in the sequence dictionary set.");
         }
         return exceptionOnInvalidGenomeLoc(new GenomeLoc(GenomeLocParser.contigInfo.getSequence(contig).getSequenceName(), contig, loc.start, loc.getStop()));
     }
@@ -710,7 +710,7 @@ public class GenomeLocParser {
     /** check to make sure that we've setup the contig information */
     private static void checkSetup() {
         if (contigInfo == null) {
-            throw new GATKException("The GenomeLocParser hasn't been setup with a contig sequence yet");
+            throw new ReviewedStingException("The GenomeLocParser hasn't been setup with a contig sequence yet");
         }
     }
 

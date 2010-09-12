@@ -35,7 +35,7 @@ import java.io.OutputStream;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
@@ -156,7 +156,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void setCompressionLevel( Integer compressionLevel ) {
         if(writeStarted)
-            throw new GATKException("Attempted to change the compression level of a file with alignments already in it.");
+            throw new ReviewedStingException("Attempted to change the compression level of a file with alignments already in it.");
         this.compressionLevel = compressionLevel;
     }
 
@@ -192,7 +192,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void setPresorted(boolean presorted) {
         if(writeStarted)
-            throw new GATKException("Attempted to change the presorted state of a file with alignments already in it.");
+            throw new ReviewedStingException("Attempted to change the presorted state of a file with alignments already in it.");
         this.presorted = presorted;
     }
 
@@ -210,7 +210,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void setMaxRecordsInRam(int maxRecordsInRam) {
         if(writeStarted)
-            throw new GATKException("Attempted to change the max records in RAM of a file with alignments already in it.");
+            throw new ReviewedStingException("Attempted to change the max records in RAM of a file with alignments already in it.");
         this.maxRecordsInRam = maxRecordsInRam;
     }
 
@@ -228,7 +228,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void writeHeader(SAMFileHeader header) {
         if(writeStarted)
-            throw new GATKException("Attempted to change the header of a file with alignments already in it.");
+            throw new ReviewedStingException("Attempted to change the header of a file with alignments already in it.");
         this.headerOverride = header;
     }
 

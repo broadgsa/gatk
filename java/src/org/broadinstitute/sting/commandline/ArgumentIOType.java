@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.annotation.Annotation;
 
@@ -46,6 +46,6 @@ public enum ArgumentIOType {
         for (ArgumentIOType ioType: ArgumentIOType.values())
             if (ioType.annotationClass.isAssignableFrom(annotation.getClass()))
                 return ioType;
-        throw new GATKException("Unknown annotation type: " + annotation);
+        throw new ReviewedStingException("Unknown annotation type: " + annotation);
     }
 }

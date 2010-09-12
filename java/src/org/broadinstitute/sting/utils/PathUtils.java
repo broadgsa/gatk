@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -114,7 +114,7 @@ public class PathUtils {
         }
 
         if (dir.listFiles() == null) {
-            throw new GATKException("The volume '" + dir.getAbsolutePath() + "' could not be accessed.");
+            throw new ReviewedStingException("The volume '" + dir.getAbsolutePath() + "' could not be accessed.");
         }
     }
 

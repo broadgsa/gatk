@@ -30,7 +30,7 @@ import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.ElementList;
@@ -169,7 +169,7 @@ public class GATKRunReport {
      */
     public GATKRunReport(Walker<?,?> walker, Exception e, GenomeAnalysisEngine engine, PhoneHomeOption type) {
         if ( type == PhoneHomeOption.NO_ET )
-            throw new GATKException("Trying to create a run report when type is NO_ET!");
+            throw new ReviewedStingException("Trying to create a run report when type is NO_ET!");
 
         mGATKHeader = CommandLineGATK.createApplicationHeader();
         currentPath = System.getProperty("user.dir");
@@ -245,7 +245,7 @@ public class GATKRunReport {
             serializer.write(this, stream);
             //throw new StingException("test");
         } catch (Exception e) {
-            throw new GATKException("Failed to marshal the data to the file " + stream, e);
+            throw new ReviewedStingException("Failed to marshal the data to the file " + stream, e);
         }
     }
 

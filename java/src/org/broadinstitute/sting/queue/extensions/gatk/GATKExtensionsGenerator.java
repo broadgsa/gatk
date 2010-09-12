@@ -39,7 +39,7 @@ import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescripto
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
 import java.io.IOException;
@@ -94,7 +94,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     protected int execute() {
         try {
             if (!outputDirectory.isDirectory() && !outputDirectory.mkdirs())
-                throw new GATKException("Unable to create output directory: " + outputDirectory);
+                throw new ReviewedStingException("Unable to create output directory: " + outputDirectory);
 
             for (Class<? extends CommandLineProgram> clp: clpManager.getValues()) {
 

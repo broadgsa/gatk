@@ -30,7 +30,7 @@ import cern.jet.random.Normal;
 import java.util.*;
 
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 public class WilcoxonRankSum {
     static final String headerString = ("nA nB .005 .01 .025 .05 .10 .20");
@@ -186,7 +186,7 @@ public class WilcoxonRankSum {
                 U = n1 < n2 ? U1 : U2;
                 break;
             default:
-                throw new GATKException("Unexpected WILCOXON H0: " + h0);
+                throw new ReviewedStingException("Unexpected WILCOXON H0: " + h0);
         }
 
         // data is nA nB then
@@ -233,7 +233,7 @@ public class WilcoxonRankSum {
                 pvalue = NORMAL.cdf(z);
                 break;
             default:
-                throw new GATKException("Unexpected WILCOXON H0: " + h0);
+                throw new ReviewedStingException("Unexpected WILCOXON H0: " + h0);
         }
 
         return pvalue;

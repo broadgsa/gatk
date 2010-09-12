@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 
 @Analysis(name = "Count Variants", description = "Counts different classes of variants in the sample")
@@ -112,7 +112,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                 nComplex++;
                 break;
             default:
-                throw new GATKException("Unexpected VariantContext type " + vc1.getType());
+                throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
         }
 
         for (Genotype g : vc1.getGenotypes().values()) {
@@ -130,7 +130,7 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                     nHomVar++;
                     break;
                 default:
-                    throw new GATKException("BUG: Unexpected genotype type: " + g);
+                    throw new ReviewedStingException("BUG: Unexpected genotype type: " + g);
             }
         }
 

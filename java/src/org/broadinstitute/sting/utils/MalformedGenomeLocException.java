@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 /**
  * User: hanna
  * Date: Jun 2, 2009
@@ -19,7 +19,7 @@ import org.broadinstitute.sting.utils.exceptions.GATKException;
  * bad sequence id out of bounds, etc.
  */
 
-public class MalformedGenomeLocException extends GATKException {
+public class MalformedGenomeLocException extends ReviewedStingException {
     /**
      * Create a new MalformedGenomeLocException with the given message.  Does not preserve the existing stack trace.
      * @param message The message.

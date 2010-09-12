@@ -35,7 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.PrintStream;
@@ -156,7 +156,7 @@ public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
                 else if (compGenotype.isHomVar())
                     hg = 2;
                 else
-                    throw new GATKException("Bug! invalid genotype!");
+                    throw new ReviewedStingException("Bug! invalid genotype!");
 
                 if (postbglGenotype.isNoCall())
                     bg = -1;
@@ -167,7 +167,7 @@ public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
                 else if (postbglGenotype.isHomVar())
                     bg = 2;
                 else
-                    throw new GATKException("Bug! invalid genotype!");
+                    throw new ReviewedStingException("Bug! invalid genotype!");
 
 
                 if (prebglGenotype.isNoCall())
@@ -179,7 +179,7 @@ public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
                 else if (prebglGenotype.isHomVar())
                     pg = 2;
                 else
-                    throw new GATKException("Bug! invalid genotype!");
+                    throw new ReviewedStingException("Bug! invalid genotype!");
 
                 outputWriter.format("%d %d %d %d\n",dp, hg, pg, bg);
 

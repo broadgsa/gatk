@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.*;
@@ -47,10 +47,10 @@ public class RODRecordListImpl extends AbstractList<GATKFeature> implements Comp
             records.add(r);
             if ( r == null ) continue;
             if ( ! this.name.equals(r.getName() ) ) {
-                throw new GATKException("Attempt to add GATKFeature with non-matching name "+r.getName()+" to the track "+name);
+                throw new ReviewedStingException("Attempt to add GATKFeature with non-matching name "+r.getName()+" to the track "+name);
             }
             if ( location != null && ! location.overlapsP(r.getLocation()) ) {
-                    throw new GATKException("Attempt to add GATKFeature that lies outside of specified interval "+location+"; offending GATKFeature:\n"+r.toString());
+                    throw new ReviewedStingException("Attempt to add GATKFeature that lies outside of specified interval "+location+"; offending GATKFeature:\n"+r.toString());
             }
         }
     }
@@ -72,7 +72,7 @@ public class RODRecordListImpl extends AbstractList<GATKFeature> implements Comp
     public void add(GATKFeature record, boolean allowNameMismatch) {
         if ( record != null ) {
             if ( ! allowNameMismatch && ! name.equals(record.getName() ) )
-                throw new GATKException("Attempt to add GATKFeature with non-matching name "+record.getName()+" to the track "+name);
+                throw new ReviewedStingException("Attempt to add GATKFeature with non-matching name "+record.getName()+" to the track "+name);
         }
         records.add(record);
     }

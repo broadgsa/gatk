@@ -29,7 +29,7 @@ import net.sf.samtools.SAMFileReader;
 
 import java.io.File;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  * Allows the user to steadily accumulate information about what
@@ -72,9 +72,9 @@ public class SAMFileReaderBuilder {
      */
     public SAMFileReader build() {
         if( samFile == null )
-            throw new GATKException( "Filename for output sam file must be supplied.");
+            throw new ReviewedStingException( "Filename for output sam file must be supplied.");
         if( validationStringency == null )
-            throw new GATKException( "Header for output sam file must be supplied.");
+            throw new ReviewedStingException( "Header for output sam file must be supplied.");
 
         SAMFileReader reader = new SAMFileReader( samFile );
         reader.setValidationStringency( validationStringency );

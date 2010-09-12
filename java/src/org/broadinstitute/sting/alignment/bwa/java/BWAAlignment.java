@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import net.sf.samtools.Cigar;
 
 /**
@@ -148,7 +148,7 @@ public class BWAAlignment extends Alignment implements Cloneable {
             newAlignment = (BWAAlignment)super.clone();
         }
         catch( CloneNotSupportedException ex ) {
-            throw new GATKException("Unable to clone BWAAlignment.");
+            throw new ReviewedStingException("Unable to clone BWAAlignment.");
         }
         newAlignment.creationNumber = numCreated++;
         newAlignment.alignmentMatchSequence = alignmentMatchSequence.clone();

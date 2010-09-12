@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Collections;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  * Holds a bunch of basic information about the traversal.
@@ -78,7 +78,7 @@ public class ReadMetrics implements Cloneable {
             newMetrics = (ReadMetrics)super.clone();
         }
         catch(CloneNotSupportedException ex) {
-            throw new GATKException("Unable to clone runtime metrics",ex);
+            throw new ReviewedStingException("Unable to clone runtime metrics",ex);
         }
         newMetrics.nRecords = nRecords;
         newMetrics.nReads = nReads;

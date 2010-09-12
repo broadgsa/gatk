@@ -27,7 +27,7 @@ package org.broadinstitute.sting.playground.utils.report;
 import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
 import org.broadinstitute.sting.playground.utils.report.utils.ComplexDataUtils;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -195,7 +195,7 @@ public class ReportMarshaller {
             else
                 node.addAllChildren(nodes);
         } catch (IllegalAccessException e) {
-            throw new GATKException("Unable to access field " + f);
+            throw new ReviewedStingException("Unable to access field " + f);
         }
     }
 }

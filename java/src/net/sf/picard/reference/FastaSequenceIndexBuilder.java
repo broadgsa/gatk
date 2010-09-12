@@ -26,7 +26,7 @@
 package net.sf.picard.reference;
 
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSourceProgressListener;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import static net.sf.picard.reference.FastaSequenceIndexBuilder.Status.*;
 
@@ -215,7 +215,7 @@ public class FastaSequenceIndexBuilder {
             throw new UserException.CouldNotReadInputFile(fastaFile, String.format("Could not read fasta file"), e);
         }
         catch (Exception e) {
-            throw new GATKException(e.getMessage(), e);
+            throw new ReviewedStingException(e.getMessage(), e);
         }
     }
 

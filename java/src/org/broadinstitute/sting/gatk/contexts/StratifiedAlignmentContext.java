@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.*;
@@ -72,7 +72,7 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
             case REVERSE:
                 return new AlignmentContext(loc,basePileup.getNegativeStrandPileup());
             default:
-                throw new GATKException("Unable to get alignment context for type = " + type);
+                throw new ReviewedStingException("Unable to get alignment context for type = " + type);
         }
     }
 
@@ -144,9 +144,9 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
         boolean isExtended = contexts.iterator().next().basePileup instanceof ReadBackedExtendedEventPileup;
         for(StratifiedAlignmentContext context: contexts) {
             if(!loc.equals(context.getLocation()))
-                throw new GATKException("Illegal attempt to join contexts from different genomic locations");
+                throw new ReviewedStingException("Illegal attempt to join contexts from different genomic locations");
             if(isExtended != (context.basePileup instanceof ReadBackedExtendedEventPileup))
-                throw new GATKException("Illegal attempt to join simple and extended contexts");
+                throw new ReviewedStingException("Illegal attempt to join simple and extended contexts");
         }
 
         AlignmentContext jointContext;

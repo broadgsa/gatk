@@ -45,7 +45,7 @@ import org.broadinstitute.sting.playground.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory;
 import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
@@ -558,7 +558,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                             if ( interesting != null ) interestingReasons.add(interesting);
                             break;
                         default:
-                            throw new GATKException("BUG: Unexpected evaluation order " + evaluation);
+                            throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
                     }
                 }
             }
@@ -708,7 +708,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         for ( EvaluationContext group : contexts ) {
             String[] parts = group.getDisplayName().split(CONTEXT_SEPARATOR);
             if ( parts.length != N_CONTEXT_NAME_PARTS ) {
-                throw new GATKException("Unexpected number of eval name parts " + group.getDisplayName() + " length = " + parts.length + ", expected " + N_CONTEXT_NAME_PARTS);
+                throw new ReviewedStingException("Unexpected number of eval name parts " + group.getDisplayName() + " length = " + parts.length + ", expected " + N_CONTEXT_NAME_PARTS);
             } else {
                 for ( int i = 0; i < parts.length; i++ )
                     nameSizes[i] = Math.max(nameSizes[i], parts[i].length());

@@ -4,7 +4,7 @@ import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
@@ -57,7 +57,7 @@ public class CoverageUtils {
         } else if ( type == DoCOutputType.Partition.sample_by_platform_by_center ) {
             return String.format("%s_pl_%s_cn_%s",r.getSample(),r.getPlatform(),r.getSequencingCenter());
         } else {
-            throw new GATKException("Invalid type ID sent to getTypeID. This is a BUG!");
+            throw new ReviewedStingException("Invalid type ID sent to getTypeID. This is a BUG!");
         }
     }
 
@@ -119,7 +119,7 @@ public class CoverageUtils {
             try {
                 counts[BaseUtils.simpleBaseToBaseIndex(e.getBase())]++;
             } catch (ArrayIndexOutOfBoundsException exc) {
-                throw new GATKException("Expected a simple base, but actually received"+(char)e.getBase());
+                throw new ReviewedStingException("Expected a simple base, but actually received"+(char)e.getBase());
             }
         }
     }

@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.List;
 import java.util.Arrays;
@@ -138,7 +138,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
                         label = "KidHomVar_ParentHomRef";
                         KidHomVar_ParentHomRef++;
                     } else {
-                        throw new GATKException("BUG: unexpected child genotype class " + childG);
+                        throw new ReviewedStingException("BUG: unexpected child genotype class " + childG);
                     }
 
                     return "MendelViolation=" + label;

@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 
 /*
@@ -39,7 +39,7 @@ import org.broadinstitute.sting.utils.exceptions.GATKException;
  * <p/>
  * an exception that get's thrown if we can't split up a data source appropriately
  */
-public class SimpleDataSourceSplitException extends GATKException {
+public class SimpleDataSourceSplitException extends ReviewedStingException {
     public SimpleDataSourceSplitException(String msg) {
         super(msg);
     }

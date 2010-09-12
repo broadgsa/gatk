@@ -10,7 +10,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
 import java.math.BigInteger;
@@ -49,7 +49,7 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
         try {
             digest = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            throw new GATKException("Unable to find MD5 checksumer");
+            throw new ReviewedStingException("Unable to find MD5 checksumer");
         }
         out.println("Header:");
         // enumerate the list of ROD's we've loaded

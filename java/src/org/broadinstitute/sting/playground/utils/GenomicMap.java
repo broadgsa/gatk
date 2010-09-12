@@ -49,7 +49,7 @@ import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -77,8 +77,8 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 	 * @param c mapping of the custom contig sequence onto intervals on the master reference
 	 */
 	public void addCustomContig(String name, Collection<GenomeLoc> c) {
-		if ( name == null ) throw new GATKException("Custom contig name can not be null");
-		if ( map.containsKey(name)) throw new GATKException("Custom contig "+name+" already exists");
+		if ( name == null ) throw new ReviewedStingException("Custom contig name can not be null");
+		if ( map.containsKey(name)) throw new ReviewedStingException("Custom contig "+name+" already exists");
 		map.put(name, c);
 	}
 	
@@ -184,7 +184,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 					p2 = p1;
 					while ( p2 < line.length() && line.charAt(p2) != ',') p2++; // next comma or end-of-line
 				}
-				if ( segments.size() == 0 ) throw new GATKException("Line "+line+" has no intervals specified");
+				if ( segments.size() == 0 ) throw new ReviewedStingException("Line "+line+" has no intervals specified");
 				addCustomContig(name, segments);
 			}
 			reader.close();
@@ -279,7 +279,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 			case S: // soft clip
 			case H: // or hard clip - these are not included in getAlignmentStart, so pass them through
 				if ( k != 0 && k != N-1 ) // paranoid
-					throw new GATKException("Don't know what to do with S or N cigar element that is not at the either end of the cigar. Cigar: "+
+					throw new ReviewedStingException("Don't know what to do with S or N cigar element that is not at the either end of the cigar. Cigar: "+
 							r.getCigarString());
 			case I: // insertions are passed through as well
 				newCigar.add(new CigarElement(len,ce.getOperator()));
@@ -377,7 +377,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 	 */
 	private Pair<PushbackIterator<GenomeLoc>,Integer> seekForward(Collection<GenomeLoc> segments,int position) {
 		
-		if ( position < 1 ) throw new GATKException("Position "+position + " is outside of custom contig boundaries");
+		if ( position < 1 ) throw new ReviewedStingException("Position "+position + " is outside of custom contig boundaries");
 		
 		PushbackIterator<GenomeLoc> iter = new PushbackIterator<GenomeLoc>(segments.iterator());
 		
@@ -392,7 +392,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 			position -= length;
 		}
 		// if we get here, position is to the right of the last segment; not good.
-		throw new GATKException("Position "+position + " is outside of custom contig boundaries");
+		throw new ReviewedStingException("Position "+position + " is outside of custom contig boundaries");
 	}
 
 	private long contigLength(Collection<GenomeLoc> segments) {

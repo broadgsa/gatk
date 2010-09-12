@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.examples;
 
 import org.apache.log4j.BasicConfigurator;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.Root;
 import org.simpleframework.xml.Serializer;
@@ -121,7 +121,7 @@ public class SampleXmlMarshaller {
             SampleXmlMarshaller example = serializer.read(SampleXmlMarshaller.class, source);
             return example;
         } catch (Exception e) {
-            throw new GATKException("Failed to marshal the data to file " + filename,e);
+            throw new ReviewedStingException("Failed to marshal the data to file " + filename,e);
         }
     }
 }

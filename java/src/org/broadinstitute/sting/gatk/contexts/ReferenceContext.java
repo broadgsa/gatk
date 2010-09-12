@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.util.StringUtil;
@@ -191,7 +191,7 @@ public class ReferenceContext {
         byte[] b = new byte[stop-start];
 
         if ( stop > bases.length )
-            throw new GATKException("Bases beyond the current window requested: window="+window+", requested="+n);
+            throw new ReviewedStingException("Bases beyond the current window requested: window="+window+", requested="+n);
 
         int i = 0;
         for ( int j = start ;  j < stop ; j++) b[i++]=bases[j];

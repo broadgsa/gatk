@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedInputStream;
 import org.broadinstitute.sting.alignment.reference.packing.BasePackedInputStream;
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
@@ -28,7 +28,7 @@ public class BWTReader {
             this.inputStream = new FileInputStream(inputFile);
         }
         catch( FileNotFoundException ex ) {
-            throw new GATKException("Unable to open input file", ex);
+            throw new ReviewedStingException("Unable to open input file", ex);
         }
     }
 
@@ -66,7 +66,7 @@ public class BWTReader {
             }
         }
         catch( IOException ex ) {
-            throw new GATKException("Unable to read BWT from input stream.", ex);
+            throw new ReviewedStingException("Unable to read BWT from input stream.", ex);
         }
 
         return new BWT(inverseSA0, new Counts(count,true), sequenceBlocks);
@@ -80,7 +80,7 @@ public class BWTReader {
             inputStream.close();
         }
         catch( IOException ex ) {
-            throw new GATKException("Unable to close input file", ex);
+            throw new ReviewedStingException("Unable to close input file", ex);
         }
     }
 }

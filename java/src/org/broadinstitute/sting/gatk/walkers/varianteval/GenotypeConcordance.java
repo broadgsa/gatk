@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -141,7 +141,7 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
             } else if ( x == 1 ) {
                 return String.valueOf(falsePositiveHist[y]);
             } else {
-                throw new GATKException( "Unknown row in " + getName() + ", row = " + x );
+                throw new ReviewedStingException( "Unknown row in " + getName() + ", row = " + x );
             }
         }
 
@@ -553,7 +553,7 @@ class SampleSummaryStats implements TableType {
 
             final long[][] stats = sampleStats.concordanceStats.get(sample);
             final double[] summary = concordanceSummary.get(sample);
-            if( stats == null ) { throw new GATKException( "SampleStats and SampleSummaryStats contain different samples! sample = " + sample ); }
+            if( stats == null ) { throw new ReviewedStingException( "SampleStats and SampleSummaryStats contain different samples! sample = " + sample ); }
 
             long numer, denom;
 

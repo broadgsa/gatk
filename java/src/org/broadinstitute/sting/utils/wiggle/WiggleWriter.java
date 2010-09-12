@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.wiggle;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -76,7 +76,7 @@ public class WiggleWriter {
             write(wWriter,String.format("%d\t%s",loc.getStart(),dataPoint.toString()));
         } else {
             // todo -- maybe allow this to open a new file for the new chromosome?
-            throw new GATKException("Attempting to write multiple contigs into wiggle file, first contig was "+firstLoc.getContig()+" most recent "+loc.getContig());
+            throw new ReviewedStingException("Attempting to write multiple contigs into wiggle file, first contig was "+firstLoc.getContig()+" most recent "+loc.getContig());
         }
     }
 

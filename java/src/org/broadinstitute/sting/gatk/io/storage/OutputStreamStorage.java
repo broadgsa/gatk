@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io.storage;
 
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -59,7 +59,7 @@ public class OutputStreamStorage extends OutputStream implements Storage<OutputS
             this.outputStream = stub.getOutputStream();           
         }
         else
-            throw new GATKException("Not enough information to create storage for an OutputStream; need either a file or an existing output stream");
+            throw new ReviewedStingException("Not enough information to create storage for an OutputStream; need either a file or an existing output stream");
     }
 
     public OutputStreamStorage( OutputStreamStub stub, File file ) {

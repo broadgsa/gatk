@@ -3,7 +3,7 @@ package org.broadinstitute.sting.utils;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -110,7 +110,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
         } else {
             int loc = Collections.binarySearch(mArray,e);
             if (loc >= 0) {
-                throw new GATKException("Genome Loc Sorted Set already contains the GenomicLoc " + e.toString());
+                throw new ReviewedStingException("Genome Loc Sorted Set already contains the GenomicLoc " + e.toString());
             } else {
                 mArray.add((loc+1) * -1,e);
                 return true;
@@ -194,7 +194,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
             } else if ( e.getStop() < p.getStart() ) {
                 toExclude.pop();                 // p starts after e stops, e is done
             } else {
-                throw new GATKException("BUG: unexpected condition: p=" + p + ", e=" + e);
+                throw new ReviewedStingException("BUG: unexpected condition: p=" + p + ", e=" + e);
             }
 
             if ( i++ % 10000 == 0 )

@@ -31,7 +31,7 @@ import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -156,12 +156,12 @@ public class GenomeAnalysisEngine {
 
         // validate our parameters
         if (args == null) {
-            throw new GATKException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
+            throw new ReviewedStingException("The GATKArgumentCollection passed to GenomeAnalysisEngine can not be null.");
         }
 
         // validate our parameters              
         if (my_walker == null)
-            throw new GATKException("The walker passed to GenomeAnalysisEngine can not be null.");
+            throw new ReviewedStingException("The walker passed to GenomeAnalysisEngine can not be null.");
 
         // save our argument parameter
         this.argCollection = args;
@@ -808,7 +808,7 @@ public class GenomeAnalysisEngine {
                     drivingDataSource.getSequenceDictionary(),
                     SHARD_SIZE);
         } else
-            throw new GATKException("Unable to support walker of type" + walker.getClass().getName());
+            throw new ReviewedStingException("Unable to support walker of type" + walker.getClass().getName());
 
         return shardStrategy;
     }

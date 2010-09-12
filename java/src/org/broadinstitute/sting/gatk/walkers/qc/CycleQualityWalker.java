@@ -30,7 +30,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -81,7 +81,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
     private Map<String,CycleStats[]> cyclesByLibraryMapOrig = null;
 
     public void initialize() {
-        if ( PREFIX == null ) throw new GATKException("Prefix for output file(s) must be specified");
+        if ( PREFIX == null ) throw new ReviewedStingException("Prefix for output file(s) must be specified");
         cyclesByLaneMap = new HashMap<String,CycleStats[]>();
         cyclesByLibraryMap = new HashMap<String,CycleStats[]>();
         cyclesByLaneMapOrig = new HashMap<String,CycleStats[]>();

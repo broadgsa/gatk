@@ -21,7 +21,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
@@ -420,7 +420,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                 } else if ( isOppositeHomozygote(varContext) ) {
                     violation = assessOppositeHomozygote(varContext,tracker,reference,context);
                 } else {
-                    throw new GATKException("Mendelian violation that is neither deNovo nor opposite homozygote. Should never see this.");
+                    throw new ReviewedStingException("Mendelian violation that is neither deNovo nor opposite homozygote. Should never see this.");
                 }
             } else {
                 violation = new MendelianViolation(varContext,MendelianViolationType.NONE);
@@ -464,7 +464,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         if ( ! trio.isFiltered() ) {
             Allele parental = trio.getGenotype(trioStructure.mom).getAllele(0); // guaranteed homozygous
             if ( parental.getBases().length < 1 ) {
-                throw new GATKException("Parental bases have length zero at "+trio.toString());
+                throw new ReviewedStingException("Parental bases have length zero at "+trio.toString());
             }
 
             Map<String,StratifiedAlignmentContext> splitContext = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());

@@ -30,7 +30,7 @@ import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broad.tribble.util.variantcontext.*;
 import org.broadinstitute.sting.utils.*;
 import org.broad.tribble.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 public class VariantContextUtils {
@@ -111,7 +111,7 @@ public class VariantContextUtils {
      */
     public static List<JexlVCMatchExp> initializeMatchExps(String[] names, String[] exps) {
         if ( names == null || exps == null )
-            throw new GATKException("BUG: neither names nor exps can be null: names " + Arrays.toString(names) + " exps=" + Arrays.toString(exps) );
+            throw new ReviewedStingException("BUG: neither names nor exps can be null: names " + Arrays.toString(names) + " exps=" + Arrays.toString(exps) );
 
         if ( names.length != exps.length )
             throw new UserException("Inconsistent number of provided filter names and expressions: names=" + Arrays.toString(names) + " exps=" + Arrays.toString(exps));
@@ -323,7 +323,7 @@ public class VariantContextUtils {
 
         for ( VariantContext vc : VCs ) {
             if ( loc.getStart() != vc.getStart() ) // || !first.getReference().equals(vc.getReference()) )
-                throw new GATKException("BUG: attempting to merge VariantContexts with different start sites: first="+ first.toString() + " second=" + vc.toString());
+                throw new ReviewedStingException("BUG: attempting to merge VariantContexts with different start sites: first="+ first.toString() + " second=" + vc.toString());
 
             if ( getLocation(vc).size() > loc.size() )
                 loc = getLocation(vc); // get the longest location
@@ -450,7 +450,7 @@ public class VariantContextUtils {
             if ( ref == null || ref.length() < myRef.length() )
                 ref = myRef;
             else if ( ref.length() == myRef.length() && ! ref.equals(myRef) )
-                throw new GATKException("BUG: equal length references with difference bases: "+ ref + " " + myRef);
+                throw new ReviewedStingException("BUG: equal length references with difference bases: "+ ref + " " + myRef);
         }
 
         return ref;
@@ -472,7 +472,7 @@ public class VariantContextUtils {
             //
 
             Allele myRef = vc.getReference();
-            if ( refAllele.length() <= myRef.length() ) throw new GATKException("BUG: myRef="+myRef+" is longer than refAllele="+refAllele);
+            if ( refAllele.length() <= myRef.length() ) throw new ReviewedStingException("BUG: myRef="+myRef+" is longer than refAllele="+refAllele);
             byte[] extraBases = Arrays.copyOfRange(refAllele.getBases(), myRef.length(), refAllele.length());
 
 //            System.out.printf("Remapping allele at %s%n", vc);
@@ -577,7 +577,7 @@ public class VariantContextUtils {
             padVC = false;
         else if (refAllele.length() == locLength-1)
             padVC = true;
-        else throw new GATKException("Badly formed variant context, reference length must be at most one base shorter than location size");
+        else throw new ReviewedStingException("Badly formed variant context, reference length must be at most one base shorter than location size");
 
 
         // nothing to do if we don't need to pad bases
@@ -591,7 +591,7 @@ public class VariantContextUtils {
             else if (attributes.containsKey(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY))
                 refByte = (Byte)attributes.get(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY);
             else
-                throw new GATKException("Error when trying to pad Variant Context: either input reference base must be a regular base, or input VC must contain reference base key");
+                throw new ReviewedStingException("Error when trying to pad Variant Context: either input reference base must be a regular base, or input VC must contain reference base key");
 
             List<Allele> alleles = new ArrayList<Allele>();
             Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();

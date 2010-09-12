@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.filters;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.exceptions.GATKException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.BeforeClass;
@@ -46,18 +46,18 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
 
-    @Test(expected = GATKException.class)
+    @Test(expected = ReviewedStingException.class)
     public void testBadFilter() {
         List<String> badFilters = Collections.singletonList("bad");
         new ReadGroupBlackListFilter(badFilters);
     }
-    @Test(expected = GATKException.class)
+    @Test(expected = ReviewedStingException.class)
     public void testBadFilterTag() {
         List<String> badFilters = Collections.singletonList("bad:filter");
         new ReadGroupBlackListFilter(badFilters);
     }
 
-    @Test(expected = GATKException.class)
+    @Test(expected = ReviewedStingException.class)
     public void testBadFilterFile() {
         List<String> badFilters = Collections.singletonList("/foo/bar/rgbl.txt");
         new ReadGroupBlackListFilter(badFilters);
