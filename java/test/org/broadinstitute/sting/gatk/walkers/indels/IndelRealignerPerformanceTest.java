@@ -37,7 +37,6 @@ public class IndelRealignerPerformanceTest extends WalkerTest {
                         " -targetIntervals " + evaluationDataLocation + "NA12878.ESP.WEx.chr1.realigner.intervals",
                  0,
                 new ArrayList<String>(0));
-        // executeTest("testIndelRealignerWholeExome", spec2);
-        // TODO: Fix me Eric
+        executeTest("testIndelRealignerWholeExome", spec2);
     }
 }

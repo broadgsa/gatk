@@ -430,8 +430,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( reads.size() == 0 )
             return;
 
-        final byte[] reference = readsToClean.getReference(referenceReader);
-        final long leftmostIndex = readsToClean.getLocation().getStart();
+        byte[] reference = readsToClean.getReference(referenceReader);
+        int leftmostIndex = (int)readsToClean.getLocation().getStart();
 
         final ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();                   // reads that perfectly match ref
         final ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
@@ -472,7 +472,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
             for ( int j = 0; j < altReads.size(); j++ ) {
                 AlignedRead toTest = altReads.get(j);
-                Pair<Integer, Integer> altAlignment = findBestOffset(consensus.str, toTest, (int)leftmostIndex);
+                Pair<Integer, Integer> altAlignment = findBestOffset(consensus.str, toTest, leftmostIndex);
 
                 // the mismatch score is the min of its alignment vs. the reference and vs. the alternate
                 int myScore = altAlignment.second;
@@ -520,7 +520,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
            // start cleaning the appropriate reads
             for ( Pair<Integer, Integer> indexPair : bestConsensus.readIndexes ) {
                 AlignedRead aRead = altReads.get(indexPair.first);
-                if ( !updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.second, aRead, (int)leftmostIndex) )
+                if ( !updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.second, aRead, leftmostIndex) )
                     return;
             }
             if ( !USE_KNOWN_INDELS_ONLY && !alternateReducesEntropy(altReads, reference, leftmostIndex) ) {
@@ -588,11 +588,22 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         SAMRecord read = aRead.getRead();
                         read.setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + 10, 254));
 
-                        // fix the attribute tags
+                        // before we fix the attribute tags we first need make sure we have enough of the reference sequence
+                        int neededBasesToLeft = Math.max(leftmostIndex - read.getAlignmentStart(), 0);
+                        int neededBasesToRight = Math.max(read.getAlignmentEnd() - leftmostIndex - reference.length + 1, 0);
+                        int neededBases = Math.max(neededBasesToLeft, neededBasesToRight);
+                        if ( neededBases > 0 ) {
+                            int padLeft = Math.max(leftmostIndex-neededBases, 1);
+                            int padRight = Math.min(leftmostIndex+reference.length+neededBases, referenceReader.getSequenceDictionary().getSequence(currentInterval.getContig()).getSequenceLength());
+                            reference = referenceReader.getSubsequenceAt(currentInterval.getContig(), padLeft, padRight).getBases();
+                            leftmostIndex = padLeft;
+                        }
+
+                        // now, fix the attribute tags
                         if ( read.getAttribute(SAMTag.NM.name()) != null )
-                            read.setAttribute(SAMTag.NM.name(), SequenceUtil.calculateSamNmTag(read, reference, (int)leftmostIndex-1));
+                            read.setAttribute(SAMTag.NM.name(), SequenceUtil.calculateSamNmTag(read, reference, leftmostIndex-1));
                         if ( read.getAttribute(SAMTag.UQ.name()) != null )
-                            read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, reference, (int)leftmostIndex-1));
+                            read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, reference, leftmostIndex-1));
                         // TODO -- this is only temporary until Tim adds code to recalculate this value
                         if ( read.getAttribute(SAMTag.MD.name()) != null )
                             read.setAttribute(SAMTag.MD.name(), null);
@@ -613,12 +624,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private void generateAlternateConsensesFromKnownIndels(final Set<Consensus> altConsensesToPopulate, final long leftmostIndex, final byte[] reference) {
+    private void generateAlternateConsensesFromKnownIndels(final Set<Consensus> altConsensesToPopulate, final int leftmostIndex, final byte[] reference) {
         for ( VariantContext knownIndel : knownIndelsToTry.values() ) {
             if ( knownIndel == null || !knownIndel.isIndel() )
                 continue;
             byte[] indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
-            int start = (int)(knownIndel.getStart() - leftmostIndex) + 1;
+            int start = knownIndel.getStart() - leftmostIndex + 1;
             Consensus c = createAlternateConsensus(start, reference, indelStr, knownIndel.isDeletion());
             if ( c != null )
                 altConsensesToPopulate.add(c);
@@ -630,7 +641,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                                                 final ArrayList<AlignedRead> altReadsToPopulate,
                                                 final LinkedList<AlignedRead> altAlignmentsToTest,
                                                 final Set<Consensus> altConsenses,
-                                                final long leftmostIndex,
+                                                final int leftmostIndex,
                                                 final byte[] reference) {
 
         long totalRawMismatchSum = 0L;
@@ -648,11 +659,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             // first, move existing indels (for 1 indel reads only) to leftmost position within identical sequence
             int numBlocks = AlignmentUtils.getNumAlignmentBlocks(read);
             if ( numBlocks == 2 ) {
-                Cigar newCigar = AlignmentUtils.leftAlignIndel(unclipCigar(read.getCigar()), reference, read.getReadBases(), read.getAlignmentStart()-(int)leftmostIndex, 0);
+                Cigar newCigar = AlignmentUtils.leftAlignIndel(unclipCigar(read.getCigar()), reference, read.getReadBases(), read.getAlignmentStart()-leftmostIndex, 0);
                 aRead.setCigar(newCigar, false);
             }
 
-            final int startOnRef = read.getAlignmentStart()-(int)leftmostIndex;
+            final int startOnRef = read.getAlignmentStart()-leftmostIndex;
             final int rawMismatchScore = mismatchQualitySumIgnoreCigar(aRead, reference, startOnRef, Integer.MAX_VALUE);
 
             // if this doesn't match perfectly to the reference, let's try to clean it
@@ -952,7 +963,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         return true;
     }
 
-    private boolean alternateReducesEntropy(final List<AlignedRead> reads, final byte[] reference, final long leftmostIndex) {
+    private boolean alternateReducesEntropy(final List<AlignedRead> reads, final byte[] reference, final int leftmostIndex) {
         final int[] originalMismatchBases = new int[reference.length];
         final int[] cleanedMismatchBases = new int[reference.length];
         final int[] totalOriginalBases = new int[reference.length];
@@ -967,7 +978,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( read.getRead().getAlignmentBlocks().size() > 1 )
                  continue;
 
-            int refIdx = read.getOriginalAlignmentStart() - (int)leftmostIndex;
+            int refIdx = read.getOriginalAlignmentStart() - leftmostIndex;
             final byte[] readStr = read.getReadBases();
             final byte[] quals = read.getBaseQualities();
 
@@ -983,7 +994,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
 
             // reset and now do the calculation based on the cleaning
-            refIdx = read.getAlignmentStart() - (int)leftmostIndex;
+            refIdx = read.getAlignmentStart() - leftmostIndex;
             int altIdx = 0;
             Cigar c = read.getCigar();
             for (int j = 0 ; j < c.numCigarElements() ; j++) {
@@ -1031,7 +1042,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( snpsOutput != null ) {
                     if ( didMismatch ) {
                         sb.append(reads.get(0).getRead().getReferenceName() + ":");
-                        sb.append(((int)leftmostIndex + i));
+                        sb.append((leftmostIndex + i));
                         if ( stillMismatches )
                             sb.append(" SAME_SNP\n");
                         else
