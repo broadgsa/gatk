@@ -32,7 +32,6 @@ import org.junit.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 
 import java.io.File;
