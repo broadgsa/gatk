@@ -16,9 +16,8 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.PrintStream;
@@ -46,7 +45,7 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
 
     public void initialize() {
         if ( indelWindow > 40 ) {
-            throw new UserError.CommandLineError("Indel windows have a maximum size of 40");
+            throw new UserException.CommandLineException("Indel windows have a maximum size of 40");
         }
 
         if ( outVCF != null ) {

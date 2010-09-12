@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.utils;
 
 /**
- * Temp class to track split from Sting exception to UserError
+ * Temp class to track split from Sting exception to UserException
  */
 public class GATKException extends StingException {
     public GATKException(String msg) {

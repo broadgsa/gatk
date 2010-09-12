@@ -28,10 +28,8 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.*;
@@ -177,7 +175,7 @@ public class RMDTrackManager extends PluginManager<RMDTrackBuilder> {
         // create instances of each of the requested types
         for (RMDTriplet trip : inputs) {
             RMDTrackBuilder b = availableTrackBuilders.get(trip.getType().toUpperCase());
-            if (b == null) throw new UserError.CommandLineError("Unable to find track for " + trip.getType());
+            if (b == null) throw new UserException.CommandLineException("Unable to find track for " + trip.getType());
             tracks.add(b.createInstanceOfTrack(availableTrackTypes.get(trip.getType().toUpperCase()), trip.getName(), new File(trip.getFile())));
         }
         return tracks;

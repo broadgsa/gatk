@@ -45,8 +45,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
-
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  *  Takes a table of transcripts (eg. UCSC refGene, knownGene, and CCDS tables) and generates the big table which contains
@@ -174,12 +173,12 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
         try {
             header = AnnotatorInputTableCodec.readHeader(transcriptsDataSource.getReferenceOrderedData().getFile());
         } catch(Exception e) {
-            throw new UserError.MalformedFile(transcriptsDataSource.getReferenceOrderedData().getFile(), "Failed when attempting to read header from file", e);
+            throw new UserException.MalformedFile(transcriptsDataSource.getReferenceOrderedData().getFile(), "Failed when attempting to read header from file", e);
         }
 
         for ( String columnName : GENE_NAME_COLUMNS ) {
             if ( !header.contains(columnName) )
-                throw new UserError.CommandLineError("The column name '" + columnName + "' provided to -n doesn't match any of the column names in: " + transcriptsDataSource.getReferenceOrderedData().getFile());
+                throw new UserException.CommandLineException("The column name '" + columnName + "' provided to -n doesn't match any of the column names in: " + transcriptsDataSource.getReferenceOrderedData().getFile());
         }
 
         //init outputColumnNames list

@@ -35,10 +35,9 @@ import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 
@@ -92,7 +91,7 @@ public class AnnotationByAlleleFrequencyWalker  extends RodWalker<Integer, Integ
             if ( interfaceClass == null )
                 interfaceClass = classMap.get(group + "Annotation");
             if ( interfaceClass == null )
-                throw new UserError.BadArgumentValue("group", "Class " + group + " is not found; please check that you have specified the class name correctly");
+                throw new UserException.BadArgumentValue("group", "Class " + group + " is not found; please check that you have specified the class name correctly");
             classes.addAll(PackageUtils.getClassesImplementingInterface(interfaceClass));
         }
 
@@ -102,7 +101,7 @@ public class AnnotationByAlleleFrequencyWalker  extends RodWalker<Integer, Integ
             if ( annotationClass == null )
                 annotationClass = classMap.get(annotation + "Annotation");
             if ( annotationClass == null )
-                throw new UserError.BadArgumentValue("annotation", "Class " + annotation + " is not found; please check that you have specified the class name correctly");
+                throw new UserException.BadArgumentValue("annotation", "Class " + annotation + " is not found; please check that you have specified the class name correctly");
             classes.add(annotationClass);
         }
 

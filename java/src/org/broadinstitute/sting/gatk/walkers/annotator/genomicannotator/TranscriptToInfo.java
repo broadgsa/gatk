@@ -41,8 +41,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 
 /**
@@ -71,7 +70,7 @@ public class TranscriptToInfo extends RodWalker<Integer, Integer> implements Tre
     private String[] GENE_NAME_COLUMNS = {};
 
     public void initialize() {
-        throw new UserError.MissingWalker("TranscriptToInfo", "This walker is no longer supported.  We are actively working on a bug-free replacement.  We thank you for your patience at this time.");
+        throw new UserException.MissingWalker("TranscriptToInfo", "This walker is no longer supported.  We are actively working on a bug-free replacement.  We thank you for your patience at this time.");
     }
 
     public Integer reduceInit() { return 0; }

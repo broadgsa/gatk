@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.broadinstitute.sting.utils.GATKException;
 import org.junit.Before;
 import org.junit.Assert;
 import org.junit.Test;
@@ -66,7 +67,7 @@ public class ShardDataProviderUnitTest extends BaseTest {
     /**
      * Try adding a view which conflicts with some other view that's already been registered.
      */
-    @Test(expected=StingException.class)
+    @Test(expected= GATKException.class)
     public void testAddViewWithExistingConflict() {
         View initial = new ConflictingTestView( provider );
         View conflictsWithInitial = new TestView( provider );
@@ -75,7 +76,7 @@ public class ShardDataProviderUnitTest extends BaseTest {
     /**
      * Try adding a view which has a conflict with a previously registered view.
      */
-    @Test(expected=StingException.class)
+    @Test(expected=GATKException.class)
     public void testAddViewWithNewConflict() {
         View conflictsWithInitial = new TestView( provider );
         View initial = new ConflictingTestView( provider );

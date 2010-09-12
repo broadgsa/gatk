@@ -34,8 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * This is a container that holds all data corresponding to a single join table as specified by one -J arg (ex: -J bindingName1,/path/to/file,bindingName1.columnName=bindingName2.columnName2).
@@ -112,7 +111,7 @@ public class JoinTable
             }
 
             if(localColumnNameIdx == -1) {
-                throw new UserError.BadArgumentValue("-J", "The -J arg specifies an unknown column name: \"" + localColumnName + "\". It's not one of the column names in the header " + columnNames + " of the file: " + filename);
+                throw new UserException.BadArgumentValue("-J", "The -J arg specifies an unknown column name: \"" + localColumnName + "\". It's not one of the column names in the header " + columnNames + " of the file: " + filename);
             }
 
             //read in all records and create a map entry for each
@@ -127,7 +126,7 @@ public class JoinTable
         }
         catch(IOException e)
         {
-            throw new UserError.CouldNotReadInputFile(new File(filename), "Unable to parse file", e);
+            throw new UserException.CouldNotReadInputFile(new File(filename), "Unable to parse file", e);
         }
         finally
         {

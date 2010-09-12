@@ -35,18 +35,16 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -144,7 +142,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
             //    break;
             default:
-                throw new UserError.BadArgumentValue("OPTIMIZATION_MODEL", "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
+                throw new UserException.BadArgumentValue("OPTIMIZATION_MODEL", "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
 
         boolean foundDBSNP = false;
@@ -167,7 +165,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
 
         if(!foundDBSNP) {
-            throw new UserError.CommandLineError("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
+            throw new UserException.CommandLineException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
         }
 
         // setup the header fields
@@ -233,7 +231,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
 
                     if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {
-                        throw new UserError.CommandLineError("Something is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
+                        throw new UserException.CommandLineException("Something is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
                     }
 
                     final double pVar = theModel.evaluateVariant( vc );
@@ -286,7 +284,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             PrintStream reportDatFilePrintStream = new PrintStream(REPORT_DAT_FILE);
             theModel.outputOptimizationCurve( dataManager.data, reportDatFilePrintStream, TRANCHES_FILE, DESIRED_NUM_VARIANTS, FDR_TRANCHES, QUAL_STEP );
         } catch ( FileNotFoundException e ) {
-            throw new UserError.CouldNotCreateOutputFile(REPORT_DAT_FILE, e);
+            throw new UserException.CouldNotCreateOutputFile(REPORT_DAT_FILE, e);
         }
 
         // Execute Rscript command to plot the optimization curve

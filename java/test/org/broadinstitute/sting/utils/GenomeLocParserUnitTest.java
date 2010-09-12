@@ -19,7 +19,7 @@ import org.junit.Test;
  *         Test out the functionality of the new genome loc parser
  */
 public class GenomeLocParserUnitTest extends BaseTest {
-    @Test(expected = StingException.class)
+    @Test(expected = GATKException.class)
     public void testUnsetupException() {
         GenomeLocParser.contigInfo = null;
         GenomeLocParser.createGenomeLoc(0, 0, 0);
@@ -65,7 +65,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals("chr1".compareTo(GenomeLocParser.getContigInfo("chr1").getSequenceName()), 0); // should be in the reference
     }
 
-    @Test(expected = StingException.class)
+    @Test(expected = GATKException.class)
     public void testParseBadString() {
         GenomeLocParser.parseGenomeLoc("Bad:0-1");
     }
@@ -143,7 +143,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals(1, loc.getStart());
     }
 
-    @Test(expected = StingException.class)
+    @Test(expected = GATKException.class)
     public void testGenomeLocParseOnlyBadChrome() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr12");
         assertEquals(0, loc.getContigIndex());
@@ -151,7 +151,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals(1, loc.getStart());
     }
 
-    @Test(expected = StingException.class)
+    @Test(expected = GATKException.class)
     public void testGenomeLocBad() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-");
         assertEquals(0, loc.getContigIndex());
@@ -159,7 +159,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals(1, loc.getStart());
     }
 
-    @Test(expected = StingException.class)
+    @Test(expected = GATKException.class)
     public void testGenomeLocBad2() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-500-0");
         assertEquals(0, loc.getContigIndex());
@@ -167,7 +167,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals(1, loc.getStart());
     }
 
-    @Test(expected = StingException.class)
+    @Test(expected = GATKException.class)
     public void testGenomeLocBad3() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1--0");
         assertEquals(0, loc.getContigIndex());

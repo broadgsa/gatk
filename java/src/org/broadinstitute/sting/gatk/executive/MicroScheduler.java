@@ -39,13 +39,11 @@ import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.ReadMetrics;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
-import java.io.File;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 
 /**
@@ -86,14 +84,14 @@ public abstract class MicroScheduler {
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse) {
         if (walker instanceof TreeReducible && nThreadsToUse > 1) {
             if(walker.isReduceByInterval())
-                throw new UserError.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             if(walker instanceof ReadWalker)
-                throw new UserError.BadArgumentValue("nt", String.format("The analysis %s is a read walker.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s is a read walker.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             logger.info(String.format("Running the GATK in parallel mode with %d concurrent threads",nThreadsToUse));
             return new HierarchicalMicroScheduler(engine, walker, reads, reference, rods, nThreadsToUse);
         } else {
             if(nThreadsToUse > 1)
-                throw new UserError.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
+                throw new UserException.BadArgumentValue("nt", String.format("The analysis %s currently does not support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
             return new LinearMicroScheduler(engine, walker, reads, reference, rods);
         }
     }

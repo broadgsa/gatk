@@ -39,7 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.*;
@@ -107,7 +107,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         Set<String> rodNames = SampleUtils.getRodNamesWithVCFHeader(getToolkit(), null);
 
         if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE && PRIORITY_STRING == null )
-            throw new UserError.MissingArgument("rod_priority_list", "Priority string must be provided if you want to prioritize genotypes");
+            throw new UserException.MissingArgument("rod_priority_list", "Priority string must be provided if you want to prioritize genotypes");
 
         if ( genotypeMergeOption == VariantContextUtils.GenotypeMergeType.PRIORITIZE )
             priority = new ArrayList<String>(Arrays.asList(PRIORITY_STRING.split(",")));
@@ -115,10 +115,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             priority = new ArrayList<String>(rodNames);
 
         if ( rodNames.size() != priority.size() )
-            throw new UserError.BadArgumentValue("rod_priority_list", "The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
+            throw new UserException.BadArgumentValue("rod_priority_list", "The priority list must contain exactly one rod binding per ROD provided to the GATK: rodNames=" + rodNames + " priority=" + priority);
 
         if ( ! rodNames.containsAll(priority) )
-            throw new UserError.BadArgumentValue("rod_priority_list", "Not all priority elements provided as input RODs: " + PRIORITY_STRING);
+            throw new UserException.BadArgumentValue("rod_priority_list", "Not all priority elements provided as input RODs: " + PRIORITY_STRING);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

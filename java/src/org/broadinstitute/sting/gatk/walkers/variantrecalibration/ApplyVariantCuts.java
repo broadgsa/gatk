@@ -37,7 +37,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
@@ -128,7 +128,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
 
             return tranches;
         } catch( FileNotFoundException e ) {
-            throw new UserError.CouldNotCreateOutputFile(f, e);
+            throw new UserException.CouldNotCreateOutputFile(f, e);
         }
     }
 
@@ -156,7 +156,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                 firstLine = false;
             }
         } catch( FileNotFoundException e ) {
-            throw new UserError.CouldNotCreateOutputFile(TRANCHES_FILE, e);
+            throw new UserException.CouldNotCreateOutputFile(TRANCHES_FILE, e);
         }
 
         // setup the header fields

@@ -42,8 +42,7 @@ import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.*;
@@ -128,7 +127,7 @@ public class SAMDataSource implements SimpleDataSource {
 
             // Validate that all input files are sorted in the same order.
             if(this.sortOrder != null && this.sortOrder != sortOrder)
-                throw new UserError.MissortedBAM(String.format("Attempted to process mixed of files sorted as %s and %s.",this.sortOrder,sortOrder));
+                throw new UserException.MissortedBAM(String.format("Attempted to process mixed of files sorted as %s and %s.",this.sortOrder,sortOrder));
 
             // Update the sort order.
             this.sortOrder = sortOrder;

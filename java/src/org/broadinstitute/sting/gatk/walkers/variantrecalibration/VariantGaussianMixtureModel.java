@@ -31,8 +31,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import Jama.*; 
@@ -132,11 +131,11 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 } else if( CLUSTER_PATTERN.matcher(line).matches() ) {
                     clusterLines.add(line);
                 } else {
-                    throw new UserError.MalformedFile(clusterFile, "Could not parse line: " + line);
+                    throw new UserException.MalformedFile(clusterFile, "Could not parse line: " + line);
                 }
             }
         } catch ( FileNotFoundException e ) {
-            throw new UserError.CouldNotReadInputFile(clusterFile, e);
+            throw new UserException.CouldNotReadInputFile(clusterFile, e);
         }
 
         dataManager = new VariantDataManager( annotationLines );
@@ -430,7 +429,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             try {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
             } catch( NumberFormatException e ) {
-                throw new UserError.MalformedFile(vc.getName(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
+                throw new UserException.MalformedFile(vc.getName(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
             }
         }
         return value;
@@ -493,7 +492,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             try {
                 outputFile = new PrintStream( file );
             } catch (FileNotFoundException e) {
-                throw new UserError.CouldNotCreateOutputFile( file, e );
+                throw new UserException.CouldNotCreateOutputFile( file, e );
             }
 
             outputFile.println("annotationValue,knownDist,novelDist");

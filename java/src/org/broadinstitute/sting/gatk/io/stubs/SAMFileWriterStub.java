@@ -36,8 +36,7 @@ import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * A stub for routing and management of SAM file reading and writing.
@@ -175,7 +174,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void setIndexOnTheFly( boolean indexOnTheFly ) {
         if(writeStarted)
-            throw new UserError("Attempted to index a BAM on the fly of a file with alignments already in it.");
+            throw new UserException("Attempted to index a BAM on the fly of a file with alignments already in it.");
         this.indexOnTheFly = indexOnTheFly;
     }
 

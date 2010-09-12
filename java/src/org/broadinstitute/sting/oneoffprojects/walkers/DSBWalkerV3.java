@@ -31,7 +31,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import net.sf.samtools.SAMRecord;
 
@@ -391,7 +391,7 @@ public class DSBWalkerV3 extends ReadWalker<Integer,Integer> {
         } else if ( controlReadGroups.contains( read.getReadGroup().getReadGroupId() )) {
             addControl(read);
         } else {
-            throw new UserError.MalformedBam(read, "Read "+read + " belongs to unrecognized read group");
+            throw new UserException.MalformedBam(read, "Read "+read + " belongs to unrecognized read group");
         }
         return 1;
     }

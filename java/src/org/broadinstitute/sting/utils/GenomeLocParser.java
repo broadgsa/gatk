@@ -42,7 +42,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.bed.BedParser;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
@@ -97,7 +97,7 @@ public class GenomeLocParser {
      */
     public static int getContigIndex(final String contig, boolean exceptionOut) {
         if (contigInfo.getSequenceIndex(contig) == -1 && exceptionOut)
-            throw new UserError.CommandLineError(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
+            throw new UserException.CommandLineException(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
 
         return contigInfo.getSequenceIndex(contig);
     }
@@ -123,7 +123,7 @@ public class GenomeLocParser {
     public static boolean setupRefContigOrdering(final SAMSequenceDictionary seqDict) {
         if (seqDict == null) { // we couldn't load the reference dictionary
             //logger.info("Failed to load reference dictionary, falling back to lexicographic order for contigs");
-            throw new UserError.CommandLineError("Failed to load reference dictionary");
+            throw new UserException.CommandLineException("Failed to load reference dictionary");
         } else if (contigInfo == null) {
             contigInfo = seqDict;
             logger.debug(String.format("Prepared reference sequence contig dictionary"));
@@ -193,13 +193,13 @@ public class GenomeLocParser {
                     stop = parsePosition(str.substring(dashIndex + 1));
                 }
             } catch(Exception e) {
-                throw new UserError("Failed to parse Genome Location string: " + str, e);
+                throw new UserException("Failed to parse Genome Location string: " + str, e);
             }
         }
 
         // is the contig valid?
         if (!isContigValid(contig))
-            throw new UserError("Contig '" + contig + "' does not match any contig in the GATK sequence dictionary derived from the reference; are you sure you are using the correct reference fasta file?");
+            throw new UserException("Contig '" + contig + "' does not match any contig in the GATK sequence dictionary derived from the reference; are you sure you are using the correct reference fasta file?");
 
         if (stop == Integer.MAX_VALUE && hasKnownContigOrdering())
             // lookup the actually stop position!
@@ -371,7 +371,7 @@ public class GenomeLocParser {
                 return ret.isEmpty() ? null : ret;
             }
             catch (IOException e2) {
-                throw new UserError.CouldNotReadInputFile(new File(file_name), e);
+                throw new UserException.CouldNotReadInputFile(new File(file_name), e);
             }
         }
     }

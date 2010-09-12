@@ -30,21 +30,14 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -148,7 +141,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         }
 
         if(!foundDBSNP) {
-            throw new UserError.CommandLineError("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
+            throw new UserException.CommandLineException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
         }
     }
 
@@ -240,7 +233,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
             //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
             //    break;
             default:
-                throw new UserError.BadArgumentValue("OPTIMIZATION_MODEL", "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
+                throw new UserException.BadArgumentValue("OPTIMIZATION_MODEL", "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
         
         theModel.run( CLUSTER_FILE );

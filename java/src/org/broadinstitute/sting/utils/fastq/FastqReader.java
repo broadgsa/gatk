@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.fastq;
 
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Iterator;
 import java.util.zip.GZIPInputStream;
@@ -24,7 +23,7 @@ public class FastqReader implements Iterator<FastqRecord>, Iterable<FastqRecord>
 
             nextRecord = readNextRecord();
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(file, String.format("Error opening '%s'", fastqFile.getAbsolutePath()));
+            throw new UserException.CouldNotReadInputFile(file, String.format("Error opening '%s'", fastqFile.getAbsolutePath()));
         }
     }
 
@@ -37,7 +36,7 @@ public class FastqReader implements Iterator<FastqRecord>, Iterable<FastqRecord>
 
             return new FastqRecord(seqHeader, seqLine, qualHeader, qualLine);
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(fastqFile, e);
+            throw new UserException.CouldNotReadInputFile(fastqFile, e);
         }
     }
 
@@ -53,7 +52,7 @@ public class FastqReader implements Iterator<FastqRecord>, Iterable<FastqRecord>
                 nextRecord = null;
             }
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(fastqFile, e);
+            throw new UserException.CouldNotReadInputFile(fastqFile, e);
         }
 
         return rec;
@@ -67,7 +66,7 @@ public class FastqReader implements Iterator<FastqRecord>, Iterable<FastqRecord>
         try {
             in.close();
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(fastqFile, e);
+            throw new UserException.CouldNotReadInputFile(fastqFile, e);
         }
     }
 }

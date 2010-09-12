@@ -35,14 +35,13 @@ import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -87,7 +86,7 @@ public class TestReadFishingWalker extends ReadWalker<Integer,Long> {
             indelCallInputStream = new FileInputStream(indelCalls);
         }
         catch(IOException ex) {
-            throw new UserError.CouldNotReadInputFile(indelCalls, ex);
+            throw new UserException.CouldNotReadInputFile(indelCalls, ex);
         }
 
         Scanner indelCallReader = new Scanner(indelCallInputStream);

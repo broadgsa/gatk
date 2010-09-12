@@ -32,10 +32,9 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileWriter;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
 
@@ -80,9 +79,9 @@ public class ReadQualityScoreWalker extends ReadWalker<SAMRecord, SAMFileWriter>
         try {
             inputReader = new BufferedReader( new FileReader ( inputQualityFile ) );
         } catch ( FileNotFoundException e) {
-            throw new UserError.CouldNotReadInputFile(new File(inputQualityFile), e);
+            throw new UserException.CouldNotReadInputFile(new File(inputQualityFile), e);
 		} catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(new File(inputQualityFile), e);
+            throw new UserException.CouldNotReadInputFile(new File(inputQualityFile), e);
 		}
         return outputBamFile;
     }
@@ -104,13 +103,13 @@ public class ReadQualityScoreWalker extends ReadWalker<SAMRecord, SAMFileWriter>
             try {
                 if( line == null ) {
                     line = inputReader.readLine();
-                    if( line == null ) { throw new UserError.MalformedFile(new File(inputQualityFile), "Input file is empty" ); }
+                    if( line == null ) { throw new UserException.MalformedFile(new File(inputQualityFile), "Input file is empty" ); }
                 }
                 String[] halves = line.split( " ", 2 );
                 GenomeLoc curLoc = GenomeLocParser.parseGenomeLoc( halves[0] );
                 while( curLoc.isBefore( readLoc ) ) { // Loop until the beginning of the read
                     line = inputReader.readLine();
-                    if( line == null ) { throw new UserError.MalformedFile(new File(inputQualityFile), "Input file doesn't encompass all reads. Can't find beginning of read: " + readLoc ); }
+                    if( line == null ) { throw new UserException.MalformedFile(new File(inputQualityFile), "Input file doesn't encompass all reads. Can't find beginning of read: " + readLoc ); }
                     halves = line.split( " ", 2 );
                     curLoc = GenomeLocParser.parseGenomeLoc( halves[0] );
                 }
@@ -123,7 +122,7 @@ public class ReadQualityScoreWalker extends ReadWalker<SAMRecord, SAMFileWriter>
                     sumNeighborhoodQuality += Float.parseFloat( halves[1] );
                     numLines++;
                     line = inputReader.readLine();
-                    if( line == null ) { throw new UserError.MalformedFile(new File(inputQualityFile), "Input file doesn't encompass all reads. Can't find end of read: " + readLoc ); }
+                    if( line == null ) { throw new UserException.MalformedFile(new File(inputQualityFile), "Input file doesn't encompass all reads. Can't find end of read: " + readLoc ); }
                     halves = line.split( " ", 2 );
                     curLoc = GenomeLocParser.parseGenomeLoc( halves[0] );
                 }
@@ -133,9 +132,9 @@ public class ReadQualityScoreWalker extends ReadWalker<SAMRecord, SAMFileWriter>
                 line = savedLine;
 
             } catch ( FileNotFoundException e ) {
-                throw new UserError.CouldNotReadInputFile(new File(inputQualityFile), e);
+                throw new UserException.CouldNotReadInputFile(new File(inputQualityFile), e);
             } catch (IOException e ) {
-                throw new UserError.CouldNotReadInputFile(new File(inputQualityFile), e);
+                throw new UserException.CouldNotReadInputFile(new File(inputQualityFile), e);
             }
 
             meanNeighborhoodQuality = sumNeighborhoodQuality / ((float) numLines);

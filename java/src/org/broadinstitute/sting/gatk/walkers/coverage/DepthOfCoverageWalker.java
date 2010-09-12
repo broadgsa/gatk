@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.IOException;
@@ -403,7 +403,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
         try {
             return new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(refSeqGeneList, "Unable to open file", e);
+            throw new UserException.CouldNotReadInputFile(refSeqGeneList, "Unable to open file", e);
         }
     }
 
@@ -613,7 +613,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     private PrintStream getCorrectStream(DoCOutputType.Partition partition, DoCOutputType.Aggregation aggregation, DoCOutputType.FileType fileType) {
         DoCOutputType outputType = new DoCOutputType(partition,aggregation,fileType);
         if(!out.containsKey(outputType))
-            throw new UserError.CommandLineError(String.format("Unable to find appropriate stream for partition = %s, aggregation = %s, file type = %s",partition,aggregation,fileType));
+            throw new UserException.CommandLineException(String.format("Unable to find appropriate stream for partition = %s, aggregation = %s, file type = %s",partition,aggregation,fileType));
         return out.get(outputType);
     }
 

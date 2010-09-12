@@ -26,11 +26,10 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
 import org.apache.log4j.Logger;
@@ -297,7 +296,7 @@ public class ParsingEngine {
         if(definitions.size() < 1)
             throw new GATKException("Internal error.  Argument source creates no definitions.");
         ArgumentDefinition definition = definitions.get(0);
-        throw new UserError.DeprecatedArgument(definition.fullName,definition.doc);
+        throw new UserException.DeprecatedArgument(definition.fullName,definition.doc);
     }
 
     /**

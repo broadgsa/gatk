@@ -39,7 +39,7 @@ import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
@@ -188,7 +188,7 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
             }
         }
         if( !foundDBSNP && !RUN_WITHOUT_DBSNP ) {
-            throw new UserError.CommandLineError("This calculation is critically dependent on being able to skip over known variant sites. Please provide a dbSNP ROD or a VCF file containing known sites of genetic variation.");
+            throw new UserException.CommandLineException("This calculation is critically dependent on being able to skip over known variant sites. Please provide a dbSNP ROD or a VCF file containing known sites of genetic variation.");
         }
 
         // Initialize the requested covariates by parsing the -cov argument
@@ -197,7 +197,7 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
             requestedCovariates.add( new ReadGroupCovariate() ); // Order is important here
             requestedCovariates.add( new QualityScoreCovariate() );
         } else {
-            throw new UserError.CommandLineError("There are more required covariates than expected. The instantiation list needs to be updated with the new required covariate and in the correct order.");
+            throw new UserException.CommandLineException("There are more required covariates than expected. The instantiation list needs to be updated with the new required covariate and in the correct order.");
         }
         // Next add the standard covariates if -standard was specified by the user
         if( USE_STANDARD_COVARIATES ) {
@@ -241,7 +241,7 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
                 }
 
                 if( !foundClass ) {
-                    throw new UserError.CommandLineError( "The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates." );
+                    throw new UserException.CommandLineException( "The requested covariate type (" + requestedCovariateString + ") isn't a valid covariate option. Use --list to see possible covariates." );
                 }
             }
         }

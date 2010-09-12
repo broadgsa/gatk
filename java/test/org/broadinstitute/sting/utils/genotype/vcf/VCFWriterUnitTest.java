@@ -7,6 +7,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -58,7 +59,7 @@ public class VCFWriterUnitTest extends BaseTest {
              headerFromFile = (VCFHeader)reader.readHeader(lineReader);
         }
         catch (FileNotFoundException e ) {
-            throw new StingException(e.getMessage());
+            throw new GATKException(e.getMessage());
         }
 
         int counter = 0;
@@ -80,7 +81,7 @@ public class VCFWriterUnitTest extends BaseTest {
             fakeVCFFile.delete();
         }
         catch (IOException e ) {
-            throw new StingException(e.getMessage());
+            throw new GATKException(e.getMessage());
         }
 
     }

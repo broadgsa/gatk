@@ -31,8 +31,7 @@ import net.sf.samtools.util.CloseableIterator;
 import java.io.*;
 
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * Provides temporary storage for SAMFileWriters.
@@ -73,7 +72,7 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
             this.writer = factory.makeSAMWriter( stub.getFileHeader(), stub.isPresorted(), stub.getSAMOutputStream());
         }
         else
-            throw new UserError("Unable to write to SAM file; neither a target file nor a stream has been specified");
+            throw new UserException("Unable to write to SAM file; neither a target file nor a stream has been specified");
     }
 
     public SAMFileHeader getFileHeader() {

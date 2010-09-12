@@ -26,14 +26,11 @@
 package org.broadinstitute.sting.commandline;
 
 import org.apache.log4j.*;
-import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.*;
 
 public abstract class CommandLineProgram {
@@ -253,12 +250,6 @@ public abstract class CommandLineProgram {
             // Rethrow the exception to exit with an error.
             throw e;
         }
-        catch (Exception e) {
-            // we catch all exceptions here. if it makes it to this level, we're in trouble.  Let's bail!
-            // TODO: what if the logger is the exception? hmm...
-            logger.fatal("\n");
-            throw e;
-        }
     }
 
     /**
@@ -376,7 +367,7 @@ public abstract class CommandLineProgram {
         System.exit(1);
     }
 
-    public static void exitSystemWithUserError(UserError e) {
+    public static void exitSystemWithUserError(UserException e) {
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A USER ERROR has occurred.  The invalid arguments or inputs must be corrected before the GATK can proceed%n");
         errorPrintf("%n");

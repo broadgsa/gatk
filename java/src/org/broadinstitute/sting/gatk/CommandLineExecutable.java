@@ -72,15 +72,16 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     protected int execute() throws Exception {
         Walker<?,?> mWalker = GATKEngine.getWalkerByName(getAnalysisName());
-        Collection<SamRecordFilter> filters = GATKEngine.createFiltersForWalker(getArgumentCollection(),mWalker);
 
-        // load the arguments into the walker / filters.
-        loadArgumentsIntoObject(mWalker);
-        for (SamRecordFilter filter: filters)
-            loadArgumentsIntoObject(filter);
-
-        // set the analysis name in the argument collection
         try {
+            Collection<SamRecordFilter> filters = GATKEngine.createFiltersForWalker(getArgumentCollection(),mWalker);
+
+            // load the arguments into the walker / filters.
+            loadArgumentsIntoObject(mWalker);
+            for (SamRecordFilter filter: filters)
+                loadArgumentsIntoObject(filter);
+
+            // set the analysis name in the argument collection
             GATKResult = GATKEngine.execute(getArgumentCollection(), mWalker, filters);
             generateGATKRunReport(mWalker);
         } catch ( Exception e ) {

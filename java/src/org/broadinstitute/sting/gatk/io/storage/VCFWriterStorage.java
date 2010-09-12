@@ -6,13 +6,12 @@ import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 
 import java.io.*;
 
 import net.sf.samtools.util.BlockCompressedOutputStream;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * Provides temporary and permanent storage for genotypes in VCF format.
@@ -41,7 +40,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
                     stream = new PrintStream(file);
             }
             catch(IOException ex) {
-                throw new UserError.CouldNotCreateOutputFile(file, "Unable to open target output stream", ex);
+                throw new UserException.CouldNotCreateOutputFile(file, "Unable to open target output stream", ex);
             }
         }
         else if ( stub.getOutputStream() != null ) {
@@ -65,7 +64,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
             this.stream = new PrintStream(file);
         }
         catch(IOException ex) {
-            throw new UserError.CouldNotCreateOutputFile(file, "Unable to open target output stream",ex);
+            throw new UserException.CouldNotCreateOutputFile(file, "Unable to open target output stream",ex);
         }
         writer = new StandardVCFWriter(this.stream);
         writer.writeHeader(stub.getVCFHeader());
@@ -108,7 +107,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
 
             reader.close();
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(file, "Error reading file in VCFWriterStorage: ", e);
+            throw new UserException.CouldNotReadInputFile(file, "Error reading file in VCFWriterStorage: ", e);
         }
     }    
 }

@@ -31,7 +31,7 @@ import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -267,7 +267,7 @@ public class GenomeAnalysisEngine {
 
             // check to make sure we have a rod of that name
             if (!rodNames.containsKey(rodName))
-                throw new UserError.CommandLineError("--rodToIntervalTrackName (-BTI) was passed the name '"+rodName+"', which wasn't given as a ROD name in the -B option");
+                throw new UserException.CommandLineException("--rodToIntervalTrackName (-BTI) was passed the name '"+rodName+"', which wasn't given as a ROD name in the -B option");
 
             for (String str : rodNames.keySet())
                 if (str.equals(rodName)) {
@@ -400,7 +400,7 @@ public class GenomeAnalysisEngine {
         // Temporarily require all walkers to have a reference, even if that reference is not conceptually necessary.
         if ((my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker || my_walker instanceof ReadPairWalker) && 
                 argCollection.referenceFile == null) {
-            throw new UserError.CommandLineError("Read-based traversals require a reference file but none was given");
+            throw new UserException.CommandLineException("Read-based traversals require a reference file but none was given");
         }
 
         return MicroScheduler.create(this,my_walker,readsDataSource,referenceDataSource.getReference(),rodDataSources,argCollection.numberOfThreads);
@@ -661,11 +661,6 @@ public class GenomeAnalysisEngine {
         // Compile a set of sequence names that exist in the reference file.
         SAMSequenceDictionary referenceDictionary = reference.getSequenceDictionary();
 
-        Set<String> referenceSequenceNames = new TreeSet<String>();
-        for (SAMSequenceRecord dictionaryEntry : referenceDictionary.getSequences())
-            referenceSequenceNames.add(dictionaryEntry.getSequenceName());
-
-
         if (!reads.isEmpty()) {
             // Compile a set of sequence names that exist in the BAM files.
             SAMSequenceDictionary readsDictionary = reads.getHeader().getSequenceDictionary();
@@ -681,7 +676,7 @@ public class GenomeAnalysisEngine {
             }
 
             // compare the reads to the reference
-            compareTwoDictionaries("reads", readsDictionary, readsSequenceNames, referenceDictionary, referenceSequenceNames);
+            SequenceDictionaryUtils.validateDictionaries(logger, "reads", readsDictionary, "reference", referenceDictionary);
         }
 
         // compare the tracks to the reference, if they have a sequence dictionary
@@ -693,55 +688,13 @@ public class GenomeAnalysisEngine {
                 logger.info("Track " + track.getName() + " doesn't have a sequence dictionary built in, skipping dictionary validation");
                 continue;
             }
+
             Set<String> trackSequences = new TreeSet<String>();
             for (SAMSequenceRecord dictionaryEntry : trackDict.getSequences())
                 trackSequences.add(dictionaryEntry.getSequenceName());
-            compareTwoDictionaries(track.getName(), trackDict, trackSequences, referenceDictionary, referenceSequenceNames);
+            SequenceDictionaryUtils.validateDictionaries(logger, track.getName(), trackDict, "reference", referenceDictionary);
         }
 
-    }
-
-    /**
-     * compare two dictionaries, warning if one isn't a subset of the other, or erroring out if they have no overlap
-     * @param compareToName the name of the track or bam (used in the output to the user)
-     * @param comparedToDictionary the dictionary to compare to
-     * @param compareToSequenceNames the unique sequence names in the compared to dictionary
-     * @param referenceDictionary the reference dictionary
-     * @param referenceSequenceNames the reference unique sequence names
-     */
-    private void compareTwoDictionaries(String compareToName, SAMSequenceDictionary comparedToDictionary, Set<String> compareToSequenceNames, SAMSequenceDictionary referenceDictionary, Set<String> referenceSequenceNames) {
-        // If there's no overlap between reads and reference, data will be bogus.  Throw an exception.
-        Set<String> intersectingSequenceNames = new HashSet<String>(compareToSequenceNames);
-        intersectingSequenceNames.retainAll(referenceSequenceNames);
-        if (intersectingSequenceNames.size() == 0) {
-            StringBuilder error = new StringBuilder();
-            error.append("No overlap exists between sequence dictionary of the " + compareToName + " and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
-            error.append(System.getProperty("line.separator"));
-            error.append(String.format(compareToName + " contigs:     %s%n", prettyPrintSequenceRecords(comparedToDictionary)));
-            error.append(String.format("Reference contigs: %s%n", prettyPrintSequenceRecords(referenceDictionary)));
-            logger.error(error.toString());
-            throw new UserError.IncompatibleSequenceDictionaries(referenceDictionary, comparedToDictionary, compareToName);
-        }
-
-        // If the two datasets are not equal and neither is a strict subset of the other, warn the user.
-        if (!compareToSequenceNames.equals(referenceSequenceNames) &&
-                !compareToSequenceNames.containsAll(referenceSequenceNames) &&
-                !referenceSequenceNames.containsAll(compareToSequenceNames)) {
-            StringBuilder warning = new StringBuilder();
-            warning.append("Limited overlap exists between sequence dictionary of the " + compareToName + " and the sequence dictionary of the reference.  Perhaps you're using the wrong reference?\n");
-            warning.append(System.getProperty("line.separator"));
-            warning.append(String.format(compareToName + " contigs:     %s%n", prettyPrintSequenceRecords(comparedToDictionary)));
-            warning.append(String.format("Reference contigs: %s%n", prettyPrintSequenceRecords(referenceDictionary)));
-            logger.warn(warning.toString());
-        }
-    }
-
-    private String prettyPrintSequenceRecords(SAMSequenceDictionary sequenceDictionary) {
-        String[] sequenceRecordNames = new String[sequenceDictionary.size()];
-        int sequenceRecordIndex = 0;
-        for (SAMSequenceRecord sequenceRecord : sequenceDictionary.getSequences())
-            sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
-        return Arrays.deepToString(sequenceRecordNames);
     }
 
 
@@ -773,20 +726,20 @@ public class GenomeAnalysisEngine {
         // sharding system; it's required with the new sharding system only for locus walkers.
         if(readsDataSource != null && !readsDataSource.hasIndex() ) { 
             if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM))
-                throw new UserError.CommandLineError("The GATK cannot currently process unindexed BAM files without the -U ALLOW_UNINDEXED_BAM");
+                throw new UserException.CommandLineException("The GATK cannot currently process unindexed BAM files without the -U ALLOW_UNINDEXED_BAM");
             if(intervals != null && WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE)
-                throw new UserError.CommandLineError("Cannot perform interval processing when walker is not driven by reference and no index is available.");
+                throw new UserException.CommandLineException("Cannot perform interval processing when walker is not driven by reference and no index is available.");
 
             Shard.ShardType shardType;
             if(walker instanceof LocusWalker) {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
-                    throw new UserError.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file(s).");
+                    throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file(s).");
                 shardType = Shard.ShardType.LOCUS;
             }
             else if(walker instanceof ReadWalker || walker instanceof DuplicateWalker || walker instanceof ReadPairWalker)
                 shardType = Shard.ShardType.READ;
             else
-                throw new UserError.CommandLineError("The GATK cannot currently process unindexed BAM files");
+                throw new UserException.CommandLineException("The GATK cannot currently process unindexed BAM files");
 
             List<GenomeLoc> region;
             if(intervals != null)
@@ -810,7 +763,7 @@ public class GenomeAnalysisEngine {
 
             if (intervals != null && !intervals.isEmpty()) {
                 if(!readsDataSource.isEmpty() && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
-                    throw new UserError.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file(s).");
+                    throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file(s).");
 
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource.getReference(),
@@ -844,9 +797,9 @@ public class GenomeAnalysisEngine {
             }
         } else if (walker instanceof ReadPairWalker) {
             if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.queryname)
-                throw new UserError.MissortedBAM(SAMFileHeader.SortOrder.queryname, "Read pair walkers can only walk over query name-sorted data.  Please resort your input BAM file.");
+                throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.queryname, "Read pair walkers can only walk over query name-sorted data.  Please resort your input BAM file.");
             if(intervals != null && !intervals.isEmpty())
-                throw new UserError.CommandLineError("Pairs traversal cannot be used in conjunction with intervals.");
+                throw new UserException.CommandLineException("Pairs traversal cannot be used in conjunction with intervals.");
 
             shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                     referenceDataSource.getReference(),
@@ -996,7 +949,7 @@ public class GenomeAnalysisEngine {
                         unpackedReads.add(new SAMReaderID(new File(fileName),getTags(inputFile)));
                 }
                 catch( FileNotFoundException ex ) {
-                    throw new UserError.CouldNotReadInputFile(inputFile, "Unable to find file while unpacking reads", ex);
+                    throw new UserException.CouldNotReadInputFile(inputFile, "Unable to find file while unpacking reads", ex);
                 }
             }
             else if(inputFile.getName().toLowerCase().endsWith(".bam")) {
@@ -1006,7 +959,7 @@ public class GenomeAnalysisEngine {
                 unpackedReads.add(new SAMReaderID(new File("/dev/stdin"),Collections.<String>emptyList()));
             }
             else {
-                throw new UserError.CommandLineError(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
+                throw new UserException.CommandLineException(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
                         "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
                         "of BAM files is in the correct format, update the extension, and try again.",inputFile.getName()));
             }

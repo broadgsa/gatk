@@ -3,9 +3,8 @@ package org.broadinstitute.sting.utils.sam;
 import java.util.*;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * @author ebanks
@@ -65,7 +64,7 @@ public class GATKSAMRecord extends SAMRecord {
 
         // sanity check that the lengths of the base and quality strings are equal
         if ( getBaseQualities().length  != getReadLength() )
-            throw new UserError.MalformedBam(this, String.format("Error: the number of base qualities does not match the number of bases in %s (and the GATK does not currently support '*' for the quals)", mRecord.getReadName()));
+            throw new UserException.MalformedBam(this, String.format("Error: the number of base qualities does not match the number of bases in %s (and the GATK does not currently support '*' for the quals)", mRecord.getReadName()));
     }
 
     ///////////////////////////////////////////////////////////////////////////////

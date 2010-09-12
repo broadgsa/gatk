@@ -14,7 +14,7 @@ public class ValidateRODForReadsIntegrationTest extends WalkerTest {
     private final String dbSNPFile = GATKDataLocation + "dbsnp_129_hg18.rod";
     
      public static String baseTestString1KG() {
-            return "-T ValidateRODForReads -o %s -R testdata/exampleFASTA.fasta -I testdata/exampleBAM.bam";
+            return "-T ValidateRODForReads -o %s -R testdata/exampleFASTA.fasta -U ALLOW_SEQ_DICT_INCOMPATIBILITY -I testdata/exampleBAM.bam";
         }
 
 

@@ -2,6 +2,7 @@ package org.broadinstitute.sting;
 
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.StingException;
 import org.junit.*;
 
@@ -45,6 +46,7 @@ public abstract class BaseTest {
     protected static String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
     protected static String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.fasta";
     protected static String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
+    protected static String b37KGReference = "/humgen/1kg/reference/human_g1k_v37.fasta";
     protected static String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
     protected static String validationDataLocation = GATKDataLocation + "Validation_Data/";
     protected static String evaluationDataLocation = GATKDataLocation + "Evaluation_Data/";
@@ -140,13 +142,13 @@ public abstract class BaseTest {
         try {
             digest = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            throw new StingException("Unable to find MD5 digest");
+            throw new GATKException("Unable to find MD5 digest");
         }
         InputStream is;
         try {
             is = new FileInputStream(file);
         } catch (FileNotFoundException e) {
-            throw new StingException("Unable to open file " + file);
+            throw new GATKException("Unable to open file " + file);
         }
         byte[] buffer = new byte[8192];
         int read;
@@ -160,14 +162,14 @@ public abstract class BaseTest {
 
         }
         catch (IOException e) {
-            throw new StingException("Unable to process file for MD5", e);
+            throw new GATKException("Unable to process file for MD5", e);
         }
         finally {
             try {
                 is.close();
             }
             catch (IOException e) {
-                throw new StingException("Unable to close input stream for MD5 calculation", e);
+                throw new GATKException("Unable to close input stream for MD5 calculation", e);
             }
         }
     }

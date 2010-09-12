@@ -27,17 +27,14 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 
 import java.util.Iterator;
 import java.util.regex.Pattern;
 import java.io.FileNotFoundException;
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Constructor;
 
 /**
@@ -117,7 +114,7 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
         try {
             reader = new PushbackIterator<String>(new XReadLines(file));
         } catch (FileNotFoundException e) {
-            throw new UserError.CouldNotReadInputFile(file, e);
+            throw new UserException.CouldNotReadInputFile(file, e);
         }
         this.file = file;
         this.name = name;
@@ -133,7 +130,7 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
         try {
             header = rod.initialize(file);
         } catch (FileNotFoundException e) {
-            throw new UserError.CouldNotReadInputFile(file, "ROD "+type.getName() + " failed to initialize properly from file "+file);
+            throw new UserException.CouldNotReadInputFile(file, "ROD "+type.getName() + " failed to initialize properly from file "+file);
         }
 
     }
@@ -197,7 +194,7 @@ public class RODRecordIterator<ROD extends ReferenceOrderedDatum> implements Ite
                  parsed_ok =  n.parseLine(header,parts) ;
              }
              catch ( Exception e ) {
-                 throw new UserError.MalformedFile(file, "Failed to parse ROD data ("+type.getName()+") from file "+ file + " at line #"+linenum+
+                 throw new UserException.MalformedFile(file, "Failed to parse ROD data ("+type.getName()+") from file "+ file + " at line #"+linenum+
                          "\nOffending line: "+line+
                          "\nReason ("+e.getClass().getName()+")", e);
              }

@@ -31,9 +31,8 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -96,13 +95,13 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
 
         SAMReadGroupRecord rg = read.getReadGroup();
 
-        if ( rg == null ) throw new UserError.ReadMissingReadGroup(read);
+        if ( rg == null ) throw new UserException.ReadMissingReadGroup(read);
 
         String lane = read.getReadGroup().getPlatformUnit();
         String library = read.getReadGroup().getLibrary();
 
-        if ( lane == null ) throw new UserError.MalformedBam(read, "Read "+read.getReadName()+" has no platform unit information");
-        if ( library == null ) throw new UserError.MalformedBam(read, "Read "+read.getReadName()+" has no library information");
+        if ( lane == null ) throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has no platform unit information");
+        if ( library == null ) throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has no library information");
 
         int end = 0;
 
@@ -110,11 +109,11 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
 
             if ( read.getFirstOfPairFlag() ) {
                 if ( read.getSecondOfPairFlag() )
-                    throw new UserError.MalformedBam(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
+                    throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
                 end = 1;
             } else {
                 if ( ! read.getSecondOfPairFlag() )
-                    throw new UserError.MalformedBam(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
+                    throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
                 end = 2;
             }
         }
@@ -361,7 +360,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
             }
 
         } catch (IOException ioe) {
-            throw new UserError.CouldNotCreateOutputFile(f, "Failed to write report", ioe);
+            throw new UserException.CouldNotCreateOutputFile(f, "Failed to write report", ioe);
         }
     }
 
@@ -408,7 +407,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
 
         public void add(byte[] quals) {
             if ( quals.length > cycleQualsAv.length )
-                throw new UserError("A read of length "+quals.length+" encountered, which exceeds specified maximum read length");
+                throw new UserException("A read of length "+quals.length+" encountered, which exceeds specified maximum read length");
             if ( quals.length > maxL ) maxL = quals.length;
             if ( quals.length < minL ) minL = quals.length;
             readCount++;

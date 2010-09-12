@@ -28,6 +28,7 @@ package org.broadinstitute.sting;
 import junit.framework.Assert;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
@@ -62,7 +63,7 @@ public class WalkerTest extends BaseTest {
         if ( ! dir.exists() ) {
             System.out.printf("##### Creating MD5 db %s%n", MD5_FILE_DB_SUBDIR);
             if ( ! dir.mkdir() ) {
-                throw new StingException("Infrastructure failure: failed to create md5 directory " + MD5_FILE_DB_SUBDIR);
+                throw new GATKException("Infrastructure failure: failed to create md5 directory " + MD5_FILE_DB_SUBDIR);
             }
         }
     }
@@ -81,7 +82,7 @@ public class WalkerTest extends BaseTest {
             try {
                 FileUtils.copyFile(resultsFile, dbFile);
             } catch ( IOException e ) {
-                throw new StingException(e.getMessage());
+                throw new GATKException(e.getMessage());
             }
         } else {
             System.out.printf("##### MD5 file is up to date: %s%n", dbFile.getPath());
@@ -185,6 +186,7 @@ public class WalkerTest extends BaseTest {
         int nOutputFiles = -1;
         List<String> md5s = null;
         List<String> exts = null;
+        Class expectedException = null;
 
         protected Map<String, File> auxillaryFiles = new HashMap<String, File>();
 
@@ -199,6 +201,21 @@ public class WalkerTest extends BaseTest {
             this.nOutputFiles = nOutputFiles;
             this.md5s = md5s;
             this.exts = exts;
+        }
+
+        public WalkerTestSpec(String args, int nOutputFiles, Class expectedException) {
+            this.args = args;
+            this.nOutputFiles = nOutputFiles;
+            this.expectedException = expectedException;
+        }
+
+        public boolean expectsException() {
+            return expectedException != null;
+        }
+
+        public Class getExpectedException() {
+            if ( ! expectsException() ) throw new GATKException("Tried to get expection for walker test that doesn't expect one");
+            return expectedException;
         }
 
         public void addAuxFile(String expectededMD5sum, File outputfile) {
@@ -223,16 +240,20 @@ public class WalkerTest extends BaseTest {
         final String args = String.format(spec.args, tmpFiles.toArray());
         System.out.println(Utils.dupString('-', 80));
 
-        List<String> md5s = new LinkedList<String>();
-        md5s.addAll(spec.md5s);
+        if ( spec.expectsException() ) {
+            // this branch handles the case were we are testing that a walker will fail as expected
+            return executeTest(name, null, tmpFiles, args, spec.getExpectedException());
+        } else {
+            List<String> md5s = new LinkedList<String>();
+            md5s.addAll(spec.md5s);
 
-        // check to see if they included any auxillary files, if so add them to the list
-        for (String md5 : spec.auxillaryFiles.keySet()) {
-            md5s.add(md5);
-            tmpFiles.add(spec.auxillaryFiles.get(md5));
+            // check to see if they included any auxillary files, if so add them to the list
+            for (String md5 : spec.auxillaryFiles.keySet()) {
+                md5s.add(md5);
+                tmpFiles.add(spec.auxillaryFiles.get(md5));
+            }
+            return executeTest(name, md5s, tmpFiles, args, null);
         }
-
-        return executeTest(name, md5s, tmpFiles, args);
     }
 
     public File createTempFile(String name, String extension) {
@@ -241,7 +262,7 @@ public class WalkerTest extends BaseTest {
             fl.deleteOnExit();
             return fl;
         } catch (IOException ex) {
-            throw new StingException("Cannot create temp file: " + ex.getMessage(), ex);
+            throw new GATKException("Cannot create temp file: " + ex.getMessage(), ex);
         }
     }
 
@@ -253,7 +274,7 @@ public class WalkerTest extends BaseTest {
      * @param args     the argument list
      * @return a pair of file and string lists
      */
-    private Pair<List<File>, List<String>> executeTest(String name, List<String> md5s, List<File> tmpFiles, String args) {
+    private Pair<List<File>, List<String>> executeTest(String name, List<String> md5s, List<File> tmpFiles, String args, Class expectedException) {
         CommandLineGATK instance = new CommandLineGATK();
         String[] command;
 
@@ -271,7 +292,6 @@ public class WalkerTest extends BaseTest {
             cmd2[command.length + 1] = this.outputFileLocation.getAbsolutePath();
             command = cmd2;
         }
-        System.out.println(String.format("Executing test %s with GATK arguments: %s", name, Utils.join(" ",command)));
 
         // add the logging level to each of the integration test commands
         String[] cmd2 = Arrays.copyOf(command, command.length + 4);
@@ -281,20 +301,47 @@ public class WalkerTest extends BaseTest {
         cmd2[command.length+3] = ENABLE_REPORTING ? "STANDARD" : "NO_ET";
 
         // run the executable
+        boolean gotAnException = false;
         try {
+            System.out.println(String.format("Executing test %s with GATK arguments: %s", name, Utils.join(" ",cmd2)));
             CommandLineExecutable.start(instance, cmd2);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            gotAnException = true;
+            if ( expectedException != null ) {
+                // we expect an exception
+                System.out.println(String.format("Wanted exception %s, saw %s", expectedException, e.getClass()));
+                if ( expectedException.isInstance(e) ) {
+                    // it's the type we expected
+                    System.out.println(String.format("  => %s PASSED", name));
+                } else {
+                    e.printStackTrace();
+                    Assert.fail(String.format("Test %s expected exception %s but got %s instead",
+                            name, expectedException, e.getClass()));
+                }
+            } else {
+                // we didn't expect an exception but we got one :-(
+                throw new RuntimeException(e);
+            }
         }
 
         // catch failures from the integration test
-        if (CommandLineExecutable.result != 0) {
-            throw new RuntimeException("Error running the GATK with arguments: " + args);
+        if ( expectedException != null ) {
+            if ( ! gotAnException )
+                // we expected an exception but didn't see it
+                Assert.fail(String.format("Test %s expected exception %s but none was thrown", name, expectedException.toString()));
+            return null;
+        } else {
+            if ( CommandLineExecutable.result != 0) {
+                throw new RuntimeException("Error running the GATK with arguments: " + args);
+            }
+
+            // clean up some memory
+            instance = null;
+            cmd2 = null;
+
+            // we need to check MD5s
+            return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, md5s));
         }
-        // clean up some memory
-        instance = null;
-        cmd2 = null;
-        return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, md5s));
     }
 
     private static String[] escapeExpressions(String args, String delimiter) {

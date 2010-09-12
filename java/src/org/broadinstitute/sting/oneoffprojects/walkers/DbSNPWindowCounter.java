@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import net.sf.samtools.util.CloseableIterator;
-import org.broad.tribble.FeatureIterator;
 import org.broad.tribble.FeatureSource;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.dbsnp.DbSNPFeature;
@@ -16,11 +14,9 @@ import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 
@@ -69,7 +65,7 @@ public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
                     windowStart,
                     windowStop);
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(myDbSNPFile, e);
+            throw new UserException.CouldNotReadInputFile(myDbSNPFile, e);
         }
 
         // count the number of dbSNPs we've seen

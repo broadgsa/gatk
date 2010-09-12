@@ -2,8 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.analyzeannotations;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.util.*;
@@ -113,7 +112,7 @@ public class AnnotationDataManager {
             try {
                 output = new PrintStream(filename); // Create the intermediate data file for this annotation
             } catch ( FileNotFoundException e ) {
-                throw new UserError.CouldNotCreateOutputFile(new File(filename), "Can't create intermediate output annotation data file. Does the output directory exist?", e);
+                throw new UserException.CouldNotCreateOutputFile(new File(filename), "Can't create intermediate output annotation data file. Does the output directory exist?", e);
             }
 
             // Output a header line
@@ -164,7 +163,7 @@ public class AnnotationDataManager {
             try {
                 Runtime.getRuntime().exec( rScriptCommandLine );
             } catch ( IOException e ) {
-                throw new UserError.CannotExecuteRScript( rScriptCommandLine, e );
+                throw new UserException.CannotExecuteRScript( rScriptCommandLine, e );
             }
         }
     }

@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.playground.utils.report.templates;
 
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -104,7 +103,7 @@ class TextTable {
         try {
             writer.append("\n");
         } catch (IOException e) {
-            throw new UserError.CouldNotCreateOutputFile(writer.toString(), "Unable to write to the Writer", e);
+            throw new UserException.CouldNotCreateOutputFile(writer.toString(), "Unable to write to the Writer", e);
         }
     }
 
@@ -129,7 +128,7 @@ class TextTable {
             if (y != rows.size() - 1)
                 writer.append(seperator);
         } catch (IOException e) {
-            throw new UserError.CouldNotCreateOutputFile(writer.toString(), "Unable to write to the Writer", e);
+            throw new UserException.CouldNotCreateOutputFile(writer.toString(), "Unable to write to the Writer", e);
         }
     }
 

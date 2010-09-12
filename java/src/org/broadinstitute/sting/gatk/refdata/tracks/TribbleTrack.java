@@ -32,8 +32,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.IOException;
@@ -82,7 +81,7 @@ public class TribbleTrack extends RMDTrack implements QueryableTrack {
         try {
             return new FeatureToGATKFeatureIterator(reader.iterator(),this.getName());
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(getFile(), "Unable to read from file", e);
+            throw new UserException.CouldNotReadInputFile(getFile(), "Unable to read from file", e);
         }
     }
 

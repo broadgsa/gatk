@@ -26,11 +26,10 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import net.sf.samtools.SAMFileWriter;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.lang.annotation.Annotation;
 import java.util.List;
@@ -98,7 +97,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
         String writerFileName = getArgumentValue( createBAMArgumentDefinition(source), matches );
         if( writerFileName == null )
-            throw new UserError.CommandLineError("SAM file compression was supplied, but no associated writer was supplied with it.");
+            throw new UserException.CommandLineException("SAM file compression was supplied, but no associated writer was supplied with it.");
 
         SAMFileWriterStub stub = new SAMFileWriterStub(engine, new File(writerFileName));
 

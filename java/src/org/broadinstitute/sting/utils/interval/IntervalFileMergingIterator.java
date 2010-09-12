@@ -26,8 +26,7 @@
 package org.broadinstitute.sting.utils.interval;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.StringToGenomeLocIteratorAdapter;
@@ -71,7 +70,7 @@ public class IntervalFileMergingIterator implements Iterator<GenomeLoc> {
                                                               StringToGenomeLocIteratorAdapter.FORMAT.GATK ) ) ;
             }
         } catch ( FileNotFoundException e ) {
-            throw new UserError.CouldNotReadInputFile(f, e);
+            throw new UserException.CouldNotReadInputFile(f, e);
         }
         myRule = rule;
     }
@@ -94,7 +93,7 @@ public class IntervalFileMergingIterator implements Iterator<GenomeLoc> {
             GenomeLoc next = it.next();
 
             if ( next.isBefore(current)) {
-                throw new UserError.MalformedFile(myFile, "Interval "+next+" in the interval file is out of order.");
+                throw new UserException.MalformedFile(myFile, "Interval "+next+" in the interval file is out of order.");
             }
 
             if (current.overlapsP(next)) {

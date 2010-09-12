@@ -49,7 +49,7 @@ import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 
@@ -103,7 +103,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 			while( ( line = reader.readLine() ) != null ) {
 				String[] halves = line.split("#",2);
 				if ( halves.length < 2 ) 
-					throw new UserError.MalformedFile(f, "Line: "+line+"\nin map file "+f+"\n does not contain contig name");
+					throw new UserException.MalformedFile(f, "Line: "+line+"\nin map file "+f+"\n does not contain contig name");
 				
 				int p1 = 0;
 				for ( ;  p1 < halves[1].length() && Character.isWhitespace(halves[1].charAt(p1) ); p1++ ); 
@@ -113,13 +113,13 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 				// p2 is index of first whitespace after first word
 				
 				if ( p1 == p2 ) 
-					throw new UserError.MalformedFile(f, "Line: "+line+"\n in map file "+f+"\nNo contig name found after '#'");
+					throw new UserException.MalformedFile(f, "Line: "+line+"\n in map file "+f+"\nNo contig name found after '#'");
 				
 				String name = halves[1].substring(p1, p2);
 								
 				String[] coord_parts = halves[0].split("\\s");
 				if ( coord_parts.length % 3 != 0 ) 
-					throw new UserError.MalformedFile(f, "Line: "+line+"\n in map file "+f+"\nNumber of coordinate fields is not a multiple of 3");
+					throw new UserException.MalformedFile(f, "Line: "+line+"\n in map file "+f+"\nNumber of coordinate fields is not a multiple of 3");
 				
 				List<GenomeLoc> segments = new ArrayList<GenomeLoc>( coord_parts.length / 3 );
 				
@@ -136,9 +136,9 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 			}
 			reader.close();
 		} catch ( FileNotFoundException e) {
-			throw new UserError.CouldNotReadInputFile(f, e);
+			throw new UserException.CouldNotReadInputFile(f, e);
 		} catch (IOException e) {
-			throw new UserError.CouldNotReadInputFile(f, e);
+			throw new UserException.CouldNotReadInputFile(f, e);
 		}
 	}
 
@@ -188,9 +188,9 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 			}
 			reader.close();
 		} catch ( FileNotFoundException e) {
-			throw new UserError.CouldNotReadInputFile(f, e);
+			throw new UserException.CouldNotReadInputFile(f, e);
 		} catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(f, e);
+            throw new UserException.CouldNotReadInputFile(f, e);
 		}
 	}
 
@@ -209,7 +209,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 			}
 			writer.close();
 		} catch (IOException e) {
-			throw new UserError.CouldNotCreateOutputFile(f, e);
+			throw new UserException.CouldNotCreateOutputFile(f, e);
 		}
 	}
 	
@@ -242,7 +242,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 
         // get mapping from read's contig onto a "global" contig (as a list of intervals on the latter):
 		Collection<GenomeLoc> segments = getContigMapping(r.getReferenceName());
-		if ( segments == null ) throw new UserError.MalformedBam(r, "Can not remap a record: unknown custom contig name "+r.getReferenceName());
+		if ( segments == null ) throw new UserException.MalformedBam(r, "Can not remap a record: unknown custom contig name "+r.getReferenceName());
 
         // scroll the list of intervals until we find the interval that the alignment start falls into:
 		Pair<? extends Iterator<GenomeLoc>, Integer> p = seekForward(segments,customStart);
@@ -316,7 +316,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
                         if ( discardCrossContig ) {
                 //			System.out.println("WARNING: ALIGNMENT DISCARDED: "+message);
                             return null;
-                        } else throw new UserError.MalformedBam(r, message);
+                        } else throw new UserException.MalformedBam(r, message);
                     }
 
                     gl = iter.next(); // advance to next segment
@@ -324,11 +324,11 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
                     refPos = (int)gl.getStart(); // we jump to the start of next segment on the master ref
 
                     if ( gl.getContigIndex() != r.getReferenceIndex() )
-                        throw new UserError.MalformedBam(r, "Contig "+oldRefName+
+                        throw new UserException.MalformedBam(r, "Contig "+oldRefName+
                         " has segments on different master contigs: currently unsupported");
 
                     if ( refPos < currStop + 1 )
-                        throw new UserError.MalformedBam(r, "Contig "+oldRefName+
+                        throw new UserException.MalformedBam(r, "Contig "+oldRefName+
                         " has segments that are out of order or strictly adjacent: currently unsupported");
                     if ( len > 0 && refPos > currStop + 1 ) {
                         // add "panning" N's w/respect to the master ref over the region between adjacent segments

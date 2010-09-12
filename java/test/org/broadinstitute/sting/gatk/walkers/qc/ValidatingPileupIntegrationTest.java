@@ -19,7 +19,7 @@ public class ValidatingPileupIntegrationTest extends WalkerTest {
                 " -I " + validationDataLocation + "MV1994.selected.bam" +
                 " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                 " -B:pileup,SAMPileup "+ validationDataLocation + "MV1994.selected.pileup" +
-                " -S SILENT -nt 8",0, Collections.<String>emptyList());
+                " -S SILENT -nt 8 -U ALLOW_SEQ_DICT_INCOMPATIBILITY",0, Collections.<String>emptyList());
         executeTest("testEcoliThreaded",spec);
     }
 }

@@ -33,7 +33,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.Arrays;
@@ -59,7 +59,7 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
         if ( truePileup == null ) {
             out.printf("No truth pileup data available at %s%n", pileup.getPileupString(ref.getBaseAsChar()));
             if ( ! CONTINUE_AFTER_AN_ERROR ) {
-                throw new UserError.CommandLineError(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
+                throw new UserException.CommandLineException(String.format("No pileup data available at %s given GATK's output of %s -- this walker requires samtools pileup data over all bases",
                         context.getLocation(), new String(pileup.getBases())));
             }
         } else {

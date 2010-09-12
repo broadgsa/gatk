@@ -27,8 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.PrintStream;
 
@@ -54,7 +53,7 @@ public class VariantDataManager {
         numVariants = dataList.size();
         data = dataList.toArray( new VariantDatum[numVariants] );
         if( numVariants <= 0 ) {
-            throw new UserError.BadInput("There are zero variants with > 0 clustering weight! Please provide sets of known polymorphic loci to be used as training data using the dbsnp, hapmap, or 1kg rod bindings. Clustering weights can be specified using -weightDBSNP, -weightHapMap, and -weight1KG" );
+            throw new UserException.BadInput("There are zero variants with > 0 clustering weight! Please provide sets of known polymorphic loci to be used as training data using the dbsnp, hapmap, or 1kg rod bindings. Clustering weights can be specified using -weightDBSNP, -weightHapMap, and -weight1KG" );
         }
         if( _annotationKeys == null ) {
             numAnnotations = 0;
@@ -63,7 +62,7 @@ public class VariantDataManager {
         } else {
             numAnnotations = _annotationKeys.size();
             if( numAnnotations <= 0 ) {
-                throw new UserError.BadInput("There are zero annotations.  At least one annotation must be provided to use this walker!" );
+                throw new UserException.BadInput("There are zero annotations.  At least one annotation must be provided to use this walker!" );
             }
             meanVector = new double[numAnnotations];
             varianceVector = new double[numAnnotations];
@@ -111,7 +110,7 @@ public class VariantDataManager {
         }
         isNormalized = true; // Each data point is now [ (x - mean) / standard deviation ]
         if( foundZeroVarianceAnnotation ) {
-            throw new UserError.BadInput("Found annotations with zero variance. They must be excluded before proceeding.");
+            throw new UserException.BadInput("Found annotations with zero variance. They must be excluded before proceeding.");
         }
     }
 

@@ -4,10 +4,9 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.StingException;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 import java.io.File;
@@ -79,7 +78,7 @@ public class MatePairLibrarySize extends ReadWalker<Integer, Integer> {
                     pw.close();
                 }
             } catch (IOException e) {
-                throw new UserError.CouldNotCreateOutputFile(file, e);
+                throw new UserException.CouldNotCreateOutputFile(file, e);
             }
         }
     }

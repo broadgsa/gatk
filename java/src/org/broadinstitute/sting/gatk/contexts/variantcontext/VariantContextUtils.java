@@ -30,7 +30,7 @@ import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broad.tribble.util.variantcontext.*;
 import org.broadinstitute.sting.utils.*;
 import org.broad.tribble.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 public class VariantContextUtils {
     final public static JexlEngine engine = new JexlEngine();
@@ -113,7 +113,7 @@ public class VariantContextUtils {
             throw new GATKException("BUG: neither names nor exps can be null: names " + Arrays.toString(names) + " exps=" + Arrays.toString(exps) );
 
         if ( names.length != exps.length )
-            throw new UserError("Inconsistent number of provided filter names and expressions: names=" + Arrays.toString(names) + " exps=" + Arrays.toString(exps));
+            throw new UserException("Inconsistent number of provided filter names and expressions: names=" + Arrays.toString(names) + " exps=" + Arrays.toString(exps));
 
         Map<String, String> map = new HashMap<String, String>();
         for ( int i = 0; i < names.length; i++ ) { map.put(names[i], exps[i]); }
@@ -149,7 +149,7 @@ public class VariantContextUtils {
                 Expression exp = engine.createExpression(expStr);
                 exps.add(new JexlVCMatchExp(name, exp));
             } catch (Exception e) {
-		throw new UserError.BadArgumentValue(name, "Invalid expression used (" + expStr + "). Please see the JEXL docs for correct syntax.") ;
+		throw new UserException.BadArgumentValue(name, "Invalid expression used (" + expStr + "). Please see the JEXL docs for correct syntax.") ;
             }
         }
 
@@ -433,7 +433,7 @@ public class VariantContextUtils {
             for ( String name : vc.getSampleNames() ) {
                 //System.out.printf("Checking %s %b%n", name, names.contains(name));
                 if ( names.contains(name) )
-                    throw new UserError("REQUIRE_UNIQUE sample names is true but duplicate names were discovered " + name);
+                    throw new UserException("REQUIRE_UNIQUE sample names is true but duplicate names were discovered " + name);
             }
 
             names.addAll(vc.getSampleNames());
@@ -642,7 +642,7 @@ public class VariantContextUtils {
 
         private int getIndex(VariantContext vc) {
             int i = priorityListOfVCs.indexOf(vc.getName());
-            if ( i == -1 ) throw new UserError.BadArgumentValue(Utils.join(",", priorityListOfVCs), "Priority list " + priorityListOfVCs + " doesn't contain variant context " + vc.getName());
+            if ( i == -1 ) throw new UserException.BadArgumentValue(Utils.join(",", priorityListOfVCs), "Priority list " + priorityListOfVCs + " doesn't contain variant context " + vc.getName());
             return i;
         }
 

@@ -27,6 +27,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.StingException;
 import org.junit.Assert;
@@ -72,7 +73,7 @@ public class RMDTrackManagerUnitTest extends BaseTest {
             try {
                 fIter = ((TribbleTrack) t).query("1", 1, 5000);
             } catch (IOException e) {
-                throw new StingException("blah I/O exception");
+                throw new GATKException("blah I/O exception");
             }
             while (fIter.hasNext()) {
                 fIter.next();
@@ -123,7 +124,7 @@ public class RMDTrackManagerUnitTest extends BaseTest {
                 try {
                     fIter = ((TribbleTrack) t).query("1", x, x + intervalSize);
                 } catch (IOException e) {
-                    throw new StingException("blah I/O exception");
+                    throw new GATKException("blah I/O exception");
                 }
                 while (fIter.hasNext()) {
                     fIter.next();

@@ -29,8 +29,7 @@ import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
 import org.broadinstitute.sting.gatk.io.storage.Storage;
 import org.broadinstitute.sting.gatk.executive.OutputMergeTask;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 import java.io.File;
@@ -122,7 +121,7 @@ public class ThreadLocalOutputTracker extends OutputTracker {
             tempFile.deleteOnExit();
         }
         catch( IOException ex ) {
-            throw new UserError.BadTmpDir("Unable to create temporary file for stub: " + stub.getClass().getName() );
+            throw new UserException.BadTmpDir("Unable to create temporary file for stub: " + stub.getClass().getName() );
         }
 
         return tempFile;

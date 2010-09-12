@@ -5,8 +5,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.*;
@@ -129,7 +128,7 @@ public class CoverageUtils {
         SAMReadGroupRecord rg = r.getReadGroup();
         if ( rg == null ) {
             String msg = "Read "+r.getReadName()+" lacks read group information; Please associate all reads with read groups";
-            throw new UserError.MalformedBam(r, msg);
+            throw new UserException.MalformedBam(r, msg);
         }
 
         return rg;

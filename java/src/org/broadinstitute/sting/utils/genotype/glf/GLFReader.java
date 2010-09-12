@@ -4,8 +4,7 @@ import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.RuntimeEOFException;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 
 import java.io.DataInputStream;
@@ -78,7 +77,7 @@ public class GLFReader implements Iterator<GLFRecord> {
         try {
             inputBinaryCodec = new BinaryCodec(new DataInputStream(new BlockCompressedInputStream(readFrom)));
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(myFile, e);
+            throw new UserException.CouldNotReadInputFile(myFile, e);
         }
 
         inputBinaryCodec.setInputFileName(readFrom.getName());
@@ -86,7 +85,7 @@ public class GLFReader implements Iterator<GLFRecord> {
         // first verify that it's a valid GLF
         for (short s : glfMagic) {
             if (inputBinaryCodec.readUByte() != s)
-                throw new UserError.MalformedFile(myFile, "Verification of GLF format failed: magic string doesn't match)");
+                throw new UserException.MalformedFile(myFile, "Verification of GLF format failed: magic string doesn't match)");
         }
 
         // get the header string
@@ -177,7 +176,7 @@ public class GLFReader implements Iterator<GLFRecord> {
             }
             //nextRecord = null;
         } else {
-            throw new UserError.MalformedFile(myFile, "Unknown GLF record type (type = " + recordType + ")");
+            throw new UserException.MalformedFile(myFile, "Unknown GLF record type (type = " + recordType + ")");
         }
         if (nextRecord != null) currentLocation = nextRecord.getPosition();
         return ret;

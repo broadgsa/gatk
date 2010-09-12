@@ -6,12 +6,9 @@ import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * the ref seq codec
@@ -41,7 +38,7 @@ public class RefSeqCodec implements FeatureCodec {
         feature.setTranscript_id(fields[1]);
         if ( fields[3].length()==1 && fields[3].charAt(0)=='+') feature.setStrand(1);
         else if ( fields[3].length()==1 && fields[3].charAt(0)=='-') feature.setStrand(-1);
-        else throw new UserError.MalformedFile("Expected strand symbol (+/-), found: "+fields[3]);
+        else throw new UserException.MalformedFile("Expected strand symbol (+/-), found: "+fields[3]);
 
 
         feature.setTranscript_interval(GenomeLocParser.parseGenomeLoc(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5])));

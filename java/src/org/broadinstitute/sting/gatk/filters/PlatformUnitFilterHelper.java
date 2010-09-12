@@ -25,9 +25,8 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -76,7 +75,7 @@ public class PlatformUnitFilterHelper {
                      if ( EMPTYLINE_PATTERN.matcher(line).matches() ) continue; // skip empty lines
                      PlatformUnitFilter.addBlackListedLane(line); // PlatformUnitFilter will trim the line as needed
                  }
-             } catch ( FileNotFoundException e) { throw new UserError.CouldNotReadInputFile(f, e); } // this should NEVER happen
+             } catch ( FileNotFoundException e) { throw new UserException.CouldNotReadInputFile(f, e); } // this should NEVER happen
              return;
          }
 

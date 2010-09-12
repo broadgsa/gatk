@@ -47,12 +47,11 @@ import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
@@ -60,7 +59,6 @@ import java.io.FileNotFoundException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 // todo -- evalations should support comment lines
@@ -310,7 +308,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         }
         ReportFormat.AcceptableOutputType type = (outputLocation == null) ? ReportFormat.AcceptableOutputType.STREAM : ReportFormat.AcceptableOutputType.FILE;
         if (!VE2ReportFactory.isCompatibleWithOutputType(type,reportType))
-            throw new UserError.CommandLineError("The report format requested is not compatible with your output location.  You specified a " + type + " output type which isn't an option for " + reportType);
+            throw new UserException.CommandLineException("The report format requested is not compatible with your output location.  You specified a " + type + " output type which isn't an option for " + reportType);
         if ( LIST )
             listModulesAndExit();
 
@@ -378,7 +376,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             for ( String line : new XReadLines(rsIDFile) ) {
                 String parts[] = line.split(" ");
                 if ( parts.length != 2 )
-                    throw new UserError.MalformedFile(rsIDFile, "Invalid rsID / build pair at " + n + " line = " + line );
+                    throw new UserException.MalformedFile(rsIDFile, "Invalid rsID / build pair at " + n + " line = " + line );
                 //System.out.printf("line %s %s %s%n", line, parts[0], parts[1]);
                 if ( Integer.valueOf(parts[1]) > maxRsIDBuild ) {
                     //System.out.printf("Excluding %s%n", line);
@@ -390,7 +388,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                     logger.info(String.format("Read %d rsIDs from rsID -> build file", n));
             }
         } catch (FileNotFoundException e) {
-            throw new UserError.CouldNotReadInputFile(rsIDFile, e);
+            throw new UserException.CouldNotReadInputFile(rsIDFile, e);
         }
 
         logger.info(String.format("Excluding %d of %d (%.2f%%) rsIDs found from builds > %d",
@@ -425,7 +423,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         // get the specific classes provided
         for ( String module : modulesToUse ) {
             if ( !classMap.containsKey(module) )
-                throw new UserError.CommandLineError("Module " + module + " could not be found; please check that you have specified the class name correctly");
+                throw new UserException.CommandLineException("Module " + module + " could not be found; please check that you have specified the class name correctly");
             evaluationClasses.add(classMap.get(module));
         }
 
@@ -672,7 +670,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         for ( String name : names ) {
             Collection<VariantContext> contexts = tracker.getVariantContexts(ref, name, ALLOW_VARIANT_CONTEXT_TYPES, context.getLocation(), true, true);
             if ( contexts.size() > 1 )
-                throw new UserError.CommandLineError("Found multiple variant contexts found in " + name + " at " + context.getLocation() + "; VariantEval assumes one variant per position");
+                throw new UserException.CommandLineException("Found multiple variant contexts found in " + name + " at " + context.getLocation() + "; VariantEval assumes one variant per position");
 
             VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
 

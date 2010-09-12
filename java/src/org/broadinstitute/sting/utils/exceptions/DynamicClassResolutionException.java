@@ -24,13 +24,6 @@
 
 package org.broadinstitute.sting.utils.exceptions;
 
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMSequenceDictionary;
-import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
-
-import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 
 /**
@@ -40,7 +33,7 @@ import java.lang.reflect.InvocationTargetException;
  * Date: Sep 3, 2010
  * Time: 2:24:09 PM
  */
-public class DynamicClassResolutionException extends UserError {
+public class DynamicClassResolutionException extends UserException {
     public DynamicClassResolutionException(Class c, Exception ex) {
         super(String.format("Could not create module %s because %s caused by exception %s",
                 c.getSimpleName(), moreInfo(ex), ex.getMessage()));

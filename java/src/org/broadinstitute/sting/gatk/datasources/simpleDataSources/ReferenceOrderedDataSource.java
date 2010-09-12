@@ -13,8 +13,7 @@ import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.IOException;
 import java.util.List;
@@ -225,7 +224,7 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureSource, Location
         try {
             resource.close();
         } catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile("Unable to close reader for rod named " + rod.getName(),e);
+            throw new UserException.CouldNotReadInputFile("Unable to close reader for rod named " + rod.getName(),e);
         }
     }
 }

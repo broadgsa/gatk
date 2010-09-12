@@ -2,8 +2,6 @@ package org.broadinstitute.sting.playground.examples;
 
 import org.apache.log4j.BasicConfigurator;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.Root;
 import org.simpleframework.xml.Serializer;

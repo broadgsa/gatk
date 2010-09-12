@@ -28,14 +28,12 @@ import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.commandline.ArgumentMatches;
 import org.broadinstitute.sting.commandline.ParsingEngine;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import net.sf.samtools.SAMFileReader;
 
 import java.io.File;
-import java.io.OutputStream;
 
 /**
  * Describe how to parse SAMFileReaders.
@@ -67,7 +65,7 @@ public class SAMFileReaderArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         String readerFileName = getArgumentValue( createDefaultArgumentDefinition(source), matches );
 
         if( readerFileName == null )
-            throw new UserError.CommandLineError("SAM file compression was supplied, but no associated writer was supplied with it.");
+            throw new UserException.CommandLineException("SAM file compression was supplied, but no associated writer was supplied with it.");
 
         builder.setSAMFile(new File(readerFileName));
 

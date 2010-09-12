@@ -80,7 +80,7 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
     }
 
 
-    @Test(expected = StingException.class)
+    @Test(expected = GATKException.class)
     public void testAddDupplicate() {
         assertTrue(mSortedSet.size() == 0);
         GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 0, 0);

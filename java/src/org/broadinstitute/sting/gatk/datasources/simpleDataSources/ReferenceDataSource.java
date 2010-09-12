@@ -26,12 +26,11 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import net.sf.picard.reference.FastaSequenceIndexBuilder;
 import net.sf.picard.sam.CreateSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.FastaSequenceIndex;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
 
@@ -172,7 +171,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
 
         }
         catch (Exception e) {
-            throw new UserError.CouldNotReadInputFile(fastaFile, e);
+            throw new UserException.CouldNotReadInputFile(fastaFile, e);
         }
         finally {
             dictLock.unlock();

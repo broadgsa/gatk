@@ -30,8 +30,7 @@ import java.io.IOException;
 
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.commandline.Argument;
@@ -170,7 +169,7 @@ public class QualityScoreByStrandWalker extends LocusWalker<StrandedCounts,Stran
             pairOut.close();
         }
 	} catch ( IOException e ) {
-	    throw new UserError.CouldNotCreateOutputFile(new File(pairOutput), e);
+	    throw new UserException.CouldNotCreateOutputFile(new File(pairOutput), e);
 	}
     }
 }

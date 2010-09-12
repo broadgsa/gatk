@@ -27,11 +27,11 @@ package org.broadinstitute.sting.utils.exceptions;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 
 /**
  * Represents the common user errors detected by Sting / GATK
@@ -42,43 +42,43 @@ import java.lang.reflect.InvocationTargetException;
  * Date: Sep 3, 2010
  * Time: 2:24:09 PM
  */
-public class UserError extends GATKException {
-    public UserError(String msg) { super(msg); }
-    public UserError(String msg, Throwable e) { super(msg, e); }
-    private UserError(Throwable e) { super("", e); } // cannot be called, private access                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+public class UserException extends GATKException {
+    public UserException(String msg) { super(msg); }
+    public UserException(String msg, Throwable e) { super(msg, e); }
+    private UserException(Throwable e) { super("", e); } // cannot be called, private access
 
-    public static class CommandLineError extends UserError {
-        public CommandLineError(String message) {
+    public static class CommandLineException extends UserException {
+        public CommandLineException(String message) {
             super(String.format("Invalid command line: %s", message));
         }
     }
 
-    public static class BadInput extends UserError {
+    public static class BadInput extends UserException {
         public BadInput(String message) {
             super(String.format("Bad input: %s", message));
         }
     }
 
     // todo -- fix up exception cause passing
-    public static class MissingArgument extends CommandLineError {
+    public static class MissingArgument extends CommandLineException {
         public MissingArgument(String arg, String message) {
             super(String.format("Argument %s was missing: %s", arg, message));
         }
     }
 
-    public static class BadArgumentValue extends CommandLineError {
+    public static class BadArgumentValue extends CommandLineException {
         public BadArgumentValue(String arg, String message) {
             super(String.format("Argument %s has a bad value: %s", arg, message));
         }
     }
 
-    public static class BadTmpDir extends UserError {
+    public static class BadTmpDir extends UserException {
         public BadTmpDir(String message) {
             super(String.format("Failure working with the tmp directory %s. Override with -Djava.io.tmpdir=X on the command line to a bigger/better file system.  Exact error was %s", System.getProperties().get("java.io. tmpdir"), message));
         }
     }
 
-    public static class CouldNotReadInputFile extends UserError {
+    public static class CouldNotReadInputFile extends UserException {
         public CouldNotReadInputFile(String message, Exception e) {
             super(String.format("Couldn't read file because %s caused by %s", message, e.getMessage()));
         }
@@ -97,7 +97,7 @@ public class UserError extends GATKException {
     }
 
 
-    public static class CouldNotCreateOutputFile extends UserError {
+    public static class CouldNotCreateOutputFile extends UserException {
         public CouldNotCreateOutputFile(File file, String message, Exception e) {
             super(String.format("Couldn't write file %s because %s with exception %s", file.getAbsolutePath(), message, e.getMessage()));
         }
@@ -111,7 +111,7 @@ public class UserError extends GATKException {
         }
     }
 
-    public static class MalformedBam extends UserError {
+    public static class MalformedBam extends UserException {
         public MalformedBam(SAMRecord read, String message) {
             super(String.format("SAM/BAM file %s is malformed: %s", read.getFileSource(), message));
         }
@@ -123,7 +123,7 @@ public class UserError extends GATKException {
         }
     }
 
-    public static class MissortedBAM extends UserError {
+    public static class MissortedBAM extends UserException {
         public MissortedBAM(SAMFileHeader.SortOrder order, File file, SAMFileHeader header) {
             super(String.format("Missorted Input SAM/BAM files: %s is must be sorted in %s order but order was: %s", file, order, header.getSortOrder()));
         }
@@ -142,13 +142,13 @@ public class UserError extends GATKException {
         }
     }
 
-    public static class MissortedFile extends UserError {
+    public static class MissortedFile extends UserException {
         public MissortedFile(File file, String message, Exception e) {
             super(String.format("Missorted Input file: %s is must be sorted in coordinate order. %s and got error %s", file, message, e.getMessage()));
         }
     }
 
-    public static class MalformedFile extends UserError {
+    public static class MalformedFile extends UserException {
         public MalformedFile(String message) {
             super(String.format("Unknown file is malformed: %s", message));
         }
@@ -170,27 +170,35 @@ public class UserError extends GATKException {
         }
      }
 
-    public static class CannotExecuteRScript extends UserError {
+    public static class CannotExecuteRScript extends UserException {
         public CannotExecuteRScript(String message, Exception e) {
             super(String.format("Unable to execute RScript command: " + message), e);
         }
     }
 
-    public static class DeprecatedArgument extends CommandLineError {
+    public static class DeprecatedArgument extends CommandLineException {
         public DeprecatedArgument(String param, String doc) {
             super(String.format("The parameter %s is deprecated.  %s",param,doc));
         }
     }
 
 
-    public static class IncompatibleSequenceDictionaries extends UserError {
-        public IncompatibleSequenceDictionaries(SAMSequenceDictionary ref, SAMSequenceDictionary alt, String altName) {
-            // todo -- enumerate all elements in ref and alt
-            super(String.format("Incompatible input files: no overlap exists between contigs in " + altName + " and the reference."));
+    public static class IncompatibleSequenceDictionaries extends UserException {
+        public IncompatibleSequenceDictionaries(String message, String name1, SAMSequenceDictionary dict1, String name2, SAMSequenceDictionary dict2) {
+            super(String.format("Input files %s and %s have incompatible contigs: %s.\n  %s contigs = %s\n  %s contigs = %s",
+                    name1, name2, message, name1, prettyPrintSequenceRecords(dict1), name2, prettyPrintSequenceRecords(dict2)));
+        }
+
+        private static String prettyPrintSequenceRecords(SAMSequenceDictionary sequenceDictionary) {
+            String[] sequenceRecordNames = new String[sequenceDictionary.size()];
+            int sequenceRecordIndex = 0;
+            for (SAMSequenceRecord sequenceRecord : sequenceDictionary.getSequences())
+                sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
+            return Arrays.deepToString(sequenceRecordNames);
         }
     }
 
-    public static class MissingWalker extends UserError {
+    public static class MissingWalker extends UserException {
         public MissingWalker(String walkerName, String message) {
             super(String.format("Walker %s is not available: %s", walkerName, message));
         }

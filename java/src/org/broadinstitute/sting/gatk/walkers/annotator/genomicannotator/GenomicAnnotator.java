@@ -46,8 +46,7 @@ import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTa
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 /**
@@ -107,7 +106,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
                         allFullyQualifiedColumnNames.add(bindingName + "." + columnName);
                     }
                 } catch(IOException e) {
-                    throw new UserError.CouldNotReadInputFile(file, "Failed when attempting to read file header. ", e);
+                    throw new UserException.CouldNotReadInputFile(file, "Failed when attempting to read file header. ", e);
                 }
             }
 
@@ -118,25 +117,25 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
             //parse the tokens
             final String[] arg = joinArg.split(",");
             if(arg.length != 3) {
-                throw new UserError.BadArgumentValue("-J", "The following -J arg: \"" + joinArg + "\" must contain 3 comma-separated values. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
+                throw new UserException.BadArgumentValue("-J", "The following -J arg: \"" + joinArg + "\" must contain 3 comma-separated values. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
             }
             final String bindingName = arg[0];
             final String filename = arg[1];
             final String columnsToJoin = arg[2];
 
             if(allBindingNames.contains(bindingName)) {
-                throw new UserError.BadArgumentValue("-J", "The name \"" + bindingName + "\" in the -J arg: \"" + joinArg + "\" has already been used in another binding.");
+                throw new UserException.BadArgumentValue("-J", "The name \"" + bindingName + "\" in the -J arg: \"" + joinArg + "\" has already been used in another binding.");
             }
 
             String[] splitOnEquals = columnsToJoin.split("=+");
             if(splitOnEquals.length != 2) {
-                throw new UserError.BadArgumentValue("-J", "The -J arg: \"" + joinArg + "\" must specify the columns to join on. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
+                throw new UserException.BadArgumentValue("-J", "The -J arg: \"" + joinArg + "\" must specify the columns to join on. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
             }
 
             String[] splitOnDot1 = splitOnEquals[0].split("\\.");
             String[] splitOnDot2 = splitOnEquals[1].split("\\.");
             if(splitOnDot1.length != 2 || splitOnDot2.length != 2) {
-                throw new UserError.BadArgumentValue("-J", "The -J arg: \"" + joinArg + "\" must fully specify the columns to join on. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
+                throw new UserException.BadArgumentValue("-J", "The -J arg: \"" + joinArg + "\" must fully specify the columns to join on. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
             }
 
             final String bindingName1 = splitOnDot1[0];
@@ -158,13 +157,13 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
                 externalBindingName = bindingName1;
                 externalColumnName = columnName1;
             } else {
-                throw new UserError.BadArgumentValue("-J", "The name \"" + bindingName + "\" in the -J arg: \"" + joinArg + "\" must be specified in one the columns to join on. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
+                throw new UserException.BadArgumentValue("-J", "The name \"" + bindingName + "\" in the -J arg: \"" + joinArg + "\" must be specified in one the columns to join on. (ex: -J name,/path/to/file,name.columnName=name2.columnName2)");
             }
 
             //validate externalColumnName
             final String fullyQualifiedExternalColumnName = externalBindingName + '.' + externalColumnName;
             if( !allFullyQualifiedColumnNames.contains(fullyQualifiedExternalColumnName) ) {
-                throw new UserError.BadArgumentValue("-J", "The -J arg: \"" + joinArg + "\" specifies an unknown column name: \"" + fullyQualifiedExternalColumnName + "\"");
+                throw new UserException.BadArgumentValue("-J", "The -J arg: \"" + joinArg + "\" specifies an unknown column name: \"" + fullyQualifiedExternalColumnName + "\"");
             }
 
             //read in the file contents into a JoinTable object
@@ -182,7 +181,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
                  fullyQualifiedColumnNames.add(localBindingName + '.' + columnName);
             }
             if ( !found )
-                throw new UserError.BadArgumentValue("-J", "The -J arg: \"" + joinArg + "\" specifies an unknown column name: \"" + localColumnName + "\". It's not one of the column names in the header " + columnNames + " of the file: " + filename);
+                throw new UserException.BadArgumentValue("-J", "The -J arg: \"" + joinArg + "\" specifies an unknown column name: \"" + localColumnName + "\". It's not one of the column names in the header " + columnNames + " of the file: " + filename);
 
             allFullyQualifiedColumnNames.addAll(fullyQualifiedColumnNames);
         }
@@ -195,7 +194,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
 
         for ( String columnName : SELECT_COLUMNS ) {
             if ( !allFullyQualifiedColumnNames.contains(columnName) )
-                throw new UserError.BadArgumentValue("-s", "The column name '" + columnName + "' provided to -s doesn't match any of the column names in any of the -B files. Here is the list of available column names: " + allFullyQualifiedColumnNames);
+                throw new UserException.BadArgumentValue("-s", "The column name '" + columnName + "' provided to -s doesn't match any of the column names in any of the -B files. Here is the list of available column names: " + allFullyQualifiedColumnNames);
         }
 
         //instantiate the VariantAnnotatorEngine

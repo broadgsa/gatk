@@ -9,9 +9,8 @@ import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 
@@ -402,7 +401,7 @@ class SampleStats implements TableType {
         if ( concordanceStats.containsKey(sample) )
             concordanceStats.get(sample)[truth.ordinal()][called.ordinal()]++;
         else if ( called != Genotype.Type.NO_CALL )
-            throw new UserError.CommandLineError("Sample " + sample + " has not been seen in a previous eval; this analysis module assumes that all samples are present in each variant context");
+            throw new UserException.CommandLineException("Sample " + sample + " has not been seen in a previous eval; this analysis module assumes that all samples are present in each variant context");
     }
 
     /**

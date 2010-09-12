@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.utils.bed;
 
-import org.broadinstitute.sting.utils.exceptions.UserError;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
@@ -34,7 +32,7 @@ public class BedParser {
         try {
             mIn = new BufferedReader(new FileReader(fl));
         } catch (FileNotFoundException e) {
-            throw new UserError.CouldNotReadInputFile(fl, e);
+            throw new UserException.CouldNotReadInputFile(fl, e);
         }
         mLocations = parseLocations();
     }
@@ -62,7 +60,7 @@ public class BedParser {
                 locArray.add(parseLocation(line));
             }
         } catch (IOException e) {
-            throw new UserError.MalformedFile("Unable to parse line in BED file.");
+            throw new UserException.MalformedFile("Unable to parse line in BED file.");
         }
         return locArray;
     }
@@ -83,7 +81,7 @@ public class BedParser {
             start = Integer.valueOf(parts[1]) + TO_ONE_BASED_ADDITION;
             stop = Integer.valueOf(parts[2]); // the ending point is an open interval
         } catch (Exception e) {
-            throw new UserError.MalformedFile("Unable to process bed file line = " + line, e);
+            throw new UserException.MalformedFile("Unable to process bed file line = " + line, e);
         }
 
         // we currently drop the rest of the bed record, which can contain names, scores, etc

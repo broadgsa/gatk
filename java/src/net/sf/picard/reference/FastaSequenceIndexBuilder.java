@@ -27,14 +27,12 @@ package net.sf.picard.reference;
 
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSourceProgressListener;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
+
 import static net.sf.picard.reference.FastaSequenceIndexBuilder.Status.*;
 
 import java.io.*;
-import java.util.Iterator;
 
-import net.sf.picard.reference.FastaSequenceIndex;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * Builds FastaSequenceIndex from fasta file.
@@ -85,7 +83,7 @@ public class FastaSequenceIndexBuilder {
             in = new DataInputStream(new BufferedInputStream(new FileInputStream(fastaFile)));
         }
         catch (Exception e) {
-            throw new UserError.CouldNotReadInputFile(fastaFile, "Could not read fasta file", e);
+            throw new UserException.CouldNotReadInputFile(fastaFile, "Could not read fasta file", e);
         }
 
         /*
@@ -168,7 +166,7 @@ public class FastaSequenceIndexBuilder {
                         // validate base character
                         else {
                             if (!isValidBase(currentByte))
-                                throw new UserError.MalformedFile(fastaFile, String.format("An invalid base was found in the contig: %s", contig));
+                                throw new UserException.MalformedFile(fastaFile, String.format("An invalid base was found in the contig: %s", contig));
                         }
                         break;
 
@@ -194,7 +192,7 @@ public class FastaSequenceIndexBuilder {
                                     // error if next char is a valid base, end of contig otherwise
                                 else if (basesThisLine != basesPerLine || bytesPerLine != bytesRead - endOfLastLine) {
                                     if (isValidBase(nextByte) && nextByte != -1) {
-                                        throw new UserError.MalformedFile(fastaFile, String.format("An invalid line was found in the contig: %s", contig));
+                                        throw new UserException.MalformedFile(fastaFile, String.format("An invalid line was found in the contig: %s", contig));
                                     }
                                     else
                                         finishReadingContig(sequenceIndex);
@@ -206,7 +204,7 @@ public class FastaSequenceIndexBuilder {
                         // validate base character
                         else {
                             if (!isValidBase(currentByte))
-                                throw new UserError.MalformedFile(fastaFile, String.format("An invalid base was found in the contig: %s", contig));
+                                throw new UserException.MalformedFile(fastaFile, String.format("An invalid base was found in the contig: %s", contig));
                         }
                         break;
                 }
@@ -214,7 +212,7 @@ public class FastaSequenceIndexBuilder {
             return sequenceIndex;
         }
         catch (IOException e) {
-            throw new UserError.CouldNotReadInputFile(fastaFile, String.format("Could not read fasta file"), e);
+            throw new UserException.CouldNotReadInputFile(fastaFile, String.format("Could not read fasta file"), e);
         }
         catch (Exception e) {
             throw new GATKException(e.getMessage(), e);
@@ -273,7 +271,7 @@ public class FastaSequenceIndexBuilder {
             out = new BufferedWriter(new FileWriter(faiFile));
         }
         catch (Exception e) {
-            throw new UserError.CouldNotCreateOutputFile(faiFile, e);
+            throw new UserException.CouldNotCreateOutputFile(faiFile, e);
         }
 
         try {
@@ -284,7 +282,7 @@ public class FastaSequenceIndexBuilder {
             out.close();
         }
         catch (Exception e) {
-            throw new UserError.CouldNotCreateOutputFile(faiFile, e);
+            throw new UserException.CouldNotCreateOutputFile(faiFile, e);
         }
     }
 

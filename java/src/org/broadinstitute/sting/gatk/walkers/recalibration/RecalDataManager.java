@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.*;
@@ -234,7 +234,7 @@ public class RecalDataManager {
                 readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
                 ((GATKSAMRecord)read).setReadGroup( readGroup );
             } else {
-                throw new UserError.MalformedBam(read, "The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName() +
+                throw new UserException.MalformedBam(read, "The input .bam file contains reads with no read group. First observed at read with name = " + read.getReadName() +
                                          " Users must set both the default read group using the --default_read_group <String> argument and the default platform using the --default_platform <String> argument." );
             }
         }
@@ -260,7 +260,7 @@ public class RecalDataManager {
                 }
                 readGroup.setPlatform( RAC.DEFAULT_PLATFORM );
             } else {
-                throw new UserError.MalformedBam(read, "The input .bam file contains reads with no platform information. First observed at read with name = " + read.getReadName() +
+                throw new UserException.MalformedBam(read, "The input .bam file contains reads with no platform information. First observed at read with name = " + read.getReadName() +
                                          " Users must set the default platform using the --default_platform <String> argument." );
             }
         }
@@ -281,7 +281,7 @@ public class RecalDataManager {
                     if( attr instanceof String ) {
                         colorSpace = ((String)attr).getBytes();
                     } else {
-                        throw new UserError.MalformedBam(read, String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
+                        throw new UserException.MalformedBam(read, String.format("Value encoded by %s in %s isn't a string!", RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG, read.getReadName()));
                     }
 
                     // Loop over the read and calculate first the inferred bases from the color and then check if it is consistent with the read
@@ -300,7 +300,7 @@ public class RecalDataManager {
                     read.setAttribute( RecalDataManager.COLOR_SPACE_INCONSISTENCY_TAG, inconsistency );
 
                 } else {
-                    throw new UserError.MalformedBam(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
+                    throw new UserException.MalformedBam(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
                                             " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
                 }
             }
@@ -357,7 +357,7 @@ public class RecalDataManager {
             }
 
         } else {
-            throw new UserError.MalformedBam(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
+            throw new UserException.MalformedBam(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
                     " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
         }
 
@@ -382,7 +382,7 @@ public class RecalDataManager {
                 }
 
             } else {
-                throw new UserError.MalformedBam(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
+                throw new UserException.MalformedBam(read, "Unable to find color space information in SOLiD read. First observed at read with name = " + read.getReadName() +
                                         " Unfortunately this .bam file can not be recalibrated without color space information because of potential reference bias.");
             }
         }
@@ -492,7 +492,7 @@ public class RecalDataManager {
             }
             read.setReadBases( readBases );
         } else { // No color space quality tag in file
-            throw new UserError.MalformedBam(read, "REMOVE_REF_BIAS recal mode requires color space qualities but they can't be found for read: " + read.getReadName());
+            throw new UserException.MalformedBam(read, "REMOVE_REF_BIAS recal mode requires color space qualities but they can't be found for read: " + read.getReadName());
         }
     }
 
@@ -513,7 +513,7 @@ public class RecalDataManager {
             case '3':
                 return performColorThree( prevBase );
             default:
-                throw new UserError.MalformedBam(read, "Unrecognized color space in SOLID read, color = " + (char)color +
+                throw new UserException.MalformedBam(read, "Unrecognized color space in SOLID read, color = " + (char)color +
                                           " Unfortunately this bam file can not be recalibrated without full color space information because of potential reference bias.");
         }
     }

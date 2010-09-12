@@ -26,13 +26,12 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.gatk.walkers.Multiplex;
 import org.broadinstitute.sting.gatk.walkers.Multiplexer;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
@@ -222,7 +221,7 @@ public abstract class ArgumentTypeDescriptor {
     protected String getArgumentValue( ArgumentDefinition definition, ArgumentMatches matches ) {
         Collection<String> argumentValues = getArgumentValues( definition, matches );
         if( argumentValues.size() > 1 )
-            throw new UserError.CommandLineError("Multiple values associated with given definition, but this argument expects only one: " + definition.fullName);
+            throw new UserException.CommandLineException("Multiple values associated with given definition, but this argument expects only one: " + definition.fullName);
         return argumentValues.size() > 0 ? argumentValues.iterator().next() : null;
     }
 

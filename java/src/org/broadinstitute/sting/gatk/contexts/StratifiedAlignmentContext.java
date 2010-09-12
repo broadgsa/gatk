@@ -25,12 +25,9 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.*;
 
 import java.util.*;
@@ -116,7 +113,7 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
                 contexts.put(sampleName,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             else {
                 if(assumedSingleSample == null) {
-                    throw new UserError.MalformedBam(pileupBySample.iterator().next().getRead(), "Missing read group for read");
+                    throw new UserException.MalformedBam(pileupBySample.iterator().next().getRead(), "Missing read group for read");
                 }
                 contexts.put(assumedSingleSample,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             }

@@ -7,8 +7,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 
@@ -108,7 +107,7 @@ public class RefMetaDataTracker {
 
         Object obj = objects.get(0).getUnderlyingObject();
         if (!(clazz.isAssignableFrom(obj.getClass())))
-            throw new UserError.CommandLineError("Unable to case track named " + name + " to type of " + clazz.toString()
+            throw new UserException.CommandLineException("Unable to case track named " + name + " to type of " + clazz.toString()
                     + " it's of type " + obj.getClass());
 
         return (T)obj;

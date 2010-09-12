@@ -40,8 +40,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * This plugin for {@link VariantAnnotatorEngine} serves as the core
@@ -135,7 +134,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                     //continue;            //TODO If this site is monomorphic in the VC, and the current record specifies a particular alternate allele, skip this record. Right?
                 //} else
                 if(alternateAlleles.size() > 1) {
-                    throw new UserError.MalformedFile("File associated with " + vc.getName() + " contains record [" + vc + "] contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
+                    throw new UserException.MalformedFile("File associated with " + vc.getName() + " contains record [" + vc + "] contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
                 }
 
                 boolean positiveStrand = true; //if HAPLOTYPE_STRAND_COLUMN isn't specified, assume positive strand.
@@ -145,7 +144,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                     if(hapStrandValue.equals("-") || hapStrandValue.equals("r")) {
                         positiveStrand = false;
                     } else if(!hapStrandValue.equals("+") && !hapStrandValue.equals("f")) {
-                        throw new UserError.MalformedFile("Record (" + gatkFeature.getUnderlyingObject() + ") in " + name + " has an invalid value for " + HAPLOTYPE_STRAND_COLUMN + ". This value is: \"" + hapStrandValue + "\"");
+                        throw new UserException.MalformedFile("Record (" + gatkFeature.getUnderlyingObject() + ") in " + name + " has an invalid value for " + HAPLOTYPE_STRAND_COLUMN + ". This value is: \"" + hapStrandValue + "\"");
                     }
                 }
 

@@ -27,7 +27,7 @@ public class PathUtilsUnitTest extends BaseTest {
 
         try {
             PathUtils.refreshVolume(new File(filename));
-        } catch (StingException e) {
+        } catch (GATKException e) {
             result = false;
         }
 

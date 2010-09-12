@@ -1,8 +1,7 @@
 package org.broadinstitute.sting.playground.utils.report.templates;
 
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.exceptions.UserError;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
 import java.util.*;
@@ -37,7 +36,7 @@ public abstract class TableBasedFormat implements ReportFormat {
      * @param baseNode the root node
      */
     public void write(Writer writeLocation, Node baseNode) {
-        if (splitFilesByAnalysis()) throw new UserError.CommandLineError("Unable to write output report, we require a file input for multi-file formats");
+        if (splitFilesByAnalysis()) throw new UserException.CommandLineException("Unable to write output report, we require a file input for multi-file formats");
         // if there is only a single output file, create it
         stream = new PrintWriter(writeLocation);
         traverseAnalysisNodes(baseNode);
@@ -229,7 +228,7 @@ public abstract class TableBasedFormat implements ReportFormat {
             try {
                 stream = new PrintWriter(file);
             } catch (FileNotFoundException e) {
-                throw new UserError.CouldNotCreateOutputFile(file, e);
+                throw new UserException.CouldNotCreateOutputFile(file, e);
             }
         }
     }
