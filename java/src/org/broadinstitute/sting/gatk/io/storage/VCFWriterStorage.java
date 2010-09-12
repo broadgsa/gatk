@@ -5,7 +5,7 @@ import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 
 import java.io.*;

@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;

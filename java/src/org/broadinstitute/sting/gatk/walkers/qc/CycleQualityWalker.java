@@ -30,7 +30,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;

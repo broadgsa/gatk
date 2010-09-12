@@ -34,7 +34,7 @@ import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import net.sf.samtools.SAMRecord;

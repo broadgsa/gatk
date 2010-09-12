@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.bed.BedParser;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.text.XReadLines;

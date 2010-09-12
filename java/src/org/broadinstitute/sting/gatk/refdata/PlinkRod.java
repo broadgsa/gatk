@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broad.tribble.util.variantcontext.Allele;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 

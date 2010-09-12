@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io.storage;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 

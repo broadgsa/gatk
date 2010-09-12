@@ -30,7 +30,7 @@ import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.help.DescriptionTaglet;

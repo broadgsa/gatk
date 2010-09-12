@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.utils.instrumentation;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;

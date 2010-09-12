@@ -2,7 +2,7 @@ package org.broadinstitute.sting;
 
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.junit.*;
 
 import java.io.*;

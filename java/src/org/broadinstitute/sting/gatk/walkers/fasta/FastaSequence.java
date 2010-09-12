@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.fasta;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.io.PrintStream;
 

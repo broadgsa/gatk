@@ -3,7 +3,7 @@ package org.broadinstitute.sting.utils.genotype.glf;
 import net.sf.samtools.util.BinaryCodec;
 import net.sf.samtools.util.BlockCompressedInputStream;
 import net.sf.samtools.util.RuntimeEOFException;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
 

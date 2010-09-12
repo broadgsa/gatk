@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.Utils;

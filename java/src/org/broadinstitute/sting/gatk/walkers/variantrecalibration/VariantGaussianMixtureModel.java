@@ -28,7 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;

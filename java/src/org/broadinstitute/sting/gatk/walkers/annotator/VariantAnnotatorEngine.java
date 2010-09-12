@@ -49,7 +49,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator.*;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 

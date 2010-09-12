@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.util.HashMap;
 import java.util.Map;

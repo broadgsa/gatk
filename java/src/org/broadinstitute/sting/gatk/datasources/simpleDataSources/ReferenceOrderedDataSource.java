@@ -11,7 +11,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 

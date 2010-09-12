@@ -36,7 +36,7 @@ import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.UserException;

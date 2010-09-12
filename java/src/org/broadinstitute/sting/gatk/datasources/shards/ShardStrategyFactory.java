@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 

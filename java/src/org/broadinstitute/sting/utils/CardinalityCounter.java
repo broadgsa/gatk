@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils;
 
+import org.broadinstitute.sting.utils.exceptions.GATKException;
+
 import java.util.Iterator;
 
 /**

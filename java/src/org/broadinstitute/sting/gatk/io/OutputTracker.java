@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;

@@ -30,6 +30,7 @@ import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broad.tribble.util.variantcontext.*;
 import org.broadinstitute.sting.utils.*;
 import org.broad.tribble.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 public class VariantContextUtils {

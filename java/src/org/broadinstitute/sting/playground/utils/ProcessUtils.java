@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.playground.utils;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.apache.log4j.Logger;
 

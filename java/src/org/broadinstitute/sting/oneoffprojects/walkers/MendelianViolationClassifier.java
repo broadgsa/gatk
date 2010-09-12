@@ -21,6 +21,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 

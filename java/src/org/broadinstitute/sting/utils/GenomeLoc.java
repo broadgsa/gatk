@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.util.ArrayList;
 import java.util.List;

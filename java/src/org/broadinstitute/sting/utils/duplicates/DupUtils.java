@@ -28,6 +28,7 @@ package org.broadinstitute.sting.utils.duplicates;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;

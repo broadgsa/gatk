@@ -28,7 +28,7 @@ package org.broadinstitute.sting;
 import junit.framework.Assert;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
 import org.junit.Test;

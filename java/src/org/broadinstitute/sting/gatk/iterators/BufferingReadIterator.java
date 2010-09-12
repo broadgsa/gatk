@@ -31,7 +31,7 @@ import java.util.Queue;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 /**
  * Buffers access to a large stream of reads, replenishing the buffer only when the reads  

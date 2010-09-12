@@ -28,7 +28,6 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.GATKException;
 
 import java.io.File;
 import java.util.Arrays;

@@ -10,7 +10,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrde
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.io.*;
 import java.math.BigInteger;

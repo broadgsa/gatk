@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.traversals.TraversalEngine;
 import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.util.concurrent.Callable;
 /**

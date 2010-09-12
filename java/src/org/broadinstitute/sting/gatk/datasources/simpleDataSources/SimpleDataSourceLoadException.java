@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 /**
  *

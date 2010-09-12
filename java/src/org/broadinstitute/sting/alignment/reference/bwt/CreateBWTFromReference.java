@@ -31,7 +31,7 @@ import net.sf.picard.reference.ReferenceSequence;
 
 import java.io.*;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
 
 /**

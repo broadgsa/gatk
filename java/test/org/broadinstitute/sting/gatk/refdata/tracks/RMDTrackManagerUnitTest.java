@@ -27,7 +27,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.Assert;
 import org.junit.Before;

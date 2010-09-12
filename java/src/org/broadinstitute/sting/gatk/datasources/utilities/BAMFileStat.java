@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.datasources.utilities;
 
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 
 import java.io.File;

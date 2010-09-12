@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.commandline.Output;

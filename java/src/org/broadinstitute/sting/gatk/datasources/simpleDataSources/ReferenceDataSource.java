@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import net.sf.picard.reference.FastaSequenceIndexBuilder;
 import net.sf.picard.sam.CreateSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;

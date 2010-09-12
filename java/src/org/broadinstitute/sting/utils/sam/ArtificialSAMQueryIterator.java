@@ -6,7 +6,7 @@ import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 
 /*

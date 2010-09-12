@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
 import net.sf.samtools.util.BinaryCodec;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 
 /*

@@ -26,7 +26,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.phasing;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 public class BialleleSNP extends Biallele {
 

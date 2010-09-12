@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.Assert;

@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.utils.collections;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 
 /** This class, closely resembling a deque (except that it is not dynamically grown), 

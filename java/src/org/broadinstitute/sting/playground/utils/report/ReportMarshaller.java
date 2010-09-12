@@ -27,7 +27,7 @@ package org.broadinstitute.sting.playground.utils.report;
 import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
 import org.broadinstitute.sting.playground.utils.report.utils.ComplexDataUtils;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.io.*;
 import java.lang.reflect.Field;

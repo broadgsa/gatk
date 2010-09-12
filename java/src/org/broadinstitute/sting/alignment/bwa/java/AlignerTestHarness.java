@@ -2,7 +2,7 @@ package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.File;

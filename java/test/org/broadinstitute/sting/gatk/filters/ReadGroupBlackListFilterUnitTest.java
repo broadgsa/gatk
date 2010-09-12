@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.filters;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.BeforeClass;

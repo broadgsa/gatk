@@ -30,6 +30,7 @@ import cern.jet.random.Normal;
 import java.util.*;
 
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 public class WilcoxonRankSum {
     static final String headerString = ("nA nB .005 .01 .025 .05 .10 .20");

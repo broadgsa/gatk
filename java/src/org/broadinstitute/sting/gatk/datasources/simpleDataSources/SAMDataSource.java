@@ -41,7 +41,7 @@ import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;

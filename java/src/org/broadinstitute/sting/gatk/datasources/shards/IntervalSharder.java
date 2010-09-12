@@ -35,6 +35,7 @@ import java.util.*;
 
 import net.sf.samtools.*;
 import net.sf.picard.util.PeekableIterator;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 /**
  * Shard intervals based on position within the BAM file.

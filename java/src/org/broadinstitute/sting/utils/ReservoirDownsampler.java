@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils;
 
-import net.sf.picard.util.PeekableIterator;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.util.*;
 

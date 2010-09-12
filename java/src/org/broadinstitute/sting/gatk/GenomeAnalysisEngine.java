@@ -31,6 +31,7 @@ import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;

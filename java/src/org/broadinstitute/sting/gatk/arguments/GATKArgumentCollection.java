@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;

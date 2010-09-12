@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.io.File;
 import java.util.ArrayList;

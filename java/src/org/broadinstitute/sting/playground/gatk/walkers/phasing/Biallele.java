@@ -25,7 +25,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.phasing;
 
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.util.ArrayList;
 import java.util.List;

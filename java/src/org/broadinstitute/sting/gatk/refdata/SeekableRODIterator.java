@@ -5,7 +5,7 @@ import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;

@@ -10,7 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 /**

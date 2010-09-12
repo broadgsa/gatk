@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils.file;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.io.File;
 import java.io.IOException;

@@ -29,6 +29,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;

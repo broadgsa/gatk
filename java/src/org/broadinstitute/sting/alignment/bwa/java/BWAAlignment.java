@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import net.sf.samtools.Cigar;
 
 /**

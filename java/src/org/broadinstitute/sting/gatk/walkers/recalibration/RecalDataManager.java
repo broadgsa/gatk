@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;

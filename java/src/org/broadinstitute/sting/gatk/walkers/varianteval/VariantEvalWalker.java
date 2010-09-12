@@ -45,7 +45,7 @@ import org.broadinstitute.sting.playground.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.playground.utils.report.VE2ReportFactory;
 import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
 import org.broadinstitute.sting.playground.utils.report.utils.Node;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;

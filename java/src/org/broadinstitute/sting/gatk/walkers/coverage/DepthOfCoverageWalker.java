@@ -40,6 +40,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;

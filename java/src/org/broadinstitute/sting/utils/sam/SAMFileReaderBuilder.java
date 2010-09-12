@@ -29,7 +29,7 @@ import net.sf.samtools.SAMFileReader;
 
 import java.io.File;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 /**
  * Allows the user to steadily accumulate information about what

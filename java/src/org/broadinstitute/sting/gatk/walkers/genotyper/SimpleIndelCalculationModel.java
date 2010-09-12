@@ -5,6 +5,7 @@ import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.*;

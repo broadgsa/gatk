@@ -49,6 +49,7 @@ import net.sf.samtools.SAMRecord;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.collections.Pair;

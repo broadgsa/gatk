@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.utils.text;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.util.*;
 import java.util.regex.Pattern;

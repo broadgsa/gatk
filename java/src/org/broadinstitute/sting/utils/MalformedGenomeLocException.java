@@ -1,4 +1,6 @@
 package org.broadinstitute.sting.utils;
+
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 /**
  * User: hanna
  * Date: Jun 2, 2009

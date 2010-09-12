@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.util.*;
 

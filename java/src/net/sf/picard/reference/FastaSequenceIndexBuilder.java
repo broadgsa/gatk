@@ -26,7 +26,7 @@
 package net.sf.picard.reference;
 
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSourceProgressListener;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import static net.sf.picard.reference.FastaSequenceIndexBuilder.Status.*;
 

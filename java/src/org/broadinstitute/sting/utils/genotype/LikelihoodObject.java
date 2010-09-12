@@ -3,7 +3,7 @@ package org.broadinstitute.sting.utils.genotype;
 import edu.mit.broad.picard.genotype.DiploidGenotype;
 import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import net.sf.samtools.SAMFileHeader;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 import java.util.HashMap;
 

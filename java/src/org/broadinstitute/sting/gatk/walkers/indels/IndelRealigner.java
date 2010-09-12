@@ -31,6 +31,7 @@ import net.sf.samtools.util.SequenceUtil;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;

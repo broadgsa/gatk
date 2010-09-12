@@ -23,7 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.tracks;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 
 /**

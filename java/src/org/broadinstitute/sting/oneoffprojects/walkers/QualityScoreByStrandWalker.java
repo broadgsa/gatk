@@ -28,7 +28,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 import java.io.File;
 import java.io.IOException;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;

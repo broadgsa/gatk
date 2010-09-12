@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Collections;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 
 /**
  * Holds a bunch of basic information about the traversal.

@@ -27,7 +27,7 @@ package org.broadinstitute.sting.playground.analyzeconcordance;
 
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.PathUtils;

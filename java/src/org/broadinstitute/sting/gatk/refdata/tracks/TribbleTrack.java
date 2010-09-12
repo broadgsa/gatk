@@ -30,7 +30,7 @@ import org.broad.tribble.FeatureSource;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 

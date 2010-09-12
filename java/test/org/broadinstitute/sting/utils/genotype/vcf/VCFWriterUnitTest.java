@@ -7,7 +7,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.Assert;

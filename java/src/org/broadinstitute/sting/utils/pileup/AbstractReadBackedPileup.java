@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
-import org.broadinstitute.sting.utils.GATKException;
+import org.broadinstitute.sting.utils.exceptions.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.gatk.iterators.IterableIterator;
