@@ -26,16 +26,12 @@
 package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 
 import java.io.OutputStream;
 import java.io.File;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Field;
 
 /**
  * Insert an OutputStreamStub instead of a full-fledged concrete OutputStream implementations.

@@ -2,9 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 
-import java.util.Iterator;
 import java.io.File;
 import java.io.IOException;
 

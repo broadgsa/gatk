@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.executive;
 
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;

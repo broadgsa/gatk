@@ -33,7 +33,6 @@ import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.pileup.*;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;

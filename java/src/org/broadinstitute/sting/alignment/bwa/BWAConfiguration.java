@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.alignment.bwa;
 
-import org.broadinstitute.sting.utils.StingException;
-
 /**
  * Configuration for the BWA/C aligner.
  *

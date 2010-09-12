@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.lang.annotation.Annotation;

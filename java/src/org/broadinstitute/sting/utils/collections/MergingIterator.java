@@ -29,7 +29,6 @@ import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODItera
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.*;
 

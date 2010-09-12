@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
 import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.List;
 import java.util.Arrays;

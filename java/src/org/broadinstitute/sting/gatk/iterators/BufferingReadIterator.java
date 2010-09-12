@@ -29,11 +29,9 @@ import net.sf.samtools.util.CloseableIterator;
 
 import java.util.Queue;
 import java.util.LinkedList;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 /**
  * Buffers access to a large stream of reads, replenishing the buffer only when the reads  

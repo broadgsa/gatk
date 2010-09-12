@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.packing;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.io.*;
 import java.nio.ByteBuffer;

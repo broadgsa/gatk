@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedOutputStream;
 import org.broadinstitute.sting.alignment.reference.packing.BasePackedOutputStream;
 

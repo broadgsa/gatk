@@ -1,15 +1,11 @@
 package org.broadinstitute.sting.gatk.datasources.shards;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.List;
-
-import net.sf.samtools.SAMSequenceDictionary;
 
 /**
  * Create a giant shard representing all the data in the input BAM(s).

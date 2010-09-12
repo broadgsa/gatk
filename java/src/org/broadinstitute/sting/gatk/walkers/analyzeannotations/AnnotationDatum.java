@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.analyzeannotations;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Comparator;
 

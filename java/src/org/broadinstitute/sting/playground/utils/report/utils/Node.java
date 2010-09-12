@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.playground.utils.report.utils;
 
-import org.broadinstitute.sting.utils.StingException;
-
 import java.util.*;
 
 /**

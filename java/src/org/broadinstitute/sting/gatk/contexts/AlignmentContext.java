@@ -28,10 +28,8 @@ package org.broadinstitute.sting.gatk.contexts;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 
 import java.util.*;
 

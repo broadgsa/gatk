@@ -27,7 +27,6 @@ package org.broadinstitute.sting.utils.help;
 
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 
 import java.util.List;

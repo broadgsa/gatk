@@ -24,10 +24,8 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
-import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.gatk.iterators.IterableIterator;
 

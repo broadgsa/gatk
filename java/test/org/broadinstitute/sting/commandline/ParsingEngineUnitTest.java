@@ -27,7 +27,6 @@ package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.junit.Test;
 import org.junit.Before;
 import org.junit.Assert;

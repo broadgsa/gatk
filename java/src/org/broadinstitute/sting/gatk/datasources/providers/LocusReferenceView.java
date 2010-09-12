@@ -3,15 +3,11 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.util.StringUtil;
-
-import java.util.List;
 /*
  * Copyright (c) 2009 The Broad Institute
  *

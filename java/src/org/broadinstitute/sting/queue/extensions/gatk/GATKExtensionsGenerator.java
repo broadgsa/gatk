@@ -40,7 +40,6 @@ import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescripto
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.io.File;
 import java.io.IOException;

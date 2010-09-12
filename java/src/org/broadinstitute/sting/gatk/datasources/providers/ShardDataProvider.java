@@ -3,7 +3,6 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.ArrayList;
 import java.util.List;

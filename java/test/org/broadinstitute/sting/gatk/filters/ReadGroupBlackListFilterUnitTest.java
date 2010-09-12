@@ -4,7 +4,6 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.StingException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.Assert;

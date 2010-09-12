@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 /**
  * User: aaron

@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
-import org.broadinstitute.sting.alignment.bwa.java.AlignmentState;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.util.Deque;
 import java.util.ArrayDeque;

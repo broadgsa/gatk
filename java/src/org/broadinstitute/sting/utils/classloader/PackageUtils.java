@@ -27,9 +27,7 @@ package org.broadinstitute.sting.utils.classloader;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.LoggerContext;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;

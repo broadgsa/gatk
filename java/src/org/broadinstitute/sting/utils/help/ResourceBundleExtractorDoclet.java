@@ -32,7 +32,6 @@ import java.io.PrintStream;
 import java.io.IOException;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.gatk.walkers.Walker;

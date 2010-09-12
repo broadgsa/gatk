@@ -26,8 +26,6 @@
 package org.broadinstitute.sting.utils.classloader;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.classloader.PackageUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 
 import java.util.HashMap;

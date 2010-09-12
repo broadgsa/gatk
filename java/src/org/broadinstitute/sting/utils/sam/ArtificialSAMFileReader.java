@@ -11,7 +11,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 /**

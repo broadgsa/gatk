@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.contexts;
 
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.util.StringUtil;
 

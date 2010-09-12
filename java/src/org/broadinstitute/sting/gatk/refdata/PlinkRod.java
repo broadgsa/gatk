@@ -4,7 +4,6 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.io.*;
 import java.util.*;

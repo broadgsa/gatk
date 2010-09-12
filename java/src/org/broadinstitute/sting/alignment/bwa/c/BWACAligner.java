@@ -3,7 +3,6 @@ package org.broadinstitute.sting.alignment.bwa.c;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;

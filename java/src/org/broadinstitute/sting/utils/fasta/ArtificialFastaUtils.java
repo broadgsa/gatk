@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.fasta;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;

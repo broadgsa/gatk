@@ -1,8 +1,6 @@
 package org.broadinstitute.sting.alignment.bwa;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
 import org.broadinstitute.sting.alignment.reference.bwt.BWT;

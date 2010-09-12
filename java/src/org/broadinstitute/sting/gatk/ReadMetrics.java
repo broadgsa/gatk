@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.Collections;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 /**
  * Holds a bunch of basic information about the traversal.

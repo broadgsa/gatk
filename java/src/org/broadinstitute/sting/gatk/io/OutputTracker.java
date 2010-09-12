@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.io;
 
 import org.broadinstitute.sting.utils.GATKException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 import org.broadinstitute.sting.gatk.walkers.Walker;
@@ -36,7 +35,6 @@ import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
 import org.broadinstitute.sting.gatk.io.storage.Storage;
-import org.broadinstitute.sting.gatk.io.storage.OutputStreamStorage;
 
 import java.io.*;
 import java.lang.reflect.Field;

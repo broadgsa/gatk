@@ -1,11 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.util.StringUtil;
-import net.sf.picard.reference.ReferenceSequence;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;

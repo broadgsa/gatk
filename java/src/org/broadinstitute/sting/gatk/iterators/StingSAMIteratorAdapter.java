@@ -5,9 +5,6 @@ import net.sf.samtools.util.CloseableIterator;
 
 import java.util.Iterator;
 
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.utils.StingException;
-
 /**
  *
  * User: aaron

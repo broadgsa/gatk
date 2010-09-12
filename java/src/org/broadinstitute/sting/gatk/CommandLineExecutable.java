@@ -29,14 +29,8 @@ import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.utils.StingException;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.*;
 
 import net.sf.picard.filter.SamRecordFilter;

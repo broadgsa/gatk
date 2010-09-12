@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.utils;
 
+import org.broadinstitute.sting.utils.exceptions.StingException;
+
 /**
  * Temp class to track split from Sting exception to UserException
  */

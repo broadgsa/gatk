@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.utils.classloader;
 
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Field;
@@ -34,7 +33,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Arrays;
 
 /**

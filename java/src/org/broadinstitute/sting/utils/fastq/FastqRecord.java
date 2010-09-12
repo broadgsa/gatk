@@ -1,10 +1,5 @@
 package org.broadinstitute.sting.utils.fastq;
 
-import org.broadinstitute.sting.utils.StingException;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-
 public class FastqRecord {
     private String seqHeader;
     private String seqLine;
