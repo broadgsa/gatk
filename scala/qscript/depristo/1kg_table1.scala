@@ -38,6 +38,8 @@ class Target(project: String, snpVCF: String, indelVCF: String, calledGenome: Do
     def getIndelEval = getEval("indels")
 }
 
+val RELEASE = "/humgen/1kg/DCC/ftp/release/2010_07/"
+
 var targets: List[Target] = List()
 
 val p1Targets = List(("CEU", 2.43e9), ("YRI", 2.39e9), ("CHBJPT", 2.41e9))
@@ -48,12 +50,12 @@ for ( (pop: String,called) <- p1Targets )
 // pilot 2
 val p2Targets = List(("CEU", 2.264e9), ("YRI", 2.214e9))
 for ( (pop: String, called) <- p2Targets )
-  targets ::= new Target("SRP000032", "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/trio/snps/" + pop + ".trio.2010_03.genotypes.vcf.gz", "v1/dindel-v2/"+pop+".trio.2010_06.indel.genotypes.vcf", called, 2.85e9, pop, "pilot2")
+  targets ::= new Target("SRP000032", RELEASE + "trio/snps/" + pop + ".trio.2010_03.genotypes.vcf.gz", "v1/dindel-v2/"+pop+".trio.2010_06.indel.genotypes.vcf", called, 2.85e9, pop, "pilot2")
 
 // pilot 3
 for (pop <- List("CEU", "CHB", "CHD", "JPT", "LWK", "TSI", "YRI")) {
-  val indels = if ( pop != "LWK" ) "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/exon/indel/"+pop+".exon.2010_06.genotypes.vcf.gz" else null
-  targets ::= new Target("SRP000033", "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/exon/snps/" + pop + ".exon.2010_03.genotypes.vcf.gz", indels, 1.43e6, 1.43e6, pop, "pilot3", "/humgen/gsa-hpprojects/1kg/1kg_pilot3/useTheseBamsForAnalysis/pilot3.%s.cleaned.bam".format(pop))
+  val indels = if ( pop != "LWK" ) "exon/indel/"+pop+".exon.2010_06.genotypes.vcf.gz" else null
+  targets ::= new Target("SRP000033", "exon/snps/" + pop + ".exon.2010_03.genotypes.vcf.gz", indels, 1.43e6, 1.43e6, pop, "pilot3", "/humgen/gsa-hpprojects/1kg/1kg_pilot3/useTheseBamsForAnalysis/pilot3.%s.cleaned.bam".format(pop))
 }
 
 // merged files
@@ -72,9 +74,9 @@ def script = stage match {
     case "ALL" =>
         // initial pilot1 merge -- autosomes + x
         for ( (pop: String,called) <- p1Targets ) {
-            val auto = "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/low_coverage/snps/"+ pop +".low_coverage.2010_07.genotypes.vcf.gz"
+            val auto = RELEASE + "low_coverage/snps/"+ pop +".low_coverage.2010_07.genotypes.vcf.gz"
             // todo -- remove fixed when Laura gives us the official calls
-            val x = "/humgen/gsa-hpprojects/1kg/releases/pilot_paper_calls/low_coverage/snps/"+ pop +".low_coverage.2010_07.xchr.fixed.genotypes.vcf"
+            val x = RELEASE + "low_coverage/snps/"+ pop +".low_coverage.2010_07.xchr.fixed.genotypes.vcf"
             val combineSNPs = new Combine(List(auto, x), pop + ".pilot1.vcf")
             add(combineSNPs)
         }
@@ -98,12 +100,14 @@ def script = stage match {
 
         //add(new Combine(pilots.map(_ + ".snps.merged.vcf"), snps))
         add(new Combine(pilots.map(_ + ".indels.merged.vcf"), indels))
+	
 
+    case "EVAL" =>
         // VariantEval of the SNPs
-        //for (target <- targets) {
-        //  add(new VariantEval(target.getSNPVCF, target.getSNPEval))
-        //  add(new StatPop(target))
-        //}
+        for (target <- targets) {
+          add(new VariantEval(target.getSNPVCF, target.getSNPEval))
+          //add(new StatPop(target))
+        }
 
     case "DOC" => 
         for (target <- targets) {
@@ -124,7 +128,9 @@ class VariantEval(vcfIn: String, evalOut: String, vcfType: String = "VCF") exten
     this.out = new File(evalOut)
     this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_b36.rod")
     this.reportType = Some(VE2TemplateType.Grep)
+    this.noStandard = true;
     this.evalModule :+= "CompOverlap"
+    this.memoryLimit = Some(3)
 
     override def dotString = "VariantEval: " + vcfFile.getName
 }

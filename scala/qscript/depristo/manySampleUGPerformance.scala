@@ -32,8 +32,19 @@ def script = {
     	add(sublist)
     	add(mergeSublist)
     	add(new Index(mergeSublist.o) )
+
+      // SNP calling
     	add(new Call(sublist.list, nSamples, "dynamic_merge"))
     	add(new Call(mergeSublist.o, nSamples, "pre_merge"))
+
+      // SNP calling -- no annotations
+    	add(new Call(sublist.list, nSamples, "dynamic_merge_no_annotations") { this.G :+= "None"; })
+    	add(new Call(mergeSublist.o, nSamples, "pre_merge_no_annotations") { this.G :+= "None"; })
+
+      // CountLoci
+      add(new MyCountLoci(sublist.list, nSamples, "dynamic_merge"))
+      add(new MyCountLoci(mergeSublist.o, nSamples, "pre_merge"))
+
     }
 }
 
@@ -56,6 +67,14 @@ class Call(@Input(doc="foo") bamList: File, n: Int, name: String) extends Unifie
     this.stand_call_conf = Option(10.0)
     this.o = outVCF
   }
+
+  class MyCountLoci(@Input(doc="foo") bamList: File, n: Int, name: String) extends CountLoci with UNIVERSAL_GATK_ARGS {
+      @Output(doc="foo") var outFile: File = new File("%s.%d.%s.txt".format(bamList.getName, n, name))
+      this.memoryLimit = Some(4)
+      this.input_file :+= bamList
+      this.jobQueue = "gsa"
+      this.o = outFile
+    }
 
 class SliceList(n: Int) extends CommandLineFunction {
     @Output(doc="foo") var list: File = new File("bams.%d.list".format(n))
