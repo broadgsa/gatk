@@ -45,7 +45,6 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GATKException;
-import org.broadinstitute.sting.utils.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserError;
 
 
@@ -283,7 +282,7 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
                 }
 
                 // remove it from the cache
-                storedTranscriptInfo.put(featureKey, null);
+                storedTranscriptInfo.remove(featureKey);
 
                 transcriptsProcessedCounter++;
                 if ( transcriptsProcessedCounter % 100 == 0 )
