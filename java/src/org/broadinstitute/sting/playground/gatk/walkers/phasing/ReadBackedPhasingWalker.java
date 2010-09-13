@@ -270,93 +270,103 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         TreeMap<String, PhaseCounts> samplePhaseStats = new TreeMap<String, PhaseCounts>();
         for (Map.Entry<String, Genotype> sampGtEntry : sampGenotypes.entrySet()) {
             logger.debug("sample = " + sampGtEntry.getKey());
-            boolean genotypesArePhased = true; // phase by default
+            boolean genotypesArePhased = false; // don't phase unless we determine the phase
 
             String samp = sampGtEntry.getKey();
             Genotype gt = sampGtEntry.getValue();
-            BialleleSNP biall = new BialleleSNP(gt);
-            HashMap<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
 
-            if (gt.isHet()) {
-                VariantContext prevVc = prevVr.variant;
-                Genotype prevGenotype = prevVc.getGenotype(samp);
-                if (prevGenotype.isHet()) { //otherwise, can trivially phase
-                    logger.debug("NON-TRIVIALLY CARE about TOP vs. BOTTOM for: " + "\n" + biall);
-
-                    List<VariantAndReads> sampleWindowVaList = new LinkedList<VariantAndReads>();
-                    int phasingSiteIndex = -1;
-                    int currentIndex = 0;
-                    for (VariantAndReads phaseInfoVr : windowVaList) {
-                        VariantContext phaseInfoVc = phaseInfoVr.variant;
-                        Genotype phaseInfoGt = phaseInfoVc.getGenotype(samp);
-                        if (phaseInfoGt.isHet()) { // otherwise, of no value to phasing
-                            sampleWindowVaList.add(phaseInfoVr);
-                            if (phasingSiteIndex == -1) {
-                                if (phaseInfoVr == vr)
-                                    phasingSiteIndex = currentIndex; // index of vr in sampleWindowVaList
-                                else
-                                    currentIndex++;
-                            }
-                            logger.debug("STARTING TO PHASE USING POS = " + VariantContextUtils.getLocation(phaseInfoVc));
-                        }
-                    }
-                    if (logger.isDebugEnabled() && (phasingSiteIndex == -1 || phasingSiteIndex == 0))
-                        throw new ReviewedStingException("Internal error: could NOT find vr and/or prevVr!");
-
-                    if (sampleWindowVaList.size() > maxPhaseSites) {
-                        logger.warn("Trying to phase sample " + samp + " at locus " + VariantContextUtils.getLocation(vc) + " within a window of " + cacheWindow + " bases yields " + sampleWindowVaList.size() + " heterozygous sites to phase:\n" + toStringVRL(sampleWindowVaList));
-
-                        int prevSiteIndex = phasingSiteIndex - 1; // index of prevVr in sampleWindowVaList
-                        int numToUse = maxPhaseSites - 2; // since always keep prevVr and vr
-
-                        int numOnLeft = prevSiteIndex;
-                        int numOnRight = sampleWindowVaList.size() - (phasingSiteIndex + 1);
-
-                        int useOnLeft, useOnRight;
-                        if (numOnLeft <= numOnRight) {
-                            int halfToUse = new Double(Math.floor(numToUse / 2.0)).intValue(); // skimp on the left [floor], and be generous with the right side
-                            useOnLeft = Math.min(halfToUse, numOnLeft);
-                            useOnRight = Math.min(numToUse - useOnLeft, numOnRight);
-                        }
-                        else { // numOnRight < numOnLeft
-                            int halfToUse = new Double(Math.ceil(numToUse / 2.0)).intValue(); // be generous with the right side [ceil]
-                            useOnRight = Math.min(halfToUse, numOnRight);
-                            useOnLeft = Math.min(numToUse - useOnRight, numOnLeft);
-                        }
-                        int startIndex = prevSiteIndex - useOnLeft;
-                        int stopIndex = phasingSiteIndex + useOnRight + 1; // put the index 1 past the desired index to keep
-                        phasingSiteIndex -= startIndex;
-                        sampleWindowVaList = sampleWindowVaList.subList(startIndex, stopIndex);
-                        logger.warn("REDUCED to " + sampleWindowVaList.size() + " sites:\n" + toStringVRL(sampleWindowVaList));
-                    }
-
-                    PhaseResult pr = phaseSample(samp, sampleWindowVaList, phasingSiteIndex);
-                    genotypesArePhased = (pr.phaseQuality >= phaseQualityThresh);
-                    if (genotypesArePhased) {
-                        BialleleSNP prevBiall = new BialleleSNP(prevGenotype);
-
-                        logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevBiall + "\n");
-                        logger.debug("THE PHASE CHOSEN HERE:\n" + biall + "\n\n");
-
-                        ensurePhasing(biall, prevBiall, pr.haplotype);
-                        gtAttribs.put("PQ", pr.phaseQuality);
-                    }
-
-                    if (statsWriter != null)
-                        statsWriter.addStat(samp, VariantContextUtils.getLocation(vc), distance(prevVc, vc), pr.phaseQuality, pr.numReads);
-
-                    PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
-                    if (sampPhaseCounts == null) {
-                        sampPhaseCounts = new PhaseCounts();
-                        samplePhaseStats.put(samp, sampPhaseCounts);
-                    }
-                    sampPhaseCounts.numTestedSites++;
-                    if (genotypesArePhased)
-                        sampPhaseCounts.numPhased++;
-                }
+            Map<String, Object> gtAttribs = null;
+            List<Allele> gtAlleles = null;
+            if (gt.getPloidy() != 2) {
+                gtAttribs = gt.getAttributes();
+                gtAlleles = gt.getAlleles();
             }
-            List<Allele> phasedAll = biall.getAllelesAsList();
-            Genotype phasedGt = new Genotype(gt.getSampleName(), phasedAll, gt.getNegLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
+            else {
+                gtAttribs = new HashMap<String, Object>(gt.getAttributes());
+                BialleleSNP biall = new BialleleSNP(gt);
+
+                if (gt.isHet()) {
+                    VariantContext prevVc = prevVr.variant;
+                    Genotype prevGenotype = prevVc.getGenotype(samp);
+                    if (prevGenotype.isHet()) {
+                        logger.debug("Want to phase TOP vs. BOTTOM for: " + "\n" + biall);
+
+                        List<VariantAndReads> sampleWindowVaList = new LinkedList<VariantAndReads>();
+                        int phasingSiteIndex = -1;
+                        int currentIndex = 0;
+                        for (VariantAndReads phaseInfoVr : windowVaList) {
+                            VariantContext phaseInfoVc = phaseInfoVr.variant;
+                            Genotype phaseInfoGt = phaseInfoVc.getGenotype(samp);
+                            if (phaseInfoGt.isHet()) { // otherwise, of no value to phasing
+                                sampleWindowVaList.add(phaseInfoVr);
+                                if (phasingSiteIndex == -1) {
+                                    if (phaseInfoVr == vr)
+                                        phasingSiteIndex = currentIndex; // index of vr in sampleWindowVaList
+                                    else
+                                        currentIndex++;
+                                }
+                                logger.debug("STARTING TO PHASE USING POS = " + VariantContextUtils.getLocation(phaseInfoVc));
+                            }
+                        }
+                        if (logger.isDebugEnabled() && (phasingSiteIndex == -1 || phasingSiteIndex == 0))
+                            throw new ReviewedStingException("Internal error: could NOT find vr and/or prevVr!");
+
+                        if (sampleWindowVaList.size() > maxPhaseSites) {
+                            logger.warn("Trying to phase sample " + samp + " at locus " + VariantContextUtils.getLocation(vc) + " within a window of " + cacheWindow + " bases yields " + sampleWindowVaList.size() + " heterozygous sites to phase:\n" + toStringVRL(sampleWindowVaList));
+
+                            int prevSiteIndex = phasingSiteIndex - 1; // index of prevVr in sampleWindowVaList
+                            int numToUse = maxPhaseSites - 2; // since always keep prevVr and vr
+
+                            int numOnLeft = prevSiteIndex;
+                            int numOnRight = sampleWindowVaList.size() - (phasingSiteIndex + 1);
+
+                            int useOnLeft, useOnRight;
+                            if (numOnLeft <= numOnRight) {
+                                int halfToUse = new Double(Math.floor(numToUse / 2.0)).intValue(); // skimp on the left [floor], and be generous with the right side
+                                useOnLeft = Math.min(halfToUse, numOnLeft);
+                                useOnRight = Math.min(numToUse - useOnLeft, numOnRight);
+                            }
+                            else { // numOnRight < numOnLeft
+                                int halfToUse = new Double(Math.ceil(numToUse / 2.0)).intValue(); // be generous with the right side [ceil]
+                                useOnRight = Math.min(halfToUse, numOnRight);
+                                useOnLeft = Math.min(numToUse - useOnRight, numOnLeft);
+                            }
+                            int startIndex = prevSiteIndex - useOnLeft;
+                            int stopIndex = phasingSiteIndex + useOnRight + 1; // put the index 1 past the desired index to keep
+                            phasingSiteIndex -= startIndex;
+                            sampleWindowVaList = sampleWindowVaList.subList(startIndex, stopIndex);
+                            logger.warn("REDUCED to " + sampleWindowVaList.size() + " sites:\n" + toStringVRL(sampleWindowVaList));
+                        }
+
+                        PhaseResult pr = phaseSample(samp, sampleWindowVaList, phasingSiteIndex);
+                        genotypesArePhased = (pr.phaseQuality >= phaseQualityThresh);
+                        if (genotypesArePhased) {
+                            BialleleSNP prevBiall = new BialleleSNP(prevGenotype);
+
+                            logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevBiall + "\n");
+                            logger.debug("THE PHASE CHOSEN HERE:\n" + biall + "\n\n");
+
+                            ensurePhasing(biall, prevBiall, pr.haplotype);
+                            gtAttribs.put("PQ", pr.phaseQuality);
+                        }
+
+                        if (statsWriter != null)
+                            statsWriter.addStat(samp, VariantContextUtils.getLocation(vc), distance(prevVc, vc), pr.phaseQuality, pr.numReads);
+
+                        PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
+                        if (sampPhaseCounts == null) {
+                            sampPhaseCounts = new PhaseCounts();
+                            samplePhaseStats.put(samp, sampPhaseCounts);
+                        }
+                        sampPhaseCounts.numTestedSites++;
+                        if (genotypesArePhased)
+                            sampPhaseCounts.numPhased++;
+                    }
+                }
+                gtAlleles = biall.getAllelesAsList();
+            }
+
+            Genotype phasedGt = new Genotype(gt.getSampleName(), gtAlleles, gt.getNegLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
             phasedGtMap.put(samp, phasedGt);
         }
         phaseStats.addIn(new PhasingStats(samplePhaseStats));
