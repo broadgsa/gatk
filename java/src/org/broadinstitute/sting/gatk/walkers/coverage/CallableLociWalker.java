@@ -183,17 +183,17 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
 
         if ( outputFormat == OutputFormat.STATE_PER_BASE ) {
             out.println(state.toString());
+        }
+
+        // format is integrating
+        if ( integrator.state == null )
+            integrator.state = state;
+        else if ( state.getLocation().getStart() != integrator.state.getLocation().getStop() + 1 ||
+                integrator.state.changingState(state.getState()) ) {
+            out.println(integrator.state.toString());
+            integrator.state = state;
         } else {
-            // format is integrating
-            if ( integrator.state == null )
-                integrator.state = state;
-            else if ( state.getLocation().getStart() != integrator.state.getLocation().getStop() + 1 ||
-                    integrator.state.changingState(state.getState()) ) {
-                out.println(integrator.state.toString());
-                integrator.state = state;
-            } else {
-                integrator.state.update(state.getLocation());
-            }
+            integrator.state.update(state.getLocation());
         }
 
         return integrator;
@@ -207,7 +207,8 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     public void onTraversalDone(Integrator result) {
         // print out the last state
         if ( result != null ) {
-            out.println(result.state.toString());
+            if ( outputFormat == OutputFormat.BED )  // get the last interval
+                out.println(result.state.toString());
 
             try {
                 PrintStream summaryOut = new PrintStream(summaryFile);
@@ -215,7 +216,6 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
                 for ( CalledState state : CalledState.values() ) {
                     summaryOut.printf("%30s %d%n", state, result.counts[state.ordinal()]);
                 }
-
                 summaryOut.close();
             } catch (FileNotFoundException e) {
                 throw new UserException.CouldNotCreateOutputFile(summaryFile, e);

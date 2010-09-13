@@ -26,6 +26,8 @@
 package org.broadinstitute.sting.commandline;
 
 import org.apache.log4j.*;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
@@ -350,17 +352,19 @@ public abstract class CommandLineProgram {
      * @param msg the message
      * @param e   the error
      */
-    public static void exitSystemWithError(final String msg, Exception e) {
+    public static void exitSystemWithError(String msg, final Exception e) {
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("stack trace %n");
         e.printStackTrace();
 
         errorPrintf("------------------------------------------------------------------------------------------%n");
-        errorPrintf("A GATK RUNTIME ERROR has occurred:%n");
+        errorPrintf("A GATK RUNTIME ERROR has occurred (version %s):%n", CommandLineGATK.getVersionNumber());
         errorPrintf("%n");
         errorPrintf("Please visit to wiki to see if this is a known problem%n");
         errorPrintf("If not, please post the error, with stack trace, to the GATK forum%n");
         printDocumentationReference();
+        if ( msg == null ) // some exceptions don't have detailed messages
+            msg = "Code exception (see stack trace for error itself)";
         errorPrintf("%n");
         errorPrintf("MESSAGE: %s%n", msg.trim());
         errorPrintf("------------------------------------------------------------------------------------------%n");
@@ -368,8 +372,12 @@ public abstract class CommandLineProgram {
     }
 
     public static void exitSystemWithUserError(UserException e) {
+        if ( e.getMessage() == null )
+            throw new ReviewedStingException("UserException found with no message!", e);
+
         errorPrintf("------------------------------------------------------------------------------------------%n");
-        errorPrintf("A USER ERROR has occurred.  The invalid arguments or inputs must be corrected before the GATK can proceed%n");
+        errorPrintf("A USER ERROR has occurred (version %s): %n", CommandLineGATK.getVersionNumber());
+        errorPrintf("The invalid arguments or inputs must be corrected before the GATK can proceed%n");
         errorPrintf("%n");
         errorPrintf("See the documentation (rerun with -h) for this tool to view allowable command-line argument.%n");
         printDocumentationReference();
