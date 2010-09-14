@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.ElementList;
 import org.simpleframework.xml.Serializer;
@@ -93,23 +94,23 @@ public class GATKRunReport {
     @Element(required = false, name = "exception")
     private final ExceptionToXML mException;
 
-    @Element(required = true, name = "argument_collection")
+    @Element(required = false, name = "argument_collection")
     private final GATKArgumentCollection mCollection;
 
     @Element(required = true, name = "working_directory")
     private String currentPath;
 
     @Element(required = true, name = "start_time")
-    private String startTime;
+    private String startTime = "ND";
 
     @Element(required = true, name = "end_time")
     private String endTime;
 
     @Element(required = true, name = "run_time")
-    private long runTime;
+    private long runTime = 0;
 
     @Element(required = true, name = "command_line")
-    private String cmdLine;
+    private String cmdLine = "COULD NOT BE DETERMINED";
 
     @Element(required = true, name = "walker_name")
     private String walkerName;
@@ -176,16 +177,21 @@ public class GATKRunReport {
 
         // what did we run?
         id = org.apache.commons.lang.RandomStringUtils.randomAlphanumeric(32);
-        cmdLine = CommandLineUtils.createApproximateCommandLineArgumentString(engine, walker);
+        try {
+            cmdLine = CommandLineUtils.createApproximateCommandLineArgumentString(engine, walker);
+        } catch (Exception ignore) { }
+
         this.mCollection = engine.getArguments();
         walkerName = engine.getWalkerName(walker.getClass());
         svnVersion = CommandLineGATK.getVersionNumber();
 
         // runtime performance metrics
-        startTime = dateFormat.format(engine.getStartTime());
         Date end = new java.util.Date();
         endTime = dateFormat.format(end);
-        runTime = (end.getTime() - engine.getStartTime().getTime()) / 1000L; // difference in seconds
+        if ( engine.getStartTime() != null ) { // made it this far during initialization
+            startTime = dateFormat.format(engine.getStartTime());
+            runTime = (end.getTime() - engine.getStartTime().getTime()) / 1000L; // difference in seconds
+        }
         tmpDir = System.getProperty("java.io.tmpdir");
 
         // deal with memory usage
@@ -310,8 +316,12 @@ public class GATKRunReport {
         @Element(required = false, name = "cause")
         ExceptionToXML cause = null;
 
+        @Element(required = false, name = "is-user-exception")
+        Boolean isUserException;
+
         public ExceptionToXML(Throwable e) {
             message = e.getMessage();
+            isUserException = e instanceof UserException;
             for (StackTraceElement element : e.getStackTrace()) {
                 stackTrace.add(element.toString());
             }

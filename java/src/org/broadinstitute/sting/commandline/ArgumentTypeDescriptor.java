@@ -338,8 +338,8 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 // if their argument has no value (null), and there's a default, return that default for the enum value
                 if (defaultEnumeration != null && value == null)
                     result = defaultEnumeration;
-                // if their argument has no value and there's no default, throw a missing argument value exception.
-                // TODO: Clean this up so that null values never make it to this point.  To fix this, we'll have to clean up the implementation of -U.
+                    // if their argument has no value and there's no default, throw a missing argument value exception.
+                    // TODO: Clean this up so that null values never make it to this point.  To fix this, we'll have to clean up the implementation of -U.
                 else if (value == null)
                     throw new MissingArgumentValueException(Collections.singleton(createDefaultArgumentDefinition(source)));
                 else
@@ -348,12 +348,16 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                 Constructor ctor = type.getConstructor(String.class);
                 result = ctor.newInstance(value);
             }
+        } catch (UserException e) {
+            throw e;
         } catch (InvocationTargetException e) {
-            throw new ReviewedStingException("constructFromString:InvocationTargetException: Failed conversion - this is most likely caused by using an incorrect data type (e.g. a double when an int is required)");
+            throw new UserException.CommandLineException(String.format("Failed to parse value %s for argument %s.  This is most commonly caused by providing an incorrect data type (e.g. a double when an int is required)",
+                            value, source.field.getName()));
         } catch (Exception e) {
             throw new DynamicClassResolutionException(String.class, e);
         }
 
+        // TODO FIXME!
 
         // WARNING: Side effect!
         parsingEngine.addTags(result,tags);
