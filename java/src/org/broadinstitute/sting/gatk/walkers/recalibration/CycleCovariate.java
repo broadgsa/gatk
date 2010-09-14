@@ -5,6 +5,9 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import java.util.Arrays;
+import java.util.List;
+
 /*
  * Copyright (c) 2009 The Broad Institute
  *
@@ -156,6 +159,19 @@ public class CycleCovariate implements StandardCovariate {
     }
     */
 
+    // todo -- this should be put into a common place in the code base
+    private static List<String> ILLUMINA_NAMES = Arrays.asList("ILLUMINA", "SLX", "SOLEXA");
+    private static List<String> SOLID_NAMES = Arrays.asList("SOLID");
+    private static List<String> LS454_NAMES = Arrays.asList("454");
+
+    private static boolean isPlatform(SAMRecord read, List<String> names) {
+        String pl = read.getReadGroup().getPlatform().toUpperCase();
+        for ( String name : names )
+            if ( pl.contains( name ) )
+                return true;
+        return false;
+    }
+
     // Used to pick out the covariate's value from attributes of the read
     public void getValues(SAMRecord read, Comparable[] comparable) {
 
@@ -163,9 +179,8 @@ public class CycleCovariate implements StandardCovariate {
         // ILLUMINA and SOLID
         //-----------------------------
 
-        if( read.getReadGroup().getPlatform().equalsIgnoreCase( "ILLUMINA" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "SLX" ) || // Some bams have "illumina" and others have "SLX"
-                read.getReadGroup().getPlatform().equalsIgnoreCase( "SOLID" ) || read.getReadGroup().getPlatform().equalsIgnoreCase( "ABI_SOLID" )) { // Some bams have "solid" and others have "ABI_SOLID"
 
+        if( isPlatform(read, ILLUMINA_NAMES) || isPlatform(read, SOLID_NAMES) ) {
             final int init;
             final int increment;
             if( !read.getReadNegativeStrandFlag() ) {
@@ -207,7 +222,7 @@ public class CycleCovariate implements StandardCovariate {
                 cycle += increment;
             }
         }
-        else if( read.getReadGroup().getPlatform().contains( "454" ) ) { // Some bams have "LS454" and others have just "454"
+        else if ( isPlatform(read, LS454_NAMES) ) { // Some bams have "LS454" and others have just "454"
 
             final int readLength = read.getReadLength();
             final byte[] bases = read.getReadBases();

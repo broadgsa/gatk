@@ -337,10 +337,10 @@ public abstract class CommandLineProgram {
         String formatted = String.format(format, s);
 
         if ( formatted.trim().equals("") )
-            System.out.println("##### ERROR");
+            System.err.println("##### ERROR");
         else {
             for ( String part : formatted.split("\n") ) {
-                System.out.println("##### ERROR " + part);
+                System.err.println("##### ERROR " + part);
             }
         }
     }
