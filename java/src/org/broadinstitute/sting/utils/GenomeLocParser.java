@@ -136,6 +136,14 @@ public class GenomeLocParser {
     }
 
     /**
+     * A package-protected method that can be used by the test system to reset the sequence dictionary
+     * being used.  Use this method sparingly. 
+     */
+    static void clearRefContigOrdering() {
+        contigInfo = null;
+    }
+
+    /**
      * parse a genome interval, from a location string
      *
      * Performs interval-style validation:
