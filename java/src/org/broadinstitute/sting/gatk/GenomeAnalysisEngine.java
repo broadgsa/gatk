@@ -734,7 +734,7 @@ public class GenomeAnalysisEngine {
             Shard.ShardType shardType;
             if(walker instanceof LocusWalker) {
                 if (readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
-                    throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file(s).");
+                    throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
                 shardType = Shard.ShardType.LOCUS;
             }
             else if(walker instanceof ReadWalker || walker instanceof DuplicateWalker || walker instanceof ReadPairWalker)
@@ -764,7 +764,7 @@ public class GenomeAnalysisEngine {
 
             if (intervals != null && !intervals.isEmpty()) {
                 if(!readsDataSource.isEmpty() && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.coordinate)
-                    throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only walk over coordinate-sorted data.  Please resort your input BAM file(s).");
+                    throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, "Locus walkers can only traverse coordinate-sorted data.  Please resort your input BAM file(s) or set the Sort Order tag in the header appropriately.");
 
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource.getReference(),
