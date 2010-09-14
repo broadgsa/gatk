@@ -124,6 +124,10 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         if ( vc_input == null  )
             return 0;
 
+        if (vc_input.isFiltered()) {
+            vcfWriter.add(vc_input, ref.getBase());
+            return 1;
+        }
         List<Object> r2rods = tracker.getReferenceMetaData(R2_ROD_NAME);
 
         // ignore places where we don't have a variant
