@@ -5,6 +5,7 @@ from itertools import *
 from xml.etree.ElementTree import *
 import gzip
 import datetime
+import re
 
 MISSING_VALUE = "NA"
 RUN_REPORT_LIST = "GATK-run-reports"
@@ -101,9 +102,20 @@ def eltIsException(elt):
 def parseException(elt):
     msgElt = elt.find("message")
     msgText = "MISSING"
+    userException = "NA"
     if msgElt != None: msgText = msgElt.text
-    return  msgText, elt.find("stacktrace").find("string").text
+    stackTrace = elt.find("stacktrace").find("string").text
+    if elt.find("is-user-exception") != None:
+    	#print elt.find("is-user-exception")
+        userException = elt.find("is-user-exception").text
+    return msgText, stackTrace, userException
 
+def javaExceptionFile(javaException):
+	m = re.search("\((.*\.java:.*)\)", javaException)
+	if m != None:
+		return m.group(1)
+	else:
+		javaException
 
 class RecordDecoder:
     def __init__(self):
@@ -118,6 +130,12 @@ class RecordDecoder:
 
         def formatExceptionAt(elt):
             return '%s' % parseException(elt)[1]
+
+        def formatExceptionAtBrief(elt):
+            return '%s' % javaExceptionFile(parseException(elt)[1])
+
+        def formatExceptionUser(elt):
+            return '%s' % parseException(elt)[2]
         
         def add(names, func):
             for name in names:
@@ -132,7 +150,7 @@ class RecordDecoder:
         add(["run-time", "java-tmp-directory", "working-directory", "user-name", "host-name"], id)
         add(["java", "machine"], toString)
         add(["max-memory", "total-memory", "iterations", "reads"], id)
-        addComplex("exception", ["exception-msg", "exception-at"], [formatExceptionMsg, formatExceptionAt])
+        addComplex("exception", ["exception-msg", "exception-at", "exception-at-brief", "is-user-exception"], [formatExceptionMsg, formatExceptionAt, formatExceptionAtBrief, formatExceptionUser])
         # add(["command-line"], toString)          
     
     def decode(self, report):
@@ -234,17 +252,18 @@ class ExceptionReport(StageHandler):
         commonExceptions = sorted(commonExceptions, None, lambda x: x.counts)   
             
         for common in commonExceptions:
-            msg, at, svns, walkers, counts, ids, duration, users = common.toStrings()
+            msg, at, svns, walkers, counts, ids, duration, users, userError = common.toStrings()
 
             print >> self.out, ''.join(['*'] * 80)
-            print >> self.out, 'Exception       :', msg
-            print >> self.out, '    at          :', at
-            print >> self.out, '    walkers     :', walkers
-            print >> self.out, '    svns        :', svns
-            print >> self.out, '    duration    :', duration
-            print >> self.out, '    occurrences :', counts
-            print >> self.out, '    users       :', users
-            print >> self.out, '    ids         :', ids
+            print >> self.out, 'Exception              :', msg
+            print >> self.out, '    is-user-exception? :', userError
+            print >> self.out, '    at                 :', at
+            print >> self.out, '    walkers            :', walkers
+            print >> self.out, '    svns               :', svns
+            print >> self.out, '    duration           :', duration
+            print >> self.out, '    occurrences        :', counts
+            print >> self.out, '    users              :', users
+            print >> self.out, '    ids                :', ids
             
 class CommonException:
     MAX_SET_ITEMS_TO_SHOW = 5
@@ -254,6 +273,7 @@ class CommonException:
         self.at = ex['exception-at']
         self.svns = set([ex['svn-version']])
         self.users = set([ex['user-name']])
+        self.userError = ex['is-user-exception']
         self.counts = 1
         self.times = set([decodeTime(ex['start-time'])])
         self.walkers = set([ex['walker-name']])
@@ -285,11 +305,17 @@ class CommonException:
         return ','.join(s)
         
     def duration(self):
-        x = sorted(self.times)
-        return "-".join(map(lambda x: x.strftime("%m/%d/%y"), [x[0], x[-1]]))
+        x = sorted(filter(lambda x: x != "ND", self.times))
+        if len(x) >= 2:
+            return "-".join(map(lambda x: x.strftime("%m/%d/%y"), [x[0], x[-1]]))
+        elif len(x) == 1:
+            return x[0]
+        else:
+            return "ND"
+            
         
     def toStrings(self):
-        return [self.bestExample(self.msgs), self.at, self.setString(self.svns), self.setString(self.walkers), self.counts, self.setString(self.ids), self.duration(), self.setString(self.users)] 
+        return [self.bestExample(self.msgs), self.at, self.setString(self.svns), self.setString(self.walkers), self.counts, self.setString(self.ids), self.duration(), self.setString(self.users), self.userError] 
 
 addHandler('exceptions', ExceptionReport)
 
@@ -354,7 +380,10 @@ def resolveFiles(paths):
     return allFiles
 
 def decodeTime(time):
-    return datetime.datetime.strptime(time.split()[0], "%Y/%m/%d")
+    if time == "ND":
+        return "ND"
+    else:
+        return datetime.datetime.strptime(time.split()[0], "%Y/%m/%d")
     #return datetime.datetime.strptime(time, "%Y/%m/%d %H.%M.%S")
 
 def passesFilters(elt):
@@ -377,7 +406,12 @@ def readReports(files):
     for file in files:
         if OPTIONS.verbose: print 'Reading file', file
         input = openFile(file)
-        tree = ElementTree(file=input)
+        try:
+            tree = ElementTree(file=input)
+        except:
+            print "EXCEPTING FILE", file
+            raise
+
         elem = tree.getroot()
         if elem.tag == RUN_REPORT_LIST:
             for sub in elem:
