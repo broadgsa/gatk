@@ -111,7 +111,7 @@ public class Haplotype {
 
         byte[] refBases = ref.getBases();
 
-        int numPrefBases = haplotypeSize/2;
+        int numPrefBases = 20;
 
         int startIdxInReference = (int)(1+vc.getStart()-numPrefBases-ref.getWindow().getStart());
         //int numPrefBases = (int)(vc.getStart()-ref.getWindow().getStart()+1); // indel vc starts one before event

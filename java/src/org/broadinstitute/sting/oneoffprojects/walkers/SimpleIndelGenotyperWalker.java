@@ -51,7 +51,7 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Window;
 
 
-@Reference(window=@Window(start=-100,stop=100))
+@Reference(window=@Window(start=-30,stop=200))
 @Allows({DataSource.READS, DataSource.REFERENCE})
 public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
     @Output
@@ -76,11 +76,20 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
     @Argument(fullName="indelHeterozygozity",shortName="indhet",doc="Indel Heterozygosity (assumed 1/6500 from empirical human data)",required=false)
     double indelHeterozygosity = (double)1.0/6500.0;
 
+    @Argument(fullName="sampleName",shortName="sample",doc="Sample name to evaluate genotypes in",required=true)
+    String sampleName;
+
     @Argument(fullName="doSimpleCalculationModel",shortName="simple",doc="Use Simple Calculation Model for Pr(Reads | Haplotype)",required=false)
     boolean doSimple = false;
 
     @Argument(fullName="enableDebugOutput",shortName="debugout",doc="Output debug data",required=false)
     boolean DEBUG = false;
+
+    @Argument(fullName="doTrio",shortName="trio",doc="Output 1KG CEU trio genotype data (sampleName ignored)",required=false)
+    boolean doTrio = false;
+
+    @Argument(fullName="useFlatPriors",shortName="flat",doc="If present, use flat priors on haplotypes",required=false)
+    boolean useFlatPriors = false;
 
     @Override
     public boolean generateExtendedEvents() { return true; }
@@ -154,49 +163,62 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         int eventLength = vc.getReference().getBaseString().length() - vc.getAlternateAllele(0).getBaseString().length(); // assume only one alt allele for now
         if (eventLength<0)
             eventLength = - eventLength;
-        
-        double lambda = (double)HAPLOTYPE_SIZE * indelHeterozygosity;
-        double altPrior = HaplotypeIndelErrorModel.probToQual(lambda)-HaplotypeIndelErrorModel.probToQual(eventLength)*1.89 + 0.15*eventLength
-                + HaplotypeIndelErrorModel.probToQual(1.5716)+ HaplotypeIndelErrorModel.probToQual(0.5);
 
-        haplotypeLikehoodMatrix[0][1] = altPrior;
-        haplotypeLikehoodMatrix[1][1] = 2*altPrior;
+        if (!useFlatPriors) {
 
-        int bestIndexI =0, bestIndexJ=0;
-        for (int i=0; i < haplotypesInVC.size(); i++) {
-            for (int j=i; j < haplotypesInVC.size(); j++){
-                // combine likelihoods of haplotypeLikelihoods[i], haplotypeLikelihoods[j]
-                for (SAMRecord read : pileup.getReads()) {
-                    // compute Pr(r | hi, hj) = 1/2*(Pr(r|hi) + Pr(r|hj)
+            double lambda = (double)HAPLOTYPE_SIZE * indelHeterozygosity;
+            double altPrior = HaplotypeIndelErrorModel.probToQual(lambda)-HaplotypeIndelErrorModel.probToQual(eventLength)*1.89 + 0.15*eventLength
+                    + HaplotypeIndelErrorModel.probToQual(1.5716)+ HaplotypeIndelErrorModel.probToQual(0.5);
 
-                    double readLikelihood[] = new double[2];
-                    double readLikeGivenH;
-                    readLikeGivenH = model.computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(i), read);
-                    readLikelihood[0]= -readLikeGivenH/10.0;
-                    if (i != j){
-                        readLikeGivenH = model.computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(j), read);
-                        readLikelihood[1] = -readLikeGivenH/10.0;
+            haplotypeLikehoodMatrix[0][1] = altPrior;
+            haplotypeLikehoodMatrix[1][1] = 2*altPrior;
+        }
+
+        int bestIndexI =-1, bestIndexJ=-1;
+        double callConfidence = 0.0;
+
+        if (pileup.getReads().size() > 0) {
+            double readLikelihoods[][] = new double[pileup.getReads().size()][haplotypesInVC.size()];
+            int i=0;
+            for (SAMRecord read : pileup.getReads()) {
+                // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
+                // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
+                for (int j=0; j < haplotypesInVC.size(); j++) {
+                    readLikelihoods[i][j]= model.computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(j), read, vc, eventLength);
+                    if (DEBUG) {
+                        System.out.print(read.getReadName()+" ");
+
+                        System.out.format("%d %d S:%d US:%d E:%d UE:%d C:%s %3.4f\n",i, j, read.getAlignmentStart(),
+                                read.getUnclippedStart(), read.getAlignmentEnd(), read.getUnclippedEnd(),
+                                read.getCigarString(), readLikelihoods[i][j]);
                     }
-                    else
-                        readLikelihood[1] = readLikelihood[0];
-
-                    // likelihood is by convention -10*log10(pr(r|h))
-                    // sumlog10 computes 10^x[0]+10^x[1]+...
-                    double probRGivenHPair = MathUtils.sumLog10(readLikelihood)/2;
-                    haplotypeLikehoodMatrix[i][j] += HaplotypeIndelErrorModel.probToQual(probRGivenHPair);
-                    /*System.out.print(read.getReadName()+" ");
-                    System.out.format("%d %d S:%d US:%d E:%d UE:%d C:%s %3.4f %3.4f\n",i, j, read.getAlignmentStart(),
-                            read.getUnclippedStart(), read.getAlignmentEnd(), read.getUnclippedEnd(),
-                            read.getCigarString(), probRGivenHPair, haplotypeLikehoodMatrix[i][j]);
-                     */
 
                 }
+                i++;
+            }
+
+            for (i=0; i < haplotypesInVC.size(); i++) {
+                for (int j=i; j < haplotypesInVC.size(); j++){
+                    // combine likelihoods of haplotypeLikelihoods[i], haplotypeLikelihoods[j]
+                    // L(Hi, Hj) = sum_reads ( Pr(R|Hi)/2 + Pr(R|Hj)/2)
+                    //readLikelihoods[k][j] has log10(Pr(R_k) | H[j] )
+                    double[] readLikelihood = new double[2]; // diploid sample
+                    for (int readIdx=0; readIdx < pileup.getReads().size(); readIdx++) {
+                        readLikelihood[0] = -readLikelihoods[readIdx][i]/10;
+                        readLikelihood[1] = -readLikelihoods[readIdx][j]/10;
+
+                        double probRGivenHPair = MathUtils.sumLog10(readLikelihood)/2;
+                        haplotypeLikehoodMatrix[i][j] += HaplotypeIndelErrorModel.probToQual(probRGivenHPair);
+
+                    }
 
 
-                if (haplotypeLikehoodMatrix[i][j] < bestLikelihood) {
-                    bestIndexI = i;
-                    bestIndexJ = j;
-                    bestLikelihood = haplotypeLikehoodMatrix[i][j];
+                    if (haplotypeLikehoodMatrix[i][j] < bestLikelihood) {
+                        bestIndexI = i;
+                        bestIndexJ = j;
+                        callConfidence = bestLikelihood - haplotypeLikehoodMatrix[i][j];
+                        bestLikelihood = haplotypeLikehoodMatrix[i][j];
+                    }
                 }
             }
         }
@@ -215,30 +237,49 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
 
         out.format("%s %d %s ",vc.getChr(), vc.getStart(), type);
 
-        Genotype originalGenotype = vc.getGenotype("NA12878");
+        if (doTrio) {
+            Genotype originalGenotype = vc.getGenotype("NA12878");
+            Genotype dadGenotype = vc.getGenotype("NA12891");
+            Genotype momGenotype = vc.getGenotype("NA12892");
 
-        String oldG, newG;
-        if (originalGenotype.isHomRef())
-            oldG = "HOMREF";
-        else if (originalGenotype.isHet())
-            oldG = "HET";
-        else if (originalGenotype.isHomVar())
-            oldG = "HOMVAR";
-        else
-            oldG = "OTHER";
+            String dadG, momG, oldG, newG;
+            oldG = getGenotypeString(originalGenotype);
+            dadG = getGenotypeString(dadGenotype);
+            momG = getGenotypeString(momGenotype);
 
-        int x = bestIndexI+bestIndexJ;
-        if (x == 0)
-            newG = "HOMREF";
-        else if (x == 1)
-            newG = "HET";
-        else if (x == 2)
-            newG = "HOMVAR";
-        else
-            newG = "OTHER";
+            int x = bestIndexI+bestIndexJ;
+            if (x == 0)
+                newG = "HOMREF";
+            else if (x == 1)
+                newG = "HET";
+            else if (x == 2)
+                newG = "HOMVAR";
+            else if (x < 0)
+                newG = "NOCALL";
+            else
+                newG = "OTHER";
 
-        out.format("NewG %s OldG %s\n", newG, oldG);
+            out.format("NewG %s OldG %s DadG %s MomG %s\n", newG, oldG, dadG, momG);
+        }
+        else {
+            Genotype originalGenotype = vc.getGenotype(sampleName);
+            String oldG, newG;
+            oldG = getGenotypeString(originalGenotype);
+            int x = bestIndexI+bestIndexJ;
+            if (x == 0)
+                newG = "HOMREF";
+            else if (x == 1)
+                newG = "HET";
+            else if (x == 2)
+                newG = "HOMVAR";
+            else if (x < 0)
+                newG = "NOCALL";
+            else
+                newG = "OTHER";
 
+            out.format("NewG %s OldG %s\n", newG, oldG);
+
+        }
 
 /*
         if ( context.hasExtendedEventPileup() ) {
@@ -272,6 +313,19 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         return 1;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
+    private String getGenotypeString(Genotype genotype) {
+        String oldG;
+        if (genotype.isHomRef())
+            oldG = "HOMREF";
+        else if (genotype.isHet())
+            oldG = "HET";
+        else if (genotype.isHomVar())
+            oldG = "HOMVAR";
+        else
+            oldG = "OTHER";
+
+        return oldG;
+    }
     /**
      * Provide an initial value for reduce computations.
      *

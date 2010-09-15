@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.SAMRecord;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
@@ -124,7 +125,8 @@ public class HaplotypeIndelErrorModel {
         return -10.0*Math.log10(prob);
     }
 
-    public double computeReadLikelihoodGivenHaplotype(Haplotype haplotype, SAMRecord read) {
+    public double computeReadLikelihoodGivenHaplotype(Haplotype haplotype, SAMRecord read,
+                                                      VariantContext vc, int eventLength) {
         long numStartClippedBases = read.getAlignmentStart() - read.getUnclippedStart();
         long numEndClippedBases = read.getUnclippedEnd() - read.getAlignmentEnd();
         final long readStartPosition = read.getAlignmentStart();
@@ -154,6 +156,11 @@ public class HaplotypeIndelErrorModel {
             initialIndexInHaplotype = (int)(readStartPosition-haplotypeStartPosition);
         }
 
+        // special case 1: we're analyzing an insertion and the read starts right at the insertion.
+        if ((readStartPosition > vc.getStart()-eventLength) && vc.isInsertion() && !haplotype.isReference()) {
+            initialIndexInHaplotype += eventLength;
+        }
+        
         if (DEBUG) {
             System.out.println("READ: "+read.getReadName());
 
