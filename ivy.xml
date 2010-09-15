@@ -17,6 +17,7 @@
     <dependency org="jboss" name="javassist" rev="3.7.ga"/>
     <dependency org="org.simpleframework" name="simple-xml" rev="2.0.4"/>
     <dependency org="org.apache.bcel" name="bcel" rev="5.2"/>
+    <dependency org="org.yaml" name="snakeyaml" rev="1.6"/>
 
     <!-- Dependencies for reflections mvn repository -->
     <dependency org="org.reflections" name="reflections" rev="0.9.5-RC2"/>

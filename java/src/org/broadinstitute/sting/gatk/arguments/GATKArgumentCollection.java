@@ -70,6 +70,11 @@ public class GATKArgumentCollection {
     @Input(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
     public List<File> samFiles = new ArrayList<File>();
 
+    // parameters and their defaults
+    @ElementList(required = false)
+    @Argument(fullName = "sample_metadata", shortName = "SM", doc = "Sample file(s) in JSON format", required = false)
+    public List<File> sampleFiles = new ArrayList<File>();
+
     @Element(required = false)
     @Argument(fullName = "read_buffer_size", shortName = "rbs", doc="Number of reads per SAM file to buffer in memory", required = false)
     public Integer readBufferSize = null;

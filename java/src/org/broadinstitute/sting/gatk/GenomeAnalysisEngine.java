@@ -30,6 +30,9 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
+import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
+import org.broadinstitute.sting.gatk.datasources.sample.SampleFileParser;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -75,6 +78,11 @@ public class GenomeAnalysisEngine {
      * Accessor for sharded reference data.
      */
     private ReferenceDataSource referenceDataSource = null;
+
+    /**
+     * Accessor for sample metadata
+     */
+    private SampleDataSource sampleDataSource = null;
 
     /**
      * Accessor for sharded reference-ordered data.
@@ -386,6 +394,10 @@ public class GenomeAnalysisEngine {
         validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), tracks);
 
         rodDataSources = getReferenceOrderedDataSources(my_walker, tracks);
+    }
+
+    private void initializeSampleDataSource() {
+        this.sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
     }
 
     /**
@@ -966,5 +978,64 @@ public class GenomeAnalysisEngine {
             }
         }
         return unpackedReads;
-    }    
+    }
+    
+    /**
+     * Get a sample by its ID
+     * If an alias is passed in, return the main sample object
+     * @param id
+     * @return sample Object with this ID
+     */
+    public Sample getSampleById(String id) {
+        return sampleDataSource.getSampleById(id);
+    }
+
+    /**
+     * Get the sample for a given read group
+     * Must first look up ID for read group
+     * @param readGroup of sample
+     * @return sample object with ID from the read group
+     */
+    public Sample getSampleByReadGroup(SAMReadGroupRecord readGroup) {
+        return sampleDataSource.getSampleByReadGroup(readGroup);
+    }
+
+    /**
+     * Get a sample for a given read
+     * Must first look up read group, and then sample ID for that read group
+     * @param read of sample
+     * @return sample object of this read
+     */
+    public Sample getSampleByRead(SAMRecord read) {
+        return getSampleByReadGroup(read.getReadGroup());
+    }
+
+    /**
+     * Get number of sample objects
+     * @return size of samples map
+     */
+    public int sampleCount() {
+        return sampleDataSource.sampleCount();
+    }
+
+    /**
+     * Return all samples with a given family ID
+     * Note that this isn't terribly efficient (linear) - it may be worth adding a new family ID data structure for this
+     * @param familyId
+     * @return
+     */
+    public Set<Sample> getFamily(String familyId) {
+        return sampleDataSource.getFamily(familyId);
+    }
+
+    /**
+     * Returns all children of a given sample
+     * See note on the efficiency of getFamily() - since this depends on getFamily() it's also not efficient
+     * @param sample
+     * @return
+     */
+    public Set<Sample> getChildren(Sample sample) {
+        return sampleDataSource.getChildren(sample);
+    }
+
 }
