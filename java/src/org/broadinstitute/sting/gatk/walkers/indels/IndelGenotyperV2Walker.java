@@ -425,11 +425,10 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 // let's double check now that the read fits after the shift
                 if ( read.getAlignmentEnd() > normal_context.getStop()) {
                     // ooops, looks like the read does not fit into the window even after the latter was shifted!!
-                    throw new UserException.MissortedBAM(SAMFileHeader.SortOrder.coordinate, read, "Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small.\n"+
+                    throw new UserException.BadArgumentValue("window_size", "Read "+read.getReadName()+": out of coverage window bounds. Probably window is too small, so increase the value of the window_size argument.\n"+
                                              "Read length="+read.getReadLength()+"; cigar="+read.getCigarString()+"; start="+
                                              read.getAlignmentStart()+"; end="+read.getAlignmentEnd()+
-                                             "; window start (after trying to accomodate the read)="+normal_context.getStart()+
-					"; window end="+normal_context.getStop());
+                                             "; window start (after trying to accomodate the read)="+normal_context.getStart()+"; window end="+normal_context.getStop());
                 }
             }
 
