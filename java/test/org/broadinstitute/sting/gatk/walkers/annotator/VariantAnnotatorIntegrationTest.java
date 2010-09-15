@@ -106,4 +106,15 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
                 Arrays.asList("ff6b3468f21b262de671e823349cbb3c"));
         executeTest("getting DB tag with HM3", spec);
     }
+
+    @Test
+    public void testTabixAnnotations() {
+        final String MD5 = "6c7a6a1c0027bf82656542a9b2671a35";
+        for ( String file : Arrays.asList("CEU.exon.2010_03.sites.vcf", "CEU.exon.2010_03.sites.vcf.gz")) {
+            WalkerTestSpec spec = new WalkerTestSpec(
+                    baseTestString() + " -A HomopolymerRun -B:variant,VCF " + validationDataLocation + "/" + file + " -BTI variant -NO_HEADER", 1,
+                    Arrays.asList(MD5));
+            executeTest("Testing lookup vcf tabix vs. vcf tribble", spec);
+        }
+    }
 }
