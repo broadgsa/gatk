@@ -41,7 +41,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                         "-B:beagleR2,BEAGLE " + beagleValidationDataLocation + "inttestbgl.r2 " +
                         "-B:beagleProbs,BEAGLE " + beagleValidationDataLocation + "inttestbgl.gprobs " +
                         "-B:beaglePhased,BEAGLE " + beagleValidationDataLocation + "inttestbgl.phased " +
-                        "-o %s", 1, Arrays.asList("0508255900d28dfe017035b6f29c0385"));
+                        "-o %s", 1, Arrays.asList("caf2a19009e50931157bb4a7b1763282"));
         executeTest("test BeagleOutputToVCF", spec);
     }
    
