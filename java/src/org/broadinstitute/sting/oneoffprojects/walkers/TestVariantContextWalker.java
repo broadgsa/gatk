@@ -77,6 +77,10 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
 
             int n = 0;
             for (VariantContext vc : tracker.getAllVariantContexts(ref, allowedTypes, context.getLocation(), onlyContextsStartinAtCurrentPosition, takeFirstOnly) ) {
+
+                // we need to trigger decoding of the genotype string to pass integration tests
+                vc.getGenotypes();
+
                 if ( writer != null && n == 0 ) {
                     if ( ! wroteHeader ) {
                         writer.writeHeader(VariantContextAdaptors.createVCFHeader(null, vc));

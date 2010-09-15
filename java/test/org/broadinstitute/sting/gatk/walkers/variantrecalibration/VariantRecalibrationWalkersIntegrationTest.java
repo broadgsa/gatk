@@ -44,7 +44,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testVariantRecalibrator() {
         HashMap<String, List<String>> e = new HashMap<String, List<String>>();
         e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
-                Arrays.asList("e7dc06c6d4d8c2cdd03bfdac483aa92b", "038c31c5bb46a4df89b8ee69ec740812","7d42bbdfb69fdfb18cbda13a63d92602")); // Each test checks the md5 of three output files
+                Arrays.asList("9e4509be067284eefc31e91378faba6a", "038c31c5bb46a4df89b8ee69ec740812","7d42bbdfb69fdfb18cbda13a63d92602")); // Each test checks the md5 of three output files
         e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf",
                 Arrays.asList("80243bd6731f6b0341fa1762c095a72e", "661360e85392af9c97e386399871854a","371e5a70a4006420737c5ab259e0e23e")); // Each test checks the md5 of three output files
 
@@ -83,7 +83,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testApplyVariantCuts() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "ee22087a813aadf7d9426cab5a6a2164" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "5fc641e291ad7330985ad94d4a347511" );
         e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "d9e00e6fe8269b3218880d2c084804c6" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
