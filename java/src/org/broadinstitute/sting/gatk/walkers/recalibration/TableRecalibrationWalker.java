@@ -102,11 +102,12 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     /////////////////////////////
     // Debugging-only Arguments
     /////////////////////////////
+    @Hidden
     @Argument(fullName="no_pg_tag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the recalibrated bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
     private boolean NO_PG_TAG = false;
+    @Hidden
     @Argument(fullName="fail_with_no_eof_marker", shortName="requireEOF", required=false, doc="If no EOF marker is present in the covariates file, exit the program with an exception.")
     private boolean REQUIRE_EOF = false;
-
     @Hidden
     @Argument(fullName="skipUQUpdate", shortName="skipUQUpdate", required=false, doc="If true, we will skip the UQ updating step for each read, speeding up the calculations")
     private boolean skipUQUpdate = false;

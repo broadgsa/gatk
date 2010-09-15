@@ -27,8 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -36,7 +35,6 @@ import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
-import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -75,6 +73,13 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     @Argument(fullName="fdr_filter_level", shortName="fdr_filter_level", doc="The FDR level at which to start filtering.", required=false)
     private double FDR_FILTER_LEVEL = 0.0;
 
+    /////////////////////////////
+    // Debug Arguments
+    /////////////////////////////
+    @Hidden
+    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
+    protected Boolean NO_VCF_HEADER_LINE = false;
+    
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
@@ -162,15 +167,20 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
-        hInfo.add(new VCFHeaderLine("source", "ApplyVariantCuts"));
+        if( !NO_VCF_HEADER_LINE ) {
+            hInfo.add(new VCFHeaderLine("ApplyVariantCuts", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
+        }
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
-        
-        for( int iii = 1; iii < filterName.size(); iii++ ) {
-            hInfo.add(new VCFFilterHeaderLine(filterName.get(iii), String.format("FDR tranche level at qual " + qCuts.get(iii))));
+
+        if( filterName.size() >= 2 ) {
+            for( int iii = 0; iii < filterName.size() - 1; iii++ ) {
+                hInfo.add(new VCFFilterHeaderLine(filterName.get(iii), String.format("FDR tranche level at qual: " + qCuts.get(iii) + " <= x < " + qCuts.get(iii+1))));
+            }
         }
-        hInfo.add(new VCFFilterHeaderLine(filterName.get(0)+"+", String.format("FDR tranche level at qual > " + qCuts.get(filterName.size()-1))));
+        if( filterName.size() >= 1 ) {
+            hInfo.add(new VCFFilterHeaderLine(filterName.get(0)+"+", String.format("FDR tranche level at qual < " + qCuts.get(0))));
+        }
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);

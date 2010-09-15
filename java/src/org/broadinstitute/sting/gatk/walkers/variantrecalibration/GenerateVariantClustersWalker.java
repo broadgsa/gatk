@@ -27,6 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -76,7 +78,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 //    private String PATH_TO_RSCRIPT = "Rscript";
 //    @Argument(fullName = "path_to_resources", shortName = "resources", doc="Path to resources folder holding the Sting R scripts.", required=false)
 //    private String PATH_TO_RESOURCES = "R/";
-    @Argument(fullName="weightNovels", shortName="weightNovels", doc="The weight for novel variants during clustering", required=false)
+    @Argument(fullName="weightNovel", shortName="weightNovel", doc="The weight for novel variants during clustering", required=false)
     private double WEIGHT_NOVELS = 0.0;
     @Argument(fullName="weightDBSNP", shortName="weightDBSNP", doc="The weight for dbSNP variants during clustering", required=false)
     private double WEIGHT_DBSNP = 0.0;
@@ -100,6 +102,14 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     //@Argument(fullName = "optimization_model", shortName = "om", doc = "Optimization calculation model to employ -- GAUSSIAN_MIXTURE_MODEL is currently the default, while K_NEAREST_NEIGHBORS is also available for small callsets.", required = false)
     private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
 
+
+    /////////////////////////////
+    // Debug Arguments
+    /////////////////////////////
+    @Hidden
+    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
+    protected Boolean NO_HEADER_LINE = false;
+
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
@@ -115,12 +125,17 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
- //       if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
+        //if( !PATH_TO_RESOURCES.endsWith("/") ) { PATH_TO_RESOURCES = PATH_TO_RESOURCES + "/"; }
         
         annotationKeys = new ExpandingArrayList<String>(Arrays.asList(USE_ANNOTATIONS));
 
         if( IGNORE_INPUT_FILTERS != null ) {
             ignoreInputFilterSet = new TreeSet<String>(Arrays.asList(IGNORE_INPUT_FILTERS));
+        }
+
+        if( !NO_HEADER_LINE ) {
+            CLUSTER_FILE.print("##GenerateVariantClusters = ");
+            CLUSTER_FILE.println("\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\"");
         }
 
         boolean foundDBSNP = false;
@@ -235,7 +250,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
             default:
                 throw new UserException.BadArgumentValue("OPTIMIZATION_MODEL", "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
         }
-        
+
         theModel.run( CLUSTER_FILE );
 
 /*

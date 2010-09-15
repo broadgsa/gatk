@@ -28,8 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
-import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -39,7 +38,6 @@ import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
-import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
@@ -75,7 +73,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Output(doc="File to which recalibrated variants should be written",required=true)
     private VCFWriter vcfWriter = null;
 
-
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
@@ -89,7 +86,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private boolean IGNORE_ALL_INPUT_FILTERS = false;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
-    @Argument(fullName="priorNovels", shortName="priorNovels", doc="A prior on the quality of novel variants, a phred scaled probability of being true.", required=false)
+    @Argument(fullName="priorNovel", shortName="priorNovel", doc="A prior on the quality of novel variants, a phred scaled probability of being true.", required=false)
     private double PRIOR_NOVELS = 2.0;
     @Argument(fullName="priorDBSNP", shortName="priorDBSNP", doc="A prior on the quality of dbSNP variants, a phred scaled probability of being true.", required=false)
     private double PRIOR_DBSNP = 10.0;
@@ -109,6 +106,13 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private double SINGLETON_FP_RATE = 0.5;
     @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
     private double QUALITY_SCALE_FACTOR = 100.0;
+
+    /////////////////////////////
+    // Debug Arguments
+    /////////////////////////////
+    @Hidden
+    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
+    protected Boolean NO_VCF_HEADER_LINE = false;    
 
     /////////////////////////////
     // Private Member Variables
@@ -173,7 +177,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final TreeSet<String> samples = new TreeSet<String>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
         hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
-        hInfo.add(new VCFHeaderLine("source", "VariantRecalibrator"));
+        hInfo.add(new VCFInfoHeaderLine("LOD", 1, VCFHeaderLineType.Float, "The log odds ratio calculated by the VR algorithm which was turned into the phred scaled recalibrated quality score"));
+        if( !NO_VCF_HEADER_LINE ) {
+            hInfo.add(new VCFHeaderLine("VariantRecalibrator", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
+        }
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);

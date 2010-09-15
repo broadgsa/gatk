@@ -23,6 +23,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
+                            " -NO_HEADER" +
                             " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                             " -B:hapmap,VCF " + comparisonDataLocation + "Validated/HapMap/3.2/genotypes_r27_nr.b36_fwd.vcf" +
                             " -weightDBSNP 0.2 -weightHapMap 1.0" +
@@ -44,9 +45,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testVariantRecalibrator() {
         HashMap<String, List<String>> e = new HashMap<String, List<String>>();
         e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
-                Arrays.asList("9e4509be067284eefc31e91378faba6a", "038c31c5bb46a4df89b8ee69ec740812","7d42bbdfb69fdfb18cbda13a63d92602")); // Each test checks the md5 of three output files
+                Arrays.asList("0c6b5085a678b6312ab4bc8ce7b4eee4", "038c31c5bb46a4df89b8ee69ec740812","7d42bbdfb69fdfb18cbda13a63d92602")); // Each test checks the md5 of three output files
         e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf",
-                Arrays.asList("80243bd6731f6b0341fa1762c095a72e", "661360e85392af9c97e386399871854a","371e5a70a4006420737c5ab259e0e23e")); // Each test checks the md5 of three output files
+                Arrays.asList("bbdffb7fa611f4ae80e919cdf86b9bc6", "661360e85392af9c97e386399871854a","371e5a70a4006420737c5ab259e0e23e")); // Each test checks the md5 of three output files
 
         for ( Map.Entry<String, List<String>> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -56,6 +57,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
             if ( clusterFile != null ) {
                 WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                         "-R " + b36KGReference +
+                                " -NO_HEADER" +
                                 " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                                 " -B:hapmap,VCF " + comparisonDataLocation + "Validated/HapMap/3.2/genotypes_r27_nr.b36_fwd.vcf" +
                                 " -T VariantRecalibrator" +
@@ -69,22 +71,20 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " -o %s" +
                                 " -tranchesFile %s" +
                                 " -reportDatFile %s",                                
-                        3, // two output file
+                        3, // three output files
                         md5s);
                 List<File> result = executeTest("testVariantRecalibrator", spec).getFirst();
                 inputVCFFiles.put(vcf, result.get(0).getAbsolutePath());
                 tranchesFiles.put(vcf, result.get(1).getAbsolutePath());
             }
         }
-
-
     }
 
     @Test
     public void testApplyVariantCuts() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "5fc641e291ad7330985ad94d4a347511" );
-        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "d9e00e6fe8269b3218880d2c084804c6" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "7429ed494131eb1dab5a9169cf65d1f0" );
+        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "ad8661cba3b04a7977c97a541fd8a668" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -96,6 +96,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
             if ( inputVCFFile != null && tranchesFile != null ) {
                 WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                         "-R " + b36KGReference +
+                                " -NO_HEADER" +
                                 " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                                 " -T ApplyVariantCuts" +
                                 " -L 1:20,000,000-100,000,000" +

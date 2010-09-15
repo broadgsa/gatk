@@ -78,6 +78,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     private final double[] hyperParameter_b;
     private final double[] hyperParameter_lambda;
 
+    private static final Pattern COMMENT_PATTERN = Pattern.compile("^##.*");
     private static final Pattern ANNOTATION_PATTERN = Pattern.compile("^@!ANNOTATION.*");
     private static final Pattern CLUSTER_PATTERN = Pattern.compile("^@!CLUSTER.*");
 
@@ -130,7 +131,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                     annotationLines.add(line);
                 } else if( CLUSTER_PATTERN.matcher(line).matches() ) {
                     clusterLines.add(line);
-                } else {
+                } else if( !COMMENT_PATTERN.matcher(line).matches() ) {
                     throw new UserException.MalformedFile(clusterFile, "Could not parse line: " + line);
                 }
             }
@@ -417,9 +418,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
     public double decodeAnnotation( final String annotationKey, final VariantContext vc, final boolean jitter ) {
         double value;
-        //if( annotationKey.equals("AB") && !vc.getAttributes().containsKey(annotationKey) ) {
-        //    value = (0.5 - 0.005) + (0.01 * rand.nextDouble()); // HomVar calls don't have an allele balance
-        //}
         if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // HRun values must be jittered a bit to work in this GMM
             value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
             value += -0.25 + 0.5 * rand.nextDouble();
@@ -448,7 +446,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
         double sum = 0.0;
         for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
-            sum += pVarInCluster[kkk]; // * clusterTruePositiveRate[kkk];
+            sum += pVarInCluster[kkk];
         }
 
         return sum;
