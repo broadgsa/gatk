@@ -50,7 +50,7 @@ import java.util.*;
 @Reference(window=@Window(start=-50,stop=50))
 public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
-    @Output(doc="File to which variants should be written",required=false)
+    @Output(doc="File to which variants should be written", required=true)
     protected VCFWriter writer = null;
 
     @Argument(fullName="filterExpression", shortName="filter", doc="One or more expression used with INFO fields to filter (see wiki docs for more info)", required=false)
