@@ -145,6 +145,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                 logger.info("Found input variant track with name " + d.getName());
             } else if ( d.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 logger.info("Found dbSNP track for use in training with weight = " + WEIGHT_DBSNP);
+                logger.info("\tsites in dbSNP track tagged with by-hapmap validation status will be used in training with weight = " + WEIGHT_HAPMAP);
                 foundDBSNP = true;
             } else if ( d.getName().equals("hapmap") ) {
                 logger.info("Found HapMap track for use in training with weight = " + WEIGHT_HAPMAP);
@@ -230,11 +231,11 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
     public void onTraversalDone( ExpandingArrayList<VariantDatum> reduceSum ) {
 
+        logger.info( "There are " + reduceSum.size() + " variants with > 0 clustering weight and qual > threshold (--qualThreshold = " + QUAL_THRESHOLD + ")" );
+        logger.info( "The annotations used for clustering are: " + annotationKeys );
+
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
-
-        logger.info( "There are " + dataManager.numVariants + " variants with > 0 clustering weight and qual > threshold (--qualThreshold = " + QUAL_THRESHOLD + ")" );
-        logger.info( "The annotations used for clustering are: " + annotationKeys );
 
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
 
