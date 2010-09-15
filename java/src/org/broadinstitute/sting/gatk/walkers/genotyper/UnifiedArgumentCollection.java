@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 
 
 public class UnifiedArgumentCollection {
@@ -64,9 +65,11 @@ public class UnifiedArgumentCollection {
 
 
     // control the error modes
+    @Hidden
     @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
     public String ASSUME_SINGLE_SAMPLE = null;
 
+    @Hidden
     @Argument(fullName = "platform", shortName = "pl", doc = "Causes the genotyper to assume that reads without PL header TAG are this platform.  Defaults to null, indicating that the system will throw a runtime exception when such reads are detected", required = false)
     public EmpiricalSubstitutionProbabilities.SequencerPlatform defaultPlatform = null;
 
