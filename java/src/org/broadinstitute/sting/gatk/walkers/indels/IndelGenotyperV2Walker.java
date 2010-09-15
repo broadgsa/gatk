@@ -31,10 +31,7 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.vcf.*;
-import org.broadinstitute.sting.gatk.filters.Platform454Filter;
-import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
-import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
@@ -46,8 +43,10 @@ import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSource;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
@@ -148,8 +147,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
     private LocationAwareSeekableRODIterator refseqIterator=null;
 
-	private Set<String> normalReadGroups; // we are going to remember which read groups are normals and which are tumors in order to be able 
-	private Set<String> tumorReadGroups ; // to properly assign the reads coming from a merged stream
+//	private Set<String> normalReadGroups; // we are going to remember which read groups are normals and which are tumors in order to be able
+//	private Set<String> tumorReadGroups ; // to properly assign the reads coming from a merged stream
     private Set<String> normalSamples; // we are going to remember which samples are normal and which are tumor:
     private Set<String> tumorSamples ; // these are used only to generate genotypes for vcf output
 
@@ -206,7 +205,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 	@Override
 	public void initialize() {
+
 		normal_context = new WindowContext(0,WINDOW_SIZE);
+        normalSamples = new HashSet<String>();
 
         if ( bedOutput != null && output_file != null ) {
             throw new UserException.DeprecatedArgument("-O", "-O option is deprecated and -bed option replaces it; you can not use both at the same time");
@@ -229,33 +230,77 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 		int nSams = getToolkit().getArguments().samFiles.size();
 
+        if ( call_somatic ) {
+            if ( nSams < 2 ) throw new UserException.BadInput("At least two bam files (normal and tumor) must be specified in somatic mode");
+            tumor_context = new WindowContext(0,WINDOW_SIZE);
+            tumorSamples = new HashSet<String>();
+        }
+
+        int nNorm = 0;
+        int nTum = 0;
+        for ( SAMReaderID rid : getToolkit().getDataSource().getReaderIDs() ) {
+             List<String> tags = rid.getTags() ;
+             if ( tags.isEmpty() && call_somatic )
+                 throw new UserException.BadInput("In somatic mode all input bam files must be tagged as either 'normal' or 'tumor'. Untagged file: "+
+                         getToolkit().getSourceFileForReaderID(rid));
+             boolean normal = false;
+             boolean tumor = false;
+             for ( String s : tags ) { // we allow additional unrelated tags (and we do not use them), but we REQUIRE one of Tumor/Normal to be present if --somatic is on
+                 if ( "NORMAL".equals(s.toUpperCase()) ) {
+                     normal = true;
+                     nNorm++;
+                 }
+                 if ( "TUMOR".equals(s.toUpperCase()) ) {
+                     tumor = true;
+                     nTum++ ;
+                 }
+             }
+             if ( call_somatic && normal && tumor ) throw new UserException.BadInput("Input bam file "+
+                     getToolkit().getSourceFileForReaderID(rid)+" is tagged both as normal and as tumor. Which one is it??");
+             if ( call_somatic && !normal && ! tumor )
+                 throw new UserException.BadInput("In somatic mode all input bams must be tagged as either normal or tumor. Encountered untagged file: "+
+                    getToolkit().getSourceFileForReaderID(rid));
+             if ( ! call_somatic && (normal || tumor) )
+                 System.out.println("WARNING: input bam file "+getToolkit().getSourceFileForReaderID(rid)
+                         +" is tagged as Normal and/or Tumor, but somatic mode is not on. Tags will ne IGNORED");
+            if ( call_somatic && tumor ) {
+                for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader(rid).getReadGroups() ) {
+                    tumorSamples.add(rg.getSample());
+                }
+            } else {
+                for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader(rid).getReadGroups() ) {
+                    normalSamples.add(rg.getSample());
+                }
+            }
+
+        }
+
 		location = GenomeLocParser.createGenomeLoc(0,1);
 
-		List<Set<String>> readGroupSets = getToolkit().getMergedReadGroupsByReaders();
-        List<Set<String>> sampleSets = getToolkit().getSamplesByReaders();
+//		List<Set<String>> readGroupSets = getToolkit().getMergedReadGroupsByReaders();
+//        List<Set<String>> sampleSets = getToolkit().getSamplesByReaders();
 
-        normalSamples = sampleSets.get(0);
+        normalSamples = getToolkit().getSamplesByReaders().get(0);
 
-		if ( call_somatic ) {
-			if ( nSams != 2 ) {
-				System.out.println("In --somatic mode two input bam files must be specified (normal/tumor)");
-				System.exit(1);
-			}
-			tumor_context = new WindowContext(0,WINDOW_SIZE);
+//		if ( call_somatic ) {
+//			if ( nSams != 2 ) {
+//				System.out.println("In --somatic mode two input bam files must be specified (normal/tumor)");
+//				System.exit(1);
+//			}
 
-			normalReadGroups = readGroupSets.get(0); // first -I option must specify normal.bam
-                        System.out.println(normalReadGroups.size() + " normal read groups");
-                        //for ( String rg : normalReadGroups ) System.out.println("Normal RG: "+rg);
+//			normalReadGroups = readGroupSets.get(0); // first -I option must specify normal.bam
+//                        System.out.println(normalReadGroups.size() + " normal read groups");
+//                        for ( String rg : normalReadGroups ) System.out.println("Normal RG: "+rg);
 
-			tumorReadGroups = readGroupSets.get(1); // second -I option must specify tumor.bam
-                        System.out.println(tumorReadGroups.size() + " tumor read groups");
-                        // for ( String rg : tumorReadGroups ) System.out.println("Tumor RG: "+rg);
+//			tumorReadGroups = readGroupSets.get(1); // second -I option must specify tumor.bam
+//                        System.out.println(tumorReadGroups.size() + " tumor read groups");
+//                        for ( String rg : tumorReadGroups ) System.out.println("Tumor RG: "+rg);
 
-            tumorSamples = sampleSets.get(1);
-		} else {
-			if ( nSams != 1 ) System.out.println("WARNING: multiple input files specified. \n"+
-					"WARNING: Without --somatic option they will be merged and processed as a single sample");
-		}
+//            tumorSamples = sampleSets.get(1);
+//		} else {
+//			if ( nSams != 1 ) System.out.println("WARNING: multiple input files specified. \n"+
+//					"WARNING: Without --somatic option they will be merged and processed as a single sample");
+//		}
 
         try {
             // we already checked that bedOutput and output_file are not set simultaneously
@@ -390,17 +435,36 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
             if ( call_somatic ) {
 
-                String rg = (String)read.getAttribute("RG");
-                if ( rg == null )
-                    throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has no read group in merged stream. RG is required for somatic calls.");
-
-                if ( normalReadGroups.contains(rg) ) {
-                    normal_context.add(read,ref.getBases());
-                } else if ( tumorReadGroups.contains(rg) ) {
-                    tumor_context.add(read,ref.getBases());
-                } else {
-                    throw new UserException.MalformedBam(read, "Unrecognized read group in merged stream: "+rg);
+                List<String> tags =  getToolkit().getReaderIDForRead(read).getTags();
+                boolean assigned = false;
+                for ( String s : tags ) {
+                    if ( "NORMAL".equals(s.toUpperCase()) ) {
+                        normal_context.add(read,ref.getBases());
+                        assigned = true;
+                        break;
+                    }
+                    if ( "TUMOR".equals(s.toUpperCase()) ) {
+                        tumor_context.add(read,ref.getBases());
+                        assigned = true;
+                        break;
+                    }
                 }
+                if ( ! assigned )
+                    throw new StingException("Read "+read.getReadName()+" from "+getToolkit().getSourceFileForReaderID(getToolkit().getReaderIDForRead(read))+
+                    "has no Normal/Tumor tag associated with it");
+
+//                String rg = (String)read.getAttribute("RG");
+//                if ( rg == null )
+//                    throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has no read group in merged stream. RG is required for somatic calls.");
+
+//                if ( normalReadGroups.contains(rg) ) {
+//                    normal_context.add(read,ref.getBases());
+//                } else if ( tumorReadGroups.contains(rg) ) {
+//                    tumor_context.add(read,ref.getBases());
+//                } else {
+//                    throw new UserException.MalformedBam(read, "Unrecognized read group in merged stream: "+rg);
+//                }
+
                 if ( tumor_context.getReads().size() > MAX_READ_NUMBER ) {
                     System.out.println("WARNING: a count of "+MAX_READ_NUMBER+" reads reached in a window "+
                             refName+':'+tumor_context.getStart()+'-'+tumor_context.getStop()+" in tumor sample. The whole window will be dropped.");
@@ -591,6 +655,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             return;
         }
         long move_to = adjustedPosition;
+
+        if ( DEBUG ) System.out.println("DEBUG>> Emitting in somatic mode up to "+position+" force shift="+force+" current window="+tumor_context.getStart()+"-"+tumor_context.getStop());
 
         for ( long pos = tumor_context.getStart() ; pos < Math.min(adjustedPosition,tumor_context.getStop()+1) ; pos++ ) {
 
