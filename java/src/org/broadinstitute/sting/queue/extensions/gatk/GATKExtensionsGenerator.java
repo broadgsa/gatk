@@ -37,7 +37,7 @@ import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -65,7 +65,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
     WalkerManager walkerManager = new WalkerManager();
     FilterManager filterManager = new FilterManager();
-    RMDTrackManager rmdTrackManager = new RMDTrackManager();
+    RMDTrackBuilder trackBuilder = new RMDTrackBuilder();
 
     /**
      * Required main method implementation.
@@ -113,7 +113,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                             List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
 
                             argumentFields.addAll(ArgumentDefinitionField.getArgumentFields(walkerType));
-                            argumentFields.addAll(RodBindField.getRodArguments(walkerType, rmdTrackManager));
+                            argumentFields.addAll(RodBindField.getRodArguments(walkerType, trackBuilder));
                             argumentFields.addAll(ReadFilterField.getFilterArguments(walkerType));
 
                             writeClass(COMMANDLINE_PACKAGE_NAME + "." + clpClassName, WALKER_PACKAGE_NAME,

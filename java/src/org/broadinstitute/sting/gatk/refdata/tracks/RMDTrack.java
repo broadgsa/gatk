@@ -25,9 +25,16 @@ package org.broadinstitute.sting.gatk.refdata.tracks;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
+import org.broad.tribble.FeatureCodec;
+import org.broad.tribble.FeatureSource;
+import org.broad.tribble.source.BasicFeatureSource;
+import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Iterator;
 
@@ -39,7 +46,7 @@ import java.util.Iterator;
  *         <p/>
  *         the basics of what a reference metadata track must contain.
  */
-public abstract class RMDTrack {
+public class RMDTrack {
 
     // the basics of a track:
     private final Class type;           // our type
@@ -47,20 +54,14 @@ public abstract class RMDTrack {
     private final String name;          // the name
     private final File file;            // the associated file we create the reader from
 
-    /**
-     * Create a track
-     *
-     * @param type the type of track, used for track lookup
-     * @param recordType the type of record produced
-     * @param name the name of this specific track
-     * @param file the associated file, for reference or recreating the reader
-     */
-    protected RMDTrack(Class type, Class recordType, String name, File file) {
-        this.type = type;
-        this.recordType = recordType;
-        this.name = name;
-        this.file = file;
-    }
+    // our feature reader - allows queries
+    private BasicFeatureSource reader;
+
+    // our sequence dictionary, which can be null
+    private final SAMSequenceDictionary dictionary;
+
+    // our codec type
+    private final FeatureCodec codec;
 
     public Class getType() {
         return type;
@@ -79,12 +80,6 @@ public abstract class RMDTrack {
     }
 
     /**
-     * @return how to get an iterator of the underlying data.  This is all a track has to support,
-     *         but other more advanced tracks support the query interface
-     */
-    public abstract CloseableIterator<GATKFeature> getIterator();
-
-    /**
      * helper function for determining if we are the same track based on name and record type
      *
      * @param name the name to match
@@ -96,21 +91,90 @@ public abstract class RMDTrack {
         return (name.equals(this.name) && (type.getClass().isAssignableFrom(this.type.getClass())));
     }
 
+
+    /**
+     * Create a track
+     *
+     * @param type the type of track, used for track lookup
+     * @param name the name of this specific track
+     * @param file the associated file, for reference or recreating the reader
+     * @param reader the feature reader to use as the underlying data source
+     * @param dict the sam sequence dictionary
+     * @param codec the feature codec we use to decode this type
+     */
+    public RMDTrack(Class type, String name, File file, BasicFeatureSource reader, SAMSequenceDictionary dict, FeatureCodec codec) {
+        this.type = type;
+        this.recordType = codec.getFeatureType();
+        this.name = name;
+        this.file = file;
+        this.reader = reader;
+        this.dictionary = dict;
+        this.codec = codec;
+    }
+
+    /**
+     * @return how to get an iterator of the underlying data.  This is all a track has to support,
+     *         but other more advanced tracks support the query interface
+     */
+    public CloseableIterator<GATKFeature> getIterator() {
+        try {
+            return new FeatureToGATKFeatureIterator(reader.iterator(),this.getName());
+        } catch (IOException e) {
+            throw new UserException.CouldNotReadInputFile(getFile(), "Unable to read from file", e);
+        }
+    }
+
     /**
      * do we support the query interface?
-     * @return true if we can be cast to the QueryableTrack interface 
+     *
+     * @return true
      */
-    public abstract boolean supportsQuery();
+    public boolean supportsQuery() {
+        return true;
+    }
+
+    public CloseableIterator<GATKFeature> query(GenomeLoc interval) throws IOException {
+        return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
+    }
+
+    public CloseableIterator<GATKFeature> query(GenomeLoc interval, boolean contained) throws IOException {
+        return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
+    }
+
+    public CloseableIterator<GATKFeature> query(String contig, int start, int stop) throws IOException {
+        return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop),this.getName());
+    }
+
+    public CloseableIterator<GATKFeature> query(String contig, int start, int stop, boolean contained) throws IOException {
+        return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop),this.getName());
+    }
+
+    public void close() {
+        try {
+            reader.close();
+        } catch (IOException e) {
+            throw new UserException.MalformedFile("Unable to close reader " + reader.toString(),e);
+        }
+        reader = null;
+    }
+
+    public FeatureSource getReader() {
+        return reader;
+    }
 
     /**
      * get the sequence dictionary from the track, if available
      * @return a SAMSequenceDictionary if available, null if unavailable
      */
     public SAMSequenceDictionary getSequenceDictionary() {
-        return null;  // default, others can override this
+        return dictionary;
     }
 
     public Object getHeader() {
-        return null;
+        return reader.getHeader();
+    }
+
+    public FeatureCodec getCodec() {
+        return codec;
     }
 }

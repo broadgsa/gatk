@@ -2,9 +2,10 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.TabularROD;
+import org.broadinstitute.sting.gatk.refdata.features.table.TableCodec;
+import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.RODRMDTrack;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -47,13 +48,13 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
     public static void init() throws FileNotFoundException {
         File sequenceFile = new File(hg18Reference);
         GenomeLocParser.setupRefContigOrdering(new IndexedFastaSequenceFile(sequenceFile));
-        TabularROD.setDelimiter(TabularROD.DEFAULT_DELIMITER, TabularROD.DEFAULT_DELIMITER_REGEX);
     }
 
     @Before
     public void setUp() {
         File file = new File(testDir + "TabularDataTest.dat");
-        rod = new RODRMDTrack(TabularROD.class, "tableTest", file, new ReferenceOrderedData("tableTest", file, TabularROD.class));
+        RMDTrackBuilder builder = new RMDTrackBuilder();
+        rod = builder.createInstanceOfTrack(TableCodec.class, "tableTest", file);
     }
 
     @Test
@@ -64,7 +65,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
 
-        TabularROD datum = (TabularROD)iterator.next().get(0).getUnderlyingObject();
+        TableFeature datum = (TableFeature)iterator.next().get(0).getUnderlyingObject();
 
         assertTrue(datum.getLocation().equals(testSite1));
         assertTrue(datum.get("COL1").equals("A"));
@@ -90,26 +91,26 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
         // Test out-of-order access: first iterator2, then iterator1.
         // Ugh...first call to a region needs to be a seek. 
-        TabularROD datum = (TabularROD)iterator2.seekForward(testSite2).get(0).getUnderlyingObject();
+        TableFeature datum = (TableFeature)iterator2.seekForward(testSite2).get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite2));
         assertTrue(datum.get("COL1").equals("C"));
         assertTrue(datum.get("COL2").equals("D"));
         assertTrue(datum.get("COL3").equals("E"));
 
-        datum = (TabularROD)iterator1.next().get(0).getUnderlyingObject();
+        datum = (TableFeature)iterator1.next().get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite1));
         assertTrue(datum.get("COL1").equals("A"));
         assertTrue(datum.get("COL2").equals("B"));
         assertTrue(datum.get("COL3").equals("C"));
 
         // Advance iterator2, and make sure both iterator's contents are still correct.
-        datum = (TabularROD)iterator2.next().get(0).getUnderlyingObject();
+        datum = (TableFeature)iterator2.next().get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite3));
         assertTrue(datum.get("COL1").equals("F"));
         assertTrue(datum.get("COL2").equals("G"));
         assertTrue(datum.get("COL3").equals("H"));
 
-        datum = (TabularROD)iterator1.next().get(0).getUnderlyingObject();
+        datum = (TableFeature)iterator1.next().get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite2));
         assertTrue(datum.get("COL1").equals("C"));
         assertTrue(datum.get("COL2").equals("D"));
@@ -135,7 +136,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
 
-        TabularROD datum = (TabularROD)iterator.next().get(0).getUnderlyingObject();
+        TableFeature datum = (TableFeature)iterator.next().get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite1));
         assertTrue(datum.get("COL1").equals("A"));
         assertTrue(datum.get("COL2").equals("B"));
@@ -150,7 +151,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
 
-        datum = (TabularROD)iterator.seekForward(testSite3).get(0).getUnderlyingObject();
+        datum = (TableFeature)iterator.seekForward(testSite3).get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite3));
         assertTrue(datum.get("COL1").equals("F"));
         assertTrue(datum.get("COL2").equals("G"));
@@ -170,7 +171,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
 
-        TabularROD datum = (TabularROD)iterator.seekForward(testSite3).get(0).getUnderlyingObject();
+        TableFeature datum = (TableFeature)iterator.seekForward(testSite3).get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite3));
         assertTrue(datum.get("COL1").equals("F"));
         assertTrue(datum.get("COL2").equals("G"));
@@ -185,7 +186,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
         Assert.assertEquals("Number of available iterators in the pool is incorrect", 1, iteratorPool.numAvailableIterators());
 
-        datum = (TabularROD)iterator.next().get(0).getUnderlyingObject();
+        datum = (TableFeature)iterator.next().get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite1));
         assertTrue(datum.get("COL1").equals("A"));
         assertTrue(datum.get("COL2").equals("B"));

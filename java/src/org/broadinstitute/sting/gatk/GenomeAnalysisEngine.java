@@ -30,9 +30,11 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
 import org.broadinstitute.sting.gatk.datasources.sample.SampleFileParser;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -50,7 +52,6 @@ import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.*;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
@@ -381,12 +382,8 @@ public class GenomeAnalysisEngine {
         referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
 
         if (argCollection.DBSNPFile != null) bindConvenienceRods(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile);
-        // TODO: The ROD iterator currently does not understand multiple intervals file.  Fix this by cleaning the ROD system.
-        if (argCollection.intervals != null && argCollection.intervals.size() == 1) {
-            bindConvenienceRods("interval", "Intervals", argCollection.intervals.get(0).replaceAll(",", ""));
-        }
 
-        RMDTrackManager manager = new RMDTrackManager();
+        RMDTrackBuilder manager = new RMDTrackBuilder();
         List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection.RODBindings);
         validateSuppliedReferenceOrderedDataAgainstWalker(my_walker, tracks);
 

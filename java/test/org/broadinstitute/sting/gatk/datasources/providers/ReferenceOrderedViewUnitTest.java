@@ -1,14 +1,15 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.datasources.shards.LocusShard;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.MockLocusShard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
-import org.broadinstitute.sting.gatk.refdata.TabularROD;
-import org.broadinstitute.sting.gatk.refdata.tracks.RODRMDTrack;
+import org.broadinstitute.sting.gatk.refdata.features.table.TableCodec;
+import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -43,6 +44,11 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
      */
     private static IndexedFastaSequenceFile seq;
 
+    /**
+     * our track builder
+     */
+    RMDTrackBuilder builder = new RMDTrackBuilder();
+
     @BeforeClass
     public static void init() throws FileNotFoundException {
         // sequence
@@ -69,8 +75,8 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     @Test
     public void testSingleBinding() {
         File file = new File(testDir + "TabularDataTest.dat");
-        ReferenceOrderedData rod = new ReferenceOrderedData("tableTest", file, TabularROD.class);
-        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(null, new RODRMDTrack(TabularROD.class,"tableTest",file,rod));
+        RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest",file);
+        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(null,track);
 
         Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
 
@@ -78,7 +84,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
-        TabularROD datum = tracker.lookup("tableTest",TabularROD.class);
+        TableFeature datum = tracker.lookup("tableTest",TableFeature.class);
 
         Assert.assertEquals("datum parameter for COL1 is incorrect", "C", datum.get("COL1"));
         Assert.assertEquals("datum parameter for COL2 is incorrect", "D", datum.get("COL2"));
@@ -92,10 +98,11 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     public void testMultipleBinding() {
         File file = new File(testDir + "TabularDataTest.dat");
 
-        ReferenceOrderedData rod1 = new ReferenceOrderedData("tableTest1", file, TabularROD.class);
-        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(null,new RODRMDTrack(TabularROD.class,"tableTest1",file,rod1));
-        ReferenceOrderedData rod2 = new ReferenceOrderedData("tableTest2", file, TabularROD.class);
-        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(null,new RODRMDTrack(TabularROD.class,"tableTest2",file,rod2));;
+
+        RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest1",file);
+        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(null,track);
+        RMDTrack track2 = builder.createInstanceOfTrack(TableCodec.class,"tableTest2",file);
+        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(null,track2);
 
 
         Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
@@ -104,13 +111,13 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
-        TabularROD datum1 = tracker.lookup("tableTest1",TabularROD.class);
+        TableFeature datum1 = tracker.lookup("tableTest1",TableFeature.class);
 
         Assert.assertEquals("datum1 parameter for COL1 is incorrect", "C", datum1.get("COL1"));
         Assert.assertEquals("datum1 parameter for COL2 is incorrect", "D", datum1.get("COL2"));
         Assert.assertEquals("datum1 parameter for COL3 is incorrect", "E", datum1.get("COL3"));
 
-        TabularROD datum2 = tracker.lookup("tableTest2",TabularROD.class);
+        TableFeature datum2 = tracker.lookup("tableTest2", TableFeature.class);
 
         Assert.assertEquals("datum2 parameter for COL1 is incorrect", "C", datum2.get("COL1"));
         Assert.assertEquals("datum2 parameter for COL2 is incorrect", "D", datum2.get("COL2"));

@@ -32,7 +32,6 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.gatk.refdata.PlinkRod;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -207,10 +206,6 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
             numTrueVariants++;
         infoMap.put(VCFConstants.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
         infoMap.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
-
-        // set the id if it's a plink rod
-        if ( rod instanceof PlinkRod )
-            infoMap.put(VariantContext.ID_KEY, ((PlinkRod)rod).getVariantName());
 
         vContext = VariantContextUtils.modifyAttributes(vContext, infoMap);
 

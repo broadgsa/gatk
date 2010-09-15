@@ -47,7 +47,7 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
 
         if ( intervalsList != null && intervalsList.size() > 0 ) {
             for ( Object interval : intervalsList ) {
-                GenomeLoc loc = ((IntervalRod) interval).getLocation();
+                GenomeLoc loc = ((GATKFeature)interval).getLocation();
                 if ( ! intervalBuffer.keySet().contains(loc) ) {
                     intervalBuffer.put(loc,new IntervalInfoBuilder());
                 }

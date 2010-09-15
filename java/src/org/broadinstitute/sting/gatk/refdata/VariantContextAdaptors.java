@@ -42,10 +42,8 @@ public class VariantContextAdaptors {
 
     static {
         adaptors.put(DbSNPFeature.class, new DBSnpAdaptor());
-        adaptors.put(PlinkRod.class, new PlinkRodAdaptor());
         adaptors.put(HapMapFeature.class, new HapMapAdaptor());
         adaptors.put(GeliTextFeature.class, new GeliTextAdaptor());
-        adaptors.put(rodGELI.class, new GeliAdaptor());
         adaptors.put(VariantContext.class, new VariantContextAdaptor());
     }
 
@@ -136,96 +134,6 @@ public class VariantContextAdaptors {
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // Plink to VariantContext
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    private static class PlinkRodAdaptor extends VCAdaptor {
-//        VariantContext convert(String name, Object input) {
-//            return convert(name, input, null);
-//        }
-
-        VariantContext convert(String name, Object input, ReferenceContext ref) {
-            if ( ref == null )
-                throw new UnsupportedOperationException("Conversion from Plink to VariantContext requires a reference context");
-
-            PlinkRod plink = (PlinkRod)input;
-
-            HashSet<Allele> VCAlleles = new HashSet<Allele>();
-            Allele refAllele = determineRefAllele(plink, ref);
-            VCAlleles.add(refAllele);
-
-            // mapping from Plink Allele to VC Allele (since the PlinkRod does not annotate any of the Alleles as reference)
-            HashMap<Allele, Allele> plinkAlleleToVCAllele = new HashMap<Allele, Allele>();
-
-            Set<Genotype> genotypes = new HashSet<Genotype>();
-
-            Map<String, Allele[]> genotypeSets = plink.getGenotypes();
-
-            // We need to iterate through this list and recreate the Alleles since the
-            //  PlinkRod does not annotate any of the Alleles as reference.
-            // for each sample...
-            for ( Map.Entry<String, Allele[]> genotype : genotypeSets.entrySet() ) {
-                ArrayList<Allele> myVCAlleles = new ArrayList<Allele>(2);
-
-                // for each allele...
-                for ( Allele myPlinkAllele : genotype.getValue() ) {
-                    Allele VCAllele;
-                    if ( myPlinkAllele.isNoCall() ) {
-                        VCAllele = Allele.NO_CALL;
-                    } else {                    
-                        if ( plinkAlleleToVCAllele.containsKey(myPlinkAllele) ) {
-                            VCAllele = plinkAlleleToVCAllele.get(myPlinkAllele);
-                        } else {
-                            if ( !plink.isIndel() ) {
-                                VCAllele = Allele.create(myPlinkAllele.getBases(), refAllele.equals(myPlinkAllele, true));
-                            } else if ( myPlinkAllele.isNull() ) {
-                                VCAllele = Allele.create(Allele.NULL_ALLELE_STRING, plink.isInsertion());
-                            } else {
-                                VCAllele = Allele.create(myPlinkAllele.getBases(), !plink.isInsertion());
-                            }
-                            plinkAlleleToVCAllele.put(myPlinkAllele, VCAllele);
-                            VCAlleles.add(VCAllele);
-                        }
-                    }
-
-                    myVCAlleles.add(VCAllele);
-                }
-
-                // create the genotype
-                genotypes.add(new Genotype(genotype.getKey(), myVCAlleles));
-            }
-
-            // create the variant context
-            try {
-                GenomeLoc loc = GenomeLocParser.setStop(plink.getLocation(), plink.getLocation().getStop() + plink.getLength()-1);
-                VariantContext vc = VariantContextUtils.toVC(plink.getVariantName(), loc, VCAlleles, genotypes);
-                return vc;
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(e.getMessage() + "; please make sure that e.g. a sample isn't present more than one time in your ped file");
-            }
-        }
-
-        private Allele determineRefAllele(PlinkRod plink, ReferenceContext ref) {
-            Allele refAllele;
-            if ( !plink.isIndel() ) {
-                refAllele = Allele.create(ref.getBase(), true);
-            } else if ( plink.isInsertion() ) {
-                refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
-            } else {
-                long maxLength = ref.getWindow().getStop() - ref.getLocus().getStop();                
-                if ( plink.getLength() > maxLength )
-                    throw new UnsupportedOperationException("Plink conversion currently can only handle indels up to length " + maxLength);
-                refAllele = deletionAllele(ref, 1, plink.getLength());
-
-            }
-            return refAllele;
-        }
-    }
-
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
     // GELI to VariantContext
     //
     // --------------------------------------------------------------------------------------------------------------
@@ -288,78 +196,6 @@ public class VariantContextAdaptors {
                 return vc;
             } else
                 return null; // can't handle anything else
-        }
-    }
-
-    // --------------------------------------------------------------------------------------------------------------
-    //
-    // GELI to VariantContext
-    //
-    // --------------------------------------------------------------------------------------------------------------
-
-    private static class GeliAdaptor extends VCAdaptor {
-          /**
-         * convert to a Variant Context, given:
-         * @param name the name of the ROD
-         * @param input the Rod object, in this case a RodGeliText
-         * @return a VariantContext object
-         */
-//        VariantContext convert(String name, Object input) {
-//            return convert(name, input, null);
-//        }
-
-        /**
-         * convert to a Variant Context, given:
-         * @param name  the name of the ROD
-         * @param input the Rod object, in this case a RodGeliText
-         * @param ref   the reference context
-         * @return a VariantContext object
-         */
-        VariantContext convert(String name, Object input, ReferenceContext ref) {
-            GenotypeLikelihoods geli = ((rodGELI)input).getGeliRecord();
-            if ( ! Allele.acceptableAlleleBases(String.valueOf((char)geli.getReferenceBase()),true) )
-                return null;
-            Allele refAllele = Allele.create(String.valueOf((char)geli.getReferenceBase()), true);
-
-            // add the reference allele
-            List<Allele> alleles = new ArrayList<Allele>();
-            alleles.add(refAllele);
-
-            // add the two alt alleles
-            if (!Allele.acceptableAlleleBases(String.valueOf((char) geli.getBestGenotype().getAllele1()),false)) {
-                return null;
-            }
-            Allele allele1 = Allele.create(String.valueOf((char) geli.getBestGenotype().getAllele1()), false);
-            if (!alleles.contains(allele1) && !allele1.equals(refAllele, true)) alleles.add(allele1);
-
-            // add the two alt alleles
-            if (!Allele.acceptableAlleleBases(String.valueOf((char) geli.getBestGenotype().getAllele2()),false)) {
-                return null;
-            }
-            Allele allele2 = Allele.create(String.valueOf((char) geli.getBestGenotype().getAllele2()), false);
-            if (!alleles.contains(allele2) && !allele2.equals(refAllele, true)) alleles.add(allele2);
-
-
-            Map<String, String> attributes = new HashMap<String, String>();
-            Collection<Genotype> genotypes = new ArrayList<Genotype>();
-            MutableGenotype call = new MutableGenotype(name, alleles);
-
-            // setup the genotype likelihoods
-            double[] post = new double[10];
-            String[] gTypes = {"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT"};
-            for (int x = 0; x < 10; x++)
-                post[x] = Double.valueOf(geli.getLikelihood(DiploidGenotype.fromBases((byte) gTypes[x].charAt(0), (byte) gTypes[x].charAt(1))));
-
-            // set the likelihoods, depth, and RMS mapping quality values
-            //call.putAttribute(CalledGenotype.POSTERIORS_ATTRIBUTE_KEY, post);
-            //call.putAttribute(GeliTextWriter.MAXIMUM_MAPPING_QUALITY_ATTRIBUTE_KEY, (int) geli.getMaxMappingQuality());
-            //call.putAttribute(GeliTextWriter.READ_COUNT_ATTRIBUTE_KEY, geli.getNumReads());
-
-            // add the call to the genotype list, and then use this list to create a VariantContext
-            genotypes.add(call);
-            VariantContext vc = VariantContextUtils.toVC(name, ((rodGELI) input).getLocation(), alleles, genotypes, geli.getBestToReferenceLod(), null, attributes);
-            return vc;
-
         }
     }
 

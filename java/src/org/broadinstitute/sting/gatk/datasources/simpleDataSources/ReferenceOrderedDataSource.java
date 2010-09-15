@@ -3,9 +3,8 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 import org.broad.tribble.FeatureSource;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
-import org.broadinstitute.sting.gatk.refdata.tracks.TribbleTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
@@ -51,7 +50,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
     public ReferenceOrderedDataSource( Walker walker, RMDTrack rod) {
         this.rod = rod;
         if (rod.supportsQuery())
-            iteratorPool = new ReferenceOrderedQueryDataPool(new TribbleRMDTrackBuilder(), (TribbleTrack)rod);
+            iteratorPool = new ReferenceOrderedQueryDataPool(new RMDTrackBuilder(),rod);
         else
             iteratorPool = new ReferenceOrderedDataPool( walker, rod );
     }
@@ -112,7 +111,7 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
     private final RMDTrack rod;
     boolean flashbackData = false;
     public ReferenceOrderedDataPool( Walker walker, RMDTrack rod ) {
-        if (walker instanceof ReadWalker) flashbackData = true; // && (rod.getType() != IntervalRod.class)
+        if (walker instanceof ReadWalker) flashbackData = true; 
         this.rod = rod;
     }
 
@@ -184,9 +183,9 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureSource, Location
     private final RMDTrack rod;
 
     // our tribble track builder
-    private final TribbleRMDTrackBuilder builder;
+    private final RMDTrackBuilder builder;
 
-    public ReferenceOrderedQueryDataPool( TribbleRMDTrackBuilder builder, TribbleTrack rod ) {
+    public ReferenceOrderedQueryDataPool( RMDTrackBuilder builder, RMDTrack rod ) {
         this.rod = rod;
         this.builder = builder;
         // a little bit of a hack, but it saves us from re-reading the index from the file

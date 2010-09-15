@@ -83,7 +83,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesUseOriginalQuals() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "originalQuals.1kg.chr1.1-1K.bam", "72b79646061d78674a3752272823d47f");
+        e.put( validationDataLocation + "originalQuals.1kg.chr1.1-1K.bam", "db6c0dca1ec121f8c2e6d20f4969dee5");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();
@@ -96,7 +96,8 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -L 1:1-1,000" +
                             " -standard" +
                             " -OQ" +
-                            " -recalFile %s",
+                            " -recalFile %s" +
+                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod",
                     1, // just one output file
                     Arrays.asList(md5));
             executeTest("testCountCovariatesUseOriginalQuals", spec);

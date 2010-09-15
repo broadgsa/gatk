@@ -6,7 +6,7 @@ import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -76,7 +76,7 @@ public class VCFWriterUnitTest extends BaseTest {
                 counter++;
             }
             Assert.assertEquals(2,counter);
-            new File(fakeVCFFile + TribbleRMDTrackBuilder.indexExtension).delete();
+            new File(fakeVCFFile + RMDTrackBuilder.indexExtension).delete();
             fakeVCFFile.delete();
         }
         catch (IOException e ) {

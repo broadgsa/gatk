@@ -42,16 +42,16 @@ import java.util.Map;
 /**
  * @author aaron
  *         <p/>
- *         Class TribbleRMDTrackBuilderUnitTest
+ *         Class RMDTrackBuilderUnitTest
  *         <p/>
  *         Testing out the builder for tribble Tracks
  */
-public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
-    private TribbleRMDTrackBuilder builder;
+public class RMDTrackBuilderUnitTest extends BaseTest {
+    private RMDTrackBuilder builder;
 
     @Before
     public void setup() {
-        builder = new TribbleRMDTrackBuilder();
+        builder = new RMDTrackBuilder();
         IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(b36KGReference));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
@@ -73,8 +73,8 @@ public class TribbleRMDTrackBuilderUnitTest extends BaseTest {
             Assert.fail("IO exception unexpected" + e.getMessage());
         }
         // make sure we didn't write the file (check that it's timestamp is within bounds)
-        //System.err.println(new File(vcfFile + TribbleRMDTrackBuilder.indexExtension).lastModified());
-        Assert.assertTrue(Math.abs(1279591752000l - new File(vcfFile + TribbleRMDTrackBuilder.indexExtension).lastModified()) < 100);
+        //System.err.println(new File(vcfFile + RMDTrackBuilder.indexExtension).lastModified());
+        Assert.assertTrue(Math.abs(1279591752000l - new File(vcfFile + RMDTrackBuilder.indexExtension).lastModified()) < 100);
 
     }
 

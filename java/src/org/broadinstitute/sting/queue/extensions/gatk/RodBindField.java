@@ -26,7 +26,7 @@ package org.broadinstitute.sting.queue.extensions.gatk;
 
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.WalkerManager;
-import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackManager;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 
@@ -88,7 +88,7 @@ public class RodBindField extends ArgumentField {
         return exclusiveOf.toString();
     }
 
-    public static List<ArgumentField> getRodArguments(Class<? extends Walker> walkerClass, RMDTrackManager rmdTrackManager) {
+    public static List<ArgumentField> getRodArguments(Class<? extends Walker> walkerClass, RMDTrackBuilder trackBuilder) {
         List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
 
         List<RMD> requires = WalkerManager.getRequiredMetaData(walkerClass);
@@ -101,7 +101,7 @@ public class RodBindField extends ArgumentField {
                 // TODO: Add the field triplet for name=* after @Allows and @Requires are fixed on walkers
                 //fields.add(new RodBindArgumentField(argumentDefinition, true));
             } else {
-                for (String typeName: rmdTrackManager.getTrackRecordTypeNames(required.type()))
+                for (String typeName: trackBuilder.getTrackRecordTypeNames(required.type()))
                     fields.add(new RodBindField(trackName, typeName, fields, true));
             }
             argumentFields.addAll(fields);
@@ -114,7 +114,7 @@ public class RodBindField extends ArgumentField {
                 // TODO: Add the field triplet for name=* after @Allows and @Requires are fixed on walkers
                 //fields.add(new RodBindArgumentField(argumentDefinition, false));
             } else {
-                for (String typeName: rmdTrackManager.getTrackRecordTypeNames(allowed.type()))
+                for (String typeName: trackBuilder.getTrackRecordTypeNames(allowed.type()))
                     fields.add(new RodBindField(trackName, typeName, fields, true));
             }
             argumentFields.addAll(fields);

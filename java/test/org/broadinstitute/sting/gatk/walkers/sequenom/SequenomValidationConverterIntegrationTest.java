@@ -6,7 +6,12 @@ import org.junit.Test;
 import java.util.Arrays;
 
 public class SequenomValidationConverterIntegrationTest extends WalkerTest {
-    @Test
+
+    public void testEmpty() {
+        System.err.println("Reinstate these tests when plink is back in");
+    }
+
+    //@Test TODO: reinstate the test when the Plink rod is back
     public void testSNPs() {
         String testPedFile = validationDataLocation + "Sequenom_Test_File.txt";
         String testArgs = "-R "+b36KGReference + " -T SequenomValidationConverter -B:sequenom,Plink "+testPedFile+" -o %s";

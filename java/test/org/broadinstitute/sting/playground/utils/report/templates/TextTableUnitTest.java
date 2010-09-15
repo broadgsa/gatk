@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.playground.utils.report.templates;
 
-import org.broadinstitute.sting.playground.utils.report.templates.TextTable;
 import org.junit.Assert;
 import org.junit.Test;
 

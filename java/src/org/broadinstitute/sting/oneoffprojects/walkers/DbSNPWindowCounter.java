@@ -9,7 +9,7 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
@@ -47,7 +47,7 @@ public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
 
 
     public void initialize() {
-        TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
+        RMDTrackBuilder builder = new RMDTrackBuilder();
         reader = builder.createFeatureReader(DbSNPCodec.class,myDbSNPFile).first;
     }
 

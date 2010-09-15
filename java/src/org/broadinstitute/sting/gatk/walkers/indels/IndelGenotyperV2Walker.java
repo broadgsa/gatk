@@ -35,7 +35,7 @@ import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
@@ -216,7 +216,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 		if ( RefseqFileName != null ) {
             logger.info("Using RefSeq annotations from "+RefseqFileName);
 
-			TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
+			RMDTrackBuilder builder = new RMDTrackBuilder();
             FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
 
             try {

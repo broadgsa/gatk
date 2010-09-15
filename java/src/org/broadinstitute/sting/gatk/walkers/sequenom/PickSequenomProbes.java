@@ -31,11 +31,9 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.TribbleRMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
@@ -88,14 +86,13 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             logger.info("Loading SNP mask...  ");
             ReferenceOrderedData snp_mask;
             if ( SNP_MASK.contains(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME)) {
-                TribbleRMDTrackBuilder builder = new TribbleRMDTrackBuilder();
+                RMDTrackBuilder builder = new RMDTrackBuilder();
                 CloseableIterator<GATKFeature> iter = builder.createInstanceOfTrack(DbSNPCodec.class,"snp_mask",new java.io.File(SNP_MASK)).getIterator();
                 snpMaskIterator = new SeekableRODIterator(iter);
                 
             } else {
-                snp_mask = new ReferenceOrderedData<TabularROD>("snp_mask",
-                        new java.io.File(SNP_MASK), TabularROD.class);
-                snpMaskIterator = new SeekableRODIterator(new GATKFeatureIterator(snp_mask.iterator()));
+                // TODO: fix me when Plink is back
+                throw new IllegalArgumentException("We currently do not support other snp_mask tracks (like Plink)");
             }
 
 		}
