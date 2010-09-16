@@ -170,7 +170,7 @@ trait CommandLineFunction extends QFunction with Logging {
         newFileExtension
       }
       case file: File => {
-        if (file.getClass == classOf[File])
+        if (file.getClass != classOf[File])
           throw new QException("Extensions of file must also extend with FileExtension so that the path can be modified.");
         val newFile = IOUtils.resetParent(tempDir, file)
         setFieldValue(field, newFile)
