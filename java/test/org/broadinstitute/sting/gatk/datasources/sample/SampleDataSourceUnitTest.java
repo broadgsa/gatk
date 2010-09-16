@@ -17,13 +17,13 @@ import java.util.Set;
  * Date: Sep 9, 2010
  * Time: 8:21:00 AM
  */
-public class SampleDataSourceTest extends BaseTest {
+public class SampleDataSourceUnitTest extends BaseTest {
 
     // this empty header used to instantiate sampledatasource objects
     private static SAMFileHeader header = new SAMFileHeader();
 
     // all the test sample files are located here
-    private String sampleFilesDir = validationDataLocation +  "sample/";
+    private String sampleFilesDir = validationDataLocation +  "samples/";
 
     // make sure samples are created from the SAM file correctly
     @Test()

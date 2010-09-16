@@ -51,6 +51,16 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
      * @param fastaFile Fasta file to be used as reference
      */
     public ReferenceDataSource(File fastaFile) {
+
+        // does the fasta file exist? check that first...
+        if (!fastaFile.exists()) {
+            if (!fastaFile.getParentFile().exists())
+                throw new UserException("The fasta file path you provided is invalid. The directory " +
+                       fastaFile.getParentFile().getAbsolutePath() + " does not exist." );
+            else
+                throw new UserException("The fasta file you provided does not exist.");
+        }
+
         File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
         File dictFile;
         if (fastaFile.getAbsolutePath().endsWith("fa")) {

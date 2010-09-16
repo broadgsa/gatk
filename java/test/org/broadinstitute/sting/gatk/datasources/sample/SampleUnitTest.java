@@ -11,7 +11,7 @@ import org.junit.Test;
  * Date: Sep 9, 2010
  * Time: 8:21:00 AM
  */
-public class SampleTest extends BaseTest {
+public class SampleUnitTest extends BaseTest {
 
     static Sample sampleA;
     static Sample sampleA1;
