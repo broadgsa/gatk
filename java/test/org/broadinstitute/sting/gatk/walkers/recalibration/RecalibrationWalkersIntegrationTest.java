@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -353,6 +354,28 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                         Arrays.asList(md5));
                 executeTest("testTableRecalibratorNoIndex", spec);
             }
+        }
+    }
+
+
+    @Test
+    public void testCountCovariatesFailWithoutDBSNP() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "3700eaf567e4937f442fc777a226d6ad");
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String bam = entry.getKey();
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-R " + b36KGReference +
+                            " -T CountCovariates" +
+                            " -I " + bam +
+                            " -L 1:10,000,000-10,200,000" +
+                            " -standard" +
+                            " --solid_recal_mode SET_Q_ZERO" +
+                            " -recalFile %s",
+                    1, // just one output file
+                    UserException.CommandLineException.class);
+            executeTest("testCountCovariatesFailWithoutDBSNP", spec);
         }
     }
 
