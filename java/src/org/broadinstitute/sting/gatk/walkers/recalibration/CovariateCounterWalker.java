@@ -25,7 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import org.broad.tribble.bed.BEDCodec;
+import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -179,12 +182,16 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
             System.exit( 0 ); // Early exit here because user requested it
         }
 
-        // Warn the user if no dbSNP file was specified
+        // Warn the user if no dbSNP file or other variant mask was specified
         boolean foundDBSNP = false;
         for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
             if( rod != null ) {
-                foundDBSNP = true;
-                break;
+                if( rod.getReferenceOrderedData().getType().equals(DbSNPCodec.class) ||
+                        rod.getReferenceOrderedData().getType().equals(VCFCodec.class) ||
+                        rod.getReferenceOrderedData().getType().equals(BEDCodec.class) ) {
+                    foundDBSNP = true;
+                    break;
+                }
             }
         }
         if( !foundDBSNP && !RUN_WITHOUT_DBSNP ) {
@@ -381,6 +388,7 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
      *   adding one to the number of observations and potentially one to the number of mismatches
      * Lots of things are passed as parameters to this method as a strategy for optimizing the covariate.getValue calls
      *   because pulling things out of the SAMRecord is an expensive operation.
+     * @param counter Data structure which holds the counted bases
      * @param gatkRead The SAMRecord holding all the data for this read
      * @param offset The offset in the read for this locus
      * @param refBase The reference base at this locus
