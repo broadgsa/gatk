@@ -16,6 +16,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -L chr1:1-50,000,000" +
                         " -standard" +
                         " -OQ" +
+                        " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod" +
                         " -recalFile /dev/null" + moreArgs,
                 0,
                 new ArrayList<String>(0));
@@ -30,6 +31,7 @@ public class RecalibrationWalkersPerformanceTest extends WalkerTest {
                         " -L " + evaluationDataLocation + "whole_exome_agilent_designed_120.targets.chr1.interval_list" +
                         " -standard" +
                         " -OQ" +
+                        " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod" +
                         " -recalFile /dev/null" + moreArgs,
                 0,
                 new ArrayList<String>(0));
