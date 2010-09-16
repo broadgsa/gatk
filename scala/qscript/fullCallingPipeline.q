@@ -127,10 +127,7 @@ class fullCallingPipeline extends QScript {
     // step through the un-indel-cleaned graph:
     // 1a. call snps and indels
     val snps = new UnifiedGenotyper with CommandLineGATKArgs
-    for ( bam <- bamFiles ) {
-     snps.input_file :+= bam.toNamedFile
-    }
-    //snps.input_file = bamFiles
+    snps.input_file = bamFiles
     snps.group :+= "Standard"
     snps.out = new File(base+".vcf")
     snps.standard_min_confidence_threshold_for_emitting = Some(10)
