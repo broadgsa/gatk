@@ -22,8 +22,8 @@ else
 	if [ $? -ne 0 ]; then break; fi
 	read -u 4 header2
 	if [ $? -ne 0 ]; then break; fi
-	if [ $header1 != $header2 ]; then break; fi
-	echo "$header1" >> outputfile
+	if [ "$header1" != "$header2" ]; then break; fi
+	echo "$header1" >> $outputFile
 	((startLine++))
     done
     
