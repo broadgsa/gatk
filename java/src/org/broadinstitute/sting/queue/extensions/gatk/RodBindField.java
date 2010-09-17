@@ -64,9 +64,13 @@ public class RodBindField extends ArgumentField {
     @Override protected boolean isRequired() { return this.isRequired; }
 
     @Override public String getCommandLineAddition() {
+        // TODO: Stop allowing the generic "rodBind" triplets to satisfy the requirement after @Requires are fixed.
+        return String.format(" + optional(\" -B:%s,%s \", %s)",
+        /*
         return String.format(this.useOption()
                 ? " + optional(\" -B:%s,%s \", %s)"
                 : " + \" -B:%s,%s \" + %s",
+        */
                 this.trackName, this.typeName, getFieldName());
     }
 
