@@ -33,7 +33,6 @@ import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
@@ -192,7 +191,7 @@ public class UnifiedGenotyperEngine {
 
                 Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, call.vc);
                 call.vc = variantContexts.iterator().next(); //We know the collection will always have exactly 1 element.
-            }
+            }                                                                           
         }
 
         if ( call != null && call.vc != null ) {
@@ -202,7 +201,7 @@ public class UnifiedGenotyperEngine {
             if ( rawContext.hasPileupBeenDownsampled() ) {
                 Map<String, Object> attrs = new HashMap<String, Object>(call.vc.getAttributes());
                 attrs.put(VCFConstants.DOWNSAMPLED_KEY, true);
-                call.vc = VariantContextUtils.modifyAttributes(call.vc, attrs);
+                call.vc = VariantContext.modifyAttributes(call.vc, attrs);
             }
         }
         return call;

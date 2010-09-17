@@ -687,28 +687,8 @@ public class VariantContextUtils {
         return uniqify ? sampleName + "." + trackName : sampleName;
     }
 
-    public static VariantContext modifyGenotypes(VariantContext vc, Map<String, Genotype> genotypes) {
-        return new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
-    }
-
     public static VariantContext modifyLocation(VariantContext vc, GenomeLoc loc) {
         return new VariantContext(vc.getName(), loc.getContig(), loc.getStart(), loc.getStop(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
-    }
-
-    public static VariantContext modifyFilters(VariantContext vc, Set<String> filters) {
-        return new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd() , vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), filters, vc.getAttributes());
-    }
-
-    public static VariantContext modifyAttributes(VariantContext vc, Map<String, Object> attributes) {
-        return new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, attributes);
-    }
-
-    public static Genotype modifyName(Genotype g, String name) {
-        return new Genotype(name, g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, g.getAttributes(), g.genotypesArePhased());
-    }
-
-    public static Genotype modifyAttributes(Genotype g, Map<String, Object> attributes) {
-        return new Genotype(g.getSampleName(), g.getAlleles(), g.getNegLog10PError(), g.filtersWereApplied() ? g.getFilters() : null, attributes, g.genotypesArePhased());
     }
 
     public static VariantContext purgeUnallowedGenotypeAttributes(VariantContext vc, Set<String> allowedAttributes) {
@@ -722,10 +702,10 @@ public class VariantContextUtils {
                 if ( allowedAttributes.contains(attr.getKey()) )
                     attrs.put(attr.getKey(), attr.getValue());
             }
-            newGenotypes.put(genotype.getKey(), VariantContextUtils.modifyAttributes(genotype.getValue(), attrs));
+            newGenotypes.put(genotype.getKey(), Genotype.modifyAttributes(genotype.getValue(), attrs));
         }
 
-        return VariantContextUtils.modifyGenotypes(vc, newGenotypes);
+        return VariantContext.modifyGenotypes(vc, newGenotypes);
     }
 
     public static BaseUtils.BaseSubstitutionType getSNPSubstitutionType(VariantContext context) {

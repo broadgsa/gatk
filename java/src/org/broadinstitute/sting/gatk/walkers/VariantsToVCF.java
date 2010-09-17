@@ -77,14 +77,14 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
             Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
             if ( dbsnp != null )
                 attrs.put(VariantContext.ID_KEY, dbsnp.getRsID());
-            vc = VariantContextUtils.modifyAttributes(vc, attrs);
+            vc = VariantContext.modifyAttributes(vc, attrs);
 
             // set the appropriate sample name if necessary
             if ( sampleName != null && vc.hasGenotypes() && vc.hasGenotype(INPUT_ROD_NAME) ) {
-                Genotype g = VariantContextUtils.modifyName(vc.getGenotype(INPUT_ROD_NAME), sampleName);
+                Genotype g = Genotype.modifyName(vc.getGenotype(INPUT_ROD_NAME), sampleName);
                 Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
                 genotypes.put(sampleName, g);
-                vc = VariantContextUtils.modifyGenotypes(vc, genotypes);
+                vc = VariantContext.modifyGenotypes(vc, genotypes);
             }
 
             writeRecord(vc, tracker, ref.getBase());
@@ -110,7 +110,7 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
                 }
             }
 
-            Set<String> samples = new TreeSet<String>();
+            Set<String> samples = new LinkedHashSet<String>();
             if ( sampleName != null ) {
                 samples.add(sampleName);
             } else {

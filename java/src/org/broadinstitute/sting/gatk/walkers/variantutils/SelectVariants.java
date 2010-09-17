@@ -270,7 +270,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         }
         attributes.put("DP", depth);
 
-        sub = VariantContextUtils.modifyAttributes(sub, attributes);
+        sub = VariantContext.modifyAttributes(sub, attributes);
 
         return sub;
     }

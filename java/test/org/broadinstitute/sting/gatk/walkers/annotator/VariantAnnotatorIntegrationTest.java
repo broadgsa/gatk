@@ -15,7 +15,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsNotAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B:variant,VCF " + validationDataLocation + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("89b846266a0c565b9d2a7dbe793546aa"));
+                Arrays.asList("30ca0a572407f8f8d69ce83800db35ea"));
         executeTest("test file has annotations, not asking for annotations, #1", spec);
     }
 
@@ -31,7 +31,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B:variant,VCF " + validationDataLocation + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("b48199f9dc6f91c61418536151afa8fd"));
+                Arrays.asList("bcd5c80e54d90f1ddf65e0c47b0710a5"));
         executeTest("test file has annotations, asking for annotations, #1", spec);
     }
 
@@ -47,7 +47,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsNotAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -B:variant,VCF " + validationDataLocation + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("34d2831e7d843093a2cf47c1f4e5f0f0"));
+                Arrays.asList("63fcabe0198b88a87ea645ffbf25165f"));
         executeTest("test file doesn't have annotations, not asking for annotations, #1", spec);
     }
 
@@ -63,7 +63,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B:variant,VCF " + validationDataLocation + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("133275d150a8100ba4dc756d17b23ef1"));
+                Arrays.asList("10ceed55fd51f104d4b57aa555770253"));
         executeTest("test file doesn't have annotations, asking for annotations, #1", spec);
     }
 

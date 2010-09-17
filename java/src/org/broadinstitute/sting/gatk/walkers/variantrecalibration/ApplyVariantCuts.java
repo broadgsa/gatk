@@ -220,7 +220,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                     if ( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
                         Set<String> filters = new HashSet<String>();
                         filters.add(filterString);
-                        vc = new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), filters, vc.getAttributes());
+                        vc = VariantContext.modifyFilters(vc, filters);
                     }
                 }
                 vcfWriter.add( vc, ref.getBase() );

@@ -212,7 +212,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
 
         Set<String> rodName = new HashSet<String>();
         rodName.add("variant");
-        TreeSet<String> samples = new TreeSet<String>(SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName));
+        Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), rodName);
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
     }

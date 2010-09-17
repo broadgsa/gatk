@@ -190,7 +190,7 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
             numHomVarViolations++;
             isViolation = true;
         }
-        vContext = VariantContextUtils.modifyFilters(vContext, filters);
+        vContext = VariantContext.modifyFilters(vContext, filters);
         numRecords++;
 
         // add the info fields
@@ -207,7 +207,7 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
         infoMap.put(VCFConstants.ALLELE_COUNT_KEY, String.format("%d", altAlleleCount));
         infoMap.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", vContext.getChromosomeCount()));
 
-        vContext = VariantContextUtils.modifyAttributes(vContext, infoMap);
+        vContext = VariantContext.modifyAttributes(vContext, infoMap);
 
         return new Pair<VariantContext, Byte>(vContext, ref.getBase());
     }

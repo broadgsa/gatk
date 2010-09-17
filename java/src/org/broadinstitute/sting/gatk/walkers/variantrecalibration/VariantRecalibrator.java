@@ -251,9 +251,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
                     attrs.put("OQ", String.format("%.2f", ((Double)vc.getPhredScaledQual())));
                     attrs.put("LOD", String.format("%.4f", lod));
-                    Set<String> filters = new HashSet<String>();
-                    filters.add(VCFConstants.PASSES_FILTERS_v4);
-                    VariantContext newVC = new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), vc.getGenotypes(), variantDatum.qual / 10.0, filters, attrs);
+                    VariantContext newVC = VariantContext.modifyPErrorFiltersAndAttributes(vc, variantDatum.qual / 10.0, new HashSet<String>(), attrs);
 
                     vcfWriter.add( newVC, ref.getBase() );
 

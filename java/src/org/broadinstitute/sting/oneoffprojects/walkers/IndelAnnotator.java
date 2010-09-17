@@ -7,7 +7,6 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
@@ -187,7 +186,7 @@ public class IndelAnnotator extends RodWalker<Integer,Long> {
         Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
         attrs.putAll(annotationMap);
 
-        vc = VariantContextUtils.modifyAttributes(vc, attrs);
+        vc = VariantContext.modifyAttributes(vc, attrs);
         vcfWriter.add(vc, ref.getBase());
 
         return 1;

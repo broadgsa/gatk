@@ -117,7 +117,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             hInfo.add(new VCFHeaderLine("VariantFiltration", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
         }
 
-        writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(vc.getSampleNames())));
+        writer.writeHeader(new VCFHeader(hInfo, vc.getSampleNames()));
     }
 
     public void initialize() {
@@ -178,7 +178,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         // make new Genotypes based on filters
         Map<String, Genotype> genotypes;
         if ( genotypeFilterExps.size() == 0 ) {
-            genotypes = vc.getGenotypes();
+            genotypes = null;
         } else {
             genotypes = new HashMap<String, Genotype>(vc.getGenotypes().size());
 
@@ -186,14 +186,18 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
 
                 Genotype g = genotype.getValue();
-                Set<String> filters = new LinkedHashSet<String>(g.getFilters());
 
-                for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps ) {
-                    if ( VariantContextUtils.match(vc, g, exp) )
-                        filters.add(exp.name);
+                if ( g.isCalled() ) {
+                    Set<String> filters = new LinkedHashSet<String>(g.getFilters());
+
+                    for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps ) {
+                        if ( VariantContextUtils.match(vc, g, exp) )
+                            filters.add(exp.name);
+                    }
+                    genotypes.put(genotype.getKey(), new Genotype(genotype.getKey(), g.getAlleles(), g.getNegLog10PError(), filters, g.getAttributes(), g.genotypesArePhased()));
+                } else {
+                    genotypes.put(genotype.getKey(), g);
                 }
-
-                genotypes.put(genotype.getKey(), new Genotype(genotype.getKey(), g.getAlleles(), g.getNegLog10PError(), filters, g.getAttributes(), g.genotypesArePhased()));
             }
         }
 
@@ -214,7 +218,11 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                 filters.add(exp.name);
         }
 
-        VariantContext filteredVC = new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
+        VariantContext filteredVC;
+        if ( genotypes == null )
+            filteredVC = VariantContext.modifyFilters(vc, filters);
+        else
+            filteredVC = new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
 
         writeVCF(filteredVC, context.getReferenceContext().getBase());
     }
