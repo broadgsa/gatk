@@ -381,6 +381,8 @@ public class GenomeAnalysisEngine {
         validateSuppliedReferenceAgainstWalker(my_walker, argCollection);
         referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
 
+        initializeSampleDataSource();
+
         if (argCollection.DBSNPFile != null) bindConvenienceRods(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile);
 
         RMDTrackBuilder manager = new RMDTrackBuilder();

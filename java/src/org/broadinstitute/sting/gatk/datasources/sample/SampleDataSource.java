@@ -121,7 +121,7 @@ public class SampleDataSource {
         try {
             parser = (SampleFileParser) yaml.load(reader);
         }
-        catch (Exception e) {    // TODO: should we have more granular exception here?
+        catch (Exception e) {
             throw new StingException("There was a syntactic error with the YAML in sample file " + sampleFile.getAbsolutePath(), e);
         }
 
@@ -149,6 +149,7 @@ public class SampleDataSource {
         // loop through each sample in the file - a SampleParser stores an object that will become a Sample
         for (SampleParser sampleParser : parser.getSamples()) {
 
+            try {
             // step 1: add the sample if it doesn't already exist
             Sample sample = getSampleById(sampleParser.getId());
             if (sample == null) {
@@ -219,6 +220,10 @@ public class SampleDataSource {
                     saveRelationship(sample, relationship, relativeId);
                 }
             }
+        } catch (Exception e) {
+              throw new StingException("An error occurred while loading this sample from the sample file: " +
+                      sampleParser.getId(), e);
+        }
         }
 
     }
@@ -326,9 +331,13 @@ public class SampleDataSource {
             else if (value != null) {
                 throw new StingException("'gender' property must be male, female, or unknown.");
             }
-            value = null;
         }
-        sample.setProperty(key, value);
+        try {
+            sample.setProperty(key, value);
+        }
+        catch (Exception e) {
+            throw new StingException("Could not save property " + key, e);
+        }
     }
 
     /**
