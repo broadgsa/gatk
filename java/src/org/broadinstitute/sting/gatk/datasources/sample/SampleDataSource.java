@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Created by IntelliJ IDEA.
@@ -462,6 +464,25 @@ public class SampleDataSource {
             }
         }
         return children;
+    }
+
+    /**
+     * Takes a collection of sample names and returns their corresponding sample objects
+     * Note that, since a set is returned, if you pass in a list with duplicates names there will not be any duplicates in the returned set
+     * @param sampleNameList Set of sample names
+     * @return Corresponding set of samples
+     */
+    public Set<Sample> getSamples(Collection<String> sampleNameList) {
+	HashSet<Sample> samples = new HashSet<Sample>();
+        for (String name : sampleNameList) {
+            try {
+                samples.add(getSampleById(name));
+            }
+            catch (Exception e) {
+                throw new StingException("Could not get sample with the following ID: " + name, e);
+            }
+        }
+        return samples;
     }
 
 

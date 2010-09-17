@@ -1037,4 +1037,14 @@ public class GenomeAnalysisEngine {
         return sampleDataSource.getChildren(sample);
     }
 
+    /**
+     * Takes a list of sample names and returns their corresponding sample objects
+     *
+     * @param sampleNameList List of sample names
+     * @return Corresponding set of samples
+     */
+    public Set<Sample> getSamples(Collection<String> sampleNameList) {
+	return sampleDataSource.getSamples(sampleNameList);
+    }
+
 }

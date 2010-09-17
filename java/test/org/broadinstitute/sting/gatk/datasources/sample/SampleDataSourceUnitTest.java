@@ -46,6 +46,13 @@ public class SampleDataSourceUnitTest extends BaseTest {
         Assert.assertTrue(family.size() == 2);
         Assert.assertTrue(family.contains(sampleA));
         Assert.assertTrue(family.contains(sampleB));
+
+	// make sure getSamples(List names) works
+	ArrayList<String> names = new ArrayList<String>();
+	names.add("sampleA");
+	names.add("sampleB");
+	Set<Sample> testList = s.getSamples(names);
+	Assert.assertTrue(testList.size() == 2);
     }
 
     // but that file should fail if it has an extra character in it...
