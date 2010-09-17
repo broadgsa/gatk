@@ -121,7 +121,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createBAMArgumentDefinition(ArgumentSource source) {
-        Annotation annotation = this.getArgumentAnnotation(source);
+        Annotation annotation = getArgumentAnnotation(source);
         return new ArgumentDefinition( annotation,
                                        ArgumentIOType.getIOType(annotation),
                                        source.field.getType(),
@@ -144,8 +144,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
      * @return Argument definition for the BAM file itself.  Will not be null.
      */
     private ArgumentDefinition createBAMCompressionArgumentDefinition(ArgumentSource source) {
-        Annotation annotation = this.getArgumentAnnotation(source);
-        return new ArgumentDefinition( ArgumentIOType.getIOType(annotation),
+        Annotation annotation = getArgumentAnnotation(source);
+        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
                                        int.class,
                                        COMPRESSION_FULLNAME,
                                        COMPRESSION_SHORTNAME,
@@ -161,8 +161,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     }
 
     private ArgumentDefinition createWriteIndexArgumentDefinition(ArgumentSource source) {
-        Annotation annotation = this.getArgumentAnnotation(source);
-        return new ArgumentDefinition( ArgumentIOType.getIOType(annotation),
+        Annotation annotation = getArgumentAnnotation(source);
+        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
                                        boolean.class,
                                        CREATE_INDEX_FULLNAME,
                                        null,
