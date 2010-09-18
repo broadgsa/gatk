@@ -36,7 +36,7 @@ import java.util.Arrays;
 public class CombineVariantsIntegrationTest extends WalkerTest {
 
     public static String baseTestString(String args) {
-        return "-T CombineVariants -L 1:1-50,000,000 -o %s -R " + b36KGReference + args;
+        return "-T CombineVariants -NO_HEADER -L 1:1-50,000,000 -o %s -R " + b36KGReference + args;
     }
 
     public void test1InOut(String file, String md5) {
@@ -60,21 +60,21 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
     }
 
 
-    @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "f203232c2fa51862e911940ad9d60387"); }
-    @Test public void test2SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "29aa605c3f08f3ad58f5eea64dc709c1", " -setKey foo"); }
-    @Test public void test3SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "445bff7b13b31c900492f1ccaed62a80", " -setKey null"); }
-    @Test public void testOfficialCEUPilotCalls() { test1InOut("CEU.trio.2010_03.genotypes.vcf.gz", "38b7e64b91c726867a604cf95b9cb10a"); } // official project VCF files in tabix format
+    @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "def6365e318cb506aa69ee8ec6899c4e"); }
+    @Test public void test2SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "6d1d9fffcc10d4f9ab086760603b577e", " -setKey foo"); }
+    @Test public void test3SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "e1d43e0c4df65df5e9761916b12f0b5b", " -setKey null"); }
+    @Test public void testOfficialCEUPilotCalls() { test1InOut("CEU.trio.2010_03.genotypes.vcf.gz", "79e7e474b0a2bb82930201f143328d5d"); } // official project VCF files in tabix format
 
-    @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "cdf66ad481b7f98204e368b968d6d8ec"); }
-    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "17c8468b1b963c9abc49dff17fd811ba"); }
+    @Test public void test1Indel1() { test1InOut("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "d93ee8b9f36eedc80a3afa548bffc888"); }
+    @Test public void test1Indel2() { test1InOut("CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "4d16ffe9cf3beff94ac05ea49f85049a"); }
 
-    @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "", "27b509c5c64c5b7520d348bceaca67f5"); } // official project VCF files in tabix format
-    @Test public void combineTrioCallsMin() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", " -minimalVCF", "7ad58764b855ec7ad61075dda63567b3"); } // official project VCF files in tabix format
-    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "a438947372f5e748931d9c5e2ba5fc3a"); }
+    @Test public void combineTrioCalls() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", "", "78f2a2c09df8fa51ccfe5b3706a5e313"); } // official project VCF files in tabix format
+    @Test public void combineTrioCallsMin() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "YRI.trio.2010_03.genotypes.vcf.gz", " -minimalVCF", "460bdbeaf7e9641395ac2ce6e1afc106"); } // official project VCF files in tabix format
+    @Test public void combine2Indels() { combine2("CEU.dindel.vcf4.trio.2010_06.indel.genotypes.vcf", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "d445583e7f3a8bc98004e8e44878fce6"); }
 
-    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "19f8c7ed0ed3b59c53ac76164679b7f5"); }
+    @Test public void combineSNPsAndIndels() { combine2("CEU.trio.2010_03.genotypes.vcf.gz", "CEU.dindel.vcf4.low_coverage.2010_06.indel.genotypes.vcf", "", "e64284f598fc4f473ee5554282d84b0c"); }
 
-    @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "", "96383d62d6b9f0e7ee2d3637a985af28"); }
+    @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "", "1f3d118dcee9b711714856639930694d"); }
 
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(
@@ -87,7 +87,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
                         " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +
                         " -genotypeMergeOptions UNIQUIFY -L 1"),
                 1,
-                Arrays.asList("daf2c43b629c9fc8d5f064e05bbc51b7"));
+                Arrays.asList("81f53a9f2a6d410c1236266e2516bf6f"));
         executeTest("threeWayWithRefs", spec);
         
     }

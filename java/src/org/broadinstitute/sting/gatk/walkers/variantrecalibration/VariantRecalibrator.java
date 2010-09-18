@@ -112,7 +112,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     /////////////////////////////
     @Hidden
     @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
-    protected Boolean NO_VCF_HEADER_LINE = false;    
+    protected Boolean NO_VCF_HEADER_LINE = false;
+    @Hidden
+    @Argument(fullName = "NoByHapMapValidationStatus", shortName = "NoByHapMapValidationStatus", doc = "Don't consider sites in dbsnp rod tagged as by-hapmap validation status as real HapMap sites. FOR DEBUGGING PURPOSES ONLY.", required=false)
+    private Boolean NO_BY_HAPMAP_VALIDATION_STATUS = false;
 
     /////////////////////////////
     // Private Member Variables
@@ -156,13 +159,12 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                 logger.info("Found input variant track with name " + d.getName());
             } else if ( d.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 logger.info("Found dbSNP track with prior probability = Q" + PRIOR_DBSNP);
+                logger.info("\tsites in dbSNP track tagged with by-hapmap validation status will be given prior probability = Q" + PRIOR_HAPMAP);
                 foundDBSNP = true;
             } else if ( d.getName().equals("hapmap") ) {
                 logger.info("Found HapMap track with prior probability = Q" + PRIOR_HAPMAP);
-                foundDBSNP = true;
             } else if ( d.getName().equals("1kg") ) {
                 logger.info("Found 1KG track for with prior probability = Q" + PRIOR_1KG);
-                foundDBSNP = true;
             } else {
                 logger.info("Not evaluating ROD binding " + d.getName());
             }
@@ -223,7 +225,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
                     variantDatum.isKnown = ( dbsnp != null );
                     double knownPrior_qScore = PRIOR_NOVELS;
-                    if( vcHapMap != null || ( dbsnp != null && DbSNPHelper.isHapmap(dbsnp) ) ) {
+                    if( vcHapMap != null || ( !NO_BY_HAPMAP_VALIDATION_STATUS && dbsnp != null && DbSNPHelper.isHapmap(dbsnp) ) ) {
                         knownPrior_qScore = PRIOR_HAPMAP;
                     } else if( vc1KG != null ) {
                         knownPrior_qScore = PRIOR_1KG;

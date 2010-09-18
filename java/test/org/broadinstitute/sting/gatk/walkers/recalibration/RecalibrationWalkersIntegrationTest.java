@@ -361,7 +361,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testCountCovariatesFailWithoutDBSNP() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "3700eaf567e4937f442fc777a226d6ad");
+        e.put( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SOLID.bam", "");
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();

@@ -74,10 +74,6 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     private int MAX_GAUSSIANS = 4;
     @Argument(fullName="maxIterations", shortName="mI", doc="The maximum number of iterations to be performed when clustering. Clustering will normally end when convergence is detected.", required=false)
     private int MAX_ITERATIONS = 200;
-//    @Argument(fullName = "path_to_Rscript", shortName="Rscript", doc="The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
-//    private String PATH_TO_RSCRIPT = "Rscript";
-//    @Argument(fullName = "path_to_resources", shortName = "resources", doc="Path to resources folder holding the Sting R scripts.", required=false)
-//    private String PATH_TO_RESOURCES = "R/";
     @Argument(fullName="weightNovel", shortName="weightNovel", doc="The weight for novel variants during clustering", required=false)
     private double WEIGHT_NOVELS = 0.0;
     @Argument(fullName="weightDBSNP", shortName="weightDBSNP", doc="The weight for dbSNP variants during clustering", required=false)
@@ -97,18 +93,15 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     @Argument(fullName="dirichlet", shortName="dirichlet", doc="The dirichlet parameter in variational Bayes algoirthm.", required=false)
     private double DIRICHLET_PARAMETER = 1000.0;
 
-    //@Argument(fullName="knn", shortName="knn", doc="The number of nearest neighbors to be used in the k-Nearest Neighbors model", required=false)
-    //private int NUM_KNN = 2000;
-    //@Argument(fullName = "optimization_model", shortName = "om", doc = "Optimization calculation model to employ -- GAUSSIAN_MIXTURE_MODEL is currently the default, while K_NEAREST_NEIGHBORS is also available for small callsets.", required = false)
-    private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
-
-
     /////////////////////////////
     // Debug Arguments
     /////////////////////////////
     @Hidden
     @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
     protected Boolean NO_HEADER_LINE = false;
+    @Hidden
+    @Argument(fullName = "NoByHapMapValidationStatus", shortName = "NoByHapMapValidationStatus", doc = "Don't consider sites in dbsnp rod tagged as by-hapmap validation status as real HapMap sites. FOR DEBUGGING PURPOSES ONLY.", required=false)
+    private Boolean NO_BY_HAPMAP_VALIDATION_STATUS = false;
 
     /////////////////////////////
     // Private Member Variables
@@ -116,7 +109,8 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     private ExpandingArrayList<String> annotationKeys;
     private Set<String> ignoreInputFilterSet = null;
     private Set<String> inputNames = new HashSet<String>();
-    VariantGaussianMixtureModel theModel = new VariantGaussianMixtureModel();
+    private VariantOptimizationModel.Model OPTIMIZATION_MODEL = VariantOptimizationModel.Model.GAUSSIAN_MIXTURE_MODEL;
+    private VariantGaussianMixtureModel theModel = new VariantGaussianMixtureModel();
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -195,7 +189,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
                     variantDatum.isKnown = ( dbsnp != null );
                     variantDatum.weight = WEIGHT_NOVELS;                   
-                    if( vcHapMap != null || ( dbsnp != null && DbSNPHelper.isHapmap(dbsnp) ) ) {
+                    if( vcHapMap != null || ( !NO_BY_HAPMAP_VALIDATION_STATUS && dbsnp != null && DbSNPHelper.isHapmap(dbsnp) ) ) {
                         variantDatum.weight = WEIGHT_HAPMAP;
                     } else if( vc1KG != null ) {
                         variantDatum.weight = WEIGHT_1KG;
@@ -253,23 +247,5 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         }
 
         theModel.run( CLUSTER_FILE );
-
-/*
-        theModel.outputClusterReports( CLUSTER_FILENAME );
-
-        for( final String annotation : annotationKeys ) {
-            // Execute Rscript command to plot the optimization curve
-            // Print out the command line to make it clear to the user what is being executed and how one might modify it
-            final String rScriptCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_ClusterReport.R" + " " + CLUSTER_FILENAME + "." + annotation + ".dat " + annotation;
-            logger.info( rScriptCommandLine );
-
-            // Execute the RScript command to plot the table of truth values
-            try {
-                Runtime.getRuntime().exec( rScriptCommandLine );
-            } catch ( IOException e ) {
-                Utils.warnUser("Unable to execute the RScript command because of [" + e.getMessage() + "].  While not critical to the calculations themselves, the script outputs a report that is extremely useful for confirming that the clustering proceded as expected.  We highly recommend trying to rerun the script manually if possible.");
-            }
-        }
-*/
     }
 }
