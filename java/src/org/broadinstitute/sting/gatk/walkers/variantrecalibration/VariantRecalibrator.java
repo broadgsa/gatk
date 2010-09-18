@@ -159,7 +159,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                 logger.info("Found input variant track with name " + d.getName());
             } else if ( d.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 logger.info("Found dbSNP track with prior probability = Q" + PRIOR_DBSNP);
-                logger.info("\tsites in dbSNP track tagged with by-hapmap validation status will be given prior probability = Q" + PRIOR_HAPMAP);
+                if( !NO_BY_HAPMAP_VALIDATION_STATUS ) {
+                    logger.info("\tsites in dbSNP track tagged with by-hapmap validation status will be given prior probability = Q" + PRIOR_HAPMAP);
+                }
                 foundDBSNP = true;
             } else if ( d.getName().equals("hapmap") ) {
                 logger.info("Found HapMap track with prior probability = Q" + PRIOR_HAPMAP);
