@@ -114,12 +114,14 @@ class fullCallingPipeline extends QScript {
 
       cleanBamFiles :+= realigner.out
 
-      add(targetCreator,realigner,samtoolsindex)
+      // COMMENT THIS NEXT LINE TO SKIP CLEANING
+      //add(targetCreator,realigner,samtoolsindex)
     }
 
     // actually make calls
     endToEnd(uncleanedBase,qscript.bamFiles)
-    endToEnd(cleanedBase,cleanBamFiles)
+    // COMMENT THIS NEXT LINE TO AVOID CALLING ON CLEANED FILES
+    //endToEnd(cleanedBase,cleanBamFiles)
   }
 
   def endToEnd(base: String, bamFiles: List[File]) = {
@@ -134,7 +136,7 @@ class fullCallingPipeline extends QScript {
     snps.min_mapping_quality_score = Some(20)
     snps.min_base_quality_score = Some(20)
     snps.downsample_to_coverage = Some(200)
-    snps.annotation :+= "QualByDepthV2"
+    //snps.annotation :+= "QualByDepthV2"
 
     if (qscript.trigger != null) {
       snps.trigger_min_confidence_threshold_for_calling = Some(30)
@@ -174,8 +176,8 @@ class fullCallingPipeline extends QScript {
       loopNo += 1
     }
     val mergeIndels = new CombineVariants with CommandLineGATKArgs
-    mergeIndels.out = new File(qscript.project+".indels.vcf")
-    mergeIndels.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE)
+    mergeIndels.out = new TaggedFile(qscript.project+".indels.vcf","vcf")
+    mergeIndels.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNIQUIFY)
     mergeIndels.priority = priority
     mergeIndels.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
     mergeIndels.rodBind = indelCallFiles
@@ -193,7 +195,7 @@ class fullCallingPipeline extends QScript {
 
     // 2.a filter on cluster and near indels
     val masker = new VariantFiltration with CommandLineGATKArgs
-    masker.rodBind :+= RodBind("variant", "VCF", annotated.out)
+    masker.variantVCF = annotated.out 
     masker.rodBind :+= RodBind("mask", "VCF", mergeIndels.out)
     masker.maskName = "NearIndel"
     masker.clusterWindowSize = Some(qscript.snpClusterWindow)
@@ -203,10 +205,10 @@ class fullCallingPipeline extends QScript {
 
     // 2.b hand filter with standard filter
     val handFilter = new VariantFiltration with CommandLineGATKArgs
-    handFilter.rodBind :+= RodBind("variant", "VCF", annotated.out)
+    handFilter.variantVCF = masker.out
     handFilter.rodBind :+= RodBind("mask", "VCF", mergeIndels.out)
     handFilter.filterName ++= List("StrandBias","AlleleBalance","QualByDepth","HomopolymerRun")
-    handFilter.filterExpression ++= List("\"SB>=0.10\"","\"AB>=0.75\"","QD<5","\"HRun>=4\"")
+    handFilter.filterExpression ++= List("\"SB>=0.10\"","\"AB>=0.75\"","\"QD<5.0\"","\"HRun>=4\"")
     handFilter.out = swapExt(annotated.out,".vcf",".handfiltered.vcf")
 
 
@@ -215,10 +217,11 @@ class fullCallingPipeline extends QScript {
     // todo -- args for resources (properties file)
     val clusters = new GenerateVariantClusters with CommandLineGATKArgs
     clusters.rodBind :+= RodBind("input", "VCF", masker.out)
+    clusters.DBSNP = qscript.dbSNP
     val clusters_clusterFile = swapExt(new File(snps.out.getAbsolutePath),".vcf",".cluster")
     clusters.clusterFile = clusters_clusterFile
     clusters.memoryLimit = Some(8)
-    clusters.jobQueue = "hugemem"
+    clusters.jobQueue = "gsa"
 
     clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
 
@@ -226,6 +229,7 @@ class fullCallingPipeline extends QScript {
     // 3.ii apply gaussian clusters to the masked vcf
     val recalibrate = new VariantRecalibrator with CommandLineGATKArgs
     recalibrate.clusterFile = clusters.clusterFile
+    recalibrate.DBSNP = qscript.dbSNP
     recalibrate.rodBind :+= RodBind("input", "VCF", masker.out)
     recalibrate.out = swapExt(masker.out,".vcf",".recalibrated.vcf")
     recalibrate.target_titv = qscript.target_titv
