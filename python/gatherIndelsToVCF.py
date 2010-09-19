@@ -5,7 +5,6 @@ import sys
 
 input_verbose_beds = sys.argv[1].split(",")
 output_vcf_name = sys.argv[2]
-reference_file = sys.argv[3]
 
 vcf_header = ["#CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"]
 format = "GT:FT"
@@ -119,11 +118,13 @@ def fixAlts(alts_in):
     return ",".join(fixed_alts)
 
 def fixChrom(chrom):
+    if ( chrom == 0 ):
+        return "chrM")
     if ( chrom == "23" ):
-        return "X"
+        return "chrX"
     if ( chrom == "24" ):
-        return "Y"
-    return chrom
+        return "chrY"
+    return "chr"+chrom
 
 def writeVCFLine(out_stream,indel_list,sample_list):
     alts = getAlts(indel_list)
@@ -175,10 +176,13 @@ def parseIndels(filePath,sampleName):
     for line in f.readlines():
         if ( not line.startswith("[") ):
             spline = line.split("\t")
-            if ( spline[0] != "X" and spline[0] != "Y" ):
+            spline[0] = spline[0].split("chr")[1]
+            if ( spline[0] != "X" and spline[0] != "Y" and spline[0] != "M"):
                 chrom = int(spline[0])
             else:
-                if ( spline[0] == "X"):
+                if ( spline[0] == "M" ):
+                    chrom = 0
+                elif ( spline[0] == "X"):
                     chrom = 23
                 else:
                     chrom = 24
@@ -225,7 +229,3 @@ def writeVCF(verbose_bed_list):
 
 writeVCF(input_verbose_beds)
 
-## now dumb hacky thing
-
-cmd = "java -jar /humgen/gsa-scr1/chartl/sting/dist/GenomeAnalysisTK.jar -T VCFReferenceFixer -B fixme,VCF,"+output_vcf_name+"_BAD_REFERENCE.vcf -o "+output_vcf_name+" -R "+reference_file+" -l INFO"
-os.system(cmd)

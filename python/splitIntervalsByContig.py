@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import sys
 input_file = sys.argv[1]
 file_index = 1
