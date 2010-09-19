@@ -38,7 +38,9 @@ import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.collections.CircularArray;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
@@ -60,24 +62,21 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
     int maxReadDeletionLength = 3;
 
     @Argument(fullName="insertionStartProbability",shortName="insertionStartProbability",doc="Assess only sites with coverage at or below the specified value.",required=false)
-    double insertionStartProbability = 0.01;
+    double insertionStartProbability = 0.001;
 
     @Argument(fullName="insertionEndProbability",shortName="insertionEndProbability",doc="Assess only sites with coverage at or below the specified value.",required=false)
     double insertionEndProbability = 0.5;
 
     @Argument(fullName="alphaDeletionProbability",shortName="alphaDeletionProbability",doc="Assess only sites with coverage at or below the specified value.",required=false)
-    double alphaDeletionProbability = 0.01;
+    double alphaDeletionProbability = 0.001;
 
 
-    @Argument(fullName="haplotypeSize",shortName="hsize",doc="Size of haplotypes to evaluate calls.",required=true)
-    int HAPLOTYPE_SIZE = 40;
+    @Argument(fullName="haplotypeSize",shortName="hsize",doc="Size of haplotypes to evaluate calls.",required=false)
+    int HAPLOTYPE_SIZE = 80;
 
 
     @Argument(fullName="indelHeterozygozity",shortName="indhet",doc="Indel Heterozygosity (assumed 1/6500 from empirical human data)",required=false)
     double indelHeterozygosity = (double)1.0/6500.0;
-
-    @Argument(fullName="sampleName",shortName="sample",doc="Sample name to evaluate genotypes in",required=true)
-    String sampleName;
 
     @Argument(fullName="doSimpleCalculationModel",shortName="simple",doc="Use Simple Calculation Model for Pr(Reads | Haplotype)",required=false)
     boolean doSimple = false;
@@ -91,6 +90,14 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
     @Argument(fullName="useFlatPriors",shortName="flat",doc="If present, use flat priors on haplotypes",required=false)
     boolean useFlatPriors = false;
 
+    @Argument(fullName="useDynamicHaplotypeSize",shortName="dhsize",doc="If present, use dynamic haplotype size",required=false)
+    boolean useDynamicHaplotypeSize = false;
+
+
+    @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be called", required = false)
+    public double STANDARD_CONFIDENCE_FOR_CALLING = 10.0;
+
+
     @Override
     public boolean generateExtendedEvents() { return true; }
 
@@ -100,15 +107,16 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
 
     private HaplotypeIndelErrorModel model;
 
-    private static final int MAX_READ_LENGTH = 1000; // TODO- make this dynamic
 
-
+    Set<String>  sampleNames;
 
 
     @Override
     public void initialize() {
         model = new HaplotypeIndelErrorModel(maxReadDeletionLength, insertionStartProbability,
-                insertionEndProbability, alphaDeletionProbability, HAPLOTYPE_SIZE, MAX_READ_LENGTH, doSimple, DEBUG);
+                insertionEndProbability, alphaDeletionProbability, HAPLOTYPE_SIZE, doSimple, DEBUG);
+
+        sampleNames = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
     }
 
@@ -121,6 +129,7 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         if (!context.hasBasePileup())
             return 0;
 
+
         VariantContext vc = tracker.getVariantContext(ref, "indels", null, context.getLocation(), true);
         // ignore places where we don't have a variant
         if ( vc == null )
@@ -130,8 +139,50 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         if (!vc.isIndel())
             return 0;
 
+        int eventLength = vc.getReference().getBaseString().length() - vc.getAlternateAllele(0).getBaseString().length(); // assume only one alt allele for now
+        if (eventLength<0)
+            eventLength = - eventLength;
 
-        List<Haplotype> haplotypesInVC = Haplotype.makeHaplotypeListFromVariantContextAlleles( vc, ref, HAPLOTYPE_SIZE);
+        int currentHaplotypeSize = HAPLOTYPE_SIZE;
+        List<Haplotype> haplotypesInVC = new ArrayList<Haplotype>();
+
+        int minHaplotypeSize = Haplotype.LEFT_WINDOW_SIZE + eventLength + 2; // to be safe
+
+        
+        if (useDynamicHaplotypeSize) {
+            if (currentHaplotypeSize < minHaplotypeSize)
+                currentHaplotypeSize = minHaplotypeSize;
+            
+            boolean doneHaplotype = false;
+            while (!doneHaplotype) {
+
+                haplotypesInVC = Haplotype.makeHaplotypeListFromVariantContextAlleles( vc, ref, currentHaplotypeSize);
+                String[] haplotypeStrings = new String[haplotypesInVC.size()];
+                for (int k = 0; k < haplotypeStrings.length; k++)
+                    haplotypeStrings[k] = new String(haplotypesInVC.get(k).getBasesAsBytes());
+
+                // check if all strings are the same.
+                for (int k = 1; k < haplotypeStrings.length; k++) {
+                    if (!haplotypeStrings[k].equals(haplotypeStrings[0]))
+                        doneHaplotype = true;
+
+                }
+
+                if (doneHaplotype)
+                    break;
+                else
+                    currentHaplotypeSize = 2*currentHaplotypeSize;
+
+            }
+
+        }
+        else {
+            if (currentHaplotypeSize < minHaplotypeSize)
+                throw new UserException.BadArgumentValue("Insufficient haplotype length to represent all indels:",
+                        String.valueOf(currentHaplotypeSize));
+
+            haplotypesInVC = Haplotype.makeHaplotypeListFromVariantContextAlleles( vc, ref, currentHaplotypeSize);
+        }
 
         // combine likelihoods for all possible haplotype pair (n*(n-1)/2 combinations)
 
@@ -139,6 +190,10 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         double bestLikelihood = 1e13;
         // for given allele haplotype, compute likelihood of read pileup given haplotype
         ReadBackedPileup pileup =  context.getBasePileup().getPileupWithoutMappingQualityZeroReads();
+
+        if (pileup.getSamples().size() > 1) {
+            throw new UserException.BadInput("Currently only a single-sample BAM is supported for Indel genotyper");
+        }
 
 
         // compute prior likelihoods on haplotypes, and initialize haplotype likelihood matrix with them.
@@ -160,9 +215,6 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         // and -10*log10(above) = -10*log10(K)+ 18.9*log10(abs(L)) + 0.15*abs(L) - 10*log10(theta*L), and we ignore terms that would be
         // added to ref hypothesis.
         // Equation above is prior model.
-        int eventLength = vc.getReference().getBaseString().length() - vc.getAlternateAllele(0).getBaseString().length(); // assume only one alt allele for now
-        if (eventLength<0)
-            eventLength = - eventLength;
 
         if (!useFlatPriors) {
 
@@ -177,10 +229,12 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         int bestIndexI =-1, bestIndexJ=-1;
         double callConfidence = 0.0;
 
+
         if (pileup.getReads().size() > 0) {
             double readLikelihoods[][] = new double[pileup.getReads().size()][haplotypesInVC.size()];
             int i=0;
             for (SAMRecord read : pileup.getReads()) {
+                
                 // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
                 // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
                 for (int j=0; j < haplotypesInVC.size(); j++) {
@@ -216,7 +270,8 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
                     if (haplotypeLikehoodMatrix[i][j] < bestLikelihood) {
                         bestIndexI = i;
                         bestIndexJ = j;
-                        callConfidence = bestLikelihood - haplotypeLikehoodMatrix[i][j];
+                        if (i > 0 || j > 0)
+                            callConfidence = bestLikelihood - haplotypeLikehoodMatrix[i][j];
                         bestLikelihood = haplotypeLikehoodMatrix[i][j];
                     }
                 }
@@ -259,26 +314,36 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
             else
                 newG = "OTHER";
 
+
+            if (callConfidence < STANDARD_CONFIDENCE_FOR_CALLING) {
+                newG = "NOCALL";
+            }
             out.format("NewG %s OldG %s DadG %s MomG %s\n", newG, oldG, dadG, momG);
         }
         else {
-            Genotype originalGenotype = vc.getGenotype(sampleName);
-            String oldG, newG;
-            oldG = getGenotypeString(originalGenotype);
-            int x = bestIndexI+bestIndexJ;
-            if (x == 0)
-                newG = "HOMREF";
-            else if (x == 1)
-                newG = "HET";
-            else if (x == 2)
-                newG = "HOMVAR";
-            else if (x < 0)
-                newG = "NOCALL";
-            else
-                newG = "OTHER";
 
-            out.format("NewG %s OldG %s\n", newG, oldG);
+            for (String sample: sampleNames) {
+                String oldG, newG;
+                Genotype originalGenotype = vc.getGenotype(sample);
+                oldG = getGenotypeString(originalGenotype);
+                int x = bestIndexI+bestIndexJ;
+                if (x == 0)
+                    newG = "HOMREF";
+                else if (x == 1)
+                    newG = "HET";
+                else if (x == 2)
+                    newG = "HOMVAR";
+                else if (x < 0)
+                    newG = "NOCALL";
+                else
+                    newG = "OTHER";
 
+                if (callConfidence < STANDARD_CONFIDENCE_FOR_CALLING) {
+                    newG = "NOCALL";
+                }
+
+                out.format("NewG %s OldG %s\n", newG, oldG);
+            }
         }
 
 /*

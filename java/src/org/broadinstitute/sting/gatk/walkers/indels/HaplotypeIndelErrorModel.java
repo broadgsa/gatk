@@ -36,19 +36,12 @@ import org.broadinstitute.sting.utils.genotype.Haplotype;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Created by IntelliJ IDEA.
- * User: delangel
- * Date: Aug 24, 2010
- * Time: 1:31:08 PM
- * To change this template use File | Settings | File Templates.
- */
 public class HaplotypeIndelErrorModel {
 
     private final int maxReadDeletionLength; // maximum length of deletion on a read
     private final double noDeletionProbability; // alpha for geometric distribution for deletion length
     private final int haplotypeSize;
-    private final int maxReadLength;
+
     private final int PATH_METRIC_TABLE_LENGTH;
     private final int RIGHT_ALIGN_INDEX;
     private final int LEFT_ALIGN_INDEX;
@@ -57,7 +50,7 @@ public class HaplotypeIndelErrorModel {
 
     private double deletionErrorProbabilities[];
 
-    private double pathMetricArray[];
+    private double pathMetricArray[][];
     private int bestStateIndexArray[][];
 
     private final double logOneMinusInsertionStartProbability;
@@ -68,17 +61,18 @@ public class HaplotypeIndelErrorModel {
     private boolean DEBUG = false;
     private boolean doSimpleCalculationModel = false;
 
-    public  HaplotypeIndelErrorModel(int mrdl, double insStart, double insEnd, double alpha, int haplotypeSize, int maxReadLength,
+    private static final double QUAL_ONE_HALF = -10*Math.log10(0.5);
+
+    public  HaplotypeIndelErrorModel(int mrdl, double insStart, double insEnd, double alpha, int haplotypeSize,
                                      boolean dosimple, boolean deb) {
-        this(mrdl, insStart, insEnd, alpha, haplotypeSize, maxReadLength);
+        this(mrdl, insStart, insEnd, alpha, haplotypeSize);
         this.DEBUG = deb;
         this.doSimpleCalculationModel = dosimple;
     }
-    public  HaplotypeIndelErrorModel(int mrdl, double insStart, double insEnd, double alpha, int haplotypeSize, int maxReadLength) {
+    public  HaplotypeIndelErrorModel(int mrdl, double insStart, double insEnd, double alpha, int haplotypeSize) {
         this.maxReadDeletionLength = mrdl;
         this.noDeletionProbability = 1-alpha;
         this.haplotypeSize = haplotypeSize;
-        this.maxReadLength = maxReadLength;
 
         PATH_METRIC_TABLE_LENGTH = haplotypeSize+2;
         RIGHT_ALIGN_INDEX = PATH_METRIC_TABLE_LENGTH-1;
@@ -89,13 +83,6 @@ public class HaplotypeIndelErrorModel {
         logInsertionEndProbability = probToQual(insEnd);
         logOneMinusInsertionEndProbability = probToQual(1-insEnd);
 
-
-        // initialize path metric and traceback memories for Viterbi computation
-        pathMetricArray = new double[2*PATH_METRIC_TABLE_LENGTH];
-        bestStateIndexArray = new int[maxReadLength][2*(PATH_METRIC_TABLE_LENGTH)];
-
-        for (int k=0; k < 2*PATH_METRIC_TABLE_LENGTH; k++)
-            pathMetricArray[k] = 0;
 
         // fill in probability for read deletion of length k = C*exp(k-1)
         double prob = 1.0;
@@ -140,39 +127,22 @@ public class HaplotypeIndelErrorModel {
         byte[] readQuals = Arrays.copyOfRange(read.getBaseQualities(),(int)numStartClippedBases,
                 (int)(read.getReadBases().length-numEndClippedBases));
 
-        double[] previousPathMetricArray = new double[2*PATH_METRIC_TABLE_LENGTH];
-        int readStartIdx, initialIndexInHaplotype;
 
-        if (readStartPosition < haplotypeStartPosition) {
-            readStartIdx = (int)(haplotypeStartPosition- readStartPosition);
-            initialIndexInHaplotype = 0; // implicit above
-            if ((readStartPosition+readBases.length-1) < haplotypeStartPosition)
-                // when ignoring read CIGAR alignment, this read actually didn't overlap with haplotype:
-                // just ignore read
-                return INFINITE;
-        }
-        else {
-            readStartIdx = 0;
-            initialIndexInHaplotype = (int)(readStartPosition-haplotypeStartPosition);
-        }
+        int readLength = readBases.length;
 
-        // special case 1: we're analyzing an insertion and the read starts right at the insertion.
-        if ((readStartPosition > vc.getStart()-eventLength) && vc.isInsertion() && !haplotype.isReference()) {
-            initialIndexInHaplotype += eventLength;
-        }
-        
-        if (DEBUG) {
-            System.out.println("READ: "+read.getReadName());
+        // initialize path metric and traceback memories for Viterbi computation
+        pathMetricArray = new double[readLength+1][PATH_METRIC_TABLE_LENGTH];
+        bestStateIndexArray = new int[readLength+1][PATH_METRIC_TABLE_LENGTH];
 
-            System.out.println(haplotypeStartPosition);
-            System.out.println(readStartPosition);
-            System.out.println(readStartIdx);
-            System.out.println(initialIndexInHaplotype);
-        }
+        for (int k=1; k < PATH_METRIC_TABLE_LENGTH; k++)
+            pathMetricArray[0][k] = 0;
 
-        double pRead = 0;
-        if (doSimpleCalculationModel) {
+ /*
+
+         if (doSimpleCalculationModel) {
+
             // No Viterbi algorithm - assume no sequencing indel artifacts,
+
             // so we can collapse computations and pr(read | haplotype) is just probability of observing overlap
             // of read with haplotype.
             int haplotypeIndex = initialIndexInHaplotype;
@@ -231,7 +201,7 @@ public class HaplotypeIndelErrorModel {
                 System.out.format("\nLikelihood:%f\n",pRead);
 
             }
-/*
+
             if (read.getReadName().contains("106880")) {
                 
                 System.out.println("aca");
@@ -248,87 +218,51 @@ public class HaplotypeIndelErrorModel {
                     System.out.format("%c ", readBases[k]);
                 }
 
-            }   */
+            }
             return pRead;
 
         }
-        // initialize path metric array to hard-code certainty that initial position is aligned
-        for (int k=0; k < 2*PATH_METRIC_TABLE_LENGTH; k++)
-            pathMetricArray[k] = INFINITE;
-
-        pathMetricArray[initialIndexInHaplotype] = 0;
+                */
 
 
         // Update path metric computations based on branch metric (Add/Compare/Select operations)
         // do forward direction first, ie from anchor to end of read
         // outer loop
-        for (int indR=readStartIdx; indR < readBases.length; indR++) {
+        for (int indR=0; indR < readLength; indR++) {
             byte readBase = readBases[indR];
             byte readQual = readQuals[indR];
-
-            System.arraycopy(pathMetricArray, 0, previousPathMetricArray, 0, 2*PATH_METRIC_TABLE_LENGTH);
-
 
 
             for (int indX=LEFT_ALIGN_INDEX; indX <= RIGHT_ALIGN_INDEX; indX++) {
 
 
                 byte haplotypeBase;
-                if (indX > LEFT_ALIGN_INDEX && indX <= haplotypeSize)
+                if (indX > LEFT_ALIGN_INDEX && indX < RIGHT_ALIGN_INDEX)
                     haplotypeBase = haplotype.getBasesAsBytes()[indX-1];
                 else
                     haplotypeBase = readBase;
 
-                updatePathMetrics(haplotypeBase, indX, indR, readBase, readQual, previousPathMetricArray, true);
+                updatePathMetrics(haplotypeBase, indX, indR, readBase, readQual);
             }
         }
 
-        double[] forwardPathMetricArray = new double[2*PATH_METRIC_TABLE_LENGTH];
-        System.arraycopy(pathMetricArray, 0, forwardPathMetricArray, 0, 2*PATH_METRIC_TABLE_LENGTH);
-        double forwardMetric = MathUtils.arrayMin(pathMetricArray);
-
-        // reinitialize path metric array to known position at start of read
-        // initialize path metric array to hard-code certainty that initial position is aligned
-        for (int k=0; k < 2*PATH_METRIC_TABLE_LENGTH; k++)
-            pathMetricArray[k] = INFINITE;
-
-        pathMetricArray[initialIndexInHaplotype] = 0;
-
-        // do now backward direction (from anchor to start of read)
-        // outer loop
-        for (int indR=readStartIdx-1; indR >= 0; indR--) {
-            byte readBase = readBases[indR];
-            byte readQual = readQuals[indR];
-
-            System.arraycopy(pathMetricArray, 0, previousPathMetricArray, 0, 2*PATH_METRIC_TABLE_LENGTH);
-
-            for (int indX=LEFT_ALIGN_INDEX; indX <= RIGHT_ALIGN_INDEX; indX++) {
-                byte haplotypeBase;
-                if (indX > 0 && indX <= haplotypeSize)
-                    haplotypeBase = haplotype.getBasesAsBytes()[indX-1];
-                else
-                    haplotypeBase = readBase;
-
-                updatePathMetrics(haplotypeBase, indX, indR, readBase, readQual, previousPathMetricArray, false);
-
-            }
-        }
 
 
         // for debugging only: compute backtracking to find optimal route through trellis. Since I'm only interested
         // in log-likelihood of best state, this isn't really necessary.
+        int[] bestIndexArray = new int[readLength];
+        double bestMetric = MathUtils.arrayMin(pathMetricArray[readLength]);
+
+        // start from last position of read, go backwards to find optimal alignment
+        int bestIndex = MathUtils.minElementIndex(pathMetricArray[readLength]);
+        bestIndexArray[readLength-1] = bestIndex;
+
+        for (int k=readLength-2; k>=0; k--) {
+            bestIndex = bestStateIndexArray[k][bestIndex];
+            bestIndexArray[k] = bestIndex;
+        }
         if (DEBUG) {
 
-            int[] bestIndexArray = new int[readBases.length+1];
-
-
-            int bestIndex = MathUtils.minElementIndex(forwardPathMetricArray);
-            bestIndexArray[readBases.length] = bestIndex;
-
-            for (int k=readBases.length-1; k>=0; k--) {
-                bestIndex = bestStateIndexArray[k][bestIndex];
-                bestIndexArray[k] = bestIndex;
-            }
 
 
             System.out.println(read.getReadName());
@@ -352,155 +286,91 @@ public class HaplotypeIndelErrorModel {
             System.out.println();
         }
         // now just take optimum along all path metrics: that's the log likelihood of best alignment
-        double backwardMetric = MathUtils.arrayMin(pathMetricArray);
         if (DEBUG)
-            System.out.format("Likelihood: %5.4f\n", forwardMetric + backwardMetric);
-        return forwardMetric + backwardMetric;
+            System.out.format("Likelihood: %5.4f\n", bestMetric);
+        return bestMetric;
 
     }
 
-    private void updatePathMetrics(byte haplotypeBase, int indX, int indR, byte readBase, byte readQual,
-                                   double[] previousPathMetricArray, boolean isForward) {
+    private void updatePathMetrics(byte haplotypeBase, int indX, int indR, byte readBase, byte readQual) {
 
         double bmetric;
 
-        // Pr(Rb', Xb',Ib'| Xb,Ib=0) is populated starting on Xb , =
-        // Pr(Rb'|Xb',Ib') Pr(Xb',Ib'|Xb,Ib) =
-        // Pr(Rb'|Xb',Ib') Pr(Xb'|Ib',Xb,Ib) Pr(Ib'|Ib)
-
-        // start with case Ib=0, Ib'=0: no insertion
         double bestMetric = INFINITE;
-        int bestMetricIndex = 0;
-        double pBaseRead = getProbabilityOfReadBaseGivenXandI(haplotypeBase, readBase, readQual, indX, 0);
+        int bestMetricIndex = -1;
 
-        if (isForward) {
-            if (indX==LEFT_ALIGN_INDEX){
-                // there can't be a transition into Xb=0 
-                // special case: only one incoming path
-                // record best path metric
-//                pathMetricArray[indX] = INFINITE;
-//                bestStateIndexArray[indR][indX] = 0;
-//                bestMetric = INFINITE;
-//                bestMetricIndex = 0;
-            }
-            else {
-                for (int indXold = indX-1; indXold >= indX-this.maxReadDeletionLength; indXold--){
+        // compute metric for match/mismatch
+        double pBaseRead;
 
-                    if (indXold < 0)
-                        break;
+        // workaround for reads whose bases quality = 0,
+        if (readQual < 1)
+            readQual = 1;
+        
+        double baseProb = QualityUtils.qualToProb(readQual);
 
-                    // fetch path metric and add branch metric
-                    bmetric = previousPathMetricArray[indXold] + deletionErrorProbabilities[indX-indXold] +
-                            logOneMinusInsertionStartProbability + pBaseRead;
+        
+        double pBaseMatch =  probToQual(baseProb);
+        double pBaseMismatch = (double)(readQual);
 
-                    if (bmetric < bestMetric) {
-                        bestMetric = bmetric;
-                        bestMetricIndex = indXold;
-                    }
-                }
-                if (indX == RIGHT_ALIGN_INDEX)  {
-                    // special treatment for R->R case  (read aligns to the right of haplotype) when Xold = X = R
-                    bmetric = previousPathMetricArray[indX] + pBaseRead;
-
-                    if (bmetric < bestMetric) {
-                        bestMetric = bmetric;
-                        bestMetricIndex = indX;
-                    }
+        if (haplotypeBase == readBase)
+            pBaseRead =  pBaseMatch;
+        else
+            pBaseRead = pBaseMismatch;
 
 
-                }
-            }
+
+
+
+        if (indX == LEFT_ALIGN_INDEX) {
+            // special treatment for L->L case  (read aligns to the right/left of haplotype) when Xold = X = R
+            bestMetric = pathMetricArray[indR][indX] + QUAL_ONE_HALF; //1/2 in log scale
+            bestMetricIndex = indX;
         }
         else {
-            for (int indXold = indX+1; indXold <=this.maxReadDeletionLength + indX; indXold++){
-                if (indXold > this.haplotypeSize+1)
+            for (int indXold = indX-1; indXold >= indX-this.maxReadDeletionLength; indXold--) {
+
+                if (indXold < 0)
                     break;
 
                 // fetch path metric and add branch metric
-                bmetric = previousPathMetricArray[indXold] + deletionErrorProbabilities[indXold-indX] +
-                        logOneMinusInsertionStartProbability + pBaseRead;
+                bmetric = pathMetricArray[indR][indXold] + deletionErrorProbabilities[indX-indXold] + pBaseRead;
+
+                if (indXold == indX-1) {
+                    // special case for exact walk down diagonal: need to consider that an insertion may have ended
+               //     bmetric += logInsertionEndProbability;
+                } else {
+                    bmetric += logOneMinusInsertionStartProbability;
+                }
 
                 if (bmetric < bestMetric) {
                     bestMetric = bmetric;
                     bestMetricIndex = indXold;
                 }
-                if (indX == LEFT_ALIGN_INDEX)  {
-                    // special treatment for R->R case  (read aligns to the right of haplotype) when Xold = X = R
-                    bmetric = previousPathMetricArray[indX] + pBaseRead;
-
-                    if (bmetric < bestMetric) {
-                        bestMetric = bmetric;
-                        bestMetricIndex = indX;
-                    }
-
-
-                }
             }
-
-        }
-        // now Pr(Xb',Ib'=0| Xb,Ib=1): an insertion ended. Only case if Xb'=Xb+1 (walk diag down in path array).
-
-        if (indX > LEFT_ALIGN_INDEX && indX < RIGHT_ALIGN_INDEX)  {
-            if (isForward)
-                bmetric = previousPathMetricArray[indX-1+PATH_METRIC_TABLE_LENGTH] + logInsertionEndProbability + pBaseRead;
-            else
-                bmetric = previousPathMetricArray[indX+1+PATH_METRIC_TABLE_LENGTH] + logInsertionEndProbability + pBaseRead;
+            // additional case: a walk right (ie indXold = indX). Can be because of an insertion in the middle of reads,
+            // or we're aligned to right of read
+            bmetric = pathMetricArray[indR][indX]+pBaseRead;
+            if (indX < RIGHT_ALIGN_INDEX) {
+                bmetric += logInsertionStartProbability + logOneMinusInsertionEndProbability;
+            }
+            else {
+                // anything extra to do for R->R case?
+                bmetric = pathMetricArray[indR][indX] + QUAL_ONE_HALF;
+            }
 
             if (bmetric < bestMetric) {
                 bestMetric = bmetric;
-                if (isForward)
-                    bestMetricIndex = indX-1 + PATH_METRIC_TABLE_LENGTH;
-                else
-                    bestMetricIndex = indX+1 + PATH_METRIC_TABLE_LENGTH;
-
-            }
-        }
-        // record best path metric
-        pathMetricArray[indX] = bestMetric;
-        bestStateIndexArray[indR][indX] = bestMetricIndex;
-
-        // now Pr(Xb', Ib'=1 | Xb, Ib=0) : an insertion started: (walk right in path array)
-        bestMetric = INFINITE;
-        pBaseRead = getProbabilityOfReadBaseGivenXandI(haplotypeBase, readBase, readQual, indX, 1);
-
-        bmetric = previousPathMetricArray[indX] + logInsertionStartProbability + pBaseRead;
-        if (bmetric < bestMetric) {     //if superfluous, could clean up
-            bestMetric = bmetric;
-            bestMetricIndex = indX;
-        }
-
-        // final case: Pr(Xb', Ib'=1 | Xb, Ib=1): insertion continues, also walk right in path array
-        if (indX > LEFT_ALIGN_INDEX && indX < RIGHT_ALIGN_INDEX)  {
-            bmetric = previousPathMetricArray[indX+PATH_METRIC_TABLE_LENGTH] + logOneMinusInsertionEndProbability + pBaseRead;
-            if (bmetric < bestMetric) {     //if superfluous, could clean up
-                bestMetric = bmetric;
-                bestMetricIndex = indX+PATH_METRIC_TABLE_LENGTH;
+                bestMetricIndex = indX;
             }
 
-            // record best path metric
-            pathMetricArray[indX+PATH_METRIC_TABLE_LENGTH] = bestMetric;
-            bestStateIndexArray[indR][indX+PATH_METRIC_TABLE_LENGTH] = bestMetricIndex;
+
         }
+
+         // record best path metric
+        pathMetricArray[indR+1][indX] = bestMetric;
+        bestStateIndexArray[indR+1][indX] = bestMetricIndex;
+
     }
 
-    private double getProbabilityOfReadBaseGivenXandI(byte haplotypeBase, byte readBase, byte readQual, int indX, int indI) {
-
-
-        if (indX == RIGHT_ALIGN_INDEX  || indX == LEFT_ALIGN_INDEX) {
-            // X = L or R
-            double baseProb = QualityUtils.qualToProb(readQual);
-            return probToQual(baseProb);
-        }
-
-        if (haplotypeBase == readBase) {
-            double baseProb = QualityUtils.qualToProb(readQual);
-            return probToQual(baseProb);
-        }
-        else {
-            return (double)(readQual);
-        }
-        // TODO - optimize for speed by avoiding so many log conversions, can use a LUT
-
-    }
 
 }

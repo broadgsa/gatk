@@ -40,6 +40,7 @@ public class Haplotype {
     protected double[] quals = null;
     private GenomeLoc genomeLocation = null;
     private boolean isReference = false;
+    public static final int LEFT_WINDOW_SIZE = 20;
 
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
@@ -111,7 +112,7 @@ public class Haplotype {
 
         byte[] refBases = ref.getBases();
 
-        int numPrefBases = 20;
+        int numPrefBases = LEFT_WINDOW_SIZE;
 
         int startIdxInReference = (int)(1+vc.getStart()-numPrefBases-ref.getWindow().getStart());
         //int numPrefBases = (int)(vc.getStart()-ref.getWindow().getStart()+1); // indel vc starts one before event
