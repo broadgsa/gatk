@@ -62,6 +62,11 @@ object IOUtils {
    * @throws IOException if the directory could not be created.
    */
   def tempDir(prefix: String, suffix: String = "") = {
+    // Keep the temp directory from having pluses in it, which can cause problems with the Google Reflections library.
+    // see also: http://benjchristensen.com/2009/09/22/mac-osx-10-6-java-java-io-tmpdir/
+    if (System.getProperty("java.io.tmpdir").startsWith("/var/folders/"))
+      System.setProperty("java.io.tmpdir", "/tmp/");
+
     val tempDirParent = new File(System.getProperty("java.io.tmpdir"))
     if (!tempDirParent.exists && !tempDirParent.mkdirs)
        throw new IOException("Could not create temp directory: " + tempDirParent)
