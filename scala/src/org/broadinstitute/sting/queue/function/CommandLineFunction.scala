@@ -93,8 +93,10 @@ trait CommandLineFunction extends QFunction with Logging {
    */
   def outputs = getFieldFiles(outputFields)
 
+  def doneOutputs = getDoneFiles(outputFields)
+
   /**
-   * Gets the files from the fields.  The fields must be a File, a FileExtension, or a List or Set of either.
+   *  Gets the files from the fields.  The fields must be a File, a FileExtension, or a List or Set of either.
    * @param fields Fields to get files.
    * @return Set[File] for the fields.
    */
@@ -112,12 +114,18 @@ trait CommandLineFunction extends QFunction with Logging {
    */
   def upToDate = {
     val inputFiles = inputs
-    val outputFiles = outputs.filterNot(file => (file == jobOutputFile || file == jobErrorFile))
-    if (outputFiles.size > 0 && outputFiles.forall(_.exists)) {
-      val maxInput = inputFiles.foldLeft(Long.MinValue)((date, file) => date.max(file.lastModified))
-      val minOutput = outputFiles.foldLeft(Long.MaxValue)((date, file) => date.min(file.lastModified))
-      maxInput < minOutput
-    } else false
+    if ( doneOutputs.size > 0 && doneOutputs.forall(_.exists) ) {
+      val maxInput = inputFiles.foldLeft(Long.MinValue)((date,file) => date.max(file.lastModified))
+      val minDone = doneOutputs.foldLeft(Long.MaxValue)((date,file) => date.min(file.lastModified))
+      maxInput < minDone
+    } else false                      
+    //val inputFiles = inputs
+    //val outputFiles = outputs.filterNot(file => (file == jobOutputFile || file == jobErrorFile))
+    //if (outputFiles.size > 0 && outputFiles.forall(_.exists)) {
+    //  val maxInput = inputFiles.foldLeft(Long.MinValue)((date, file) => date.max(file.lastModified))
+    //  val minOutput = outputFiles.foldLeft(Long.MaxValue)((date, file) => date.min(file.lastModified))
+    //  maxInput < minOutput
+    //} else false
   }
 
   /**
@@ -136,7 +144,48 @@ trait CommandLineFunction extends QFunction with Logging {
   }
 
   /**
-   * Gets the file from the field.  The field must be a File or a FileExtension and not a List or Set.
+   * Gets the done files from the field.  The field must be a File, a FileExtension, or a List or Set of either.
+   * @param fields Field to get files.
+   * @return Set[File] set of done files for the field.
+   */
+  private def getDoneFiles(fields: List[ArgumentSource]): Set[File] = {
+    var doneFiles = Set.empty[File]
+    for ( field <- fields ) {
+      CollectionUtils.foreach(getFieldValue(field), (fieldValue) => {
+        val outFile = fieldValueToFile(field,fieldValue)
+        if ( outFile != null && filesAreDifferent(outFile,jobOutputFile) && filesAreDifferent(outFile,jobErrorFile) && ! outFile.isDirectory && ! outFile.getName.endsWith(".out")) {
+          doneFiles += new File(outFile.getParent + "/." + outFile.getName + ".done")
+        }
+      })
+    }
+    doneFiles
+
+    //for ( outFile <- outFiles ) {
+    //  if ( outFile != null && filesAreDifferent(outFile,jobOutputFile) && filesAreDifferent(outFile,jobErrorFile) && ! outFile.isDirectory )
+    //    doneFiles += new File(outFile.getParent + "." + outFile.getName + ".done")
+    //}
+    //doneFiles
+  }
+
+  /**
+   * Silly utility function which compresses if statement in getDoneFiles; returns true if two files are different
+   * @return boolean -- if files are different
+   */
+  private def filesAreDifferent(a: File, b: File): Boolean = {
+    if ( b == null )
+      if ( a == null )
+        return false
+      else
+        return true
+    else
+      if ( a == null )
+        return true
+      else
+        return ! b.getAbsolutePath.equals(a.getAbsolutePath)
+  }
+
+  /**
+   *  Gets the file from the field.  The field must be a File or a FileExtension and not a List or Set.
    * @param field Field to get the file.
    * @return File for the field.
    */

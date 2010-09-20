@@ -220,7 +220,7 @@ class fullCallingPipeline extends QScript {
     clusters.DBSNP = qscript.dbSNP
     val clusters_clusterFile = swapExt(new File(snps.out.getAbsolutePath),".vcf",".cluster")
     clusters.clusterFile = clusters_clusterFile
-    clusters.memoryLimit = Some(8)
+    clusters.memoryLimit = Some(4)
     clusters.jobQueue = "gsa"
 
     clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")

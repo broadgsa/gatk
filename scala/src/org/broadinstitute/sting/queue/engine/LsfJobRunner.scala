@@ -32,6 +32,10 @@ class LsfJobRunner extends DispatchJobRunner with Logging {
     if (function.memoryLimit.isDefined)
       job.extraBsubArgs ++= List("-R", "rusage[mem=" + function.memoryLimit.get + "]")
 
+    if ( ! function.commandLine.contains("mkdir")) // wild hack -- ignore mkdirs ??
+      job.postExecCommand = function.doneOutputs.foldLeft("python /humgen/gsa-scr1/chartl/sting/python/lsf_post_touch.py ")((b,a) => b + a.getAbsolutePath+" ")
+    // hacky trailing space, so sue me -- CH
+
     val previous: Iterable[LsfJob] =
       if (function.isInstanceOf[DispatchWaitFunction]) {
         job.waitForCompletion = true
@@ -39,7 +43,7 @@ class LsfJobRunner extends DispatchJobRunner with Logging {
       } else {
         previousJobs(function, qGraph)
       }
-
+    
     mountCommand(function) match {
       case Some(command) => job.preExecCommand = command
       case None => /* ignore */
