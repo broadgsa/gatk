@@ -276,6 +276,7 @@
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
               <include name="**/oneoffprojects/**/*.class" />
+              <include name="**/playground/**/*.class" />
             </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK" />
