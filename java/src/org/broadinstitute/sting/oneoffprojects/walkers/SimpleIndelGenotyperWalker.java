@@ -227,7 +227,7 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
         }
 
         int bestIndexI =-1, bestIndexJ=-1;
-        double callConfidence = 0.0;
+        double callConfidence = bestLikelihood;
 
 
         if (pileup.getReads().size() > 0) {
@@ -270,8 +270,8 @@ public class SimpleIndelGenotyperWalker extends RefWalker<Integer,Integer> {
                     if (haplotypeLikehoodMatrix[i][j] < bestLikelihood) {
                         bestIndexI = i;
                         bestIndexJ = j;
-                        if (i > 0 || j > 0)
-                            callConfidence = bestLikelihood - haplotypeLikehoodMatrix[i][j];
+
+                        callConfidence = bestLikelihood - haplotypeLikehoodMatrix[i][j];
                         bestLikelihood = haplotypeLikehoodMatrix[i][j];
                     }
                 }
