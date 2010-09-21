@@ -47,10 +47,8 @@ public class DictionaryConsistencyIntegrationTest extends WalkerTest {
 
     // testing b36 calls
     @Test public void fail5() { executeTest("b36xb36", testVCF(hg18Reference, callsB36)); }
-    // todo -- Matt I get really weird behavior when I enable these two tests.  They generate
-    // command line errors but I don't understand how.
-//    @Test public void fail6() { executeTest("b37xb36", testVCF(b37KGReference, callsB36)); }
-//    @Test public void fail7() { executeTest("hg19xb36", testVCF(hg19Reference, callsB36)); }
+    @Test public void fail6() { executeTest("b37xb36", testVCF(b37KGReference, callsB36)); }
+    @Test public void fail7() { executeTest("hg19xb36", testVCF(hg19Reference, callsB36)); }
     @Test public void fail8() { executeTest("hg18lex-v-b36", testVCF(lexHG18, callsB36)); }
 
     private WalkerTest.WalkerTestSpec testVCF(String ref, String vcf) {
