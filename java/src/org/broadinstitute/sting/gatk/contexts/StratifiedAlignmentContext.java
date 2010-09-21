@@ -113,7 +113,7 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
                 contexts.put(sampleName,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             else {
                 if(assumedSingleSample == null) {
-                    throw new UserException.MalformedBam(pileupBySample.iterator().next().getRead(), "Missing read group for read");
+                    throw new UserException.ReadMissingReadGroup(pileupBySample.iterator().next().getRead());
                 }
                 contexts.put(assumedSingleSample,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             }

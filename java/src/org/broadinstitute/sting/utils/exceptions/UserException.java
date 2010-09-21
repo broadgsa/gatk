@@ -112,7 +112,7 @@ public class UserException extends ReviewedStingException {
 
     public static class MalformedBam extends UserException {
         public MalformedBam(SAMRecord read, String message) {
-            super(String.format("SAM/BAM file %s is malformed: %s", read.getFileSource(), message));
+            super(String.format("SAM/BAM file %s is malformed: %s", read.getFileSource().getReader(), message));
         }
     }
 
@@ -133,7 +133,7 @@ public class UserException extends ReviewedStingException {
 
         public MissortedBAM(SAMFileHeader.SortOrder order, SAMRecord read, String message) {
             super(String.format("Missorted Input SAM/BAM file %s: file sorted in %s order but %s is required; %s",
-                    read.getFileSource(), read.getHeader().getSortOrder(), order, message));
+                    read.getFileSource().getReader(), read.getHeader().getSortOrder(), order, message));
         }
 
         public MissortedBAM(String message) {

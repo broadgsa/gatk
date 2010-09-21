@@ -79,7 +79,8 @@ public class SequenceDictionaryUtils {
      * @param dict2 the sequence dictionary dict2
      */
     public static void validateDictionaries(Logger logger, String name1, SAMSequenceDictionary dict1, String name2, SAMSequenceDictionary dict2) {
-        switch ( compareDictionaries(dict1, dict2) ) {
+        SequenceDictionaryCompatability type = compareDictionaries(dict1, dict2);
+        switch ( type ) {
             case IDENTICAL:
                 return;
             case COMMON_SUBSET:
@@ -104,7 +105,7 @@ public class SequenceDictionaryUtils {
                 break;
             }
 
-            case NON_CANONICAL_HUMAN_ORDER:
+            case NON_CANONICAL_HUMAN_ORDER: {
                 UserException ex = new UserException.IncompatibleSequenceDictionaries("Human genome sequence provided in non-canonical ordering.  For safety's sake the GATK requires contigs in karyotypic order: 1, 2, ..., 10, 11, ..., 20, 21, 22, X, Y with M either leading or trailing these contigs",
                         name1, dict1, name2, dict2);
 
@@ -112,11 +113,17 @@ public class SequenceDictionaryUtils {
                     logger.warn(ex.getMessage());
                 else
                     throw ex;
+            }
 
-            case OUT_OF_ORDER:
-                throw new UserException.IncompatibleSequenceDictionaries("Order of contigs differences, which is unsafe", name1, dict1, name2, dict2);
+            case OUT_OF_ORDER: {
+                UserException ex = new UserException.IncompatibleSequenceDictionaries("Order of contigs differences, which is unsafe", name1, dict1, name2, dict2);
+                if ( allowNonFatalIncompabilities() )
+                    logger.warn(ex.getMessage());
+                else
+                    throw ex;
+            } break;
             default:
-                throw new ReviewedStingException("Unexpected SequenceDictionaryComparison type");
+                throw new ReviewedStingException("Unexpected SequenceDictionaryComparison type: " + type);
         }
     }
 
