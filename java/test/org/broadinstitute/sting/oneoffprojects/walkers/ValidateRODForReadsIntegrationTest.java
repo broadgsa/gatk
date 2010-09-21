@@ -13,15 +13,15 @@ public class ValidateRODForReadsIntegrationTest extends WalkerTest {
     private final String vcfFile = validationDataLocation + "rodForReadsVCFCheck.vcf";
     private final String dbSNPFile = GATKDataLocation + "dbsnp_129_hg18.rod";
     
-     public static String baseTestString1KG() {
-            return "-T ValidateRODForReads -o %s -R testdata/exampleFASTA.fasta -U ALLOW_SEQ_DICT_INCOMPATIBILITY -I testdata/exampleBAM.bam";
+     public static String baseTestString() {
+            return "-T ValidateRODForReads -o %s -R " + hg18Reference + " -I " + validationDataLocation + "small_bam_for_rods_for_reads.bam";
         }
 
 
     @Test
     public void testSimpleVCFPileup() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString1KG() + " -B:vcf,vcf " + vcfFile, 1,
+                baseTestString() + " -B:vcf,vcf " + vcfFile, 1,
                 Arrays.asList("f7919e9dc156fb5d3ad0541666864ea5"));
         executeTest("testSimpleVCFPileup", spec);
     }
@@ -29,7 +29,7 @@ public class ValidateRODForReadsIntegrationTest extends WalkerTest {
     @Test
     public void testSimpleDbSNPPileup() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString1KG() + " -B:dbsnp,dbsnp " + dbSNPFile, 1,
+                baseTestString() + " -B:dbsnp,dbsnp " + dbSNPFile, 1,
                 Arrays.asList("c63b8ef9291a450f0519c73ac9cae189"));
         executeTest("testSimpleDbSNPPileup", spec);
     }

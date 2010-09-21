@@ -386,6 +386,10 @@ public class GenomeAnalysisEngine {
         if (argCollection.DBSNPFile != null) bindConvenienceRods(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile);
 
         RMDTrackBuilder manager = new RMDTrackBuilder();
+
+        // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
+        manager.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary());
+        
         List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection.RODBindings);
         validateSuppliedReferenceOrderedDataAgainstWalker(my_walker, tracks);
 

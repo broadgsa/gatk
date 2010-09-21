@@ -59,21 +59,35 @@ import java.util.*;
  */
 public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     /**
-     * our log, which we want to capture anything from this class
+     * our log, which we use to capture anything from this class
      */
-    private static Logger logger = Logger.getLogger(RMDTrackBuilder.class);
+    private final static Logger logger = Logger.getLogger(RMDTrackBuilder.class);
+
+    // a constant we use for marking sequence dictionary entries in the Tribble index property list
+    public static final String SequenceDictionaryPropertyPredicate = "DICT:";
 
     // the input strings we use to create RODs from
-    List<RMDTriplet> inputs = new ArrayList<RMDTriplet>();
+    private final List<RMDTriplet> inputs = new ArrayList<RMDTriplet>();
 
     // the linear index extension
     public static final String indexExtension = ".idx";
 
     private Map<String, Class> classes = null;
 
+    // private sequence dictionary we use to set our tracks with
+    private SAMSequenceDictionary dict = null;
+
     /** Create a new plugin manager. */
     public RMDTrackBuilder() {
         super(FeatureCodec.class, "Codecs", "Codec");
+    }
+
+    /**
+     *
+     * @param dict the sequence dictionary to use as a reference for Tribble track contig length lookups
+     */
+    public void setSequenceDictionary(SAMSequenceDictionary dict) {
+        this.dict = dict;
     }
 
     /** @return a list of all available track types we currently have access to create */
@@ -135,7 +149,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         if (inputFile.getAbsolutePath().endsWith(".gz"))
             pair = createBasicFeatureSourceNoAssumedIndex(targetClass, name, inputFile);
         else
-            pair = getLinearFeatureReader(targetClass, name, inputFile);
+            pair = getFeatureSource(targetClass, name, inputFile);
         return pair;
     }
 
@@ -173,20 +187,29 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     }
 
     /**
-     * create a linear feature reader, where we create the index ahead of time
+     * create a feature source object given:
      * @param targetClass the target class
      * @param name the name of the codec
      * @param inputFile the tribble file to parse
      * @return the input file as a FeatureReader
      */
-    private Pair<BasicFeatureSource, SAMSequenceDictionary> getLinearFeatureReader(Class targetClass, String name, File inputFile) {
+    private Pair<BasicFeatureSource, SAMSequenceDictionary> getFeatureSource(Class targetClass, String name, File inputFile) {
         Pair<BasicFeatureSource, SAMSequenceDictionary> reader;
         try {
-            Index index = loadIndex(inputFile, createCodec(targetClass, name), true);
+            Index index = loadIndex(inputFile, createCodec(targetClass, name));
+            SAMSequenceDictionary dictFromIndex = getSequenceDictionaryFromProperties(index);
+
+            // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
+            if (dictFromIndex.size() == 0 && dict != null) {
+                File indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
+                setIndexSequenceDictionary(index,dict,indexFile,true);
+                dictFromIndex = getSequenceDictionaryFromProperties(index);
+            }
+            
             reader = new Pair<BasicFeatureSource, SAMSequenceDictionary>(new BasicFeatureSource(inputFile.getAbsolutePath(),
                                                                                                 index,
                                                                                                 createCodec(targetClass, name)),
-                                                                                                sequenceSetToDictionary(index.getSequenceNames()));
+                                                                                                dictFromIndex);
         } catch (FileNotFoundException e) {
             throw new UserException.CouldNotReadInputFile(inputFile, "Unable to create reader with file", e);
         } catch (IOException e) {
@@ -199,11 +222,10 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * create an index for the input file
      * @param inputFile the input file
      * @param codec the codec to use
-     * @param onDisk write the index to disk?
      * @return a linear index for the specified type
      * @throws IOException if we cannot write the index file
      */
-    public synchronized static Index loadIndex(File inputFile, FeatureCodec codec, boolean onDisk) throws IOException {
+    public synchronized static Index loadIndex(File inputFile, FeatureCodec codec) throws IOException {
 
         // create the index file name, locking on the index file name
         File indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
@@ -218,7 +240,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         if (idx != null) return idx;
 
         // we couldn't read the file, or we fell out of the conditions above, continue on to making a new index
-        return createNewIndex(inputFile, codec, onDisk, indexFile, lock);
+        return writeIndexToDisk(createIndexInMemory(inputFile, codec), indexFile, lock);
     }
 
     /**
@@ -277,33 +299,29 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
 
 
     /**
-     * attempt to create the index, and write it to disk
-     * @param inputFile the input file
-     * @param codec the codec to use
-     * @param onDisk if they asked for disk storage or now
+     * attempt to write the index to disk
+     * @param index the index to write to disk
      * @param indexFile the index file location
      * @param lock the locking object
      * @return the index object
      * @throws IOException when unable to create the new index
      */
-    private static Index createNewIndex(File inputFile, FeatureCodec codec, boolean onDisk, File indexFile, FSLockWithShared lock) throws IOException {
-        Index index = createIndexInMemory(inputFile, codec);
-
+    private static Index writeIndexToDisk(Index index, File indexFile, FSLockWithShared lock) throws IOException {
         boolean locked = false; // could we exclusive lock the file?
         try {
             locked = lock.exclusiveLock();
             if (locked) {
-                logger.info("Writing Tribble index to disk for file " + inputFile);
+                logger.info("Writing Tribble index to disk for file " + indexFile);
                 LittleEndianOutputStream stream = new LittleEndianOutputStream(new FileOutputStream(indexFile));
                 index.write(stream);
                 stream.close();
             }
             else // we can't write it to disk, just store it in memory, tell them this
-                if (onDisk) logger.info("Unable to write to " + indexFile + " for the index file, creating index in memory only");
+                logger.info("Unable to write to " + indexFile + " for the index file, creating index in memory only");
             return index;
         }
         catch(FileSystemInabilityToLockException ex) {
-            throw new UserException.MissortedFile(inputFile,"Unexpected inability to lock exception", ex);
+            throw new UserException.CouldNotCreateOutputFile(indexFile,"Unexpected inability to lock exception", ex);
         }
         finally {
             if (locked) lock.unlock();
@@ -318,26 +336,10 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @return a LinearIndex, given the file location
      * @throws IOException when unable to create the index in memory
      */
-    private static Index createIndexInMemory(File inputFile, FeatureCodec codec) throws IOException {
+    private static Index createIndexInMemory(File inputFile, FeatureCodec codec) {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
         return IndexFactory.createIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
-    }
-
-    /**
-     * convert a list of Strings into a sequence dictionary
-     * @param contigList the contig list, in coordinate order, this is allowed to be null
-     * @return a SAMSequenceDictionary, WITHOUT contig sizes
-     */
-    private static SAMSequenceDictionary sequenceSetToDictionary(LinkedHashSet<String> contigList) {
-        SAMSequenceDictionary dict = new SAMSequenceDictionary();
-        if (contigList == null) return dict;
-
-        for (String name : contigList) {
-            SAMSequenceRecord seq = new SAMSequenceRecord(name, 0);
-            dict.addSequence(seq);
-        }
-        return dict;
     }
 
     /**
@@ -361,10 +363,11 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * find the associated reference meta data
      *
      * @param bindings the bindings of strings from the -B command line option
+     * @param engine the GATK engine to bind the tracks to
      *
      * @return a list of RMDTracks, one for each -B option
      */
-    public List<RMDTrack> getReferenceMetaDataSources(GenomeAnalysisEngine engine,List<String> bindings) {
+    public List<RMDTrack> getReferenceMetaDataSources(GenomeAnalysisEngine engine, List<String> bindings) {
         initializeBindings(engine,bindings);
         // try and make the tracks given their requests
         return createRequestedTrackObjects();
@@ -415,5 +418,75 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
             tracks.add(createInstanceOfTrack(featureCodecClass, trip.getName(), new File(trip.getFile())));
         }
         return tracks;
+    }
+
+
+    // ---------------------------------------------------------------------------------------------------------
+    // static functions to work with the sequence dictionaries of indexes
+    // ---------------------------------------------------------------------------------------------------------
+    
+    /**
+     * get the sequence dictionary from the track, if available.  If not, make it from the contig list that is always in the index
+     * @param index the index file to use
+     * @return a SAMSequenceDictionary if available, null if unavailable
+     */
+    public static SAMSequenceDictionary getSequenceDictionaryFromProperties(Index index) {
+        SAMSequenceDictionary dict = new SAMSequenceDictionary();
+        for (Map.Entry<String,String> entry : index.getProperties().entrySet()) {
+            if (entry.getKey().startsWith(SequenceDictionaryPropertyPredicate))
+                dict.addSequence(new SAMSequenceRecord(entry.getKey().substring(SequenceDictionaryPropertyPredicate.length() , entry.getKey().length()),
+                                 Integer.valueOf(entry.getValue())));
+        }
+        return dict;
+    }
+
+    /**
+     * create the sequence dictionary with the contig list; a backup approach
+     * @param index the index file to use
+     * @param dict the sequence dictionary to add contigs to
+     * @return the filled-in sequence dictionary
+     */
+    private static SAMSequenceDictionary createSequenceDictionaryFromContigList(Index index, SAMSequenceDictionary dict) {
+        LinkedHashSet<String> seqNames = index.getSequenceNames();
+        if (seqNames == null) {
+            return dict;
+        }
+        for (String name : seqNames) {
+            SAMSequenceRecord seq = new SAMSequenceRecord(name, 0);
+            dict.addSequence(seq);
+        }
+        return dict;
+    }
+
+    /**
+     * set the sequence dictionary of the track.  This function checks that the contig listing of the underlying file is compatible.
+     * (that each contig in the index is in the sequence dictionary).
+     * @param dict the sequence dictionary
+     * @param index the index file
+     * @param indexFile the index file
+     * @param rewriteIndex should we rewrite the index when we're done?
+     *
+     */
+    public static void setIndexSequenceDictionary(Index index, SAMSequenceDictionary dict, File indexFile, boolean rewriteIndex) {
+        if (dict == null) return;
+
+        SAMSequenceDictionary currentDict = createSequenceDictionaryFromContigList(index, new SAMSequenceDictionary());
+        // check that every contig in the RMD contig list is at least in the sequence dictionary we're being asked to set
+        for (SAMSequenceRecord seq : currentDict.getSequences()) {
+            if (dict.getSequence(seq.getSequenceName()) == null)
+                throw new UserException.IncompatibleSequenceDictionaries("The sequence dictionary from the reference the GATK is running with is not compatible with the sequence " +
+                                                      "dictionary in the Tribble file " + indexFile + ".  It doesn't contain the contig: " + seq.getSequenceName(),
+                                                      "RMD Sequence Dictionary",
+                                                      currentDict,
+                                                      "Reference Sequence Dictionary",
+                                                      dict);
+            index.addProperty(SequenceDictionaryPropertyPredicate + dict.getSequence(seq.getSequenceName()).getSequenceName(), String.valueOf(dict.getSequence(seq.getSequenceName()).getSequenceLength()));
+        }
+        // re-write the index
+        if (rewriteIndex) try {
+            writeIndexToDisk(index,indexFile,new FSLockWithShared(indexFile));
+        } catch (IOException e) {
+            logger.warn("Unable to update index with the sequence dictionary for file " + indexFile + "; this will not effect your run of the GATK");
+        }
     }
 }
