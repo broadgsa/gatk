@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.junit.Test;
 
 import java.util.*;
@@ -109,4 +110,33 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
             }
         }
     }
+
+
+    @Test
+    public void testFailWithBadAnnotation() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            String vcf = entry.getKey();
+
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    "-R " + b36KGReference +
+                            " -NO_HEADER" +
+                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
+                            " -B:hapmap,VCF " + comparisonDataLocation + "Validated/HapMap/3.2/genotypes_r27_nr.b36_fwd.vcf" +
+                            " -weightDBSNP 0.2 -weightHapMap 1.0" +
+                            " -T GenerateVariantClusters" +
+                            " -B:input,VCF " + vcf +
+                            " -L 1:50,000,000-200,000,000" +
+                            " -qual 50.0" +
+                            " --ignore_filter GATK_STANDARD" +
+                            " -an QD -an HRun -an ThisAnnotationIsBAD" + // There is a bad annotation here
+                            " -clusterFile %s",
+                    1, // just one output file
+                    UserException.MalformedFile.class);
+            executeTest("testFailWithBadAnnotation", spec);
+        }
+    }
 }
+
