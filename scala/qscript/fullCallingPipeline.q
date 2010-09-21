@@ -1,8 +1,9 @@
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
 import org.broadinstitute.sting.queue.extensions.gatk._
+import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
-import org.broadinstitute.sting.queue.QScript
+import org.broadinstitute.sting.queue.{QException, QScript}
 
 class fullCallingPipeline extends QScript {
   qscript =>
@@ -102,26 +103,67 @@ class fullCallingPipeline extends QScript {
       realigner.intervals = qscript.contigIntervals
       realigner.targetIntervals = new java.io.File(targetCreator.out.getAbsolutePath)
       realigner.scatterCount = qscript.numContigs
-      realigner.out = cleaned_bam
-      realigner.scatterClass = classOf[ContigScatterFunction]
-      realigner.setupGatherFunction = { case (f: BamGatherFunction, _) => f.jarFile = qscript.picardFixMatesJar }
-      realigner.jobQueue = "week"
+
+      // may need to explicitly run fix mates
+      var fixMates = new PicardBamJarFunction {
+          // Declare inputs/outputs for dependency tracking.
+          @Input(doc="unfixed bam") var unfixed: File = _
+          @Output(doc="fixed bam") var fixed: File = _
+          def inputBams = List(unfixed)
+          def outputBam = fixed
+        }
+
+
+
+      // realigner.out = cleaned_bam
+      // realigner.scatterClass = classOf[ContigScatterFunction]
+      // realigner.setupGatherFunction = { case (f: BamGatherFunction, _) => f.jarFile = qscript.picardFixMatesJar }
+      // realigner.jobQueue = "week"
+
+      // if scatter count is > 1, do standard scatter gather, if not, explicitly set up fix mates
+      if (realigner.scatterCount > 1) {
+        realigner.out = cleaned_bam
+        // While gathering run fix mates.
+        realigner.scatterClass = classOf[ContigScatterFunction]
+        realigner.setupGatherFunction = {
+          case (gather: BamGatherFunction, _) =>
+            gather.memoryLimit = Some(4)
+            gather.jarFile = qscript.picardFixMatesJar
+            // Don't pass this AS=true to fix mates!
+            gather.assumeSorted = None
+          case (gather: SimpleTextGatherFunction, _) =>
+            throw new QException("Cannot text-gather a realignment job")
+        }
+      } else {
+        realigner.out = swapExt(bam,"bam","unfixed.cleaned.bam")
+
+        // Explicitly run fix mates if the function won't be scattered.
+
+        fixMates.memoryLimit = Some(4)
+        fixMates.jarFile = qscript.picardFixMatesJar
+        fixMates.unfixed = realigner.out
+        fixMates.fixed = cleaned_bam
+        // Add the fix mates explicitly
+      }
 
       var samtoolsindex = new SamtoolsIndexFunction
       samtoolsindex.bamFile = cleaned_bam
 
       // put clean bams in clean genotypers
 
-      cleanBamFiles :+= realigner.out
+      cleanBamFiles :+= cleaned_bam
 
-      // COMMENT THIS NEXT LINE TO SKIP CLEANING
-      //add(targetCreator,realigner,samtoolsindex)
+      // COMMENT THIS NEXT BLOCK TO SKIP CLEANING
+      if ( realigner.scatterCount > 1 )
+          add(targetCreator,realigner,samtoolsindex)
+      else
+          add(targetCreator,realigner,fixMates,samtoolsindex)
     }
 
     // actually make calls
     endToEnd(uncleanedBase,qscript.bamFiles)
     // COMMENT THIS NEXT LINE TO AVOID CALLING ON CLEANED FILES
-    //endToEnd(cleanedBase,cleanBamFiles)
+    endToEnd(cleanedBase,cleanBamFiles)
   }
 
   def endToEnd(base: String, bamFiles: List[File]) = {
