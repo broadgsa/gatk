@@ -87,7 +87,9 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             }
         });
         getters.put("QUAL", new Getter() { public String get(VariantContext vc) { return Double.toString(vc.getPhredScaledQual()); } });
-        getters.put("FILTER", new Getter() { public String get(VariantContext vc) { return Utils.join(",", vc.getFilters()); } });
+        getters.put("FILTER", new Getter() { public String get(VariantContext vc) {
+            return vc.isNotFiltered() ? "PASS" : Utils.join(",", vc.getFilters()); } 
+        });
 
         getters.put("HET", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHetCount()); } });
         getters.put("HOM-REF", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHomRefCount()); } });
