@@ -1,15 +1,15 @@
+import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.{QException, QScript}
+import collection.JavaConversions._
+import org.broadinstitute.sting.utils.yaml.YamlUtils
 
 class fullCallingPipeline extends QScript {
   qscript =>
-
-  @Argument(doc = "reference", shortName="R")
-  var reference: File = _
 
   @Argument(doc="contigIntervals", shortName="contigIntervals")
   var contigIntervals: File = _
@@ -17,8 +17,8 @@ class fullCallingPipeline extends QScript {
   @Argument(doc="numContigs", shortName="numContigs")
   var numContigs: Int = _
 
-  @Argument(doc="project", shortName="project")
-  var project: String = _
+  @Argument(fullName="pipeline_yaml", shortName="PY", doc="Pipeline YAML file")
+  var pipelineYamlFile: File = _
 
   @Input(doc="trigger", shortName="trigger", required=false)
   var trigger: File = _
@@ -35,12 +35,6 @@ class fullCallingPipeline extends QScript {
   @Input(doc="Picard FixMateInformation.jar.  At the Broad this can be found at /seq/software/picard/current/bin/FixMateInformation.jar.  Outside the broad see http://picard.sourceforge.net/")
   var picardFixMatesJar: File = _
 
-  @Input(doc="intervals")
-  var intervals: File = _
-
-  @Input(doc="bam files", shortName="I")
-  var bamFiles: List[File] = Nil
-
   @Input(doc="gatk jar")
   var gatkJar: File = _
 
@@ -49,9 +43,6 @@ class fullCallingPipeline extends QScript {
 
   @Input(doc="SNP cluster filter -- window size",shortName="snpClusterWindow",required=false)
   var snpClusterWindow = 7
-
-  @Input(doc="dbSNP version",shortName="D")
-  var dbSNP: File = _
 
   @Input(doc="target titv for recalibration",shortName="titv",required=false)
   var target_titv = 2.1
@@ -65,11 +56,12 @@ class fullCallingPipeline extends QScript {
   @Input(doc="Number of jobs to scatter indel genotyper",shortName="indelScatter",required=false)
   var num_indel_scatter_jobs = 5
 
+  private var pipeline: Pipeline = _
 
   trait CommandLineGATKArgs extends CommandLineGATK {
-    this.intervals = qscript.intervals
+    this.intervals = qscript.pipeline.getProject.getIntervalList
     this.jarFile = qscript.gatkJar
-    this.reference_sequence = qscript.reference
+    this.reference_sequence = qscript.pipeline.getProject.getReferenceFile
   }
 
 
@@ -77,20 +69,26 @@ class fullCallingPipeline extends QScript {
 
 
   def script = {
-    val projectBase: String = qscript.project
+    pipeline = YamlUtils.load(classOf[Pipeline], qscript.pipelineYamlFile)
+    val projectBase: String = qscript.pipeline.getProject.getName
     val cleanedBase: String = projectBase + ".cleaned"
     val uncleanedBase: String = projectBase + ".uncleaned"
     // there are commands that use all the bam files
-    var cleanBamFiles = List.empty[File]
+    val recalibratedSamples = qscript.pipeline.getSamples
+            .filter(_.getBamFiles.contains("recalibrated"))
 
-    for ( bam <- qscript.bamFiles ) {
+    for ( sample <- recalibratedSamples ) {
 
       // put unclean bams in unclean genotypers
 
       // in advance, create the extension files
 
+      val bam = sample.getBamFiles.get("recalibrated")
+      if (!sample.getBamFiles.contains("cleaned"))
+        sample.getBamFiles.put("cleaned", swapExt(bam,"bam","cleaned.bam"))
+      val cleaned_bam = sample.getBamFiles.get("cleaned")
+
       val indel_targets = swapExt(bam,"bam","realigner_targets.interval_list")
-      val cleaned_bam = swapExt(bam,"bam","cleaned.bam") // note-- the scatter is in the definition itself
 
       // create the cleaning commands
 
@@ -131,8 +129,6 @@ class fullCallingPipeline extends QScript {
             gather.jarFile = qscript.picardFixMatesJar
             // Don't pass this AS=true to fix mates!
             gather.assumeSorted = None
-          case (gather: SimpleTextGatherFunction, _) =>
-            throw new QException("Cannot text-gather a realignment job")
         }
       } else {
         realigner.out = swapExt(bam,"bam","unfixed.cleaned.bam")
@@ -149,10 +145,6 @@ class fullCallingPipeline extends QScript {
       var samtoolsindex = new SamtoolsIndexFunction
       samtoolsindex.bamFile = cleaned_bam
 
-      // put clean bams in clean genotypers
-
-      cleanBamFiles :+= cleaned_bam
-
       // COMMENT THIS NEXT BLOCK TO SKIP CLEANING
       if ( realigner.scatterCount > 1 )
           add(targetCreator,realigner,samtoolsindex)
@@ -160,8 +152,17 @@ class fullCallingPipeline extends QScript {
           add(targetCreator,realigner,fixMates,samtoolsindex)
     }
 
+    val recalibratedBamFiles = recalibratedSamples
+            .map(_.getBamFiles.get("recalibrated"))
+            .toList
+    
+    val cleanBamFiles = qscript.pipeline.getSamples
+            .filter(_.getBamFiles.contains("cleaned"))
+            .map(_.getBamFiles.get("cleaned"))
+            .toList
+
     // actually make calls
-    endToEnd(uncleanedBase,qscript.bamFiles)
+    endToEnd(uncleanedBase,recalibratedBamFiles)
     // COMMENT THIS NEXT LINE TO AVOID CALLING ON CLEANED FILES
     endToEnd(cleanedBase,cleanBamFiles)
   }
@@ -218,7 +219,7 @@ class fullCallingPipeline extends QScript {
       loopNo += 1
     }
     val mergeIndels = new CombineVariants with CommandLineGATKArgs
-    mergeIndels.out = new TaggedFile(qscript.project+".indels.vcf","vcf")
+    mergeIndels.out = new TaggedFile(qscript.pipeline.getProject.getName+".indels.vcf","vcf")
     mergeIndels.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNIQUIFY)
     mergeIndels.priority = priority
     mergeIndels.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
@@ -259,7 +260,7 @@ class fullCallingPipeline extends QScript {
     // todo -- args for resources (properties file)
     val clusters = new GenerateVariantClusters with CommandLineGATKArgs
     clusters.rodBind :+= RodBind("input", "VCF", masker.out)
-    clusters.DBSNP = qscript.dbSNP
+    clusters.DBSNP = qscript.pipeline.getProject.getDbsnpFile
     val clusters_clusterFile = swapExt(new File(snps.out.getAbsolutePath),".vcf",".cluster")
     clusters.clusterFile = clusters_clusterFile
     clusters.memoryLimit = Some(4)
@@ -271,7 +272,7 @@ class fullCallingPipeline extends QScript {
     // 3.ii apply gaussian clusters to the masked vcf
     val recalibrate = new VariantRecalibrator with CommandLineGATKArgs
     recalibrate.clusterFile = clusters.clusterFile
-    recalibrate.DBSNP = qscript.dbSNP
+    recalibrate.DBSNP = qscript.pipeline.getProject.getDbsnpFile
     recalibrate.rodBind :+= RodBind("input", "VCF", masker.out)
     recalibrate.out = swapExt(masker.out,".vcf",".recalibrated.vcf")
     recalibrate.target_titv = qscript.target_titv

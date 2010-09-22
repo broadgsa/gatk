@@ -6,7 +6,6 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.yaml.snakeyaml.Loader;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -115,8 +114,7 @@ public class SampleDataSource {
         desc.putListPropertyType("propertyDefinitions", PropertyDefinition.class);
         desc.putListPropertyType("sampleAliases", SampleAlias.class);
         con.addTypeDescription(desc);
-        Loader loader = new Loader(con);
-        Yaml yaml = new Yaml(loader);
+        Yaml yaml = new Yaml(con);
 
         // SampleFileParser stores an object representation of a sample file - this is what we'll parse
         SampleFileParser parser;
