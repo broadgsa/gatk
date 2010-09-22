@@ -51,7 +51,7 @@ public class DynamicClassResolutionException extends UserException {
         } catch (InvocationTargetException e) {
             return "Cannot instantiate class (Invocation failure)";
         } catch ( Exception e ) {
-            return "A general exception occurred";
+            return String.format("an exception of type %s occurred",e.getClass().getSimpleName());
         }
     }
 }
