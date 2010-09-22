@@ -260,6 +260,7 @@
         <jar jarfile="${dist.dir}/StingUtils.jar">
             <fileset dir="${java.classes}" includes="**/utils/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/datasources/**/*.class"/>
             <fileset dir="${java.classes}" includes="net/sf/picard/**/*.class"/>
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
