@@ -10,6 +10,7 @@ import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.playground.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.MathUtils;
 
 import java.util.*;
 
@@ -104,9 +105,9 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
             if (evalSampGenotypes != null)
                 evalSampGt = evalSampGenotypes.get(samp);
 
-            if (compSampGt == null || evalSampGt == null) {
-                // Having a hom site (or an unphased het site) breaks the phasing for the sample - hence, must reset phasing knowledge for both comp and eval [put a null CompEvalGenotypes]:
-                if ((compSampGt != null && !permitsTransitivePhasing(compSampGt)) || (evalSampGt != null && !permitsTransitivePhasing(evalSampGt)))
+            if (compSampGt == null || evalSampGt == null) { // Since either comp or eval (or both) are missing the site, the best we can do is hope to preserve phase [if the non-missing one preserves phase]
+                // Having an unphased site breaks the phasing for the sample [does NOT permit "transitive phasing"] - hence, must reset phasing knowledge for both comp and eval [put a null CompEvalGenotypes]:
+                if (isNonNullButUnphased(compSampGt) || isNonNullButUnphased(evalSampGt))
                     samplePrevGenotypes.put(samp, null);
             }
             else { // Both comp and eval have a non-null Genotype at this site:
@@ -114,9 +115,9 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                 Biallele evalBiallele = new Biallele(evalSampGt);
 
                 boolean breakPhasing = false;
-                if (!compSampGt.isHet() || !evalSampGt.isHet())
-                    breakPhasing = true;
-                else { // both are het
+                if (compSampGt.isHet() != evalSampGt.isHet() || compSampGt.isHom() != evalSampGt.isHom())
+                    breakPhasing = true; // since they are not both het or both hom
+                else { // both are het, or both are hom:
                     boolean topMatchesTopAndBottomMatchesBottom = (topMatchesTop(compBiallele, evalBiallele) && bottomMatchesBottom(compBiallele, evalBiallele));
                     boolean topMatchesBottomAndBottomMatchesTop = (topMatchesBottom(compBiallele, evalBiallele) && bottomMatchesTop(compBiallele, evalBiallele));
                     if (!topMatchesTopAndBottomMatchesBottom && !topMatchesBottomAndBottomMatchesTop)
@@ -126,16 +127,19 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                 if (breakPhasing) {
                     samplePrevGenotypes.put(samp, null); // nothing to do for this site, AND must remove any history for the future
                 }
-                else { // comp and eval have the same het Genotype at this site:
+                else if (compSampGt.isHet() && evalSampGt.isHet()) {
+                    /* comp and eval have the HET same Genotype at this site:
+                       [Note that if both are hom, then nothing is done here, but the het history IS preserved].
+                     */
                     CompEvalGenotypes prevCompAndEval = samplePrevGenotypes.get(samp);
                     if (prevCompAndEval != null && !prevCompAndEval.getLocus().onSameContig(curLocus)) // exclude curLocus if it is "phased" relative to a different chromosome
                         prevCompAndEval = null;
 
-                    // Replace the previous with current:
+                    // Replace the previous hets with the current hets:
                     samplePrevGenotypes.put(samp, curLocus, compSampGt, evalSampGt);
 
                     if (prevCompAndEval != null) {
-                        logger.debug("Potentially phaseable locus: " + curLocus);
+                        logger.debug("Potentially phaseable het locus: " + curLocus + " [relative to previous het locus: " + prevCompAndEval.getLocus() + "]");
                         PhaseStats ps = samplePhasingStatistics.ensureSampleStats(samp);
 
                         boolean compSampIsPhased = genotypesArePhasedAboveThreshold(compSampGt);
@@ -149,7 +153,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                                 ps.onlyEvalPhased++;
                                 interesting.addReason("ONLY_EVAL", samp, group, "");
                             }
-                            else {                        
+                            else { // both comp and eval are phased:                        
                                 Biallele prevCompBiallele = new Biallele(prevCompAndEval.getCompGenotpye());
                                 Biallele prevEvalBiallele = new Biallele(prevCompAndEval.getEvalGenotype());
 
@@ -159,6 +163,11 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
 
                                 if (topsMatch || topMatchesBottom) {
                                     ps.phasesAgree++;
+
+                                    Double compPQ = getPQ(compSampGt);
+                                    Double evalPQ = getPQ(evalSampGt);
+                                    if (compPQ != null && evalPQ != null && MathUtils.compareDoubles(compPQ, evalPQ) != 0)
+                                        interesting.addReason("PQ_CHANGE", samp, group, compPQ + " -> " + evalPQ);
                                 }
                                 else {
                                     ps.phasesDisagree++;
@@ -183,16 +192,24 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         return (vc != null && !vc.isFiltered());
     }
 
+    public boolean isNonNullButUnphased(Genotype gt) {
+        return (gt != null && !genotypesArePhasedAboveThreshold(gt));
+    }
+
     public boolean genotypesArePhasedAboveThreshold(Genotype gt) {
         if (!gt.genotypesArePhased())
             return false;
 
-        Object pq = gt.getAttributes().get("PQ");
-        return (pq == null || (new Double(pq.toString()) >= getVEWalker().minPhaseQuality));
+        Double pq = getPQ(gt);
+        return (pq == null || pq >= getVEWalker().minPhaseQuality);
     }
 
-    public boolean permitsTransitivePhasing(Genotype gt) {
-        return (gt != null && gt.isHet() && genotypesArePhasedAboveThreshold(gt)); // only a phased het site lets the phase pass through
+    public static Double getPQ(Genotype gt) {
+        Object pq = gt.getAttributes().get("PQ");
+        if (pq == null)
+            return null;
+
+        return new Double(pq.toString());
     }
 
     public boolean topMatchesTop(Biallele b1, Biallele b2) {
