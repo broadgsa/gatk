@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -116,9 +117,9 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
                 }
             }
         }
-        catch (SimpleDataSourceLoadException e) {
+        catch (UserException.CouldNotReadInputFile e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-            fail("testLinearBreakIterateAll: We Should get a SimpleDataSourceLoadException");
+            fail("testLinearBreakIterateAll: We Should get a UserException.CouldNotReadInputFile exception");
         }
     }
 
@@ -162,9 +163,9 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
                 datum.close();
             }
         }
-        catch (SimpleDataSourceLoadException e) {
+        catch (UserException.CouldNotReadInputFile e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-            fail("testLinearBreakIterateAll: We Should get a SimpleDataSourceLoadException");
+            fail("testLinearBreakIterateAll: We Should get a UserException.CouldNotReadInputFile exception");
         }
 
 
@@ -201,9 +202,9 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
                 datum.close();
             }
         }
-        catch (SimpleDataSourceLoadException e) {
+        catch (UserException.CouldNotReadInputFile e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-            fail("testLinearBreakIterateAll: We Should get a SimpleDataSourceLoadException");
+            fail("testLinearBreakIterateAll: We Should get a UserException.CouldNotReadInputFile exception");
         }
 
         /*int pos = 0;

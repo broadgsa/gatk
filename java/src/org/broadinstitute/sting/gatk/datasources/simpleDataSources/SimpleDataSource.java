@@ -32,6 +32,6 @@ public interface SimpleDataSource extends Serializable {
      * @param shard the region
      * @return an iterator of the appropriate type, that is limited by the region
      */
-    public Iterator seek(Shard shard) throws SimpleDataSourceLoadException;
+    public Iterator seek(Shard shard);
 
 }

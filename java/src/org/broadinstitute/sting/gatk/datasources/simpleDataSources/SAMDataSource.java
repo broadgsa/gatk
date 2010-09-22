@@ -113,7 +113,8 @@ public class SAMDataSource implements SimpleDataSource {
         readerIDs = reads.getSAMReaderIDs();
         for (SAMReaderID readerID : reads.getSAMReaderIDs()) {
             if (!readerID.samFile.canRead())
-                throw new SimpleDataSourceLoadException("SAMDataSource: Unable to load file: " + readerID.samFile.getName());
+                throw new UserException.CouldNotReadInputFile(readerID.samFile,"file is not present or user does not have appropriate permissions.  " +
+                                                                               "Please check that the file is present and readable and try again.");
         }
 
         resourcePool = new SAMResourcePool(Integer.MAX_VALUE);
