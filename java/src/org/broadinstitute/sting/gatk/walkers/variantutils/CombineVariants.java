@@ -81,10 +81,6 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="setKey", shortName="setKey", doc="Key, by default set, in the INFO key=value tag emitted describing which set the combined VCF record came from.  Set to null if you don't want the set field emitted.", required=false)
     public String SET_KEY = "set";
 
-    @Hidden
-    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
-    protected Boolean NO_VCF_HEADER_LINE = false;
-
     private List<String> priority = null;
 
     private VariantAnnotatorEngine engine;
@@ -105,9 +101,6 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         if ( SET_KEY != null )
             headerLines.add(new VCFInfoHeaderLine(SET_KEY, 1, VCFHeaderLineType.String, "Source VCF for the merged record in CombineVariants"));
-        if ( !NO_VCF_HEADER_LINE ) {
-            headerLines.add(new VCFHeaderLine("CombineVariants", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
-        }
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 

@@ -28,7 +28,8 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
                         " -sample NA123AB" +
-                        " -o %s",
+                        " -o %s" +
+                        " -NO_HEADER",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingGeliInput #1", spec).getFirst();
@@ -45,7 +46,8 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -T VariantsToVCF" +
                         " -L 1:10,000,000-11,000,000" +
                         " -sample NA123AB" +
-                        " -o %s",
+                        " -o %s" +
+                        " -NO_HEADER",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingGeliInput #2", spec).getFirst();
@@ -61,7 +63,8 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                         " -B:variant,HapMap " + validationDataLocation + "rawHapMap.yri.chr1.txt" +
                         " -T VariantsToVCF" +
                         " -L 1:1-1,000,000" +
-                        " -o %s",
+                        " -o %s" +
+                        " -NO_HEADER",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingHapMapInput", spec).getFirst();
@@ -76,7 +79,8 @@ public class VariantsToVCFIntegrationTest extends WalkerTest {
                 "-R " + b36KGReference +
                         " -B:variant,VCF " + validationDataLocation + "complexExample.vcf4" +
                         " -T VariantsToVCF" +
-                        " -o %s",
+                        " -o %s" +
+                        " -NO_HEADER",
                 1, // just one output file
                 md5);
         executeTest("testVariantsToVCFUsingVCFInput", spec).getFirst();

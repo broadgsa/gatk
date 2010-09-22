@@ -31,6 +31,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Field;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -144,6 +145,37 @@ public class JVMUtils {
         catch( IllegalAccessException ex ) {
             throw new ReviewedStingException(String.format("Could not retrieve %s in instance %s",field.getName(),instance.getClass().getName()));
         }
+    }
+
+    /**
+     * Gets a single object in the list matching or type-compatible with the given type.  Exceptions out if multiple objects match. 
+     * @param type The desired type.
+     * @param <T> The selected type.
+     * @return A collection of the given arguments with the specified type.
+     */
+    public static <T> T getObjectOfType(Collection<Object> objectsToFilter, Class<T> type) {
+        // TODO: Make JVM utils.
+        Collection<T> selectedObjects = getObjectsOfType(objectsToFilter,type);
+        if(selectedObjects.size() > 1)
+            throw new ReviewedStingException("User asked for a single instance of the type, multiple were present");
+        if(selectedObjects.size() == 0)
+            throw new ReviewedStingException("User asked for a single instance of the type, but none were present");
+        return selectedObjects.iterator().next();
+    }
+
+    /**
+     * Gets a collection of all objects in the list matching or type-compatible with the given type. 
+     * @param type The desired type.
+     * @param <T> Again, the desired type.  Used so that clients can ignore type safety.
+     * @return A collection of the given arguments with the specified type.
+     */
+    public static <T> Collection<T> getObjectsOfType(Collection<Object> objectsToFilter, Class<T> type) {
+        Collection<T> selectedObjects = new ArrayList<T>();
+        for(Object object: objectsToFilter) {
+            if(type.isAssignableFrom(object.getClass()))
+                selectedObjects.add((T)object);
+        }
+        return selectedObjects;
     }
 
 }

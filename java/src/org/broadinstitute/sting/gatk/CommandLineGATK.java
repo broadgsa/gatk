@@ -66,7 +66,7 @@ public class CommandLineGATK extends CommandLineExecutable {
     }
 
     @Override
-    protected String getAnalysisName() {
+    public String getAnalysisName() {
         return analysisName;
     }
 
@@ -132,7 +132,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         String additionalHelp;
 
         // If no analysis name is present, fill in extra help on the walkers.
-        WalkerManager walkerManager = GATKEngine.getWalkerManager();
+        WalkerManager walkerManager = engine.getWalkerManager();
         String analysisName = getAnalysisName();
         if(analysisName != null && walkerManager.exists(getAnalysisName()))
             additionalHelp = getWalkerHelp(walkerManager.getWalkerClassByName(getAnalysisName()));
@@ -153,7 +153,7 @@ public class CommandLineGATK extends CommandLineExecutable {
 
         formatter.format("Description:%n");
 
-        WalkerManager walkerManager = GATKEngine.getWalkerManager();
+        WalkerManager walkerManager = engine.getWalkerManager();
         String walkerHelpText = walkerManager.getWalkerDescriptionText(walkerType);
 
         printDescriptorLine(formatter,WALKER_INDENT,"",WALKER_INDENT,FIELD_SEPARATOR,walkerHelpText,TextFormattingUtils.DEFAULT_LINE_WIDTH);
@@ -173,7 +173,7 @@ public class CommandLineGATK extends CommandLineExecutable {
         formatter.format("Available analyses:%n");
 
         // Get the list of walker names from the walker manager.
-        WalkerManager walkerManager = GATKEngine.getWalkerManager();
+        WalkerManager walkerManager = engine.getWalkerManager();
 
         // Build a list sorted by walker display name.  As this information is collected, keep track of the longest
         // package / walker name for later formatting.

@@ -72,13 +72,6 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     /////////////////////////////
     @Argument(fullName="fdr_filter_level", shortName="fdr_filter_level", doc="The FDR level at which to start filtering.", required=false)
     private double FDR_FILTER_LEVEL = 0.0;
-
-    /////////////////////////////
-    // Debug Arguments
-    /////////////////////////////
-    @Hidden
-    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
-    protected Boolean NO_VCF_HEADER_LINE = false;
     
     /////////////////////////////
     // Private Member Variables
@@ -167,9 +160,6 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-        if( !NO_VCF_HEADER_LINE ) {
-            hInfo.add(new VCFHeaderLine("ApplyVariantCuts", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
-        }
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
 

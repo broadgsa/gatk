@@ -83,7 +83,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     @Override
     protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
         List<ArgumentTypeDescriptor> typeDescriptors = new ArrayList<ArgumentTypeDescriptor>();
-        typeDescriptors.add(new VCFWriterArgumentTypeDescriptor(GATKEngine,System.out));
+        typeDescriptors.add(new VCFWriterArgumentTypeDescriptor(GATKEngine,System.out,Collections.<Object>emptyList()));
         typeDescriptors.add(new SAMFileReaderArgumentTypeDescriptor(GATKEngine));
         typeDescriptors.add(new SAMFileWriterArgumentTypeDescriptor(GATKEngine,System.out));
         typeDescriptors.add(new OutputStreamArgumentTypeDescriptor(GATKEngine,System.out));

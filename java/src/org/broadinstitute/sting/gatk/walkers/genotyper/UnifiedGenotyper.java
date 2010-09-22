@@ -71,10 +71,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected String[] annotationClassesToUse = { "Standard" };
 
-    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
-    protected Boolean NO_VCF_HEADER_LINE = false;
-
-
     // the calculation arguments
     private UnifiedGenotyperEngine UG_engine = null;
 
@@ -154,11 +150,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
              UAC.TRIGGER_CONFIDENCE_FOR_EMITTING < UAC.TRIGGER_CONFIDENCE_FOR_CALLING )
             headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
 
-        // all of the arguments from the argument collection
-        if ( !NO_VCF_HEADER_LINE ) {
-            headerInfo.add(new VCFHeaderLine("UnifiedGenotyper", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
-        }
-        
         return headerInfo;
     }
 

@@ -28,6 +28,10 @@ package org.broadinstitute.sting.gatk;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
+import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
+import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
+import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
+import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 
@@ -39,15 +43,13 @@ import net.sf.picard.filter.SamRecordFilter;
  * @author aaron
  */
 public abstract class CommandLineExecutable extends CommandLineProgram {
-    public Object GATKResult = null;
-
     /**
      * The actual engine which performs the analysis.
      */
-    protected GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
+    protected GenomeAnalysisEngine engine = new GenomeAnalysisEngine();
 
     // get the analysis name
-    protected abstract String getAnalysisName();
+    public abstract String getAnalysisName();
 
     /**
      * Gets the GATK argument bundle.
@@ -55,8 +57,10 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     protected abstract GATKArgumentCollection getArgumentCollection();
 
-    // override select arguments
-    protected void overrideArguments() { }
+    /**
+     * A list of all the arguments initially used as sources.
+     */
+    private final Collection<Object> argumentSources = new ArrayList<Object>();
 
     /**
      * this is the function that the inheriting class can expect to have called
@@ -65,21 +69,30 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @return the return code to exit the program with
      */
     protected int execute() throws Exception {
-        Walker<?,?> mWalker = GATKEngine.getWalkerByName(getAnalysisName());
+        argumentSources.add(this);
+
+        Walker<?,?> walker = engine.getWalkerByName(getAnalysisName());
 
         try {
-            Collection<SamRecordFilter> filters = GATKEngine.createFiltersForWalker(getArgumentCollection(),mWalker);
+            Collection<SamRecordFilter> filters = engine.createFiltersForWalker(getArgumentCollection(),walker);
 
             // load the arguments into the walker / filters.
-            loadArgumentsIntoObject(mWalker);
-            for (SamRecordFilter filter: filters)
+            // TODO: The fact that this extra load call exists here when all the parsing happens at the engine
+            // TODO: level indicates that we're doing something wrong.  Turn this around so that the GATK can drive
+            // TODO: argument processing.
+            loadArgumentsIntoObject(walker);
+            argumentSources.add(walker);
+
+            for (SamRecordFilter filter: filters) {
                 loadArgumentsIntoObject(filter);
+                argumentSources.add(filter);
+            }
 
             // set the analysis name in the argument collection
-            GATKResult = GATKEngine.execute(getArgumentCollection(), mWalker, filters);
-            generateGATKRunReport(mWalker);
+            engine.execute(getArgumentCollection(), walker, filters);
+            generateGATKRunReport(walker);
         } catch ( Exception e ) {
-            generateGATKRunReport(mWalker, e);
+            generateGATKRunReport(walker, e);
             throw e;
         }
 
@@ -94,9 +107,9 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      *
      * @param e the exception, can be null if no exception occurred
      */
-    private void generateGATKRunReport(Walker<?,?> mWalker, Exception e) {
+    private void generateGATKRunReport(Walker<?,?> walker, Exception e) {
         if ( getArgumentCollection().phoneHomeType != GATKRunReport.PhoneHomeOption.NO_ET ) {
-            GATKRunReport report = new GATKRunReport(mWalker, e, GATKEngine, getArgumentCollection().phoneHomeType );
+            GATKRunReport report = new GATKRunReport(walker, e, engine, getArgumentCollection().phoneHomeType );
             if ( getArgumentCollection().phoneHomeType == GATKRunReport.PhoneHomeOption.STDOUT )
                 report.postReport(System.out);
             else
@@ -108,10 +121,10 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * Convenience method for fully parameterized generateGATKRunReport when an exception has
      * not occurred
      * 
-     * @param mWalker
+     * @param walker
      */
-    private void generateGATKRunReport(Walker<?,?> mWalker) {
-        generateGATKRunReport(mWalker, null);
+    private void generateGATKRunReport(Walker<?,?> walker) {
+        generateGATKRunReport(walker, null);
     }
 
     /**
@@ -119,7 +132,10 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @return A collection of type descriptors generating implementation-dependent placeholders.
      */
     protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
-        return GATKEngine.getArgumentTypeDescriptors();
+        return Arrays.asList( new VCFWriterArgumentTypeDescriptor(engine,System.out,argumentSources),
+                              new SAMFileReaderArgumentTypeDescriptor(engine),
+                              new SAMFileWriterArgumentTypeDescriptor(engine,System.out),
+                              new OutputStreamArgumentTypeDescriptor(engine,System.out) );
     }
 
     /**
@@ -143,10 +159,10 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
         Collection<Class> argumentSources = new ArrayList<Class>();
 
-        Walker walker = GATKEngine.getWalkerByName(getAnalysisName());
+        Walker walker = engine.getWalkerByName(getAnalysisName());
         argumentSources.add(walker.getClass());
 
-        Collection<SamRecordFilter> filters = GATKEngine.createFiltersForWalker(getArgumentCollection(),walker);
+        Collection<SamRecordFilter> filters = engine.createFiltersForWalker(getArgumentCollection(),walker);
         for(SamRecordFilter filter: filters)
             argumentSources.add(filter.getClass());
 
@@ -156,7 +172,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
     @Override
     protected String getArgumentSourceName( Class argumentSource ) {
-        return GATKEngine.getWalkerName((Class<Walker>)argumentSource);
+        return engine.getWalkerName((Class<Walker>)argumentSource);
     }
 
     /**
@@ -166,6 +182,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     @Override
     protected void addTags(Object key, List<String> tags) {
-        GATKEngine.addTags(key,tags);
+        engine.addTags(key,tags);
     }
-}
+        }

@@ -72,10 +72,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
     protected String MASK_NAME = "Mask";
 
-    @Hidden
-    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
-    protected Boolean NO_VCF_HEADER_LINE = false;
-
     // JEXL expressions for the filters
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
     List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps;
@@ -111,10 +107,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                 hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
                 break;
             }
-        }
-
-        if ( !NO_VCF_HEADER_LINE ) {
-            hInfo.add(new VCFHeaderLine("VariantFiltration", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
         }
 
         writer.writeHeader(new VCFHeader(hInfo, vc.getSampleNames()));

@@ -48,7 +48,7 @@ public class CommandLineUtils {
      * @return A key-value mapping of argument full names to argument values.  Produces best string representation
      *         possible given the information available.
      */
-    public static Map<String,String> getApproximateCommandLineArguments(Collection<Object> argumentProviders) {
+    public static Map<String,String> getApproximateCommandLineArguments(Object... argumentProviders) {
         Map<String,String> commandLineArguments = new LinkedHashMap<String,String>();
 
         for(Object argumentProvider: argumentProviders) {
@@ -67,47 +67,23 @@ public class CommandLineUtils {
         return commandLineArguments;
     }
 
-//    public static Map<String,String> getApproximateCommandLineArguments(Collection<Object> argumentProviders) {
-//        Map<String,String> commandLineArguments = new LinkedHashMap<String,String>();
-//
-//        for(Object argumentProvider: argumentProviders) {
-//            Map<ArgumentSource, Object> argBings = ParsingEngine.extractArgumentBindings(argumentProvider);
-//            List<ArgumentSource> argumentSources = ParsingEngine.extractArgumentSources(argumentProvider.getClass());
-//            for(ArgumentSource argumentSource: argumentSources) {
-//                Object argumentValue = JVMUtils.getFieldValue(argumentSource.field,argumentProvider);
-//                String argumentValueString = argumentValue != null ? argumentValue.toString() : null;
-//
-//                for(ArgumentDefinition definition: argumentSource.createArgumentDefinitions()) {
-//                    String argumentName = definition.fullName;
-//                    commandLineArguments.put(argumentName,argumentValueString);
-//                }
-//            }
-//        }
-//
-//        return commandLineArguments;
-//    }
-
-    public static String createApproximateCommandLineArgumentString(GenomeAnalysisEngine toolkit, Walker walker) {
-        return createApproximateCommandLineArgumentString(toolkit, null, walker);
-    }
-
-    public static String createApproximateCommandLineArgumentString(GenomeAnalysisEngine toolkit, Collection<Object> otherArgumentProviders, Walker walker) {
+    /**
+     * Create an approximate list of command-line arguments based on the given argument providers.
+     * @param argumentProviders Argument providers to inspect.
+     * @return A string representing the given command-line arguments.
+     */
+    public static String createApproximateCommandLineArgumentString(Object... argumentProviders) {
+        Map<String,String> commandLineArgs = getApproximateCommandLineArguments(argumentProviders);
         StringBuffer sb = new StringBuffer();
-        sb.append("analysis_type=");
-        sb.append(toolkit.getWalkerName(walker.getClass()));
 
-        ArrayList<Object> allArgumentProviders = new ArrayList<Object>();
-        allArgumentProviders.add(toolkit.getArguments());
-        allArgumentProviders.add(walker);
-        if (otherArgumentProviders != null) allArgumentProviders.addAll(otherArgumentProviders);
-
-        Map<String,String> commandLineArgs = getApproximateCommandLineArguments(allArgumentProviders);
-
+        boolean first = true;
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() ) {
-            sb.append(" ");
+            if(!first)
+                sb.append(" ");
             sb.append(commandLineArg.getKey());
             sb.append("=");
             sb.append(commandLineArg.getValue());
+            first = false;
         }
 
         return sb.toString();

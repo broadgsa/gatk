@@ -62,8 +62,6 @@ public class PackageUtils {
      * Private constructor.  No instantiating this class!
      */
     private PackageUtils() {}
-    {
-    }
 
     /**
      * Return the classes that implement the specified interface.

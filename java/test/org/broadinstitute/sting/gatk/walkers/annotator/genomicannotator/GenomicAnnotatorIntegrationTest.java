@@ -6,7 +6,8 @@ import java.util.Arrays;
 import org.broadinstitute.sting.WalkerTest;
 import org.junit.Test;
 
-public class GenomicAnnotatorIntegrationTest extends WalkerTest {
+public class
+        GenomicAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testGenomicAnnotatorOnDbSNP() {
 
@@ -34,7 +35,8 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
                 " -m" + //generate many records from one input record if necessary
                 " -o %s" +
                 " -BTI variant" +
-                " -s dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet",
+                " -s dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet" +
+                " -NO_HEADER",
                  1,
                  Arrays.asList(md5WithDashSArg));
         executeTest("test with dbSNP and -s arg", specWithSArg);

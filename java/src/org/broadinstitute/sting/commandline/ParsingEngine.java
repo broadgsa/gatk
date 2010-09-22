@@ -368,23 +368,6 @@ public class ParsingEngine {
         return new ArrayList<ArgumentSource>(bindings.keySet());
     }
 
-//        List<ArgumentSource> argumentSources = new ArrayList<ArgumentSource>();
-//        while( sourceClass != null ) {
-//            Field[] fields = sourceClass.getDeclaredFields();
-//            for( Field field: fields ) {
-//                if( ArgumentTypeDescriptor.isArgumentAnnotationPresent(field) )
-//                    argumentSources.add( new ArgumentSource(parentFields, field) );
-//                if( field.isAnnotationPresent(ArgumentCollection.class) ) {
-//                    Field[] newParentFields = Arrays.copyOf(parentFields, parentFields.length + 1);
-//                    newParentFields[parentFields.length] = field;
-//                    argumentSources.addAll( extractArgumentSources(field.getType(), newParentFields) );
-//                }
-//            }
-//            sourceClass = sourceClass.getSuperclass();
-//        }
-//        return argumentSources;
-//    }
-
     public static Map<ArgumentSource, Object> extractArgumentBindings(Object obj) {
         if ( obj == null ) throw new IllegalArgumentException("Incoming object cannot be null");
         return extractArgumentBindings(obj, obj.getClass(), new Field[0]);

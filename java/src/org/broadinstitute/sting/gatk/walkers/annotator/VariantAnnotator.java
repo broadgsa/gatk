@@ -80,9 +80,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
     @Argument(fullName="vcfContainsOnlyIndels", shortName="dels",doc="Use if you are annotating an indel vcf, currently VERY experimental", required = false)
     protected boolean indelsOnly = false;
 
-    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
-    protected Boolean NO_VCF_HEADER_LINE = false;
-
     private HashMap<String, String> nonVCFsampleName = new HashMap<String, String>();
 
     private VariantAnnotatorEngine engine;
@@ -144,9 +141,6 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         for ( VCFHeaderLine line : VCFUtils.getHeaderFields(getToolkit(), Arrays.asList("variant")) ) {
             if ( isUniqueHeaderLine(line, hInfo) )
                 hInfo.add(line);
-        }
-        if ( !NO_VCF_HEADER_LINE ) {
-            hInfo.add(new VCFHeaderLine("VariantAnnotator", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
         }
 
         VCFHeader vcfHeader = new VCFHeader(hInfo, samples);

@@ -111,9 +111,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     // Debug Arguments
     /////////////////////////////
     @Hidden
-    @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
-    protected Boolean NO_VCF_HEADER_LINE = false;
-    @Hidden
     @Argument(fullName = "NoByHapMapValidationStatus", shortName = "NoByHapMapValidationStatus", doc = "Don't consider sites in dbsnp rod tagged as by-hapmap validation status as real HapMap sites. FOR DEBUGGING PURPOSES ONLY.", required=false)
     private Boolean NO_BY_HAPMAP_VALIDATION_STATUS = false;
 
@@ -182,9 +179,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
         hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
         hInfo.add(new VCFInfoHeaderLine("LOD", 1, VCFHeaderLineType.Float, "The log odds ratio calculated by the VR algorithm which was turned into the phred scaled recalibrated quality score"));
-        if( !NO_VCF_HEADER_LINE ) {
-            hInfo.add(new VCFHeaderLine("VariantRecalibrator", "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\""));
-        }
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);

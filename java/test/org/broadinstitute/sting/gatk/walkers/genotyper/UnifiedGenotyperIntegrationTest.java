@@ -11,7 +11,8 @@ import java.util.Map;
 // Note that this class also serves as an integration test for the VariantAnnotator!  //
 // ********************************************************************************** //
 
-public class UnifiedGenotyperIntegrationTest extends WalkerTest {
+public class
+        UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     private final static String baseCommand = "-T UnifiedGenotyper -R " + b36KGReference + " -NO_HEADER";
 

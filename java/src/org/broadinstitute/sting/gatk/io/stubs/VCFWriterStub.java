@@ -28,11 +28,18 @@ package org.broadinstitute.sting.gatk.io.stubs;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.TreeSet;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFWriter;
+import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
 
 /**
  * A stub for routing and management of genotype reading and writing.
@@ -55,7 +62,7 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
     private final PrintStream genotypeStream;
 
     /**
-     * The cached VCF header (initilized to null)
+     * The cached VCF header (initialized to null)
      */
     private VCFHeader vcfHeader = null;
 
@@ -63,6 +70,17 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * Should we emit a compressed output stream?
      */
     private final boolean isCompressed;
+
+    /**
+     * A hack: push the argument sources into the VCF header so that the VCF header
+     * can rebuild the command-line arguments.
+     */
+    private final Collection<Object> argumentSources;
+
+    /**
+     * Should the header be written out?  A hidden argument.
+     */
+    private final boolean skipWritingHeader;
 
     /**
      * Connects this stub with an external stream capable of serving the
@@ -75,10 +93,12 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * @param genotypeFile  file to (ultimately) create.
      * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(File genotypeFile, boolean isCompressed) {
+    public VCFWriterStub(File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader) {
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
         this.isCompressed = isCompressed;
+        this.argumentSources = argumentSources;
+        this.skipWritingHeader = skipWritingHeader;
     }
 
     /**
@@ -86,10 +106,12 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * @param genotypeStream  stream to (ultimately) write.
      * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(OutputStream genotypeStream, boolean isCompressed) {
+    public VCFWriterStub(OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader) {
         this.genotypeFile = null;
         this.genotypeStream = new PrintStream(genotypeStream);
         this.isCompressed = isCompressed;
+        this.argumentSources = argumentSources;
+        this.skipWritingHeader = skipWritingHeader;
     }
 
     /**
@@ -134,7 +156,18 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
 
     public void writeHeader(VCFHeader header) {
         vcfHeader = header;
-        outputTracker.getStorage(this).writeHeader(header);
+
+        // Check for the command-line argument header line.  If not present, add it in.
+        VCFHeaderLine commandLineArgHeaderLine = getCommandLineArgumentHeaderLine();
+        boolean foundCommandLineHeaderLine = false;
+        for(VCFHeaderLine line: vcfHeader.getMetaData()) {
+            if(line.getKey().equals(commandLineArgHeaderLine.getKey()))
+                foundCommandLineHeaderLine = true;
+        }
+        if(!foundCommandLineHeaderLine && !skipWritingHeader)
+            vcfHeader.addMetaDataLine(commandLineArgHeaderLine);
+
+        outputTracker.getStorage(this).writeHeader(vcfHeader);
     }
 
     /**
@@ -149,5 +182,23 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      */
     public void close() {
         outputTracker.getStorage(this).close();
+    }
+
+    /**
+     * Gets a string representation of this object.
+     * @return
+     */
+    @Override
+    public String toString() {
+        return getClass().getName();
+    }
+
+    /**
+     * Gets the appropriately formatted header for a VCF file
+     * @return VCF file header.
+     */
+    private VCFHeaderLine getCommandLineArgumentHeaderLine() {
+        CommandLineExecutable executable = JVMUtils.getObjectOfType(argumentSources,CommandLineExecutable.class);
+        return new VCFHeaderLine(executable.getAnalysisName(), "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(argumentSources) + "\"");
     }
 }

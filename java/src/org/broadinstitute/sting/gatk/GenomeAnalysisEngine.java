@@ -564,19 +564,6 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Subclasses of CommandLinePrograms can provide their own types of command-line arguments.
-     * @return A collection of type descriptors generating implementation-dependent placeholders.
-     */
-    protected Collection<ArgumentTypeDescriptor> getArgumentTypeDescriptors() {
-        return Arrays.asList( new VCFWriterArgumentTypeDescriptor(this,System.out),
-                              new SAMFileReaderArgumentTypeDescriptor(this),
-                              new SAMFileWriterArgumentTypeDescriptor(this,System.out),
-                              new OutputStreamArgumentTypeDescriptor(this,System.out) );
-    }
-
-
-
-    /**
      * Bundles all the source information about the reads into a unified data structure.
      *
      * @param walker        The walker for which to extract info.
