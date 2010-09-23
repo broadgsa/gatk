@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.analyzeannotations;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -85,11 +86,11 @@ public class AnnotationDataManager {
                 treeSet.add(datum);
             }
 
-            final boolean isNovelVariant = infoField.containsKey(VariantContext.ID_KEY);
+            final boolean isNovelVariant = !infoField.get(VariantContext.ID_KEY).toString().contains("rs");
 
             // Decide if the variant is a transition or transversion
             if ( vc.isSNP() ) {
-                if( BaseUtils.isTransition( vc.getReference().getBases()[0], vc.getAlternateAllele(0).getBases()[0]) ) {
+                if( VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0 ) {
                     datum.incrementTi( isNovelVariant, isInTruthSet, isTrueVariant );
                 } else {
                     datum.incrementTv( isNovelVariant, isInTruthSet, isTrueVariant );
