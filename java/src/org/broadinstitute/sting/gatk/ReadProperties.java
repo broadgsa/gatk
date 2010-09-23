@@ -120,6 +120,7 @@ public class ReadProperties {
      * @param samFiles list of reads files.
      * @param strictness Stringency of reads file parsing.
      * @param readBufferSize Number of reads to hold in memory per BAM.
+     * @param downsamplingMethod Method for downsampling reads at a given locus.
      * @param exclusionList what safety checks we're willing to let slide
      * @param supplementalFilters additional filters to dynamically apply.
      * @param generateExtendedEvents if true, the engine will issue an extra call to walker's map() with
@@ -129,7 +130,7 @@ public class ReadProperties {
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      */
-    ReadProperties( List<SAMReaderID> samFiles,
+    public ReadProperties( List<SAMReaderID> samFiles,
            SAMFileReader.ValidationStringency strictness,
            Integer readBufferSize,
            DownsamplingMethod downsamplingMethod,

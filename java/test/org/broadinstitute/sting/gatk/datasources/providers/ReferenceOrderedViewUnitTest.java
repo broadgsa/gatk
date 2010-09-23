@@ -76,7 +76,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     public void testSingleBinding() {
         File file = new File(testDir + "TabularDataTest.dat");
         RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest",file);
-        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(null,track);
+        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(track,false);
 
         Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
 
@@ -100,9 +100,9 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
 
 
         RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest1",file);
-        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(null,track);
+        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(track,false);
         RMDTrack track2 = builder.createInstanceOfTrack(TableCodec.class,"tableTest2",file);
-        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(null,track2);
+        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(track2,false);
 
 
         Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));

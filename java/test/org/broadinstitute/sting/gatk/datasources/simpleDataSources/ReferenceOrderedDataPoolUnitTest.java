@@ -59,7 +59,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testCreateSingleIterator() {
-        ResourcePool iteratorPool = new ReferenceOrderedDataPool(null,rod);
+        ResourcePool iteratorPool = new ReferenceOrderedDataPool(rod, false);
         LocationAwareSeekableRODIterator iterator = (LocationAwareSeekableRODIterator)iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
@@ -80,7 +80,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testCreateMultipleIterators() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(null,rod);
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod, false);
         LocationAwareSeekableRODIterator iterator1 = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         // Create a new iterator at position 2.
@@ -130,7 +130,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testIteratorConservation() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(null,rod);
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod, false);
         LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
@@ -165,7 +165,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testIteratorCreation() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(null,rod);
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod, false);
         LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
 
         Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());

@@ -47,12 +47,12 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * Create a new reference-ordered data source.
      * @param rod the reference ordered data
      */
-    public ReferenceOrderedDataSource( Walker walker, RMDTrack rod) {
+    public ReferenceOrderedDataSource( RMDTrack rod, boolean flashbackData ) {
         this.rod = rod;
         if (rod.supportsQuery())
             iteratorPool = new ReferenceOrderedQueryDataPool(new RMDTrackBuilder(),rod);
         else
-            iteratorPool = new ReferenceOrderedDataPool( walker, rod );
+            iteratorPool = new ReferenceOrderedDataPool( rod, flashbackData );
     }
 
     /**
@@ -110,8 +110,8 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
 class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIterator, LocationAwareSeekableRODIterator> {
     private final RMDTrack rod;
     boolean flashbackData = false;
-    public ReferenceOrderedDataPool( Walker walker, RMDTrack rod ) {
-        if (walker instanceof ReadWalker) flashbackData = true; 
+    public ReferenceOrderedDataPool( RMDTrack rod, boolean flashbackData ) {
+        this.flashbackData = flashbackData;
         this.rod = rod;
     }
 

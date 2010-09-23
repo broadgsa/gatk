@@ -33,10 +33,10 @@ import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
+import org.broadinstitute.sting.gatk.AbstractGenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -367,7 +367,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      *
      * @return a list of RMDTracks, one for each -B option
      */
-    public List<RMDTrack> getReferenceMetaDataSources(GenomeAnalysisEngine engine, List<String> bindings) {
+    public List<RMDTrack> getReferenceMetaDataSources(AbstractGenomeAnalysisEngine engine, List<String> bindings) {
         initializeBindings(engine,bindings);
         // try and make the tracks given their requests
         return createRequestedTrackObjects();
@@ -378,7 +378,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param engine The engine, used to populate tags.
      * @param bindings the input to the GATK, as a list of strings passed in through the -B options
      */
-    private void initializeBindings(GenomeAnalysisEngine engine,List<String> bindings) {
+    private void initializeBindings(AbstractGenomeAnalysisEngine engine,List<String> bindings) {
         // NOTE: Method acts as a static.  Once the inputs have been passed once they are locked in.
         if (inputs.size() > 0 || bindings.size() == 0)
             return;

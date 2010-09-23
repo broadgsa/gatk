@@ -74,7 +74,11 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         Walker<?,?> walker = engine.getWalkerByName(getAnalysisName());
 
         try {
-            Collection<SamRecordFilter> filters = engine.createFiltersForWalker(getArgumentCollection(),walker);
+            engine.setArguments(getArgumentCollection());
+            engine.setWalker(walker);
+
+            Collection<SamRecordFilter> filters = engine.createFilters();
+            engine.setFilters(filters);
 
             // load the arguments into the walker / filters.
             // TODO: The fact that this extra load call exists here when all the parsing happens at the engine
@@ -88,8 +92,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
                 argumentSources.add(filter);
             }
 
-            // set the analysis name in the argument collection
-            engine.execute(getArgumentCollection(), walker, filters);
+            engine.execute();
             generateGATKRunReport(walker);
         } catch ( Exception e ) {
             generateGATKRunReport(walker, e);
@@ -120,7 +123,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     /**
      * Convenience method for fully parameterized generateGATKRunReport when an exception has
      * not occurred
-     * 
+     *
      * @param walker
      */
     private void generateGATKRunReport(Walker<?,?> walker) {
@@ -160,9 +163,11 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         Collection<Class> argumentSources = new ArrayList<Class>();
 
         Walker walker = engine.getWalkerByName(getAnalysisName());
+        engine.setArguments(getArgumentCollection());
+        engine.setWalker(walker);
         argumentSources.add(walker.getClass());
 
-        Collection<SamRecordFilter> filters = engine.createFiltersForWalker(getArgumentCollection(),walker);
+        Collection<SamRecordFilter> filters = engine.createFilters();
         for(SamRecordFilter filter: filters)
             argumentSources.add(filter.getClass());
 
