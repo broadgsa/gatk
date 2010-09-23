@@ -599,16 +599,16 @@ public class GenomeAnalysisEngine {
     private void validateSuppliedReadsAgainstWalker(Walker walker, GATKArgumentCollection arguments) {
         // Check what the walker says is required against what was provided on the command line.
         if (WalkerManager.isRequired(walker, DataSource.READS) && (arguments.samFiles == null || arguments.samFiles.size() == 0))
-            throw new ArgumentException("Walker requires reads but none were provided.  If this is incorrect, alter the walker's @Requires annotation.");
+            throw new ArgumentException("Walker requires reads but none were provided.");
 
         // Check what the walker says is allowed against what was provided on the command line.
         if ((arguments.samFiles != null && arguments.samFiles.size() > 0) && !WalkerManager.isAllowed(walker, DataSource.READS))
-            throw new ArgumentException("Walker does not allow reads but reads were provided.  If this is incorrect, alter the walker's @Allows annotation");
+            throw new ArgumentException("Walker does not allow reads but reads were provided.");
     }
 
     /**
      * Verifies that the supplied reference file mesh with what the walker says it requires.
-     *
+     *      611
      * @param walker    Walker to test.
      * @param arguments Supplied reads files.
      */
@@ -616,11 +616,11 @@ public class GenomeAnalysisEngine {
         // Check what the walker says is required against what was provided on the command line.
         // TODO: Temporarily disabling WalkerManager.isRequired check on the reference because the reference is always required.
         if (/*WalkerManager.isRequired(walker, DataSource.REFERENCE) &&*/ arguments.referenceFile == null)
-            throw new ArgumentException("Walker requires a reference but none was provided.  If this is incorrect, alter the walker's @Requires annotation.");
+            throw new ArgumentException("Walker requires a reference but none was provided.");
 
         // Check what the walker says is allowed against what was provided on the command line.
         if (arguments.referenceFile != null && !WalkerManager.isAllowed(walker, DataSource.REFERENCE))
-            throw new ArgumentException("Walker does not allow a reference but one was provided.  If this is incorrect, alter the walker's @Allows annotation");
+            throw new ArgumentException("Walker does not allow a reference but one was provided.");
     }
 
     /**
@@ -646,7 +646,7 @@ public class GenomeAnalysisEngine {
         // Check to see that no forbidden rods are present.
         for (RMDTrack rod : rods) {
             if (!WalkerManager.isAllowed(walker, rod))
-                throw new ArgumentException(String.format("Walker of type %s does not allow access to metadata: %s.  If this is incorrect, change the @Allows metadata", walker.getClass(), rod.getName()));
+                throw new ArgumentException(String.format("Walker of type %s does not allow access to metadata: %s", walker.getClass(), rod.getName()));
         }
     }
 
