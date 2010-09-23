@@ -199,6 +199,6 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      */
     private VCFHeaderLine getCommandLineArgumentHeaderLine() {
         CommandLineExecutable executable = JVMUtils.getObjectOfType(argumentSources,CommandLineExecutable.class);
-        return new VCFHeaderLine(executable.getAnalysisName(), "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(argumentSources) + "\"");
+        return new VCFHeaderLine(executable.getAnalysisName(), "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(argumentSources.toArray()) + "\"");
     }
 }
