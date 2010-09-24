@@ -8,7 +8,7 @@ library(ReadImages)
 ##defaults<-par(no.readonly = TRUE)
 
 
-tearsheet<-function(lanetable, sampletable, variant, pulldesc){
+tearsheet<-function(lanetable, sampletable, variant, Protocol, Sequencer){
 	
 	#define layout
 	layout(matrix(c(1,1,2,4,3,5), ncol=2, nrow=3, byrow=TRUE), heights=c(1, 2.5,2.5,), respect=FALSE)
@@ -54,7 +54,8 @@ tearsheet<-function(lanetable, sampletable, variant, pulldesc){
 
 	#Calc by sample metrics   	
     attach(bysample);
-	 
+	baits<-Bait.Set[1]
+	alllanes<-signif(sum(X..Lanes.included.in.aggregation, na.rm = TRUE))
 	mean.lanes.samp<-signif(mean(X..Lanes.included.in.aggregation, na.rm = TRUE));
  	sd.lanes.samp<-signif(sd(X..Lanes.included.in.aggregation, na.rm=TRUE));
 	mean.mrl.samp<-signif(mean(Mean.Read.Length, na.rm=TRUE));
@@ -81,8 +82,8 @@ tearsheet<-function(lanetable, sampletable, variant, pulldesc){
 	detach(variant)
 	
 	#prep stuff. 
-	summary<-c(nrow(bysample), pulldesc[1], pulldesc[2], paste(callable.target, "bases"))
-	summary2<-c(pulldesc[3], pulldesc[4], paste(mean.lanes.samp, "+/-", sd.lanes.samp), paste(singlelanes, "single lanes,", pairedlanes, "paired lanes"), paste(mean.mrl.samp, "+/-", sd.mrl.samp))
+	summary<-c(nrow(bysample), Protocol, baits, paste(callable.target, "bases"))
+	summary2<-c(Sequencer, alllanes, paste(mean.lanes.samp, "+/-", sd.lanes.samp), paste(singlelanes, "single lanes,", pairedlanes, "paired lanes"), paste(mean.mrl.samp, "+/-", sd.mrl.samp))
 	samps<-paste(meansamp, c("M", "M", "x", "%", "%", "%"), " +/- ", sdsamp, c("M", "M", "x", "%", "%", "%"), sep="")
 	lanes<-paste(meanlane, c("M", "M", "x", "%", "%", "%"), " +/- ", sdlane, c("M", "M", "x", "%", "%", "%"), sep="")
 			
@@ -277,7 +278,7 @@ titvsamp<-function(metricsbysamp){
 
 	}
 
-functionalclasses<-function(countfunctclasses){}
+#functionalclasses<-function(countfunctclasses){}
 
 errorratepercycle<-function(erpc){
 
@@ -411,13 +412,16 @@ depth_sample<-function(DOC2){
 datapuller<-function(setname){
 	#library(yaml)
 
-	lanes<-read.delim(paste(setname, "lanes.txt", sep=""), header=TRUE)
-	samps<-read.delim(paste(setname, "samps.txt", sep=""), header=TRUE)
-	doct<-read.delim(paste(setname, "depth.sample_interval_summary", sep=""), header=TRUE, row.names=1)
-	docs<-read.delim(paste(setname, ".depth.sample_summary", sep=""), header=TRUE, row.names=1)
-	eval<-read.csv(paste(setname, "", sep=""))
-	titv<-read.csv(paste(setname, ".eval.SimpleMetricsBySample.csv", sep=""), skip=1)
-	erprp<-read.delim(paste(setname, ".erprp", sep=""))
+	strsplit(setname, ".")[1]->projectname
+
+
+	lanes<-read.delim(paste(projectname, "_lanes.txt", sep=""), header=TRUE)
+	samps<-read.delim(paste(projectname, "_samps.txt", sep=""), header=TRUE)
+	#doct<-read.delim(paste(setname, "depth.sample_interval_summary", sep=""), header=TRUE, row.names=1)
+	#docs<-read.delim(paste(setname, ".depth.sample_summary", sep=""), header=TRUE, row.names=1)
+	#eval<-read.csv(paste(setname, "eval.CountFunctionalClasses", sep=""), skip=1)
+	titv<-read.csv(paste(setname,  ".eval.SimpleMetricsBySample.csv", sep=""), skip=1)
+	#erprp<-read.delim(paste(setname, ".erprp", sep=""))
 	
 	colnames(lanes)<-c('Initiative','Project','GSSR.ID','External.ID','WR.ID','Flowcell','Lane','Lane.Type','Library','AL_TOTAL_READS','AL_PF_READS','AL_PCT_PF_READS','AL_PF_NOISE_READS','AL_PF_READS_ALIGNED','AL_PCT_PF_READS_ALIGNED','AL_PF_HQ_ALIGNED_READS','AL_PF_HQ_ALIGNED_BASES','AL_PF_HQ_ALIGNED_Q20_BASES','AL_PF_HQ_MEDIAN_MISMATCHES','AL_MEAN_READ_LENGTH','AL_READS_ALIGNED_IN_PAIRS','AL_PCT_READS_ALIGNED_IN_PAIRS','AL_BAD_CYCLES','AL_PCT_STRAND_BALANCE','DUP_UNPAIRED_READS_EXAMINED','DUP_READ_PAIRS_EXAMINED','DUP_UNMAPPED_READS','DUP_UNPAIRED_READ_DUPLICATES','DUP_READ_PAIR_DUPLICATES','DUP_PERCENT_DUPLICATION','DUP_ESTIMATED_LIBRARY_SIZE','HS_BAIT_SET','HS_GENOME_SIZE','HS_LIBRARY_SIZE','HS_BAIT_TERRITORY','HS_TARGET_TERRITORY','HS_BAIT_DESIGN_EFFICIENCY','HS_TOTAL_READS','HS_PF_READS','HS_PF_UNIQUE_READS','HS_PCT_PF_READS','HS_PCT_PF_UQ_READS','HS_PCT_PF_UQ_READS_ALIGNED','HS_PF_UQ_READS_ALIGNED','HS_PF_UQ_BASES_ALIGNED','HS_ON_BAIT_BASES','HS_NEAR_BAIT_BASES','HS_OFF_BAIT_BASES','HS_ON_TARGET_BASES','HS_PCT_SELECTED_BASES','HS_PCT_OFF_BAIT','HS_ON_BAIT_VS_SELECTED','HS_MEAN_BAIT_COVERAGE','HS_MEAN_TARGET_COVERAGE','HS_FOLD_ENRICHMENT','HS_ZERO_CVG_TARGETS_PCT','HS_FOLD_80_BASE_PENALTY','HS_PCT_TARGET_BASES_2X','HS_PCT_TARGET_BASES_10X','HS_PCT_TARGET_BASES_20X','HS_PCT_TARGET_BASES_30X','HS_PENALTY_10X','HS_PENALTY_20X','HS_PENALTY_30X','SNP_TOTAL_SNPS','SNP_PCT_DBSNP','SNP_NUM_IN_DBSNP','Lane.IC.Matches','Lane.IC.PCT.Mean.RD1.Err.Rate','Lane.IC.PCT.Mean.RD2.Err.Rate','FP_PANEL_NAME','FP_PANEL_SNPS','FP_CONFIDENT_CALLS','FP_CONFIDENT_MATCHING_SNPS','FP_CONFIDENT_CALLED_PCT','FP_CONFIDENT_MATCHING_SNPS_PCT','LPCNCRD_REFERENCE','LPCNCRD_NON_REFERENCE','LPCNCRD_PCT_CONCORDANCE')
 	
@@ -427,27 +431,30 @@ datapuller<-function(setname){
 	}
 
 
-runner<-function(basename, desc){
+runner<-function(basename, desc1, desc2){
 	datapuller(basename)->tables
 	attach(tables)
 	
-	pdf("tester9-15.pdf", width=22, height=15,pointsize=24)
+	
+	
+	pdf(paste(basename, ".pdf", sep=""), width=22, height=15,pointsize=24)
 
-	tearsheet(lanes, samps, titv, pulldesc)
+	tearsheet(lanes, samps, titv, desc1, desc1)	
 	fingerprints(lanes)
 	snps_called(lanes)
 	titvsamp(titv)
-	functionalclasses(eval)
-	errorratepercycle(erprp)
-	depth_target(doct)
-	depth_sample(docs)
+	#functionalclasses(eval)
+	#errorratepercycle(erprp)
+	#depth_target(doct)
+	#depth_sample(docs)
 	
 	dev.off()
 	detach(tables)
 	}
 
-
-			
+if(length(commandArgs(TRUE))>0){
+	runner(commandArgs(TRUE))
+	}	
 	
 
 
