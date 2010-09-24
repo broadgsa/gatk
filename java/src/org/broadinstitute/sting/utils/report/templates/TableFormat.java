@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.utils.report.templates;
+package org.broadinstitute.sting.utils.report.templates;
 
 
 /**

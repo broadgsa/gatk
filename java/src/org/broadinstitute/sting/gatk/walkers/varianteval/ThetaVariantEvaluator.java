@@ -6,8 +6,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.Allele;
-import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
-import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
+import org.broadinstitute.sting.utils.report.tags.Analysis;
+import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentHashMap;
 

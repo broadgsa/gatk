@@ -5,8 +5,8 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
-import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
+import org.broadinstitute.sting.utils.report.tags.Analysis;
+import org.broadinstitute.sting.utils.report.tags.DataPoint;
 
 @Analysis(name = "Ti/Tv Variant Evaluator", description = "Ti/Tv Variant Evaluator")
 public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEval {

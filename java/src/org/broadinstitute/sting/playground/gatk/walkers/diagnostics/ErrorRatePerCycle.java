@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
-import org.broadinstitute.sting.playground.utils.report.GATKReport.GATKReport;
+import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.io.PrintStream;

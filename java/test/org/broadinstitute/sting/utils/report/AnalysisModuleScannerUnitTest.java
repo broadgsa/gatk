@@ -1,9 +1,9 @@
-package org.broadinstitute.sting.playground.utils.report;
+package org.broadinstitute.sting.utils.report;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
-import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
-import org.broadinstitute.sting.playground.utils.report.tags.Param;
+import org.broadinstitute.sting.utils.report.tags.Analysis;
+import org.broadinstitute.sting.utils.report.tags.DataPoint;
+import org.broadinstitute.sting.utils.report.tags.Param;
 import org.junit.Assert;
 import org.junit.Test;
 

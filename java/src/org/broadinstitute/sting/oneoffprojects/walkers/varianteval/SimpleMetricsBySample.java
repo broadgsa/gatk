@@ -8,8 +8,8 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.SampleDataPoint;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluatorBySample;
-import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
-import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
+import org.broadinstitute.sting.utils.report.tags.Analysis;
+import org.broadinstitute.sting.utils.report.tags.DataPoint;
 
 import java.util.ArrayList;
 import java.util.List;

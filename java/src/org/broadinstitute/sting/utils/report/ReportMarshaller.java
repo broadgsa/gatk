@@ -21,12 +21,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.utils.report;
+package org.broadinstitute.sting.utils.report;
 
 
-import org.broadinstitute.sting.playground.utils.report.templates.ReportFormat;
-import org.broadinstitute.sting.playground.utils.report.utils.ComplexDataUtils;
-import org.broadinstitute.sting.playground.utils.report.utils.Node;
+import org.broadinstitute.sting.utils.report.templates.ReportFormat;
+import org.broadinstitute.sting.utils.report.utils.ComplexDataUtils;
+import org.broadinstitute.sting.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;

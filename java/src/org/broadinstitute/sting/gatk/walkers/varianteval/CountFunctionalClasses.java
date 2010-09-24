@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
-import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
+import org.broadinstitute.sting.utils.report.tags.Analysis;
+import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;

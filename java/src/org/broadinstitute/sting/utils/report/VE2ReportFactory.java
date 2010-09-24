@@ -1,7 +1,7 @@
-package org.broadinstitute.sting.playground.utils.report;
+package org.broadinstitute.sting.utils.report;
 
-import org.broadinstitute.sting.playground.utils.report.templates.*;
-import org.broadinstitute.sting.playground.utils.report.utils.Node;
+import org.broadinstitute.sting.utils.report.templates.*;
+import org.broadinstitute.sting.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 
 import java.io.*;

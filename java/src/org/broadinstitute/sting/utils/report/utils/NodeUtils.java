@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.utils.report.utils;
+package org.broadinstitute.sting.utils.report.utils;
 
 import java.util.ArrayList;
 import java.util.List;

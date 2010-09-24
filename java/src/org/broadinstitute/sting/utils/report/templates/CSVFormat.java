@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.utils.report.templates;
+package org.broadinstitute.sting.utils.report.templates;
 
 /**
  * the basic comma separated value format

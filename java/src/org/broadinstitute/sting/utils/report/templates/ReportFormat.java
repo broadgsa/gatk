@@ -1,6 +1,6 @@
-package org.broadinstitute.sting.playground.utils.report.templates;
+package org.broadinstitute.sting.utils.report.templates;
 
-import org.broadinstitute.sting.playground.utils.report.utils.Node;
+import org.broadinstitute.sting.utils.report.utils.Node;
 
 import java.io.File;
 import java.io.Writer;

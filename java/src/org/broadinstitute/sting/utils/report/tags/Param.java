@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.utils.report.tags;
+package org.broadinstitute.sting.utils.report.tags;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

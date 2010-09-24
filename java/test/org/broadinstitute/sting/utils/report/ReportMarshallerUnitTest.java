@@ -21,7 +21,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.utils.report;
+package org.broadinstitute.sting.utils.report;
 
 import org.broadinstitute.sting.BaseTest;
 import org.junit.Test;

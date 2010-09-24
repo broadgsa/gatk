@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.utils.report.templates;
+package org.broadinstitute.sting.utils.report.templates;
 
 import org.junit.Assert;
 import org.junit.Test;

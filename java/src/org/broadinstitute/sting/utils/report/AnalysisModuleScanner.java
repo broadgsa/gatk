@@ -21,11 +21,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.utils.report;
+package org.broadinstitute.sting.utils.report;
 
-import org.broadinstitute.sting.playground.utils.report.tags.Analysis;
-import org.broadinstitute.sting.playground.utils.report.tags.DataPoint;
-import org.broadinstitute.sting.playground.utils.report.tags.Param;
+import org.broadinstitute.sting.utils.report.tags.Analysis;
+import org.broadinstitute.sting.utils.report.tags.DataPoint;
+import org.broadinstitute.sting.utils.report.tags.Param;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.annotation.Annotation;

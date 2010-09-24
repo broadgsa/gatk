@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.utils.report.GATKReport;
+package org.broadinstitute.sting.gatk.report;
 
 import java.util.TreeMap;
 
