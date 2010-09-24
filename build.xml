@@ -4,6 +4,7 @@
 
     <property name="build.dir" value="build" />
     <property name="dist.dir" value="dist" />
+    <property name="external.dir" value="external" />
     <property name="java.source.dir" value="java/src" />
     <property name="java.classes" value="${build.dir}/java/classes" />
     <property name="resource.file" value="StingText.properties" />
@@ -33,13 +34,19 @@
 
     <property environment="env"/>
 
-    <dirset id="java.source.files" dir="${java.source.dir}">
-      <patternset>
-	<include name="org/broadinstitute/sting/**"/>
-	<exclude name="**/playground/**" unless="include.playground" />
-	<exclude name="**/oneoffprojects/**" unless="include.oneoffs" />
-      </patternset>
-    </dirset>
+    <patternset id="java.source.pattern">
+        <include name="**/*.java"/>
+        <exclude name="**/playground/**" unless="include.playground" />
+        <exclude name="**/oneoffprojects/**" unless="include.oneoffs" />
+    </patternset>
+
+    <fileset id="java.source.files" dir="${java.source.dir}">
+        <patternset refid="java.source.pattern" />
+    </fileset>
+
+    <fileset id="external.source.files" dir="${external.dir}" erroronmissingdir="false">
+        <patternset refid="java.source.pattern" />
+    </fileset>
 
     <!-- the path for resources that need to go into the GATK jar;
          any additional resources should go into this set. -->
@@ -195,12 +202,28 @@
 
     <target name="gatk.compile" depends="tribble,init,resolve"
             description="compile the source">
-      <!-- Compile the java code from ${src} into build -->
-      <javac srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies">
-          <exclude name="**/examples/**" />
-        <exclude name="**/playground/**" unless="include.playground"/>
-        <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
-      </javac>
+        <!-- Compile the java code from ${src} into build -->
+        <javac srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies">
+            <exclude name="**/examples/**" />
+            <exclude name="**/playground/**" unless="include.playground"/>
+            <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
+        </javac>
+
+        <pathconvert property="external.build.dir">
+            <path path="${java.classes}"/>
+        </pathconvert>
+
+        <!-- GATK dependencies consist of 3rd party plugins plus compiled GATK classes -->
+        <pathconvert property="external.gatk.classpath">
+            <path path="${java.classes}"/>
+            <path refid="external.dependencies" />
+        </pathconvert>
+
+        <subant target="compile" genericantfile="build.xml">
+            <property name="build.dir" value="${external.build.dir}" />
+            <property name="gatk.classpath" value="${external.gatk.classpath}" />
+            <fileset dir="${basedir}" includes="external/*/build.xml" />
+        </subant>
     </target>
 
     <!-- Queue depends on the gatk since it contains the StingUtils (including CommandLine) -->
@@ -239,11 +262,13 @@
           <path refid="external.dependencies" />
           <pathelement location="${java.classes}" />
         </path>
+
       <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
 	       docletpathref="doclet.classpath"
 	       classpathref="external.dependencies"
-	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${resource.path}">
-	<packageset refid="java.source.files"/>
+	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${resource.path} -quiet">
+	    <fileset refid="java.source.files"/>
+        <fileset refid="external.source.files"/>
       </javadoc>
     </target>
 
@@ -611,7 +636,7 @@
       <mkdir dir="${dist.dir}/packages" />
       <xslt in="packages/PicardPrivate.xml" out="${dist.dir}/packages/BuildPicardPrivate.xml" style="packages/CreatePackager.xsl" />
       <ant antfile="${dist.dir}/packages/BuildPicardPrivate.xml">
-	<property name="additional.jars" value="${required.picard.jars}" />
+	    <property name="additional.jars" value="${required.picard.jars}" />
       </ant>
     </target>
 
@@ -619,7 +644,7 @@
     <!-- Find bug tasks                                                                   -->
     <!-- ******************************************************************************** -->
     <path id="findbugs.classpath">
-            <fileset dir="lib" erroronmissingdir="true" includes="*.jar"/>
+      <fileset dir="lib" erroronmissingdir="true" includes="*.jar"/>
     </path>
     <target         name="findbugs" depends="dist">
         <antcall    target  ="resolve">
@@ -639,9 +664,7 @@
          <sourcePath    path="../java/src" />
          <class         location="dist/GenomeAnalysisTK.jar" />
        </findbugs>
-     </target>
-
-
+    </target>
 
     <target name="clean" description="clean up" depends="tribble.clean,clean.javadoc">
         <delete dir="out"/>
@@ -651,6 +674,5 @@
         <delete dir="${dist.dir}"/>
         <!-- When we clean, make sure to clean out tribble as well -->
         <ant antfile="tribble/build.xml" target="clean"/>
-
     </target>
 </project>
