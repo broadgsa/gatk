@@ -43,35 +43,43 @@ public class DictionaryConsistencyIntegrationTest extends WalkerTest {
     @Test public void fail1() { executeTest("b36xhg18", testVCF(b36KGReference, callsHG18)); }
     @Test public void fail2() { executeTest("b37xhg18", testVCF(b37KGReference, callsHG18)); }
     @Test public void fail3() { executeTest("hg19xhg18", testVCF(hg19Reference, callsHG18)); }
-    @Test public void fail4() { executeTest("hg18lex-v-hg18", testVCF(lexHG18, callsHG18)); }
+    @Test public void fail4() { executeTest("hg18lex-v-hg18", testVCF(lexHG18, callsHG18, UserException.LexicographicallySortedSequenceDictionary.class)); }
 
     // testing b36 calls
     @Test public void fail5() { executeTest("b36xb36", testVCF(hg18Reference, callsB36)); }
     @Test public void fail6() { executeTest("b37xb36", testVCF(b37KGReference, callsB36)); }
     @Test public void fail7() { executeTest("hg19xb36", testVCF(hg19Reference, callsB36)); }
-    @Test public void fail8() { executeTest("hg18lex-v-b36", testVCF(lexHG18, callsB36)); }
+    @Test public void fail8() { executeTest("hg18lex-v-b36", testVCF(lexHG18, callsB36, UserException.LexicographicallySortedSequenceDictionary.class)); }
 
     private WalkerTest.WalkerTestSpec testVCF(String ref, String vcf) {
+        return testVCF(ref, vcf, UserException.IncompatibleSequenceDictionaries.class);
+    }
+
+    private WalkerTest.WalkerTestSpec testVCF(String ref, String vcf, Class c) {
         return new WalkerTest.WalkerTestSpec("-T VariantsToTable -M 10 -B:two,vcf "
                 + vcf + " -F POS,CHROM -R "
                 + ref +  " -o %s",
-                1, UserException.IncompatibleSequenceDictionaries.class);
+                1, c);
 
     }
 
     @Test public void failBAM1() { executeTest("b36bam-v-b37", testBAM(b37KGReference, b36BAM)); }
     @Test public void failBAM2() { executeTest("b36bam-v-hg18", testBAM(hg18Reference, b36BAM)); }
     @Test public void failBAM3() { executeTest("b36bam-v-hg19", testBAM(hg19Reference, b36BAM)); }
-    @Test public void failBAM4() { executeTest("b36bam-v-lexhg18", testBAM(lexHG18, b36BAM)); }
+    @Test public void failBAM4() { executeTest("b36bam-v-lexhg18", testBAM(lexHG18, b36BAM, UserException.LexicographicallySortedSequenceDictionary.class)); }
 
     @Test public void failBAM5() { executeTest("hg18bam-v-b36", testBAM(b36KGReference, hg18BAM)); }
     @Test public void failBAM6() { executeTest("hg18bam-v-b37", testBAM(b37KGReference, hg18BAM)); }
     @Test public void failBAM7() { executeTest("hg18bam-v-hg19", testBAM(hg19Reference, hg18BAM)); }
-    @Test public void failBAM8() { executeTest("hg18bam-v-lexhg18", testBAM(lexHG18, hg18BAM)); }
+    @Test public void failBAM8() { executeTest("hg18bam-v-lexhg18", testBAM(lexHG18, hg18BAM, UserException.LexicographicallySortedSequenceDictionary.class)); }
 
     private WalkerTest.WalkerTestSpec testBAM(String ref, String bam) {
+        return testBAM(ref, bam, UserException.IncompatibleSequenceDictionaries.class);
+    }
+
+    private WalkerTest.WalkerTestSpec testBAM(String ref, String bam, Class c) {
         return new WalkerTest.WalkerTestSpec("-T UnifiedGenotyper -I " + bam + " -R " + ref +  " -L 1:10,000,000-11,000,000 -o %s",
-                1, UserException.IncompatibleSequenceDictionaries.class);
+                1, c);
 
     }
 }

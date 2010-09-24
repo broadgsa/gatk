@@ -187,14 +187,24 @@ public class UserException extends ReviewedStingException {
             super(String.format("Input files %s and %s have incompatible contigs: %s.\n  %s contigs = %s\n  %s contigs = %s",
                     name1, name2, message, name1, prettyPrintSequenceRecords(dict1), name2, prettyPrintSequenceRecords(dict2)));
         }
+    }
 
-        private static String prettyPrintSequenceRecords(SAMSequenceDictionary sequenceDictionary) {
-            String[] sequenceRecordNames = new String[sequenceDictionary.size()];
-            int sequenceRecordIndex = 0;
-            for (SAMSequenceRecord sequenceRecord : sequenceDictionary.getSequences())
-                sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
-            return Arrays.deepToString(sequenceRecordNames);
+    public static class LexicographicallySortedSequenceDictionary extends UserException {
+        public LexicographicallySortedSequenceDictionary(String name, SAMSequenceDictionary dict) {
+            super(String.format("Lexicographically sorted human genome sequence detected in %s."
+                    + "\nFor safety's sake the GATK requires human contigs in karyotypic order: 1, 2, ..., 10, 11, ..., 20, 21, 22, X, Y with M either leading or trailing these contigs."
+                    + "\nThis is because all distributed GATK resources are sorted in karyotypic order, and your processing will fail when you need to use these files"
+                    + "\n  %s contigs = %s",
+                    name, name, prettyPrintSequenceRecords(dict)));
         }
+    }
+
+    private static String prettyPrintSequenceRecords(SAMSequenceDictionary sequenceDictionary) {
+        String[] sequenceRecordNames = new String[sequenceDictionary.size()];
+        int sequenceRecordIndex = 0;
+        for (SAMSequenceRecord sequenceRecord : sequenceDictionary.getSequences())
+            sequenceRecordNames[sequenceRecordIndex++] = sequenceRecord.getSequenceName();
+        return Arrays.deepToString(sequenceRecordNames);
     }
 
     public static class MissingWalker extends UserException {
