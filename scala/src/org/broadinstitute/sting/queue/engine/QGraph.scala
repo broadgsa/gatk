@@ -461,7 +461,7 @@ class QGraph extends Logging {
     // todo -- we need a nice way to visualize the key pieces of information about commands.  Perhaps a
     // todo -- visualizeString() command, or something that shows inputs / outputs
     val ve = new org.jgrapht.ext.EdgeNameProvider[QFunction] {
-        def getEdgeName( function: QFunction ) = function.dotString
+        def getEdgeName( function: QFunction ) = if (function.dotString == null) "" else function.dotString.replace("\"", "\\\"")
     }
 
     //val iterator = new TopologicalOrderIterator(qGraph.jobGraph)
