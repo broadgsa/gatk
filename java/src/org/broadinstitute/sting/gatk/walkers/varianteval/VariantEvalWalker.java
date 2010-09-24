@@ -188,7 +188,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="reportType", fullName="reportType", doc="If provided, set the template type", required=false)
     protected VE2ReportFactory.VE2TemplateType reportType = VE2ReportFactory.defaultReportFormat;
 
-    @Argument(shortName="reportLocation", fullName="reportLocation", doc="If provided, set the base file for reports (Required for output formats with more than one file per analysis)", required=false)
+    @Output(shortName="reportLocation", fullName="reportLocation", doc="If provided, set the base file for reports (Required for output formats with more than one file per analysis)", required=false)
     protected File outputLocation = null;
 
     @Argument(shortName="nSamples", fullName="nSamples", doc="If provided, analyses that need the number of samples in an eval track that has no genotype information will receive this number as the number of samples", required=false)
