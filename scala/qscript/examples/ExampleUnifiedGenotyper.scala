@@ -61,7 +61,7 @@ class ExampleUnifiedGenotyper extends QScript {
     genotyper.input_file :+= qscript.bamFile
     genotyper.out = swapExt(qscript.bamFile, "bam", "unfiltered.vcf")
 
-    evalUnfiltered.rodBind :+= RodBind("vcf", "VCF", genotyper.out)
+    evalUnfiltered.rodBind :+= RodBind("eval", "VCF", genotyper.out)
     evalUnfiltered.out = swapExt(genotyper.out, "vcf", "eval")
 
     variantFilter.rodBind :+= RodBind("vcf", "VCF", genotyper.out)
@@ -69,7 +69,7 @@ class ExampleUnifiedGenotyper extends QScript {
     variantFilter.filterName = filterNames
     variantFilter.filterExpression = filterExpressions
 
-    evalFiltered.rodBind :+= RodBind("vcf", "VCF", variantFilter.out)
+    evalFiltered.rodBind :+= RodBind("eval", "VCF", variantFilter.out)
     evalFiltered.out = swapExt(variantFilter.out, "vcf", "eval")
 
     add(genotyper, evalUnfiltered)
