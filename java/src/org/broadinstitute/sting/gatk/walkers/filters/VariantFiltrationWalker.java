@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.*;
@@ -76,6 +77,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
     List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps;
 
+    public static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
     public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
     private ClusteredSnps clusteredSNPs = null;
 
@@ -83,12 +85,15 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     private FiltrationContextWindow variantContextWindow;
     private static final int windowSize = 10;  // 10 variants on either end of the current one
     private ArrayList<FiltrationContext> windowInitializer = new ArrayList<FiltrationContext>();
-    private boolean wroteHeader = false;
 
-    private void initializeVcfWriter(VariantContext vc) {
+    private void initializeVcfWriter() {
+
+        final ArrayList<String> inputNames = new ArrayList<String>();
+        inputNames.add( INPUT_VARIANT_ROD_BINDING_NAME );
+
         // setup the header fields
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
 
         if ( clusterWindow > 0 )
             hInfo.add(new VCFFilterHeaderLine(CLUSTERED_SNP_FILTER_NAME, "SNPs found in clusters"));
@@ -109,7 +114,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             }
         }
 
-        writer.writeHeader(new VCFHeader(hInfo, vc.getSampleNames()));
+        writer.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
     }
 
     public void initialize() {
@@ -120,6 +125,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         genotypeFilterExps = VariantContextUtils.initializeMatchExps(GENOTYPE_FILTER_NAMES, GENOTYPE_FILTER_EXPS);
 
         VariantContextUtils.engine.setSilent(true);
+
+        initializeVcfWriter();
     }
 
     public Integer reduceInit() { return 0; }
@@ -136,12 +143,12 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        List<Object> rods = tracker.getReferenceMetaData("variant");
+        List<Object> rods = tracker.getReferenceMetaData( INPUT_VARIANT_ROD_BINDING_NAME );
         // ignore places where we don't have a variant
         if ( rods.size() == 0 )
             return 0;
 
-        VariantContext vc = VariantContextAdaptors.toVariantContext("variant", rods.get(0), ref);
+        VariantContext vc = VariantContextAdaptors.toVariantContext( INPUT_VARIANT_ROD_BINDING_NAME, rods.get(0), ref );
         FiltrationContext varContext = new FiltrationContext(tracker, ref, vc);
 
         // if we're still initializing the context, do so
@@ -216,15 +223,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         else
             filteredVC = new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), filters, vc.getAttributes());
 
-        writeVCF(filteredVC, context.getReferenceContext().getBase());
-    }
-
-    private void writeVCF(VariantContext vc, byte ref) {
-        if ( !wroteHeader ) {
-            initializeVcfWriter(vc);
-            wroteHeader = true;
-        }
-        writer.add(vc, ref);
+        writer.add( filteredVC, context.getReferenceContext().getBase() );
     }
 
     public Integer reduce(Integer value, Integer sum) {
