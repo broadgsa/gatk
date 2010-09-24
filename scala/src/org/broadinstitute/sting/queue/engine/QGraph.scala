@@ -13,11 +13,13 @@ import java.io.File
 import org.jgrapht.event.{TraversalListenerAdapter, EdgeTraversalEvent}
 import org.broadinstitute.sting.queue.{QSettings, QException}
 import org.broadinstitute.sting.queue.function.{DispatchWaitFunction, MappingFunction, CommandLineFunction, QFunction}
+import collection.mutable.HashMap
 
 /**
  * The internal dependency tracker between sets of function input and output files.
  */
 class QGraph extends Logging {
+  var status = false
   var dryRun = true
   var bsubAllJobs = false
   var bsubWaitJobs = false
@@ -74,17 +76,24 @@ class QGraph extends Logging {
 
     val isReady = numMissingValues == 0
 
-    if (isReady || this.dryRun)
+    if ( (isReady || this.dryRun) && ! this.status )
       runJobs
 
     if (numMissingValues > 0) {
       logger.error("Total missing values: " + numMissingValues)
     }
 
-    if (isReady && this.dryRun) {
+    if (isReady && this.dryRun && ! this.status) {
       logger.info("Dry run completed successfully!")
       logger.info("Re-run with \"-run\" to execute the functions.")
     }
+  }
+
+  def checkStatus = {
+    // build up the full DAG with scatter-gather jobs
+    this.status = true
+    run
+    runStatus
   }
 
   /**
@@ -241,7 +250,88 @@ class QGraph extends Logging {
   }
 
   /**
-   * Creates a new graph where if new edges are needed (for cyclic dependency checking) they can be automatically created using a generic MappingFunction.
+   * Gets job statuses by traversing the graph and looking for status-related files
+   */
+  private def runStatus = {
+    var statuses: HashMap[String,HashMap[String,Int]] = new HashMap[String,HashMap[String,Int]]
+    loop(
+      edgeFunction = { case edgeCLF => {
+        if ( edgeCLF.analysisName != null  && ! edgeCLF.outputs.forall(file => file.getName.endsWith(".out") || file.getName.endsWith(".err") )) {
+          if ( ! statuses.keySet.contains(edgeCLF.analysisName) ) {
+            statuses.put(edgeCLF.analysisName,emptyStatusMap)
+          }
+          updateMap(statuses(edgeCLF.analysisName),edgeCLF)
+        }
+      }
+      })
+    formatStatus(statuses)
+  }
+
+  /**
+   * Creates an empty map with keys for status updates, todo -- make this nicer somehow
+   */
+  private def emptyStatusMap = {
+    var sMap = new HashMap[String,Int]
+    sMap.put("status",-1)
+    sMap.put("sgTotal",0)
+    sMap.put("sgDone",0)
+    sMap.put("sgRunning",0)
+    sMap.put("sgFailed",0)
+    // note -- pending = total - done - run - failed
+    sMap
+  }
+
+  /**
+   * Updates a status map with scatter/gather status information (e.g. counts)
+   */
+  private def updateMap(stats: HashMap[String,Int], clf: CommandLineFunction) = {
+    if ( clf.isGather ) {
+      logger.debug(clf.analysisName+": "+clf.doneOutputs.mkString(", "))
+      if ( clf.isDone ) {
+        stats("status") = 1
+      } else {
+        stats("status") = 0
+      }
+    } else {
+      stats("sgTotal") = (stats("sgTotal") + 1)
+      if ( clf.isDone ) {
+        stats("sgDone") = (stats("sgDone") + 1)
+      }
+    }
+  }
+
+  /**
+   * Formats a complete status map (analysis name --> map {string, int}) into nice strings
+   */
+  private def formatStatus(stats: HashMap[String,HashMap[String,Int]]) = {
+    stats.foreach{ case(analysisName, status) => {
+      var infoStr = analysisName
+      val doneInt = status("status")
+      if ( doneInt == 1 ) {
+        infoStr += " [DONE]"
+      } else if ( doneInt == 0 ) {
+        infoStr += " [NOT DONE]"
+      } else {
+        infoStr += " [UNKNOWN]"
+      }
+
+      if ( status("sgTotal") > 0 ) {
+        val sgTot = status("sgTotal")
+        val sgDone = status("sgDone")
+        val sgRun = status("sgRunning")
+        val sgFailed = status("sgFailed")
+        val sgPend = (sgTot - sgDone - sgRun - sgFailed)
+        infoStr += " %dt/%dd/%dr/%dp/%df".format(sgTot,sgDone,sgRun,sgPend,sgFailed)
+      }
+
+      logger.info(infoStr)
+    }
+
+    }
+  }
+
+  /**
+   *   Creates a new graph where if new edges are needed (for cyclic dependency checking) they can be automatically created using a generic MappingFunction.
    * @return A new graph
    */
   private def newGraph = new SimpleDirectedGraph[QNode, QFunction](new EdgeFactory[QNode, QFunction] {

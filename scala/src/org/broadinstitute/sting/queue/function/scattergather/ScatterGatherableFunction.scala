@@ -262,6 +262,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
     gatherFunction.originalOutput = this.getFieldFile(gatherField)
     gatherFunction.setOriginalFunction(this, gatherField)
+    gatherFunction.analysisName = this.analysisName
     if (this.setupGatherFunction != null)
       if (this.setupGatherFunction.isDefinedAt(gatherFunction, gatherField))
         this.setupGatherFunction(gatherFunction, gatherField)
@@ -289,6 +290,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     if (this.setupCloneFunction != null)
       if (this.setupCloneFunction.isDefinedAt(cloneFunction, index))
         this.setupCloneFunction(cloneFunction, index)
+        cloneFunction.isGather = false
   }
 
   /**

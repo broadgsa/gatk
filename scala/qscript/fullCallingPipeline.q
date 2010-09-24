@@ -93,10 +93,12 @@ class fullCallingPipeline extends QScript {
       // create the cleaning commands
 
       val targetCreator = new RealignerTargetCreator with CommandLineGATKArgs
+      targetCreator.analysisName = "CreateTargets_"+bam.getName
       targetCreator.input_file :+= bam
       targetCreator.out = indel_targets
 
       val realigner = new IndelRealigner with CommandLineGATKArgs
+      realigner.analysisName = "RealignBam_"+bam.getName
       realigner.input_file = targetCreator.input_file
       realigner.intervals = qscript.contigIntervals
       realigner.targetIntervals = new java.io.File(targetCreator.out.getAbsolutePath)
@@ -139,11 +141,13 @@ class fullCallingPipeline extends QScript {
         fixMates.jarFile = qscript.picardFixMatesJar
         fixMates.unfixed = realigner.out
         fixMates.fixed = cleaned_bam
+        fixMates.analysisName = "FixMates_"+bam.getName
         // Add the fix mates explicitly
       }
 
       var samtoolsindex = new SamtoolsIndexFunction
       samtoolsindex.bamFile = cleaned_bam
+      samtoolsindex.analysisName = "index_"+cleaned_bam.getName
 
       // COMMENT THIS NEXT BLOCK TO SKIP CLEANING
       if ( realigner.scatterCount > 1 )
@@ -172,6 +176,7 @@ class fullCallingPipeline extends QScript {
     // step through the un-indel-cleaned graph:
     // 1a. call snps and indels
     val snps = new UnifiedGenotyper with CommandLineGATKArgs
+    snps.analysisName = base+"_SNP_calls"
     snps.input_file = bamFiles
     snps.group :+= "Standard"
     snps.out = new File(base+".vcf")
@@ -203,6 +208,7 @@ class fullCallingPipeline extends QScript {
     var priority = ""
     for ( bam <- bamFiles ) {
       var indel = new IndelGenotyperV2 with CommandLineGATKArgs
+      indel.analysisName = "IndelGenotyper_"+bam.getName
       indel.input_file :+= bam
       indel.out = swapExt(bam,".bam",".indels.vcf")
       indel.downsample_to_coverage = Some(500)
@@ -224,6 +230,7 @@ class fullCallingPipeline extends QScript {
     mergeIndels.priority = priority
     mergeIndels.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
     mergeIndels.rodBind = indelCallFiles
+    mergeIndels.analysisName = base+"_MergeIndels"
 
 
     // 1b. genomically annotate SNPs -- no longer slow
@@ -234,6 +241,7 @@ class fullCallingPipeline extends QScript {
     annotated.out = swapExt(snps.out,".vcf",".annotated.vcf")
     annotated.select :+= "dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet"
     annotated.rodToIntervalTrackName = "variant"
+    annotated.analysisName = base+"_GenomicAnnotator"
 
 
     // 2.a filter on cluster and near indels
@@ -244,6 +252,7 @@ class fullCallingPipeline extends QScript {
     masker.clusterWindowSize = Some(qscript.snpClusterWindow)
     masker.clusterSize = Some(qscript.snpsInCluster)
     masker.out = swapExt(annotated.out,".vcf",".indel.masked.vcf")
+    masker.analysisName = base+"_Cluster_and_Indel_filter"
 
 
     // 2.b hand filter with standard filter
@@ -253,6 +262,7 @@ class fullCallingPipeline extends QScript {
     handFilter.filterName ++= List("StrandBias","AlleleBalance","QualByDepth","HomopolymerRun")
     handFilter.filterExpression ++= List("\"SB>=0.10\"","\"AB>=0.75\"","\"QD<5.0\"","\"HRun>=4\"")
     handFilter.out = swapExt(annotated.out,".vcf",".handfiltered.vcf")
+    handFilter.analysisName = base+"_HandFilter"
 
 
     // 3.i generate gaussian clusters on the masked vcf
@@ -267,6 +277,7 @@ class fullCallingPipeline extends QScript {
     clusters.jobQueue = "gsa"
 
     clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
+    clusters.analysisName = base+"_Cluster"
 
 
     // 3.ii apply gaussian clusters to the masked vcf
@@ -278,6 +289,7 @@ class fullCallingPipeline extends QScript {
     recalibrate.target_titv = qscript.target_titv
     recalibrate.report_dat_file = swapExt(masker.out,".vcf",".recalibrate.dat")
     recalibrate.tranches_file = swapExt(masker.out,".vcf",".recalibrate.tranches")
+    recalibrate.analysisName = base+"_VariantRecalibrator"
 
     // 3.iii apply variant cuts to the clusters
     val cut = new ApplyVariantCuts with CommandLineGATKArgs
@@ -286,6 +298,7 @@ class fullCallingPipeline extends QScript {
     cut.tranches_file = recalibrate.tranches_file
     // todo -- fdr inputs, etc
     cut.fdr_filter_level = Some(1)
+    cut.analysisName = base+"_ApplyVariantCuts"
 
     
     // 4. Variant eval the cut and the hand-filtered vcf files
@@ -294,6 +307,7 @@ class fullCallingPipeline extends QScript {
     eval.rodBind :+= RodBind("evalHandFiltered", "VCF", handFilter.out)
     eval.evalModule ++= List("CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
     eval.out = new File(base+".eval")
+    eval.analysisName = base+"_VariantEval"
 
     add(snps)
 

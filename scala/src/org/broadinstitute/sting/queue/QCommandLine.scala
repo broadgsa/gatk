@@ -35,6 +35,9 @@ class QCommandLine extends CommandLineProgram with Logging {
   @Argument(fullName="for_reals", shortName="forReals", doc="Run QScripts", required=false) @Hidden
   private var runScripts = false
 
+  @Argument(fullName="status",shortName="status",doc="Get status of jobs for the qscript",required=false)
+  private var getStatus = false
+
   @ArgumentCollection
   private val qSettings = new QSettings
 
@@ -62,8 +65,13 @@ class QCommandLine extends CommandLineProgram with Logging {
       logger.info("Added " + script.functions.size + " functions")
     }
 
-    logger.info("Running generated graph")
-    qGraph.run
+    if ( ! getStatus ) {
+      logger.info("Running generated graph")
+      qGraph.run
+    } else {
+      logger.info("Checking pipeline status")
+      qGraph.checkStatus
+    }
 
     logger.info("Done")
     0

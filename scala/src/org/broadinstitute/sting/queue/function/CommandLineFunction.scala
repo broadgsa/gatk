@@ -14,6 +14,12 @@ import org.broadinstitute.sting.queue.{QSettings, QException}
 trait CommandLineFunction extends QFunction with Logging {
   def commandLine: String
 
+  /** Analysis function name */
+  var analysisName: String = _
+
+  /** Set to true if this is a standalone or gather function */
+  var isGather: Boolean = true
+
   /** Default settings */
   var qSettings: QSettings = _
 
@@ -165,6 +171,10 @@ trait CommandLineFunction extends QFunction with Logging {
     //    doneFiles += new File(outFile.getParent + "." + outFile.getName + ".done")
     //}
     //doneFiles
+  }
+
+  def isDone = {
+    doneOutputs.size == 0 || doneOutputs.forall(_.exists)
   }
 
   /**
