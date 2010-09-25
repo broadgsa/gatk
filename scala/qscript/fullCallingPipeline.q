@@ -179,12 +179,15 @@ class fullCallingPipeline extends QScript {
             .toList
 
     // actually make calls
-    endToEnd(uncleanedBase,recalibratedBamFiles, adprRscript, seq, expKind)
+    //endToEnd(uncleanedBase,recalibratedBamFiles, adprRscript, seq, expKind)
+    endToEnd(uncleanedBase,recalibratedBamFiles, seq, expKind)
     // COMMENT THIS NEXT LINE TO AVOID CALLING ON CLEANED FILES
-    endToEnd(cleanedBase,cleanBamFiles, adprRscript, seq, expKind)
+    //endToEnd(cleanedBase,cleanBamFiles, adprRscript, seq, expKind)
+    endToEnd(cleanedBase,cleanBamFiles, seq, expKind)
   }
 
-  def endToEnd(base: String, bamFiles: List[File], adprthing: File, seqinfo: String, exptype: String) = {
+  //def endToEnd(base: String, bamFiles: List[File], adprthing: File, seqinfo: String, exptype: String) = {
+  def endToEnd(base: String, bamFiles: List[File], seqinfo: String, exptype: String) = {
 
     // step through the un-indel-cleaned graph:
     // 1a. call snps and indels
@@ -319,32 +322,32 @@ class fullCallingPipeline extends QScript {
     eval.rodBind :+= RodBind("evalOptimized", "VCF", cut.out)
     eval.rodBind :+= RodBind("evalHandFiltered", "VCF", handFilter.out)
     eval.evalModule ++= List("CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
-    eval.reportLocation = new File(base+".eval")
-    eval.reportType = "R"
+    //eval.reportLocation = new File(base+".eval")
+    //eval.reportType = "R"
     eval.analysisName = base+"_VariantEval"
 
     add(snps)
 
     // 5. Run the ADPR and make pretty stuff
 
-    val adpr = new CommandLineFunction{
-     @Input(doc="Dependent files") var dependents: File = _
-     @Output(doc="Automated Data processing report") var out: File = _
-      var setname: String
-      var protocol: String
-      var sequencer: String
-      var scriptloc: File
-      def commandLine = "Rscript %s %s %s %s"
-        .format(scriptloc, setname, protocol, sequencer)
-    }
-
-    adpr.setname = base
-    adpr.scriptloc = adprthing
-    adpr.sequencer = seqinfo
-    adpr.protocol = exptype
-    adpr.dependents = eval.reportLocation
-    adpr.out = new File(base + "_adpr.pdf")
-    adpr.analysisName = base + "_ADPR"
+//    val adpr = new CommandLineFunction{
+//     @Input(doc="Dependent files") var dependents: File = _
+//     @Output(doc="Automated Data processing report") var out: File = _
+//      var setname: String
+//      var protocol: String
+//      var sequencer: String
+//      var scriptloc: File
+//      def commandLine = "Rscript %s %s %s %s"
+//        .format(scriptloc, setname, protocol, sequencer)
+//    }
+//
+//    adpr.setname = base
+//    adpr.scriptloc = adprthing
+//    adpr.sequencer = seqinfo
+//    adpr.protocol = exptype
+//    adpr.dependents = eval.reportLocation
+//    adpr.out = new File(base + "_adpr.pdf")
+//    adpr.analysisName = base + "_ADPR"
     //In order for ADPR to finish successfully, a squid file for both the lane and sample level data needs to be
     // produced, reformatted and named <projectBase>_lanes.txt or <projectBase>_samps.txt, respectively. These files
     // to be in the working directory. When database access is ready, this and the protocol and sequencer parameters of
@@ -355,7 +358,8 @@ class fullCallingPipeline extends QScript {
       add(igv2)
     }
 
-    add(mergeIndels,annotated,masker,handFilter,clusters,recalibrate,cut,eval,adpr)
+//    add(mergeIndels,annotated,masker,handFilter,clusters,recalibrate,cut,eval,adpr)
+    add(mergeIndels,annotated,masker,handFilter,clusters,recalibrate,cut,eval)
 
   }
 
