@@ -50,7 +50,7 @@ import java.util.*;
 /**
  * 
  * @author aaron 
- * 
+ *                                           `
  * Class RMDTrackBuilder
  *
  * This class keeps track of the available codecs, and knows how to put together a track of
@@ -168,8 +168,8 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         logger.info("Attempting to blindly load " + inputFile + " as a tabix indexed file");
         try {
             return new Pair<BasicFeatureSource, SAMSequenceDictionary>(BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
-        } catch (IOException e) {
-            throw new UserException.CouldNotReadInputFile(inputFile, "Unable to create feature reader from file", e);
+        } catch (TribbleException e) {
+            throw new UserException(e.getTribbleExceptionMessage(), e);
         }
     }
 
@@ -210,10 +210,10 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
                                                                                                 index,
                                                                                                 createCodec(targetClass, name)),
                                                                                                 dictFromIndex);
-        } catch (FileNotFoundException e) {
-            throw new UserException.CouldNotReadInputFile(inputFile, "Unable to create reader with file", e);
+        } catch (TribbleException e) {
+            throw new UserException(e.getTribbleExceptionMessage());
         } catch (IOException e) {
-            throw new UserException("Unable to make the index file for " + inputFile, e);
+            throw new UserException("Unable to create the index file for " + inputFile, e);
         }
         return reader;
     }
