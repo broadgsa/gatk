@@ -10,6 +10,6 @@ class DispatchWaitFunction extends CommandLineFunction {
    */
   def commandLine = "echo"
 
-  jobQueue = "short"
+  jobQueue = "hour"
   jobOutputFile = File.createTempFile("Q-wait", ".out")
 }
