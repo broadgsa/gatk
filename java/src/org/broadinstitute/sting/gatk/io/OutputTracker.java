@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.gatk.io;
 
+import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
@@ -74,7 +74,7 @@ public abstract class OutputTracker {
      */
     public abstract <T> T getStorage( Stub<T> stub );
 
-    public void prepareWalker( Walker walker ) {
+    public void prepareWalker( Walker walker, SAMFileReader.ValidationStringency strictnessLevel ) {
         for( Map.Entry<ArgumentSource,Object> io: inputs.entrySet() ) {
             ArgumentSource targetField = io.getKey();
             Object targetValue = io.getValue();
@@ -83,7 +83,7 @@ public abstract class OutputTracker {
             // TODO: Generalize this, and move it to its own initialization step.
             if( targetValue instanceof SAMFileReaderBuilder) {
                 SAMFileReaderBuilder builder = (SAMFileReaderBuilder)targetValue;
-                builder.setValidationStringency(GenomeAnalysisEngine.instance.getArguments().strictnessLevel);
+                builder.setValidationStringency(strictnessLevel);
                 targetValue = builder.build();
             }
 

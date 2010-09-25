@@ -76,12 +76,12 @@ public class SequenceDictionaryUtils {
     }
 
     /**
+     * @param validationExclusion exclusions to validation
      * @return Returns true if the engine is in tolerant mode and we'll let through dangerous but not fatal dictionary inconsistency
      */
-    public static boolean allowNonFatalIncompabilities() {
-        return GenomeAnalysisEngine.instance != null &&
-                ( GenomeAnalysisEngine.instance.getArguments().unsafe == ValidationExclusion.TYPE.ALLOW_SEQ_DICT_INCOMPATIBILITY ||
-                        GenomeAnalysisEngine.instance.getArguments().unsafe == ValidationExclusion.TYPE.ALL );
+    public static boolean allowNonFatalIncompabilities(ValidationExclusion.TYPE validationExclusion) {
+        return ( validationExclusion == ValidationExclusion.TYPE.ALLOW_SEQ_DICT_INCOMPATIBILITY ||
+                        validationExclusion == ValidationExclusion.TYPE.ALL );
     }
 
     /**
@@ -89,12 +89,13 @@ public class SequenceDictionaryUtils {
      * thrown with detailed error messages.  If the engine is in permissive mode, then logger.warnings of generated instead
      *
      * @param logger for warnings
+     * @param validationExclusion exclusions to validation
      * @param name1 name associated with dict1
      * @param dict1 the sequence dictionary dict1
      * @param name2 name associated with dict2
      * @param dict2 the sequence dictionary dict2
      */
-    public static void validateDictionaries(Logger logger, String name1, SAMSequenceDictionary dict1, String name2, SAMSequenceDictionary dict2) {
+    public static void validateDictionaries(Logger logger, ValidationExclusion.TYPE validationExclusion, String name1, SAMSequenceDictionary dict1, String name2, SAMSequenceDictionary dict2) {
         SequenceDictionaryCompatability type = compareDictionaries(dict1, dict2);
         switch ( type ) {
             case IDENTICAL:
@@ -115,7 +116,7 @@ public class SequenceDictionaryUtils {
                         name2, elt2.getSequenceName(), elt2.getSequenceLength()),
                         name1, dict1, name2, dict2);
 
-                if ( allowNonFatalIncompabilities() )
+                if ( allowNonFatalIncompabilities(validationExclusion) )
                     logger.warn(ex.getMessage());
                 else
                     throw ex;
@@ -129,7 +130,7 @@ public class SequenceDictionaryUtils {
                 else
                     ex = new UserException.LexicographicallySortedSequenceDictionary(name2, dict2);
                 
-                if ( allowNonFatalIncompabilities() )
+                if ( allowNonFatalIncompabilities(validationExclusion) )
                     logger.warn(ex.getMessage());
                 else
                     throw ex;
@@ -137,7 +138,7 @@ public class SequenceDictionaryUtils {
 
             case OUT_OF_ORDER: {
                 UserException ex = new UserException.IncompatibleSequenceDictionaries("Order of contigs differences, which is unsafe", name1, dict1, name2, dict2);
-                if ( allowNonFatalIncompabilities() )
+                if ( allowNonFatalIncompabilities(validationExclusion) )
                     logger.warn(ex.getMessage());
                 else
                     throw ex;

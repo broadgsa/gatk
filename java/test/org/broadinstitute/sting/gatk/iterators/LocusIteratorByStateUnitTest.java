@@ -1,11 +1,14 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import junit.framework.Assert;
+import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -15,11 +18,7 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Arrays;
+import java.util.*;
 
 /**
  * testing of the LocusIteratorByState
@@ -41,7 +40,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         final byte[] bases = new byte[] {'A','A','A','A','A','A','A','A','A','A'};
 
         // create a test version of the Reads object
-        ReadProperties readAttributes = new ReadProperties(new ArrayList<SAMReaderID>());
+        ReadProperties readAttributes = createTestReadProperties();
         JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"generateExtendedEvents"),readAttributes,true);
 
         SAMRecord before = ArtificialSAMUtils.createArtificialRead(header,"before",0,1,10);
@@ -93,7 +92,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         final byte[] quals = new byte[] { 20, 20, 20, 20, 20, 20, 20, 20, 20, 20};
 
         // create a test version of the Reads object
-        ReadProperties readAttributes = new ReadProperties(new ArrayList<SAMReaderID>());
+        ReadProperties readAttributes = createTestReadProperties();
         JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"generateExtendedEvents"),readAttributes,true);
 
         SAMRecord before = ArtificialSAMUtils.createArtificialRead(header,"before",0,1,10);
@@ -131,6 +130,21 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         }
 
         Assert.assertTrue("Extended event pileup not found",foundExtendedEventPileup);
+    }
+
+    private static ReadProperties createTestReadProperties() {
+        return new ReadProperties(
+                Collections.<SAMReaderID>emptyList(),
+                new SAMFileHeader(),
+                false,
+                SAMFileReader.ValidationStringency.STRICT,
+                null,
+                null,
+                new ValidationExclusion(),
+                new ArrayList<SamRecordFilter>(),
+                false,
+                false
+        );
     }
 }
 

@@ -86,10 +86,9 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
         // setup the data
         readers.add(new SAMReaderID(new File(validationDataLocation+"/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
-        ReadProperties reads = new ReadProperties(readers);
 
         // the sharding strat.
-        SAMDataSource data = new SAMDataSource(reads);
+        SAMDataSource data = new SAMDataSource(readers);
         ShardStrategy strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000);
         int count = 0;
 
@@ -131,10 +130,9 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
         // setup the test files
         readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
-        ReadProperties reads = new ReadProperties(readers);
 
         // the sharding strat.
-        SAMDataSource data = new SAMDataSource(reads);
+        SAMDataSource data = new SAMDataSource(readers);
         ShardStrategy strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000);
 
         ArrayList<Integer> readcountPerShard = new ArrayList<Integer>();
@@ -173,11 +171,10 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         readers.clear();
         readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
         readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
-        reads = new ReadProperties(readers);
 
         count = 0;
         // the sharding strat.
-        data = new SAMDataSource(reads);
+        data = new SAMDataSource(readers);
         strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000);
 
         logger.debug("Pile two:");

@@ -83,8 +83,6 @@ public class HLACallerWalker extends ReadWalker<Integer, Integer> {
     @Argument(fullName = "turnOffVerboseOutput", shortName = "noVerbose", doc = "Do not output verbose probability descriptions (INFO lines) ", required = false)
     protected boolean NO_VERBOSE = false;
 
-    GATKArgumentCollection args = this.getToolkit().getArguments();
-    
     // Initializing variables
     
     HLAFileReader HLADictionaryReader = new HLAFileReader();

@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.filter.SamRecordFilter;
+import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Collection;
 /**
@@ -27,12 +27,14 @@ import java.util.Collection;
  */
 public class ReadProperties {
     private List<SAMReaderID> readers = null;
+    private SAMFileHeader header = null;
     private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
     private Integer readBufferSize = null;
     private DownsamplingMethod downsamplingMethod = null;
     private ValidationExclusion exclusionList = null;
     private Collection<SamRecordFilter> supplementalFilters = null;
     private boolean includeReadsWithDeletionAtLoci = false;
+    private boolean useOriginalBaseQualities = false;
     private boolean generateExtendedEvents = false; // do we want to generate additional piles of "extended" events (indels)
 // immediately after the reference base such event is associated with?
 
@@ -64,6 +66,14 @@ public class ReadProperties {
      */
     public List<SAMReaderID> getSAMReaderIDs() {
         return readers;
+    }
+
+    /**
+     * Gets the sam file header
+     * @return the sam file header
+     */
+    public SAMFileHeader getHeader() {
+        return header;
     }
 
     /**
@@ -103,14 +113,11 @@ public class ReadProperties {
     }
 
     /**
-     * Simple constructor for unit testing.
-     * @param readsFiles List of reads files to open.
+     * Return whether to use original base qualities.
+     * @return Whether to use original base qualities.
      */
-    public ReadProperties( List<SAMReaderID> readsFiles ) {
-        this.readers = readsFiles;
-        this.downsamplingMethod = DownsamplingMethod.NONE;
-        this.supplementalFilters = new ArrayList<SamRecordFilter>();
-        this.exclusionList = new ValidationExclusion();
+    public boolean useOriginalBaseQualities() {
+        return useOriginalBaseQualities;
     }
 
     /**
@@ -118,6 +125,8 @@ public class ReadProperties {
      * files and store them in an easy-to-work-with package.  Constructor
      * is package protected.
      * @param samFiles list of reads files.
+     * @param header sam file header.
+     * @param useOriginalBaseQualities True if original base qualities should be used.
      * @param strictness Stringency of reads file parsing.
      * @param readBufferSize Number of reads to hold in memory per BAM.
      * @param downsamplingMethod Method for downsampling reads at a given locus.
@@ -131,6 +140,8 @@ public class ReadProperties {
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      */
     public ReadProperties( List<SAMReaderID> samFiles,
+           SAMFileHeader header,
+           boolean useOriginalBaseQualities,
            SAMFileReader.ValidationStringency strictness,
            Integer readBufferSize,
            DownsamplingMethod downsamplingMethod,
@@ -139,12 +150,14 @@ public class ReadProperties {
            boolean includeReadsWithDeletionAtLoci,
            boolean generateExtendedEvents) {
         this.readers = samFiles;
+        this.header = header;
         this.readBufferSize = readBufferSize;
         this.validationStringency = strictness;
-        this.downsamplingMethod = downsamplingMethod;
+        this.downsamplingMethod = downsamplingMethod == null ? DownsamplingMethod.NONE : downsamplingMethod;
         this.exclusionList = exclusionList == null ? new ValidationExclusion() : exclusionList;
         this.supplementalFilters = supplementalFilters;
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
         this.generateExtendedEvents = generateExtendedEvents;
+        this.useOriginalBaseQualities = useOriginalBaseQualities;
     }
 }

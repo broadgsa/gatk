@@ -323,16 +323,17 @@ public class GenomeLocParser {
      * Where each locN can be:
      * 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
      *
-     * @param file_name
+     * @param file_name interval file
+     * @param allowEmptyIntervalList if false empty interval lists will return null
      * @return List<GenomeLoc> List of Genome Locs that have been parsed from file
      */
-    public static List<GenomeLoc> intervalFileToList(final String file_name) {
+    public static List<GenomeLoc> intervalFileToList(final String file_name, boolean allowEmptyIntervalList) {
         // try to open file
         File inputFile = new File(file_name);
 
         // check if file is empty
         if (inputFile.exists() && inputFile.length() < 1) {
-            if (GenomeAnalysisEngine.instance.getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST)
+            if (allowEmptyIntervalList)
                 return new ArrayList<GenomeLoc>();
             else {
                 Utils.warnUser("The interval file " + file_name + " is empty. The GATK will continue processing but you " +

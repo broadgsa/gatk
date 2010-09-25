@@ -28,11 +28,18 @@ public class ReadFormattingIterator implements StingSAMIterator {
     private StingSAMIterator wrappedIterator;
 
     /**
+     * True if original base qualities should be used.
+     */
+    private final boolean useOriginalBaseQualities;
+
+    /**
      * Decorate the given iterator inside a ReadWrappingIterator.
      * @param wrappedIterator iterator
+     * @param useOriginalBaseQualities true if original base qualities should be used
      */
-    public ReadFormattingIterator(StingSAMIterator wrappedIterator) {
+    public ReadFormattingIterator(StingSAMIterator wrappedIterator, boolean useOriginalBaseQualities) {
         this.wrappedIterator = wrappedIterator;
+        this.useOriginalBaseQualities = useOriginalBaseQualities;
     }
 
     /**
@@ -67,7 +74,7 @@ public class ReadFormattingIterator implements StingSAMIterator {
      *         no next exists.
      */
     public SAMRecord next() {
-        return new GATKSAMRecord(wrappedIterator.next());
+        return new GATKSAMRecord(wrappedIterator.next(), useOriginalBaseQualities);
     }
 
     /**

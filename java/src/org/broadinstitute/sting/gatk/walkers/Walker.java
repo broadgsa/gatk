@@ -43,8 +43,18 @@ import org.apache.log4j.Logger;
 @ReadFilters(MalformedReadFilter.class)
 public abstract class Walker<MapType, ReduceType> {
     final protected static Logger logger = Logger.getLogger(Walker.class);
+    private GenomeAnalysisEngine toolkit;
 
     protected Walker() {
+    }
+
+    /**
+     * Set the toolkit, for peering into internal structures that can't
+     * otherwise be read.
+     * @param toolkit The genome analysis toolkit.
+     */
+    public void setToolkit(GenomeAnalysisEngine toolkit) {
+        this.toolkit = toolkit;
     }
 
     /**
@@ -54,7 +64,7 @@ public abstract class Walker<MapType, ReduceType> {
      * @return The genome analysis toolkit.
      */
     protected GenomeAnalysisEngine getToolkit() {
-        return GenomeAnalysisEngine.instance;
+        return toolkit;
     }
 
     /**
@@ -126,7 +136,7 @@ public abstract class Walker<MapType, ReduceType> {
 
     /**
      * General interval reduce routine called after all of the traversals are done
-     * @param results
+     * @param results interval reduce results
      */
     public void onTraversalDone(List<Pair<GenomeLoc, ReduceType>> results) {
         for ( Pair<GenomeLoc, ReduceType> result : results ) {
@@ -145,6 +155,8 @@ public abstract class Walker<MapType, ReduceType> {
      * However, onTraversalDone(reduce) will be called after each interval is processed.
      * The system will call onTraversalDone( GenomeLoc -> reduce ), after all reductions are done,
      *   which is overloaded here to call onTraversalDone(reduce) for each location
+     *
+     * @return true if your walker wants to reduce each interval separately.
      */
     public boolean isReduceByInterval() {
         return false;

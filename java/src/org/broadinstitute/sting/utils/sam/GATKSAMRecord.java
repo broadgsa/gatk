@@ -39,7 +39,7 @@ public class GATKSAMRecord extends SAMRecord {
     // These attributes exist in memory only, and are never written to disk.
     private Map<Object, Object> temporaryAttributes;
 
-    public GATKSAMRecord(SAMRecord record) {
+    public GATKSAMRecord(SAMRecord record, boolean useOriginalBaseQualities) {
         super(null); // it doesn't matter - this isn't used
         if ( record == null )
             throw new IllegalArgumentException("The SAMRecord argument cannot be null");
@@ -55,8 +55,7 @@ public class GATKSAMRecord extends SAMRecord {
             setAttribute(attribute.tag, attribute.value);
 
         // if we are using original quals, set them now if t hey are present in the record
-        if ( GenomeAnalysisEngine.instance != null &&
-                GenomeAnalysisEngine.instance.getArguments().useOriginalBaseQualities ) {
+        if ( useOriginalBaseQualities ) {
             byte[] originalQuals = mRecord.getOriginalBaseQualities();
             if ( originalQuals != null )
                 mRecord.setBaseQualities(originalQuals);

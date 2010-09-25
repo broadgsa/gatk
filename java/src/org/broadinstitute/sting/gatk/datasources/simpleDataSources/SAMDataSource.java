@@ -32,6 +32,7 @@ import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.picard.sam.MergingSamRecordIterator;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.BAMFormatAwareShard;
 import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShard;
@@ -69,6 +70,11 @@ public class SAMDataSource implements SimpleDataSource {
     protected final List<SAMReaderID> readerIDs;
 
     /**
+     * How strict are the readers driving this data source.
+     */
+    protected final SAMFileReader.ValidationStringency validationStringency;
+
+    /**
      * How far along is each reader?
      */
     private final Map<SAMReaderID, SAMFileSpan> readerPositions = new HashMap<SAMReaderID,SAMFileSpan>();
@@ -104,14 +110,54 @@ public class SAMDataSource implements SimpleDataSource {
 
     /**
      * Create a new SAM data source given the supplied read metadata.
-     * @param reads The read metadata.
+     * @param samFiles list of reads files.
      */
-    public SAMDataSource(ReadProperties reads) {
-        this.readProperties = reads;
+    public SAMDataSource(List<SAMReaderID> samFiles) {
+        this(
+                samFiles,
+                false,
+                SAMFileReader.ValidationStringency.STRICT,
+                null,
+                null,
+                new ValidationExclusion(),
+                new ArrayList<SamRecordFilter>(),
+                false,
+                false
+        );
+    }
+
+    /**
+     * Create a new SAM data source given the supplied read metadata.
+     * @param samFiles list of reads files.
+     * @param useOriginalBaseQualities True if original base qualities should be used.
+     * @param strictness Stringency of reads file parsing.
+     * @param readBufferSize Number of reads to hold in memory per BAM.
+     * @param downsamplingMethod Method for downsampling reads at a given locus.
+     * @param exclusionList what safety checks we're willing to let slide
+     * @param supplementalFilters additional filters to dynamically apply.
+     * @param generateExtendedEvents if true, the engine will issue an extra call to walker's map() with
+     *        a pile of indel/noevent extended events at every locus with at least one indel associated with it
+     *        (in addition to a "regular" call to map() at this locus performed with base pileup)
+     * @param includeReadsWithDeletionAtLoci if 'true', the base pileups sent to the walker's map() method
+     *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
+     *        bases will be seen in the pileups, and the deletions will be skipped silently.
+     */
+    public SAMDataSource(
+            List<SAMReaderID> samFiles,
+            boolean useOriginalBaseQualities,
+            SAMFileReader.ValidationStringency strictness,
+            Integer readBufferSize,
+            DownsamplingMethod downsamplingMethod,
+            ValidationExclusion exclusionList,
+            Collection<SamRecordFilter> supplementalFilters,
+            boolean includeReadsWithDeletionAtLoci,
+            boolean generateExtendedEvents
+    ) {
         this.readMetrics = new ReadMetrics();
 
-        readerIDs = reads.getSAMReaderIDs();
-        for (SAMReaderID readerID : reads.getSAMReaderIDs()) {
+        readerIDs = samFiles;
+        validationStringency = strictness;
+        for (SAMReaderID readerID : samFiles) {
             if (!readerID.samFile.canRead())
                 throw new UserException.CouldNotReadInputFile(readerID.samFile,"file is not present or user does not have appropriate permissions.  " +
                                                                                "Please check that the file is present and readable and try again.");
@@ -136,10 +182,23 @@ public class SAMDataSource implements SimpleDataSource {
 
         initializeReaderPositions(readers);
 
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
         mergedHeader = headerMerger.getMergedHeader();
         hasReadGroupCollisions = headerMerger.hasReadGroupCollisions();
 
+        readProperties = new ReadProperties(
+                samFiles,
+                mergedHeader,
+                useOriginalBaseQualities,
+                strictness,
+                readBufferSize,
+                downsamplingMethod,
+                exclusionList,
+                supplementalFilters,
+                includeReadsWithDeletionAtLoci,
+                generateExtendedEvents
+        );
+        
         // cache the read group id (original) -> read group id (merged) mapping.
         for(SAMReaderID id: readerIDs) {
             SAMFileReader reader = readers.getReader(id);
@@ -371,10 +430,10 @@ public class SAMDataSource implements SimpleDataSource {
      * @return An iterator over the selected data.
      */
     private StingSAMIterator getIterator(SAMReaders readers, BAMFormatAwareShard shard, boolean enableVerification) {
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
 
         // Set up merging to dynamically merge together multiple BAMs.
-        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,true);
+        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readers.values(),true);
         for(SAMReaderID id: getReaderIDs()) {
             if(shard.getFileSpans().get(id) == null)
                 continue;
@@ -388,6 +447,7 @@ public class SAMDataSource implements SimpleDataSource {
 
         return applyDecoratingIterators(shard.getReadMetrics(),
                 enableVerification,
+                readProperties.useOriginalBaseQualities(),
                 new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(mergingIterator)),
                 readProperties.getDownsamplingMethod().toFraction,
                 readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
@@ -403,13 +463,14 @@ public class SAMDataSource implements SimpleDataSource {
         SAMReaders readers = resourcePool.getAvailableReaders();
 
         // Set up merging and filtering to dynamically merge together multiple BAMs and filter out records not in the shard set.
-        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(readers.values(),SAMFileHeader.SortOrder.coordinate,true);
-        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,true);
+        SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate,readers.headers(),true);
+        MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readers.values(),true);
         for(SAMReaderID id: getReaderIDs())
             mergingIterator.addIterator(readers.getReader(id),readers.getReader(id).iterator());
 
         return applyDecoratingIterators(shard.getReadMetrics(),
                 shard instanceof ReadShard,
+                readProperties.useOriginalBaseQualities(),
                 new ReleasingIterator(readers,StingSAMIteratorAdapter.adapt(mergingIterator)),
                 readProperties.getDownsamplingMethod().toFraction,
                 readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
@@ -433,6 +494,7 @@ public class SAMDataSource implements SimpleDataSource {
      *
      * @param readMetrics metrics to track when using this iterator.
      * @param enableVerification Verify the order of reads.
+     * @param useOriginalBaseQualities True if original base qualities should be used.
      * @param wrappedIterator the raw data source.
      * @param downsamplingFraction whether and how much to downsample the reads themselves (not at a locus).
      * @param noValidationOfReadOrder Another trigger for the verifying iterator?  TODO: look into this.
@@ -441,11 +503,12 @@ public class SAMDataSource implements SimpleDataSource {
      */
     protected StingSAMIterator applyDecoratingIterators(ReadMetrics readMetrics,
                                                         boolean enableVerification,
+                                                        boolean useOriginalBaseQualities,
                                                         StingSAMIterator wrappedIterator,
                                                         Double downsamplingFraction,
                                                         Boolean noValidationOfReadOrder,
                                                         Collection<SamRecordFilter> supplementalFilters) {
-        wrappedIterator = new ReadFormattingIterator(wrappedIterator);
+        wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities);
 
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away
@@ -530,7 +593,7 @@ public class SAMDataSource implements SimpleDataSource {
         private synchronized void createNewResource() {
             if(allResources.size() > maxEntries)
                 throw new ReviewedStingException("Cannot create a new resource pool.  All resources are in use.");
-            SAMReaders readers = new SAMReaders(readProperties);
+            SAMReaders readers = new SAMReaders(readerIDs, validationStringency);
             allResources.add(readers);
             availableResources.add(readers);
         }
@@ -548,14 +611,15 @@ public class SAMDataSource implements SimpleDataSource {
 
         /**
          * Derive a new set of readers from the Reads metadata.
-         * @param sourceInfo Metadata for the reads to load.
+         * @param readerIDs reads to load.
+         * @param validationStringency validation stringency.
          */
-        public SAMReaders(ReadProperties sourceInfo) {
-            for(SAMReaderID readerID: sourceInfo.getSAMReaderIDs()) {
+        public SAMReaders(Collection<SAMReaderID> readerIDs, SAMFileReader.ValidationStringency validationStringency) {
+            for(SAMReaderID readerID: readerIDs) {
                 SAMFileReader reader = new SAMFileReader(readerID.samFile);
                 reader.enableFileSource(true);
                 reader.enableIndexCaching(true);
-                reader.setValidationStringency(sourceInfo.getValidationStringency());
+                reader.setValidationStringency(validationStringency);
 
                 // If no read group is present, hallucinate one.
                 // TODO: Straw poll to see whether this is really required.
@@ -613,6 +677,17 @@ public class SAMDataSource implements SimpleDataSource {
          */
         public Collection<SAMFileReader> values() {
             return readers.values();
+        }
+
+        /**
+         * Gets all the actual readers out of this data structure.
+         * @return A collection of the readers.
+         */
+        public Collection<SAMFileHeader> headers() {
+            ArrayList<SAMFileHeader> headers = new ArrayList<SAMFileHeader>(readers.size());
+            for (SAMFileReader reader : values())
+                headers.add(reader.getFileHeader());
+            return headers;
         }
     }
 

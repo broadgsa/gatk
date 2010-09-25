@@ -30,9 +30,6 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.ArgumentSource;
-import org.broadinstitute.sting.gatk.DownsamplingMethod;
-import org.broadinstitute.sting.gatk.ReadMetrics;
-import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
@@ -43,6 +40,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
+import org.broadinstitute.sting.gatk.filters.SamRecordHeaderFilter;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
@@ -203,7 +201,8 @@ public abstract class AbstractGenomeAnalysisEngine {
                                              List<GenomeLoc> additionalIntervals) {
 
         return IntervalUtils.sortAndMergeIntervals(IntervalUtils.mergeListsBySetOperator(additionalIntervals,
-                                                                                         IntervalUtils.parseIntervalArguments(argList),
+                                                                                         IntervalUtils.parseIntervalArguments(argList,
+                                                                                                 this.getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST),
                                                                                          argCollection.BTIMergeRule),
                                                    mergingRule);
     }
@@ -278,7 +277,7 @@ public abstract class AbstractGenomeAnalysisEngine {
      * the caller must handle that directly.
      * @return A collection of available filters.
      */
-    protected Collection<SamRecordFilter> createFilters() {
+    public Collection<SamRecordFilter> createFilters() {
         Set<SamRecordFilter> filters = new HashSet<SamRecordFilter>();
         if (this.getArguments().readGroupBlackList != null && this.getArguments().readGroupBlackList.size() > 0)
             filters.add(new ReadGroupBlackListFilter(this.getArguments().readGroupBlackList));
@@ -291,8 +290,12 @@ public abstract class AbstractGenomeAnalysisEngine {
         logger.info("Strictness is " + argCollection.strictnessLevel);
 
         validateSuppliedReads();
-        readsDataSource = createReadsDataSource(extractSourceInfo());
+        readsDataSource = createReadsDataSource();
 
+        for (SamRecordFilter filter : filters)
+            if (filter instanceof SamRecordHeaderFilter)
+                ((SamRecordHeaderFilter)filter).setHeader(this.getSAMFileHeader());
+        
         validateSuppliedReference();
         referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
 
@@ -456,25 +459,6 @@ public abstract class AbstractGenomeAnalysisEngine {
 
     }
 
-    /**
-     * Bundles all the source information about the reads into a unified data structure.
-     *
-     * @return The reads object providing reads source info.
-     */
-    private ReadProperties extractSourceInfo() {
-
-        DownsamplingMethod method = getDownsamplingMethod();
-
-        return new ReadProperties(unpackBAMFileList(argCollection.samFiles),
-                argCollection.strictnessLevel,
-                argCollection.readBufferSize,
-                method,
-                new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
-                filters,
-                includeReadsWithDeletionAtLoci(),
-                generateExtendedEvents());
-    }
-
     protected DownsamplingMethod getDownsamplingMethod() {
         DownsamplingMethod method;
         if(argCollection.getDownsamplingMethod() != null)
@@ -522,7 +506,7 @@ public abstract class AbstractGenomeAnalysisEngine {
             }
 
             // compare the reads to the reference
-            SequenceDictionaryUtils.validateDictionaries(logger, "reads", readsDictionary, "reference", referenceDictionary);
+            SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, "reads", readsDictionary, "reference", referenceDictionary);
         }
 
         // compare the tracks to the reference, if they have a sequence dictionary
@@ -538,7 +522,7 @@ public abstract class AbstractGenomeAnalysisEngine {
             Set<String> trackSequences = new TreeSet<String>();
             for (SAMSequenceRecord dictionaryEntry : trackDict.getSequences())
                 trackSequences.add(dictionaryEntry.getSequenceName());
-            SequenceDictionaryUtils.validateDictionaries(logger, track.getName(), trackDict, "reference", referenceDictionary);
+            SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, track.getName(), trackDict, "reference", referenceDictionary);
         }
 
     }
@@ -559,11 +543,21 @@ public abstract class AbstractGenomeAnalysisEngine {
     /**
      * Gets a data source for the given set of reads.
      *
-     * @param reads the read source information
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource createReadsDataSource(ReadProperties reads) {
-        return new SAMDataSource(reads);
+    private SAMDataSource createReadsDataSource() {
+        DownsamplingMethod method = getDownsamplingMethod();
+
+        return new SAMDataSource(
+                unpackBAMFileList(argCollection.samFiles),
+                argCollection.useOriginalBaseQualities,
+                argCollection.strictnessLevel,
+                argCollection.readBufferSize,
+                method,
+                new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
+                filters,
+                includeReadsWithDeletionAtLoci(),
+                generateExtendedEvents());
     }
 
     /**

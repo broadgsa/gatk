@@ -38,6 +38,11 @@ import java.util.Collection;
 public class SampleDataSource {
 
     /**
+     * SAMFileHeader that has been created for this analysis.
+     */
+    private final SAMFileHeader header;
+
+    /**
      * This is where Sample objects are stored. Samples are usually accessed by their ID, which is unique, so
      * this is stored as a HashMap.
      */
@@ -63,7 +68,7 @@ public class SampleDataSource {
      * @param sampleFiles Sample files that were included on the command line
      */
     public SampleDataSource(SAMFileHeader header, List<File> sampleFiles) {
-
+        this.header = header;
         // create empty sample object for each sample referenced in the SAM header
         for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
             if (!hasSample(sampleName)) {
@@ -85,7 +90,7 @@ public class SampleDataSource {
      * Hallucinates sample objects for all the samples in the SAM file and stores them
      */
     private void getSamplesFromSAMFile() {
-        for (String sampleName : SampleUtils.getSAMFileSamples(GenomeAnalysisEngine.instance.getSAMFileHeader())) {
+        for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
             if (!hasSample(sampleName)) {
                 Sample newSample = new Sample(sampleName);
                 newSample.setSAMFileEntry(true);

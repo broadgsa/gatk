@@ -99,7 +99,7 @@ public class TraverseReadsUnitTest extends BaseTest {
         ref = new IndexedFastaSequenceFile(refFile);
         GenomeLocParser.setupRefContigOrdering(ref);
 
-        SAMDataSource dataSource = new SAMDataSource(new ReadProperties(bamList));
+        SAMDataSource dataSource = new SAMDataSource(bamList);
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                 ref.getSequenceDictionary(),
                 readSize);

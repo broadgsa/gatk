@@ -56,29 +56,12 @@ import java.util.*;
  * A GenomeAnalysisEngine that runs a specified walker.
  */
 public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
-
-    // our instance of this genome analysis toolkit; it's used by other classes to extract the traversal engine
-    // TODO: public static without final tends to indicate we're thinking about this the wrong way
-    public static GenomeAnalysisEngine instance;
-
     /**
      * our walker manager
      */
-    private final WalkerManager walkerManager = new WalkerManager();;
-
+    private final WalkerManager walkerManager = new WalkerManager();
 
     private Walker<?, ?> walker;
-
-    /**
-     * our constructor, where all the work is done
-     * <p/>
-     * legacy traversal types are sent to legacyTraversal function; as we move more of the traversals to the
-     * new MicroScheduler class we'll be able to delete that function.
-     */
-    public GenomeAnalysisEngine() {
-        // make sure our instance variable points to this analysis engine
-        instance = this;
-    }
 
     public void setWalker(Walker<?, ?> walker) {
         this.walker = walker;
@@ -150,7 +133,7 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
      * @return A collection of available filters.
      */
     @Override
-    protected Collection<SamRecordFilter> createFilters() {
+    public Collection<SamRecordFilter> createFilters() {
         Set<SamRecordFilter> filters = new HashSet<SamRecordFilter>();
         filters.addAll(WalkerManager.getReadFilters(walker,this.getFilterManager()));
         filters.addAll(super.createFilters());
@@ -383,6 +366,6 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
         for (Stub<?> stub : getOutputs())
             outputTracker.addOutput(stub);
 
-        outputTracker.prepareWalker(walker);
+        outputTracker.prepareWalker(walker, getArguments().strictnessLevel);
     }
 }

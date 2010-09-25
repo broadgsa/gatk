@@ -122,7 +122,7 @@ public abstract class MicroScheduler {
             throw new UnsupportedOperationException("Unable to determine traversal type, the walker is an unknown type.");
         }        
 
-        traversalEngine.initialize();                
+        traversalEngine.initialize(engine);
     }
 
     /**
@@ -147,7 +147,7 @@ public abstract class MicroScheduler {
      * @return an iterator over the reads specified in the shard.
      */
     protected StingSAMIterator getReadIterator(Shard shard) {
-        return (!reads.isEmpty()) ? reads.seek(shard) : new NullSAMIterator(new ReadProperties(Collections.<SAMReaderID>emptyList()));
+        return (!reads.isEmpty()) ? reads.seek(shard) : new NullSAMIterator();
     }
 
     /**

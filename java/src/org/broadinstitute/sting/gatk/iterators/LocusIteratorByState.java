@@ -273,16 +273,13 @@ public class LocusIteratorByState extends LocusIterator {
     }
     
     public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, List<LocusIteratorFilter> filters ) {
+        this.readInfo = readInformation;
+        this.filters = filters;
         // Aggregate all sample names.
-        // TODO: Push in header via constructor
-        if(GenomeAnalysisEngine.instance != null && GenomeAnalysisEngine.instance.getDataSource() != null) {
-            sampleNames.addAll(SampleUtils.getSAMFileSamples(GenomeAnalysisEngine.instance.getSAMFileHeader()));
-        }
+        sampleNames.addAll(SampleUtils.getSAMFileSamples(readInfo.getHeader()));
         // Add a null sample name as a catch-all for reads without samples
         if(!sampleNames.contains(null)) sampleNames.add(null);        
         readStates = new ReadStateManager(samIterator,readInformation.getDownsamplingMethod(),sampleNames);
-        this.readInfo = readInformation;
-        this.filters = filters;
     }
 
     public Iterator<AlignmentContext> iterator() {

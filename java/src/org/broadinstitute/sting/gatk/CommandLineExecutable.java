@@ -76,6 +76,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         try {
             engine.setArguments(getArgumentCollection());
             engine.setWalker(walker);
+            walker.setToolkit(engine);
 
             Collection<SamRecordFilter> filters = engine.createFilters();
             engine.setFilters(filters);
@@ -165,6 +166,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         Walker walker = engine.getWalkerByName(getAnalysisName());
         engine.setArguments(getArgumentCollection());
         engine.setWalker(walker);
+        walker.setToolkit(engine);
         argumentSources.add(walker.getClass());
 
         Collection<SamRecordFilter> filters = engine.createFilters();

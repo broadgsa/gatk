@@ -53,7 +53,7 @@ public class RodSystemValidationWalker extends RodWalker<Integer,Integer> {
         }
         out.println("Header:");
         // enumerate the list of ROD's we've loaded
-        rodList = GenomeAnalysisEngine.instance.getRodDataSources();
+        rodList = this.getToolkit().getRodDataSources();
         for (ReferenceOrderedDataSource rod : rodList) {
             out.println(rod.getName() + DIVIDER + rod.getReferenceOrderedData().getType());
             out.println(rod.getName() + DIVIDER + rod.getReferenceOrderedData().getFile());

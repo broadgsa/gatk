@@ -26,9 +26,10 @@ public class IntervalUtils {
      * specifications.
      *
      * @param argList A list of strings containing interval data.
+     * @param allowEmptyIntervalList If false instead of an empty interval list will return null.
      * @return an unsorted, unmerged representation of the given intervals.  Null is used to indicate that all intervals should be used. 
      */
-    public static List<GenomeLoc> parseIntervalArguments(List<String> argList) {
+    public static List<GenomeLoc> parseIntervalArguments(List<String> argList, boolean allowEmptyIntervalList) {
         List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
 
         if (argList != null) { // now that we can be in this function if only the ROD-to-Intervals was provided, we need to
@@ -50,7 +51,7 @@ public class IntervalUtils {
                     // if it's a file, add items to raw interval list
                     if (isIntervalFile(fileOrInterval)) {
                         try {
-                            rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval));
+                            rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval, allowEmptyIntervalList));
                         }
                         catch (Exception e) {
                             throw new UserException.MalformedFile(fileOrInterval, "Interval file could not be parsed in either format.", e);

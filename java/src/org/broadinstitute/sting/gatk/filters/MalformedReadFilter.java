@@ -36,11 +36,18 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
  * @author mhanna
  * @version 0.1
  */
-public class MalformedReadFilter implements SamRecordFilter {
+public class MalformedReadFilter implements SamRecordHeaderFilter {
+    private SAMFileHeader header;
+    
+    @Override
+    public void setHeader(SAMFileHeader header) {
+        this.header = header;
+    }
+
     public boolean filterOut(SAMRecord read) {
         return !checkInvalidAlignmentStart(read) ||
                 !checkInvalidAlignmentEnd(read) ||
-                !checkAlignmentDisagreesWithHeader(GenomeAnalysisEngine.instance.getSAMFileHeader(),read) ||
+                !checkAlignmentDisagreesWithHeader(this.header,read) ||
                 !checkCigarDisagreesWithAlignment(read);
     }
 

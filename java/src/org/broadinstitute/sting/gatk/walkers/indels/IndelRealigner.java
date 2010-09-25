@@ -31,6 +31,7 @@ import net.sf.samtools.util.SequenceUtil;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
@@ -179,7 +180,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             intervals = new IntervalFileMergingIterator( new java.io.File(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
         } else {
             // read in the whole list of intervals for cleaning
-            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Arrays.asList(intervalsFile)), IntervalMergingRule.OVERLAPPING_ONLY);
+            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Arrays.asList(intervalsFile),this.getToolkit().getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST), IntervalMergingRule.OVERLAPPING_ONLY);
             intervals = locs.iterator();
         }
         currentInterval = intervals.hasNext() ? intervals.next() : null;

@@ -22,9 +22,7 @@ import java.util.NoSuchElementException;
  * A placeholder for an iterator with no data.
  */
 public class NullSAMIterator implements StingSAMIterator {
-    private ReadProperties reads = null;
-
-    public NullSAMIterator( ReadProperties reads ) { this.reads = reads; }
+    public NullSAMIterator() {}
 
     public Iterator<SAMRecord> iterator() { return this; }
     public void close() { /* NO-OP */ }
