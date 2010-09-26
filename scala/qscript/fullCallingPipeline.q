@@ -1,3 +1,4 @@
+import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
@@ -12,59 +13,47 @@ import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
 class fullCallingPipeline extends QScript {
   qscript =>
 
-  @Argument(doc="contigIntervals", shortName="contigIntervals")
+  @Argument(doc="list of contigs in the reference over which indel-cleaning jobs should be scattered (ugly)", shortName="contigIntervals")
   var contigIntervals: File = _
 
-  @Argument(doc="numContigs", shortName="numContigs")
-  var numContigs: Int = _
+  @Argument(doc="the YAML file specifying inputs, interval lists, reference sequence, etc.", shortName="Y")
+  var yamlFile: File = _
 
-  @Argument(fullName="pipeline_yaml", shortName="PY", doc="Pipeline YAML file")
-  var pipelineYamlFile: File = _
-
-  @Input(doc="trigger", shortName="trigger", required=false)
+  @Input(doc="path to trigger track (for UnifiedGenotyper)", shortName="trigger", required=false)
   var trigger: File = _
 
-  @Input(doc="compCEU",shortName="ceu",required=false)
-  var comp1KGCEU: File = _
-
-  @Input(doc="refseqTable", shortName="refseqTable")
+  @Input(doc="path to refseqTable (for GenomicAnnotator)", shortName="refseqTable")
   var refseqTable: File = _
 
-  @Input(doc="Picard FixMateInformation.jar.  At the Broad this can be found at /seq/software/picard/current/bin/FixMateInformation.jar.  Outside the Broad see http://picard.sourceforge.net/")
-  var picardFixMatesJar: File = _
+  @Input(doc="path to Picard FixMateInformation.jar.  See http://picard.sourceforge.net/ .", required=false)
+  var picardFixMatesJar: File = new java.io.File("/seq/software/picard/current/bin/FixMateInformation.jar")
 
-  @Input(doc="gatk jar")
+  @Input(doc="path to GATK jar")
   var gatkJar: File = _
 
-  @Input(doc="SNP cluster filter -- number SNPs",shortName="snpsInCluster",required=false)
-  var snpsInCluster = 3
-
-  @Input(doc="SNP cluster filter -- window size",shortName="snpClusterWindow",required=false)
-  var snpClusterWindow = 10
-
-  @Input(doc="target titv for recalibration",shortName="titv",required=true)
+  @Input(doc="target Ti/Tv ratio for recalibration", shortName="titv", required=true)
   var target_titv: Float = _
 
-  @Input(doc="downsampling coverage",shortName="dcov",required=false)
+  @Input(doc="per-sample downsampling level",shortName="dcov",required=false)
   var downsampling_coverage = 300
 
-  @Input(doc="Number of jobs to scatter UnifiedGenotyper",shortName="snpScatter",required=false)
-  var num_snp_scatter_jobs = 50
+  @Input(doc="level of parallelism for UnifiedGenotyper", shortName="snpScatter", required=false)
+  var num_snp_scatter_jobs = 20
 
-  @Input(doc="Number of jobs to scatter IndelGenotyperV2",shortName="indelScatter",required=false)
+  @Input(doc="level of parallelism for IndelGenotyperV2", shortName="indelScatter", required=false)
   var num_indel_scatter_jobs = 5
 
-  @Input(doc="Indel-clean BAM files",shortName="clean",required=false)
-  var clean_bam_files = 1
+  @Input(doc="Skip indel-cleaning for BAM files (for testing only)", shortName="skipCleaning", required=false)
+  var skip_cleaning = false
 
-  @Input(doc="ADPR script")
-  var adprScript: File = _
+  //@Input(doc="ADPR script")
+  //var adprScript: File = _
 
-  @Input(doc="Sequencing maching name (for use by adpr)")
-  var machine: String = _
+  //@Input(doc="Sequencing maching name (for use by adpr)")
+  //var machine: String = _
 
-  @Input(doc="Sequencing experiement type (for use by adpr)--Whole_Exome, Whole_Genome, or Hybrid_Selection")
-  var protocol: String = _
+  //@Input(doc="Sequencing experiement type (for use by adpr)--Whole_Exome, Whole_Genome, or Hybrid_Selection")
+  //var protocol: String = _
 
   private var pipeline: Pipeline = _
 
@@ -80,16 +69,23 @@ class fullCallingPipeline extends QScript {
 
 
   def script = {
-    pipeline = YamlUtils.load(classOf[Pipeline], qscript.pipelineYamlFile)
+    pipeline = YamlUtils.load(classOf[Pipeline], qscript.yamlFile)
+
     val projectBase: String = qscript.pipeline.getProject.getName
     val cleanedBase: String = projectBase + ".cleaned"
     val uncleanedBase: String = projectBase + ".uncleaned"
 
     // there are commands that use all the bam files
     val recalibratedSamples = qscript.pipeline.getSamples.filter(_.getBamFiles.contains("recalibrated"))
-    val adprRScript = qscript.adprScript
-    val seq = qscript.machine
-    val expKind = qscript.protocol
+    //val adprRScript = qscript.adprScript
+    //val seq = qscript.machine
+    //val expKind = qscript.protocol
+
+    // count number of contigs (needed for indel cleaning parallelism)
+    var contigCount = 0
+    for ( line <- scala.io.Source.fromFile(qscript.contigIntervals).getLines ) {
+      contigCount += 1
+    }
 
     for ( sample <- recalibratedSamples ) {
       // put unclean bams in unclean genotypers in advance, create the extension files
@@ -112,7 +108,7 @@ class fullCallingPipeline extends QScript {
       realigner.input_file = targetCreator.input_file
       realigner.intervals = qscript.contigIntervals
       realigner.targetIntervals = new java.io.File(targetCreator.out.getAbsolutePath)
-      realigner.scatterCount = qscript.numContigs
+      realigner.scatterCount = contigCount
 
       // may need to explicitly run fix mates
       var fixMates = new PicardBamJarFunction {
@@ -157,8 +153,7 @@ class fullCallingPipeline extends QScript {
       samtoolsindex.bamFile = cleaned_bam
       samtoolsindex.analysisName = "index_"+cleaned_bam.getName
 
-      // COMMENT THIS NEXT BLOCK TO SKIP CLEANING
-      if (qscript.clean_bam_files == 1) {
+      if (!qscript.skip_cleaning) {
         if ( realigner.scatterCount > 1 ) {
             add(targetCreator,realigner,samtoolsindex)
         } else {
@@ -177,18 +172,17 @@ class fullCallingPipeline extends QScript {
             .toList
 
     // actually make calls
-    if (qscript.clean_bam_files == 1) {
-      // COMMENT THIS NEXT LINE TO AVOID CALLING ON CLEANED FILES
+    if (!qscript.skip_cleaning) {
       //endToEnd(cleanedBase, cleanBamFiles, adprRscript, seq, expKind)
-      endToEnd(cleanedBase, cleanBamFiles, seq, expKind)
+      endToEnd(cleanedBase, cleanBamFiles)
     } else {
       //endToEnd(uncleanedBase, recalibratedBamFiles, adprRscript, seq, expKind)
-      endToEnd(uncleanedBase, recalibratedBamFiles, seq, expKind)
+      endToEnd(uncleanedBase, recalibratedBamFiles)
     }
   }
 
   //def endToEnd(base: String, bamFiles: List[File], adprthing: File, seqinfo: String, exptype: String) = {
-  def endToEnd(base: String, bamFiles: List[File], seqinfo: String, exptype: String) = {
+  def endToEnd(base: String, bamFiles: List[File]) = {
 
     // step through the un-indel-cleaned graph:
     // 1a. call snps and indels
@@ -211,9 +205,9 @@ class fullCallingPipeline extends QScript {
     }
 
     // todo -- add generalize comp inputs
-    if ( qscript.comp1KGCEU != null ) {
-      snps.rodBind :+= RodBind( "comp1KG_CEU", "VCF", qscript.comp1KGCEU )
-    }
+    //if ( qscript.comp1KGCEU != null ) {
+    //  snps.rodBind :+= RodBind( "comp1KG_CEU", "VCF", qscript.comp1KGCEU )
+    //}
 
     snps.scatterCount = qscript.num_snp_scatter_jobs
 
@@ -263,8 +257,8 @@ class fullCallingPipeline extends QScript {
     masker.variantVCF = annotated.out
     masker.rodBind :+= RodBind("mask", "VCF", mergeIndels.out)
     masker.maskName = "NearIndel"
-    masker.clusterWindowSize = Some(qscript.snpClusterWindow)
-    masker.clusterSize = Some(qscript.snpsInCluster)
+    masker.clusterWindowSize = Some(10)
+    masker.clusterSize = Some(3)
     masker.out = swapExt(annotated.out,".vcf",".indel.masked.vcf")
     masker.analysisName = base+"_Cluster_and_Indel_filter"
 
