@@ -7,6 +7,7 @@ import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
+import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
 
 class fullCallingPipeline extends QScript {
   qscript =>
@@ -29,32 +30,32 @@ class fullCallingPipeline extends QScript {
   @Input(doc="refseqTable", shortName="refseqTable")
   var refseqTable: File = _
 
-  @Input(doc="dbsnpTable", shortName="dbsnpTable")
-  var dbsnpTable: File = _
-
-  @Input(doc="Picard FixMateInformation.jar.  At the Broad this can be found at /seq/software/picard/current/bin/FixMateInformation.jar.  Outside the broad see http://picard.sourceforge.net/")
+  @Input(doc="Picard FixMateInformation.jar.  At the Broad this can be found at /seq/software/picard/current/bin/FixMateInformation.jar.  Outside the Broad see http://picard.sourceforge.net/")
   var picardFixMatesJar: File = _
 
   @Input(doc="gatk jar")
   var gatkJar: File = _
 
   @Input(doc="SNP cluster filter -- number SNPs",shortName="snpsInCluster",required=false)
-  var snpsInCluster = 4
+  var snpsInCluster = 3
 
   @Input(doc="SNP cluster filter -- window size",shortName="snpClusterWindow",required=false)
-  var snpClusterWindow = 7
+  var snpClusterWindow = 10
 
-  @Input(doc="target titv for recalibration",shortName="titv",required=false)
-  var target_titv = 2.1
+  @Input(doc="target titv for recalibration",shortName="titv",required=true)
+  var target_titv: Float = _
 
   @Input(doc="downsampling coverage",shortName="dcov",required=false)
-  var downsampling_coverage = 200
+  var downsampling_coverage = 300
 
-  @Input(doc="Number of jobs to scatter unifeid genotyper",shortName="snpScatter",required=false)
+  @Input(doc="Number of jobs to scatter UnifiedGenotyper",shortName="snpScatter",required=false)
   var num_snp_scatter_jobs = 50
 
-  @Input(doc="Number of jobs to scatter indel genotyper",shortName="indelScatter",required=false)
+  @Input(doc="Number of jobs to scatter IndelGenotyperV2",shortName="indelScatter",required=false)
   var num_indel_scatter_jobs = 5
+
+  @Input(doc="Indel-clean BAM files",shortName="clean",required=false)
+  var clean_bam_files = 1
 
   @Input(doc="ADPR script")
   var adprScript: File = _
@@ -71,9 +72,8 @@ class fullCallingPipeline extends QScript {
     this.intervals = qscript.pipeline.getProject.getIntervalList
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.pipeline.getProject.getReferenceFile
+    this.memoryLimit = Some(2)
   }
-
-
 
 
   // ------------ SETUP THE PIPELINE ----------- //
@@ -84,27 +84,24 @@ class fullCallingPipeline extends QScript {
     val projectBase: String = qscript.pipeline.getProject.getName
     val cleanedBase: String = projectBase + ".cleaned"
     val uncleanedBase: String = projectBase + ".uncleaned"
+
     // there are commands that use all the bam files
-    val recalibratedSamples = qscript.pipeline.getSamples
-            .filter(_.getBamFiles.contains("recalibrated"))
+    val recalibratedSamples = qscript.pipeline.getSamples.filter(_.getBamFiles.contains("recalibrated"))
     val adprRScript = qscript.adprScript
     val seq = qscript.machine
     val expKind = qscript.protocol
+
     for ( sample <- recalibratedSamples ) {
-
-      // put unclean bams in unclean genotypers
-
-      // in advance, create the extension files
-
+      // put unclean bams in unclean genotypers in advance, create the extension files
       val bam = sample.getBamFiles.get("recalibrated")
-      if (!sample.getBamFiles.contains("cleaned"))
+      if (!sample.getBamFiles.contains("cleaned")) {
         sample.getBamFiles.put("cleaned", swapExt(bam,"bam","cleaned.bam"))
-      val cleaned_bam = sample.getBamFiles.get("cleaned")
+      }
 
+      val cleaned_bam = sample.getBamFiles.get("cleaned")
       val indel_targets = swapExt(bam,"bam","realigner_targets.interval_list")
 
       // create the cleaning commands
-
       val targetCreator = new RealignerTargetCreator with CommandLineGATKArgs
       targetCreator.analysisName = "CreateTargets_"+bam.getName
       targetCreator.input_file :+= bam
@@ -125,8 +122,6 @@ class fullCallingPipeline extends QScript {
           def inputBams = List(unfixed)
           def outputBam = fixed
         }
-
-
 
       // realigner.out = cleaned_bam
       // realigner.scatterClass = classOf[ContigScatterFunction]
@@ -163,27 +158,33 @@ class fullCallingPipeline extends QScript {
       samtoolsindex.analysisName = "index_"+cleaned_bam.getName
 
       // COMMENT THIS NEXT BLOCK TO SKIP CLEANING
-      if ( realigner.scatterCount > 1 )
-          add(targetCreator,realigner,samtoolsindex)
-      else
-          add(targetCreator,realigner,fixMates,samtoolsindex)
+      if (qscript.clean_bam_files == 1) {
+        if ( realigner.scatterCount > 1 ) {
+            add(targetCreator,realigner,samtoolsindex)
+        } else {
+            add(targetCreator,realigner,fixMates,samtoolsindex)
+        }
+      }
     }
 
     val recalibratedBamFiles = recalibratedSamples
             .map(_.getBamFiles.get("recalibrated"))
             .toList
-    
+
     val cleanBamFiles = qscript.pipeline.getSamples
             .filter(_.getBamFiles.contains("cleaned"))
             .map(_.getBamFiles.get("cleaned"))
             .toList
 
     // actually make calls
-    //endToEnd(uncleanedBase,recalibratedBamFiles, adprRscript, seq, expKind)
-    endToEnd(uncleanedBase,recalibratedBamFiles, seq, expKind)
-    // COMMENT THIS NEXT LINE TO AVOID CALLING ON CLEANED FILES
-    //endToEnd(cleanedBase,cleanBamFiles, adprRscript, seq, expKind)
-    endToEnd(cleanedBase,cleanBamFiles, seq, expKind)
+    if (qscript.clean_bam_files == 1) {
+      // COMMENT THIS NEXT LINE TO AVOID CALLING ON CLEANED FILES
+      //endToEnd(cleanedBase, cleanBamFiles, adprRscript, seq, expKind)
+      endToEnd(cleanedBase, cleanBamFiles, seq, expKind)
+    } else {
+      //endToEnd(uncleanedBase, recalibratedBamFiles, adprRscript, seq, expKind)
+      endToEnd(uncleanedBase, recalibratedBamFiles, seq, expKind)
+    }
   }
 
   //def endToEnd(base: String, bamFiles: List[File], adprthing: File, seqinfo: String, exptype: String) = {
@@ -199,7 +200,7 @@ class fullCallingPipeline extends QScript {
     snps.standard_min_confidence_threshold_for_emitting = Some(10)
     snps.min_mapping_quality_score = Some(20)
     snps.min_base_quality_score = Some(20)
-    snps.downsample_to_coverage = Some(200)
+    snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
     //snps.annotation :+= "QualByDepthV2"
 
     if (qscript.trigger != null) {
@@ -216,7 +217,6 @@ class fullCallingPipeline extends QScript {
 
     snps.scatterCount = qscript.num_snp_scatter_jobs
 
-
     // indel genotyper does one sample at a time
     var indelCallFiles = List.empty[RodBind]
     var indelGenotypers = List.empty[IndelGenotyperV2 with CommandLineGATKArgs]
@@ -227,9 +227,9 @@ class fullCallingPipeline extends QScript {
       indel.analysisName = "IndelGenotyper_"+bam.getName
       indel.input_file :+= bam
       indel.out = swapExt(bam,".bam",".indels.vcf")
-      indel.downsample_to_coverage = Some(500)
+      indel.downsample_to_coverage = Some(qscript.downsampling_coverage)
       indelCallFiles :+= RodBind("v"+loopNo.toString, "VCF", indel.out)
-      indel.scatterCount = qscript.num_indel_scatter_jobs
+      //indel.scatterCount = qscript.num_indel_scatter_jobs
 
       indelGenotypers :+= indel
 
@@ -248,28 +248,25 @@ class fullCallingPipeline extends QScript {
     mergeIndels.rodBind = indelCallFiles
     mergeIndels.analysisName = base+"_MergeIndels"
 
-
     // 1b. genomically annotate SNPs -- no longer slow
     val annotated = new GenomicAnnotator with CommandLineGATKArgs
     annotated.rodBind :+= RodBind("variant", "VCF", snps.out)
     annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.refseqTable)
-    annotated.rodBind :+= RodBind("dbsnp", "AnnotatorInputTable", qscript.dbsnpTable)
+    //annotated.rodBind :+= RodBind("dbsnp", "AnnotatorInputTable", qscript.dbsnpTable)
     annotated.out = swapExt(snps.out,".vcf",".annotated.vcf")
-    annotated.select :+= "dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet"
+    //annotated.select :+= "dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet"
     annotated.rodToIntervalTrackName = "variant"
     annotated.analysisName = base+"_GenomicAnnotator"
 
-
     // 2.a filter on cluster and near indels
     val masker = new VariantFiltration with CommandLineGATKArgs
-    masker.variantVCF = annotated.out 
+    masker.variantVCF = annotated.out
     masker.rodBind :+= RodBind("mask", "VCF", mergeIndels.out)
     masker.maskName = "NearIndel"
     masker.clusterWindowSize = Some(qscript.snpClusterWindow)
     masker.clusterSize = Some(qscript.snpsInCluster)
     masker.out = swapExt(annotated.out,".vcf",".indel.masked.vcf")
     masker.analysisName = base+"_Cluster_and_Indel_filter"
-
 
     // 2.b hand filter with standard filter
     val handFilter = new VariantFiltration with CommandLineGATKArgs
@@ -279,7 +276,6 @@ class fullCallingPipeline extends QScript {
     handFilter.filterExpression ++= List("\"SB>=0.10\"","\"AB>=0.75\"","\"QD<5.0\"","\"HRun>=4\"")
     handFilter.out = swapExt(annotated.out,".vcf",".handfiltered.vcf")
     handFilter.analysisName = base+"_HandFilter"
-
 
     // 3.i generate gaussian clusters on the masked vcf
     // todo -- args for annotations?
@@ -294,7 +290,6 @@ class fullCallingPipeline extends QScript {
 
     clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
     clusters.analysisName = base+"_Cluster"
-
 
     // 3.ii apply gaussian clusters to the masked vcf
     val recalibrate = new VariantRecalibrator with CommandLineGATKArgs
@@ -316,14 +311,13 @@ class fullCallingPipeline extends QScript {
     cut.fdr_filter_level = Some(1)
     cut.analysisName = base+"_ApplyVariantCuts"
 
-    
     // 4. Variant eval the cut and the hand-filtered vcf files
     val eval = new VariantEval with CommandLineGATKArgs
     eval.rodBind :+= RodBind("evalOptimized", "VCF", cut.out)
     eval.rodBind :+= RodBind("evalHandFiltered", "VCF", handFilter.out)
     eval.evalModule ++= List("CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
-    //eval.reportLocation = new File(base+".eval")
-    //eval.reportType = "R"
+    eval.reportLocation = new File(base+".eval")
+    eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.R)
     eval.analysisName = base+"_VariantEval"
 
     add(snps)
@@ -353,14 +347,11 @@ class fullCallingPipeline extends QScript {
     // to be in the working directory. When database access is ready, this and the protocol and sequencer parameters of
     //the r script will go away.
 
-
     for ( igv2 <- indelGenotypers ) {
       add(igv2)
     }
 
 //    add(mergeIndels,annotated,masker,handFilter,clusters,recalibrate,cut,eval,adpr)
     add(mergeIndels,annotated,masker,handFilter,clusters,recalibrate,cut,eval)
-
   }
-
 }
