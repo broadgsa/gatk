@@ -61,7 +61,7 @@ class fullCallingPipeline extends QScript {
     this.intervals = qscript.pipeline.getProject.getIntervalList
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.pipeline.getProject.getReferenceFile
-    this.memoryLimit = Some(2)
+    this.memoryLimit = Some(4)
   }
 
 
