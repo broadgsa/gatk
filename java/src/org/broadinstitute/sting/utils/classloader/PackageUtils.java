@@ -77,9 +77,6 @@ public class PackageUtils {
         for( Class<? extends T> type: allTypes ) {
             if( JVMUtils.isConcrete(type) )
                 concreteTypes.add(type);
-            else {
-                System.out.printf("%s %s %s%n","Class",type.getSimpleName()," is not concrete. Skipping.");
-            }
         }
 
         return concreteTypes;
