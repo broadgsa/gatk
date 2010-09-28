@@ -55,7 +55,7 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
 
         // now add the expected files that get generated
-        spec.addAuxFile("494c174ea0773bda98297a0cbdc188eb", baseOutputFile);
+        spec.addAuxFile("423571e4c05e7934322172654ac6dbb7", baseOutputFile);
         spec.addAuxFile("9df5e7e07efeb34926c94a724714c219", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_cumulative_coverage_counts"));
         spec.addAuxFile("b9a7748e5aec4dc06daed893c901c00d", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_cumulative_coverage_proportions"));
         spec.addAuxFile("9cd395f47b329b9dd00ad024fcac9929", createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_statistics"));
@@ -89,7 +89,7 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
         String cmd = buildRootCmd(hg18Reference,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 5 --maxBaseQuality 4 -dels -baseCounts -pt readgroup -pt sample -pt library --outputFormat csv";
         WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
 
-        spec.addAuxFile("d570c27d82a80ebd2852e9d34aff4e87",baseOutputFile);
+        spec.addAuxFile("6ccd7d8970ba98cb95fe41636a070c1c",baseOutputFile);
         spec.addAuxFile("0ee40f3e5091536c14e077b77557083a",createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_summary"));
 
         execute("testNoCoverageDueToFiltering",spec);

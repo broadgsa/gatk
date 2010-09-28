@@ -72,4 +72,19 @@ public class DepthOfCoverageB36IntegrationTest extends WalkerTest {
         execute("testMapQ0Only",spec);
     }
 
+    @Test
+    public void testLotsOfSamples() {
+        File baseOutputFile = this.createTempFile("testManySamples",".tmp");
+        this.setOutputFileLocation(baseOutputFile);
+        String[] intervals = {"1:1105290-1105295"};
+        String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/pilot3.CEU+TSI.5loci.bam"};
+        String cmd = buildRootCmd(b36KGReference, new ArrayList<String>(Arrays.asList(bams)), new ArrayList<String>(Arrays.asList(intervals)));
+
+        WalkerTestSpec spec = new WalkerTestSpec(cmd,0,new ArrayList<String>());
+
+        spec.addAuxFile("c9561b52344536d2b06ab97b0bb1a234",baseOutputFile);
+
+        execute("testLotsOfSamples",spec);
+    }
+
 }

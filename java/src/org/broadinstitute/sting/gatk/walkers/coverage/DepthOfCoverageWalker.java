@@ -148,15 +148,18 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
             PrintStream out = getCorrectStream(null, DoCOutputType.Aggregation.locus, DoCOutputType.FileType.summary);
             out.printf("%s\t%s","Locus","Total_Depth");
             for (DoCOutputType.Partition type : partitionTypes ) {
-                // mhanna 22 Aug 2010 - Deliberately force this header replacement to make sure integration tests pass.
-                // TODO: Update integration tests and get rid of this.
-                String typeName = (type == DoCOutputType.Partition.readgroup ? "read_group" : type.toString());
-                out.printf("\t%s_%s","Average_Depth",typeName);
+                out.printf("\t%s_%s","Average_Depth",type.toString());
             }
+            
             // get all the samples
             HashSet<String> allSamples = getSamplesFromToolKit(partitionTypes);
+            ArrayList<String> allSampleList = new ArrayList<String>(allSamples.size());
+            for ( String s : allSamples ) {
+                allSampleList.add(s);
+            }
+            Collections.sort(allSampleList);
 
-            for ( String s : allSamples) {
+            for ( String s : allSampleList) {
                 out.printf("\t%s_%s","Depth_for",s);
                 if ( printBaseCounts ) {
                     out.printf("\t%s_%s",s,"base_counts");
@@ -258,6 +261,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
 
     public CoveragePartitioner reduce(Map<DoCOutputType.Partition,Map<String,int[]>> thisMap, CoveragePartitioner prevReduce) {
         if ( ! omitDepthOutput ) {
+            //checkOrder(prevReduce); // tests prevReduce.getIdentifiersByType().get(t) against the initialized header order
             printDepths(getCorrectStream(null, DoCOutputType.Aggregation.locus, DoCOutputType.FileType.summary),thisMap,prevReduce.getIdentifiersByType());
             // this is an additional iteration through thisMap, plus dealing with IO, so should be much slower without
             // turning on omit
@@ -757,6 +761,7 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     }
 
     private void checkOrder(CoveragePartitioner ag) {
+        // make sure the ordering stored at initialize() is propagated along reduce
         for (DoCOutputType.Partition t : partitionTypes ) {
             List<String> order = orderCheck.get(t);
             List<String> namesInAg = ag.getIdentifiersByType().get(t);
