@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.phasing;
+package org.broadinstitute.sting.utils;
 
 /*
  * Copyright (c) 2010, The Broad Institute

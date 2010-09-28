@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.phasing;
+package org.broadinstitute.sting.utils;
 
 import java.util.*;
 

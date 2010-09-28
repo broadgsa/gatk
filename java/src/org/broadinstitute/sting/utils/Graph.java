@@ -1,4 +1,7 @@
-package org.broadinstitute.sting.playground.gatk.walkers.phasing;
+package org.broadinstitute.sting.utils;
+
+import org.broadinstitute.sting.utils.DisjointSet;
+import org.broadinstitute.sting.utils.GraphEdge;
 
 import java.util.*;
 
