@@ -33,7 +33,7 @@ sub log {
 sub emailLog {
     my ($subject, $logfile, $email) = @_;
 
-    my $cmd = "mail -s '$subject' $email < $logfile";
+    my $cmd = "mail -s 'Cron <kiran\@gsa3> $subject' $email < $logfile";
     system($cmd);
 }
 
