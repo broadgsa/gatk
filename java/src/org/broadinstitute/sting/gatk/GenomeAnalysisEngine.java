@@ -31,6 +31,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.commandline.ArgumentSource;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShardStrategy;
@@ -368,4 +369,5 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
 
         outputTracker.prepareWalker(walker, getArguments().strictnessLevel);
     }
+
 }

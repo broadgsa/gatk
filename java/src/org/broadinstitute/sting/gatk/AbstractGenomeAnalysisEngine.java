@@ -29,6 +29,7 @@ import net.sf.picard.filter.SamRecordFilter;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -798,5 +799,62 @@ public abstract class AbstractGenomeAnalysisEngine {
     public Set<Sample> getSamples(Collection<String> sampleNameList) {
 	return sampleDataSource.getSamples(sampleNameList);
     }
+
+
+    /**
+     * Returns a set of samples that have any value (which could be null) for a given property
+     * @param key Property key
+     * @return Set of samples with the property
+     */
+    public Set<Sample> getSamplesWithProperty(String key) {
+        return sampleDataSource.getSamplesWithProperty(key);
+    }
+
+    /**
+     * Returns a set of samples that have a property with a certain value
+     * Value must be a string for now - could add a similar method for matching any objects in the future
+     *
+     * @param key Property key
+     * @param value String property value
+     * @return Set of samples that match key and value
+     */
+    public Set<Sample> getSamplesWithProperty(String key, String value) {
+        return sampleDataSource.getSamplesWithProperty(key, value);
+
+    }
+
+    /**
+     * Returns a set of sample objects for the sample names in a variant context
+     *
+     * @param context Any variant context
+     * @return a set of the sample objects
+     */
+    public Set<Sample> getSamplesByVariantContext(VariantContext context) {
+        Set<Sample> samples = new HashSet<Sample>();
+        for (String sampleName : context.getSampleNames()) {
+            samples.add(sampleDataSource.getOrCreateSample(sampleName));
+        }
+        return samples;
+    }
+
+    /**
+     * Returns all samples that were referenced in the SAM file
+     */
+    public Set<Sample> getSAMFileSamples() {
+        return sampleDataSource.getSAMFileSamples();
+    }
+
+    /**
+     * Return a subcontext restricted to samples with a given property key/value
+     * Gets the sample names from key/value and relies on VariantContext.subContextFromGenotypes for the filtering
+     * @param context VariantContext to filter
+     * @param key property key
+     * @param value property value (must be string)
+     * @return subcontext
+     */
+    public VariantContext subContextFromSampleProperty(VariantContext context, String key, String value) {
+        return sampleDataSource.subContextFromSampleProperty(context, key, value);
+    }
+
 
 }

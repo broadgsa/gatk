@@ -1,15 +1,16 @@
 package org.broadinstitute.sting.gatk.datasources.sample;
 
 import net.sf.samtools.SAMFileHeader;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -46,13 +47,6 @@ public class SampleDataSourceUnitTest extends BaseTest {
         Assert.assertTrue(family.size() == 2);
         Assert.assertTrue(family.contains(sampleA));
         Assert.assertTrue(family.contains(sampleB));
-
-	// make sure getSamples(List names) works
-	ArrayList<String> names = new ArrayList<String>();
-	names.add("sampleA");
-	names.add("sampleB");
-	Set<Sample> testList = s.getSamples(names);
-	Assert.assertTrue(testList.size() == 2);
     }
 
     // but that file should fail if it has an extra character in it...
@@ -137,7 +131,27 @@ public class SampleDataSourceUnitTest extends BaseTest {
         Assert.assertTrue(s.sampleCount() == 5);
         Assert.assertTrue(s.getSampleById("sampleE").getProperty("propC").equals("valC"));
         Assert.assertTrue(s.getSampleById("sampleA").getProperty("propA").equals("valA"));
-    }                                                                                  
+    }
+
+    /**
+     * testing getSamplesWithProperty
+     * in this file there are 4 samples - 2 with population "CEU", 1 with population "ABC", 1 with no population
+     */
+    @Test()
+    public void getSamplesWithPropertyTest() {
+        File sampleFile = new File(sampleFilesDir + "sampleFileWithProperties.yaml");
+        SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
+        Assert.assertTrue(s.sampleCount() == 4);
+        Set<Sample> ceuSamples = s.getSamplesWithProperty("population", "CEU");
+        Assert.assertTrue(ceuSamples.size() == 2);
+
+        Iterator<Sample> i = ceuSamples.iterator();
+        ArrayList<String> sampleNames = new ArrayList<String>();
+        sampleNames.add(i.next().getId());
+        sampleNames.add(i.next().getId());
+        Assert.assertTrue(sampleNames.contains("sampleA"));
+        Assert.assertTrue(sampleNames.contains("sampleB"));
+    }
 
     // make sure we can import data types other than Strings
     @Test()
@@ -149,6 +163,70 @@ public class SampleDataSourceUnitTest extends BaseTest {
         Assert.assertTrue(sample.getProperty("b").getClass() == String.class);
         Assert.assertTrue(sample.getProperty("c").getClass() == Double.class);
         Assert.assertTrue(sample.getProperty("b").getClass() == String.class);
+    }
+
+    /**
+     * check that getSamplesFromVariantContext works
+     * create a variant context with two sample names, and make sure the right samples are there
+     */
+    @Test()
+    public void variantContextTest() {
+        SampleDataSource s = new SampleDataSource(header, null);
+        List<Allele> alleleCollection = new ArrayList<Allele>();
+        Allele a1 = Allele.create("A", true);
+        alleleCollection.add(a1);
+
+        Set<Genotype> genotypeCollection = new HashSet<Genotype>();
+        genotypeCollection.add(new Genotype("NA123", alleleCollection));
+        genotypeCollection.add(new Genotype("NA456", alleleCollection));
+
+        VariantContext v = new VariantContext("contextName", "chr1", 1, 1, alleleCollection, genotypeCollection);
+
+        // make sure the set that's returned is the right size
+        HashSet<Sample> set = (HashSet) s.getSamplesByVariantContext(v);
+        Assert.assertTrue(set.size() == 2);
+
+        // make sure both samples are included
+        Iterator<Sample> i = set.iterator();
+        ArrayList<String> sampleNames = new ArrayList<String>();
+        sampleNames.add(i.next().getId());
+        sampleNames.add(i.next().getId());
+        Assert.assertTrue(sampleNames.contains("NA123"));
+        Assert.assertTrue(sampleNames.contains("NA456"));
+    }
+
+    /**
+     * checking subContextFromSampleProperty
+     */
+
+    /**
+     * check that subContextFromSampleProperty works
+     * create a variant context with four sample names, make sure that it filters correctly to 2
+     */
+    @Test()
+    public void subContextFromSamplePropertyTest() {
+
+        File sampleFile = new File(sampleFilesDir + "sampleFileWithProperties.yaml");
+        SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
+        Assert.assertTrue(s.sampleCount() == 4);
+
+        List<Allele> alleleCollection = new ArrayList<Allele>();
+        Allele a1 = Allele.create("A", true);
+        alleleCollection.add(a1);
+
+        Set<Genotype> genotypeCollection = new HashSet<Genotype>();
+        genotypeCollection.add(new Genotype("NA123", alleleCollection));
+        genotypeCollection.add(new Genotype("sampleA", alleleCollection));
+        genotypeCollection.add(new Genotype("sampleB", alleleCollection));
+        genotypeCollection.add(new Genotype("sampleC", alleleCollection));
+
+        VariantContext v = new VariantContext("contextName", "chr1", 1, 1, alleleCollection, genotypeCollection);
+        VariantContext subContext = s.subContextFromSampleProperty(v, "population", "CEU");
+
+        Assert.assertTrue(subContext.getSampleNames().contains("sampleA"));
+        Assert.assertTrue(subContext.getSampleNames().contains("sampleA"));
+        Assert.assertTrue(subContext.getSampleNames().size() == 2);
+
     }
     
 

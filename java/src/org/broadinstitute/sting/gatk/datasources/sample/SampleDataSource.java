@@ -3,6 +3,8 @@ package org.broadinstitute.sting.gatk.datasources.sample;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.StingException;
@@ -14,12 +16,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -488,5 +485,91 @@ public class SampleDataSource {
         return samples;
     }
 
+    /**
+     * Returns a set of samples that have any value (which could be null) for a given property
+     * @param key Property key
+     * @return Set of samples with the property
+     */
+    public Set<Sample> getSamplesWithProperty(String key) {
+        HashSet<Sample> toReturn = new HashSet<Sample>();
+        for (Sample s : samples.values()) {
+            if (s.hasProperty(key))
+                toReturn.add(s);
+        }
+        return toReturn;
+    }
+
+    /**
+     * Returns a set of samples that have a property with a certain value
+     * Value must be a string for now - could add a similar method for matching any objects in the future
+     *
+     * @param key Property key
+     * @param value String property value
+     * @return Set of samples that match key and value
+     */
+    public Set<Sample> getSamplesWithProperty(String key, String value) {
+        Set<Sample> toReturn = getSamplesWithProperty(key);
+        for (Sample s : toReturn) {
+            if (!s.getProperty(key).equals(value))
+                toReturn.remove(s);
+        }
+        return toReturn;
+    }
+
+    public Sample getOrCreateSample(String id) {
+        Sample sample = getSampleById(id);
+        if (sample == null) {
+            sample = new Sample(id);
+            addSample(sample);
+        }
+        return sample;
+    }
+
+    /**
+     * Returns all samples that were referenced in the SAM file
+     */
+    public Set<Sample> getSAMFileSamples() {
+        Set<Sample> toReturn = new HashSet<Sample>();
+        for (Sample sample : samples.values()) {
+            if (sample.hasSAMFileEntry())
+                toReturn.add(sample);
+        }
+        return toReturn;
+    }
+
+    /**
+     * Returns a set of sample objects for the sample names in a variant context
+     *
+     * @param context Any variant context
+     * @return a set of the sample objects
+     */
+    public Set<Sample> getSamplesByVariantContext(VariantContext context) {
+        Set<Sample> samples = new HashSet<Sample>();
+        for (String sampleName : context.getSampleNames()) {
+            samples.add(getOrCreateSample(sampleName));
+        }
+        return samples;
+    }
+
+
+    /**
+     * Return a subcontext restricted to samples with a given property key/value
+     * Gets the sample names from key/value and relies on VariantContext.subContextFromGenotypes for the filtering
+     * @param context VariantContext to filter
+     * @param key property key
+     * @param value property value (must be string)
+     * @return subcontext
+     */
+    public VariantContext subContextFromSampleProperty(VariantContext context, String key, String value) {
+
+        Set<String> samplesWithProperty = new HashSet<String>();
+        for (String sampleName : context.getSampleNames()) {
+            Sample s = samples.get(sampleName);
+            if (s != null && s.hasProperty(key) && s.getProperty(key).equals(value))
+                samplesWithProperty.add(sampleName);
+        }
+        Map<String, Genotype> genotypes = context.getGenotypes(samplesWithProperty);
+        return context.subContextFromGenotypes(genotypes.values());
+    }
 
 }

@@ -31,9 +31,9 @@ public class Sample implements java.io.Serializable {
     }
 
     public Sample(String id) {
-        if (id == null) {
+/*        if (id == null) {
             throw new StingException("Error creating sample: sample ID cannot be null");
-        }
+        }*/
         this.id = id;
     }
 
@@ -164,6 +164,15 @@ public class Sample implements java.io.Serializable {
      */
     public boolean isFemale() {
         return properties.get("gender") == Gender.MALE;
+    }
+
+    /**
+     *
+     * @param key property key
+     * @return true if sample has this property (even if its value is null)
+     */
+    public boolean hasProperty(String key) {
+        return properties.containsKey(key);
     }
 
     @Override
