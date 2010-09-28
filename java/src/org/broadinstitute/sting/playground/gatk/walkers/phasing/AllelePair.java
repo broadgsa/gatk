@@ -25,51 +25,48 @@ package org.broadinstitute.sting.playground.gatk.walkers.phasing;
 
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-public class BialleleSNP extends Biallele {
+import java.util.ArrayList;
+import java.util.List;
 
-    public BialleleSNP(Genotype gt) {
-        super(gt);
+public class AllelePair {
+    private Allele top;
+    private Allele bottom;
 
-        if (getTopAllele().getBases().length != 1)
-            throw new ReviewedStingException("LOGICAL ERROR: BialleleSNP may not contain non-SNP site!");
-        if (getBottomAllele().getBases().length != 1)
-            throw new ReviewedStingException("LOGICAL ERROR: BialleleSNP may not contain non-SNP site!");
+    public AllelePair(Genotype gt) {
+        if (gt.getPloidy() != 2)
+            throw new ReviewedStingException("AllelePair must have ploidy of 2!");
+
+        this.top = gt.getAllele(0);
+        this.bottom = gt.getAllele(1);
     }
 
-    public byte getTopBase() {
-        byte[] topBases = getTopAllele().getBases();
-        return getSingleBase(topBases);
+    public Allele getTopAllele() {
+        return top;
     }
 
-    public byte getBottomBase() {
-        byte[] bottomBases = getBottomAllele().getBases();
-        return getSingleBase(bottomBases);
+    public Allele getBottomAllele() {
+        return bottom;
     }
 
-    public boolean matchesTopBase(byte base) {
-        return BaseUtils.basesAreEqual(base, getTopBase());
+    public void swapAlleles() {
+        Allele tmp = top;
+        top = bottom;
+        bottom = tmp;
     }
 
-    public byte getOtherBase(byte base) {
-        byte topBase = getTopBase();
-        byte botBase = getBottomBase();
-
-        if (BaseUtils.basesAreEqual(base, topBase))
-            return botBase;
-        else if (BaseUtils.basesAreEqual(base, botBase))
-            return topBase;
-        else
-            throw new ReviewedStingException("LOGICAL ERROR: base MUST match either TOP or BOTTOM!");
+    public List<Allele> getAllelesAsList() {
+        List<Allele> allList = new ArrayList<Allele>(2);
+        allList.add(0, top);
+        allList.add(1, bottom);
+        return allList;
     }
 
-    public static byte getSingleBase(byte[] bases) {
-        return bases[0];
-    }
-
-    public static byte getSingleBase(Allele all) {
-        return getSingleBase(all.getBases());
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Top:\t" + top.getBaseString() + "\n");
+        sb.append("Bot:\t" + bottom.getBaseString() + "\n");
+        return sb.toString();
     }
 }

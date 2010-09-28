@@ -26,6 +26,7 @@ import java.util.*;
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+// Represents an undirected graph with no self-edges:
 public class Graph implements Iterable<GraphEdge> {
     private Neighbors[] adj;
 
@@ -36,8 +37,16 @@ public class Graph implements Iterable<GraphEdge> {
     }
 
     public void addEdge(GraphEdge e) {
+        if (e.v1 == e.v2) // do not permit self-edges
+            return;
+
         adj[e.v1].addNeighbor(e);
         adj[e.v2].addNeighbor(e);
+    }
+
+    public void addEdges(Collection<GraphEdge> edges) {
+        for (GraphEdge e : edges)
+            addEdge(e);
     }
 
     public void removeEdge(GraphEdge e) {
@@ -45,27 +54,31 @@ public class Graph implements Iterable<GraphEdge> {
         adj[e.v2].removeNeighbor(e);
     }
 
+    public Collection<GraphEdge> removeAllIncidentEdges(int vertexIndex) {
+        Collection<GraphEdge> incidentEdges = new TreeSet<GraphEdge>(adj[vertexIndex].neighbors); // implemented GraphEdge.compareTo()
+
+        for (GraphEdge neighbEdge : incidentEdges) {
+            if (vertexIndex != neighbEdge.v1) // vertexIndex == neighbEdge.v2
+                adj[neighbEdge.v1].removeNeighbor(neighbEdge);
+            else if (vertexIndex != neighbEdge.v2) // vertexIndex == neighbEdge.v1
+                adj[neighbEdge.v2].removeNeighbor(neighbEdge);
+        }
+        adj[vertexIndex].clearAllNeighbors();
+
+        return incidentEdges;
+    }
+
     public DisjointSet getConnectedComponents() {
         DisjointSet cc = new DisjointSet(adj.length);
 
-        for (int i = 0; i < adj.length; i++)
-            for (GraphEdge e : adj[i])
-                cc.setUnion(e.v1, e.v2);
+        for (GraphEdge e : this)
+            cc.setUnion(e.v1, e.v2);
 
         return cc;
     }
 
-    // Note that this will give each edge TWICE [since e=(v1,v2) is stored as a neighbor for both v1 and v2]
     public Iterator<GraphEdge> iterator() {
         return new AllEdgesIterator();
-    }
-
-    public List<GraphEdge> getAllEdges() {
-        Set<GraphEdge> allEdges = new TreeSet<GraphEdge>(); // implemented GraphEdge.compareTo()
-        for (GraphEdge e : this)
-            allEdges.add(e);
-
-        return new LinkedList<GraphEdge>(allEdges);
     }
 
     public String toString() {
@@ -73,8 +86,9 @@ public class Graph implements Iterable<GraphEdge> {
 
         for (int i = 0; i < adj.length; i++) {
             sb.append(i + ":");
-            for (GraphEdge e : adj[i])
-                sb.append(" " + e);
+            for (GraphEdge e : adj[i]) {
+                sb.append(" " + (e.v1 == i ? e.v2 : e.v1));
+            }
             sb.append("\n");
         }
 
@@ -84,18 +98,29 @@ public class Graph implements Iterable<GraphEdge> {
     private class AllEdgesIterator implements Iterator<GraphEdge> {
         private int curInd;
         private Iterator<GraphEdge> innerIt;
+        private GraphEdge nextEdge;
 
         public AllEdgesIterator() {
             curInd = 0;
             innerIt = null;
+            nextEdge = null;
         }
 
         public boolean hasNext() {
+            if (nextEdge != null)
+                return true;
+
             for (; curInd < adj.length; curInd++) {
                 if (innerIt == null)
                     innerIt = adj[curInd].iterator();
-                if (innerIt.hasNext())
-                    return true;
+
+                while (innerIt.hasNext()) {
+                    GraphEdge e = innerIt.next();
+                    if (e.v1 == curInd) { // only want to see each edge once
+                        nextEdge = e;
+                        return true;
+                    }
+                }
 
                 innerIt = null;
             }
@@ -107,7 +132,9 @@ public class Graph implements Iterable<GraphEdge> {
             if (!hasNext())
                 throw new NoSuchElementException();
 
-            return innerIt.next();
+            GraphEdge tmpEdge = nextEdge;
+            nextEdge = null;
+            return tmpEdge;
         }
 
         public void remove() {
@@ -132,6 +159,10 @@ public class Graph implements Iterable<GraphEdge> {
 
         public Iterator<GraphEdge> iterator() {
             return neighbors.iterator();
+        }
+
+        public void clearAllNeighbors() {
+            neighbors.clear();
         }
     }
 }

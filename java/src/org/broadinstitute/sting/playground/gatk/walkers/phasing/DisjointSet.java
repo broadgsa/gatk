@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.phasing;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /*
  * Copyright (c) 2010, The Broad Institute
@@ -55,11 +54,11 @@ public class DisjointSet {
     }
 
     public boolean inSameSet(int x, int y) {
-        return (findSet(x) == findSet(y));
+        return (x == y || nodes[x].parent == nodes[y].parent || findSet(x) == findSet(y));
     }
 
-    public List<Integer> inSameSetAs(int x, int[] testSet) {
-        List<Integer> sameSetInds = new LinkedList<Integer>();
+    public Set<Integer> inSameSetAs(int x, Collection<Integer> testSet) {
+        Set<Integer> sameSetInds = new TreeSet<Integer>();
 
         int xSet = findSet(x);
         for (int t : testSet) {

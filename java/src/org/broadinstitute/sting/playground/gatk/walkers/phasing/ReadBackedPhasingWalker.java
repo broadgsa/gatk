@@ -43,7 +43,6 @@ import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
-import javax.naming.OperationNotSupportedException;
 import java.io.*;
 import java.util.*;
 
@@ -245,7 +244,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             if (isCalledDiploidGenotype(gt) && gt.isHet()) { // Can attempt to phase this genotype
                 PhasingWindow phaseWindow = new PhasingWindow(vr, samp);
                 if (phaseWindow.hasPreviousHets()) { // Otherwise, nothing to phase this against
-                    BialleleSNP biall = new BialleleSNP(gt);
+                    SNPallelePair biall = new SNPallelePair(gt);
                     logger.debug("Want to phase TOP vs. BOTTOM for: " + "\n" + biall);
 
                     DoublyLinkedList.BidirectionalIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = phaseWindow.prevHetAndInteriorIt;
@@ -257,9 +256,18 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     Genotype prevHetGenotype = prevUvc.getGenotype(samp);
 
                     PhaseResult pr = phaseSample(phaseWindow);
-                    boolean genotypesArePhased = (pr.phaseQuality >= phaseQualityThresh);
+                    boolean genotypesArePhased = passesPhasingThreshold(pr.phaseQuality);
+
+                    //
+                    //
+                    if (pr.phaseQuality < 0) {
+                        logger.warn("MORE than 10% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(vc));
+                    }
+                    //
+                    //
+
                     if (genotypesArePhased) {
-                        BialleleSNP prevBiall = new BialleleSNP(prevHetGenotype);
+                        SNPallelePair prevBiall = new SNPallelePair(prevHetGenotype);
 
                         logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevBiall + "\n");
                         logger.debug("THE PHASE CHOSEN HERE:\n" + biall + "\n\n");
@@ -309,6 +317,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         partiallyPhasedSites.add(pvr); // only add it in now, since don't want it to be there during phasing
         phaseStats.addIn(new PhasingStats(samplePhaseStats));
+    }
+
+    public boolean passesPhasingThreshold(double PQ) {
+        return PQ >= phaseQualityThresh;
     }
 
     private static class GenotypeAndReadBases {
@@ -449,7 +461,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             logger.debug("Number of sites in window = " + index);
 
             if (logger.isDebugEnabled()) {
-                logger.debug("ALL READS:");
+                logger.debug("ALL READS [phasingSiteIndex = " + phasingSiteIndex + "]:");
                 for (Map.Entry<String, Read> nameToReads : readsAtHetSites.entrySet()) {
                     String rdName = nameToReads.getKey();
                     Read rd = nameToReads.getValue();
@@ -458,85 +470,98 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
         }
 
-        private class ReadProperties {
-            public List<GraphEdge> rdEdges;
-            public int[] siteInds;
+        private class EdgeToReads {
+            private Map<GraphEdge, List<String>> edgeReads;
 
-            public ReadProperties(Read rd) {
-                this.siteInds = rd.getNonNullIndices();
-                this.rdEdges = new LinkedList<GraphEdge>();
+            public EdgeToReads() {
+                this.edgeReads = new TreeMap<GraphEdge, List<String>>(); // implemented GraphEdge.compareTo()
+            }
 
-                // sufficient to create a path linking the sites in rd, so they all end up in the same connected component:
-                for (int i = 0; i < siteInds.length - 1; i++) {
-                    GraphEdge e = new GraphEdge(siteInds[i], siteInds[i + 1]);
-                    rdEdges.add(e);
+            public void addRead(GraphEdge e, String readName) {
+                List<String> reads = edgeReads.get(e);
+                if (reads == null) {
+                    reads = new LinkedList<String>();
+                    edgeReads.put(e, reads);
                 }
+                reads.add(readName);
+            }
+
+            public List<String> getReads(GraphEdge e) {
+                return edgeReads.get(e);
             }
         }
 
-        private class EdgeCounts {
-            private Map<GraphEdge, Integer> counts;
+        private class IntegerSet implements Iterable<Integer> {
+            private Set<Integer> list;
 
-            public EdgeCounts() {
-                this.counts = new TreeMap<GraphEdge, Integer>(); // implemented GraphEdge.compareTo()
+            public IntegerSet(Set<Integer> list) {
+                this.list = list;
             }
 
-            public int getCount(GraphEdge e) {
-                Integer count = counts.get(e);
-                if (count == null)
-                    return 0;
-
-                return count;
+            public boolean contains(int i) {
+                return list.contains(i);
             }
 
-            public int incrementEdge(GraphEdge e) {
-                Integer eCount = counts.get(e);
-                int cnt;
-                if (eCount == null)
-                    cnt = 0;
-                else
-                    cnt = eCount;
-
-                cnt++;
-                counts.put(e, cnt);
-                return cnt;
+            public Iterator<Integer> iterator() {
+                return list.iterator();
             }
 
-            public int decrementEdge(GraphEdge e) {
-                Integer eCount = counts.get(e);
-                if (eCount == null)
-                    return 0;
-
-                int cnt = eCount - 1;
-                counts.put(e, cnt);
-                return cnt;
+            public String toString() {
+                StringBuilder sb = new StringBuilder();
+                for (int i : this) {
+                    sb.append(i + ", ");
+                }
+                return sb.toString();
             }
         }
 
         public Set<String> removeExtraneousReads(int numHetSites) {
             Graph readGraph = new Graph(numHetSites);
-            Map<String, ReadProperties> readToGraphProperties = new HashMap<String, ReadProperties>();
-            EdgeCounts edgeCounts = new EdgeCounts();
+            EdgeToReads edgeToReads = new EdgeToReads();
+            Set<Integer> sitesWithEdges = new TreeSet<Integer>();
 
             for (Map.Entry<String, Read> nameToReads : readsAtHetSites.entrySet()) {
                 String rdName = nameToReads.getKey();
                 Read rd = nameToReads.getValue();
 
-                ReadProperties rp = new ReadProperties(rd);
-                if (!rp.rdEdges.isEmpty()) { // otherwise, this read is clearly irrelevant since it can't link anything
-                    for (GraphEdge e : rp.rdEdges) {
-                        readGraph.addEdge(e);
+                int[] siteInds = rd.getNonNullIndices();
+                // Connect each pair of non-null sites in rd:
+                for (int i = 0; i < siteInds.length; i++) {
+                    for (int j = i + 1; j < siteInds.length; j++) {
+                        GraphEdge e = new GraphEdge(siteInds[i], siteInds[j]);
                         logger.debug("Read = " + rdName + " is adding edge: " + e);
+                        readGraph.addEdge(e);
 
-                        edgeCounts.incrementEdge(e);
+                        edgeToReads.addRead(e, rdName);
+
+                        sitesWithEdges.add(e.v1);
+                        sitesWithEdges.add(e.v2);
                     }
-                    readToGraphProperties.put(rdName, rp);
                 }
             }
             logger.debug("Read graph:\n" + readGraph);
             Set<String> keepReads = new HashSet<String>();
 
-            // Check which Reads are involved in paths from (phasingSiteIndex - 1) to (phasingSiteIndex):
+            /* Check which Reads are involved in acyclic paths from (phasingSiteIndex - 1) to (phasingSiteIndex):
+
+               In detail:
+               Every Read links EACH pair of sites for which it contains bases.  Then, each such edge is added to a "site connectivity graph".
+               A read provides non-trivial bias toward the final haplotype decision if it participates in a path from prev ---> cur.  This is tested by
+               considering each edge that the read contributes.  For edge e=(v1,v2), if there exists a path from prev ---> v1 [that doesn't include v2] and
+               cur ---> v2 [that doesn't include v1], then there is a path from prev ---> cur that uses e, hence making the read significant.
+               By excluding each vertex's edges and then calculating connected components, we are able to make the determination, for example,
+               if a path exists from prev ---> v1 that excludes v2.
+
+               Furthermore, if the path DOES use other edges that exist solely due to the read, then that's fine, since adding in the read will give those edges as well.
+               And, if the path uses edges from other reads, then keeping all other reads that contribute those edges
+               [which will happen since those edges are also in paths from prev ---> cur] is sufficient for this path to exist.
+
+               NOTE:
+               If we would use NON-UNIFORM priors for the various haplotypes, then this calculation would not be correct, since the equivalence of:
+               1. The read affects the final marginal haplotype posterior probability (for general mapping and base quality values).
+               2. The read has edges involved in a path from prev ---> cur.
+               DEPENDS STRONGLY on the fact that all haplotypes have the same EXACT prior.
+             */
             int prev = phasingSiteIndex - 1;
             int cur = phasingSiteIndex;
 
@@ -546,56 +571,51 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 return keepReads;
             }
 
-            for (Map.Entry<String, ReadProperties> rdEdgesEntry : readToGraphProperties.entrySet()) {
-                String testRead = rdEdgesEntry.getKey();
-                ReadProperties rp = rdEdgesEntry.getValue();
-                logger.debug("Testing the connectivity of Read: " + testRead);
+            /* Check the connected components of prev and cur when removing each individual vertex's edges:
+               [Total run-time: for each vertex, calculate connected components after removing it's edges: O(V * E)]
+             */
+            IntegerSet[] removedSiteSameCCAsPrev = new IntegerSet[numHetSites];
+            IntegerSet[] removedSiteSameCCAsCur = new IntegerSet[numHetSites];
+            for (int i : sitesWithEdges) {
+                logger.debug("Calculating CC after removing edges of site: " + i);
 
-                // Check the connected components after removing this read's UNIQUE edges:
-                for (GraphEdge e : rp.rdEdges) {
-                    if (edgeCounts.getCount(e) == 1) // otherwise, the edge still exists without this read
-                        readGraph.removeEdge(e);
-                }
+                // Remove all edges incident to i and see which positions have paths to prev and cur:
+                Collection<GraphEdge> removedEdges = readGraph.removeAllIncidentEdges(i);
+
+                // Run-time for efficiently calculating connected components using DisjointSet: O(E)
                 DisjointSet ccAfterRemove = readGraph.getConnectedComponents();
+                removedSiteSameCCAsPrev[i] = new IntegerSet(ccAfterRemove.inSameSetAs(prev, sitesWithEdges));
+                removedSiteSameCCAsCur[i] = new IntegerSet(ccAfterRemove.inSameSetAs(cur, sitesWithEdges));
 
-                /* testRead contributes a path between prev and cur iff:
-                   There exists i != j s.t. testRead[i] != null, testRead[j] != null, ccAfterRemove.inSameSet(prev,i) && ccAfterRemove.inSameSet(j,cur)
-                   [since ALL non-null indices in testRead are connected to one another, as one clique].
+                logger.debug("Same CC as previous [" + prev + "]: " + removedSiteSameCCAsPrev[i]);
+                logger.debug("Same CC as current  [" + cur + "]: " + removedSiteSameCCAsCur[i]);
+
+                // Add the removed edges back in:
+                readGraph.addEdges(removedEdges);
+            }
+
+            for (GraphEdge e : readGraph) {
+                logger.debug("Testing the path-connectivity of Edge: " + e);
+
+                /* Edge e={v1,v2} contributes a path between prev and cur for testRead iff:
+                   testRead[v1] != null, testRead[v2] != null, and there is a path from prev ---> v1 -> v2 ---> cur  [or vice versa].
+                   Note that the path from prev ---> v1 will NOT contain v2, since we removed all of v2's edges,
+                   and the path from v2 ---> cur will NOT contain v1.
                  */
-                List<Integer> sameCCasPrev = ccAfterRemove.inSameSetAs(prev, rp.siteInds);
-                List<Integer> sameCCasCur = ccAfterRemove.inSameSetAs(cur, rp.siteInds);
-                if (logger.isDebugEnabled()) {
-                    StringBuilder sb = new StringBuilder("sameCCasPrev:");
-                    for (int ind : sameCCasPrev)
-                        sb.append(" " + ind);
-                    logger.debug(sb.toString());
+                boolean prevTo2and1ToCur = removedSiteSameCCAsPrev[e.v1].contains(e.v2) && removedSiteSameCCAsCur[e.v2].contains(e.v1);
+                boolean prevTo1and2ToCur = removedSiteSameCCAsPrev[e.v2].contains(e.v1) && removedSiteSameCCAsCur[e.v1].contains(e.v2);
 
-                    sb = new StringBuilder("sameCCasCur:");
-                    for (int ind : sameCCasCur)
-                        sb.append(" " + ind);
-                    logger.debug(sb.toString());
-                }
+                if (prevTo2and1ToCur || prevTo1and2ToCur) {
+                    for (String readName : edgeToReads.getReads(e)) {
+                        keepReads.add(readName);
 
-                boolean keepRead = false;
-                if (!sameCCasPrev.isEmpty() && !sameCCasCur.isEmpty()) { // There exists a path from prev to cur that goes through the sites in testRead
-                    // Now, make sure that TWO DISTINCT sites, i and j, in testRead are used in the path:
-                    Set<Integer> union = new HashSet<Integer>(sameCCasPrev);
-                    union.addAll(sameCCasCur);
-                    if (union.size() >= 2) // i != j
-                        keepRead = true;
-                }
-
-                if (keepRead) {
-                    logger.debug("Read is part of path from " + prev + " to " + cur);
-                    keepReads.add(testRead);
-
-                    // Add the removed edges back in, since we're keeping the read:
-                    for (GraphEdge e : rp.rdEdges)
-                        readGraph.addEdge(e);
-                }
-                else { // Decrease the count for the edges [note that any read-specific edges were already removed above]:
-                    for (GraphEdge e : rp.rdEdges)
-                        edgeCounts.decrementEdge(e);
+                        if (logger.isDebugEnabled()) {
+                            if (prevTo2and1ToCur)
+                                logger.debug("Keep read " + readName + " due to path: " + prev + " ---> " + e.v2 + " -> " + e.v1 + " ---> " + cur);
+                            else
+                                logger.debug("Keep read " + readName + " due to path: " + prev + " ---> " + e.v1 + " -> " + e.v2 + " ---> " + cur);
+                        }
+                    }
                 }
             }
 
@@ -677,7 +697,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private PhaseResult phaseSample(PhasingWindow phaseWindow) {
         /* Will map a phase and its "complement" to a single representative phase,
-          and marginalizeTable() marginalizes to 2 positions [starting at the previous position, and then the current position]:
+          and marginalizeAsNewTable() marginalizes to 2 positions [starting at the previous position, and then the current position]:
         */
         HaplotypeTableCreator tabCreator = new BiallelicComplementHaplotypeTableCreator(phaseWindow.hetGenotypes, phaseWindow.phasingSiteIndex - 1, 2);
         PhasingTable sampleHaps = tabCreator.getNewTable();
@@ -693,6 +713,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         // Update the phasing table based on each of the sub-reads for this sample:
+        MaxHaplotypeAndQuality prevMaxHapAndQual = null;
+        int numHighQualityIterations = 0;
+        int numInconsistentIterations = 0;
         for (Map.Entry<String, Read> nameToReads : phaseWindow.readsAtHetSites.entrySet()) {
             Read rd = nameToReads.getValue();
 
@@ -704,38 +727,88 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
                 logger.debug("score(" + rd + ", " + pte.getHaplotypeClass() + ") = " + score);
             }
+
+            //
+            //
+            //
+            // Check the current best haplotype assignment:
+            MaxHaplotypeAndQuality curMaxHapAndQual = new MaxHaplotypeAndQuality(sampleHaps, false);
+            logger.debug("CUR MAX hap:\t" + curMaxHapAndQual.maxEntry.getHaplotypeClass() + "\tcurPhaseQuality:\t" + curMaxHapAndQual.phaseQuality);
+            if (prevMaxHapAndQual != null && passesPhasingThreshold(prevMaxHapAndQual.phaseQuality)) {
+                numHighQualityIterations++;
+                if (!curMaxHapAndQual.maxEntry.getHaplotypeClass().getRepresentative().equals(prevMaxHapAndQual.maxEntry.getHaplotypeClass().getRepresentative()) || // switched phase
+                        curMaxHapAndQual.phaseQuality < 0.9 * prevMaxHapAndQual.phaseQuality) { // a 10% ["significant"] decrease in PQ
+                    logger.debug("Inconsistent read found!");
+                    numInconsistentIterations++;
+                }
+            }
+            prevMaxHapAndQual = curMaxHapAndQual;
+            //
+            //
+            //
+
         }
         logger.debug("\nPhasing table [AFTER CALCULATION]:\n" + sampleHaps + "\n");
+        MaxHaplotypeAndQuality maxHapQual = new MaxHaplotypeAndQuality(sampleHaps, true);
+        double posteriorProb = maxHapQual.maxEntry.getScore().getValue();
 
-        // Marginalize each haplotype to its first 2 positions:
-        sampleHaps = HaplotypeTableCreator.marginalizeTable(sampleHaps);
-        logger.debug("\nPhasing table [AFTER MAPPING]:\n" + sampleHaps + "\n");
+        logger.debug("MAX hap:\t" + maxHapQual.maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + maxHapQual.phaseQuality);
+        logger.debug("Number of used reads " + phaseWindow.readsAtHetSites.size() + "; number of high PQ iterations " + numHighQualityIterations + "; number of inconsistencies " + numInconsistentIterations);
 
-        // Determine the phase at this position:
-        sampleHaps.normalizeScores();
-        logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + sampleHaps + "\n");
+        double repPhaseQuality = maxHapQual.phaseQuality;
 
-        PhasingTable.PhasingTableEntry maxEntry = sampleHaps.maxEntry();
-        double posteriorProb = maxEntry.getScore().getValue();
-
-        // convert posteriorProb to PHRED scale, but do NOT cap the quality as in QualityUtils.probToQual(posteriorProb):
-        PreciseNonNegativeDouble sumErrorProbs = new PreciseNonNegativeDouble(ZERO);
-        for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
-            if (pte != maxEntry)
-                sumErrorProbs.plusEqual(pte.getScore());
+        //
+        //
+        if (numInconsistentIterations / (double) numHighQualityIterations >= 0.1) {
+            //
+            // ????
+            // NEED TO CHANGE phaseSite() to always output PQ field, EVEN if it's LESS THAN threshold ??????
+            // ????
+            //
+            repPhaseQuality *= -1;
         }
-        double phaseQuality = -10.0 * (sumErrorProbs.getLog10Value());
+        //
+        //
 
-        logger.debug("MAX hap:\t" + maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + phaseQuality);
+        return new PhaseResult(maxHapQual.maxEntry.getHaplotypeClass().getRepresentative(), repPhaseQuality);
+    }
 
-        return new PhaseResult(maxEntry.getHaplotypeClass().getRepresentative(), phaseQuality);
+    private static class MaxHaplotypeAndQuality {
+        public PhasingTable.PhasingTableEntry maxEntry;
+        public double phaseQuality;
+
+        public MaxHaplotypeAndQuality(PhasingTable hapTable, boolean printDebug) {
+            // Marginalize each haplotype to its first 2 positions:
+            hapTable = HaplotypeTableCreator.marginalizeAsNewTable(hapTable);
+            if (printDebug)
+                logger.debug("\nPhasing table [AFTER MAPPING]:\n" + hapTable + "\n");
+
+            // Determine the phase at this position:
+            hapTable.normalizeScores();
+            if (printDebug)
+                logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + hapTable + "\n");
+
+            this.maxEntry = hapTable.maxEntry();
+
+            // convert posteriorProb to PHRED scale, but do NOT cap the quality as in QualityUtils.probToQual(posteriorProb):
+            this.phaseQuality = getPhasingQuality(hapTable, maxEntry);
+        }
+
+        // Returns the PQ of entry (within table hapTable, which MUST be normalized):
+        public static double getPhasingQuality(PhasingTable hapTable, PhasingTable.PhasingTableEntry entry) {
+            PreciseNonNegativeDouble sumErrorProbs = new PreciseNonNegativeDouble(ZERO);
+            for (PhasingTable.PhasingTableEntry pte : hapTable) {
+                if (pte != entry)
+                    sumErrorProbs.plusEqual(pte.getScore());
+            }
+            return -10.0 * (sumErrorProbs.getLog10Value());
+        }
     }
 
     /*
         Ensure that curBiall is phased relative to prevBiall as specified by hap.
      */
-
-    public static void ensurePhasing(BialleleSNP curBiall, BialleleSNP prevBiall, Haplotype hap) {
+    public static void ensurePhasing(SNPallelePair curBiall, SNPallelePair prevBiall, Haplotype hap) {
         if (hap.size() < 2)
             throw new ReviewedStingException("LOGICAL ERROR: Only considering haplotypes of length > 2!");
 
@@ -784,7 +857,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         byte refBase;
         if (!vc.isIndel()) {
             Allele varAllele = vc.getReference();
-            refBase = BialleleSNP.getSingleBase(varAllele);
+            refBase = SNPallelePair.getSingleBase(varAllele);
         }
         else {
             refBase = vc.getReferenceBaseForIndel();
@@ -1023,14 +1096,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 byte[] hapBases = new byte[numSites];
                 for (int i = 0; i < numSites; i++) {
                     Allele alleleI = genotypes[i].getAllele(alleleInds[i]);
-                    hapBases[i] = BialleleSNP.getSingleBase(alleleI);
+                    hapBases[i] = SNPallelePair.getSingleBase(alleleI);
                 }
                 allHaps.add(new Haplotype(hapBases));
             }
             return allHaps;
         }
 
-        public static PhasingTable marginalizeTable(PhasingTable table) {
+        public static PhasingTable marginalizeAsNewTable(PhasingTable table) {
             Map<Haplotype, PreciseNonNegativeDouble> hapMap = new TreeMap<Haplotype, PreciseNonNegativeDouble>();
             for (PhasingTable.PhasingTableEntry pte : table) {
                 Haplotype rep = pte.getHaplotypeClass().getRepresentative();
@@ -1056,23 +1129,23 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private static class BiallelicComplementHaplotypeTableCreator extends HaplotypeTableCreator {
-        private BialleleSNP[] bialleleSNPs;
+        private SNPallelePair[] bialleleSNPs;
         private int startIndex;
         private int marginalizeLength;
 
         public BiallelicComplementHaplotypeTableCreator(Genotype[] hetGenotypes, int startIndex, int marginalizeLength) {
             super(hetGenotypes);
 
-            this.bialleleSNPs = new BialleleSNP[genotypes.length];
+            this.bialleleSNPs = new SNPallelePair[genotypes.length];
             for (int i = 0; i < genotypes.length; i++)
-                bialleleSNPs[i] = new BialleleSNP(genotypes[i]);
+                bialleleSNPs[i] = new SNPallelePair(genotypes[i]);
 
             this.startIndex = startIndex;
             this.marginalizeLength = marginalizeLength;
         }
 
         public PhasingTable getNewTable() {
-            double hapClassPrior = 1.0; // can change later
+            double hapClassPrior = 1.0; // can change later, BUT see NOTE above in removeExtraneousReads()
 
             PhasingTable table = new PhasingTable();
             for (Haplotype hap : getAllHaplotypes()) {

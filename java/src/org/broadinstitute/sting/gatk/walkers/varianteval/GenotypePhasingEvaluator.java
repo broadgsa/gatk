@@ -111,15 +111,15 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                     samplePrevGenotypes.put(samp, null);
             }
             else { // Both comp and eval have a non-null Genotype at this site:
-                Biallele compBiallele = new Biallele(compSampGt);
-                Biallele evalBiallele = new Biallele(evalSampGt);
+                AllelePair compAllelePair = new AllelePair(compSampGt);
+                AllelePair evalAllelePair = new AllelePair(evalSampGt);
 
                 boolean breakPhasing = false;
                 if (compSampGt.isHet() != evalSampGt.isHet() || compSampGt.isHom() != evalSampGt.isHom())
                     breakPhasing = true; // since they are not both het or both hom
                 else { // both are het, or both are hom:
-                    boolean topMatchesTopAndBottomMatchesBottom = (topMatchesTop(compBiallele, evalBiallele) && bottomMatchesBottom(compBiallele, evalBiallele));
-                    boolean topMatchesBottomAndBottomMatchesTop = (topMatchesBottom(compBiallele, evalBiallele) && bottomMatchesTop(compBiallele, evalBiallele));
+                    boolean topMatchesTopAndBottomMatchesBottom = (topMatchesTop(compAllelePair, evalAllelePair) && bottomMatchesBottom(compAllelePair, evalAllelePair));
+                    boolean topMatchesBottomAndBottomMatchesTop = (topMatchesBottom(compAllelePair, evalAllelePair) && bottomMatchesTop(compAllelePair, evalAllelePair));
                     if (!topMatchesTopAndBottomMatchesBottom && !topMatchesBottomAndBottomMatchesTop)
                         breakPhasing = true; // since the 2 VCFs have different diploid genotypes for this sample
                 }
@@ -154,12 +154,12 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                                 interesting.addReason("ONLY_EVAL", samp, group, "");
                             }
                             else { // both comp and eval are phased:                        
-                                Biallele prevCompBiallele = new Biallele(prevCompAndEval.getCompGenotpye());
-                                Biallele prevEvalBiallele = new Biallele(prevCompAndEval.getEvalGenotype());
+                                AllelePair prevCompAllelePair = new AllelePair(prevCompAndEval.getCompGenotpye());
+                                AllelePair prevEvalAllelePair = new AllelePair(prevCompAndEval.getEvalGenotype());
 
                                 // Sufficient to check only the top of comp, since we ensured that comp and eval have the same diploid genotypes for this sample:
-                                boolean topsMatch = (topMatchesTop(prevCompBiallele, prevEvalBiallele) && topMatchesTop(compBiallele, evalBiallele));
-                                boolean topMatchesBottom = (topMatchesBottom(prevCompBiallele, prevEvalBiallele) && topMatchesBottom(compBiallele, evalBiallele));
+                                boolean topsMatch = (topMatchesTop(prevCompAllelePair, prevEvalAllelePair) && topMatchesTop(compAllelePair, evalAllelePair));
+                                boolean topMatchesBottom = (topMatchesBottom(prevCompAllelePair, prevEvalAllelePair) && topMatchesBottom(compAllelePair, evalAllelePair));
 
                                 if (topsMatch || topMatchesBottom) {
                                     ps.phasesAgree++;
@@ -172,7 +172,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                                 else {
                                     ps.phasesDisagree++;
                                     logger.debug("SWITCHED locus: " + curLocus);
-                                    interesting.addReason("SWITCH", samp, group, toString(prevCompBiallele, compBiallele) + " -> " + toString(prevEvalBiallele, evalBiallele));
+                                    interesting.addReason("SWITCH", samp, group, toString(prevCompAllelePair, compAllelePair) + " -> " + toString(prevEvalAllelePair, evalAllelePair));
                                 }
                             }
                         }
@@ -212,23 +212,23 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         return new Double(pq.toString());
     }
 
-    public boolean topMatchesTop(Biallele b1, Biallele b2) {
+    public boolean topMatchesTop(AllelePair b1, AllelePair b2) {
         return b1.getTopAllele().equals(b2.getTopAllele());
     }
 
-    public boolean topMatchesBottom(Biallele b1, Biallele b2) {
+    public boolean topMatchesBottom(AllelePair b1, AllelePair b2) {
         return b1.getTopAllele().equals(b2.getBottomAllele());
     }
 
-    public boolean bottomMatchesTop(Biallele b1, Biallele b2) {
+    public boolean bottomMatchesTop(AllelePair b1, AllelePair b2) {
         return topMatchesBottom(b2, b1);
     }
 
-    public boolean bottomMatchesBottom(Biallele b1, Biallele b2) {
+    public boolean bottomMatchesBottom(AllelePair b1, AllelePair b2) {
         return b1.getBottomAllele().equals(b2.getBottomAllele());
     }
 
-    public String toString(Biallele prev, Biallele cur) {
+    public String toString(AllelePair prev, AllelePair cur) {
         return prev.getTopAllele().getBaseString() + "," + cur.getTopAllele().getBaseString() + "|" + prev.getBottomAllele().getBaseString() + "," + cur.getBottomAllele().getBaseString();
     }
 
