@@ -316,6 +316,13 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
         }
 
         public Pair<Integer, Double> getGenotype(int frequency, String sample) {
+            // it's possible that the genotype conformation hash wasn't initialized
+            if ( samplesToGenotypesPerAF.get(frequency) == null ) {
+                // confirm that the current frequency is the target one
+                if ( frequency != this.frequency )
+                    throw new IllegalStateException("Attempting to retrieve genotypes from an uninitialized hash for frequency " + frequency + " (the hash is current standing at frequency " + this.frequency + ")");
+                recordGenotypes();            
+            }
             return samplesToGenotypesPerAF.get(frequency).get(sample);
         }
 
