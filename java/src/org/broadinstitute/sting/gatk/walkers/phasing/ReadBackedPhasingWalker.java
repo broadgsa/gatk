@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.gatk.walkers.phasing;
+package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
@@ -534,8 +534,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
                         edgeToReads.addRead(e, rdName);
 
-                        sitesWithEdges.add(e.v1);
-                        sitesWithEdges.add(e.v2);
+                        sitesWithEdges.add(e.getV1());
+                        sitesWithEdges.add(e.getV2());
                     }
                 }
             }
@@ -602,8 +602,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                    Note that the path from prev ---> v1 will NOT contain v2, since we removed all of v2's edges,
                    and the path from v2 ---> cur will NOT contain v1.
                  */
-                boolean prevTo2and1ToCur = removedSiteSameCCAsPrev[e.v1].contains(e.v2) && removedSiteSameCCAsCur[e.v2].contains(e.v1);
-                boolean prevTo1and2ToCur = removedSiteSameCCAsPrev[e.v2].contains(e.v1) && removedSiteSameCCAsCur[e.v1].contains(e.v2);
+                boolean prevTo2and1ToCur = removedSiteSameCCAsPrev[e.getV1()].contains(e.getV2()) && removedSiteSameCCAsCur[e.getV2()].contains(e.getV1());
+                boolean prevTo1and2ToCur = removedSiteSameCCAsPrev[e.getV2()].contains(e.getV1()) && removedSiteSameCCAsCur[e.getV1()].contains(e.getV2());
 
                 if (prevTo2and1ToCur || prevTo1and2ToCur) {
                     for (String readName : edgeToReads.getReads(e)) {
@@ -611,9 +611,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
                         if (logger.isDebugEnabled()) {
                             if (prevTo2and1ToCur)
-                                logger.debug("Keep read " + readName + " due to path: " + prev + " ---> " + e.v2 + " -> " + e.v1 + " ---> " + cur);
+                                logger.debug("Keep read " + readName + " due to path: " + prev + " ---> " + e.getV2() + " -> " + e.getV1() + " ---> " + cur);
                             else
-                                logger.debug("Keep read " + readName + " due to path: " + prev + " ---> " + e.v1 + " -> " + e.v2 + " ---> " + cur);
+                                logger.debug("Keep read " + readName + " due to path: " + prev + " ---> " + e.getV1() + " -> " + e.getV2() + " ---> " + cur);
                         }
                     }
                 }
