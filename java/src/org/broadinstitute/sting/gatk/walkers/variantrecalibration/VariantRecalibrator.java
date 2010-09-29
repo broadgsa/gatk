@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
+import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
@@ -70,7 +71,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private PrintStream TRANCHES_FILE;
     @Output(fullName="report_dat_file", shortName="reportDatFile", doc="The output report .dat file used with Rscript to create the optimization curve PDF file", required=true)
     private File REPORT_DAT_FILE;
-    @Output(doc="File to which recalibrated variants should be written",required=true)
+    @Output(doc="File to which recalibrated variants should be written", required=true)
     private VCFWriter vcfWriter = null;
 
     /////////////////////////////
@@ -106,6 +107,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private double SINGLETON_FP_RATE = 0.5;
     @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
     private double QUALITY_SCALE_FACTOR = 100.0;
+    @Argument(fullName="dontTrustACField", shortName="dontTrustACField", doc="If specified the VR will not use the AC field and will instead always parse the genotypes to figure out how many variant chromosomes there are at a given site.", required=false)
+    private boolean NEVER_TRUST_AC_FIELD = false;
 
     /////////////////////////////
     // Debug Arguments
@@ -121,6 +124,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private VariantGaussianMixtureModel theModel = null;
     private Set<String> ignoreInputFilterSet = null;
     private Set<String> inputNames = new HashSet<String>();
+    private NestedHashMap priorCache = new NestedHashMap();
+    private boolean trustACField = false;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -228,26 +233,56 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     } else if( dbsnp != null ) {
                         knownPrior_qScore = PRIOR_DBSNP;
                     }
-                    final double knownPrior = QualityUtils.qualToProb(knownPrior_qScore);
 
-                    final int alleleCount = vc.getChromosomeCount(vc.getAlternateAllele(0)); // BUGBUG: assumes file has genotypes. Also, what to do about tri-allelic sites?
 
-                    final double acPrior = theModel.getAlleleCountPrior( alleleCount );
-                    final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
+                    // If we can trust the AC field then use it instead of parsing all the genotypes. Results in a substantial speed up.
+                    final int alleleCount = (trustACField ? Integer.parseInt(vc.getAttribute("AC",-1).toString()) : vc.getChromosomeCount(vc.getAlternateAllele(0)));
+                    if( !trustACField && !NEVER_TRUST_AC_FIELD ) {
+                        if( !vc.getAttributes().containsKey("AC") ) {
+                            NEVER_TRUST_AC_FIELD = true;
+                        } else {
+                            if( alleleCount == Integer.parseInt( vc.getAttribute("AC").toString()) ) {
+                                // The AC field is correct at this record so we trust it forever
+                                trustACField = true;
+                            } else { // We found a record in which the AC field wasn't correct but we are trying to trust it
+                                throw new UserException.BadInput("AC info field doesn't match the variant chromosome count so we can't trust it! Please run with --dontTrustACField which will force the walker to parse the genotypes for each record, drastically increasing the runtime." +
+                                            "First observed at " + vc.getChr() + ":" + vc.getStart());
+                            }
+                        }
+                    }
+                    if( trustACField && alleleCount == -1 ) {
+                        throw new UserException.BadInput("AC info field doesn't exist for all records (although it does for some) so we can't trust it! Please run with --dontTrustACField which will force the walker to parse the genotypes for each record, drastically increasing the runtime." +
+                                "First observed at " + vc.getChr() + ":" + vc.getStart());
+                    }
 
-                    if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {
-                        throw new UserException.CommandLineException("Something is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
+                    final Object[] priorKey = new Object[2];
+                    priorKey[0] = alleleCount;
+                    priorKey[1] = knownPrior_qScore;
+
+                    Double priorLodFactor = (Double)priorCache.get( priorKey );
+
+                    // If this prior factor hasn't been calculated before, do so now
+                    if(priorLodFactor == null) {
+                        final double knownPrior = QualityUtils.qualToProb(knownPrior_qScore);
+                        final double acPrior = theModel.getAlleleCountPrior( alleleCount );
+                        final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
+
+                        if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {
+                            throw new UserException.CommandLineException("Something is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
+                        }
+
+                        priorLodFactor = Math.log10(totalPrior) - Math.log10(1.0 - totalPrior) - Math.log10(1.0);
+
+                        priorCache.put( priorLodFactor, false, priorKey );
                     }
 
                     final double pVar = theModel.evaluateVariant( vc );
-
-                    final double lod = (Math.log10(totalPrior) + Math.log10(pVar)) - ((Math.log10(1.0 - totalPrior)) + Math.log10(1.0));
+                    final double lod = priorLodFactor + Math.log10(pVar);
                     variantDatum.qual = Math.abs( QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod) );
 
                     mapList.add( variantDatum );
-
-                    Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                    attrs.put("OQ", String.format("%.2f", ((Double)vc.getPhredScaledQual())));
+                    final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+                    attrs.put("OQ", String.format("%.2f", vc.getPhredScaledQual()));
                     attrs.put("LOD", String.format("%.4f", lod));
                     VariantContext newVC = VariantContext.modifyPErrorFiltersAndAttributes(vc, variantDatum.qual / 10.0, new HashSet<String>(), attrs);
 
