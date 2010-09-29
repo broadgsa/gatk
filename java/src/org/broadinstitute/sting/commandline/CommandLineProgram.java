@@ -81,6 +81,14 @@ public abstract class CommandLineProgram {
     private static String debugPatternString = "%n[level] %p%n[date]\t\t %d{dd MMM yyyy HH:mm:ss,SSS} %n[class]\t\t %C %n[location]\t %l %n[line number]\t %L %n[message]\t %m %n";
 
     /**
+     * The very first thing that any Sting application does is forces the JVM locale into US English, so that we don't have
+     * to think about number formatting issues.
+     */
+    {
+        forceJVMLocaleToUSEnglish();
+    }    
+
+    /**
      * Allows a given application to return a brief description of itself.
      *
      * @return An ApplicationDetails object describing the current application.  Should not be null.
