@@ -528,7 +528,6 @@ public class LocusIteratorByState extends LocusIterator {
         private final PeekableIterator<SAMRecord> iterator;
         private final DownsamplingMethod downsamplingMethod;
 
-        private final ReadSelector chainedReadSelector;
         private final SamplePartitioner samplePartitioner;
 
         private final Map<String,PerSampleReadStateManager> readStatesBySample = new HashMap<String,PerSampleReadStateManager>();
@@ -550,15 +549,13 @@ public class LocusIteratorByState extends LocusIterator {
                     this.targetCoverage = Integer.MAX_VALUE;
             }
 
-            samplePartitioner = new SamplePartitioner(sampleNames);
-            for(String sampleName: sampleNames)
+            Map<String,ReadSelector> readSelectors = new HashMap<String,ReadSelector>();
+            for(String sampleName: sampleNames) {
                 readStatesBySample.put(sampleName,new PerSampleReadStateManager());
+                readSelectors.put(sampleName,downsamplingMethod.type == DownsampleType.BY_SAMPLE ? new NRandomReadSelector(null,targetCoverage) : new AllReadsSelector());
+            }
 
-            ReadSelector primaryReadSelector = samplePartitioner;
-            if(downsamplingMethod.type == DownsampleType.BY_SAMPLE)
-                primaryReadSelector = new NRandomReadSelector(primaryReadSelector,targetCoverage);
-
-            chainedReadSelector = primaryReadSelector;
+            samplePartitioner = new SamplePartitioner(readSelectors);
         }
 
         public Iterator<SAMRecordState> iteratorForSample(final String sampleName) {
@@ -609,7 +606,7 @@ public class LocusIteratorByState extends LocusIterator {
                 int firstContigIndex = iterator.peek().getReferenceIndex();
                 int firstAlignmentStart = iterator.peek().getAlignmentStart();
                 while(iterator.hasNext() && iterator.peek().getReferenceIndex() == firstContigIndex && iterator.peek().getAlignmentStart() == firstAlignmentStart) {
-                    chainedReadSelector.submitRead(iterator.next());
+                    samplePartitioner.submitRead(iterator.next());
                 }
             }
             else {
@@ -618,10 +615,10 @@ public class LocusIteratorByState extends LocusIterator {
                     return;
 
                 while (iterator.hasNext() && !readIsPastCurrentPosition(iterator.peek())) {
-                    chainedReadSelector.submitRead(iterator.next());
+                    samplePartitioner.submitRead(iterator.next());
                 }
             }
-            chainedReadSelector.complete();
+            samplePartitioner.complete();
 
             for(String sampleName: sampleNames) {
                 ReadSelector aggregator = samplePartitioner.getSelectedReads(sampleName);
@@ -677,7 +674,7 @@ public class LocusIteratorByState extends LocusIterator {
                     statesBySample.specifyNewDownsamplingExtent(downsamplingExtent);
                 }
             }
-            chainedReadSelector.reset();
+            samplePartitioner.reset();
         }
 
         /**
@@ -891,6 +888,52 @@ interface ReadSelector {
 }
 
 /**
+ * Select every read passed in.
+ */
+class AllReadsSelector implements ReadSelector {
+    private Collection<SAMRecord> reads = new LinkedList<SAMRecord>();
+    private long readsSeen = 0;
+    private int downsamplingExtent = 0;
+
+    public void submitRead(SAMRecord read) {
+        reads.add(read);
+        readsSeen++;
+    }
+
+    public void notifyReadRejected(SAMRecord read) {
+        readsSeen++;
+        downsamplingExtent = Math.max(downsamplingExtent,read.getAlignmentEnd());
+    }
+
+    public void complete() {
+        // NO-OP.
+    }
+
+    public long getNumReadsSeen() {
+        return readsSeen;
+    }
+
+    public long getNumReadsSelected() {
+        return readsSeen;
+    }
+
+    public int getDownsamplingExtent() {
+        return downsamplingExtent;
+    }
+
+    public Collection<SAMRecord> getSelectedReads() {
+        return reads;
+    }
+
+    public void reset() {
+        reads.clear();
+        readsSeen = 0;
+        downsamplingExtent = 0;
+    }
+}
+
+
+/**
  * Select N reads randomly from the input stream.
  */
 class NRandomReadSelector implements ReadSelector {
@@ -950,13 +993,11 @@ class NRandomReadSelector implements ReadSelector {
 }
 
 class SamplePartitioner implements ReadSelector {
-    private final Map<String,SampleStorage> readsBySample;
+    private final Map<String,ReadSelector> readsBySample;
     private long readsSeen = 0;
 
-    public SamplePartitioner(Collection<String> sampleNames) {
-        readsBySample = new HashMap<String,SampleStorage>();
-        for(String sampleName: sampleNames)
-            readsBySample.put(sampleName,new SampleStorage());
+    public SamplePartitioner(Map<String,ReadSelector> readSelectors) {
+        readsBySample = readSelectors;
     }
 
     public void submitRead(SAMRecord read) {
@@ -987,8 +1028,8 @@ class SamplePartitioner implements ReadSelector {
 
     public int getDownsamplingExtent() {
         int downsamplingExtent = 0;
-        for(SampleStorage storage: readsBySample.values())
-            downsamplingExtent = Math.max(downsamplingExtent,storage.downsamplingExtent);
+        for(ReadSelector storage: readsBySample.values())
+            downsamplingExtent = Math.max(downsamplingExtent,storage.getDownsamplingExtent());
         return downsamplingExtent;
     }
     
@@ -1003,52 +1044,11 @@ class SamplePartitioner implements ReadSelector {
     }
 
     public void reset() {
-        for(SampleStorage storage: readsBySample.values())
+        for(ReadSelector storage: readsBySample.values())
             storage.reset();
         readsSeen = 0;
     }
 
-    private class SampleStorage implements ReadSelector {
-        private Collection<SAMRecord> reads = new LinkedList<SAMRecord>();
-        private long readsSeen = 0;
-        private int downsamplingExtent = 0;
-
-        public void submitRead(SAMRecord read) {
-            reads.add(read);
-            readsSeen++;
-        }
-
-        public void notifyReadRejected(SAMRecord read) {
-            readsSeen++;
-            downsamplingExtent = Math.max(downsamplingExtent,read.getAlignmentEnd());
-        }
-
-        public void complete() {
-            // NO-OP.
-        }        
-
-        public long getNumReadsSeen() {
-            return readsSeen;
-        }
-
-        public long getNumReadsSelected() {
-            return readsSeen;
-        }
-
-        public int getDownsamplingExtent() {
-            return downsamplingExtent;
-        }
-
-        public Collection<SAMRecord> getSelectedReads() {
-            return reads;
-        }
-
-        public void reset() {
-            reads.clear();
-            readsSeen = 0;
-            downsamplingExtent = 0;
-        }
-    }
 }
 
 
