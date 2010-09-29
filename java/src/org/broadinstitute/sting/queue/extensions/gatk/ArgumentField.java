@@ -131,7 +131,8 @@ public abstract class ArgumentField {
         importClasses.add(this.getAnnotationIOClass());
         Class<?> innerType = this.getInnerType();
         if (innerType != null)
-            importClasses.add(innerType);
+            if (!innerType.isEnum()) // see getType()
+                importClasses.add(innerType);
         return importClasses;
     }
 
@@ -182,6 +183,13 @@ public abstract class ArgumentField {
      * @return the simple name of the class.
      */
     protected static String getType(Class<?> argType) {
+        // Special case for enums.
+        // Return the full path as sometimes two enums
+        // used in the same class have the same name
+        // ex: Model and Model
+        if (argType.isEnum())
+          return argType.getName().replace("$", ".");
+                
         String type = argType.getSimpleName();
 
         if (argType.isPrimitive())
