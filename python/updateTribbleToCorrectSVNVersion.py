@@ -1,7 +1,7 @@
 # ====================================================================================================
-# update the tribble code to the appropriate version, given the current GATK verion.
+# update the tribble code to the appropriate version, given the current GATK version.
 # this python script looks up the base version of the GATK, checks the date, and cross-references this
-# against the Tribble version.  If the current Tribble check-out has modifications it fails-fast
+# against the Tribble version.
 # ====================================================================================================
 
 import os, subprocess, re 
