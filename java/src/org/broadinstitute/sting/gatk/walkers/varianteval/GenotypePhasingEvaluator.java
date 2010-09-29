@@ -205,7 +205,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     }
 
     public static Double getPQ(Genotype gt) {
-        Object pq = gt.getAttributes().get("PQ");
+        Object pq = gt.getAttributes().get(ReadBackedPhasingWalker.PQ_KEY);
         if (pq == null)
             return null;
 

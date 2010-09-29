@@ -68,7 +68,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     protected Integer cacheWindow = 20000;
 
     @Argument(fullName = "maxPhaseSites", shortName = "maxSites", doc = "The maximum number of successive heterozygous sites permitted to be used by the phasing algorithm; [default:10]", required = false)
-    protected Integer maxPhaseSites = 10; // 2^10 == 10^3 biallelic haplotypes
+    protected Integer maxPhaseSites = 10; // 2^10 == 10^3 diploid haplotypes
 
     @Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:10.0]", required = false)
     protected Double phaseQualityThresh = 10.0; // PQ = 10.0 <=> P(error) = 10^(-10/10) = 0.1, P(correct) = 0.9
@@ -83,6 +83,17 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private LinkedList<String> rodNames = null;
     private PhasingQualityStatsWriter statsWriter = null;
+
+    public static final String PQ_KEY = "PQ";
+
+    // In order to detect phase inconsistencies:
+    private static final double FRACTION_OF_MEAN_PQ_CHANGES = 0.5; // If the PQ decreases by this fraction of the mean PQ changes (thus far), then this read is inconsistent with previous reads
+    private static final double MAX_FRACTION_OF_INCONSISTENT_READS = 0.1; // If there are more than this fraction of inconsistent reads, then flag this site
+
+    @Argument(fullName = "filterInconsistentSites", shortName = "filterInconsistentSites", doc = "Mark sites with inconsistent phasing as filtered [default:false]", required = false)
+    protected boolean filterInconsistentSites = false;
+
+    public static final String PHASING_INCONSISTENT_KEY = "PhasingInconsistent";
 
     public void initialize() {
         if (maxPhaseSites <= 2)
@@ -105,7 +116,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
-        hInfo.add(new VCFFormatHeaderLine("PQ", 1, VCFHeaderLineType.Float, "Read-backed phasing quality"));
+
+        // Phasing-specific INFO fields:
+        hInfo.add(new VCFFormatHeaderLine(PQ_KEY, 1, VCFHeaderLineType.Float, "Read-backed phasing quality"));
+        hInfo.add(new VCFInfoHeaderLine(PHASING_INCONSISTENT_KEY, 0, VCFHeaderLineType.Flag, "Are the reads significantly haplotype-inconsistent?"));
 
         Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
         writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples())));
@@ -244,8 +258,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             if (isCalledDiploidGenotype(gt) && gt.isHet()) { // Can attempt to phase this genotype
                 PhasingWindow phaseWindow = new PhasingWindow(vr, samp);
                 if (phaseWindow.hasPreviousHets()) { // Otherwise, nothing to phase this against
-                    SNPallelePair biall = new SNPallelePair(gt);
-                    logger.debug("Want to phase TOP vs. BOTTOM for: " + "\n" + biall);
+                    SNPallelePair allelePair = new SNPallelePair(gt);
+                    logger.debug("Want to phase TOP vs. BOTTOM for: " + "\n" + allelePair);
 
                     DoublyLinkedList.BidirectionalIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = phaseWindow.prevHetAndInteriorIt;
                     /* Notes:
@@ -258,24 +272,21 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     PhaseResult pr = phaseSample(phaseWindow);
                     boolean genotypesArePhased = passesPhasingThreshold(pr.phaseQuality);
 
-                    //
-                    //
-                    if (pr.phaseQuality < 0) {
-                        logger.warn("MORE than 10% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(vc));
+                    if (pr.phasingContainsInconsistencies) {
+                        logger.debug("MORE than " + (MAX_FRACTION_OF_INCONSISTENT_READS * 100) + "% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(vc));
+                        uvc.setPhasingInconsistent(filterInconsistentSites);
                     }
-                    //
-                    //
 
                     if (genotypesArePhased) {
-                        SNPallelePair prevBiall = new SNPallelePair(prevHetGenotype);
+                        SNPallelePair prevAllelePair = new SNPallelePair(prevHetGenotype);
 
-                        logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevBiall + "\n");
-                        logger.debug("THE PHASE CHOSEN HERE:\n" + biall + "\n\n");
+                        logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevAllelePair + "\n");
+                        logger.debug("THE PHASE CHOSEN HERE:\n" + allelePair + "\n\n");
 
-                        ensurePhasing(biall, prevBiall, pr.haplotype);
+                        ensurePhasing(allelePair, prevAllelePair, pr.haplotype);
                         Map<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
-                        gtAttribs.put("PQ", pr.phaseQuality);
-                        Genotype phasedGt = new Genotype(gt.getSampleName(), biall.getAllelesAsList(), gt.getNegLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
+                        gtAttribs.put(PQ_KEY, pr.phaseQuality);
+                        Genotype phasedGt = new Genotype(gt.getSampleName(), allelePair.getAllelesAsList(), gt.getNegLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
                         uvc.setGenotype(samp, phasedGt);
                     }
 
@@ -290,10 +301,13 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                             if (!handledGt.isHom())
                                 throw new ReviewedStingException("LOGICAL error: should not have anything besides hom sites IN BETWEEN two het sites");
 
-                            // Use the same PQ for each hom site in the "interior" as for the het-het phase:
+                            // Use the same phasing consistency and PQ for each hom site in the "interior" as for the het-het phase:
+                            if (pr.phasingContainsInconsistencies)
+                                interiorUvc.setPhasingInconsistent(filterInconsistentSites);
+
                             if (genotypesArePhased) {
                                 Map<String, Object> handledGtAttribs = new HashMap<String, Object>(handledGt.getAttributes());
-                                handledGtAttribs.put("PQ", pr.phaseQuality);
+                                handledGtAttribs.put(PQ_KEY, pr.phaseQuality);
                                 Genotype phasedHomGt = new Genotype(handledGt.getSampleName(), handledGt.getAlleles(), handledGt.getNegLog10PError(), handledGt.getFilters(), handledGtAttribs, genotypesArePhased);
                                 interiorUvc.setGenotype(samp, phasedHomGt);
                             }
@@ -557,10 +571,36 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                [which will happen since those edges are also in paths from prev ---> cur] is sufficient for this path to exist.
 
                NOTE:
-               If we would use NON-UNIFORM priors for the various haplotypes, then this calculation would not be correct, since the equivalence of:
+               If we would use NON-UNIFORM priors for the various haplotypes consistent with a margnialized haplotype, then this calculation would not be correct, since the equivalence of:
                1. The read affects the final marginal haplotype posterior probability (for general mapping and base quality values).
                2. The read has edges involved in a path from prev ---> cur.
                DEPENDS STRONGLY on the fact that all haplotypes have the same EXACT prior.
+
+               This is due to the following:
+               [We denote:
+               R = set of all reads
+               r = a single read
+               "AA + CC" = AA on top chromosome, CC on bottom chromosome]
+
+               Note that since there are only two haplotype possibilities:
+               P(AA + CC | R) + P(AC + CA | R) = 1
+
+               Now, if we assume that all haplotypes consistent with AA + CC have the same prior probability [P(AA + CC | R)], then:
+               P(AA + CC | R)
+               = P(AAAA + CCCC | R) + ... + P(AACC + CCAA | R)
+               = [P(AAAA + CCCC , R) + ... + P(AACC + CCAA , R)] / P(R)
+               \propto P(AAAA + CCCC , R) + ... + P(AACC + CCAA , R)
+               = P(R | AAAA + CCCC)*P(AAAA + CCCC) + ... + P(R | AACC + CCAA)*P(AACC + CCAA)
+               = P(AA + CC | R) * [P(R | AAAA + CCCC) + ... + P(R | AACC + CCAA)]
+               
+               Since we assume independence between reads given a particular haplotype [P(R | AAAA + CCCC) = \prod_r P(r | AAAA + CCCC)],
+               a new read r affects P(AA + CC | R) by multiplying each of the terms in the sum by, e.g., P(r | AAAA + CCCC).
+               Therefore, if these values do not affect the ratio of:
+               (I) [P(R | AAAA + CCCC) + ... + P(R | AACC + CCAA)] / [P(R | ACAA + CACC) + ... + P(R | ACCC + CAAA)]
+               then they do not affect the value of:
+               (II) P(AA + CC | R) / P(AC + CA | R)   [which uniquely defines their values, since they sum to 1]
+
+               And, the P(r | AAAA + CCCC), ..., P(r | ACCC + CAAA) do not affect ratio (I) iff r's edges do not take part in a path from prev to cur in combination with the other reads in R.
              */
             int prev = phasingSiteIndex - 1;
             int cur = phasingSiteIndex;
@@ -699,7 +739,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         /* Will map a phase and its "complement" to a single representative phase,
           and marginalizeAsNewTable() marginalizes to 2 positions [starting at the previous position, and then the current position]:
         */
-        HaplotypeTableCreator tabCreator = new BiallelicComplementHaplotypeTableCreator(phaseWindow.hetGenotypes, phaseWindow.phasingSiteIndex - 1, 2);
+        HaplotypeTableCreator tabCreator = new TableCreatorOfHaplotypeAndComplementForDiploidAlleles(phaseWindow.hetGenotypes, phaseWindow.phasingSiteIndex - 1, 2);
         PhasingTable sampleHaps = tabCreator.getNewTable();
 
         logger.debug("Number of USED reads [connecting the two positions to be phased] at sites: " + phaseWindow.readsAtHetSites.size());
@@ -714,40 +754,44 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         // Update the phasing table based on each of the sub-reads for this sample:
         MaxHaplotypeAndQuality prevMaxHapAndQual = null;
+
         int numHighQualityIterations = 0;
         int numInconsistentIterations = 0;
+
+        double totalAbsPQchange = 0;
+        int numPQchangesObserved = 0;
+
         for (Map.Entry<String, Read> nameToReads : phaseWindow.readsAtHetSites.entrySet()) {
             Read rd = nameToReads.getValue();
-
-            logger.debug("rd = " + rd + "\tname = " + nameToReads.getKey() + (rd.isGapped() ? "\tGAPPED" : ""));
+            logger.debug("rd = " + rd + "\tname = " + nameToReads.getKey());
 
             for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
                 PhasingScore score = rd.matchHaplotypeClassScore(pte.getHaplotypeClass());
                 pte.getScore().integrateReadScore(score);
-
                 logger.debug("score(" + rd + ", " + pte.getHaplotypeClass() + ") = " + score);
             }
 
-            //
-            //
-            //
-            // Check the current best haplotype assignment:
+            // Check the current best haplotype assignment and compare it to the previous one:
             MaxHaplotypeAndQuality curMaxHapAndQual = new MaxHaplotypeAndQuality(sampleHaps, false);
             logger.debug("CUR MAX hap:\t" + curMaxHapAndQual.maxEntry.getHaplotypeClass() + "\tcurPhaseQuality:\t" + curMaxHapAndQual.phaseQuality);
-            if (prevMaxHapAndQual != null && passesPhasingThreshold(prevMaxHapAndQual.phaseQuality)) {
-                numHighQualityIterations++;
-                if (!curMaxHapAndQual.maxEntry.getHaplotypeClass().getRepresentative().equals(prevMaxHapAndQual.maxEntry.getHaplotypeClass().getRepresentative()) || // switched phase
-                        curMaxHapAndQual.phaseQuality < 0.9 * prevMaxHapAndQual.phaseQuality) { // a 10% ["significant"] decrease in PQ
-                    logger.debug("Inconsistent read found!");
-                    numInconsistentIterations++;
+            if (prevMaxHapAndQual != null) {
+                double changeInPQ = prevMaxHapAndQual.phaseQuality - curMaxHapAndQual.phaseQuality;
+
+                if (passesPhasingThreshold(prevMaxHapAndQual.phaseQuality)) {
+                    numHighQualityIterations++;
+                    if (!curMaxHapAndQual.hasSameRepresentativeHaplotype(prevMaxHapAndQual) || // switched phase
+                            (numPQchangesObserved > 0 && changeInPQ > FRACTION_OF_MEAN_PQ_CHANGES * (totalAbsPQchange / numPQchangesObserved))) { // a "significant" decrease in PQ
+                        logger.debug("Inconsistent read found!");
+                        numInconsistentIterations++;
+                    }
                 }
+
+                totalAbsPQchange += Math.abs(changeInPQ);
+                numPQchangesObserved++;
             }
             prevMaxHapAndQual = curMaxHapAndQual;
-            //
-            //
-            //
-
         }
+
         logger.debug("\nPhasing table [AFTER CALCULATION]:\n" + sampleHaps + "\n");
         MaxHaplotypeAndQuality maxHapQual = new MaxHaplotypeAndQuality(sampleHaps, true);
         double posteriorProb = maxHapQual.maxEntry.getScore().getValue();
@@ -755,22 +799,11 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         logger.debug("MAX hap:\t" + maxHapQual.maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + maxHapQual.phaseQuality);
         logger.debug("Number of used reads " + phaseWindow.readsAtHetSites.size() + "; number of high PQ iterations " + numHighQualityIterations + "; number of inconsistencies " + numInconsistentIterations);
 
-        double repPhaseQuality = maxHapQual.phaseQuality;
+        boolean phasingContainsInconsistencies = false;
+        if (numInconsistentIterations / (double) numHighQualityIterations > MAX_FRACTION_OF_INCONSISTENT_READS)
+            phasingContainsInconsistencies = true;
 
-        //
-        //
-        if (numInconsistentIterations / (double) numHighQualityIterations >= 0.1) {
-            //
-            // ????
-            // NEED TO CHANGE phaseSite() to always output PQ field, EVEN if it's LESS THAN threshold ??????
-            // ????
-            //
-            repPhaseQuality *= -1;
-        }
-        //
-        //
-
-        return new PhaseResult(maxHapQual.maxEntry.getHaplotypeClass().getRepresentative(), repPhaseQuality);
+        return new PhaseResult(maxHapQual.maxEntry.getHaplotypeClass().getRepresentative(), maxHapQual.phaseQuality, phasingContainsInconsistencies);
     }
 
     private static class MaxHaplotypeAndQuality {
@@ -803,22 +836,30 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
             return -10.0 * (sumErrorProbs.getLog10Value());
         }
+
+        public boolean hasSameRepresentativeHaplotype(MaxHaplotypeAndQuality that) {
+            return this.getRepresentative().equals(that.getRepresentative());
+        }
+
+        private Haplotype getRepresentative() {
+            return maxEntry.getHaplotypeClass().getRepresentative();
+        }
     }
 
     /*
-        Ensure that curBiall is phased relative to prevBiall as specified by hap.
+        Ensure that curAllelePair is phased relative to prevAllelePair as specified by hap.
      */
-    public static void ensurePhasing(SNPallelePair curBiall, SNPallelePair prevBiall, Haplotype hap) {
+    public static void ensurePhasing(SNPallelePair curAllelePair, SNPallelePair prevAllelePair, Haplotype hap) {
         if (hap.size() < 2)
             throw new ReviewedStingException("LOGICAL ERROR: Only considering haplotypes of length > 2!");
 
         byte prevBase = hap.getBase(0); // The 1st base in the haplotype
         byte curBase = hap.getBase(1);  // The 2nd base in the haplotype
 
-        boolean chosePrevTopChrom = prevBiall.matchesTopBase(prevBase);
-        boolean choseCurTopChrom = curBiall.matchesTopBase(curBase);
+        boolean chosePrevTopChrom = prevAllelePair.matchesTopBase(prevBase);
+        boolean choseCurTopChrom = curAllelePair.matchesTopBase(curBase);
         if (chosePrevTopChrom != choseCurTopChrom)
-            curBiall.swapAlleles();
+            curAllelePair.swapAlleles();
     }
 
     private boolean isInWindowRange(VariantContext vc1, VariantContext vc2) {
@@ -1002,7 +1043,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private Map<String, Genotype> genotypes;
         private double negLog10PError;
         private Set<String> filters;
-        private Map<String, ?> attributes;
+        private Map<String, Object> attributes;
 
         public UnfinishedVariantContext(VariantContext vc) {
             this.name = vc.getName();
@@ -1012,8 +1053,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.alleles = vc.getAlleles();
             this.genotypes = new HashMap<String, Genotype>(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
             this.negLog10PError = vc.getNegLog10PError();
-            this.filters = vc.getFilters();
-            this.attributes = vc.getAttributes();
+            this.filters = new HashSet<String>(vc.getFilters());
+            this.attributes = new HashMap<String, Object>(vc.getAttributes());
         }
 
         public VariantContext toVariantContext() {
@@ -1030,6 +1071,13 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         public void setGenotype(String sample, Genotype newGt) {
             genotypes.put(sample, newGt);
+        }
+        
+        public void setPhasingInconsistent(boolean addAsFilter) {
+            attributes.put(PHASING_INCONSISTENT_KEY, true);
+
+            if (addAsFilter)
+                filters.add(PHASING_INCONSISTENT_KEY);
         }
     }
 
@@ -1128,17 +1176,17 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
     }
 
-    private static class BiallelicComplementHaplotypeTableCreator extends HaplotypeTableCreator {
-        private SNPallelePair[] bialleleSNPs;
+    private static class TableCreatorOfHaplotypeAndComplementForDiploidAlleles extends HaplotypeTableCreator {
+        private SNPallelePair[] SNPallelePairs;
         private int startIndex;
         private int marginalizeLength;
 
-        public BiallelicComplementHaplotypeTableCreator(Genotype[] hetGenotypes, int startIndex, int marginalizeLength) {
+        public TableCreatorOfHaplotypeAndComplementForDiploidAlleles(Genotype[] hetGenotypes, int startIndex, int marginalizeLength) {
             super(hetGenotypes);
 
-            this.bialleleSNPs = new SNPallelePair[genotypes.length];
+            this.SNPallelePairs = new SNPallelePair[genotypes.length];
             for (int i = 0; i < genotypes.length; i++)
-                bialleleSNPs[i] = new SNPallelePair(genotypes[i]);
+                SNPallelePairs[i] = new SNPallelePair(genotypes[i]);
 
             this.startIndex = startIndex;
             this.marginalizeLength = marginalizeLength;
@@ -1149,7 +1197,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
             PhasingTable table = new PhasingTable();
             for (Haplotype hap : getAllHaplotypes()) {
-                if (bialleleSNPs[startIndex].matchesTopBase(hap.getBase(startIndex))) {
+                if (SNPallelePairs[startIndex].matchesTopBase(hap.getBase(startIndex))) {
                     /* hap is the "representative" haplotype [DEFINED here to be
                       the one with the top base at the startIndex position.
                       NOTE that it is CRITICAL that this definition be consistent with the representative sub-haplotypes defined below!]
@@ -1169,14 +1217,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         private Haplotype complement(Haplotype hap) {
-            int numSites = bialleleSNPs.length;
+            int numSites = SNPallelePairs.length;
             if (hap.size() != numSites)
                 throw new ReviewedStingException("INTERNAL ERROR: hap.size() != numSites");
 
             // Take the other base at EACH position of the Haplotype:
             byte[] complementBases = new byte[numSites];
             for (int i = 0; i < numSites; i++)
-                complementBases[i] = bialleleSNPs[i].getOtherBase(hap.getBase(i));
+                complementBases[i] = SNPallelePairs[i].getOtherBase(hap.getBase(i));
 
             return new Haplotype(complementBases);
         }
@@ -1268,10 +1316,12 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     private static class PhaseResult {
         public Haplotype haplotype;
         public double phaseQuality;
+        public boolean phasingContainsInconsistencies;
 
-        public PhaseResult(Haplotype haplotype, double phaseQuality) {
+        public PhaseResult(Haplotype haplotype, double phaseQuality, boolean phasingContainsInconsistencies) {
             this.haplotype = haplotype;
             this.phaseQuality = phaseQuality;
+            this.phasingContainsInconsistencies = phasingContainsInconsistencies;
         }
     }
 
@@ -1425,7 +1475,7 @@ class HaplotypeClass implements Iterable<Haplotype> {
             if (isFirst)
                 isFirst = false;
             else
-                sb.append("|");
+                sb.append(" + ");
 
             sb.append(h);
         }
@@ -1486,31 +1536,6 @@ class Read extends BaseArray {
             }
         }
         return score;
-    }
-
-    private enum ReadStage {
-        BEFORE_BASES, BASES_1, NO_BASES, BASES_2
-    }
-
-    public boolean isGapped() {
-        ReadStage s = ReadStage.BEFORE_BASES;
-
-        for (int i = 0; i < bases.length; i++) {
-            if (getBase(i) != null) { // has a base at i
-                if (s == ReadStage.BEFORE_BASES)
-                    s = ReadStage.BASES_1;
-                else if (s == ReadStage.NO_BASES) {
-                    s = ReadStage.BASES_2;
-                    break;
-                }
-            }
-            else { // no base at i
-                if (s == ReadStage.BASES_1)
-                    s = ReadStage.NO_BASES;
-            }
-        }
-
-        return (s == ReadStage.BASES_2);
     }
 
     public int[] getNonNullIndices() {
