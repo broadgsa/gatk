@@ -60,6 +60,7 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
         int minAlleleFrequencyToTest = getMinAlleleFrequencyToTest();
 
         int maxAlleleFrequencyToTest = AFMatrix.getSamples().size() * 2;
+
         // for each minor allele frequency, calculate log10PofDgivenAFi
         for (int i = 1; i <= maxAlleleFrequencyToTest; i++) {
             // add one more alternate allele
@@ -70,10 +71,8 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
 
             // an optimization to speed up the calculation: if we are beyond the local maximum such
             //  that subsequent likelihoods won't factor into the confidence score, just quit
-            if ( i >= minAlleleFrequencyToTest && maxLikelihoodSeen - log10AlleleFrequencyPosteriors[i] > LOG10_OPTIMIZATION_EPSILON ) {
-                UnifiedGenotyperEngine.ignoreAlleleFrequenciesAboveI(log10AlleleFrequencyPosteriors, i);
+            if ( i >= minAlleleFrequencyToTest && maxLikelihoodSeen - log10AlleleFrequencyPosteriors[i] > LOG10_OPTIMIZATION_EPSILON )
                 return;
-            }
 
             if ( log10AlleleFrequencyPosteriors[i] > maxLikelihoodSeen )
                 maxLikelihoodSeen = log10AlleleFrequencyPosteriors[i];

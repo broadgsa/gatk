@@ -146,8 +146,8 @@ public class UnifiedGenotyperEngine {
         // TODO: get rid of this optimization, it is wrong!
         afcm.get().setMinAlleleFrequencyToTest(0);
 
-        // zero out the AFs above the N for this position
-        ignoreAlleleFrequenciesAboveI(log10AlleleFrequencyPosteriors.get(), 2 * GLs.size());
+        // 'zero' out the AFs (so that we don't have to worry if not all samples have reads at this position)
+        clearAFarray(log10AlleleFrequencyPosteriors.get());
         afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
 
         // find the most likely frequency
@@ -297,13 +297,9 @@ public class UnifiedGenotyperEngine {
         return stratifiedContexts;
     }
 
-    /**
-     * @param AFs      AF array
-     * @param freqI    allele frequency I
-     */
-    protected static void ignoreAlleleFrequenciesAboveI(double[] AFs, int freqI) {
-        while ( ++freqI < AFs.length )
-            AFs[freqI] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
+    protected static void clearAFarray(double[] AFs) {
+        for ( int i = 0; i < AFs.length; i++ )
+            AFs[i] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
     }
 
     private VariantCallContext estimateReferenceConfidence(Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples) {
@@ -342,7 +338,10 @@ public class UnifiedGenotyperEngine {
             AFline.append(i + "/" + N + "\t");
             AFline.append(String.format("%.2f\t", ((float)i)/N));
             AFline.append(String.format("%.8f\t", log10AlleleFrequencyPriors[i]));
-            AFline.append(String.format("%.8f\t", log10AlleleFrequencyPosteriors.get()[i]));
+            if ( log10AlleleFrequencyPosteriors.get()[i] == AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED)
+                AFline.append("0.0\t");                
+            else
+                AFline.append(String.format("%.8f\t", log10AlleleFrequencyPosteriors.get()[i]));
             AFline.append(String.format("%.8f\t", normalizedPosteriors[i]));
             verboseWriter.println(AFline.toString());
         }
@@ -394,28 +393,6 @@ public class UnifiedGenotyperEngine {
     }
 
     protected void computeAlleleFrequencyPriors(int N) {
-        // calculate sum(1/i)
-        double sigma_1_over_I = 0.0;
-        for (int i = 1; i <= N; i++)
-            sigma_1_over_I += 1.0 / (double)i;
-
-        // delta = theta / sum(1/i)
-        double delta = UAC.heterozygosity / sigma_1_over_I;
-
-        // calculate the null allele frequencies for 1-N
-        double sum = 0.0;
-        for (int i = 1; i <= N; i++) {
-            double value = delta / (double)i;
-            log10AlleleFrequencyPriors[i] = Math.log10(value);
-            sum += value;
-        }
-
-        // null frequency for AF=0 is (1 - sum(all other frequencies))
-        log10AlleleFrequencyPriors[0] = Math.log10(1.0 - sum);
-    }
-
-    // TODO: enable me
-    protected void computeAlleleFrequencyPriorsCorrect(int N) {
         // calculate the allele frequency priors for 1-N
         double sum = 0.0;
         for (int i = 1; i <= N; i++) {
