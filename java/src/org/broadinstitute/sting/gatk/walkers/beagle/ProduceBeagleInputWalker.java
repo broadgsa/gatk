@@ -29,7 +29,9 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -52,8 +54,9 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     public static final String ROD_NAME = "variant";
 
-    @Argument(fullName = "beagle_file", shortName = "beagle", doc = "File to print BEAGLE-specific data for use with imputation", required = true)
-    public PrintStream  beagleWriter = null;
+    @Output(doc="File to which BEAGLE input should be written",required=true)
+    protected PrintStream  beagleWriter = null;
+
     @Argument(fullName = "genotypes_file", shortName = "genotypes", doc = "File to print reference genotypes for error analysis", required = false)
     public PrintStream beagleGenotypesWriter  = null;
     @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)

@@ -50,7 +50,7 @@ public class BeagleIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T ProduceBeagleInput -R " + hg19Reference + " " +
                         "-B:variant,VCF " + beagleValidationDataLocation + "inttestbgl.input.vcf " +
-                         "-beagle %s", 1, Arrays.asList("c0d30e5dbe903874f8422a0e63a5118e"));
+                         "-o %s", 1, Arrays.asList("c0d30e5dbe903874f8422a0e63a5118e"));
         executeTest("test BeagleInput", spec);
     }
 
