@@ -1,17 +1,23 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.vcf.VCFCompoundHeaderLine;
 import org.broad.tribble.vcf.VCFFormatHeaderLine;
 import org.broad.tribble.vcf.VCFHeaderLineType;
-import org.broad.tribble.vcf.VCFCompoundHeaderLine;
-import org.broadinstitute.sting.gatk.contexts.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
-import org.broadinstitute.sting.utils.pileup.*;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnotation {
@@ -45,18 +51,19 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnot
         counts[0] = alleleCounts.get(vc.getReference().getBases()[0]);
         for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
             counts[i+1] = alleleCounts.get(vc.getAlternateAllele(i).getBases()[0]);
-        
+
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), counts);
         return map;
     }
 
     private Map<String,Object> annotateIndel(StratifiedAlignmentContext stratifiedContext, VariantContext vc) {
-        ReadBackedExtendedEventPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getExtendedEventPileup();
-        if ( pileup == null )
+//        ReadBackedExtendedEventPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getExtendedEventPileup();
+        //ReadBackedPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+        //if ( pileup == null )
             return null;
 
-        Integer[] counts = new Integer[2];
+        //Integer[] counts = new Integer[2];
 
         // TODO -- fix me
         /*
@@ -69,9 +76,9 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnot
         }
         */
 
-        Map<String,Object> map = new HashMap<String,Object>();
-        map.put(getKeyNames().get(0), counts);
-        return map;
+        //Map<String,Object> map = new HashMap<String,Object>();
+        //map.put(getKeyNames().get(0), counts);
+        //return map;
     }
 
     public List<String> getKeyNames() { return Arrays.asList("AD"); }

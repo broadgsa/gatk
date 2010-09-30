@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.Arrays;
 import java.util.List;
@@ -203,7 +204,7 @@ public class HaplotypeIndelErrorModel {
             }
 
             if (read.getReadName().contains("106880")) {
-                
+
                 System.out.println("aca");
 
                 System.out.println("Haplotype:");
@@ -305,10 +306,10 @@ public class HaplotypeIndelErrorModel {
         // workaround for reads whose bases quality = 0,
         if (readQual < 1)
             readQual = 1;
-        
+
         double baseProb = QualityUtils.qualToProb(readQual);
 
-        
+
         double pBaseMatch =  probToQual(baseProb);
         double pBaseMismatch = (double)(readQual);
 
@@ -369,6 +370,67 @@ public class HaplotypeIndelErrorModel {
          // record best path metric
         pathMetricArray[indR+1][indX] = bestMetric;
         bestStateIndexArray[indR+1][indX] = bestMetricIndex;
+
+    }
+
+    public double[][] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, List<Haplotype> haplotypesInVC,
+                                                      VariantContext vc, int eventLength){
+        double[][] haplotypeLikehoodMatrix = new double[haplotypesInVC.size()][haplotypesInVC.size()];
+        double readLikelihoods[][] = new double[pileup.getReads().size()][haplotypesInVC.size()];
+        int i=0;
+        for (SAMRecord read : pileup.getReads()) {
+
+            // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
+            // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
+            for (int j=0; j < haplotypesInVC.size(); j++) {
+                readLikelihoods[i][j]= computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(j), read, vc, eventLength);
+                if (DEBUG) {
+                    System.out.print(read.getReadName()+" ");
+
+                    System.out.format("%d %d S:%d US:%d E:%d UE:%d C:%s %3.4f\n",i, j, read.getAlignmentStart(),
+                            read.getUnclippedStart(), read.getAlignmentEnd(), read.getUnclippedEnd(),
+                            read.getCigarString(), readLikelihoods[i][j]);
+                }
+
+            }
+            i++;
+        }
+
+        for (i=0; i < haplotypesInVC.size(); i++) {
+            for (int j=i; j < haplotypesInVC.size(); j++){
+                // combine likelihoods of haplotypeLikelihoods[i], haplotypeLikelihoods[j]
+                // L(Hi, Hj) = sum_reads ( Pr(R|Hi)/2 + Pr(R|Hj)/2)
+                //readLikelihoods[k][j] has log10(Pr(R_k) | H[j] )
+                double[] readLikelihood = new double[2]; // diploid sample
+                for (int readIdx=0; readIdx < pileup.getReads().size(); readIdx++) {
+                    readLikelihood[0] = -readLikelihoods[readIdx][i]/10;
+                    readLikelihood[1] = -readLikelihoods[readIdx][j]/10;
+
+                    double probRGivenHPair = MathUtils.sumLog10(readLikelihood)/2;
+                    haplotypeLikehoodMatrix[i][j] += HaplotypeIndelErrorModel.probToQual(probRGivenHPair);
+
+                }
+
+
+            }
+        }
+
+        return haplotypeLikehoodMatrix;
+
+    }
+
+    public static double[] getPosteriorProbabilitesFromHaplotypeLikelihoods(double[][] haplotypeLikehoodMatrix) {
+        int hSize = haplotypeLikehoodMatrix.length;
+        double[] genotypeLikelihoods = new double[hSize*(hSize+1)/2];
+
+        int k=0;
+        for (int i=0; i < hSize; i++) {
+            for (int j=i; j < hSize; j++){
+                genotypeLikelihoods[k++] = -haplotypeLikehoodMatrix[i][j]/10;
+            }
+        }
+        // normalize likelihoods and pass to linear domain.
+        return MathUtils.normalizeFromLog10(genotypeLikelihoods);
 
     }
 

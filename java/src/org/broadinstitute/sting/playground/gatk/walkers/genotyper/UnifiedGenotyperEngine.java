@@ -164,7 +164,9 @@ public class UnifiedGenotyperEngine {
         if ( bestAFguess != 0 ) {
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(normalizedPosteriors[0]);
             if ( Double.isInfinite(phredScaledConfidence) )
-                phredScaledConfidence = -10.0 * log10AlleleFrequencyPosteriors.get()[0];
+                // todo - verify this is OK
+                phredScaledConfidence = (double)QualityUtils.MAX_QUAL_SCORE;
+                //phredScaledConfidence = -10.0 * log10AlleleFrequencyPosteriors.get()[0];
         } else {
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofF);
             if ( Double.isInfinite(phredScaledConfidence) ) {
@@ -224,11 +226,22 @@ public class UnifiedGenotyperEngine {
         }
 
         GenomeLoc loc = refContext.getLocus();
-        VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
+
+        // todo - temp fix until we can deal with extended events properly
+        //VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
+        VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(),
+                loc.getStart()+refAllele.length(), alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
+
 
         if ( annotationEngine != null ) {
             // first off, we want to use the *unfiltered* context for the annotations
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
+            ReadBackedPileup pileup = null;
+            if (rawContext.hasExtendedEventPileup())
+                pileup = rawContext.getExtendedEventPileup();
+            else if (rawContext.hasBasePileup())
+                pileup = rawContext.getBasePileup();
+
+            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
             Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vc);
             vc = variantContexts.iterator().next(); //We know the collection will always have exactly 1 element.
@@ -413,8 +426,8 @@ public class UnifiedGenotyperEngine {
                 priors = new DiploidSNPGenotypePriors();
                 break;
             case DINDEL:
-                // TODO: create indel priors object
-                priors = null;
+                // create flat priors for Indels, actual priors will depend on event length to be genotyped
+                priors = new DiploidIndelGenotypePriors();
                 break;
             default: throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + UAC.GLmodel);
         }

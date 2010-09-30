@@ -179,7 +179,8 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
         AFMatrix.clear();
 
         for ( BiallelicGenotypeLikelihoods GL : GLs.values() ) {
-            if ( isClearRefCall(GL) ) {
+            // todo - gdebug workaround for crash
+            if (false) { //isClearRefCall(GL) ) {
                 refCalls.add(GL);
             } else {
                 AFMatrix.setLikelihoods(GL.getPosteriors(), GL.getSample());
@@ -206,7 +207,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
         }
     }
 
-    private enum GenotypeType { AA, AB, BB }
+    protected enum GenotypeType { AA, AB, BB }
     protected static final double VALUE_NOT_CALCULATED = -1.0 * Double.MAX_VALUE;
 
     protected static class AlleleFrequencyMatrix {

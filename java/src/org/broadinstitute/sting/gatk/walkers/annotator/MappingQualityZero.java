@@ -1,21 +1,22 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
-import org.broad.tribble.vcf.VCFConstants;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
-import java.util.Map;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Arrays;
+import java.util.Map;
 
 
 public class MappingQualityZero implements InfoFieldAnnotation, StandardAnnotation {
@@ -26,10 +27,18 @@ public class MappingQualityZero implements InfoFieldAnnotation, StandardAnnotati
 
         int mq0 = 0;
         for ( Map.Entry<String, StratifiedAlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            ReadBackedPileup pileup = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
-            for (PileupElement p : pileup ) {
-                if ( p.getMappingQual() == 0 )
-                    mq0++;
+            AlignmentContext context = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+            ReadBackedPileup pileup = null;
+            if (context.hasExtendedEventPileup())
+                pileup = context.getExtendedEventPileup();
+            else if (context.hasBasePileup())
+                pileup = context.getBasePileup();
+
+            if (pileup != null) {
+                for (PileupElement p : pileup ) {
+                    if ( p.getMappingQual() == 0 )
+                        mq0++;
+                }
             }
         }
         Map<String, Object> map = new HashMap<String, Object>();

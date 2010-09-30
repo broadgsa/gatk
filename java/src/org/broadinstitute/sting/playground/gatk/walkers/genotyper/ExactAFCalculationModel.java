@@ -26,6 +26,12 @@
 package org.broadinstitute.sting.playground.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
+import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFConstants;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -35,10 +41,9 @@ import java.io.PrintStream;
 
 public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
-    private int maxNumIterations = 50;
-    private double tol = 1e-4;
-    private boolean DEBUGOUT = true;
-
+    private boolean DEBUGOUT = false;
+    private boolean SIMPLE_GREEDY_GENOTYPER = false;
+    
     protected ExactAFCalculationModel(int N, Logger logger, PrintStream verboseWriter) {
         super(N, logger, verboseWriter);
     }
@@ -50,30 +55,21 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                 double[] log10AlleleFrequencyPosteriors) {
 
         // Math requires linear math to make efficient updates.
-        double[] alleleFrequencyPosteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPriors);
+        double[] alleleFrequencyPriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPriors);
+        double[] alleleFrequencyPosteriors;
+ 
 
-        // now that we have genotype likelihoods for each sample, we can start refining allele frequency estimate
+        alleleFrequencyPosteriors = updateAFEstimate(GLs, alleleFrequencyPriors);
         double meanAF = computeMeanAF(alleleFrequencyPosteriors);
+
         if (DEBUGOUT)
-            System.out.format("Initial Mean AF: %5.6f\n", meanAF);
+            System.out.format("Mean AF: %5.4f. PVariant: %5.5f\n", meanAF,1.0-alleleFrequencyPosteriors[0]);
 
 
-        for (int numIterations=0; numIterations < maxNumIterations; numIterations++) {
-            double oldMeanAF = meanAF;
-            alleleFrequencyPosteriors = updateAFEstimate(GLs, alleleFrequencyPosteriors);
-            meanAF = computeMeanAF(alleleFrequencyPosteriors);
 
-            if (DEBUGOUT)
-                System.out.format("Mean AF: %5.4f. PVariant: %5.5f\n", meanAF,1.0-alleleFrequencyPosteriors[0]);
-
-            if (Math.abs(meanAF-oldMeanAF) < tol)
-                break;
-
-        }
-
-        for (int k=0; k < alleleFrequencyPosteriors.length; k++)
+        for (int k=0; k < alleleFrequencyPosteriors.length; k++) {
             log10AlleleFrequencyPosteriors[k] = Math.log10(alleleFrequencyPosteriors[k]);
-
+        }
     }
 
     private double[] updateAFEstimate(Map<String, BiallelicGenotypeLikelihoods> GLs, double[] alleleFrequencyPriors) {
@@ -93,11 +89,11 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             double den = 2.0*j*(2.0*j-1);
 
             for (int k=0; k <= 2*j; k++ ) {
-                double tmp = (2.0*j-k)*(2.0*j-k-1)*YMatrix[j-1][k] * genotypeLikelihoods[2];
+                double tmp = (2.0*j-k)*(2.0*j-k-1)*YMatrix[j-1][k] * genotypeLikelihoods[GenotypeType.AA.ordinal()];
                 if (k > 0)
-                    tmp += (2.0*k)*(2.0*j-k)*YMatrix[j-1][k-1]*genotypeLikelihoods[1];
+                    tmp += (2.0*k)*(2.0*j-k)*YMatrix[j-1][k-1]*genotypeLikelihoods[GenotypeType.AB.ordinal()];
                 if (k > 1)
-                    tmp += k*(k-1)*YMatrix[j-1][k-2]*genotypeLikelihoods[0];
+                    tmp += k*(k-1)*YMatrix[j-1][k-2]*genotypeLikelihoods[GenotypeType.BB.ordinal()];
 
                 YMatrix[j][k] = tmp/den;
 
@@ -112,7 +108,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         double[] newAF = new double[alleleFrequencyPriors.length];
 
         for (int k=0; k <= numChr; k++) {
-            double prod = YMatrix[j][numChr-k] * alleleFrequencyPriors[k];
+            double prod = YMatrix[j][k] * alleleFrequencyPriors[k];
             newAF[k] = prod;
             sum += prod;
         }
@@ -133,6 +129,114 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         return  sum/afVector.length;
 
+    }
+
+    protected Map<String, Genotype> generateCalls(Map<String, StratifiedAlignmentContext> contexts,
+                                                  Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                                  int bestAFguess) {
+        // first experiment: refine do genotype assignment by Hardy Weinberg equilibrium assumption.
+        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
+
+
+        double[][] pathMetricArray = new double[GLs.size()+1][bestAFguess+1];
+        int[][] tracebackArray = new int[GLs.size()+1][bestAFguess+1];
+
+        ArrayList<String> sampleIndices = new ArrayList<String>();
+        int sampleIdx = 0;
+
+        if (SIMPLE_GREEDY_GENOTYPER) {
+            sampleIndices.addAll(GLs.keySet());
+            sampleIdx = GLs.size();
+        }
+        else {
+
+            for (String sample: GLs.keySet()) {
+                sampleIndices.add(sample);
+
+                double[] likelihoods = GLs.get(sample).getLikelihoods();
+
+                for (int k=0; k <= bestAFguess; k++) {
+
+                    double bestMetric = pathMetricArray[sampleIdx][k] + likelihoods[0];
+                    int bestIndex = k;
+
+                    if (k>0) {
+                        double m2 =  pathMetricArray[sampleIdx][k-1] + likelihoods[1];
+                        if (m2 > bestMetric) {
+                            bestMetric = m2;
+                            bestIndex  = k-1;
+                        }
+                    }
+
+                    if (k>1) {
+                        double m2 =  pathMetricArray[sampleIdx][k-2] + likelihoods[2];
+                        if (m2 > bestMetric) {
+                            bestMetric = m2;
+                            bestIndex  = k-2;
+                        }
+                    }
+
+                    pathMetricArray[sampleIdx+1][k] = bestMetric;
+                    tracebackArray[sampleIdx+1][k] = bestIndex;
+                }
+                sampleIdx++;
+            }
+        }
+
+        int startIdx = bestAFguess;
+        for (int k = sampleIdx; k > 0; k--) {
+            int bestGTguess;
+            String sample = sampleIndices.get(k-1);
+            BiallelicGenotypeLikelihoods GL = GLs.get(sample);
+            Allele alleleA = GL.getAlleleA();
+            Allele alleleB = GL.getAlleleB();
+
+            if (SIMPLE_GREEDY_GENOTYPER)
+                bestGTguess = Utils.findIndexOfMaxEntry(GLs.get(sample).getLikelihoods());
+            else {
+                int newIdx = tracebackArray[k][startIdx];
+                bestGTguess = startIdx - newIdx;
+                startIdx = newIdx;
+            }
+
+            HashMap<String, Object> attributes = new HashMap<String, Object>();
+            ArrayList<Allele> myAlleles = new ArrayList<Allele>();
+            attributes.put(VCFConstants.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
+            double qual = 0.0;
+            double[] posteriors = GLs.get(sample).getPosteriors();
+
+            if (bestGTguess == 0) {
+                myAlleles.add(alleleA);
+                myAlleles.add(alleleA);
+                //qual = posteriors[0] - Math.max(posteriors[1],posteriors[2]);
+            } else if(bestGTguess == 1) {
+                myAlleles.add(alleleA);
+                myAlleles.add(alleleB);
+                //qual = posteriors[1] - Math.max(posteriors[0],posteriors[2]);
+
+            }  else {
+                myAlleles.add(alleleB);
+                myAlleles.add(alleleB);
+               // qual = posteriors[2] - Math.max(posteriors[1],posteriors[0]);
+            }
+/*
+            if (qual <= 0.0) {
+                qual = 0.0;
+                myAlleles.clear();
+                myAlleles.add(Allele.NO_CALL);
+//                myAlleles.add(Allele.NO_CALL);
+            }
+*/
+            attributes.put(VCFConstants.GENOTYPE_QUALITY_KEY,String.format("%4.2f", 10*qual));
+
+            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
+            attributes.put(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, likelihoods.getAsString());
+            calls.put(sample, new Genotype(sample, myAlleles, qual, null, attributes, false));
+
+        }
+
+
+        return calls;
     }
 
 }
