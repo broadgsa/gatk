@@ -485,10 +485,10 @@
     <!-- ***************************************************************************** -->
     <!-- where to put reports and tests-->
     <property name="report" value="${build.dir}/report"/>
-    <property name="java.test.classes" value="${java.classes}/testclasses"/>
+    <property name="java.test.classes" value="${build.dir}/java/testclasses"/>
     <property name="test.output" value="${dist.dir}/test"/>
     <property name="java.test.sources" value="java/test"/>
-    <property name="queue.test.classes" value="${queue.classes}/testclasses"/>
+    <property name="queue.test.classes" value="${build.dir}/scala/testclasses"/>
     <property name="queue.test.sources" value="scala/test"/>
     <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
     <property name="test.maxmemory" value="5g"/>
