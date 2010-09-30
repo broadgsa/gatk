@@ -161,13 +161,15 @@ public abstract class AbstractGenomeAnalysisEngine {
             return;
 
         // if '-L all' was specified, verify that it was the only -L specified and return if so.
-        for(String interval: argCollection.intervals) {
-            if(interval.trim().equals("all")) {
-                if(argCollection.intervals.size() > 1)
-                    throw new UserException("'-L all' was specified along with other intervals or interval lists; the GATK cannot combine '-L all' with other intervals.");
+        if(argCollection.intervals != null) {
+            for(String interval: argCollection.intervals) {
+                if(interval.trim().equals("all")) {
+                    if(argCollection.intervals.size() > 1)
+                        throw new UserException("'-L all' was specified along with other intervals or interval lists; the GATK cannot combine '-L all' with other intervals.");
 
-                // '-L all' was specified and seems valid.  Return. 
-                return;
+                    // '-L all' was specified and seems valid.  Return.
+                    return;
+                }
             }
         }
 
