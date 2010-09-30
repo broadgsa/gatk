@@ -208,25 +208,25 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             if (bestGTguess == 0) {
                 myAlleles.add(alleleA);
                 myAlleles.add(alleleA);
-                //qual = posteriors[0] - Math.max(posteriors[1],posteriors[2]);
+                qual = posteriors[0] - Math.max(posteriors[1],posteriors[2]);
             } else if(bestGTguess == 1) {
                 myAlleles.add(alleleA);
                 myAlleles.add(alleleB);
-                //qual = posteriors[1] - Math.max(posteriors[0],posteriors[2]);
+                qual = posteriors[1] - Math.max(posteriors[0],posteriors[2]);
 
             }  else {
                 myAlleles.add(alleleB);
                 myAlleles.add(alleleB);
-               // qual = posteriors[2] - Math.max(posteriors[1],posteriors[0]);
+                qual = posteriors[2] - Math.max(posteriors[1],posteriors[0]);
             }
-/*
+
             if (qual <= 0.0) {
                 qual = 0.0;
                 myAlleles.clear();
                 myAlleles.add(Allele.NO_CALL);
-//                myAlleles.add(Allele.NO_CALL);
+                myAlleles.add(Allele.NO_CALL);
             }
-*/
+
             attributes.put(VCFConstants.GENOTYPE_QUALITY_KEY,String.format("%4.2f", 10*qual));
 
             GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
