@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.classloader;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -85,9 +86,9 @@ public abstract class PluginManager<PluginType> {
      */
     public PluginType createByName(String pluginName) {
         Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
+        if( plugin == null )
+            throw new UserException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
         try {
-            if( plugin == null )
-                throw new ReviewedStingException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
             return plugin.newInstance();
         } catch (Exception e) {
             throw new DynamicClassResolutionException(plugin, e);
