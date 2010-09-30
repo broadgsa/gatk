@@ -36,11 +36,16 @@ class BeagleGenotypeRefinement extends QScript {
     @Output(doc="The beagle phased file") var beaglePhasedFile: File = _
     @Output(doc="The beagle likelihood file") var beagleLikelihoods: File = _
     @Output(doc="The beagle r2 file") var beagleRSquared: File = _
+    var beagleOutputDir: String = _
 
     def freezeOutputs = {
-      val beagleOutputDir = beagleInput.getParent
-      beaglePhasedFile = new File(beagleOutputDir+beagleOutputBase+"."+beagleInput.getName+".phased")
-      beagleLikelihoods = new File(beagleOutputDir+beagleOutputBase+"."+beagleInput.getName+".gprobs")
+      if ( beagleInput.getParent == null ) {
+        beagleOutputDir = ""
+      } else {
+        beagleOutputDir = beagleInput.getParent
+      }
+      beaglePhasedFile = new File(beagleOutputDir+beagleOutputBase+"."+beagleInput.getName+".phased.gz")
+      beagleLikelihoods = new File(beagleOutputDir+beagleOutputBase+"."+beagleInput.getName+".gprobs.gz")
       beagleRSquared = new File(beagleOutputDir+beagleOutputBase+"."+beagleInput.getName+".r2")
     }
 
@@ -57,8 +62,8 @@ class BeagleGenotypeRefinement extends QScript {
     var refine = new BeagleRefinement
     refine.beagleInput = beagleInput.out
     refine.beagleOutputBase = beagleBase
-    refine.beagleMemoryGigs = 4
-    refine.memoryLimit = Some(4)
+    refine.beagleMemoryGigs = 6
+    refine.memoryLimit = Some(6)
     refine.freezeOutputs
 
     var vcfConvert = new BeagleOutputToVCF with GATKArgs
