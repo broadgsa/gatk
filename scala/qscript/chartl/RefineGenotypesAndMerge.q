@@ -57,7 +57,7 @@ class BeagleGenotypeRefinement extends QScript {
     var refine = new BeagleRefinement
     refine.beagleInput = beagleInput.out
     refine.beagleOutputBase = beagleBase
-    refine.beagleMemoryGigs = 20
+    refine.beagleMemoryGigs = 4
     refine.memoryLimit = Some(4)
     refine.freezeOutputs
 
