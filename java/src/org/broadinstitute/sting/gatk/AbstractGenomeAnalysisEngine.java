@@ -156,36 +156,44 @@ public abstract class AbstractGenomeAnalysisEngine {
      */
     protected void initializeIntervals() {
 
-        // return null if no interval arguments at all
+        // return if no interval arguments at all
         if ((argCollection.intervals == null) && (argCollection.excludeIntervals == null) && (argCollection.RODToInterval == null))
             return;
 
-        else {
-            // if include argument isn't given, create new set of all possible intervals
-            GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
-                    GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
-                    loadIntervals(argCollection.intervals,
-                                  argCollection.intervalMerging,
-                                  GenomeLocParser.mergeIntervalLocations(checkRODToIntervalArgument(),argCollection.intervalMerging)));
+        // if '-L all' was specified, verify that it was the only -L specified and return if so.
+        for(String interval: argCollection.intervals) {
+            if(interval.trim().equals("all")) {
+                if(argCollection.intervals.size() > 1)
+                    throw new UserException("'-L all' was specified along with other intervals or interval lists; the GATK cannot combine '-L all' with other intervals.");
 
-            // if no exclude arguments, can return parseIntervalArguments directly
-            if (argCollection.excludeIntervals == null)
-                intervals = includeSortedSet;
+                // '-L all' was specified and seems valid.  Return. 
+                return;
+            }
+        }
+
+        // if include argument isn't given, create new set of all possible intervals
+        GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
+                GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
+                loadIntervals(argCollection.intervals,
+                        argCollection.intervalMerging,
+                        GenomeLocParser.mergeIntervalLocations(checkRODToIntervalArgument(),argCollection.intervalMerging)));
+
+        // if no exclude arguments, can return parseIntervalArguments directly
+        if (argCollection.excludeIntervals == null)
+            intervals = includeSortedSet;
 
             // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
-            else {
-                GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, argCollection.intervalMerging, null);
-                intervals = includeSortedSet.subtractRegions(excludeSortedSet);
+        else {
+            GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, argCollection.intervalMerging, null);
+            intervals = includeSortedSet.subtractRegions(excludeSortedSet);
 
-                // logging messages only printed when exclude (-XL) arguments are given
-                long toPruneSize = includeSortedSet.coveredSize();
-                long toExcludeSize = excludeSortedSet.coveredSize();
-                long intervalSize = intervals.coveredSize();
-                logger.info(String.format("Initial include intervals span %d loci; exclude intervals span %d loci", toPruneSize, toExcludeSize));
-                logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
-                        toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
-            }
-
+            // logging messages only printed when exclude (-XL) arguments are given
+            long toPruneSize = includeSortedSet.coveredSize();
+            long toExcludeSize = excludeSortedSet.coveredSize();
+            long intervalSize = intervals.coveredSize();
+            logger.info(String.format("Initial include intervals span %d loci; exclude intervals span %d loci", toPruneSize, toExcludeSize));
+            logger.info(String.format("Excluding %d loci from original intervals (%.2f%% reduction)",
+                    toPruneSize - intervalSize, (toPruneSize - intervalSize) / (0.01 * toPruneSize)));
         }
     }
 
