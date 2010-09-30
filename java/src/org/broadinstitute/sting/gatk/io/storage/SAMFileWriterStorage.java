@@ -30,6 +30,7 @@ import net.sf.samtools.util.CloseableIterator;
 
 import java.io.*;
 
+import net.sf.samtools.util.RuntimeIOException;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -62,11 +63,16 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
             //       during the week of 14 Sept 2010.  Eliminate this check when they do.
             if(stub.getSAMFile().getPath().equals("/dev/null"))
                 factory.setCreateIndex(false);
-            
-            if( stub.getCompressionLevel() != null )
-                this.writer = factory.makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file, stub.getCompressionLevel() );
-            else
-                this.writer = factory.makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file );
+
+            try {
+                if( stub.getCompressionLevel() != null )
+                    this.writer = factory.makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file, stub.getCompressionLevel() );
+                else
+                    this.writer = factory.makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file );
+            }
+            catch(RuntimeIOException ex) {
+                throw new UserException.CouldNotCreateOutputFile(file,"file could not be created",ex);
+            }
         }
         else if(stub.getSAMOutputStream() != null){
             this.writer = factory.makeSAMWriter( stub.getFileHeader(), stub.isPresorted(), stub.getSAMOutputStream());
