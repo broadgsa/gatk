@@ -134,8 +134,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     protected Map<String, Genotype> generateCalls(Map<String, StratifiedAlignmentContext> contexts,
                                                   Map<String, BiallelicGenotypeLikelihoods> GLs,
                                                   int bestAFguess) {
-        // first experiment: refine do genotype assignment by Hardy Weinberg equilibrium assumption.
-        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
+         HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
 
 
         double[][] pathMetricArray = new double[GLs.size()+1][bestAFguess+1];
@@ -143,6 +142,13 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         ArrayList<String> sampleIndices = new ArrayList<String>();
         int sampleIdx = 0;
+
+        // todo - optimize initialization
+        for (int k=0; k <= bestAFguess; k++)
+            for (int j=0; j <= GLs.size(); j++)
+                pathMetricArray[j][k] = -1e30;
+
+        pathMetricArray[0][0] = 0.0;
 
         if (SIMPLE_GREEDY_GENOTYPER) {
             sampleIndices.addAll(GLs.keySet());
@@ -222,10 +228,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             if (qual <= 0.0) {
                 qual = 0.0;
-                myAlleles.clear();
-                myAlleles.add(Allele.NO_CALL);
-                myAlleles.add(Allele.NO_CALL);
-            }
+             }
 
             attributes.put(VCFConstants.GENOTYPE_QUALITY_KEY,String.format("%4.2f", 10*qual));
 

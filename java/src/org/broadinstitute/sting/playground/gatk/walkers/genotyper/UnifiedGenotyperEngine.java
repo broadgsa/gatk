@@ -230,7 +230,8 @@ public class UnifiedGenotyperEngine {
         // todo - temp fix until we can deal with extended events properly
         //VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
         VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(),
-                loc.getStart()+refAllele.length(), alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
+                Math.max(loc.getStart()+refAllele.length()-1,loc.getStart()),
+                alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
 
 
         if ( annotationEngine != null ) {
