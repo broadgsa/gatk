@@ -1,3 +1,5 @@
+suppressPackageStartupMessages(library(gplots));
+
 plot.begin <- function(plotRoot, name, width=10, height=10) {
     if (!is.na(plotRoot)) {
         filename = paste(plotRoot, ".", name, ".pdf", sep="");
@@ -191,19 +193,57 @@ eval.getMetrics <- function(eval, jexl_expression) {
                    metrics$novel,    metrics$novel.titv
         );
     } else {
-        text = sprintf("%s (%0.01f%% of union)\nCalled in %s, absent in %s:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f\n\nCalled in %s, filtered in %s:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f",
+        text = sprintf("%s (%0.01f%% of union)\nCalled in %s, filtered in %s:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f\n\nCalled in %s, absent in %s:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f",
                    name,             100*(metrics$all + filtered.metrics$all)/union$all.withfiltered,
+
+                   name,                      othername,
+                   filtered.metrics$all,      filtered.metrics$all.titv,
+                   filtered.metrics$known,    filtered.metrics$known.titv,
+                   filtered.metrics$novel,    filtered.metrics$novel.titv,
+
                    name,             othername,
                    metrics$all,      metrics$all.titv,
                    metrics$known,    metrics$known.titv,
-                   metrics$novel,    metrics$novel.titv,
-
-                   name, othername,
-                   filtered.metrics$all,      filtered.metrics$all.titv,
-                   filtered.metrics$known,    filtered.metrics$known.titv,
-                   filtered.metrics$novel,    filtered.metrics$novel.titv
+                   metrics$novel,    metrics$novel.titv
         );
     }
+}
+
+plot.titlePage <- function(title, author) {
+    textplot(sprintf("Automated Data Processing Report\n\n%s\n%s\n%s\n", title, author, Sys.Date()));
+}
+
+.plot.variantTable.getRowText <- function(eval, jexl_expression) {
+    allVariants = eval$CountVariants[which(eval$CountVariants$jexl_expression == jexl_expression & eval$CountVariants$filter_name == "called" & eval$CountVariants$novelty_name == "all"),]$nVariantLoci;
+    knownVariants = eval$CountVariants[which(eval$CountVariants$jexl_expression == jexl_expression & eval$CountVariants$filter_name == "called" & eval$CountVariants$novelty_name == "known"),]$nVariantLoci;
+    novelVariants = eval$CountVariants[which(eval$CountVariants$jexl_expression == jexl_expression & eval$CountVariants$filter_name == "called" & eval$CountVariants$novelty_name == "novel"),]$nVariantLoci;
+
+    allTiTv = eval$TiTv[which(eval$TiTv$jexl_expression == jexl_expression & eval$TiTv$filter_name == "called" & eval$TiTv$novelty_name == "all"),]$ti.tv_ratio;
+    knownTiTv = eval$TiTv[which(eval$TiTv$jexl_expression == jexl_expression & eval$TiTv$filter_name == "called" & eval$TiTv$novelty_name == "known"),]$ti.tv_ratio;
+    novelTiTv = eval$TiTv[which(eval$TiTv$jexl_expression == jexl_expression & eval$TiTv$filter_name == "called" & eval$TiTv$novelty_name == "novel"),]$ti.tv_ratio;
+
+    cbind(knownVariants, knownTiTv, novelVariants, novelTiTv);
+}
+
+plot.variantTable <- function(eval, title) {
+    aonly.row = .plot.variantTable.getRowText(eval, eval$CallsetOnlyNames[1]);
+    aonly.filtered.row = .plot.variantTable.getRowText(eval, eval$CallsetFilteredNames[1]);
+    intersection.row = .plot.variantTable.getRowText(eval, "Intersection");
+    bonly.row = .plot.variantTable.getRowText(eval, eval$CallsetOnlyNames[2]);
+    bonly.filtered.row = .plot.variantTable.getRowText(eval, eval$CallsetFilteredNames[2]);
+
+    variantsummary = as.data.frame(rbind(bonly.row, bonly.filtered.row, intersection.row, aonly.filtered.row, aonly.row));
+
+    rownames(variantsummary) = c(
+        sprintf("Called in %s, absent in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
+        sprintf("Called in %s, filtered in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
+        "Intersection",
+        sprintf("Called in %s, filtered in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2]),
+        sprintf("Called in %s, absent in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2])
+    );
+    colnames(variantsummary) = c("counts (known)", "ti/tv (known)", "counts (novel)", "ti/tv (novel)");
+
+    textplot(variantsummary);
 }
 
 plot.callsetConcordance <- function(eval, col=c("#FF6342", "#63C6DE", "#ADDE63")) {
@@ -225,77 +265,113 @@ plot.callsetConcordance <- function(eval, col=c("#FF6342", "#63C6DE", "#ADDE63")
     text(1, 0.45, cex=1.2, pos=2, .plot.callsetConcordance.getLabelText(eval$CallsetNames[2], eval$CallsetNames[1], bonly, bonly.filtered, union));
 }
 
-plot.callsetConcordanceByAC <- function(eval, normalize=TRUE, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
+plot.callsetConcordanceByAC <- function(eval, normalize=TRUE, novelty_name="all", col=c("#FF6342", "#FF9675", "#5C92A4", "#88EEFF", "#55BBFF")) {
     aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
-    aonly.filtered = eval.getMetrics(eval, eval$CallsetFilteredNames[1]);
+    aonly.filtered = eval.getMetricsByAc(eval, eval$CallsetFilteredNames[1]);
     intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
     bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
-    bonly.filtered = eval.getMetrics(eval, eval$CallsetFilteredNames[2]);
+    bonly.filtered = eval.getMetricsByAc(eval, eval$CallsetFilteredNames[2]);
 
     title = paste("Callset concordance per allele count (", novelty_name, " variants)", sep="");
 
     if (length(intersection$AC) > 0 && length(aonly$AC) == 0) {
         aonly = intersection;
         aonly$n = 0;
+        aonly.filtered$n = 0;
     }
 
     if (length(intersection$AC) > 0 && length(bonly$AC) == 0) {
         bonly = intersection;
         bonly$n = 0;
+        bonly.filtered$n = 0;
     }
 
     #par.def = par(no.readonly = TRUE);
     #par(mar=c(5, 5, 3, 5));
 
     if (normalize == TRUE) {
-        norm = aonly$n + intersection$n + bonly$n;
-        matnorm = rbind(aonly$n/norm, intersection$n/norm, bonly$n/norm);
+        norm = aonly$n + aonly.filtered$n + intersection$n + bonly$n + bonly.filtered$n;
+        matnorm = rbind(aonly$n/norm, aonly.filtered$n/norm, intersection$n/norm, bonly.filtered$n/norm, bonly$n/norm);
 
-        barplot(matnorm, col=col, xlab="Allele count", ylab="Fraction", main=title, names.arg=intersection$AC, xlim=c(0, max(intersection$AC)), ylim=c(0, 1.3), border=NA);
+        barplot(matnorm, col=col, xlab="Allele count", ylab="", main=title, names.arg=intersection$AC, xlim=c(1, 1.2*max(intersection$AC)), ylim=c(0, 1.3), border=NA, yaxt="n", cex=1.3, cex.axis=1.3, cex.lab=1.3);
+        axis(2, at=seq(from=0, to=1, by=0.2), seq(from=0, to=1, by=0.2), cex=1.3, cex.axis=1.3);
+        mtext("Fraction", side=2, at=0.5, padj=-3.0, cex=1.3);
     } else {
-        mat = rbind(aonly$n, intersection$n, bonly$n);
+        mat = rbind(aonly$n, aonly.filtered$n, intersection$n, bonly.filtered$n, bonly$n);
 
-        barplot(mat, col=col, xlab="Allele count", ylab="counts", main=title, names.arg=intersection$AC, xlim=c(0, max(intersection$AC)), ylim=c(0, 1), border=NA);
+        barplot(mat, col=col, xlab="Allele count", ylab="counts", main=title, names.arg=intersection$AC, xlim=c(1, max(intersection$AC)), ylim=c(0, 1), border=NA, cex=1.3, cex.axis=1.3, cex.lab=1.3);
     }
 
-    legend("topright", c(eval$CallsetOnlyNames[1], "Intersection", eval$CallsetOnlyNames[2]), fill=col);
+    legend(
+        "topright",
+        c(
+            sprintf("Called in %s, absent in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
+            sprintf("Called in %s, filtered in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
+            "Intersection",
+            sprintf("Called in %s, filtered in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2]),
+            sprintf("Called in %s, absent in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2])
+        ),
+        fill=rev(col),
+        cex=1.3
+    );
 
     #par(par.def);
 }
 
-plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
+plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#FF9675", "#5C92A4", "#88EEFF", "#55BBFF")) {
     aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
+    aonly.filtered = eval.getMetricsByAc(eval, eval$CallsetFilteredNames[1]);
     intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
     bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
+    bonly.filtered = eval.getMetricsByAc(eval, eval$CallsetFilteredNames[2]);
 
     title = paste("Allele count spectrum (", novelty_name, " variants)", sep="");
 
     if (length(intersection$AC) > 0 && length(aonly$AC) == 0) {
         aonly = intersection;
         aonly$n = 0;
+        aonly.filtered$n = 0;
     }
 
     if (length(intersection$AC) > 0 && length(bonly$AC) == 0) {
         bonly = intersection;
         bonly$n = 0;
+        bonly.filtered$n = 0;
     }
 
-    suppressWarnings(plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(1, max(aonly$n + intersection$n, bonly$n + intersection$n)), xlab="Allele count", ylab="Number of variants", main=title, log="xy", bty="n"));
-    suppressWarnings(points(intersection$AC, aonly$n + intersection$n, type="l", lwd=2, col=col[1]));
-    suppressWarnings(points(intersection$AC, intersection$n, type="l", lwd=2, col=col[2]));
-    suppressWarnings(points(intersection$AC, bonly$n + intersection$n, type="l", lwd=2, col=col[3]));
+    suppressWarnings(plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(1, max(aonly$n + aonly.filtered$n + intersection$n, bonly$n + bonly.filtered$n + intersection$n)), xlab="Allele count", ylab="Number of variants", main=title, log="xy", bty="n", cex=1.3, cex.lab=1.3, cex.axis=1.3));
+    suppressWarnings(points(intersection$AC, aonly$n + aonly.filtered$n + intersection$n, type="l", lwd=2, col=col[1]));
+    suppressWarnings(points(intersection$AC, aonly$n + intersection$n, type="l", lwd=2, lty=2, col=col[1]));
+    suppressWarnings(points(intersection$AC, intersection$n, type="l", lwd=2, col=col[3]));
+    suppressWarnings(points(intersection$AC, bonly$n + intersection$n, type="l", lwd=2, lty=2, col=col[4]));
+    suppressWarnings(points(intersection$AC, bonly$n + bonly.filtered$n + intersection$n, type="l", lwd=2, col=col[5]));
 
-    legend("topright", c(eval$CallsetOnlyNames[1], "Intersection", eval$CallsetOnlyNames[2]), fill=col);
+    legend(
+        "bottomleft",
+        c(
+            sprintf("Intersection + called in %s, absent or filtered in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
+            sprintf("Intersection + called in %s, absent in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
+            "Intersection",
+            sprintf("Intersection + called in %s, absent in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2]),
+            sprintf("Intersection + called in %s, absent or filtered in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2])
+        ),
+        lwd=c(2, 2, 3, 2, 2),
+        lty=c(1, 2, 1, 2, 1),
+        col=rev(col),
+        cex=1.3
+    );
 }
 
 eval.getMetricsByAc <- function(eval, jexl_expression, novelty_name="all") {
     piece = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(jexl_expression) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
 }
 
-plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
+plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#FF9675", "#5C92A4", "#88EEFF", "#55BBFF")) {
     aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
+    aonly.filtered = eval.getMetricsByAc(eval, eval$CallsetFilteredNames[1]);
     intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
     bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
+    bonly.filtered = eval.getMetricsByAc(eval, eval$CallsetFilteredNames[2]);
 
     title = paste("Ti/Tv spectrum (", novelty_name, " variants)", sep="");
 
@@ -304,6 +380,9 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A
         aonly$n = 0;
         aonly$nTi = 0;
         aonly$nTv = 0;
+        aonly.filtered$n = 0;
+        aonly.filtered$nTi = 0;
+        aonly.filtered$nTv = 0;
     }
 
     if (length(intersection$AC) > 0 && length(bonly$AC) == 0) {
@@ -311,7 +390,13 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A
         bonly$n = 0;
         bonly$nTi = 0;
         bonly$nTv = 0;
+        bonly.filtered$n = 0;
+        bonly.filtered$nTi = 0;
+        bonly.filtered$nTv = 0;
     }
+
+    titv.aonly.withfiltered = (aonly$nTi + aonly.filtered$nTi + intersection$nTi)/(aonly$nTv + aonly.filtered$nTv + intersection$nTv);
+    titv.aonly.withfiltered.finite = titv.aonly.withfiltered[which(is.finite(titv.aonly.withfiltered))];
 
     titv.aonly = (aonly$nTi + intersection$nTi)/(aonly$nTv + intersection$nTv);
     titv.aonly.finite = titv.aonly[which(is.finite(titv.aonly))];
@@ -321,13 +406,19 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A
     titv.bonly = (bonly$nTi + intersection$nTi)/(bonly$nTv + intersection$nTv);
     titv.bonly.finite = titv.bonly[which(is.finite(titv.bonly))];
 
-    titv.min = min(titv.aonly.finite, titv.intersection.finite, titv.bonly.finite);
-    titv.max = max(titv.aonly.finite, titv.intersection.finite, titv.bonly.finite);
+    titv.bonly.withfiltered = (bonly$nTi + bonly.filtered$nTi + intersection$nTi)/(bonly$nTv + bonly.filtered$nTv + intersection$nTv);
+    titv.bonly.withfiltered.finite = titv.bonly.withfiltered[which(is.finite(titv.bonly.withfiltered))];
 
-    plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(titv.min, titv.max), xlab="Allele count", ylab="Transition/transversion (Ti/Tv) ratio", main=title, bty="n");
-    points(intersection$AC, (aonly$nTi + intersection$nTi)/(aonly$nTv + intersection$nTv), type="l", lwd=2, col=col[1]);
-    points(intersection$AC, intersection$Ti.Tv, type="l", lwd=2, col=col[2]);
-    points(intersection$AC, (bonly$nTi + intersection$nTi)/(bonly$nTv + intersection$nTv), type="l", lwd=2, col=col[3]);
+    titv.min = min(titv.aonly.withfiltered.finite, titv.aonly.finite, titv.intersection.finite, titv.bonly.finite, titv.bonly.withfiltered.finite);
+    titv.max = max(titv.aonly.withfiltered.finite, titv.aonly.finite, titv.intersection.finite, titv.bonly.finite, titv.bonly.withfiltered.finite);
+    #titv.max = max(titv.aonly.finite, titv.intersection.finite, titv.bonly.finite);
+
+    plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(titv.min, 1.2*titv.max), xlab="Allele count", ylab="Transition/transversion (Ti/Tv) ratio", main=title, bty="n", cex=1.3, cex.lab=1.3, cex.axis=1.3);
+    points(intersection$AC, (aonly.filtered$nTi + intersection$nTi)/(aonly.filtered$nTv + intersection$nTv), type="l", lwd=2, col=col[1]);
+    points(intersection$AC, (aonly$nTi + intersection$nTi)/(aonly$nTv + intersection$nTv), type="l", lwd=2, lty=2, col=col[2]);
+    points(intersection$AC, intersection$Ti.Tv, type="l", lwd=2, col=col[3]);
+    points(intersection$AC, (bonly$nTi + intersection$nTi)/(bonly$nTv + intersection$nTv), type="l", lwd=2, lty=2, col=col[4]);
+    points(intersection$AC, (bonly.filtered$nTi + intersection$nTi)/(bonly.filtered$nTv + intersection$nTv), type="l", lwd=2, col=col[5]);
 
     abline(h=2.3, lty=2);
     mtext("2.3", side=4, at=2.3, cex=0.9);
@@ -335,7 +426,22 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A
     abline(h=3.3, lty=2);
     mtext("3.3", side=4, at=3.3, cex=0.9);
 
-    legend("topleft", c(eval$CallsetOnlyNames[1], "Intersection", eval$CallsetOnlyNames[2]), fill=col);
+    #legend("topleft", c(eval$CallsetOnlyNames[1], "Intersection", eval$CallsetOnlyNames[2]), fill=col);
+
+    legend(
+        "topleft",
+        c(
+            sprintf("Intersection + called in %s, absent or filtered in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
+            sprintf("Intersection + called in %s, absent in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
+            "Intersection",
+            sprintf("Intersection + called in %s, absent in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2]),
+            sprintf("Intersection + called in %s, absent or filtered in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2])
+        ),
+        lwd=c(2, 2, 3, 2, 2),
+        lty=c(1, 2, 1, 2, 1),
+        col=rev(col),
+        cex=1.3
+    );
 }
 
 plot.variantsPerSample2 <- function(eval) {
