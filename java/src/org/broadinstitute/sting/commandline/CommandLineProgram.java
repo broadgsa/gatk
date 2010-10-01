@@ -95,7 +95,9 @@ public abstract class CommandLineProgram {
      */
     protected ApplicationDetails getApplicationDetails() {
         return new ApplicationDetails(ApplicationDetails.createDefaultHeader(getClass()),
-                                      ApplicationDetails.createDefaultRunningInstructions(getClass()));
+                                      Collections.<String>emptyList(),
+                                      ApplicationDetails.createDefaultRunningInstructions(getClass()),
+                                      null);
     }
 
     /**

@@ -65,6 +65,9 @@ public class HelpFormatter {
         for(String headerLine: header)
             System.out.printf("%s%n",headerLine);
         System.out.printf("%s%n",barrier);
+        for(String attributionLine: applicationDetails.attribution)
+            System.out.printf("%s%n",attributionLine);
+        System.out.printf("%s%n",barrier);
 
         String synopsis = getSynopsis(applicationDetails.runningInstructions,argumentGroups);
         String additionalDetails = applicationDetails.additionalHelp != null ? applicationDetails.additionalHelp : "";
@@ -292,6 +295,10 @@ public class HelpFormatter {
         }
         logger.info("Program Args: " + output);
         logger.info("Date/Time: " + dateFormat.format(date));
+        logger.info(barrier);
+
+        for(String attribution: applicationDetails.attribution)
+            logger.info(attribution);
         logger.info(barrier);
     }
 

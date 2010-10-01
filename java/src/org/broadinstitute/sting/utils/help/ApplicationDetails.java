@@ -48,6 +48,11 @@ public class ApplicationDetails {
     final List<String> applicationHeader;
 
     /**
+     * Stores additional attribution for a given walker.
+     */
+    final List<String> attribution;
+
+    /**
      * Extract details covering exactly how to run this executable.
      */
     final String runningInstructions;
@@ -57,12 +62,9 @@ public class ApplicationDetails {
      */
     final String additionalHelp;
 
-    public ApplicationDetails( List<String> applicationHeader, String runningInstructions ) {
-        this(applicationHeader,runningInstructions,null);    
-    }
-
-    public ApplicationDetails( List<String> applicationHeader, String runningInstructions, String additionalHelp ) {
+    public ApplicationDetails( List<String> applicationHeader, List<String> attribution, String runningInstructions, String additionalHelp ) {
         this.applicationHeader = applicationHeader;
+        this.attribution = attribution;
         this.runningInstructions = runningInstructions;
         this.additionalHelp = additionalHelp;
     }

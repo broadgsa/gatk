@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk;
 
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
@@ -61,6 +62,7 @@ public class CommandLineGATK extends CommandLineExecutable {
     @Override
     protected ApplicationDetails getApplicationDetails() {
         return new ApplicationDetails(createApplicationHeader(),
+                getAttribution(),
                 ApplicationDetails.createDefaultRunningInstructions(getClass()),
                 getAdditionalHelp());
     }
@@ -98,7 +100,7 @@ public class CommandLineGATK extends CommandLineExecutable {
     public static List<String> createApplicationHeader() {
         List<String> header = new ArrayList<String>();
         header.add(String.format("The Genome Analysis Toolkit (GATK) v%s, Compiled %s",getVersionNumber(), getBuildTime()));
-        header.add("Copyright (c) 2009 The Broad Institute");
+        header.add("Copyright (c) 2010 The Broad Institute");
         header.add("Please view our documentation at http://www.broadinstitute.org/gsa/wiki");
         header.add("For support, please view our support site at http://getsatisfaction.com/gsa");
         return header;
@@ -112,6 +114,24 @@ public class CommandLineGATK extends CommandLineExecutable {
     public static String getBuildTime() {
         ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
         return headerInfo.containsKey("build.timestamp") ? headerInfo.getString("build.timestamp") : "<unknown>";
+    }
+
+    /**
+     * If the user supplied any additional attribution, return it here.
+     * @return Additional attribution if supplied by the user.  Empty (non-null) list otherwise.
+     */
+    private List<String> getAttribution() {
+        List<String> attributionLines = new ArrayList<String>();
+
+        // If no analysis name is present, fill in extra help on the walkers.
+        WalkerManager walkerManager = engine.getWalkerManager();
+        String analysisName = getAnalysisName();
+        if(analysisName != null && walkerManager.exists(analysisName)) {
+            Class<? extends Walker> walkerType = walkerManager.getWalkerClassByName(analysisName);
+            if(walkerType.isAnnotationPresent(Attribution.class))
+                attributionLines.addAll(Arrays.asList(walkerType.getAnnotation(Attribution.class).value()));
+        }
+        return attributionLines;
     }
 
     /**
