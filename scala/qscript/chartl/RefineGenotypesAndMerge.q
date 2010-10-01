@@ -25,6 +25,13 @@ class BeagleGenotypeRefinement extends QScript {
     this.jarFile = qscript.gatkJar
   }
 
+  class GunzipFile(in: File, out:File ) extends CommandLineFunction {
+    @Input(doc="file to gunzip") var inp = in
+    @Output(doc="file to gunzip to") var outp = out
+
+    def commandLine = "gunzip -c %s > %s".format(inp.getAbsolutePath, outp.getAbsolutePath)
+  }
+
   class BeagleRefinement extends CommandLineFunction {
     @Input(doc="The beagle input file") var beagleInput: File = _
     var beagleOutputBase: String = _
@@ -66,15 +73,20 @@ class BeagleGenotypeRefinement extends QScript {
     refine.memoryLimit = Some(6)
     refine.freezeOutputs
 
+    var unzipPhased = new GunzipFile(refine.beaglePhasedFile,swapExt(refine.beaglePhasedFile,".gz",".bgl"))
+    var unzipProbs = new GunzipFile(refine.beagleLikelihoods,swapExt(refine.beagleLikelihoods,".gz",".bgl"))
+
     var vcfConvert = new BeagleOutputToVCF with GATKArgs
     vcfConvert.variantVCF = inputVCF
     vcfConvert.rodBind :+= new RodBind("beagleR2","BEAGLE",refine.beagleRSquared)
-    vcfConvert.rodBind :+= new RodBind("beaglePhased","BEAGLE",refine.beaglePhasedFile)
-    vcfConvert.rodBind :+= new RodBind("beagleProbs","BEAGLE",refine.beagleLikelihoods)
+    vcfConvert.rodBind :+= new RodBind("beaglePhased","BEAGLE",unzipPhased.outp)
+    vcfConvert.rodBind :+= new RodBind("beagleProbs","BEAGLE",unzipProbs.outp)
     vcfConvert.out = outputVCF
 
     commands :+= beagleInput
     commands :+= refine
+    commands :+= unzipPhased
+    commands :+= unzipProbs
     commands :+= vcfConvert
 
     return commands
