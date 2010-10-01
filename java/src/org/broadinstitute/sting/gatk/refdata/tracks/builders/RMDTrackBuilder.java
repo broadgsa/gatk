@@ -201,7 +201,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
 
             // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
             if (dictFromIndex.size() == 0 && dict != null) {
-                File indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
+                File indexFile = indexFileForFile(inputFile);
                 setIndexSequenceDictionary(index,dict,indexFile,true);
                 dictFromIndex = getSequenceDictionaryFromProperties(index);
             }
@@ -218,6 +218,10 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         return reader;
     }
 
+    public static File indexFileForFile(File inputFile) {
+        return new File(inputFile.getAbsoluteFile() + indexExtension);
+    }
+
     /**
      * create an index for the input file
      * @param inputFile the input file
@@ -226,9 +230,8 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @throws IOException if we cannot write the index file
      */
     public synchronized static Index loadIndex(File inputFile, FeatureCodec codec) throws IOException {
-
         // create the index file name, locking on the index file name
-        File indexFile = new File(inputFile.getAbsoluteFile() + indexExtension);
+        File indexFile = indexFileForFile(inputFile);
         FSLockWithShared lock = new FSLockWithShared(indexFile);
 
         // acquire a lock on the file
@@ -309,7 +312,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     private static Index writeIndexToDisk(Index index, File indexFile, FSLockWithShared lock) throws IOException {
         boolean locked = false; // could we exclusive lock the file?
         try {
-            locked = lock.exclusiveLock();
+            lock.exclusiveLock(); // handle the case where we aren't locking anything
             if (locked) {
                 logger.info("Writing Tribble index to disk for file " + indexFile);
                 LittleEndianOutputStream stream = new LittleEndianOutputStream(new FileOutputStream(indexFile));
