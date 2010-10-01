@@ -23,7 +23,6 @@
       <class name="org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker" />
       <class name="org.broadinstitute.sting.gatk.walkers.coverage.DoCOutputMultiplexer" />
 
-      <class name="org.broadinstitute.sting.gatk.refdata.tracks.builders.RODTrackBuilder" />
       <class name="org.broadinstitute.sting.gatk.walkers.PileupWalker" />
       <class name="org.broadinstitute.sting.gatk.walkers.PrintReadsWalker" />
       <class name="org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker" />
@@ -46,8 +45,6 @@
     <file name="java/src/org/broadinstitute/sting/gatk/walkers/qc/CountLociWalker.java" />
     <file name="java/src/org/broadinstitute/sting/gatk/walkers/qc/CountReadsWalker.java" />
     <file name="java/src/org/broadinstitute/sting/gatk/walkers/qc/ValidatingPileupWalker.java" />
-    <file name="java/src/org/broadinstitute/sting/gatk/examples/HelloWalker.java" />
-    <file name="java/src/org/broadinstitute/sting/gatk/examples/build.xml" />
     <!-- Sample reads and reference files -->
     <file name="testdata/exampleBAM.bam" />
     <file name="testdata/exampleBAM.bam.bai" />
