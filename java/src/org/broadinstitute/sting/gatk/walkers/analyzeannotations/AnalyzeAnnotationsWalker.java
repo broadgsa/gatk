@@ -107,18 +107,23 @@ public class AnalyzeAnnotationsWalker extends RodWalker<Integer, Integer> {
             boolean isInTruthSet = false;
             boolean isTrueVariant = false;
             for ( VariantContext vc : VCs ) {
-                if( vc.getName().toUpperCase().startsWith("TRUTH") ) {
-                    isInTruthSet = true;
-                    if (vc.isVariant())
-                        isTrueVariant = true;
+                if( vc != null && vc.isSNP() && !vc.isFiltered() ) {
+                    if( vc.getName().toUpperCase().startsWith("TRUTH") ) {
+                        isInTruthSet = true;
+                        if( vc.isBiallelic() && vc.isVariant() ) {
+                            isTrueVariant = true;
+                        }
+                    }
                 }
             }
             
             // Add each annotation in this VCF Record to the dataManager
             for ( VariantContext vc : VCs ) {
-                if( !vc.getName().toUpperCase().startsWith("TRUTH") ) {
-                    if( vc.isVariant() ) {
-                        dataManager.addAnnotations( vc, SAMPLE_NAME, isInTruthSet, isTrueVariant );
+                if( vc != null && vc.isSNP() && vc.isBiallelic() && !vc.isFiltered() ) {
+                    if( !vc.getName().toUpperCase().startsWith("TRUTH") ) {
+                        if( vc.isVariant() ) {
+                            dataManager.addAnnotations( vc, SAMPLE_NAME, isInTruthSet, isTrueVariant );
+                        }
                     }
                 }
             }

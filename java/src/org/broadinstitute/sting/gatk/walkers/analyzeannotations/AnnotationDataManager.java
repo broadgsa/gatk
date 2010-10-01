@@ -89,12 +89,10 @@ public class AnnotationDataManager {
             final boolean isNovelVariant = !infoField.get(VariantContext.ID_KEY).toString().contains("rs");
 
             // Decide if the variant is a transition or transversion
-            if ( vc.isSNP() ) {
-                if( VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0 ) {
-                    datum.incrementTi( isNovelVariant, isInTruthSet, isTrueVariant );
-                } else {
-                    datum.incrementTv( isNovelVariant, isInTruthSet, isTrueVariant );
-                }
+            if( VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0 ) {
+                datum.incrementTi( isNovelVariant, isInTruthSet, isTrueVariant );
+            } else {
+                datum.incrementTv( isNovelVariant, isInTruthSet, isTrueVariant );
             }
         }
     }
