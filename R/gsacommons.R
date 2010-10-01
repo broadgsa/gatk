@@ -56,7 +56,11 @@ plot.venn <- function(a, b, c=0, a_and_b, a_and_c=0, b_and_c=0,
     a = readPNG(filename);
     
     plot(0, 0, type="n", xaxt="n", yaxt="n", bty="n", xlim=c(0, 1), ylim=c(0, 1), xlab="", ylab="");
-    rasterImage(a, pos[1], pos[2], pos[3], pos[4]);
+    if (a >= b) {
+        rasterImage(a, pos[1], pos[2], pos[3], pos[4]);
+    } else {
+        rasterImage(a, 0.37+pos[1], 0.37+pos[2], 0.37+pos[3], 0.37+pos[4], angle=180);
+    }
 
     # Clean up!
     unlink(filename);
@@ -83,6 +87,7 @@ read.eval <- function(evalRoot) {
     fileQualityScoreHistogram = paste(evalRoot, ".QualityScoreHistogram.csv", sep="");
     fileSampleStatistics = paste(evalRoot, ".Sample_Statistics.csv", sep="");
     fileSampleSummaryStatistics = paste(evalRoot, ".Sample_Summary_Statistics.csv", sep="");
+    fileSimpleMetricsBySample = paste(evalRoot, ".SimpleMetricsBySample.csv", sep="");
     fileTi_slash_Tv_Variant_Evaluator = paste(evalRoot, ".Ti_slash_Tv_Variant_Evaluator.csv", sep="");
     fileTiTvStats = paste(evalRoot, ".TiTvStats.csv", sep="");
     fileVariant_Quality_Score = paste(evalRoot, ".Variant_Quality_Score.csv", sep="");
@@ -98,6 +103,7 @@ read.eval <- function(evalRoot) {
         QualityScoreHistogram = NA,
         SampleStatistics = NA,
         SampleSummaryStatistics = NA,
+        SimpleMetricsBySample = NA,
         TiTv = NA,
         TiTvStats = NA,
         Variant_Quality_Score = NA,
@@ -117,14 +123,18 @@ read.eval <- function(evalRoot) {
     eval$QualityScoreHistogram           = .attemptToLoadFile(fileQualityScoreHistogram);
     eval$SampleStatistics                = .attemptToLoadFile(fileSampleStatistics);
     eval$SampleSummaryStatistics         = .attemptToLoadFile(fileSampleSummaryStatistics);
+    eval$SimpleMetricsBySample           = .attemptToLoadFile(fileSimpleMetricsBySample);
     eval$TiTv                            = .attemptToLoadFile(fileTi_slash_Tv_Variant_Evaluator);
     eval$TiTvStats                       = .attemptToLoadFile(fileTiTvStats);
     eval$Variant_Quality_Score           = .attemptToLoadFile(fileVariant_Quality_Score);
 
     uniqueJexlExpressions = unique(eval$TiTv$jexl_expression);
-    eval$CallsetOnlyNames = as.vector(uniqueJexlExpressions[grep("Filtered|Intersection|none", uniqueJexlExpressions, invert=TRUE, ignore.case=TRUE)]);
+    eval$CallsetOnlyNames = as.vector(uniqueJexlExpressions[grep("FilteredIn|Intersection|none", uniqueJexlExpressions, invert=TRUE, ignore.case=TRUE)]);
     eval$CallsetNames = as.vector(gsub("-only", "", eval$CallsetOnlyNames));
-    eval$CallsetFilteredNames = as.vector(c(paste(eval$CallsetNames[1], "-filteredIn", eval$CallsetNames[2], sep=""), paste(eval$CallsetNames[2], "-filteredIn", eval$CallsetNames[1], sep="")));
+    eval$CallsetFilteredNames = as.vector(c(
+        paste(gsub("^(\\w)", "In\\U\\1", eval$CallsetNames[1], perl=TRUE), "-Filtered", gsub("^(\\w)", "In\\U\\1", eval$CallsetNames[2], perl=TRUE), sep=""),
+        paste(gsub("^(\\w)", "In\\U\\1", eval$CallsetNames[2], perl=TRUE), "-Filtered", gsub("^(\\w)", "In\\U\\1", eval$CallsetNames[1], perl=TRUE), sep=""))
+    );
 
     eval;
 }
@@ -142,8 +152,14 @@ eval.getMetrics <- function(eval, jexl_expression) {
     callset.novelCounts = callset.counts[which(callset.counts$filter_name == "called" & callset.counts$novelty_name == "novel"),]$nVariantLoci;
     callset.novelCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "called" & callset.counts.titv$novelty_name == "novel"),]$ti.tv_ratio;
 
-    callset.filteredCounts = callset.counts[which(callset.counts$filter_name == "filtered" & callset.counts$novelty_name == "all"),]$nVariantLoci;
-    callset.filteredCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "filtered" & callset.counts.titv$novelty_name == "all"),]$ti.tv_ratio;
+    callset.allFilteredCounts = callset.counts[which(callset.counts$filter_name == "filtered" & callset.counts$novelty_name == "all"),]$nVariantLoci;
+    callset.allFilteredCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "filtered" & callset.counts.titv$novelty_name == "all"),]$ti.tv_ratio;
+
+    callset.knownFilteredCounts = callset.counts[which(callset.counts$filter_name == "filtered" & callset.counts$novelty_name == "known"),]$nVariantLoci;
+    callset.knownFilteredCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "filtered" & callset.counts.titv$novelty_name == "known"),]$ti.tv_ratio;
+
+    callset.novelFilteredCounts = callset.counts[which(callset.counts$filter_name == "filtered" & callset.counts$novelty_name == "novel"),]$nVariantLoci;
+    callset.novelFilteredCounts.titv = callset.counts.titv[which(callset.counts.titv$filter_name == "filtered" & callset.counts.titv$novelty_name == "novel"),]$ti.tv_ratio;
     
     metrics = list(
         all = callset.calledCounts,
@@ -155,48 +171,66 @@ eval.getMetrics <- function(eval, jexl_expression) {
         novel = callset.novelCounts,
         novel.titv = callset.novelCounts.titv,
 
-        filtered = callset.filteredCounts,
-        filtered.titv = callset.filteredCounts.titv
+        filtered.all = callset.allFilteredCounts,
+        filtered.all.titv = callset.allFilteredCounts.titv,
+
+        filtered.known = callset.knownFilteredCounts,
+        filtered.known.titv = callset.knownFilteredCounts.titv,
+
+        filtered.novel = callset.novelFilteredCounts,
+        filtered.novel.titv = callset.novelFilteredCounts.titv
     );
 }
 
-.plot.callsetConcordance.getLabelText <- function(name, metrics, union) {
-    text = sprintf("%s (%0.1f%% of union)\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f\n",
-                   name,             100.0*metrics$all/union$all,
+.plot.callsetConcordance.getLabelText <- function(name, othername, metrics, filtered.metrics=NA, union) {
+    if (is.na(filtered.metrics)) {
+        text = sprintf("%s (%0.01f%% of union)\nCalled:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f",
+                   name,             100*metrics$all/union$all.withfiltered,
                    metrics$all,      metrics$all.titv,
                    metrics$known,    metrics$known.titv,
                    metrics$novel,    metrics$novel.titv
-    );
+        );
+    } else {
+        text = sprintf("%s (%0.01f%% of union)\nCalled in %s, absent in %s:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f\n\nCalled in %s, filtered in %s:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f",
+                   name,             100*(metrics$all + filtered.metrics$all)/union$all.withfiltered,
+                   name,             othername,
+                   metrics$all,      metrics$all.titv,
+                   metrics$known,    metrics$known.titv,
+                   metrics$novel,    metrics$novel.titv,
+
+                   name, othername,
+                   filtered.metrics$all,      filtered.metrics$all.titv,
+                   filtered.metrics$known,    filtered.metrics$known.titv,
+                   filtered.metrics$novel,    filtered.metrics$novel.titv
+        );
+    }
 }
 
 plot.callsetConcordance <- function(eval, col=c("#FF6342", "#63C6DE", "#ADDE63")) {
     aonly = eval.getMetrics(eval, eval$CallsetOnlyNames[1]);
+    aonly.filtered = eval.getMetrics(eval, eval$CallsetFilteredNames[1]);
     intersection = eval.getMetrics(eval, "Intersection");
     bonly = eval.getMetrics(eval, eval$CallsetOnlyNames[2]);
+    bonly.filtered = eval.getMetrics(eval, eval$CallsetFilteredNames[2]);
 
     union = list(
         all = intersection$all + aonly$all + bonly$all,
-        known = intersection$known + aonly$known + bonly$known,
-        novel = intersection$novel + aonly$novel + bonly$novel,
-        filtered = intersection$filtered + aonly$filtered + bonly$filtered
+        all.withfiltered = intersection$all + aonly$all + bonly$all + aonly.filtered$all + bonly.filtered$all
     );
 
-    #par.def = par(no.readonly = TRUE);
-    #par(mar=c(0.1, 0.1, 0.1, 0.1));
+    plot.venn(aonly$all + intersection$all + aonly.filtered$all, bonly$all + intersection$all + bonly.filtered$all, 0, intersection$all, 0, 0, pos=c(0.32, 0.32, 0.68, 0.70), col=col);
 
-    plot.venn(aonly$all + intersection$all, bonly$all + intersection$all, 0, intersection$all, 0, 0, pos=c(0.32, 0.32, 0.68, 0.70), col=col);
-
-    text(0, 0.5, cex=1.2, pos=4, .plot.callsetConcordance.getLabelText(eval$CallsetNames[1], aonly, union));
-    text(0.5, 0.75, cex=1.2, adj=c(0.5, 0.33), .plot.callsetConcordance.getLabelText("Intersection", intersection, union));
-    text(1, 0.5, cex=1.2, pos=2, .plot.callsetConcordance.getLabelText(eval$CallsetNames[2], bonly, union));
-
-    #par(par.def);
+    text(0, 0.45, cex=1.2, pos=4, .plot.callsetConcordance.getLabelText(eval$CallsetNames[1], eval$CallsetNames[2], aonly, aonly.filtered, union));
+    text(0.5, 0.75, cex=1.2, adj=c(0.5, 0.33), .plot.callsetConcordance.getLabelText("Intersection", NA, intersection, NA, union));
+    text(1, 0.45, cex=1.2, pos=2, .plot.callsetConcordance.getLabelText(eval$CallsetNames[2], eval$CallsetNames[1], bonly, bonly.filtered, union));
 }
 
 plot.callsetConcordanceByAC <- function(eval, normalize=TRUE, novelty_name="all", col=c("#FF6342", "#5C92A4", "#55BBFF")) {
     aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
+    aonly.filtered = eval.getMetrics(eval, eval$CallsetFilteredNames[1]);
     intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
     bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
+    bonly.filtered = eval.getMetrics(eval, eval$CallsetFilteredNames[2]);
 
     title = paste("Callset concordance per allele count (", novelty_name, " variants)", sep="");
 
@@ -304,7 +338,7 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#5C92A
     legend("topleft", c(eval$CallsetOnlyNames[1], "Intersection", eval$CallsetOnlyNames[2]), fill=col);
 }
 
-plot.variantsPerSample <- function(eval) {
+plot.variantsPerSample2 <- function(eval) {
     if (!is.na(eval$MetricsBySample)) {
         metrics.all = eval$MetricsBySample[which(eval$MetricsBySample$evaluation_name == "eval" & eval$MetricsBySample$comparison_name == "dbsnp" & as.character(eval$MetricsBySample$jexl_expression) == "none" & eval$MetricsBySample$filter_name == "called" & eval$MetricsBySample$novelty_name == "all"),]; 
         metrics.known = eval$MetricsBySample[which(eval$MetricsBySample$evaluation_name == "eval" & eval$MetricsBySample$comparison_name == "dbsnp" & as.character(eval$MetricsBySample$jexl_expression) == "none" & eval$MetricsBySample$filter_name == "called" & eval$MetricsBySample$novelty_name == "known"),]; 
@@ -321,5 +355,31 @@ plot.variantsPerSample <- function(eval) {
         legend("topright", c("All", "Known", "Novel"), pch=21, col=c("black", "blue", "red"));
 
         axis(1, at=c(1:length(metrics.all$sample)), labels=(metrics.all$sample)[indices], las=2, cex.axis=0.4);
+    }
+}
+
+plot.variantsPerSample <- function(eval, novelty_name="all") {
+    if (!is.na(eval$SimpleMetricsBySample)) {
+        metrics = eval$SimpleMetricsBySample[which(eval$SimpleMetricsBySample$evaluation_name == "eval" & eval$SimpleMetricsBySample$comparison_name == "dbsnp" & as.character(eval$SimpleMetricsBySample$jexl_expression) == "none" & eval$SimpleMetricsBySample$filter_name == "called" & eval$SimpleMetricsBySample$novelty_name == novelty_name),]; 
+
+        title = paste("Calls per sample (", novelty_name, ")", sep="");
+        indices = order(metrics$CountVariants, decreasing=TRUE);
+
+        par.def = par(no.readonly = TRUE);
+        par(mar=c(5, 4, 4, 4));
+
+        plot(0, 0, type="n", xaxt="n", xlim=c(1, length(metrics$row)), ylim=c(0, max(metrics$CountVariants)), xlab="", ylab="Number of variants", main=title, bty="n");
+        points(c(1:length(metrics$row)), (metrics$CountVariants)[indices], pch=21, col="black");
+
+        axis(1, at=c(1:length(metrics$row)), labels=(metrics$row)[indices], las=2, cex.axis=0.4);
+
+        par(new=TRUE);
+        plot(0, 0, type="n", xaxt="n", yaxt="n", xlim=c(1, length(metrics$row)), ylim=c(min(metrics$TiTvRatio), 1.2*max(metrics$TiTvRatio)), xlab="", ylab="", main=title, bty="n");
+        points(c(1:length(metrics$row)), (metrics$TiTvRatio)[indices], pch=19, col="black");
+
+        titvaxis = c(min(metrics$TiTvRatio), max(metrics$TiTvRatio));
+        axis(4, at=titvaxis, labels=titvaxis, las=2);
+
+        par(par.def);
     }
 }
