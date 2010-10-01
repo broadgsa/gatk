@@ -47,7 +47,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
     private final double insertionEndProbability = 0.5;
     private final double alphaDeletionProbability = 1e-3;
     private final int HAPLOTYPE_SIZE = 80;
-    private static final double MINUS_INFINITY = -1e200;
+    private static final double MINUS_LOG_INFINITY = -300;
 
     // todo - the following  need to be exposed for command line argument control
     private final double indelHeterozygosity = 1.0/8000;
@@ -130,7 +130,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
                 for (int k=0; k < 3; k++) {
                     genotypeLikelihoods[k] = Math.log10(genotypeLikelihoods[k]);
                     if (Double.isInfinite(genotypeLikelihoods[k]))
-                        genotypeLikelihoods[k] = -MINUS_INFINITY;
+                        genotypeLikelihoods[k] = MINUS_LOG_INFINITY;
                 }
                 GLs.put(sample.getKey(), new BiallelicGenotypeLikelihoods(sample.getKey(),vc.getReference(),
                         vc.getAlternateAllele(0),
