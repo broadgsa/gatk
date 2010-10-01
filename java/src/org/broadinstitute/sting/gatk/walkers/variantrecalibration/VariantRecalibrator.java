@@ -116,6 +116,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Hidden
     @Argument(fullName = "NoByHapMapValidationStatus", shortName = "NoByHapMapValidationStatus", doc = "Don't consider sites in dbsnp rod tagged as by-hapmap validation status as real HapMap sites. FOR DEBUGGING PURPOSES ONLY.", required=false)
     private Boolean NO_BY_HAPMAP_VALIDATION_STATUS = false;
+    @Hidden
+    @Argument(fullName = "qual", shortName = "qual", doc = "Don't use sites below the qual threshold. FOR DEBUGGING PURPOSES ONLY.", required=false)
+    private double QUAL_THRESHOLD = 0.0;
 
     /////////////////////////////
     // Private Member Variables
@@ -217,76 +220,78 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
             if( vc != null && vc.isSNP() ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
-                    final VariantDatum variantDatum = new VariantDatum();
-                    variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
+                    if( vc.getPhredScaledQual() >= QUAL_THRESHOLD ) {
+                        final VariantDatum variantDatum = new VariantDatum();
+                        variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
 
-                    final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-                    final VariantContext vcHapMap = tracker.getVariantContext(ref, "hapmap", null, context.getLocation(), false);
-                    final VariantContext vc1KG = tracker.getVariantContext(ref, "1kg", null, context.getLocation(), false);
+                        final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                        final VariantContext vcHapMap = tracker.getVariantContext(ref, "hapmap", null, context.getLocation(), false);
+                        final VariantContext vc1KG = tracker.getVariantContext(ref, "1kg", null, context.getLocation(), false);
 
-                    variantDatum.isKnown = ( dbsnp != null );
-                    double knownPrior_qScore = PRIOR_NOVELS;
-                    if( vcHapMap != null || ( !NO_BY_HAPMAP_VALIDATION_STATUS && dbsnp != null && DbSNPHelper.isHapmap(dbsnp) ) ) {
-                        knownPrior_qScore = PRIOR_HAPMAP;
-                    } else if( vc1KG != null ) {
-                        knownPrior_qScore = PRIOR_1KG;
-                    } else if( dbsnp != null ) {
-                        knownPrior_qScore = PRIOR_DBSNP;
-                    }
+                        variantDatum.isKnown = ( dbsnp != null );
+                        double knownPrior_qScore = PRIOR_NOVELS;
+                        if( vcHapMap != null || ( !NO_BY_HAPMAP_VALIDATION_STATUS && dbsnp != null && DbSNPHelper.isHapmap(dbsnp) ) ) {
+                            knownPrior_qScore = PRIOR_HAPMAP;
+                        } else if( vc1KG != null ) {
+                            knownPrior_qScore = PRIOR_1KG;
+                        } else if( dbsnp != null ) {
+                            knownPrior_qScore = PRIOR_DBSNP;
+                        }
 
 
-                    // If we can trust the AC field then use it instead of parsing all the genotypes. Results in a substantial speed up.
-                    final int alleleCount = (trustACField ? Integer.parseInt(vc.getAttribute("AC",-1).toString()) : vc.getChromosomeCount(vc.getAlternateAllele(0)));
-                    if( !trustACField && !NEVER_TRUST_AC_FIELD ) {
-                        if( !vc.getAttributes().containsKey("AC") ) {
-                            NEVER_TRUST_AC_FIELD = true;
-                        } else {
-                            if( alleleCount == Integer.parseInt( vc.getAttribute("AC").toString()) ) {
-                                // The AC field is correct at this record so we trust it forever
-                                trustACField = true;
-                            } else { // We found a record in which the AC field wasn't correct but we are trying to trust it
-                                throw new UserException.BadInput("AC info field doesn't match the variant chromosome count so we can't trust it! Please run with --dontTrustACField which will force the walker to parse the genotypes for each record, drastically increasing the runtime." +
-                                            "First observed at " + vc.getChr() + ":" + vc.getStart());
+                        // If we can trust the AC field then use it instead of parsing all the genotypes. Results in a substantial speed up.
+                        final int alleleCount = (trustACField ? Integer.parseInt(vc.getAttribute("AC",-1).toString()) : vc.getChromosomeCount(vc.getAlternateAllele(0)));
+                        if( !trustACField && !NEVER_TRUST_AC_FIELD ) {
+                            if( !vc.getAttributes().containsKey("AC") ) {
+                                NEVER_TRUST_AC_FIELD = true;
+                            } else {
+                                if( alleleCount == Integer.parseInt( vc.getAttribute("AC").toString()) ) {
+                                    // The AC field is correct at this record so we trust it forever
+                                    trustACField = true;
+                                } else { // We found a record in which the AC field wasn't correct but we are trying to trust it
+                                    throw new UserException.BadInput("AC info field doesn't match the variant chromosome count so we can't trust it! Please run with --dontTrustACField which will force the walker to parse the genotypes for each record, drastically increasing the runtime." +
+                                                "First observed at " + vc.getChr() + ":" + vc.getStart());
+                                }
                             }
                         }
-                    }
-                    if( trustACField && alleleCount == -1 ) {
-                        throw new UserException.BadInput("AC info field doesn't exist for all records (although it does for some) so we can't trust it! Please run with --dontTrustACField which will force the walker to parse the genotypes for each record, drastically increasing the runtime." +
-                                "First observed at " + vc.getChr() + ":" + vc.getStart());
-                    }
-
-                    final Object[] priorKey = new Object[2];
-                    priorKey[0] = alleleCount;
-                    priorKey[1] = knownPrior_qScore;
-
-                    Double priorLodFactor = (Double)priorCache.get( priorKey );
-
-                    // If this prior factor hasn't been calculated before, do so now
-                    if(priorLodFactor == null) {
-                        final double knownPrior = QualityUtils.qualToProb(knownPrior_qScore);
-                        final double acPrior = theModel.getAlleleCountPrior( alleleCount );
-                        final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
-
-                        if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {
-                            throw new UserException.CommandLineException("Something is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
+                        if( trustACField && alleleCount == -1 ) {
+                            throw new UserException.BadInput("AC info field doesn't exist for all records (although it does for some) so we can't trust it! Please run with --dontTrustACField which will force the walker to parse the genotypes for each record, drastically increasing the runtime." +
+                                    "First observed at " + vc.getChr() + ":" + vc.getStart());
                         }
 
-                        priorLodFactor = Math.log10(totalPrior) - Math.log10(1.0 - totalPrior) - Math.log10(1.0);
+                        final Object[] priorKey = new Object[2];
+                        priorKey[0] = alleleCount;
+                        priorKey[1] = knownPrior_qScore;
 
-                        priorCache.put( priorLodFactor, false, priorKey );
+                        Double priorLodFactor = (Double)priorCache.get( priorKey );
+
+                        // If this prior factor hasn't been calculated before, do so now
+                        if(priorLodFactor == null) {
+                            final double knownPrior = QualityUtils.qualToProb(knownPrior_qScore);
+                            final double acPrior = theModel.getAlleleCountPrior( alleleCount );
+                            final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
+
+                            if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {
+                                throw new UserException.CommandLineException("Something is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
+                            }
+
+                            priorLodFactor = Math.log10(totalPrior) - Math.log10(1.0 - totalPrior) - Math.log10(1.0);
+
+                            priorCache.put( priorLodFactor, false, priorKey );
+                        }
+
+                        final double pVar = theModel.evaluateVariant( vc );
+                        final double lod = priorLodFactor + Math.log10(pVar);
+                        variantDatum.qual = Math.abs( QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod) );
+
+                        mapList.add( variantDatum );
+                        final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+                        attrs.put("OQ", String.format("%.2f", vc.getPhredScaledQual()));
+                        attrs.put("LOD", String.format("%.4f", lod));
+                        VariantContext newVC = VariantContext.modifyPErrorFiltersAndAttributes(vc, variantDatum.qual / 10.0, new HashSet<String>(), attrs);
+
+                        vcfWriter.add( newVC, ref.getBase() );
                     }
-
-                    final double pVar = theModel.evaluateVariant( vc );
-                    final double lod = priorLodFactor + Math.log10(pVar);
-                    variantDatum.qual = Math.abs( QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod) );
-
-                    mapList.add( variantDatum );
-                    final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                    attrs.put("OQ", String.format("%.2f", vc.getPhredScaledQual()));
-                    attrs.put("LOD", String.format("%.4f", lod));
-                    VariantContext newVC = VariantContext.modifyPErrorFiltersAndAttributes(vc, variantDatum.qual / 10.0, new HashSet<String>(), attrs);
-
-                    vcfWriter.add( newVC, ref.getBase() );
 
                 } else { // not a SNP or is filtered so just dump it out to the VCF file
                     vcfWriter.add( vc, ref.getBase() ); 

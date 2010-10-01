@@ -312,7 +312,7 @@ public class VariantContextUtils {
         String rsID = null;
         int depth = 0;
 
-        // counting the number of filtered and varint VCs
+        // counting the number of filtered and variant VCs
         int nFiltered = 0, nVariant = 0;
 
         Allele refAllele = determineReferenceAllele(VCs);
