@@ -312,7 +312,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     private static Index writeIndexToDisk(Index index, File indexFile, FSLockWithShared lock) throws IOException {
         boolean locked = false; // could we exclusive lock the file?
         try {
-            lock.exclusiveLock(); // handle the case where we aren't locking anything
+            locked = lock.exclusiveLock(); // handle the case where we aren't locking anything
             if (locked) {
                 logger.info("Writing Tribble index to disk for file " + indexFile);
                 LittleEndianOutputStream stream = new LittleEndianOutputStream(new FileOutputStream(indexFile));
@@ -320,7 +320,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
                 stream.close();
             }
             else // we can't write it to disk, just store it in memory, tell them this
-                logger.info("Unable to write to " + indexFile + " for the index file, creating index in memory only");
+                logger.warn("Unable to write to " + indexFile + " for the index file, creating index in memory only");
             return index;
         }
         catch(FileSystemInabilityToLockException ex) {
