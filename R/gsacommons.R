@@ -186,14 +186,14 @@ eval.getMetrics <- function(eval, jexl_expression) {
 
 .plot.callsetConcordance.getLabelText <- function(name, othername, metrics, filtered.metrics=NA, union) {
     if (is.na(filtered.metrics)) {
-        text = sprintf("%s (%0.01f%% of union)\nCalled:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f",
+        text = sprintf("%s (%0.01f%% of union)\nCalled:\nAll: %d, Ti/Tv: %0.2f\nKnown: %d, Ti/Tv: %0.2f\nNovel: %d, Ti/Tv: %0.2f",
                    name,             100*metrics$all/union$all.withfiltered,
                    metrics$all,      metrics$all.titv,
                    metrics$known,    metrics$known.titv,
                    metrics$novel,    metrics$novel.titv
         );
     } else {
-        text = sprintf("%s (%0.01f%% of union)\nCalled in %s, filtered in %s:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f\n\nCalled in %s, absent in %s:\nAll: %d, Ti/Tv: %0.1f\nKnown: %d, Ti/Tv: %0.1f\nNovel: %d, Ti/Tv: %0.1f",
+        text = sprintf("%s (%0.01f%% of union)\nCalled in %s, filtered in %s:\nAll: %d, Ti/Tv: %0.2f\nKnown: %d, Ti/Tv: %0.2f\nNovel: %d, Ti/Tv: %0.2f\n\nCalled in %s, absent in %s:\nAll: %d, Ti/Tv: %0.2f\nKnown: %d, Ti/Tv: %0.2f\nNovel: %d, Ti/Tv: %0.2f",
                    name,             100*(metrics$all + filtered.metrics$all)/union$all.withfiltered,
 
                    name,                      othername,
