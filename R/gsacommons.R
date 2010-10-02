@@ -222,7 +222,7 @@ plot.titlePage <- function(title, author) {
     knownTiTv = eval$TiTv[which(eval$TiTv$jexl_expression == jexl_expression & eval$TiTv$filter_name == "called" & eval$TiTv$novelty_name == "known"),]$ti.tv_ratio;
     novelTiTv = eval$TiTv[which(eval$TiTv$jexl_expression == jexl_expression & eval$TiTv$filter_name == "called" & eval$TiTv$novelty_name == "novel"),]$ti.tv_ratio;
 
-    cbind(knownVariants, knownTiTv, novelVariants, novelTiTv);
+    cbind(allVariants, knownVariants, knownTiTv, novelVariants, novelTiTv);
 }
 
 plot.variantTable <- function(eval, title) {
@@ -241,7 +241,7 @@ plot.variantTable <- function(eval, title) {
         sprintf("Called in %s, filtered in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2]),
         sprintf("Called in %s, absent in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2])
     );
-    colnames(variantsummary) = c("counts (known)", "ti/tv (known)", "counts (novel)", "ti/tv (novel)");
+    colnames(variantsummary) = c("counts (all)", "counts (known)", "ti/tv (known)", "counts (novel)", "ti/tv (novel)");
 
     textplot(variantsummary);
 }
@@ -322,6 +322,7 @@ plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", 
     aonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[1], novelty_name);
     aonly.filtered = eval.getMetricsByAc(eval, eval$CallsetFilteredNames[1]);
     intersection = eval.getMetricsByAc(eval, "Intersection", novelty_name);
+    intersection.all = eval.getMetrics(eval, "Intersection");
     bonly = eval.getMetricsByAc(eval, eval$CallsetOnlyNames[2], novelty_name);
     bonly.filtered = eval.getMetricsByAc(eval, eval$CallsetFilteredNames[2]);
 
@@ -346,6 +347,10 @@ plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", 
     suppressWarnings(points(intersection$AC, bonly$n + intersection$n, type="l", lwd=2, lty=2, col=col[4]));
     suppressWarnings(points(intersection$AC, bonly$n + bonly.filtered$n + intersection$n, type="l", lwd=2, col=col[5]));
 
+    loci = (unique(eval$CountVariants$nProcessedLoci))[1];
+
+    points(c(1:max(intersection$AC)), 0.9*(1/1000)*loci*(1/c(1:max(intersection$AC))), type="l", lwd=2, lty=2, col="black");
+
     legend(
         "bottomleft",
         c(
@@ -353,11 +358,12 @@ plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", 
             sprintf("Intersection + called in %s, absent in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
             "Intersection",
             sprintf("Intersection + called in %s, absent in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2]),
-            sprintf("Intersection + called in %s, absent or filtered in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2])
+            sprintf("Intersection + called in %s, absent or filtered in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2]),
+            sprintf("Neutral expectation ( 0.9*(1/1000)*%d*(1/c(1:max(%d))) )", loci, max(intersection$AC))
         ),
-        lwd=c(2, 2, 3, 2, 2),
-        lty=c(1, 2, 1, 2, 1),
-        col=rev(col),
+        lwd=c(2, 2, 3, 2, 2, 2),
+        lty=c(1, 2, 1, 2, 1, 2),
+        col=c(rev(col), "black"),
         cex=1.3
     );
 }
@@ -411,9 +417,8 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#FF967
 
     titv.min = min(titv.aonly.withfiltered.finite, titv.aonly.finite, titv.intersection.finite, titv.bonly.finite, titv.bonly.withfiltered.finite);
     titv.max = max(titv.aonly.withfiltered.finite, titv.aonly.finite, titv.intersection.finite, titv.bonly.finite, titv.bonly.withfiltered.finite);
-    #titv.max = max(titv.aonly.finite, titv.intersection.finite, titv.bonly.finite);
 
-    plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(titv.min, 1.2*titv.max), xlab="Allele count", ylab="Transition/transversion (Ti/Tv) ratio", main=title, bty="n", cex=1.3, cex.lab=1.3, cex.axis=1.3);
+    plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(0, 4), xlab="Allele count", ylab="Transition/transversion (Ti/Tv) ratio", main=title, bty="n", cex=1.3, cex.lab=1.3, cex.axis=1.3);
     points(intersection$AC, (aonly.filtered$nTi + intersection$nTi)/(aonly.filtered$nTv + intersection$nTv), type="l", lwd=2, col=col[1]);
     points(intersection$AC, (aonly$nTi + intersection$nTi)/(aonly$nTv + intersection$nTv), type="l", lwd=2, lty=2, col=col[2]);
     points(intersection$AC, intersection$Ti.Tv, type="l", lwd=2, col=col[3]);
