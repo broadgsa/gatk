@@ -222,7 +222,7 @@ plot.titlePage <- function(title, author) {
     knownTiTv = eval$TiTv[which(eval$TiTv$jexl_expression == jexl_expression & eval$TiTv$filter_name == "called" & eval$TiTv$novelty_name == "known"),]$ti.tv_ratio;
     novelTiTv = eval$TiTv[which(eval$TiTv$jexl_expression == jexl_expression & eval$TiTv$filter_name == "called" & eval$TiTv$novelty_name == "novel"),]$ti.tv_ratio;
 
-    cbind(allVariants, knownVariants, knownTiTv, novelVariants, novelTiTv);
+    cbind(allVariants, knownVariants, sprintf("%0.2f", knownTiTv), novelVariants, sprintf("%0.2f", novelTiTv));
 }
 
 plot.variantTable <- function(eval, title) {
