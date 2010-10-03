@@ -449,7 +449,7 @@ public class VariantContextUtils {
             if ( ref == null || ref.length() < myRef.length() )
                 ref = myRef;
             else if ( ref.length() == myRef.length() && ! ref.equals(myRef) )
-                throw new ReviewedStingException("BUG: equal length references with difference bases: "+ ref + " " + myRef);
+                throw new UserException.BadInput(String.format("The provided variant file(s) have inconsistent references for the same position(s) at %s:%d, %s vs. %s", vc.getChr(), vc.getStart(), ref, myRef));
         }
 
         return ref;
