@@ -388,8 +388,9 @@ public abstract class CommandLineProgram {
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A USER ERROR has occurred (version %s): %n", CommandLineGATK.getVersionNumber());
         errorPrintf("The invalid arguments or inputs must be corrected before the GATK can proceed%n");
+        errorPrintf("Please do not post this error to the GATK forum%n");
         errorPrintf("%n");
-        errorPrintf("See the documentation (rerun with -h) for this tool to view allowable command-line argument.%n");
+        errorPrintf("See the documentation (rerun with -h) for this tool to view allowable command-line arguments.%n");
         printDocumentationReference();
         errorPrintf("%n");
         errorPrintf("MESSAGE: %s%n", e.getMessage().trim());
