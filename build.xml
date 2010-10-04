@@ -14,7 +14,6 @@
     <property name="queue.classes" value="${build.dir}/scala/classes" />
 
     <property name="queue-extensions.source.dir" value="${build.dir}/queue-extensions/src" />
-    <property name="queue-extensions.classes" value="${build.dir}/queue-extensions/classes" />
     
     <!-- where to find the tribble distro -->
     <property name="tribble.dir" value="tribble" />
@@ -78,13 +77,6 @@
     <path id="queue.dependencies">
         <path refid="external.dependencies" />
         <pathelement location="${java.classes}" />
-    </path>
-
-    <!-- Path to queue-extendsions dependencies. -->
-    <path id="queue-extensions.dependencies">
-        <path refid="external.dependencies" />
-        <pathelement location="${java.classes}" />
-        <pathelement location="${queue.classes}" />
         <!-- Need the resources as we will be running a command line program which needs the help text. -->
         <pathelement location="${resource.path}" />
     </path>
@@ -227,20 +219,11 @@
         </subant>
     </target>
 
-    <!-- Queue depends on the gatk since it contains the StingUtils (including CommandLine) -->
-    <target name="queue.compile" depends="init,resolve,gatk.compile,init.scalatasks" if="queue.include" description="build Queue">
-        <mkdir dir="${queue.classes}"/>
-        <echo>Building Queue...</echo>
-        <scalac srcdir="${queue.source.dir}" destdir="${queue.classes}" classpathref="queue.dependencies" deprecation="yes" unchecked="yes">
-            <include name="org/broadinstitute/sting/queue/**/*.scala"/>
-        </scalac>
-    </target>
-
     <!-- NOTE: Extracting help first to avoid "Unable to load help text.  Help output will be sparse." warning message. -->
-    <target name="queue-extensions.generate" depends="gatk.compile, queue.compile, extracthelp" if="queue.include" description="generate GATK modules for Queue">
+    <target name="queue-extensions.generate" depends="gatk.compile, extracthelp" if="queue.include" description="generate GATK modules for Queue">
         <mkdir dir="${queue-extensions.source.dir}"/>
         <echo>Generating Queue GATK extensions...</echo>
-        <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" classpathref="queue-extensions.dependencies">
+        <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" classpathref="queue.dependencies">
             <arg value="-outDir" />
             <arg path="${queue-extensions.source.dir}" />
             <arg value="-l" />
@@ -248,11 +231,15 @@
         </java>
     </target>
 
-    <target name="queue-extensions.compile" depends="queue-extensions.generate" if="queue.include" description="compile extensions for Queue">
-        <mkdir dir="${queue-extensions.classes}"/>
-        <echo>Building Queue GATK extensions...</echo>
-        <scalac srcdir="${queue-extensions.source.dir}" destdir="${queue-extensions.classes}" classpathref="queue-extensions.dependencies" deprecation="yes" unchecked="yes">
+    <!-- Queue depends on the gatk since it contains the StingUtils (including CommandLine) -->
+    <target name="queue.compile" depends="init,resolve,gatk.compile,init.scalatasks,queue-extensions.generate" if="queue.include" description="compile Queue">
+        <mkdir dir="${queue.classes}"/>
+        <echo>Building Queue...</echo>
+        <scalac destdir="${queue.classes}" classpathref="queue.dependencies" deprecation="yes" unchecked="yes">
+            <src path="${queue.source.dir}" />
+            <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala"/>
+            <exclude name="*.scala"/>
         </scalac>
     </target>
 
@@ -273,7 +260,7 @@
       </javadoc>
     </target>
 
-    <target name="sting.compile" depends="gatk.compile, queue.compile, queue-extensions.compile" />
+    <target name="sting.compile" depends="gatk.compile, queue.compile" />
 
     <target name="init.jar" depends="sting.compile,extracthelp">
         <mkdir dir="${dist.dir}"/>
@@ -326,16 +313,13 @@
 
     </target>
 
-    <target name="queue.jar" depends="queue.compile, queue-extensions.compile, init.jar" if="queue.include">
+    <target name="queue.jar" depends="queue.compile, init.jar" if="queue.include">
         <jar jarfile="${dist.dir}/Queue.jar">
             <fileset dir="${queue.classes}">
                 <include name="org/broadinstitute/sting/queue/**/*.class"/>
             </fileset>
             <fileset dir="${java.classes}">
               <include name="org/broadinstitute/sting/queue/**/*.class" />
-            </fileset>
-            <fileset dir="${queue-extensions.classes}">
-              <include name="**/*.class" />
             </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.queue.QCommandLine" />
@@ -587,7 +571,7 @@
       </javadoc>
 
         <mkdir dir="javadoc/queue"/>
-        <scaladoc srcdir="" destdir="javadoc/queue" classpathref="queue-extensions.dependencies" deprecation="yes" unchecked="yes">
+        <scaladoc srcdir="" destdir="javadoc/queue" classpathref="queue.dependencies" deprecation="yes" unchecked="yes">
             <src path="${queue.source.dir}"/>
             <src path="${queue-extensions.source.dir}"/>
             <include name="org/broadinstitute/sting/queue/**/*.scala"/>
