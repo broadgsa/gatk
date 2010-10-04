@@ -30,7 +30,7 @@
     <property name="usefile" value="false" />
 
     <!-- If running the 'package' task, this property controls the name of the xml file to package -->
-    <property name="package.dir" value="packages" />
+    <property name="package.xml.dir" value="packages" />
     <property name="executable" value="GenomeAnalysisTK" />
 
     <property environment="env"/>
@@ -607,7 +607,7 @@
     <!-- Build a package consisting of all supporting files -->
     <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
       <mkdir dir="${dist.dir}/packages" />
-      <xslt in="${package.dir}/${executable}.xml" out="${dist.dir}/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
+      <xslt in="${package.xml.dir}/${executable}.xml" out="${dist.dir}/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
       <ant antfile="${dist.dir}/packages/Build${executable}.xml" target="package" />
     </target>
 
