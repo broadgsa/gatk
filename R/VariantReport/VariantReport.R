@@ -137,12 +137,20 @@ plot.callsetConcordanceByAC <- function(eval, normalize=TRUE, novelty_name="all"
     if (length(intersection$AC) > 0 && length(aonly$AC) == 0) {
         aonly = intersection;
         aonly$n = 0;
-        aonly.filtered$n = 0;
     }
 
     if (length(intersection$AC) > 0 && length(bonly$AC) == 0) {
         bonly = intersection;
         bonly$n = 0;
+    }
+
+    if (length(intersection$AC) > 0 && length(aonly.filtered$AC) == 0) {
+        aonly.filtered = intersection;
+        aonly.filtered$n = 0;
+    }
+
+    if (length(intersection$AC) > 0 && length(bonly.filtered$AC) == 0) {
+        bonly.filtered = intersection;
         bonly.filtered$n = 0;
     }
 
@@ -191,23 +199,32 @@ plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", 
     if (length(intersection$AC) > 0 && length(aonly$AC) == 0) {
         aonly = intersection;
         aonly$n = 0;
-        aonly.filtered$n = 0;
     }
 
     if (length(intersection$AC) > 0 && length(bonly$AC) == 0) {
         bonly = intersection;
         bonly$n = 0;
+    }
+
+    if (length(intersection$AC) > 0 && length(aonly.filtered$AC) == 0) {
+        aonly.filtered = intersection;
+        aonly.filtered$n = 0;
+    }
+
+    if (length(intersection$AC) > 0 && length(bonly.filtered$AC) == 0) {
+        bonly.filtered = intersection;
         bonly.filtered$n = 0;
     }
 
-    suppressWarnings(plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(1, max(aonly$n + aonly.filtered$n + intersection$n, bonly$n + bonly.filtered$n + intersection$n)), xlab="Allele count", ylab="Number of variants", main=title, log="xy", bty="n", cex=1.3, cex.lab=1.3, cex.axis=1.3));
+    loci = (unique(eval$CountVariants$nProcessedLoci))[1];
+    ymax = 10*max((1/1000)*loci*(1/c(1:max(intersection$AC))));
+
+    suppressWarnings(plot(0, 0, type="n", xlim=c(1, length(intersection$AC)), ylim=c(1, ymax), xlab="Allele count", ylab="Number of variants", main=title, log="xy", bty="n", cex=1.3, cex.lab=1.3, cex.axis=1.3));
     suppressWarnings(points(intersection$AC, aonly$n + aonly.filtered$n + intersection$n, type="l", lwd=2, col=col[1]));
     suppressWarnings(points(intersection$AC, aonly$n + intersection$n, type="l", lwd=2, lty=2, col=col[1]));
     suppressWarnings(points(intersection$AC, intersection$n, type="l", lwd=2, col=col[3]));
     suppressWarnings(points(intersection$AC, bonly$n + intersection$n, type="l", lwd=2, lty=2, col=col[4]));
     suppressWarnings(points(intersection$AC, bonly$n + bonly.filtered$n + intersection$n, type="l", lwd=2, col=col[5]));
-
-    loci = (unique(eval$CountVariants$nProcessedLoci))[1];
 
     points(c(1:max(intersection$AC)), 0.9*(1/1000)*loci*(1/c(1:max(intersection$AC))), type="l", lwd=2, lty=2, col="black");
 
@@ -246,9 +263,6 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#FF967
         aonly$n = 0;
         aonly$nTi = 0;
         aonly$nTv = 0;
-        aonly.filtered$n = 0;
-        aonly.filtered$nTi = 0;
-        aonly.filtered$nTv = 0;
     }
 
     if (length(intersection$AC) > 0 && length(bonly$AC) == 0) {
@@ -256,6 +270,17 @@ plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#FF967
         bonly$n = 0;
         bonly$nTi = 0;
         bonly$nTv = 0;
+    }
+
+    if (length(intersection$AC) > 0 && length(aonly.filtered$AC) == 0) {
+        aonly.filtered = intersection;
+        aonly.filtered$n = 0;
+        aonly.filtered$nTi = 0;
+        aonly.filtered$nTv = 0;
+    }
+
+    if (length(intersection$AC) > 0 && length(bonly.filtered$AC) == 0) {
+        bonly.filtered = intersection;
         bonly.filtered$n = 0;
         bonly.filtered$nTi = 0;
         bonly.filtered$nTv = 0;
