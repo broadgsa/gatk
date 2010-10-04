@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.gatk.refdata;
 
-import edu.mit.broad.picard.genotype.DiploidGenotype;
-import edu.mit.broad.picard.genotype.geli.GenotypeLikelihoods;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broad.tribble.hapmap.HapMapFeature;
@@ -113,15 +111,6 @@ public class VariantContextAdaptors {
                 return null; // can't handle anything else
         }
     }
-
-
-
-    private static Allele deletionAllele(ReferenceContext ref, int start, int len) {
-        byte[] deletion = new byte[len];
-        System.arraycopy(ref.getBases(), start, deletion, 0, len);
-        return Allele.create(deletion, true);
-    }
-
 
     public static VCFHeader createVCFHeader(Set<VCFHeaderLine> hInfo, VariantContext vc) {
         HashSet<String> names = new LinkedHashSet<String>();

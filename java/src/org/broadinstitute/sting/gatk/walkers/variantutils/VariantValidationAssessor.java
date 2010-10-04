@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2010.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -23,12 +23,11 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.sequenom;
+package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
-import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -36,6 +35,8 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -46,8 +47,10 @@ import java.util.*;
  * Converts Sequenom files to a VCF annotated with QC metrics (HW-equilibrium, % failed probes)
  */
 @Reference(window=@Window(start=0,stop=40))
-@Requires(value={},referenceMetaData=@RMD(name="sequenom",type= Feature.class))
-public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, Byte>,Integer> {
+@Requires(value={},referenceMetaData=@RMD(name=VariantValidationAssessor.INPUT_VARIANT_ROD_BINDING_NAME, type=VariantContext.class))
+public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, Byte>,Integer> {
+
+    public static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
 
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfwriter = null;
@@ -66,7 +69,7 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
     // sample names
     private TreeSet<String> sampleNames = null;
 
-    // vcf records
+    // variant context records
     private ArrayList<Pair<VariantContext, Byte>> records = new ArrayList<Pair<VariantContext, Byte>>();
 
     // statistics
@@ -85,28 +88,26 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
     }
 
     public Integer reduceInit() {
-        int numberOfVariantsProcessed = 0;
-        return numberOfVariantsProcessed;
+        return 0;
     }
 
     public Pair<VariantContext, Byte> map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker == null )
             return null;
 
-        // get the sequenom rod at this locus if there is one
-        List<Object> rods = tracker.getReferenceMetaData("sequenom");
+        List<Object> rods = tracker.getReferenceMetaData(INPUT_VARIANT_ROD_BINDING_NAME);
         // ignore places where we don't have a variant
         if ( rods.size() == 0 )
             return null;
 
         Object rod = rods.get(0);
 
-        VariantContext vc = VariantContextAdaptors.toVariantContext("sequenom", rod, ref);
+        VariantContext vc = VariantContextAdaptors.toVariantContext(INPUT_VARIANT_ROD_BINDING_NAME, rod, ref);
 
         if ( sampleNames == null )
             sampleNames = new TreeSet<String>(vc.getSampleNames());        
 
-        return addVariantInformationToCall(ref, vc, rod);
+        return addVariantInformationToCall(ref, vc);
     }
 
     public Integer reduce(Pair<VariantContext, Byte> call, Integer numVariants) {
@@ -118,13 +119,14 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
     }
 
     public void onTraversalDone(Integer finalReduce) {
-        if ( sampleNames == null )
-            sampleNames = new TreeSet<String>();
+        final ArrayList<String> inputNames = new ArrayList<String>();
+        inputNames.add( INPUT_VARIANT_ROD_BINDING_NAME );
+
+        // setup the header fields
+        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
 
         // set up the info and filter headers
-        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.add(new VCFHeaderLine("source", "SequenomValidationConverter"));
-        hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
         hInfo.add(new VCFInfoHeaderLine("NoCallPct", 1, VCFHeaderLineType.Float, "Percent of no-calls"));
         hInfo.add(new VCFInfoHeaderLine("HomRefPct", 1, VCFHeaderLineType.Float, "Percent of homozygous reference genotypes"));
         hInfo.add(new VCFInfoHeaderLine("HetPct", 1, VCFHeaderLineType.Float, "Percent of heterozygous genotypes"));
@@ -157,15 +159,14 @@ public class SequenomValidationConverter extends RodWalker<Pair<VariantContext, 
             }
         }
         
-        VCFHeader header = new VCFHeader(hInfo, sampleNames);
-        vcfwriter.writeHeader(header);
+        vcfwriter.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
 
         for ( Pair<VariantContext, Byte> record : records )
             vcfwriter.add(record.first, record.second);
     }
 
 
-    private Pair<VariantContext, Byte> addVariantInformationToCall(ReferenceContext ref, VariantContext vContext, Object rod) {
+    private Pair<VariantContext, Byte> addVariantInformationToCall(ReferenceContext ref, VariantContext vContext) {
 
         // check possible filters
         double hwPvalue = hardyWeinbergCalculation(vContext);
