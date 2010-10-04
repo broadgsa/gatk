@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFWriter;
@@ -255,7 +256,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 else if (g.isHomVar()) { alleleCount += 2; }
                 
                 String dp = (String) g.getAttribute("DP");
-                if (dp != null && ! dp.equals(".")) {
+                if (dp != null && ! dp.equals(VCFConstants.MISSING_DEPTH_v3)) {
                     depth += Integer.valueOf(dp);
                 }
             }
