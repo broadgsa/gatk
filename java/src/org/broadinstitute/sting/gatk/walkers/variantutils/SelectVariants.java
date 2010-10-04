@@ -256,7 +256,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 else if (g.isHomVar()) { alleleCount += 2; }
                 
                 String dp = (String) g.getAttribute("DP");
-                if (dp != null && ! dp.equals(VCFConstants.MISSING_DEPTH_v3)) {
+                if (dp != null && ! dp.equals(VCFConstants.MISSING_DEPTH_v3) && ! dp.equals(VCFConstants.MISSING_VALUE_v4) ) {
                     depth += Integer.valueOf(dp);
                 }
             }
