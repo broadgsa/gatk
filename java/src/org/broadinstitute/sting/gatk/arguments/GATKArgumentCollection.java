@@ -133,7 +133,7 @@ public class GATKArgumentCollection {
     public Double downsampleFraction = null;
 
     @Element(required = false)
-    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus (use max_reads_at_locus to stop the engine from reading in all reads)", required = false)
+    @Argument(fullName = "downsample_to_coverage", shortName = "dcov", doc = "Coverage [integer] to downsample to at any given locus; note that downsampled reads are randomly selected from all possible reads at a locus", required = false)
     public Integer downsampleCoverage = null;
 
     /**
