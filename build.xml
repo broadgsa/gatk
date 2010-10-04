@@ -79,6 +79,8 @@
         <pathelement location="${java.classes}" />
         <!-- Need the resources as we will be running a command line program which needs the help text. -->
         <pathelement location="${resource.path}" />
+	<!-- Add any previously compiled queue classes to the path. -->
+        <pathelement location="${queue.classes}" />
     </path>
 
     <target name="init.resolve" unless="init.resolve.done">
