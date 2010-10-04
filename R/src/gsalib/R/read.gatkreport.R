@@ -6,7 +6,9 @@
     for (i in 1:ncol(d)) {
         v = suppressWarnings(as.numeric(d[,i]));
 
-        d[,i] = v;
+        if (length(na.omit(as.numeric(v))) == length(d[,i])) {
+            d[,i] = v;
+        }
     }
 
     usedNames = ls(envir=tableEnv, pattern=tableName);

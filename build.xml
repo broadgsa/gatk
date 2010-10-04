@@ -676,4 +676,11 @@
         <!-- When we clean, make sure to clean out tribble as well -->
         <ant antfile="tribble/build.xml" target="clean"/>
     </target>
+
+    <!-- Build gsalib R module -->
+    <target name="gsalib">
+      <exec executable="R" failonerror="true">
+        <arg line="R CMD INSTALL -l R/ R/src/gsalib/" />
+      </exec>
+    </target>
 </project>
