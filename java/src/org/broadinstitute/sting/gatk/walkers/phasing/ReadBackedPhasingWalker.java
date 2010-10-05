@@ -87,7 +87,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     public static final String PQ_KEY = "PQ";
 
     // In order to detect phase inconsistencies:
-    private static final double FRACTION_OF_MEAN_PQ_CHANGES = 0.5; // If the PQ decreases by this fraction of the mean PQ changes (thus far), then this read is inconsistent with previous reads
+    private static final double FRACTION_OF_MEAN_PQ_CHANGES = 0.1; // If the PQ decreases by this fraction of the mean PQ changes (thus far), then this read is inconsistent with previous reads
     private static final double MAX_FRACTION_OF_INCONSISTENT_READS = 0.1; // If there are more than this fraction of inconsistent reads, then flag this site
 
     @Argument(fullName = "filterInconsistentSites", shortName = "filterInconsistentSites", doc = "Mark sites with inconsistent phasing as filtered [default:false]", required = false)
@@ -763,7 +763,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         for (Map.Entry<String, Read> nameToReads : phaseWindow.readsAtHetSites.entrySet()) {
             Read rd = nameToReads.getValue();
-            logger.debug("rd = " + rd + "\tname = " + nameToReads.getKey());
+            logger.debug("\nrd = " + rd + "\tname = " + nameToReads.getKey());
 
             for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
                 PhasingScore score = rd.matchHaplotypeClassScore(pte.getHaplotypeClass());
@@ -803,7 +803,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         if (numInconsistentIterations / (double) numHighQualityIterations > MAX_FRACTION_OF_INCONSISTENT_READS)
             phasingContainsInconsistencies = true;
 
-        return new PhaseResult(maxHapQual.maxEntry.getHaplotypeClass().getRepresentative(), maxHapQual.phaseQuality, phasingContainsInconsistencies);
+        return new PhaseResult(maxHapQual.getRepresentative(), maxHapQual.phaseQuality, phasingContainsInconsistencies);
     }
 
     private static class MaxHaplotypeAndQuality {
@@ -1274,7 +1274,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 normalizeBy.plusEqual(pte.getScore());
 
             if (!normalizeBy.equals(ZERO)) { // prevent precision problems
-                logger.debug("normalizeBy = " + normalizeBy);
                 for (PhasingTableEntry pte : table)
                     pte.getScore().divEqual(normalizeBy);
             }
@@ -1524,6 +1523,8 @@ class Read extends BaseArray {
         if (sz != hap.bases.length)
             throw new ReviewedStingException("Read and Haplotype should have same length to be compared!");
 
+        score.timesEqual(mappingProb);
+
         for (int i = 0; i < sz; i++) {
             Byte thisBase = this.getBase(i);
             Byte hapBase = hap.getBase(i);
@@ -1532,9 +1533,14 @@ class Read extends BaseArray {
                     score.timesEqual(baseProbs[i]);
                 else
                     score.timesEqual(baseErrorProbs[i]);
-                score.timesEqual(mappingProb);
+                /* The use of baseErrorProbs[i] as the probability of seeing ANY base but hapBase (i.e., a sequencing error) would SEEM to be OK, since we are dealing with biallelic sites.
+                  Nevertheless, since there could be reads that DON'T have either of the 2 alleles, then this would be incorrect
+                  [since both alleles would be scored with the same error probability -- baseErrorProbs[i] -- which is the error SUMMED OVER ALL non-read bases]!
+                  DESPITE this, we use the above model to CONSERVATIVELY give high scores to haplotype bases that differ from low-quality read bases.
+                */
             }
         }
+
         return score;
     }
 
