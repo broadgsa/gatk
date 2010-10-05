@@ -212,7 +212,7 @@ public class FastaSequenceIndexBuilder {
             return sequenceIndex;
         }
         catch (IOException e) {
-            throw new UserException.CouldNotReadInputFile(fastaFile, String.format("Could not read fasta file"), e);
+            throw new UserException.CouldNotReadInputFile(fastaFile, "Could not read fasta file", e);
         }
         catch (Exception e) {
             throw new ReviewedStingException(e.getMessage(), e);

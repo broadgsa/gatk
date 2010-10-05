@@ -240,7 +240,8 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
                     found = true;
             }
             if (!found)
-                throw new ArgumentException(String.format("Unable to find reference metadata (%s,%s)", required.name(), required.type()));
+                throw new ArgumentException(String.format("Walker requires reference metadata to be supplied named '%s' of type '%s', but this metadata was not provided.  " +
+                                                          "Please supply the specified metadata file.", required.name(), required.type().getSimpleName()));
         }
 
         // Check to see that no forbidden rods are present.

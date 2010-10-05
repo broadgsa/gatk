@@ -30,6 +30,7 @@ import net.sf.picard.reference.FastaSequenceIndexBuilder;
 import net.sf.picard.sam.CreateSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.FastaSequenceIndex;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
@@ -53,13 +54,8 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
     public ReferenceDataSource(File fastaFile) {
 
         // does the fasta file exist? check that first...
-        if (!fastaFile.exists()) {
-            if (!fastaFile.getParentFile().exists())
-                throw new UserException("The fasta file path you provided is invalid. The directory " +
-                       fastaFile.getParentFile().getAbsolutePath() + " does not exist." );
-            else
-                throw new UserException("The fasta file you provided does not exist.");
-        }
+        if (!fastaFile.exists())
+            throw new UserException("The fasta file you specified (" + fastaFile.getAbsolutePath() + ") does not exist.");
 
         File indexFile = new File(fastaFile.getAbsolutePath() + ".fai");
         File dictFile;
@@ -88,6 +84,10 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
             catch(FileSystemInabilityToLockException ex) {
                 logger.info("Unable to create write lock: " + ex.getMessage());
                 logger.info("Skipping index creation.");
+            }
+            catch(UserException e) {
+                // Rethrow all user exceptions as-is; there should be more details in the UserException itself. 
+                throw e;    
             }
             catch (Exception e) {
                 // If lock creation succeeded, the failure must have been generating the index.
