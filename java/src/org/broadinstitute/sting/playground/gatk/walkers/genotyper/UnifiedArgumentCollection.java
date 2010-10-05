@@ -52,16 +52,16 @@ public class UnifiedArgumentCollection {
     public boolean ALL_BASES_MODE = false;
 
     @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be called", required = false)
-    public double STANDARD_CONFIDENCE_FOR_CALLING = 30.0;
+    public double STANDARD_CONFIDENCE_FOR_CALLING = 50.0;
 
     @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
-    public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
+    public double STANDARD_CONFIDENCE_FOR_EMITTING = 50.0;
 
     @Argument(fullName = "trigger_min_confidence_threshold_for_calling", shortName = "trig_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants at 'trigger' track sites should be called", required = false)
-    public double TRIGGER_CONFIDENCE_FOR_CALLING = 30.0;
+    public double TRIGGER_CONFIDENCE_FOR_CALLING = 50.0;
 
     @Argument(fullName = "trigger_min_confidence_threshold_for_emitting", shortName = "trig_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
-    public double TRIGGER_CONFIDENCE_FOR_EMITTING = 30.0;
+    public double TRIGGER_CONFIDENCE_FOR_EMITTING = 50.0;
 
     @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
     public boolean NO_SLOD = false;
@@ -79,10 +79,10 @@ public class UnifiedArgumentCollection {
 
     // control the various parameters to be used
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
-    public int MIN_BASE_QUALTY_SCORE = 10;
+    public int MIN_BASE_QUALTY_SCORE = 20;
 
     @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
-    public int MIN_MAPPING_QUALTY_SCORE = 10;
+    public int MIN_MAPPING_QUALTY_SCORE = 20;
 
     @Argument(fullName = "max_mismatches_in_40bp_window", shortName = "mm40", doc = "Maximum number of mismatches within a 40 bp window (20bp on either side) around the target position for a read to be used for calling", required = false)
     public int MAX_MISMATCHES = 3;

@@ -39,7 +39,9 @@ import java.util.*;
 
 public class DiploidGenotypeCalculationModel extends JointEstimateGenotypeCalculationModel {
 
-    protected DiploidGenotypeCalculationModel() {}
+    protected DiploidGenotypeCalculationModel(int N, double heterozygosity) {
+        super(N, heterozygosity);
+    }
 
     // the GenotypeLikelihoods map
     private HashMap<String, GenotypeLikelihoods> GLs = new HashMap<String, GenotypeLikelihoods>();

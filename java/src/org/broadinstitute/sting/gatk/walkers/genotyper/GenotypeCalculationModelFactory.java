@@ -55,7 +55,7 @@ public class GenotypeCalculationModelFactory {
         GenotypeCalculationModel gcm;
         switch ( UAC.genotypeModel ) {
             case JOINT_ESTIMATE:
-                gcm = new DiploidGenotypeCalculationModel();
+                gcm = new DiploidGenotypeCalculationModel(samples.size(), UAC.heterozygosity);
                 break;
             case DINDEL:
                 throw new UnsupportedOperationException("The Dindel-based genotype likelihoods model is not currently supported");

@@ -19,15 +19,7 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     protected static final double VALUE_NOT_CALCULATED = -1.0 * Double.MAX_VALUE;
     private int minAlleleFrequencyToTest;
 
-    // because the null allele frequencies are constant for a given N,
-    // we cache the results to avoid having to recompute everything
-    private HashMap<Integer, double[]> nullAlleleFrequencyCache = new HashMap<Integer, double[]>();
-
-    // because the Hardy-Weinberg values for a given frequency are constant,
-    // we cache the results to avoid having to recompute everything
-    // private HashMap<Double, double[]> hardyWeinbergValueCache = new HashMap<Double, double[]>();
-
-    // the allele frequency priors
+    // because the allele frequency priors are constant for a given i, we cache the results to avoid having to recompute everything
     protected double[] log10AlleleFrequencyPriors;
 
     // the allele frequency posteriors and P(f>0) for each alternate allele
@@ -45,8 +37,9 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
     protected static final Set<String> filter = new HashSet<String>(1);
 
 
-    protected JointEstimateGenotypeCalculationModel() {
+    protected JointEstimateGenotypeCalculationModel(int N, double heterozygosity) {
         filter.add(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME);
+        computeAlleleFrequencyPriors(N, heterozygosity);
     }
 
     public VariantCallContext callExtendedLocus(RefMetaDataTracker tracker, byte[] ref, GenomeLoc loc, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
@@ -79,8 +72,6 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         }
 
         // calculate likelihoods if there are non-ref bases
-        initializeAlleleFrequencies(frequencyEstimationPoints);
-
         initialize(ref, contexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
         calculateAlleleFrequencyPosteriors(ref, frequencyEstimationPoints, contexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
         calculatePofFs(ref, frequencyEstimationPoints);
@@ -142,41 +133,20 @@ public abstract class JointEstimateGenotypeCalculationModel extends GenotypeCalc
         return;
     }
 
-    protected void initializeAlleleFrequencies(int frequencyEstimationPoints) {
-        // set up the allele frequency priors
-        log10AlleleFrequencyPriors = getNullAlleleFrequencyPriors(frequencyEstimationPoints);
-    }
+    protected void computeAlleleFrequencyPriors(int N, double heterozygosity) {
+        int AFs = (2 * N) + 1;
+        log10AlleleFrequencyPriors = new double[AFs];
 
-    protected double[] getNullAlleleFrequencyPriors(int N) {
-        double[] AFs = nullAlleleFrequencyCache.get(N);
-
-        // if it hasn't been calculated yet, do so now
-        if ( AFs == null ) {
-
-            // calculate sum(1/i)
-            double sigma_1_over_I = 0.0;
-            for (int i = 1; i < N; i++)
-                sigma_1_over_I += 1.0 / (double)i;
-
-            // delta = theta / sum(1/i)
-            double delta = UAC.heterozygosity / sigma_1_over_I;
-
-            // calculate the null allele frequencies for 1-N
-            AFs = new double[N];
-            double sum = 0.0;
-            for (int i = 1; i < N; i++) {
-                double value = delta / (double)i;
-                AFs[i] = Math.log10(value);
-                sum += value;
-            }
-
-            // null frequency for AF=0 is (1 - sum(all other frequencies))
-            AFs[0] = Math.log10(1.0 - sum);
-
-            nullAlleleFrequencyCache.put(N, AFs);
+        // calculate the allele frequency priors for 1-N
+        double sum = 0.0;
+        for (int i = 1; i < AFs; i++) {
+            double value = heterozygosity / (double)i;
+            log10AlleleFrequencyPriors[i] = Math.log10(value);
+            sum += value;
         }
 
-        return AFs;
+        // null frequency for AF=0 is (1 - sum(all other frequencies))
+        log10AlleleFrequencyPriors[0] = Math.log10(1.0 - sum);
     }
 
     private void estimateReferenceConfidence(VariantCallContext vcc, Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples) {
