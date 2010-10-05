@@ -61,7 +61,7 @@ class fullCallingPipeline extends QScript {
     this.intervals = qscript.pipeline.getProject.getIntervalList
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.pipeline.getProject.getReferenceFile
-    this.memoryLimit = Some(4)
+    this.memoryLimit = Some(6)
   }
 
 
@@ -131,7 +131,7 @@ class fullCallingPipeline extends QScript {
         realigner.scatterClass = classOf[ContigScatterFunction]
         realigner.setupGatherFunction = {
           case (gather: BamGatherFunction, _) =>
-            gather.memoryLimit = Some(4)
+            gather.memoryLimit = Some(6)
             gather.jarFile = qscript.picardFixMatesJar
             // Don't pass this AS=true to fix mates!
             gather.assumeSorted = None
@@ -141,7 +141,7 @@ class fullCallingPipeline extends QScript {
 
         // Explicitly run fix mates if the function won't be scattered.
 
-        fixMates.memoryLimit = Some(4)
+        fixMates.memoryLimit = Some(6)
         fixMates.jarFile = qscript.picardFixMatesJar
         fixMates.unfixed = realigner.out
         fixMates.fixed = cleaned_bam
@@ -279,7 +279,7 @@ class fullCallingPipeline extends QScript {
     clusters.DBSNP = qscript.pipeline.getProject.getDbsnpFile
     val clusters_clusterFile = swapExt(new File(snps.out.getAbsolutePath),".vcf",".cluster")
     clusters.clusterFile = clusters_clusterFile
-    clusters.memoryLimit = Some(4)
+    clusters.memoryLimit = Some(6)
     clusters.jobQueue = "gsa"
 
     clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
