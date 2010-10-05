@@ -11,7 +11,7 @@ import collection.JavaConversions._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
 
-class BeagleGenotypeRefinement extends QScript {
+class RefineGenotypesAndMerge extends QScript {
   qscript =>
 
   @Argument(doc="VCF file to run beagle genotype refinement on",required=true,shortName="vcf") var vcfsToBeagle: List[File] = _
@@ -95,7 +95,7 @@ class BeagleGenotypeRefinement extends QScript {
   def mergeVCFs(vcfs: List[File], outputVCF: File) : CombineVariants = {
     var cv = new CombineVariants with GATKArgs
     cv.out = outputVCF
-    cv.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNIQUIFY)
+    cv.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNSORTED)
     cv.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
     cv.priority = (vcfs.foldLeft[List[String]](Nil)( (bNames,vcf) => bNames ::: List[String](swapExt(vcf,".vcf","").getName))).mkString(",")
     cv.rodBind = vcfs.foldLeft[List[RodBind]](Nil)( (rods,vcf) => rods ::: List[RodBind](new RodBind(swapExt(vcf,".vcf","").getName,"VCF",vcf)))
