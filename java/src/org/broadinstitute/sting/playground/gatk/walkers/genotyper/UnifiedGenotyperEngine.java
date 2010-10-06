@@ -164,9 +164,7 @@ public class UnifiedGenotyperEngine {
         if ( bestAFguess != 0 ) {
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(normalizedPosteriors[0]);
             if ( Double.isInfinite(phredScaledConfidence) )
-                // todo - verify this is OK
-                phredScaledConfidence = (double)QualityUtils.MAX_QUAL_SCORE;
-                //phredScaledConfidence = -10.0 * log10AlleleFrequencyPosteriors.get()[0];
+                phredScaledConfidence = -10.0 * log10AlleleFrequencyPosteriors.get()[0];
         } else {
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(PofF);
             if ( Double.isInfinite(phredScaledConfidence) ) {
@@ -230,7 +228,7 @@ public class UnifiedGenotyperEngine {
         // todo - temp fix until we can deal with extended events properly
         //VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
         VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(),
-                Math.max(loc.getStart()+refAllele.length()-1,loc.getStart()),
+                (refAllele.length() > 0 ? loc.getStart()+refAllele.length()-1 : loc.getStart()),
                 alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
 
 
