@@ -84,9 +84,9 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
             GenomicAnnotation.START_COLUMN,
             GenomicAnnotation.END_COLUMN,
             GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN,
-            GenomicAnnotation.HAPLOTYPE_ALTERNATE_COLUMN,
-            GenomicAnnotation.HAPLOTYPE_STRAND_COLUMN };
+            GenomicAnnotation.HAPLOTYPE_ALTERNATE_COLUMN};
 
+    private static final String OUTPUT_TRANSCRIPT_STRAND = "transcriptStrand"; //rg. +/-
     private static final String OUTPUT_IN_CODING_REGION = "inCodingRegion"; //eg. true
     private static final String OUTPUT_FRAME = "frame"; //eg. 0,1,2
     private static final String OUTPUT_POSITION_TYPE = "positionType"; //eg. utr5, cds, utr3, intron, intergenic
@@ -104,6 +104,7 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
     private static final String OUTPUT_SPLICE_INFO = "spliceInfo"; //(eg "splice-donor -4", or "splice-acceptor 3") for the 10bp surrounding each exon/intron boundary
     private static final String OUTPUT_UORF_CHANGE = "uorfChange"; // (eg +1 or -1, indicating the addition or interruption of an ATG trinucleotide in the annotated utr5)
     private static final String[] TRANSCRIPT_COLUMNS = {
+            OUTPUT_TRANSCRIPT_STRAND,
             OUTPUT_POSITION_TYPE,
             OUTPUT_FRAME,
             OUTPUT_MRNA_COORD,
@@ -466,12 +467,12 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
                     outputLineFields.put(GenomicAnnotation.END_COLUMN, String.valueOf(intronEnd));
                     outputLineFields.put(GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN, Character.toString( '*' ) );
                     outputLineFields.put(GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN, Character.toString( '*' ) );
-                    outputLineFields.put(GenomicAnnotation.HAPLOTYPE_STRAND_COLUMN, positiveStrand ? "+" : "-");
                     for(int i = 0; i < GENE_NAME_COLUMNS.length; i++) {
                         outputLineFields.put(GENE_NAME_COLUMNS[i], parsedTranscriptRod.geneNames[i] );
                     }
 
                     outputLineFields.put(OUTPUT_POSITION_TYPE, positionType.toString() );
+                    outputLineFields.put(OUTPUT_TRANSCRIPT_STRAND, positiveStrand ? "+" : "-" );
 
                     if ( isProteinCodingTranscript )
                         outputLineFields.put(OUTPUT_IN_CODING_REGION, Boolean.toString(positionType == PositionType.CDS) );
@@ -550,6 +551,9 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
                 if(!positiveStrand) {
                     haplotypeReference = BaseUtils.simpleComplement(haplotypeReference); //txSequence contents depend on whether its +/- strand
                 }
+                char haplotypeReferenceStrandSpecific= positiveStrand ? haplotypeReference : BaseUtils.simpleComplement(haplotypeReference);
+
+
 
                 if(!BaseUtils.isRegularBase(haplotypeReference) && haplotypeReference != '*') { //* is special case for mitochondrial genes where polyA tail completes the last codon
                     //check for bad bases
@@ -559,8 +563,10 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
                 }
 
 
+                char haplotypeAlternateStrandSpecific;
                 for(char haplotypeAlternate : ALLELES )
                 {
+                    haplotypeAlternateStrandSpecific= positiveStrand ? haplotypeAlternate : BaseUtils.simpleComplement(haplotypeAlternate);
                     outputLineFields.clear();
 
                     if(!isProteinCodingTranscript || isWithinIntronAndFarFromSpliceJunction) {
@@ -574,12 +580,12 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
                     outputLineFields.put(GenomicAnnotation.END_COLUMN, String.valueOf(txCoord_5to3));
                     outputLineFields.put(GenomicAnnotation.HAPLOTYPE_REFERENCE_COLUMN, Character.toString( haplotypeReference ) );
                     outputLineFields.put(GenomicAnnotation.HAPLOTYPE_ALTERNATE_COLUMN, Character.toString( haplotypeAlternate ) );
-                    outputLineFields.put(GenomicAnnotation.HAPLOTYPE_STRAND_COLUMN, positiveStrand ? "+" : "-");
                     for(int i = 0; i < GENE_NAME_COLUMNS.length; i++) {
                         outputLineFields.put(GENE_NAME_COLUMNS[i], parsedTranscriptRod.geneNames[i] );
                     }
 
                     outputLineFields.put(OUTPUT_POSITION_TYPE, positionType.toString() );
+                    outputLineFields.put(OUTPUT_TRANSCRIPT_STRAND, positiveStrand ? "+" : "-" );
                     if(isWithinExon) {
                         outputLineFields.put(OUTPUT_MRNA_COORD, Integer.toString(mrnaCoord_from5) );
                     }
@@ -619,9 +625,9 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
                         String refCodon2 = (Character.toString(utr5NucBuffer_5to3[1]) + Character.toString(utr5NucBuffer_5to3[2]) + utr5NucBuffer_5to3[3]).toUpperCase();
                         String refCodon3 = (Character.toString(utr5NucBuffer_5to3[2]) + Character.toString(utr5NucBuffer_5to3[3]) + utr5NucBuffer_5to3[4]).toUpperCase();
 
-                        String varCodon1 = (Character.toString(utr5NucBuffer_5to3[0]) + Character.toString(utr5NucBuffer_5to3[1]) + haplotypeAlternate).toUpperCase();
-                        String varCodon2 = (Character.toString(utr5NucBuffer_5to3[1]) + Character.toString(haplotypeAlternate) + utr5NucBuffer_5to3[3]).toUpperCase();
-                        String varCodon3 = (Character.toString(haplotypeAlternate) + Character.toString(utr5NucBuffer_5to3[3]) + utr5NucBuffer_5to3[4]).toUpperCase();
+                        String varCodon1 = (Character.toString(utr5NucBuffer_5to3[0]) + Character.toString(utr5NucBuffer_5to3[1]) + haplotypeAlternateStrandSpecific).toUpperCase();
+                        String varCodon2 = (Character.toString(utr5NucBuffer_5to3[1]) + Character.toString(haplotypeAlternateStrandSpecific) + utr5NucBuffer_5to3[3]).toUpperCase();
+                        String varCodon3 = (Character.toString(haplotypeAlternateStrandSpecific) + Character.toString(utr5NucBuffer_5to3[3]) + utr5NucBuffer_5to3[4]).toUpperCase();
 
                         //check for +1 (eg. addition of new ATG uORF) and -1 (eg. disruption of existing ATG uORF)
                         String uORFChangeStr = null;
@@ -641,61 +647,61 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
                         outputLineFields.put(OUTPUT_UORF_CHANGE, uORFChangeStr );
                     }
                     //compute CDS-specific fields
-                    else if(positionType == PositionType.CDS)
-                    {
+                    else if (positionType == PositionType.CDS) {
                         final String referenceCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
+                        final char temp = currentCodon_5to3[frame];
+                        currentCodon_5to3[frame] = haplotypeAlternateStrandSpecific;
                         final String variantCodon = Character.toString(currentCodon_5to3[0]) + Character.toString(currentCodon_5to3[1]) + currentCodon_5to3[2];
+                        currentCodon_5to3[frame] = temp;
 
-                        final AminoAcid refAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA( referenceCodon, codonCount_from5 == 1 ) : AminoAcidTable.getEukaryoticAA( referenceCodon ) ;
-                        final AminoAcid variantAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA( variantCodon, codonCount_from5 == 1 ) : AminoAcidTable.getEukaryoticAA( variantCodon ) ;
+                        final AminoAcid refAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA(referenceCodon, codonCount_from5 == 1) : AminoAcidTable.getEukaryoticAA( referenceCodon ) ;
+                        final AminoAcid variantAA = isMitochondrialTranscript ? AminoAcidTable.getMitochondrialAA(variantCodon, codonCount_from5 == 1) : AminoAcidTable.getEukaryoticAA( variantCodon ) ;
 
-                        if ( refAA.isUnknown() || variantAA.isUnknown() ) {
+                        if (refAA.isUnknown() || variantAA.isUnknown()) {
                             logger.warn("Illegal amino acid detected: refCodon=" + referenceCodon + " altCodon=" + variantCodon);
                         }
-
-                        outputLineFields.put(OUTPUT_FRAME, Integer.toString(frame) );
-                        outputLineFields.put(OUTPUT_CODON_NUMBER, Integer.toString(codonCount_from5) );
-                        outputLineFields.put(OUTPUT_REFERENCE_CODON, referenceCodon );
+                        outputLineFields.put(OUTPUT_TRANSCRIPT_STRAND, positiveStrand ? "+" : "-" );
+                        outputLineFields.put(OUTPUT_FRAME, Integer.toString(frame));
+                        outputLineFields.put(OUTPUT_CODON_NUMBER, Integer.toString(codonCount_from5));
+                        outputLineFields.put(OUTPUT_REFERENCE_CODON, referenceCodon);
                         outputLineFields.put(OUTPUT_REFERENCE_AA, refAA.getCode());
 
-                        final char temp = currentCodon_5to3[frame];
-                        currentCodon_5to3[frame] = haplotypeAlternate;
-                        outputLineFields.put(OUTPUT_VARIANT_CODON, variantCodon );
+                        outputLineFields.put(OUTPUT_VARIANT_CODON, variantCodon);
                         outputLineFields.put(OUTPUT_VARIANT_AA, variantAA.getCode());
 
-                        outputLineFields.put(OUTPUT_PROTEIN_COORD_STR, "p."+ refAA.getLetter() + Integer.toString(codonCount_from5) + variantAA.getLetter() ); //for example: "p.K76A"
-
-                        currentCodon_5to3[frame] = temp;
+                        outputLineFields.put(OUTPUT_PROTEIN_COORD_STR, "p." + refAA.getLetter() + Integer.toString(codonCount_from5) + variantAA.getLetter()); //for example: "p.K7$
 
                         boolean changesAA = !refAA.equals(variantAA);
                         outputLineFields.put(OUTPUT_CHANGES_AMINO_ACID, Boolean.toString(changesAA));
                         final String functionalClass;
-                        if(changesAA) {
-                            if(variantAA.isStop()) {
-                                functionalClass ="nonsense";
+                        if (changesAA) {
+                            if (variantAA.isStop()) {
+                                functionalClass = "nonsense";
+                            } else if (refAA.isStop()) {
+                                functionalClass = "readthrough";
                             } else {
-                                functionalClass ="missense";
+                                functionalClass = "missense";
                             }
                         } else {
-                            functionalClass ="silent";
+                            functionalClass = "silent";
                         }
                         outputLineFields.put(OUTPUT_FUNCTIONAL_CLASS, functionalClass);
                     }
-
 
                     //compute OUTPUT_CODING_COORD_STR
                     if(isProteinCodingTranscript)
                     {
                         //compute coding coord
                         final StringBuilder codingCoordStr = new StringBuilder();
-                        codingCoordStr.append( isMitochondrialTranscript ? "m." : "c." );
+                        codingCoordStr.append( "c." );
                         if(positionType == PositionType.utr3) {
                             codingCoordStr.append( '*' );
                         }
 
                         if(isWithinExon) {
                             codingCoordStr.append( Integer.toString(codingCoord_from5) );
-                            codingCoordStr.append( haplotypeReference + ">" + haplotypeAlternate);
+
+                            codingCoordStr.append ( haplotypeReferenceStrandSpecific + ">" + haplotypeAlternateStrandSpecific);
                         } else {
                             //intronic coordinates
                             if(distanceToNearestSpliceSite < 0) {
