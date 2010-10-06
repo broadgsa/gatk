@@ -31,6 +31,10 @@ def main():
                         action='store_true', default=False,
                         help="if provided, only records not coming from a dev version of GATK will be included")
 
+    parser.add_option("", "--stingExceptionsOnly", dest="stingExceptionsOnly",
+                        action='store_true', default=False,
+                        help="if provided, only records with StingExceptions will be generated in report")
+
     parser.add_option("", "--max_days", dest="maxDays",
                         type='int', default=None,
                         help="if provided, only records generated within X days of today will be included")
@@ -215,10 +219,11 @@ class Archive(RecordAsXML):
     def finalize(self, args):
         RecordAsXML.finalize(self, args)
         for arg in args:
-            print 'Deleting file: ', arg
+            if OPTIONS.verbose: print 'Deleting file: ', arg
             if OPTIONS.reallyDeleteInArchiveMode:
                 os.remove(arg)
-
+        print 'Deleted', len(args), 'files'
+        
 addHandler('archive', Archive)
 
 class ExceptionReport(StageHandler):
@@ -253,7 +258,10 @@ class ExceptionReport(StageHandler):
             
         for common in commonExceptions:
             msg, at, svns, walkers, counts, ids, duration, users, userError = common.toStrings()
-
+            
+            if OPTIONS.stingExceptionsOnly and userError == "true":
+                continue
+                
             print >> self.out, ''.join(['*'] * 80)
             print >> self.out, 'Exception              :', msg
             print >> self.out, '    is-user-exception? :', userError
@@ -275,7 +283,7 @@ class CommonException:
         self.users = set([ex['user-name']])
         self.userError = ex['is-user-exception']
         self.counts = 1
-        self.times = set([decodeTime(ex['start-time'])])
+        self.times = set([decodeTime(ex['end-time'])])
         self.walkers = set([ex['walker-name']])
         self.ids = set([ex['id']])
         
@@ -288,7 +296,7 @@ class CommonException:
         self.users.add(ex['user-name'])
         self.counts += 1
         self.walkers.add(ex['walker-name'])
-        self.times.add(decodeTime(ex['start-time']))
+        self.times.add(decodeTime(ex['end-time']))
         self.ids.add(ex['id'])
 
     def bestExample(self, examples):
@@ -319,38 +327,39 @@ class CommonException:
 
 addHandler('exceptions', ExceptionReport)
 
+  
+  
+class SummaryReport(StageHandler):
+    #FIELDS = ["Msg", "At", "SVN.versions", "Walkers", 'Occurrences', 'IDs']
+    def __init__(self, name, out):
+        StageHandler.__init__(self, name, out)
+        self.reports = []
 
-# 
-# def long_substr(data):
-#     substr = ''
-#     if len(data) > 1 and len(data[0]) > 0:
-#         for i in range(len(data[0])):
-#             for j in range(len(data[0])-i+1):
-#                 if j > len(substr) and is_substr(data[0][i:i+j], data):
-#                     substr = data[0][i:i+j]
-#     return substr
-# 
-# def is_substr(find, data):
-#     if len(data) < 1 and len(find) < 1:
-#         return False
-#     for i in range(len(data)):
-#         if find not in data[i]:
-#             return False
-#     return True
-# 
-# def parameterizeStrings( strings ):
-#     example = strings[0]
-#     para = ''
-#     
-#     lcs = long_substr(strings)
-#     if lcs == '':
-#         # nothing common at all, we are done
-#         return para
-#     else:
-#         # we need to remove the LCS from all strings
-#         strings = map( lambda x: x.replace(lcs, ''), strings)
-#         
-    
+    def initialize(self, args):
+        self.decoder = RecordDecoder()
+        #print >> self.out, "\t".join(self.FIELDS)
+        
+    def processRecord(self, record):
+        self.reports.append(self.decoder.decode(record))
+
+    def finalize(self, args):
+        print >> self.out, 'GATK run summary for          :', datetime.datetime.today()
+        print >> self.out, '    number of runs            :', len(self.reports)
+        print >> self.out, '    number of StingExceptions :', len(filter(isStingException, self.reports))
+        print >> self.out, '    number of UserExceptions  :', len(filter(isUserException, self.reports))
+        print >> self.out, '    users                     :', ', '.join(set(map(userID, self.reports)))
+
+def userID(rec):
+    return rec['user-name']
+
+def isStingException(rec):
+    return rec['exception-at'] != "NA" and rec['is-user-exception'] == "false"
+
+def isUserException(rec):
+    return rec['exception-at'] != "NA" and rec['is-user-exception'] == "true"
+
+addHandler('summary', SummaryReport)  
+  
 #
 # utilities
 #
@@ -393,7 +402,7 @@ def passesFilters(elt):
         now = datetime.datetime.today()
         now = datetime.datetime(now.year, now.month, now.day)
         #    <start-time>2010/08/31 15.38.00</start-time>
-        eltTime = decodeTime(elt.find('start-time').text)
+        eltTime = decodeTime(elt.find('end-time').text)
         diff = now - eltTime
         #print eltTime, now, diff, diff.days
         if diff.days > OPTIONS.maxDays:
@@ -409,8 +418,8 @@ def readReports(files):
         try:
             tree = ElementTree(file=input)
         except:
-            print "EXCEPTING FILE", file
-            raise
+            print "Ignoring excepting file", file
+            continue
 
         elem = tree.getroot()
         if elem.tag == RUN_REPORT_LIST:
