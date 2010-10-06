@@ -52,6 +52,8 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
         GRID_SEARCH
     }
 
+    private static final double LOG10_REFERENCE_CALL_EPSILON = 1.0;
+
     protected int N;
     protected AlleleFrequencyMatrix AFMatrix;
     protected Set<BiallelicGenotypeLikelihoods> refCalls;
@@ -179,8 +181,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
         AFMatrix.clear();
 
         for ( BiallelicGenotypeLikelihoods GL : GLs.values() ) {
-            // todo - gdebug workaround for crash
-            if (false) { //isClearRefCall(GL) ) {
+            if ( isClearRefCall(GL) ) {
                 refCalls.add(GL);
             } else {
                 AFMatrix.setLikelihoods(GL.getPosteriors(), GL.getSample());
@@ -193,7 +194,8 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
             return false;
 
         double[] likelihoods = GL.getLikelihoods();
-        return ( likelihoods[0] > likelihoods[1] && likelihoods[0] > likelihoods[2]);
+        double refLikelihoodMinusEpsilon = likelihoods[0] - LOG10_REFERENCE_CALL_EPSILON;
+        return ( refLikelihoodMinusEpsilon > likelihoods[1] && refLikelihoodMinusEpsilon > likelihoods[2]);
     }
 
     protected class CalculatedAlleleFrequency {

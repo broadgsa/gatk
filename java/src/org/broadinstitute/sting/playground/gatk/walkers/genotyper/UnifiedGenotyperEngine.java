@@ -351,7 +351,7 @@ public class UnifiedGenotyperEngine {
             AFline.append(String.format("%.2f\t", ((float)i)/N));
             AFline.append(String.format("%.8f\t", log10AlleleFrequencyPriors[i]));
             if ( log10AlleleFrequencyPosteriors.get()[i] == AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED)
-                AFline.append("0.0\t");                
+                AFline.append("0.00000000\t");                
             else
                 AFline.append(String.format("%.8f\t", log10AlleleFrequencyPosteriors.get()[i]));
             AFline.append(String.format("%.8f\t", normalizedPosteriors[i]));
