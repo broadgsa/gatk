@@ -220,6 +220,9 @@ def printHeaderSep():
     print
     print ''.join(['-'] * 80)
 
+def sortByName(files):
+	return sorted(files, key=lambda x: x.file)
+
 if __name__ == "__main__":
     usage = "usage: %prog -l and/or -a root ftpRoot"
     parser = OptionParser(usage=usage)
@@ -272,7 +275,7 @@ if __name__ == "__main__":
     print 'SUMMARY: Total files examined', len(results)
     for status in ['in-sync', 'size-mismatch', 'unknown-local-file', 'local-file-missing', 'orphaned-file']:
         printHeaderSep()
-        filesOfStatus = filter(lambda x: x.status == status, results.itervalues())
+        filesOfStatus = sortByName(filter(lambda x: x.status == status, results.itervalues()))
         n = len(filesOfStatus)
         print 'SUMMARY: %s' % ( status )
         print 'SUMMARY: Files                    %d (%.2f%% of total)' % ( n, n * 100.0 / len(results))
