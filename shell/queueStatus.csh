@@ -14,4 +14,4 @@ echo "\nFH jobs"
 bjobs -u gsa-adm
 
 echo "\nFile system status"
-df -h /humgen/* /broad/1KG /broad/shptmp /humgen/gsa-firehose /humgen/gsa-firehose2
+df -h /humgen/* /broad/shptmp /humgen/gsa-firehose /humgen/gsa-firehose2
