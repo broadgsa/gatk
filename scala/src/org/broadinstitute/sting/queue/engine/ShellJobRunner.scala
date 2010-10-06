@@ -1,18 +1,19 @@
 package org.broadinstitute.sting.queue.engine
 
-import org.broadinstitute.sting.queue.util.{Logging, ShellJob}
+import org.broadinstitute.sting.queue.util.{JobExitException, Logging, ShellJob}
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 
 /**
  * Runs jobs one at a time locally
  */
-class ShellJobRunner extends JobRunner with Logging {
+class ShellJobRunner(function: CommandLineFunction) extends JobRunner with Logging {
+  private var runStatus: RunnerStatus.Value = _
+
   /**
    * Runs the function on the local shell.
    * @param function Command to run.
-   * @param qGraph graph that holds the job, and if this is a dry run.
    */
-  def run(function: CommandLineFunction, qGraph: QGraph) = {
+  def start() = {
     val job = new ShellJob
     job.command = function.commandLine
     job.workingDir = function.commandDirectory
@@ -20,10 +21,11 @@ class ShellJobRunner extends JobRunner with Logging {
     job.errorFile = function.jobErrorFile
 
     if (logger.isDebugEnabled) {
-      logger.debug(function.commandDirectory + " > " + function.commandLine)
+      logger.debug("Starting: " + function.commandDirectory + " > " + function.commandLine)
     } else {
-      logger.info(function.commandLine)
+      logger.info("Starting: " + function.commandLine)
     }
+
     logger.info("Output written to " + function.jobOutputFile)
     if (function.jobErrorFile != null) {
       logger.info("Errors written to " + function.jobErrorFile)
@@ -32,7 +34,25 @@ class ShellJobRunner extends JobRunner with Logging {
         logger.info("Errors also written to " + function.jobOutputFile)
     }
 
-    if (!qGraph.dryRun)
-      job.run
+    function.doneOutputs.foreach(_.delete)
+    function.failOutputs.foreach(_.delete)
+    runStatus = RunnerStatus.RUNNING
+    try {
+        job.run()
+        function.doneOutputs.foreach(_.createNewFile)
+        runStatus = RunnerStatus.DONE
+        logger.info("Done: " + function.commandLine)
+    } catch {
+      case e: JobExitException =>
+        runStatus = RunnerStatus.FAILED
+        try {
+          function.failOutputs.foreach(_.createNewFile)
+        } catch {
+          case _ => /* ignore errors in the exception handler */
+        }
+        logger.error("Error: " + function.commandLine, e)
+    }
   }
+
+  def status = runStatus
 }

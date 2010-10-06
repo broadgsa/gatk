@@ -1,13 +1,13 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
 import java.io.File
 import org.broadinstitute.sting.commandline.{ArgumentSource, Input, Output}
+import org.broadinstitute.sting.queue.function.QFunction
 
 /**
  * Base class for Scatter command line functions.
  */
-trait ScatterFunction extends CommandLineFunction {
+trait ScatterFunction extends QFunction {
   @Input(doc="Original input to scatter")
   var originalInput: File = _
 

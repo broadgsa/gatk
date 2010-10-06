@@ -17,16 +17,15 @@ class ShellJob extends CommandLineJob with Logging {
     val stdinSettings = new ProcessController.InputStreamSettings(null, this.inputFile)
     val stdoutSettings = new ProcessController.OutputStreamSettings(bufferSize, this.outputFile, true)
     val stderrSettings = new ProcessController.OutputStreamSettings(FIVE_MB, errorFile, true)
+    val commandLine = Array("sh", "-c", command)
     val processSettings = new ProcessController.ProcessSettings(
-      Array("sh", "-c", command), null, this.workingDir, stdinSettings, stdoutSettings, stderrSettings, redirectError)
+      commandLine, null, this.workingDir, stdinSettings, stdoutSettings, stderrSettings, redirectError)
 
     val output = processController.exec(processSettings)
 
     if (output.exitValue != 0) {
       val streamOutput = if (redirectError) output.stdout else output.stderr
-      logger.error("Failed to run job, got exit code %s.  Error contained: %n%s"
-              .format(output.exitValue, content(streamOutput)))
-      throw new QException("Failed to run job, got exit code %s.".format(output.exitValue))
+      throw new JobExitException("Failed to run job.", commandLine, output.exitValue, content(streamOutput))
     }
   }
 }

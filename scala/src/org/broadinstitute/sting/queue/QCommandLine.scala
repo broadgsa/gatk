@@ -3,8 +3,8 @@ package org.broadinstitute.sting.queue
 import java.io.File
 import java.util.Arrays
 import org.broadinstitute.sting.queue.engine.QGraph
-import org.broadinstitute.sting.queue.util.{Logging, ScalaCompoundArgumentTypeDescriptor}
 import org.broadinstitute.sting.commandline._
+import org.broadinstitute.sting.queue.util.{ProcessController, Logging, ScalaCompoundArgumentTypeDescriptor}
 
 /**
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
@@ -16,9 +16,6 @@ class QCommandLine extends CommandLineProgram with Logging {
 
   @Argument(fullName="bsub_all_jobs", shortName="bsub", doc="Use bsub to submit jobs", required=false)
   private var bsubAllJobs = false
-
-  @Argument(fullName="bsub_wait_jobs", shortName="bsubWait", doc="Wait for bsub submitted jobs before exiting", required=false)
-  private var bsubWaitJobs = false
 
   @Argument(fullName="run_scripts", shortName="run", doc="Run QScripts.  Without this flag set only performs a dry run.", required=false)
   private var run = false
@@ -46,10 +43,10 @@ class QCommandLine extends CommandLineProgram with Logging {
    * functions, and then builds and runs a QGraph based on the dependencies.
    */
   def execute = {
+
     val qGraph = new QGraph
     qGraph.dryRun = !(run || runScripts)
     qGraph.bsubAllJobs = bsubAllJobs
-    qGraph.bsubWaitJobs = bsubWaitJobs
     qGraph.skipUpToDateJobs = skipUpToDate
     qGraph.dotFile = dotFile
     qGraph.expandedDotFile = expandedDotFile
@@ -65,6 +62,14 @@ class QCommandLine extends CommandLineProgram with Logging {
       logger.info("Added " + script.functions.size + " functions")
     }
 
+    Runtime.getRuntime.addShutdownHook(new Thread {
+      /** Kills running processes as the JVM shuts down. */
+      override def run = {
+        qGraph.shutdown()
+        ProcessController.shutdown()
+      }
+    })
+
     if ( ! getStatus ) {
       logger.info("Running generated graph")
       qGraph.run
@@ -73,8 +78,13 @@ class QCommandLine extends CommandLineProgram with Logging {
       qGraph.checkStatus
     }
 
-    logger.info("Done")
-    0
+    if (qGraph.hasFailed) {
+      logger.info("Done with errors")
+      1
+    } else {
+      logger.info("Done")
+      0
+    }
   }
 
   /**

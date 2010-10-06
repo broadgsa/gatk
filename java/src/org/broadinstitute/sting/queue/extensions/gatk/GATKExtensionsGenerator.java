@@ -116,8 +116,9 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                             argumentFields.addAll(RodBindField.getRodArguments(walkerType, trackBuilder));
                             argumentFields.addAll(ReadFilterField.getFilterArguments(walkerType));
 
-                            writeClass(COMMANDLINE_PACKAGE_NAME + "." + clpClassName, WALKER_PACKAGE_NAME,
-                                    walkerName, String.format("analysis_type = \"%s\"%n", walkerName), argumentFields);
+                            writeClass(COMMANDLINE_PACKAGE_NAME + "." + clpClassName, WALKER_PACKAGE_NAME, walkerName,
+                                    String.format("analysisName = \"%1$s\"%nanalysis_type = \"%1$s\"%n", walkerName),
+                                    argumentFields);
                         }
                     }
                 }

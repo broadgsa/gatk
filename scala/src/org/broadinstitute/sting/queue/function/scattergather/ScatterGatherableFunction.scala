@@ -3,8 +3,8 @@ package org.broadinstitute.sting.queue.function.scattergather
 import java.io.File
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.commandline.ArgumentSource
-import org.broadinstitute.sting.queue.function.CommandLineFunction
 import com.rits.cloning.Cloner
+import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
 
 /**
  * A function that can be run faster by splitting it up into pieces and then joining together the results.
@@ -84,10 +84,10 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * Returns a list of scatter / gather and clones of this function
    * that can be run in parallel to produce the same output as this
    * command line function.
-   * @return List[CommandLineFunction] to run instead of this function.
+   * @return List[QFunction] to run instead of this function.
    */
   def generateFunctions() = {
-    var functions = List.empty[CommandLineFunction]
+    var functions = List.empty[QFunction]
     var tempDirectories = List.empty[File]
 
     // Only depend on input fields that have a value
@@ -112,7 +112,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     }
 
     // Create the clone functions for running the parallel jobs
-    var cloneFunctions = List.empty[CommandLineFunction]
+    var cloneFunctions = List.empty[ScatterGatherableFunction]
     for (i <- 1 to this.scatterCount) {
       val cloneFunction = this.newCloneFunction()
       initCloneFunction(cloneFunction, i)
@@ -290,7 +290,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     if (this.setupCloneFunction != null)
       if (this.setupCloneFunction.isDefinedAt(cloneFunction, index))
         this.setupCloneFunction(cloneFunction, index)
-        cloneFunction.isGather = false
   }
 
   /**
@@ -361,7 +360,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param Sub directory under the scatter gather directory.
    * @return temporary directory under this scatter gather directory.
    */
-  private def scatterGatherTempDir(subDir: String) = IOUtils.subDir(this.scatterGatherDirectory, this.jobName + "-" + subDir)
+  private def scatterGatherTempDir(subDir: String) = IOUtils.subDir(this.scatterGatherDirectory, this.jobName + "-sg/" + subDir)
 }
 
 /**

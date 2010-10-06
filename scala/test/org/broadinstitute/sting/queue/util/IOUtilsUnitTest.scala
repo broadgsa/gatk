@@ -99,4 +99,18 @@ class IOUtilsUnitTest extends BaseTest {
     dir = IOUtils.absolute(new File("/./.directory/"))
     Assert.assertEquals(new File("/.directory"), dir)
   }
+
+  @Test
+  def testTail = {
+    val lines = List(
+      "chr18_random	4262	3154410390	50	51",
+      "chr19_random	301858	3154414752	50	51",
+      "chr21_random	1679693	3154722662	50	51",
+      "chr22_random	257318	3156435963	50	51",
+      "chrX_random	1719168	3156698441	50	51")
+    val tail = IOUtils.tail(new File(BaseTest.hg18Reference + ".fai"), 5)
+    Assert.assertEquals(5, tail.size)
+    for (i <- 0 until 5)
+      Assert.assertEquals(lines(i), tail(i))
+  }
 }

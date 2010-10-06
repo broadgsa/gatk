@@ -3,7 +3,7 @@ package org.broadinstitute.sting.queue.util
 import java.io.File
 
 /**
- * Base class for a command line job.
+ * Base utility class for a command line job.
  */
 abstract class CommandLineJob {
   var command: String = _

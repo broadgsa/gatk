@@ -175,7 +175,11 @@ class CleanBamFile extends QScript {
     bamIndex.bamFile = fixedBam
     bamIndex.bamFileIndex = swapExt(fixedBam, "bam", "bam.bai")
 
-    val importer = new ImportSingleValueFunction
+    val importer = new ImportSingleValueFunction {
+      /** Files that this job should wait on before running. */
+      @Input(doc="Explicit job dependencies", required=false)
+      var jobDependencies: List[File] = Nil
+    }
     importer.jobQueue = shortJobQueue
     importer.jarFile = firehoseImportJar
     importer.host = firehoseHost

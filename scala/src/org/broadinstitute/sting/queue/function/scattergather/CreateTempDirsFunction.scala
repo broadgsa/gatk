@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
 import java.io.File
-import org.broadinstitute.sting.queue.function.CommandLineFunction
-import org.broadinstitute.sting.commandline.{Argument, Output, Input}
+import org.broadinstitute.sting.commandline.{Output, Input}
+import org.broadinstitute.sting.queue.function.InProcessFunction
 
 /**
  * Creates the temporary directories for scatter / gather.
@@ -10,22 +10,14 @@ import org.broadinstitute.sting.commandline.{Argument, Output, Input}
  * By default uses mkdir -pv
  * The format of the call is <rmdirScript> <dir_1> [.. <dir_n>]
  */
-class CreateTempDirsFunction extends CommandLineFunction {
+class CreateTempDirsFunction extends InProcessFunction {
   @Input(doc="Original inputs to the scattered function")
   var originalInputs: Set[File] = Set.empty[File]
 
   @Output(doc="Temporary directories to create")
   var tempDirectories: List[File] = Nil
 
-  @Argument(doc="mkdir script or command")
-  var mkdirScript = "mkdir -pv"
+  override protected def useStatusOutput(file: File) = false
 
-  override def upToDate = tempDirectories.forall(_.exists)
-
-  def commandLine = "%s%s".format(mkdirScript, repeat(" '", tempDirectories, "'"))
-
-  /**
-   * This function is creating the directories, so returns just this command directory.
-   */
-  override def jobDirectories = Set(commandDirectory)
+  def run() = tempDirectories.foreach(_.mkdirs)
 }

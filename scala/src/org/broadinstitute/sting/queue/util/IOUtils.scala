@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.queue.util
 
-import java.io.{IOException, File}
 import org.apache.commons.io.FileUtils
+import java.io.{FileReader, IOException, File}
 
 /**
  * A collection of utilities for modifying java.io.
@@ -107,8 +107,8 @@ object IOUtils {
 
   def writeContents(file: File, content: String) =  FileUtils.writeStringToFile(file, content)
 
-  def writeTempFile(content: String, prefix: String, suffix: String = "") = {
-    val tempFile = absolute(File.createTempFile(prefix, suffix, networkTempDir))
+  def writeTempFile(content: String, prefix: String, suffix: String = "", directory: File = networkTempDir) = {
+    val tempFile = absolute(File.createTempFile(prefix, suffix, directory))
     writeContents(tempFile, content)
     tempFile
   }
@@ -133,6 +133,12 @@ object IOUtils {
       directories(level)
   }
 
+  /**
+   * A mix of getCanonicalFile and getAbsoluteFile that returns the
+   * absolute path to the file without deferencing symbolic links.
+   * @param file the file.
+   * @return the absolute path to the file.
+   */
   def absolute(file: File) = {
     var fileAbs = file.getAbsoluteFile
     var names = List.empty[String]
@@ -166,5 +172,31 @@ object IOUtils {
     }
 
     new File(names.mkString("/", "/", ""))
+  }
+
+  /**
+   * Returns the last lines of the file.
+   * NOTE: This is only safe to run on smaller files!
+   * @param file File to read.
+   * @param count Maximum number of lines to return.
+   * @return The last count lines from file.
+   */
+  def tail(file: File, count: Int) = {
+    var tailLines = List.empty[String]
+    var reader = new FileReader(file)
+    try {
+      val iterator = org.apache.commons.io.IOUtils.lineIterator(reader)
+      var lineCount = 0
+      while (iterator.hasNext) {
+        val line = iterator.nextLine
+        lineCount += 1
+        if (lineCount > count)
+          tailLines = tailLines.tail
+        tailLines :+= line
+      }
+    } finally {
+      org.apache.commons.io.IOUtils.closeQuietly(reader)
+    }
+    tailLines
   }
 }

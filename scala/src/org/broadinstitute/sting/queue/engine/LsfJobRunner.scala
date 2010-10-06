@@ -1,22 +1,39 @@
 package org.broadinstitute.sting.queue.engine
 
-import org.broadinstitute.sting.queue.function.{CommandLineFunction, DispatchWaitFunction}
+import java.io.File
 import org.broadinstitute.sting.queue.util.{IOUtils, LsfJob, Logging}
+import org.broadinstitute.sting.queue.function.CommandLineFunction
 
 /**
  * Runs jobs on an LSF compute cluster.
  */
-class LsfJobRunner extends DispatchJobRunner with Logging {
-  type DispatchJobType = LsfJob
+class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with Logging {
+  private var runStatus: RunnerStatus.Value = _
+
+  var job: LsfJob = _
+
+  /** A file to look for to validate that the function ran to completion. */
+  private var jobStatusPath: String = _
+
+  /** A temporary job done file to let Queue know that the process ran successfully. */
+  private lazy val jobDoneFile = new File(jobStatusPath + ".done")
+
+  /** A temporary job done file to let Queue know that the process exited with an error. */
+  private lazy val jobFailFile = new File(jobStatusPath + ".fail")
+
+  /** A generated pre-exec shell script. */
+  private var preExec: File = _
+
+  /** A generated post-exec shell script. */
+  private var postExec: File = _
 
   /**
    * Dispatches the function on the LSF cluster.
    * @param function Command to run.
-   * @param qGraph graph that holds the job, and if this is a dry run.
    */
-  def run(function: CommandLineFunction, qGraph: QGraph) = {
-    val job = new LsfJob
-    job.name = function.jobName
+  def start() = {
+    job = new LsfJob
+    // job.name = function.jobName TODO: Make setting the job name optional.
     job.outputFile = function.jobOutputFile
     job.errorFile = function.jobErrorFile
     job.project = function.jobProject
@@ -32,56 +49,114 @@ class LsfJobRunner extends DispatchJobRunner with Logging {
     if (function.memoryLimit.isDefined)
       job.extraBsubArgs ++= List("-R", "rusage[mem=" + function.memoryLimit.get + "]")
 
-    if ( ! function.commandLine.contains("mkdir")) // wild hack -- ignore mkdirs ??
-      job.postExecCommand = function.doneOutputs.foldLeft("python /humgen/gsa-scr1/chartl/sting/python/lsf_post_touch.py ")((b,a) => b + a.getAbsolutePath+" ")
-    // hacky trailing space, so sue me -- CH
+    preExec = writePreExec(function)
+    job.preExecCommand = "sh " + preExec
 
-    val previous: Iterable[LsfJob] =
-      if (function.isInstanceOf[DispatchWaitFunction]) {
-        job.waitForCompletion = true
-        getWaitJobs(qGraph)
-      } else {
-        previousJobs(function, qGraph)
-      }
-    
-    mountCommand(function) match {
-      case Some(command) => job.preExecCommand = command
-      case None => /* ignore */
-    }
-
-    if (previous.size > 0)
-      job.extraBsubArgs ++= List("-w", dependencyExpression(previous,
-        function.jobRunOnlyIfPreviousSucceed, qGraph.dryRun))
-
-    addJob(function, qGraph, job, previous)
+    postExec = writePostExec(function)
+    job.postExecCommand = "sh " + postExec
 
     if (logger.isDebugEnabled) {
-      logger.debug(function.commandDirectory + " > " + job.bsubCommand.mkString(" "))
+      logger.debug("Starting: " + function.commandDirectory + " > " + job.bsubCommand.mkString(" "))
     } else {
-      logger.info(job.bsubCommand.mkString(" "))
+      logger.info("Starting: " + job.bsubCommand.mkString(" "))
     }
 
-    if (!qGraph.dryRun)
-      job.run
+    runStatus = RunnerStatus.RUNNING
+    job.run()
+    jobStatusPath = IOUtils.absolute(new File(function.commandDirectory, "." + job.bsubJobId)).toString
+    logger.info("Submitted LSF job id: " + job.bsubJobId)
   }
 
   /**
-   * Returns the dependency expression for the prior jobs.
-   * @param jobs Previous jobs this job is dependent on.
-   * @param runOnSuccess Run the job only if the previous jobs succeed.
-   * @param dryRun If the current run is a dry run.
-   * @return The dependency expression for the prior jobs.
+   * Updates and returns the status by looking for job status files.
+   * After the job status files are detected they are cleaned up from
+   * the file system and the status is cached.
+   *
+   * Note, these temporary job status files are currently different from the
+   * .done files used to determine if a file has been created successfully.
    */
-  private def dependencyExpression(jobs: Iterable[LsfJob],
-                                   runOnSuccess: Boolean, dryRun: Boolean) = {
-    val jobIds = if (dryRun)
-      jobs.toSet[LsfJob].map("\"" + _.name + "\"")
-    else
-      jobs.toSet[LsfJob].map(_.bsubJobId)
+  def status = {
+    if (logger.isDebugEnabled) {
+      logger.debug("Done %s exists = %s".format(jobDoneFile, jobDoneFile.exists))
+      logger.debug("Fail %s exists = %s".format(jobFailFile, jobFailFile.exists))
+    }
 
-    if (runOnSuccess)
-      jobIds.mkString("done(", ") && done(", ")")
-    else
-      jobIds.mkString("ended(", ") && ended(", ")")
+    if (jobFailFile.exists) {
+      removeTemporaryFiles()
+      runStatus = RunnerStatus.FAILED
+      logger.info("Error: " + job.bsubCommand.mkString(" "))
+      tailError()
+    } else if (jobDoneFile.exists) {
+      removeTemporaryFiles()
+      runStatus = RunnerStatus.DONE
+      logger.info("Done: " + job.bsubCommand.mkString(" "))
+    }
+
+    runStatus
+  }
+
+  /**
+   * Removes all temporary files used for this LSF job.
+   */
+  private def removeTemporaryFiles() = {
+    preExec.delete()
+    postExec.delete()
+    jobDoneFile.delete()
+    jobFailFile.delete()
+  }
+
+  /**
+   * Outputs the last lines of the error logs.
+   */
+  private def tailError() = {
+    val errorFile = if (job.errorFile != null) job.errorFile else job.outputFile
+    val tailLines = IOUtils.tail(errorFile, 100)
+    val nl = "%n".format()
+    logger.error("Last %d lines of %s:%n%s".format(tailLines.size, errorFile, tailLines.mkString(nl)))
+  }
+
+  /**
+   * Writes a pre-exec file to cleanup any status files and
+   * optionally mount any automount directories on the node.
+   * @return the file path to the pre-exec.
+   */
+  private def writePreExec(function: CommandLineFunction): File = {
+    val preExec = new StringBuilder
+
+    preExec.append("rm -f '%s/'.$LSB_JOBID.done%n".format(function.commandDirectory))
+    function.doneOutputs.foreach(file => preExec.append("rm -f '%s'%n".format(file)))
+    preExec.append("rm -f '%s/'.$LSB_JOBID.fail%n".format(function.commandDirectory))
+    function.failOutputs.foreach(file => preExec.append("rm -f '%s'%n".format(file)))
+
+    mountCommand(function).foreach(command =>
+      preExec.append("%s%n".format(command)))
+
+    IOUtils.writeTempFile(preExec.toString, ".preExec", "", function.commandDirectory)
+  }
+
+  /**
+   * Writes a post-exec file to create the status files.
+   * @return the file path to the post-exec.
+   */
+  private def writePostExec(function: CommandLineFunction): File = {
+    val postExec = new StringBuilder
+
+    val touchDone = function.doneOutputs.map("touch '%s'%n".format(_)).mkString
+    val touchFail = function.failOutputs.map("touch '%s'%n".format(_)).mkString
+
+    postExec.append("""|
+  |if [ "${LSB_JOBPEND:-unset}" != "unset" ]; then
+  |  exit 0
+  |fi
+  |
+  |JOB_STAT_ROOT='%s/'.$LSB_JOBID
+  |if [ "$LSB_JOBEXIT_STAT" == "0" ]; then
+  |%stouch "$JOB_STAT_ROOT".done
+  |else
+  |%stouch "$JOB_STAT_ROOT".fail
+  |fi
+  |""".stripMargin.format(function.commandDirectory, touchDone, touchFail))
+
+    IOUtils.writeTempFile(postExec.toString, ".postExec", "", function.commandDirectory)
   }
 }

@@ -253,14 +253,14 @@ object ProcessController extends Logging {
   private val STDERR_KEY = "stderr"
 
   /** Tracks running processes so that they can be killed as the JVM shuts down. */
-  private val running = new HashSet[Process]()
-  Runtime.getRuntime.addShutdownHook(new Thread {
-    /** Kills running processes as the JVM shuts down. */
-    override def run = for (process <- running.clone) {
+  private val running = new HashSet[Process]
+
+  def shutdown() = {
+    for (process <- running.clone) {
       logger.warn("Killing: " + process)
       process.destroy
     }
-  })
+  }
 
   /** Empty stream settings used when no output is requested. */
   private object EmptyStreamSettings extends OutputStreamSettings(0, null, false)

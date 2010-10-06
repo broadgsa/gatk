@@ -22,9 +22,6 @@ class QSettings {
 
   @Argument(fullName="default_memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes.", required=false)
   var memoryLimit: Option[Int] = None
-
-  @Argument(fullName="runJobsIfPrecedingFail", shortName="runIfFail", doc="If this flag is set then ALL jobs will run even if the previous jobs fail.", required=false)
-  var runJobsIfPrecedingFail = false
 }
 
 /**
