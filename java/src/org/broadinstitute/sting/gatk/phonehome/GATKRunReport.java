@@ -286,7 +286,7 @@ public class GATKRunReport {
                 postReport(file);
                 logger.info("Wrote report to " + file);
             } else {
-                logger.info("Not writing report: sentinel " + REPORT_SENTINEL + " doesn't exist");
+                logger.debug("Not writing report: sentinel " + REPORT_SENTINEL + " doesn't exist");
             }
         } catch ( Exception e ) {
             // we catch everything, and no matter what eat the error
