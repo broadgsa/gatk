@@ -14,7 +14,7 @@ reportCountingPlot <- function(values, name, moreMargin = 0, ...) {
     par(las=2) # make label text perpendicular to axis
     oldMar <- par("mar")
     par(mar=c(5,8+moreMargin,4,2)) # increase y-axis margin.
-    barplot(sort(table(factor(values))), horiz=TRUE, cex.names = 0.5, main = name, xlab="Counts", ...)
+    barplot(sort(table(factor(values))), horiz=TRUE, cex.names = 0.5, main = name, xlab="Counts", log="x", ...)
     par("mar" = oldMar)
     par("las" = 1)
 }
@@ -25,7 +25,7 @@ reportConditionalCountingPlot <- function(values, conditions, name, moreMargin =
     par(mar=c(5,8+moreMargin,4,2)) # increase y-axis margin.
     t = table(values, conditions)
     t = t[, order(colSums(t))]
-    print(list(t = t))
+    #print(list(t = t))
     nconds = dim(t)[2]
     cols = rainbow(nconds)
     barplot(t, legend.text = T, horiz=TRUE, cex.names = 0.5, main = name, xlab="Counts", col=cols, cex=0.5, ...)
@@ -74,7 +74,9 @@ if ( onCMDLine ) pdf(args[2])
 
 successfulRuns <- function(d) {
     x <- rep("Successful", length(d$exception.msg))
-    x[! is.na(d$exception.msg)] <- "Failed"
+    x[d$exception.msg != "NA" & d$is.user.exception == "true"] <- "Failed with UserException"
+    x[d$exception.msg != "NA" & d$is.user.exception == "false"] <- "Failed with StingException"
+    x[d$exception.msg != "NA" & (d$is.user.exception == "NA" | is.na(d$is.user.exception))] <- "Failed with StingException before UserException code"
     return(x)
 }
 
@@ -84,14 +86,20 @@ addSection <- function(name) {
     title(name, cex=2)
 }
 
+dropit <- function (d, columns = names(d), ...)
+{
+   d[columns] = lapply(d[columns], "[", drop=TRUE, ...)
+   d
+}
+
 generateOneReport <- function(d, header, includeByWeek = T) {
     head <- function(s) {
         return(paste("Section:", header, "\n", s))
     }
     
-    excepted <- subset(d, exception.msg != "NA")
-    UserExceptions <- subset(excepted, is.user.exception == "true")
-    StingExceptions <- subset(excepted, is.user.exception == "false" | is.user.exception == "NA" | is.na(is.user.exception))
+    excepted <- dropit(subset(d, exception.msg != "NA"))
+    UserExceptions <- dropit(subset(excepted, is.user.exception == "true"))
+    StingExceptions <- dropit(subset(excepted, is.user.exception == "false" | is.user.exception == "NA" | is.na(is.user.exception)))
 
     addSection(paste("GATK run report", name, "for", Sys.Date(), "\nwith", dim(d)[1], "run repository records"))
 
@@ -119,8 +127,8 @@ generateOneReport <- function(d, header, includeByWeek = T) {
 		#print(list(subd = length(subd$end.time), name=subname))
 		reportCountingPlot(subd$walker.name, head(paste("Walkers with", subname)), col=exceptionColor)
     	reportCountingPlot(subd$exception.at, head(paste(subname, "locations")), 12, col=exceptionColor)
-    	reportCountingPlot(subd$exception.msg, head(paste(subname, "messages")), 12, col=exceptionColor)
-		reportConditionalCountingPlot(subd$user.name, subd$exception.at, head("Walker invocations by user"), 12)
+    	#reportCountingPlot(subd$exception.msg, head(paste(subname, "messages")), 12, col=exceptionColor)
+		reportConditionalCountingPlot(subd$user.name, subd$exception.at, head(paste("Walker invocations by user for", subname)), 12)
 
 	    if ( includeByWeek && length(subd$end.time) > 0 ) {
     	    plotTable(myTable(subd$walker.name, cut(subd$end.time, "weeks"), reqRowNonZero = T), head(paste("Walkers with", subname,"by week")), col=exceptionColor)
