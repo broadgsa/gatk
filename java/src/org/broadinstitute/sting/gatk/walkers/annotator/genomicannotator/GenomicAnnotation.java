@@ -56,7 +56,6 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
     public static final String END_COLUMN = "end";
     public static final String HAPLOTYPE_REFERENCE_COLUMN = "haplotypeReference";
     public static final String HAPLOTYPE_ALTERNATE_COLUMN = "haplotypeAlternate";
-    public static final String HAPLOTYPE_STRAND_COLUMN = "haplotypeStrand";
 
     public static final String NUM_MATCHES_SPECIAL_INFO_FIELD = "numMatchingRecords";
 
@@ -137,18 +136,6 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                     throw new UserException.MalformedFile("File associated with " + vc.getName() + " contains record [" + vc + "] contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
                 }
 
-                boolean positiveStrand = true; //if HAPLOTYPE_STRAND_COLUMN isn't specified, assume positive strand.
-                String hapStrandValue = annotationsForRecord.get( generateInfoFieldKey(name, HAPLOTYPE_STRAND_COLUMN) );
-                if(hapStrandValue != null ) {
-                    hapStrandValue = hapStrandValue.trim().toLowerCase();
-                    if(hapStrandValue.equals("-") || hapStrandValue.equals("r")) {
-                        positiveStrand = false;
-                    } else if(!hapStrandValue.equals("+") && !hapStrandValue.equals("f")) {
-                        throw new UserException.MalformedFile("Record (" + gatkFeature.getUnderlyingObject() + ") in " + name + " has an invalid value for " + HAPLOTYPE_STRAND_COLUMN + ". This value is: \"" + hapStrandValue + "\"");
-                    }
-                }
-
-
                 Allele vcAlt;
                 if(alternateAlleles.isEmpty()) {
                     vcAlt = vc.getReference();
@@ -158,9 +145,6 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
 
                 boolean matchFound = false;
                 for(String hapAlt : hapAltValue.split("[,\\\\/:|]")) {
-                    if(!positiveStrand) {
-                        hapAlt = new String(BaseUtils.simpleReverseComplement(hapAlt.getBytes()));
-                    }
 
                     if(!hapAlt.isEmpty() && vcAlt.basesMatch(hapAlt)) {
                         matchFound = true;
