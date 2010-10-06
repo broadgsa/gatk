@@ -212,8 +212,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     private String TRANCHE_FILENAME = null;
 
     // For GenotypePhasingEvaluator:
-    @Argument(fullName = "minPhaseQuality", shortName = "minPQ", doc = "The minimum phasing quality (PQ) score required to consider phasing; [default:20.0]", required = false)
-    protected Double minPhaseQuality = 20.0; // PQ = 20.0 <=> P(error) = 10^(-20/10) = 0.01, P(correct) = 0.99
+    @Argument(fullName = "minPhaseQuality", shortName = "minPQ", doc = "The minimum phasing quality (PQ) score required to consider phasing; [default:0]", required = false)
+    protected Double minPhaseQuality = 0.0; // accept any positive value of PQ
 
     // --------------------------------------------------------------------------------------------------------------
     //

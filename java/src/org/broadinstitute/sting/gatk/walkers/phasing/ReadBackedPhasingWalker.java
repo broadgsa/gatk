@@ -323,6 +323,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                         samplePhaseStats.put(samp, sampPhaseCounts);
                     }
                     sampPhaseCounts.numTestedSites++;
+                    if (pr.phasingContainsInconsistencies)
+                        sampPhaseCounts.numInconsistentSites++;
                     if (genotypesArePhased)
                         sampPhaseCounts.numPhased++;
                 }
@@ -435,6 +437,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             buildReadsAtHetSites(listHetGenotypes, onlyKeepReads);
 
             // Copy to a fixed-size array:
+            logger.debug("FINAL phasing window of " + listHetGenotypes.size() + " sites:\n" + toStringGRL(listHetGenotypes));
             hetGenotypes = new Genotype[listHetGenotypes.size()];
             int index = 0;
             for (GenotypeAndReadBases copyGrb : listHetGenotypes)
@@ -729,7 +732,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             int stopIndex = phasingSiteIndex + useOnRight + 1; // put the index 1 past the desired index to keep
             phasingSiteIndex -= startIndex;
             listHetGenotypes = listHetGenotypes.subList(startIndex, stopIndex);
-            logger.warn("REDUCED to " + listHetGenotypes.size() + " sites:\n" + toStringGRL(listHetGenotypes));
+            logger.warn("NAIVELY REDUCED to " + listHetGenotypes.size() + " sites:\n" + toStringGRL(listHetGenotypes));
 
             return listHetGenotypes;
         }
@@ -930,10 +933,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         System.out.println("Number of variant sites observed: " + result.getNumVarSites());
         System.out.println("Average coverage: " + ((double) result.getNumReads() / result.getNumVarSites()));
 
-        System.out.println("\n-- Phasing summary [minimal haplotype quality (PQ): " + phaseQualityThresh + "] --");
+        System.out.println("\n-- Phasing summary [minimal haplotype quality (PQ): " + phaseQualityThresh + ", maxPhaseSites= " + maxPhaseSites + "] --");
         for (Map.Entry<String, PhaseCounts> sampPhaseCountEntry : result.getPhaseCounts()) {
             PhaseCounts pc = sampPhaseCountEntry.getValue();
-            System.out.println("Sample: " + sampPhaseCountEntry.getKey() + "\tNumber of tested sites: " + pc.numTestedSites + "\tNumber of phased sites: " + pc.numPhased);
+            System.out.println("Sample: " + sampPhaseCountEntry.getKey() + "\tNumber of tested sites [cacheWindow= " + cacheWindow + "]: " + pc.numTestedSites + "\tNumber of phased sites: " + pc.numPhased + "\tNumber of phase-inconsistent sites: " + pc.numInconsistentSites);
         }
         System.out.println("");
     }
@@ -1193,8 +1196,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         public PhasingTable getNewTable() {
-            double hapClassPrior = 1.0; // can change later, BUT see NOTE above in removeExtraneousReads()
-
             PhasingTable table = new PhasingTable();
             for (Haplotype hap : getAllHaplotypes()) {
                 if (SNPallelePairs[startIndex].matchesTopBase(hap.getBase(startIndex))) {
@@ -1208,12 +1209,18 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
                     // want marginalizeLength positions starting at startIndex:
                     Haplotype rep = hap.subHaplotype(startIndex, startIndex + marginalizeLength);
+                    double hapClassPrior = getHaplotypeRepresentativePrior(rep); // Note that prior is ONLY a function of the representative haplotype
 
                     HaplotypeClass hapClass = new HaplotypeClass(hapList, rep);
                     table.addEntry(hapClass, hapClassPrior);
                 }
             }
             return table;
+        }
+
+        // Can change later to weight the representative Haplotypes differently:
+        private double getHaplotypeRepresentativePrior(Haplotype rep) {
+            return 1.0;
         }
 
         private Haplotype complement(Haplotype hap) {
@@ -1504,6 +1511,10 @@ class Read extends BaseArray {
         updateBase(index, base);
 
         double errProb = QualityUtils.qualToErrorProb(baseQual);
+
+        // The base error should be AT LEAST AS HIGH as the mapping error:
+        errProb = Math.max(errProb, 1.0 - mappingProb.getValue());
+
         baseProbs[index] = new PreciseNonNegativeDouble(1.0 - errProb);
         baseErrorProbs[index] = new PreciseNonNegativeDouble(errProb);
     }
@@ -1523,6 +1534,7 @@ class Read extends BaseArray {
         if (sz != hap.bases.length)
             throw new ReviewedStingException("Read and Haplotype should have same length to be compared!");
 
+        // Technically, this HAS NO EFFECT since it is multiplied in for ALL haplotype pairs, but do so for completeness:
         score.timesEqual(mappingProb);
 
         for (int i = 0; i < sz; i++) {
@@ -1613,15 +1625,18 @@ class PhasingStats {
 
 class PhaseCounts {
     public int numTestedSites; // number of het sites directly succeeding het sites
+    public int numInconsistentSites;
     public int numPhased;
 
     public PhaseCounts() {
         this.numTestedSites = 0;
+        this.numInconsistentSites = 0;
         this.numPhased = 0;
     }
 
     public void addIn(PhaseCounts other) {
         this.numTestedSites += other.numTestedSites;
+        this.numInconsistentSites += other.numInconsistentSites;
         this.numPhased += other.numPhased;
     }
 }
