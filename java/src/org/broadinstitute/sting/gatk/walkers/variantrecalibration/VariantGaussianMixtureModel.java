@@ -256,8 +256,8 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         this.singletonFPRate = rate;
     }
 
-    public final double getAlleleCountPrior( final int alleleCount ) {
-        return Math.min(0.95, 1.0 - Math.pow(singletonFPRate, alleleCount)); //TODO -- define the vals
+    public final double getAlleleCountPrior( final int alleleCount, final double maxProbability ) {
+        return Math.min( maxProbability, 1.0 - Math.pow(singletonFPRate, alleleCount) );
     }
 
     private void initializeUsingKMeans( final VariantDatum[] data ) {

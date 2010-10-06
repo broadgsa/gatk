@@ -46,9 +46,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testVariantRecalibrator() {
         HashMap<String, List<String>> e = new HashMap<String, List<String>>();
         e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
-                Arrays.asList("e94b02016e6f7936999f02979b801c30", "038c31c5bb46a4df89b8ee69ec740812","7d42bbdfb69fdfb18cbda13a63d92602")); // Each test checks the md5 of three output files
+                Arrays.asList("ca80c95e47d22a79eb0700c039457aca", "ab6b91a3f97b682817d2cc068c34c317","a4802dbf883138ae1152109be990fb9d")); // Each test checks the md5 of three output files
         e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf",
-                Arrays.asList("bbdffb7fa611f4ae80e919cdf86b9bc6", "661360e85392af9c97e386399871854a","371e5a70a4006420737c5ab259e0e23e")); // Each test checks the md5 of three output files
+                Arrays.asList("a40d3b1dd7bfbb66a52145600f87d744", "e2c89c74debc1c202c56060b77575dff","8e8b55b521aaba1c44169a19e3ff2355")); // Each test checks the md5 of three output files
 
         for ( Map.Entry<String, List<String>> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -84,8 +84,8 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testApplyVariantCuts() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "e06aa6b734cc3c881d95cf5ee9315664" );
-        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "ad8661cba3b04a7977c97a541fd8a668" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "ece0c15c34926fc585e12503f6ce6271" );
+        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "994b329a35d01e9564f5581cf3d9feac" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String vcf = entry.getKey();

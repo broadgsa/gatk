@@ -79,7 +79,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     /////////////////////////////
     @Argument(fullName="target_titv", shortName="titv", doc="The expected novel Ti/Tv ratio to use when calculating FDR tranches and for display on optimization curve output figures. (~~2.07 for whole genome experiments)", required=true)
     private double TARGET_TITV = 2.07;
-    @Argument(fullName="backOff", shortName="backOff", doc="The Gaussian back off factor, used to prevent overfitting by enlarging out the Gaussians.", required=false)
+    @Argument(fullName="backOff", shortName="backOff", doc="The Gaussian back off factor, used to prevent overfitting by enlarging the Gaussians.", required=false)
     private double BACKOFF_FACTOR = 1.3;
     @Argument(fullName="desired_num_variants", shortName="dV", doc="The desired number of variants to keep in a theoretically filtered set", required=false)
     private int DESIRED_NUM_VARIANTS = 0;
@@ -105,6 +105,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private double QUAL_STEP = 0.1;
     @Argument(fullName="singleton_fp_rate", shortName="fp_rate", doc="Prior expectation that a singleton call would be a FP", required=false)
     private double SINGLETON_FP_RATE = 0.5;
+    @Argument(fullName="max_ac_prior", shortName="maxACPrior", doc="Maximum value for the prior expectation based on allele count. Needed because (1 - 0.5^x) approaches 1.0 very quickly.", required=false)
+    private double MAX_AC_PRIOR = 0.99;
     @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
     private double QUALITY_SCALE_FACTOR = 100.0;
     @Argument(fullName="dontTrustACField", shortName="dontTrustACField", doc="If specified the VR will not use the AC field and will instead always parse the genotypes to figure out how many variant chromosomes there are at a given site.", required=false)
@@ -268,7 +270,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                         // If this prior factor hasn't been calculated before, do so now
                         if(priorLodFactor == null) {
                             final double knownPrior = QualityUtils.qualToProb(knownPrior_qScore);
-                            final double acPrior = theModel.getAlleleCountPrior( alleleCount );
+                            final double acPrior = theModel.getAlleleCountPrior( alleleCount, MAX_AC_PRIOR );
                             final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
 
                             if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {
