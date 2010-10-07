@@ -23,9 +23,9 @@ trait GatherFunction extends QFunction {
 
   /**
    * Sets the clone function creating one of the inputs for this gather function.
-   * @param cloneFunction The clone of the ScatterGatherableFunction.
+   * @param cloneFunction The clone wrapper for the original ScatterGatherableFunction.
    * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
    * @param gatherField The field to be gathered.
    */
-  def setCloneFunction(cloneFunction: ScatterGatherableFunction, index: Int, gatherField: ArgumentSource) = {}
+  def setCloneFunction(cloneFunction: CloneFunction, index: Int, gatherField: ArgumentSource) = {}
 }

@@ -26,8 +26,8 @@ class QCommandLine extends CommandLineProgram with Logging {
   @Argument(fullName="expanded_dot_graph", shortName="expandedDot", doc="Outputs the queue graph of scatter gather to a .dot file.  Otherwise overwrites the dot_graph", required=false)
   private var expandedDotFile: File = _
 
-  @Argument(fullName="skip_up_to_date", shortName="skipUpToDate", doc="Does not run command line functions that don't depend on other jobs if the outputs exist and are older than the inputs.", required=false)
-  private var skipUpToDate = false
+  @Argument(fullName="start_clean", shortName="clean", doc="Runs all command line functions even if the outputs were previously output successfully.", required=false)
+  private var startClean = false
 
   @Argument(fullName="for_reals", shortName="forReals", doc="Run QScripts", required=false) @Hidden
   private var runScripts = false
@@ -47,7 +47,7 @@ class QCommandLine extends CommandLineProgram with Logging {
     val qGraph = new QGraph
     qGraph.dryRun = !(run || runScripts)
     qGraph.bsubAllJobs = bsubAllJobs
-    qGraph.skipUpToDateJobs = skipUpToDate
+    qGraph.startClean = startClean
     qGraph.dotFile = dotFile
     qGraph.expandedDotFile = expandedDotFile
     qGraph.qSettings = qSettings
@@ -71,10 +71,8 @@ class QCommandLine extends CommandLineProgram with Logging {
     })
 
     if ( ! getStatus ) {
-      logger.info("Running generated graph")
       qGraph.run
     } else {
-      logger.info("Checking pipeline status")
       qGraph.checkStatus
     }
 

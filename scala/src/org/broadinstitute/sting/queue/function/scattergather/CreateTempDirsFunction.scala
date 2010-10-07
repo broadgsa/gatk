@@ -17,7 +17,7 @@ class CreateTempDirsFunction extends InProcessFunction {
   @Output(doc="Temporary directories to create")
   var tempDirectories: List[File] = Nil
 
-  override protected def useStatusOutput(file: File) = false
+  override def useStatusOutput(file: File) = false
 
   def run() = tempDirectories.foreach(_.mkdirs)
 }

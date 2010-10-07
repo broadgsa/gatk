@@ -21,6 +21,9 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
   /** A temporary job done file to let Queue know that the process exited with an error. */
   private lazy val jobFailFile = new File(jobStatusPath + ".fail")
 
+  /** A generated exec shell script. */
+  private var exec: File = _
+
   /** A generated pre-exec shell script. */
   private var preExec: File = _
 
@@ -38,7 +41,6 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
     job.errorFile = function.jobErrorFile
     job.project = function.jobProject
     job.queue = function.jobQueue
-    job.command = function.commandLine
 
     if (!IOUtils.CURRENT_DIR.getCanonicalFile.equals(function.commandDirectory))
       job.workingDir = function.commandDirectory
@@ -49,10 +51,16 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
     if (function.memoryLimit.isDefined)
       job.extraBsubArgs ++= List("-R", "rusage[mem=" + function.memoryLimit.get + "]")
 
-    preExec = writePreExec(function)
+    job.name = function.commandLine.take(1000)
+
+    // TODO: Look into passing in a single chained script as recommended by Doug instead of pre, exec, and post.
+    exec = writeExec()
+    job.command = "sh " + exec
+
+    preExec = writePreExec()
     job.preExecCommand = "sh " + preExec
 
-    postExec = writePostExec(function)
+    postExec = writePostExec()
     job.postExecCommand = "sh " + postExec
 
     if (logger.isDebugEnabled) {
@@ -60,6 +68,10 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
     } else {
       logger.info("Starting: " + job.bsubCommand.mkString(" "))
     }
+
+    function.jobOutputFile.delete()
+    if (function.jobErrorFile != null)
+      function.jobErrorFile.delete()
 
     runStatus = RunnerStatus.RUNNING
     job.run()
@@ -98,7 +110,8 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
   /**
    * Removes all temporary files used for this LSF job.
    */
-  private def removeTemporaryFiles() = {
+  def removeTemporaryFiles() = {
+    exec.delete()
     preExec.delete()
     postExec.delete()
     jobDoneFile.delete()
@@ -116,11 +129,20 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
   }
 
   /**
+   * Writes an exec file to cleanup any status files and
+   * optionally mount any automount directories on the node.
+   * @return the file path to the pre-exec.
+   */
+  private def writeExec() = {
+    IOUtils.writeTempFile(function.commandLine, ".exec", "", function.commandDirectory)
+  }
+
+  /**
    * Writes a pre-exec file to cleanup any status files and
    * optionally mount any automount directories on the node.
    * @return the file path to the pre-exec.
    */
-  private def writePreExec(function: CommandLineFunction): File = {
+  private def writePreExec() = {
     val preExec = new StringBuilder
 
     preExec.append("rm -f '%s/'.$LSB_JOBID.done%n".format(function.commandDirectory))
@@ -138,7 +160,7 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
    * Writes a post-exec file to create the status files.
    * @return the file path to the post-exec.
    */
-  private def writePostExec(function: CommandLineFunction): File = {
+  private def writePostExec() = {
     val postExec = new StringBuilder
 
     val touchDone = function.doneOutputs.map("touch '%s'%n".format(_)).mkString

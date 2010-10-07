@@ -549,7 +549,7 @@
     </target>
 
     <!-- test tribble using the unit tests set in tribble -->
-    <target name="tribble.test" description="runs the tribble tests" depends="tribble.compile">
+    <target name="tribble.test" description="runs the tribble tests" depends="tribble.compile" unless="single">
         <echo message="Testing the Tribble Library..."/>
         <ant antfile="build.xml" target="test" dir="${tribble.dir}" inheritAll="false"/>
     </target>

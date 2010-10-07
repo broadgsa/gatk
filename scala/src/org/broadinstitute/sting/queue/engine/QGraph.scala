@@ -10,9 +10,9 @@ import org.jgrapht.ext.DOTExporter
 import java.io.File
 import org.jgrapht.event.{TraversalListenerAdapter, EdgeTraversalEvent}
 import org.broadinstitute.sting.queue.{QSettings, QException}
-import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, ScatterGatherableFunction}
 import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFunction, QFunction}
 import org.broadinstitute.sting.queue.util.{JobExitException, LsfKillJob, Logging}
+import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, GatherFunction, ScatterGatherableFunction}
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -20,7 +20,7 @@ import org.broadinstitute.sting.queue.util.{JobExitException, LsfKillJob, Loggin
 class QGraph extends Logging {
   var dryRun = true
   var bsubAllJobs = false
-  var skipUpToDateJobs = false
+  var startClean = false
   var dotFile: File = _
   var expandedDotFile: File = _
   var qSettings: QSettings = _
@@ -42,15 +42,6 @@ class QGraph extends Logging {
     }
   }
 
-
-  private def scatterGatherable(edge: FunctionEdge) = {
-    edge.function match {
-      case scatterGather: ScatterGatherableFunction if (scatterGather.scatterGatherable) => true
-      case _ => false
-    }
-  }
-
-
   /**
    * Checks the functions for missing values and the graph for cyclic dependencies and then runs the functions in the graph.
    */
@@ -59,6 +50,7 @@ class QGraph extends Logging {
     val isReady = numMissingValues == 0
 
     if (isReady || this.dryRun) {
+      logger.info("Running jobs.")
       runJobs()
     }
 
@@ -73,31 +65,34 @@ class QGraph extends Logging {
   }
 
   private def fillGraph = {
+    logger.info("Generating graph.")
     fill
     if (dotFile != null)
       renderToDot(dotFile)
     var numMissingValues = validate
 
     if (numMissingValues == 0 && bsubAllJobs) {
-      logger.debug("Scatter gathering jobs.")
-      var scatterGathers = List.empty[FunctionEdge]
-      loop({
-        case edge: FunctionEdge if (scatterGatherable(edge)) =>
-          scatterGathers :+= edge
-      })
+      logger.info("Generating scatter gather jobs.")
+      val scatterGathers = jobGraph.edgeSet.filter(edge => scatterGatherable(edge))
 
       var addedFunctions = List.empty[QFunction]
       for (scatterGather <- scatterGathers) {
-        val functions = scatterGather.function.asInstanceOf[ScatterGatherableFunction].generateFunctions()
+        val functions = scatterGather.asInstanceOf[FunctionEdge]
+                .function.asInstanceOf[ScatterGatherableFunction]
+                .generateFunctions()
         if (this.debugMode)
           logger.debug("Scattered into %d parts: %n%s".format(functions.size, functions.mkString("%n".format())))
         addedFunctions ++= functions
       }
 
+      logger.info("Removing original jobs.")
       this.jobGraph.removeAllEdges(scatterGathers)
       prune
+
+      logger.info("Adding scatter gather jobs.")
       addedFunctions.foreach(this.add(_))
 
+      logger.info("Regenerating graph.")
       fill
       val scatterGatherDotFile = if (expandedDotFile != null) expandedDotFile else dotFile
       if (scatterGatherDotFile != null)
@@ -108,9 +103,22 @@ class QGraph extends Logging {
     numMissingValues
   }
 
+  private def scatterGatherable(edge: QEdge) = {
+    edge match {
+      case functionEdge: FunctionEdge => {
+        functionEdge.function match {
+          case scatterGather: ScatterGatherableFunction if (scatterGather.scatterGatherable) => true
+          case _ => false
+        }
+      }
+      case _ => false
+    }
+  }
+
   def checkStatus = {
     // build up the full DAG with scatter-gather jobs
     fillGraph
+    logger.info("Checking pipeline status.")
     logStatus
   }
 
@@ -161,25 +169,18 @@ class QGraph extends Logging {
   }
 
   private def getReadyJobs = {
-    var readyJobs = List.empty[FunctionEdge]
-    loop({
-      case f: FunctionEdge => {
-        if (this.previousFunctions(f).forall(_.status == RunnerStatus.DONE) && f.status == RunnerStatus.PENDING)
-          readyJobs :+= f
-      }
-    })
-    readyJobs
+    jobGraph.edgeSet.filter{
+      case f: FunctionEdge =>
+        this.previousFunctions(f).forall(_.status == RunnerStatus.DONE) && f.status == RunnerStatus.PENDING
+      case _ => false
+    }.map(_.asInstanceOf[FunctionEdge])
   }
 
   private def getRunningJobs = {
-    var runningJobs = List.empty[FunctionEdge]
-    loop({
-      case f: FunctionEdge => {
-        if (f.status == RunnerStatus.RUNNING)
-          runningJobs :+= f
-      }
-    })
-    runningJobs
+    jobGraph.edgeSet.filter{
+      case f: FunctionEdge => f.status == RunnerStatus.RUNNING
+      case _ => false
+    }.map(_.asInstanceOf[FunctionEdge])
   }
 
   /**
@@ -232,13 +233,13 @@ class QGraph extends Logging {
    * Runs the jobs by traversing the graph.
    */
   private def runJobs() = {
-    loop({ case f: FunctionEdge => {
-      val isDone = this.skipUpToDateJobs &&
+    foreachFunction(f => {
+      val isDone = !this.startClean &&
               f.status == RunnerStatus.DONE &&
               this.previousFunctions(f).forall(_.status == RunnerStatus.DONE)
       if (!isDone)
         f.resetPending()
-    }})
+    })
 
     var readyJobs = getReadyJobs
     var runningJobs = Set.empty[FunctionEdge]
@@ -305,8 +306,8 @@ class QGraph extends Logging {
    */
   private def logStatus = {
     var statuses = Map.empty[String, AnalysisStatus]
-    loop({
-      case edgeCLF: FunctionEdge if (edgeCLF.function.analysisName != null) =>
+    foreachFunction(edgeCLF => {
+      if (edgeCLF.function.analysisName != null) {
         updateStatus(statuses.get(edgeCLF.function.analysisName) match {
           case Some(status) => status
           case None =>
@@ -314,6 +315,7 @@ class QGraph extends Logging {
             statuses += edgeCLF.function.analysisName -> status
             status
         }, edgeCLF)
+      }
     })
 
     statuses.values.toList.sortBy(_.analysisName).foreach(status => {
@@ -343,7 +345,7 @@ class QGraph extends Logging {
   private def updateStatus(stats: AnalysisStatus, edge: FunctionEdge) = {
     if (edge.function.isInstanceOf[GatherFunction]) {
       updateSGStatus(stats.gather, edge)
-    } else if (edge.function.isInstanceOf[ScatterGatherableFunction]) {
+    } else if (edge.function.isInstanceOf[CloneFunction]) {
       updateSGStatus(stats.scatter, edge)
     } else {
       stats.status = edge.status
@@ -456,19 +458,14 @@ class QGraph extends Logging {
     (jobGraph.incomingEdgesOf(node).size + jobGraph.outgoingEdgesOf(node).size) == 0
 
   /**
-   * Utility function for looping over the internal graph and running functions.
-   * @param edgeFunction Optional function to run for each edge visited.
-   * @param nodeFunction Optional function to run for each node visited.
+   * Utility function for running a method over all function edges.
+   * @param edgeFunction Function to run for each FunctionEdge.
    */
-  private def loop(edgeFunction: PartialFunction[QEdge, Unit] = null, nodeFunction: PartialFunction[QNode, Unit] = null) = {
-    val iterator = new TopologicalOrderIterator(this.jobGraph)
-    iterator.addTraversalListener(new TraversalListenerAdapter[QNode, QEdge] {
-      override def edgeTraversed(event: EdgeTraversalEvent[QNode, QEdge]) = event.getEdge match {
-        case cmd: FunctionEdge => if (edgeFunction != null && edgeFunction.isDefinedAt(cmd)) edgeFunction(cmd)
-        case map: MappingEdge => /* do nothing for mapping functions */
-      }
-    })
-    iterator.foreach(node => if (nodeFunction != null && nodeFunction.isDefinedAt(node)) nodeFunction(node))
+  private def foreachFunction(f: (FunctionEdge) => Unit) = {
+    jobGraph.edgeSet.foreach{
+      case functionEdge: FunctionEdge => f(functionEdge)
+      case _ =>
+    }
   }
 
   /**
@@ -482,7 +479,7 @@ class QGraph extends Logging {
     // todo -- we need a nice way to visualize the key pieces of information about commands.  Perhaps a
     // todo -- visualizeString() command, or something that shows inputs / outputs
     val ve = new org.jgrapht.ext.EdgeNameProvider[QEdge] {
-        def getEdgeName(function: QEdge) = if (function.dotString == null) "" else function.dotString.replace("\"", "\\\"")
+      def getEdgeName(function: QEdge) = if (function.dotString == null) "" else function.dotString.replace("\"", "\\\"")
     }
 
     //val iterator = new TopologicalOrderIterator(qGraph.jobGraph)
@@ -505,11 +502,11 @@ class QGraph extends Logging {
    * Kills any forked jobs still running.
    */
   def shutdown() {
-    val lsfJobs = getRunningJobs.filter(_.runner.isInstanceOf[LsfJobRunner]).map(_.runner.asInstanceOf[LsfJobRunner].job)
-    if (lsfJobs.size > 0) {
-      for (jobs <- lsfJobs.grouped(10)) {
+    val lsfJobRunners = getRunningJobs.filter(_.runner.isInstanceOf[LsfJobRunner]).map(_.runner.asInstanceOf[LsfJobRunner])
+    if (lsfJobRunners.size > 0) {
+      for (jobRunners <- lsfJobRunners.filterNot(_.job.bsubJobId == null).grouped(10)) {
         try {
-          val bkill = new LsfKillJob(jobs)
+          val bkill = new LsfKillJob(jobRunners.map(_.job))
           logger.info(bkill.command)
           bkill.run()
         } catch {
@@ -517,6 +514,11 @@ class QGraph extends Logging {
             logger.error("Unable to kill all jobs:%n%s".format(jee.getMessage))
           case e =>
             logger.error("Unable to kill jobs.", e)
+        }
+        try {
+          jobRunners.foreach(_.removeTemporaryFiles())
+        } catch {
+          case e => /* ignore */
         }
       }
     }

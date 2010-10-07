@@ -8,7 +8,6 @@
     </filesystem>
     <ibiblio name="libraries" m2compatible="true" />
     <ibiblio name="libraries_with_inconsistent_poms" checkconsistency="false" m2compatible="true" />
-    <ibiblio name="ukcomrobust-it" m2compatible="true" root="http://oss.sonatype.org/service/local/repositories/ukcomrobust-it-049/content" />
     <ibiblio name="reflections-repo" m2compatible="true" root="http://reflections.googlecode.com/svn/repo" />
   </resolvers>
   <modules>
@@ -18,7 +17,6 @@
     <module organisation="org.reflections" module="reflections" resolver="reflections-repo" />
     <module organisation="org.broad" module="tribble" resolver="projects" />
     <module organisation="gov.nist" module="Jama" resolver="projects" />
-    <module organisation="uk.com.robust-it" module="cloning" resolver="ukcomrobust-it" />
     <!-- If colt fixes the version in the pom for 1.2.0 then this line can be removed. -->
     <module organisation="colt" module="colt" resolver="libraries_with_inconsistent_poms" />
   </modules>

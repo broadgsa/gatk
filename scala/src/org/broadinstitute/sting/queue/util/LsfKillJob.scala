@@ -3,7 +3,7 @@ package org.broadinstitute.sting.queue.util
 /**
  * bkills a list of lsf jobs.
  */
-class LsfKillJob(jobs: List[LsfJob]) extends CommandLineJob with Logging {
+class LsfKillJob(jobs: Traversable[LsfJob]) extends CommandLineJob with Logging {
   command = "bkill " + jobs.map(_.bsubJobId).mkString(" ")
 
   def run() = {

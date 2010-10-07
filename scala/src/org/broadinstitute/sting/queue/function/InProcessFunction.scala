@@ -7,6 +7,6 @@ import java.io.File
  */
 trait InProcessFunction extends QFunction {
   def run()
-  protected def useStatusOutput(file: File) = true
+  def useStatusOutput(file: File) = true
   def description = this.getClass.getSimpleName
 }

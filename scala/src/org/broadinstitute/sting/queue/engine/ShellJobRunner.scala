@@ -34,19 +34,22 @@ class ShellJobRunner(function: CommandLineFunction) extends JobRunner with Loggi
         logger.info("Errors also written to " + function.jobOutputFile)
     }
 
-    function.doneOutputs.foreach(_.delete)
-    function.failOutputs.foreach(_.delete)
+    function.jobOutputFile.delete()
+    if (function.jobErrorFile != null)
+      function.jobErrorFile.delete()
+    function.doneOutputs.foreach(_.delete())
+    function.failOutputs.foreach(_.delete())
     runStatus = RunnerStatus.RUNNING
     try {
         job.run()
-        function.doneOutputs.foreach(_.createNewFile)
+        function.doneOutputs.foreach(_.createNewFile())
         runStatus = RunnerStatus.DONE
         logger.info("Done: " + function.commandLine)
     } catch {
       case e: JobExitException =>
         runStatus = RunnerStatus.FAILED
         try {
-          function.failOutputs.foreach(_.createNewFile)
+          function.failOutputs.foreach(_.createNewFile())
         } catch {
           case _ => /* ignore errors in the exception handler */
         }

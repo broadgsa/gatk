@@ -57,7 +57,7 @@ trait CommandLineFunction extends QFunction with Logging {
     dirs
   }
 
-  override protected def useStatusOutput(file: File) =
+  override def useStatusOutput(file: File) =
     file != jobOutputFile && file != jobErrorFile
 
   override def description = commandLine

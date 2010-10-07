@@ -16,19 +16,19 @@ class InProcessRunner(function: InProcessFunction) extends JobRunner with Loggin
       logger.info("Starting: " + function.description)
     }
 
-    function.doneOutputs.foreach(_.delete)
-    function.failOutputs.foreach(_.delete)
+    function.doneOutputs.foreach(_.delete())
+    function.failOutputs.foreach(_.delete())
     runStatus = RunnerStatus.RUNNING
     try {
       function.run()
-      function.doneOutputs.foreach(_.createNewFile)
+      function.doneOutputs.foreach(_.createNewFile())
       runStatus = RunnerStatus.DONE
       logger.info("Done: " + function.description)
     } catch {
       case e => {
         runStatus = RunnerStatus.FAILED
         try {
-          function.failOutputs.foreach(_.createNewFile)
+          function.failOutputs.foreach(_.createNewFile())
         } catch {
           case _ => /* ignore errors in the exception handler */
         }

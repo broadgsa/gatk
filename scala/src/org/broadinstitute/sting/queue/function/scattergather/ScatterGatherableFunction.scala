@@ -3,7 +3,6 @@ package org.broadinstitute.sting.queue.function.scattergather
 import java.io.File
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.commandline.ArgumentSource
-import com.rits.cloning.Cloner
 import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
 
 /**
@@ -59,10 +58,10 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
   /**
    * Allows external modification of the cloned function.
-   * @param cloneFunction The clone of this ScatterGatherableFunction
+   * @param cloneFunction A clone wrapper of this ScatterGatherableFunction
    * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
    */
-  var setupCloneFunction: PartialFunction[(ScatterGatherableFunction, Int), Unit] = _
+  var setupCloneFunction: PartialFunction[(CloneFunction, Int), Unit] = _
 
   /**
    * Allows external modification of the CleanupTempDirsFunction that will remove the temporary directories.
@@ -112,7 +111,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     }
 
     // Create the clone functions for running the parallel jobs
-    var cloneFunctions = List.empty[ScatterGatherableFunction]
+    var cloneFunctions = List.empty[CloneFunction]
     for (i <- 1 to this.scatterCount) {
       val cloneFunction = this.newCloneFunction()
       initCloneFunction(cloneFunction, i)
@@ -167,6 +166,11 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    */
   protected lazy val scatterField =
     this.inputFields.find(field => ReflectionUtils.hasAnnotation(field.field, classOf[Scatter])).get
+
+  /**
+   * Retrieves the original field value for the scatter field.
+   */
+  protected lazy val originalInput = getFieldFile(scatterField)
 
   /**
    * Creates a new initialize CreateTempDirsFunction that will create the temporary directories.
@@ -224,7 +228,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
   protected def initScatterFunction(scatterFunction: ScatterFunction, scatterField: ArgumentSource) = {
     scatterFunction.qSettings = this.qSettings
     scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter-" + scatterField.field.getName)
-    scatterFunction.originalInput = this.getFieldFile(scatterField)
+    scatterFunction.originalInput = this.originalInput
     scatterFunction.setOriginalFunction(this, scatterField)
     if (this.setupScatterFunction != null)
       if (this.setupScatterFunction.isDefinedAt(scatterFunction, scatterField))
@@ -270,14 +274,9 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
   /**
    * Creates a new clone of this ScatterGatherableFunction, setting the scatterCount to 1 so it doesn't infinitely scatter.
-   * @return A clone of this ScatterGatherableFunction
+   * @return An uninitialized clone wrapper for ScatterGatherableFunction
    */
-  protected def newCloneFunction(): ScatterGatherableFunction = {
-    val cloneFunction = ScatterGatherableFunction.cloner.deepClone(this)
-    // Make sure clone doesn't get scattered
-    cloneFunction.scatterCount = 1
-    cloneFunction
-  }
+  protected def newCloneFunction() = new CloneFunction
 
   /**
    * Initializes the cloned function created by newCloneFunction() by setting it's commandDirectory to a temporary directory under scatterDirectory.
@@ -285,7 +284,9 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param cloneFunction The clone of this ScatterGatherableFunction
    * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
    */
-  protected def initCloneFunction(cloneFunction: ScatterGatherableFunction, index: Int) = {
+  protected def initCloneFunction(cloneFunction: CloneFunction, index: Int) = {
+    cloneFunction.originalFunction = this
+    cloneFunction.index = index
     cloneFunction.commandDirectory = this.scatterGatherTempDir("temp-"+index)
     if (this.setupCloneFunction != null)
       if (this.setupCloneFunction.isDefinedAt(cloneFunction, index))
@@ -303,7 +304,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param cloneFunction Clone of this ScatterGatherableFunction.
    * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
    */
-  protected def bindCloneFunctionScatter(scatterFunction: ScatterFunction, scatterField: ArgumentSource, cloneFunction: ScatterGatherableFunction, index: Int) = {
+  protected def bindCloneFunctionScatter(scatterFunction: ScatterFunction, scatterField: ArgumentSource, cloneFunction: CloneFunction, index: Int) = {
     // Reset the input of the clone to the the scatterGatherTempDir dir and add it as an output of the scatter
     val scatterPart = IOUtils.resetParent(cloneFunction.commandDirectory, scatterFunction.originalInput)
     scatterFunction.scatterParts :+= scatterPart
@@ -318,7 +319,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param gatherFunction Function that will create the pieces including the piece that will go to cloneFunction.
    * @param gatherField The field to be gathered.
    */
-  protected def bindCloneFunctionGather(gatherFunction: GatherFunction, gatherField: ArgumentSource, cloneFunction: ScatterGatherableFunction, index: Int) = {
+  protected def bindCloneFunctionGather(gatherFunction: GatherFunction, gatherField: ArgumentSource, cloneFunction: CloneFunction, index: Int) = {
     val gatherPart = cloneFunction.resetFieldFile(gatherField, cloneFunction.commandDirectory)
     gatherFunction.gatherParts :+= gatherPart
     gatherFunction.setCloneFunction(cloneFunction, index, gatherField)
@@ -361,12 +362,4 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @return temporary directory under this scatter gather directory.
    */
   private def scatterGatherTempDir(subDir: String) = IOUtils.subDir(this.scatterGatherDirectory, this.jobName + "-sg/" + subDir)
-}
-
-/**
- * A function that can be run faster by splitting it up into pieces and then joining together the results.
- */
-object ScatterGatherableFunction {
-  /** Used to deep clone a ScatterGatherableFunction. */
-  private lazy val cloner = new Cloner
 }

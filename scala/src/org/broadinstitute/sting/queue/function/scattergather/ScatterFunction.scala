@@ -26,9 +26,9 @@ trait ScatterFunction extends QFunction {
 
   /**
    * Sets the clone function using one of the outputs of this scatter function.
-   * @param cloneFunction The clone of the ScatterGatherableFunction.
+   * @param cloneFunction The clone wrapper for the original ScatterGatherableFunction.
    * @param index The one based index (from 1..scatterCount inclusive) of the scatter piece.
    * @param scatterField The field being scattered.
    */
-  def setCloneFunction(cloneFunction: ScatterGatherableFunction, index: Int, scatterField: ArgumentSource) = {}
+  def setCloneFunction(cloneFunction: CloneFunction, index: Int, scatterField: ArgumentSource) = {}
 }

@@ -34,7 +34,11 @@ trait QFunction {
    */
   def dotString = ""
 
-  protected def useStatusOutput(file: File): Boolean
+  /**
+   * Returns true if the file should be used for status output.
+   * @return true if the file should be used for status output.
+   */
+  def useStatusOutput(file: File): Boolean
 
   /**
    * Returns the output files for this function.
@@ -57,13 +61,18 @@ trait QFunction {
   def failOutputs = statusPaths.map(path => new File(path + ".fail"))
 
   /** The complete list of fields on this CommandLineFunction. */
-  lazy val functionFields: List[ArgumentSource] = ParsingEngine.extractArgumentSources(this.getClass).toList
+  lazy val functionFields: List[ArgumentSource] = initFunctionFields
   /** The @Input fields on this CommandLineFunction. */
   lazy val inputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Input]))
   /** The @Output fields on this CommandLineFunction. */
   lazy val outputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Output]))
   /** The @Argument fields on this CommandLineFunction. */
   lazy val argumentFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Argument]))
+
+  /**
+   * Called at most once, returns the list of fields for this function.
+   */
+  protected def initFunctionFields = ParsingEngine.extractArgumentSources(this.getClass).toList
 
   /**
    * Returns the input files for this function.
