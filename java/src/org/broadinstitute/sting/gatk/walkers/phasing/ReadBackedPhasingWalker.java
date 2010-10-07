@@ -76,6 +76,12 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     @Argument(fullName = "variantStatsFilePrefix", shortName = "variantStats", doc = "The prefix of the VCF/phasing statistics files", required = false)
     protected String variantStatsFilePrefix = null;
 
+    @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for phasing [default: 10]", required = false)
+    public int MIN_BASE_QUALITY_SCORE = 10;
+
+    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for phasing [default: 10]", required = false)
+    public int MIN_MAPPING_QUALITY_SCORE = 10;
+
     private LinkedList<VariantAndReads> unphasedSiteQueue = null;
     private DoublyLinkedList<UnfinishedVariantAndReads> partiallyPhasedSites = null; // the phased VCs to be emitted, and the alignment bases at these positions
 
@@ -323,8 +329,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                         samplePhaseStats.put(samp, sampPhaseCounts);
                     }
                     sampPhaseCounts.numTestedSites++;
-                    if (pr.phasingContainsInconsistencies)
-                        sampPhaseCounts.numInconsistentSites++;
+
+                    if (pr.phasingContainsInconsistencies) {
+                        if (genotypesArePhased)
+                            sampPhaseCounts.numInconsistentSitesPhased++;
+                        else
+                            sampPhaseCounts.numInconsistentSitesNotPhased++;
+                    }
+
                     if (genotypesArePhased)
                         sampPhaseCounts.numPhased++;
                 }
@@ -819,25 +831,25 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             if (printDebug)
                 logger.debug("\nPhasing table [AFTER MAPPING]:\n" + hapTable + "\n");
 
-            // Determine the phase at this position:
+            calculateMaxHapAndPhasingQuality(hapTable, printDebug);
+        }
+
+        // Calculates maxEntry and its PQ (within table hapTable):
+        private void calculateMaxHapAndPhasingQuality(PhasingTable hapTable, boolean printDebug) {
             hapTable.normalizeScores();
             if (printDebug)
                 logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + hapTable + "\n");
 
+            // Determine the phase at this position:
             this.maxEntry = hapTable.maxEntry();
 
             // convert posteriorProb to PHRED scale, but do NOT cap the quality as in QualityUtils.probToQual(posteriorProb):
-            this.phaseQuality = getPhasingQuality(hapTable, maxEntry);
-        }
-
-        // Returns the PQ of entry (within table hapTable, which MUST be normalized):
-        public static double getPhasingQuality(PhasingTable hapTable, PhasingTable.PhasingTableEntry entry) {
             PreciseNonNegativeDouble sumErrorProbs = new PreciseNonNegativeDouble(ZERO);
             for (PhasingTable.PhasingTableEntry pte : hapTable) {
-                if (pte != entry)
+                if (pte != maxEntry)
                     sumErrorProbs.plusEqual(pte.getScore());
             }
-            return -10.0 * (sumErrorProbs.getLog10Value());
+            this.phaseQuality = -10.0 * (sumErrorProbs.getLog10Value());
         }
 
         public boolean hasSameRepresentativeHaplotype(MaxHaplotypeAndQuality that) {
@@ -933,25 +945,25 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         System.out.println("Number of variant sites observed: " + result.getNumVarSites());
         System.out.println("Average coverage: " + ((double) result.getNumReads() / result.getNumVarSites()));
 
-        System.out.println("\n-- Phasing summary [minimal haplotype quality (PQ): " + phaseQualityThresh + ", maxPhaseSites= " + maxPhaseSites + "] --");
+        System.out.println("\n--- Phasing summary [minimal haplotype quality (PQ): " + phaseQualityThresh + ", maxPhaseSites: " + maxPhaseSites + ", cacheWindow: " + cacheWindow + "] ---");
         for (Map.Entry<String, PhaseCounts> sampPhaseCountEntry : result.getPhaseCounts()) {
             PhaseCounts pc = sampPhaseCountEntry.getValue();
-            System.out.println("Sample: " + sampPhaseCountEntry.getKey() + "\tNumber of tested sites [cacheWindow= " + cacheWindow + "]: " + pc.numTestedSites + "\tNumber of phased sites: " + pc.numPhased + "\tNumber of phase-inconsistent sites: " + pc.numInconsistentSites);
+            System.out.print("Sample: " + sampPhaseCountEntry.getKey() + "\tSites tested: " + pc.numTestedSites + "\tSites phased: " + pc.numPhased);
+            System.out.println("\tPhase-inconsistent sites: " + (pc.numInconsistentSitesPhased + pc.numInconsistentSitesNotPhased) + " [phased: " + pc.numInconsistentSitesPhased + ", unphased:" + pc.numInconsistentSitesNotPhased + "]");
         }
         System.out.println("");
     }
 
     protected void writeVarContList(List<VariantContext> varContList) {
-        for (VariantContext vc : varContList) {
+        for (VariantContext vc : varContList)
             writeVCF(vc);
-        }
     }
 
 
     /*
        Inner classes:
      */
-    private static class VariantAndReads {
+    private class VariantAndReads {
         public VariantContext variant;
         public HashMap<String, ReadBasesAtPosition> sampleReadBases;
         public boolean processVariant;
@@ -976,14 +988,18 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     pileup = alignment.getExtendedEventPileup();
                 }
                 if (pileup != null) {
-                    for (String samp : pileup.getSamples()) {
-                        ReadBackedPileup samplePileup = pileup.getPileupForSample(samp);
-                        ReadBasesAtPosition readBases = new ReadBasesAtPosition();
-                        for (PileupElement p : samplePileup) {
-                            if (!p.isDeletion()) // IGNORE deletions for now
-                                readBases.putReadBase(p);
+                    // filter the read-base pileup based on min base and mapping qualities:
+                    pileup = pileup.getBaseAndMappingFilteredPileup(MIN_BASE_QUALITY_SCORE, MIN_MAPPING_QUALITY_SCORE);
+                    if (pileup != null) {
+                        for (String samp : pileup.getSamples()) {
+                            ReadBackedPileup samplePileup = pileup.getPileupForSample(samp);
+                            ReadBasesAtPosition readBases = new ReadBasesAtPosition();
+                            for (PileupElement p : samplePileup) {
+                                if (!p.isDeletion()) // IGNORE deletions for now
+                                    readBases.putReadBase(p);
+                            }
+                            sampleReadBases.put(samp, readBases);
                         }
-                        sampleReadBases.put(samp, readBases);
                     }
                 }
             }
@@ -1512,11 +1528,11 @@ class Read extends BaseArray {
 
         double errProb = QualityUtils.qualToErrorProb(baseQual);
 
-        // The base error should be AT LEAST AS HIGH as the mapping error:
+        // The base error should be AT LEAST AS HIGH as the mapping error [equivalent to capping the base quality (BQ) by the mapping quality (MQ)]:
         errProb = Math.max(errProb, 1.0 - mappingProb.getValue());
 
-        baseProbs[index] = new PreciseNonNegativeDouble(1.0 - errProb);
-        baseErrorProbs[index] = new PreciseNonNegativeDouble(errProb);
+        baseProbs[index] = new PreciseNonNegativeDouble(1.0 - errProb); // The probability that the true base is the base called in the read
+        baseErrorProbs[index] = new PreciseNonNegativeDouble(errProb / 3.0); // DIVIDE up the error probability EQUALLY over the 3 non-called bases
     }
 
     public PhasingScore matchHaplotypeClassScore(HaplotypeClass hapClass) {
@@ -1545,11 +1561,6 @@ class Read extends BaseArray {
                     score.timesEqual(baseProbs[i]);
                 else
                     score.timesEqual(baseErrorProbs[i]);
-                /* The use of baseErrorProbs[i] as the probability of seeing ANY base but hapBase (i.e., a sequencing error) would SEEM to be OK, since we are dealing with biallelic sites.
-                  Nevertheless, since there could be reads that DON'T have either of the 2 alleles, then this would be incorrect
-                  [since both alleles would be scored with the same error probability -- baseErrorProbs[i] -- which is the error SUMMED OVER ALL non-read bases]!
-                  DESPITE this, we use the above model to CONSERVATIVELY give high scores to haplotype bases that differ from low-quality read bases.
-                */
             }
         }
 
@@ -1625,18 +1636,21 @@ class PhasingStats {
 
 class PhaseCounts {
     public int numTestedSites; // number of het sites directly succeeding het sites
-    public int numInconsistentSites;
+    public int numInconsistentSitesPhased;
+    public int numInconsistentSitesNotPhased;
     public int numPhased;
 
     public PhaseCounts() {
         this.numTestedSites = 0;
-        this.numInconsistentSites = 0;
+        this.numInconsistentSitesPhased = 0;
+        this.numInconsistentSitesNotPhased = 0;
         this.numPhased = 0;
     }
 
     public void addIn(PhaseCounts other) {
         this.numTestedSites += other.numTestedSites;
-        this.numInconsistentSites += other.numInconsistentSites;
+        this.numInconsistentSitesPhased += other.numInconsistentSitesPhased;
+        this.numInconsistentSitesNotPhased += other.numInconsistentSitesNotPhased;
         this.numPhased += other.numPhased;
     }
 }
