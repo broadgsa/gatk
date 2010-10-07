@@ -46,9 +46,9 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     public void testVariantRecalibrator() {
         HashMap<String, List<String>> e = new HashMap<String, List<String>>();
         e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
-                Arrays.asList("ca80c95e47d22a79eb0700c039457aca", "ab6b91a3f97b682817d2cc068c34c317","a4802dbf883138ae1152109be990fb9d")); // Each test checks the md5 of three output files
+                Arrays.asList("4e893672230fca625f70b0491f3b36cb", "40b3fb6632304cebc56a9ed5853cc72e","0cfbeb9f2db7edc1d69b5b43ea17670c")); // Each test checks the md5 of three output files
         e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf",
-                Arrays.asList("a40d3b1dd7bfbb66a52145600f87d744", "e2c89c74debc1c202c56060b77575dff","8e8b55b521aaba1c44169a19e3ff2355")); // Each test checks the md5 of three output files
+                Arrays.asList("d52e4f511c9c00f8c21dffea81c47103", "780920fcfa3009c66ebcf18265edaa75","010023ddb95fac071e0f208e6bb40c61")); // Each test checks the md5 of three output files
 
         for ( Map.Entry<String, List<String>> entry : e.entrySet() ) {
             String vcf = entry.getKey();
@@ -68,7 +68,6 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                                 " --ignore_filter HARD_TO_VALIDATE" +
                                 " -clusterFile " + clusterFile +
                                 " -titv 2.07" +
-                                " -qScale 20.0" + 
                                 " -o %s" +
                                 " -tranchesFile %s" +
                                 " -reportDatFile %s",                                
@@ -84,8 +83,8 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testApplyVariantCuts() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "ece0c15c34926fc585e12503f6ce6271" );
-        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "994b329a35d01e9564f5581cf3d9feac" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "8e6528fba350e466f5b6c2858bc20556" );
+        e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "df9e37af16610ccd44d375eae2c4479c" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String vcf = entry.getKey();

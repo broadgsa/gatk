@@ -101,14 +101,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private String PATH_TO_RSCRIPT = "Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required=false)
     private String PATH_TO_RESOURCES = "R/";
-    @Argument(fullName="quality_step", shortName="qStep", doc="Resolution in QUAL units for optimization and tranche calculations", required=false)
-    private double QUAL_STEP = 0.1;
     @Argument(fullName="singleton_fp_rate", shortName="fp_rate", doc="Prior expectation that a singleton call would be a FP", required=false)
     private double SINGLETON_FP_RATE = 0.5;
     @Argument(fullName="max_ac_prior", shortName="maxACPrior", doc="Maximum value for the prior expectation based on allele count. Needed because (1 - 0.5^x) approaches 1.0 very quickly.", required=false)
     private double MAX_AC_PRIOR = 0.99;
-    @Argument(fullName="quality_scale_factor", shortName="qScale", doc="Multiply all final quality scores by this value. Needed to normalize the quality scores.", required=false)
-    private double QUALITY_SCALE_FACTOR = 100.0;
     @Argument(fullName="dontTrustACField", shortName="dontTrustACField", doc="If specified the VR will not use the AC field and will instead always parse the genotypes to figure out how many variant chromosomes there are at a given site.", required=false)
     private boolean NEVER_TRUST_AC_FIELD = false;
 
@@ -119,8 +115,12 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName = "NoByHapMapValidationStatus", shortName = "NoByHapMapValidationStatus", doc = "Don't consider sites in dbsnp rod tagged as by-hapmap validation status as real HapMap sites. FOR DEBUGGING PURPOSES ONLY.", required=false)
     private Boolean NO_BY_HAPMAP_VALIDATION_STATUS = false;
     @Hidden
-    @Argument(fullName = "qual", shortName = "qual", doc = "Don't use sites below the qual threshold. FOR DEBUGGING PURPOSES ONLY.", required=false)
+    @Argument(fullName = "qual", shortName = "qual", doc = "Don't use sites with original quality scores below the qual threshold. FOR DEBUGGING PURPOSES ONLY.", required=false)
     private double QUAL_THRESHOLD = 0.0;
+    @Hidden
+    @Argument(fullName="quality_scale_factor", shortName="qScaleFactor", doc="Multiply all final quality scores by this value. FOR DEBUGGING PURPOSES ONLY.", required=false)
+    private double QUALITY_SCALE_FACTOR = 1.0;
+
 
     /////////////////////////////
     // Private Member Variables
@@ -131,6 +131,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private Set<String> inputNames = new HashSet<String>();
     private NestedHashMap priorCache = new NestedHashMap();
     private boolean trustACField = false;
+    private double maxQualObserved = 0.0;
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -194,15 +195,13 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 
-
         // Set up default values for the FDR tranches if necessary
         if( FDR_TRANCHES == null ) {
-            FDR_TRANCHES = new Double[5];
+            FDR_TRANCHES = new Double[4];
             FDR_TRANCHES[0] = 0.1;
             FDR_TRANCHES[1] = 1.0;
             FDR_TRANCHES[2] = 5.0;
             FDR_TRANCHES[3] = 10.0;
-            FDR_TRANCHES[4] = 15.0;
         }
     }
 
@@ -274,7 +273,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                             final double totalPrior = 1.0 - ((1.0 - acPrior) * (1.0 - knownPrior));
 
                             if( MathUtils.compareDoubles(totalPrior, 1.0, 1E-8) == 0 || MathUtils.compareDoubles(totalPrior, 0.0, 1E-8) == 0 ) {
-                                throw new UserException.CommandLineException("Something is wrong with the prior that was entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
+                                throw new UserException.CommandLineException("Something is wrong with the priors that were entered by the user:  Prior = " + totalPrior); // TODO - fix this up later
                             }
 
                             priorLodFactor = Math.log10(totalPrior) - Math.log10(1.0 - totalPrior) - Math.log10(1.0);
@@ -285,6 +284,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                         final double pVar = theModel.evaluateVariant( vc );
                         final double lod = priorLodFactor + Math.log10(pVar);
                         variantDatum.qual = Math.abs( QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod) );
+                        if( variantDatum.qual > maxQualObserved ) {
+                            maxQualObserved = variantDatum.qual;
+                        }
 
                         mapList.add( variantDatum );
                         final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
@@ -327,7 +329,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
         try {
             PrintStream reportDatFilePrintStream = new PrintStream(REPORT_DAT_FILE);
-            theModel.outputOptimizationCurve( dataManager.data, reportDatFilePrintStream, TRANCHES_FILE, DESIRED_NUM_VARIANTS, FDR_TRANCHES, QUAL_STEP );
+            theModel.outputOptimizationCurve( dataManager.data, reportDatFilePrintStream, TRANCHES_FILE, DESIRED_NUM_VARIANTS, FDR_TRANCHES, maxQualObserved );
         } catch ( FileNotFoundException e ) {
             throw new UserException.CouldNotCreateOutputFile(REPORT_DAT_FILE, e);
         }

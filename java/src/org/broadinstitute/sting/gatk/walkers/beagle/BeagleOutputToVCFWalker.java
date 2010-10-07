@@ -87,8 +87,6 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFHeaderLineType.Float, "r2 Value reported by Beagle on each site"));
         hInfo.add(new VCFInfoHeaderLine("NumGenotypesChanged", 1, VCFHeaderLineType.Integer, "r2 Value reported by Beagle on each site"));
 
-        hInfo.add(new VCFHeaderLine("source", "BeagleImputation"));
-
         // Open output file specified by output VCF ROD
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
 

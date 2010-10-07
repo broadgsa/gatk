@@ -462,19 +462,21 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     }
 
     public final void outputOptimizationCurve( final VariantDatum[] data, final PrintStream outputReportDatFile, final PrintStream tranchesOutputFile,
-                                               final int desiredNumVariants, final Double[] FDRtranches, final double QUAL_STEP ) {
-
+                                               final int desiredNumVariants, final Double[] FDRtranches, final double MAX_QUAL ) {
         final int numVariants = data.length;
         final boolean[] markedVariant = new boolean[numVariants];
 
-        final double MAX_QUAL = 100.0;
-        final int NUM_BINS = (int) ((MAX_QUAL / QUAL_STEP) + 1);
+        int NUM_BINS = 400 * 2;
+        double QUAL_STEP1 = (MAX_QUAL * 9.0 / 10.0 ) / ((double) NUM_BINS / 2.0);
+        if( QUAL_STEP1 < 0.01 ) { QUAL_STEP1 = 0.01; } // QUAL field in VCF file is rounded to two decimal places
+        double QUAL_STEP2 = (MAX_QUAL * 1.0 / 10.0) / ((double) NUM_BINS / 2.0);
+        if( QUAL_STEP2 < 0.01 ) { QUAL_STEP2 = 0.01; } // QUAL field in VCF file is rounded to two decimal places
 
-        final int numKnownAtCut[] = new int[NUM_BINS];
-        final int numNovelAtCut[] = new int[NUM_BINS];
-        final double knownTiTvAtCut[] = new double[NUM_BINS];
-        final double novelTiTvAtCut[] = new double[NUM_BINS];
-        final double theCut[] = new double[NUM_BINS];
+        final int numKnownAtCut[] = new int[NUM_BINS+1];
+        final int numNovelAtCut[] = new int[NUM_BINS+1];
+        final double knownTiTvAtCut[] = new double[NUM_BINS+1];
+        final double novelTiTvAtCut[] = new double[NUM_BINS+1];
+        final double theCut[] = new double[NUM_BINS+1];
 
         final double fdrCutAsTiTv[] = new double[FDRtranches.length];
         for( int iii = 0; iii < FDRtranches.length; iii++ ) {
@@ -496,7 +498,11 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         boolean foundDesiredNumVariants = false;
         int jjj = 0;
         outputReportDatFile.println("pCut,numKnown,numNovel,knownTITV,novelTITV");
-        for( double qCut = MAX_QUAL; qCut >= -0.001; qCut -= QUAL_STEP ) {
+        double qCut = MAX_QUAL;
+
+        while( qCut >= 0.0 - 1E-2 + 1E-8 ) {
+            if( qCut < 1E-2 ) { qCut = 0.0; }
+
             for( int iii = 0; iii < numVariants; iii++ ) {
                 if( !markedVariant[iii] ) {
                     if( data[iii].qual >= qCut ) {
@@ -520,14 +526,14 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 }
             }
             if( desiredNumVariants != 0 && !foundDesiredNumVariants && (numKnown + numNovel) >= desiredNumVariants ) {
-                logger.info( "Keeping variants with QUAL >= " + String.format("%.1f",qCut) + " results in a filtered set with: " );
+                logger.info( "Keeping variants with QUAL >= " + String.format("%.2f",qCut) + " results in a filtered set with: " );
                 logger.info("\t" + numKnown + " known variants");
                 logger.info("\t" + numNovel + " novel variants, (dbSNP rate = " + String.format("%.2f",((double) numKnown * 100.0) / ((double) numKnown + numNovel) ) + "%)");
                 logger.info("\t" + String.format("%.4f known Ti/Tv ratio", ((double)numKnownTi) / ((double)numKnownTv)));
                 logger.info("\t" + String.format("%.4f novel Ti/Tv ratio", ((double)numNovelTi) / ((double)numNovelTv)));
                 foundDesiredNumVariants = true;
             }
-            outputReportDatFile.println( String.format("%.6f,%d,%d,%.4f,%.4f", qCut, numKnown, numNovel,
+            outputReportDatFile.println( String.format("%.2f,%d,%d,%.4f,%.4f", qCut, numKnown, numNovel,
                     ( numKnownTv == 0 ? 0.0 : ( ((double)numKnownTi) / ((double)numKnownTv) ) ),
                     ( numNovelTv == 0 ? 0.0 : ( ((double)numNovelTi) / ((double)numNovelTv) ) )));
 
@@ -536,13 +542,19 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             knownTiTvAtCut[jjj] = ( numKnownTi == 0 || numKnownTv == 0 ? 0.0 : ( ((double)numKnownTi) / ((double)numKnownTv) ) );
             novelTiTvAtCut[jjj] = ( numNovelTi == 0 || numNovelTv == 0 ? 0.0 : ( ((double)numNovelTi) / ((double)numNovelTv) ) );
             theCut[jjj] = qCut;
-            jjj++;
+            jjj++;            
+
+            if( qCut >= (MAX_QUAL / 10.0) ) {
+                qCut -= QUAL_STEP1;
+            } else {
+                qCut -= QUAL_STEP2;
+            }
         }
 
         // loop back through the data points looking for appropriate places to cut the data to get the target novel titv ratio
         int checkQuantile = 0;
         int tranche = FDRtranches.length - 1;
-        for( jjj = NUM_BINS-1; jjj >= 0; jjj-- ) {
+        for( ; jjj >= 0; jjj-- ) {
 
             if( tranche >= 0 && novelTiTvAtCut[jjj] >= fdrCutAsTiTv[tranche] ) {
                 tranchesOutputFile.println(String.format("%.2f,%.4f,%.4f,%d,FDRtranche%.2fto%.2f",
@@ -577,7 +589,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             }
 
             if( foundCut ) {
-                logger.info( "Keeping variants with QUAL >= " + String.format("%.1f",theCut[jjj]) + " results in a filtered set with: " );
+                logger.info( "Keeping variants with QUAL >= " + String.format("%.2f",theCut[jjj]) + " results in a filtered set with: " );
                 logger.info("\t" + numKnownAtCut[jjj] + " known variants");
                 logger.info("\t" + numNovelAtCut[jjj] + " novel variants, (dbSNP rate = " +
                                     String.format("%.2f",((double) numKnownAtCut[jjj] * 100.0) / ((double) numKnownAtCut[jjj] + numNovelAtCut[jjj]) ) + "%)");
@@ -585,6 +597,9 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
                 logger.info("\t" + String.format("%.4f novel Ti/Tv ratio", novelTiTvAtCut[jjj]));
                 logger.info("\t" + String.format("--> with an implied novel FDR of %.2f percent", Math.abs(100.0 * (1.0-((novelTiTvAtCut[jjj] - 0.5) / (targetTITV - 0.5))))));
             }
+        }
+        if( tranche >= 0 ) { // Didn't find all the tranches
+            throw new UserException.BadInput("Couldn't find appropriate cuts for all the requested tranches. Please ask for fewer tranches with higher false discovery rates using the --FDRtranche argument");
         }
     }
 
