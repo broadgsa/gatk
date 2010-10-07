@@ -16,7 +16,7 @@ class FunctionEdge(var function: QFunction) extends QEdge {
     val failOutputs = function.failOutputs
     if (failOutputs.exists(_.exists))
       RunnerStatus.FAILED
-    else if (doneOutputs.forall(_.exists))
+    else if (doneOutputs.size > 0 && doneOutputs.forall(_.exists))
       RunnerStatus.DONE
     else
       RunnerStatus.PENDING
@@ -29,10 +29,10 @@ class FunctionEdge(var function: QFunction) extends QEdge {
     currentStatus
   }
 
-  def resetPending() = {
+  def resetToPending() = {
     currentStatus = RunnerStatus.PENDING
-    function.doneOutputs.foreach(_.delete)
-    function.doneOutputs.foreach(_.delete)
+    function.doneOutputs.foreach(_.delete())
+    function.failOutputs.foreach(_.delete())
   }
 
   def inputs = function.inputs

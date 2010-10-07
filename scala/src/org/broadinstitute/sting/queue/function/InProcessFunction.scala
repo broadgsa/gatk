@@ -8,5 +8,5 @@ import java.io.File
 trait InProcessFunction extends QFunction {
   def run()
   def useStatusOutput(file: File) = true
-  def description = this.getClass.getSimpleName
+  def description = (List(this.getClass.getSimpleName) ++ this.outputs.map(_.getAbsolutePath)).mkString(" ")
 }

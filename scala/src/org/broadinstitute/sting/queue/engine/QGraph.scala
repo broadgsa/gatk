@@ -49,7 +49,9 @@ class QGraph extends Logging {
     val numMissingValues = fillGraph
     val isReady = numMissingValues == 0
 
-    if (isReady || this.dryRun) {
+    if (this.dryRun) {
+      dryRunJobs()
+    } else if (isReady) {
       logger.info("Running jobs.")
       runJobs()
     }
@@ -230,15 +232,42 @@ class QGraph extends Logging {
   }
 
   /**
+   * Dry-runs the jobs by traversing the graph.
+   */
+  private def dryRunJobs() = {
+    traverseFunctions(edge => {
+      edge.function match {
+        case clf: CommandLineFunction => {
+          if (logger.isDebugEnabled) {
+            logger.debug(clf.commandDirectory + " > " + clf.commandLine)
+          } else {
+            logger.info(clf.commandLine)
+          }
+          logger.info("Output written to " + clf.jobOutputFile)
+          if (clf.jobErrorFile != null) {
+            logger.info("Errors written to " + clf.jobErrorFile)
+          } else {
+            if (logger.isDebugEnabled)
+              logger.info("Errors also written to " + clf.jobOutputFile)
+          }
+        }
+        case qFunction => {
+          logger.info(qFunction.description)
+        }
+      }
+    })
+  }
+
+  /**
    * Runs the jobs by traversing the graph.
    */
   private def runJobs() = {
-    foreachFunction(f => {
+    traverseFunctions(edge => {
       val isDone = !this.startClean &&
-              f.status == RunnerStatus.DONE &&
-              this.previousFunctions(f).forall(_.status == RunnerStatus.DONE)
+              edge.status == RunnerStatus.DONE &&
+              this.previousFunctions(edge).forall(_.status == RunnerStatus.DONE)
       if (!isDone)
-        f.resetPending()
+        edge.resetToPending()
     })
 
     var readyJobs = getReadyJobs
@@ -266,20 +295,16 @@ class QGraph extends Logging {
   }
 
   private def newRunner(f: QFunction) = {
-    if (this.dryRun)
-      new DryRunner(f)
-    else {
-      f match {
-        case cmd: CommandLineFunction =>
-          if (this.bsubAllJobs)
-            new LsfJobRunner(cmd)
-          else
-            new ShellJobRunner(cmd)
-        case inProc: InProcessFunction =>
-          new InProcessRunner(inProc)
-        case _ =>
-          throw new QException("Unexpected function: " + f)
-      }
+    f match {
+      case cmd: CommandLineFunction =>
+        if (this.bsubAllJobs)
+          new LsfJobRunner(cmd)
+        else
+          new ShellJobRunner(cmd)
+      case inProc: InProcessFunction =>
+        new InProcessRunner(inProc)
+      case _ =>
+        throw new QException("Unexpected function: " + f)
     }
   }
 
@@ -464,9 +489,26 @@ class QGraph extends Logging {
   private def foreachFunction(f: (FunctionEdge) => Unit) = {
     jobGraph.edgeSet.foreach{
       case functionEdge: FunctionEdge => f(functionEdge)
-      case _ =>
+      case map: MappingEdge => /* do nothing for mapping functions */
     }
   }
+
+  /**
+   * Utility function for running a method over all functions, but traversing the nodes in order of dependency.
+   * @param edgeFunction Function to run for each FunctionEdge.
+   */
+  private def traverseFunctions(f: (FunctionEdge) => Unit) = {
+    val iterator = new TopologicalOrderIterator(this.jobGraph)
+    iterator.addTraversalListener(new TraversalListenerAdapter[QNode, QEdge] {
+      override def edgeTraversed(event: EdgeTraversalEvent[QNode, QEdge]) = {
+        event.getEdge match {
+          case functionEdge: FunctionEdge => f(functionEdge)
+          case map: MappingEdge => /* do nothing for mapping functions */
+        }
+      }
+    })
+    iterator.foreach(_ => {})
+  }  
 
   /**
    * Outputs the graph to a .dot file.
@@ -493,7 +535,7 @@ class QGraph extends Logging {
    * @return true if any of the jobs in the graph have a status of failed.
    */
   def hasFailed = {
-    this.jobGraph.edgeSet.exists(edge => {
+    !this.dryRun && this.jobGraph.edgeSet.exists(edge => {
       edge.isInstanceOf[FunctionEdge] && edge.asInstanceOf[FunctionEdge].status == RunnerStatus.FAILED
     })
   }

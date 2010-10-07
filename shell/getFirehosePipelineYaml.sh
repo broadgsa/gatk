@@ -32,23 +32,31 @@ FIREHOSE_ANNOTATIONS=(reference_file dbsnp_file interval_list \
 
 # YAML templates
 
-PROJECT_YAML_TEMPLATE='" \
-  project: { \
-    name: '"$ENTITY_SET_ID"', \
-    referenceFile: %s, \
-    dbsnpFile: %s, \
-    intervalList: %s \
+PROJECT_YAML_TEMPLATE='"\n\
+  project: {\n\
+    name: '"$ENTITY_SET_ID"',\n\
+    referenceFile: %s,\n\
+    dbsnpFile: %s,\n\
+    intervalList: %s\n\
   },", $1, $2, $3'
 
-SAMPLE_YAML_TEMPLATE='" \
-    { \
-      id: %s, \
-      bamFiles: { recalibrated: %s }, \
-      tags: { \
-        SQUIDProject: %s, \
-        CollaboratorID: %s \
-      } \
+SAMPLE_YAML_TEMPLATE='"\n\
+    {\n\
+      id: %s,\n\
+      bamFiles: { recalibrated: %s },\n\
+      tags: {\n\
+        SQUIDProject: %s,\n\
+        CollaboratorID: %s\n\
+      }\n\
     }", $4, $5, $6, $7'
+
+TEST_AWK_COUNT=`echo '\n' | awk '{print $0}' | wc -c`
+if [ "$TEST_AWK_COUNT" -eq 2 ]; then
+    # Strip the extra \n from the lines if awk of \n is
+    # a newline and not the two characters slash-n (on mac)
+    PROJECT_YAML_TEMPLATE="${PROJECT_YAML_TEMPLATE//\\\n/}"
+    SAMPLE_YAML_TEMPLATE="${SAMPLE_YAML_TEMPLATE//\\\n/}"
+fi
 
 index=0
 count=${#FIREHOSE_ANNOTATIONS[@]}
