@@ -83,7 +83,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testApplyVariantCuts() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "8e6528fba350e466f5b6c2858bc20556" );
+        e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "646805c4619a15d3f9f4976b96b89ecd" );
         e.put( validationDataLocation + "lowpass.N3.chr1.raw.vcf", "df9e37af16610ccd44d375eae2c4479c" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
