@@ -41,7 +41,7 @@ import java.util.Arrays;
 
 public class AlignmentUtils {
 
-    private static class MismatchCount {
+    public static class MismatchCount {
         public int numMismatches = 0;
         public long mismatchQualities = 0;
     }
@@ -98,13 +98,13 @@ public class AlignmentUtils {
         return numMismatches(r, StringUtil.stringToBytes(refSeq), refIndex);
      }
 
-    private static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex) {
+    public static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex) {
         return getMismatchCount(r,refSeq,refIndex,0,r.getReadLength());
     }
 
     // todo -- this code and mismatchesInRefWindow should be combined and optimized into a single
     // todo -- high performance implementation.  We can do a lot better than this right now
-    private static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex, int startOnRead, int nReadBases) {
+    public static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex, int startOnRead, int nReadBases) {
         MismatchCount mc = new MismatchCount();
 
         int readIdx = 0;
@@ -385,6 +385,15 @@ public class AlignmentUtils {
                 || r.getMateReferenceName() != null && r.getMateReferenceName() != SAMRecord.NO_ALIGNMENT_REFERENCE_NAME )
           &&  r.getMateAlignmentStart() != SAMRecord.NO_ALIGNMENT_START ) return false  ;
         return true;
+    }
+
+    /** Returns true is read is mapped and mapped uniquely (Q>0).
+     * 
+     * @param read
+     * @return
+     */
+    public static boolean isReadUniquelyMapped(SAMRecord read) {
+        return ( ! AlignmentUtils.isReadUnmapped(read) ) && read.getMappingQuality() > 0;
     }
 
     /** Returns the array of base qualitites in the order the bases were read on the machine (i.e. always starting from

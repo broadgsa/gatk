@@ -45,6 +45,9 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.interval.IntervalUtils;
+import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -83,6 +86,17 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 //    @Argument(fullName="vcf_format", shortName="vcf", doc="generate output file in VCF format", required=false)
 //    boolean FORMAT_VCF = false;
+
+    @Argument(fullName = "genotype_intervals", shortName = "genotype",
+            doc = "Calls will be made at each position within the specified interval(s), whether there is an indel or it's the ref", required = false)
+    public String genotypeIntervalsFile = null;
+
+    @Argument(fullName="genotypeIntervalsAreNotSorted", shortName="giNotSorted", required=false,
+            doc="This tool assumes that the genotyping interval list (--genotype_intervals) is sorted; "+
+                "if the list turns out to be unsorted, it will throw an exception.  "+
+                "Use this argument when your interval list is not sorted to instruct the IndelGenotyper "+
+                "to sort and keep it in memory (increases memory usage!).")
+    protected boolean GENOTYPE_NOT_SORTED = false;
 
 	@Argument(fullName="somatic", shortName="somatic",
 			doc="Perform somatic calls; two input alignment files (-I option) must be specified. Calls are performed from the second file (\"tumor\") against the first one (\"normal\").", required=false)
@@ -167,6 +181,11 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 	private SAMRecord lastRead;
     private byte[] refBases;
     private ReferenceDataSource refData;
+    private Iterator<GenomeLoc> genotypeIntervals = null;
+    private GenomeLocSortedSet traverseIntervals = null; // these are the traversal intervals passed with -L option (if any)
+
+    // the current interval in the list of intervals, for which we want to do full genotyping
+    private GenomeLoc currentGenotypeInterval = null;
 
     // "/humgen/gsa-scr1/GATK_Data/refGene.sorted.txt"
 
@@ -271,6 +290,22 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 for ( SAMReadGroupRecord rg : getToolkit().getSAMFileHeader(rid).getReadGroups() ) {
                     normalSamples.add(rg.getSample());
                 }
+            }
+            if ( genotypeIntervalsFile != null ) {
+
+                traverseIntervals = getToolkit().getIntervals();
+
+                if ( ! GENOTYPE_NOT_SORTED && IntervalUtils.isIntervalFile(genotypeIntervalsFile)) {
+                    // prepare to read intervals one-by-one, as needed (assuming they are sorted).
+                    genotypeIntervals = new IntervalFileMergingIterator(
+                        new java.io.File(genotypeIntervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
+                } else {
+                    // read in the whole list of intervals for cleaning
+                    GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(
+                        IntervalUtils.parseIntervalArguments(Arrays.asList(genotypeIntervalsFile)), IntervalMergingRule.OVERLAPPING_ONLY);
+                    genotypeIntervals = locs.iterator();
+                }
+                currentGenotypeInterval = genotypeIntervals.hasNext() ? genotypeIntervals.next() : null;
             }
 
         }

@@ -363,7 +363,13 @@ public class PairMaker extends CommandLineProgram {
             }
         }
         if ( best.size() == 0 ) return null; // no unique alignment
-        if ( best.size() > 1 ) throw new RuntimeException("Multiple alignments for read "+l.get(0).getReadName()+", all with Q>="+minq);
+        if ( best.size() > 1 ) {
+            for ( SAMRecord r : best ) {
+                System.out.println("READ "+r.getReadName()+" mapQ="+r.getMappingQuality()+" at="+r.getReferenceName()+
+                        ":"+r.getAlignmentStart()+"("+(r.getReadNegativeStrandFlag()?"-":"+")+") cig="+r.getCigarString());
+            }
+            throw new RuntimeException("Multiple alignments for read "+l.get(0).getReadName()+", all with Q>="+minq);
+        }
 
         return best.get(0);
     }

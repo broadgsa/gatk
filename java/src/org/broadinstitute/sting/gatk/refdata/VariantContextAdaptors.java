@@ -88,7 +88,7 @@ public class VariantContextAdaptors {
                 return null;
             Allele refAllele = Allele.create(DbSNPHelper.getReference(dbsnp), true);
 
-            if ( DbSNPHelper.isSNP(dbsnp) || DbSNPHelper.isIndel(dbsnp) || dbsnp.getVariantType().contains("mixed") ) {
+            if ( DbSNPHelper.isSNP(dbsnp) || DbSNPHelper.isIndel(dbsnp) || DbSNPHelper.isMNP(dbsnp) || dbsnp.getVariantType().contains("mixed") ) {
                 // add the reference allele
                 List<Allele> alleles = new ArrayList<Allele>();
                 alleles.add(refAllele);
