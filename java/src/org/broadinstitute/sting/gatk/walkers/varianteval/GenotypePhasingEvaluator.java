@@ -229,7 +229,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     }
 
     public String toString(AllelePair prev, AllelePair cur) {
-        return prev.getTopAllele().getBaseString() + "," + cur.getTopAllele().getBaseString() + "|" + prev.getBottomAllele().getBaseString() + "," + cur.getBottomAllele().getBaseString();
+        return prev.getTopAllele().getBaseString() + "+" + cur.getTopAllele().getBaseString() + "|" + prev.getBottomAllele().getBaseString() + "+" + cur.getBottomAllele().getBaseString();
     }
 
     public void finalizeEvaluation() {

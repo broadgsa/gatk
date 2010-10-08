@@ -77,10 +77,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     protected String variantStatsFilePrefix = null;
 
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for phasing [default: 10]", required = false)
-    public int MIN_BASE_QUALITY_SCORE = 10;
+    public int MIN_BASE_QUALITY_SCORE = 20;
 
     @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for phasing [default: 10]", required = false)
-    public int MIN_MAPPING_QUALITY_SCORE = 10;
+    public int MIN_MAPPING_QUALITY_SCORE = 20;
 
     private LinkedList<VariantAndReads> unphasedSiteQueue = null;
     private DoublyLinkedList<UnfinishedVariantAndReads> partiallyPhasedSites = null; // the phased VCs to be emitted, and the alignment bases at these positions
