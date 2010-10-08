@@ -55,11 +55,13 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
     boolean DEBUGOUT = false;
 
     private HaplotypeIndelErrorModel model;
+    private ArrayList<Integer> sitesVisited;
 
     protected DindelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
         model = new HaplotypeIndelErrorModel(maxReadDeletionLength, insertionStartProbability,
                 insertionEndProbability, alphaDeletionProbability, HAPLOTYPE_SIZE, false, DEBUGOUT);
+        sitesVisited = new  ArrayList<Integer>();
     }
 
     public Allele getLikelihoods(RefMetaDataTracker tracker,
@@ -82,8 +84,14 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         if (!vc.isIndel())
             return null;
 
+        if (sitesVisited.contains(new Integer(vc.getStart())))
+             return null;
+
+        sitesVisited.add(new Integer(vc.getStart()));
+
         if ( !(priors instanceof DiploidIndelGenotypePriors) )
              throw new StingException("Only diploid-based Indel priors are supported in the DINDEL GL model");
+
 
         int eventLength = vc.getReference().getBaseString().length() - vc.getAlternateAllele(0).getBaseString().length();
         // assume only one alt allele for now

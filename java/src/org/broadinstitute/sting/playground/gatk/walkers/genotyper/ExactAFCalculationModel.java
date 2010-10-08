@@ -43,7 +43,9 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     private boolean DEBUGOUT = false;
     private boolean SIMPLE_GREEDY_GENOTYPER = false;
-    
+    private static final double EPS = 1e-300;
+    private static final double LOGEPS = -300;
+
     protected ExactAFCalculationModel(int N, Logger logger, PrintStream verboseWriter) {
         super(N, logger, verboseWriter);
     }
@@ -60,15 +62,20 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
  
 
         alleleFrequencyPosteriors = updateAFEstimate(GLs, alleleFrequencyPriors);
-        double meanAF = computeMeanAF(alleleFrequencyPosteriors);
 
-        if (DEBUGOUT)
+        if (DEBUGOUT) {
+            double meanAF = computeMeanAF(alleleFrequencyPosteriors);
             System.out.format("Mean AF: %5.4f. PVariant: %5.5f\n", meanAF,1.0-alleleFrequencyPosteriors[0]);
-
+        }
 
 
         for (int k=0; k < alleleFrequencyPosteriors.length; k++) {
-            log10AlleleFrequencyPosteriors[k] = Math.log10(alleleFrequencyPosteriors[k]);
+            if (alleleFrequencyPosteriors[k] > 1-EPS)
+                log10AlleleFrequencyPosteriors[k] = -EPS;
+            else if (alleleFrequencyPosteriors[k] < EPS)
+                log10AlleleFrequencyPosteriors[k] = LOGEPS;
+            else
+                log10AlleleFrequencyPosteriors[k] = Math.log10(alleleFrequencyPosteriors[k]);
         }
     }
 
@@ -129,6 +136,24 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         return  sum/afVector.length;
 
+    }
+
+    /**
+     * Can be overridden by concrete subclasses
+     * @param contexts             alignment contexts
+     * @param GLs                  genotype likelihoods
+     * @param log10AlleleFrequencyPosteriors    allele frequency results
+     * @param AFofMaxLikelihood    allele frequency of max likelihood
+     *
+     * @return calls
+     */
+    public Map<String, Genotype> assignGenotypes(Map<String, StratifiedAlignmentContext> contexts,
+                                                 Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                                 double[] log10AlleleFrequencyPosteriors,
+                                                 int AFofMaxLikelihood) {
+
+        // overriding implementation in AlleleFrequencyCalculationModel to avoid filling out AF matrix which is not used.
+        return generateCalls(contexts, GLs, AFofMaxLikelihood);
     }
 
     protected Map<String, Genotype> generateCalls(Map<String, StratifiedAlignmentContext> contexts,
