@@ -32,7 +32,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.*;
 
-public class MergingIterator implements Iterator<RODRecordList>, Iterable<RODRecordList> {
+public class RODMergingIterator implements Iterator<RODRecordList>, Iterable<RODRecordList> {
     PriorityQueue<Element> queue = new PriorityQueue<Element>();
 
     private class Element implements Comparable<Element> {
@@ -45,7 +45,7 @@ public class MergingIterator implements Iterator<RODRecordList>, Iterable<RODRec
                 if ( ! it.hasNext() ) throw new ReviewedStingException("Iterator is empty");
                 update();
             } else {
-                throw new ReviewedStingException("Iterator passed to MergingIterator is not LocationAwareSeekableRODIterator");
+                throw new ReviewedStingException("Iterator passed to RODMergingIterator is not LocationAwareSeekableRODIterator");
             }
         }
 
@@ -76,15 +76,15 @@ public class MergingIterator implements Iterator<RODRecordList>, Iterable<RODRec
         return this;
     }
 
-    public MergingIterator() {
+    public RODMergingIterator() {
         ;
     }
 
-    public MergingIterator(Iterator<RODRecordList> it) {
+    public RODMergingIterator(Iterator<RODRecordList> it) {
          add(it);
     }
 
-    public MergingIterator(Collection<Iterator<RODRecordList>> its) {
+    public RODMergingIterator(Collection<Iterator<RODRecordList>> its) {
         for ( Iterator<RODRecordList> it : its ) {
             add(it);
         }
