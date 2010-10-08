@@ -12,6 +12,9 @@ import org.broadinstitute.sting.queue.function.scattergather.{SimpleTextGatherFu
 trait CommandLineFunction extends QFunction with Logging {
   def commandLine: String
 
+  /* Is it a gather function? */
+  var isGather: Boolean = true
+
   /** Upper memory limit */
   var memoryLimit: Option[Int] = None
 

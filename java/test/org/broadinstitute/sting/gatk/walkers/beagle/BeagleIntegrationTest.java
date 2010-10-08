@@ -54,4 +54,27 @@ public class BeagleIntegrationTest extends WalkerTest {
         executeTest("test BeagleInput", spec);
     }
 
+    @Test
+    public void testBeagleInput2() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T ProduceBeagleInput -B:variant,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_HSQ_chr22_14-16m.vcf "+
+                        "-B:validation,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_OMNI_chr22_14-16m.vcf "+
+                        "-L 22:14000000-16000000 -o %s -bvcf %s -bs 0.8 -valp 0.98 -R /humgen/1kg/reference/human_g1k_v37.fasta -NO_HEADER ",2,
+                Arrays.asList("44d28b6b092d5f4c0ae59af442612ea3","481c58f8309916184a33ab1835e5cc48"));
+        executeTest("test BeagleInputWithBootstrap",spec);
+    }
+
+    @Test
+    public void testBeagleOutput2() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T BeagleOutputToVCF -R "+hg19Reference+" "+
+                "-B:variant,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.vcf "+
+                "-B:beagleR2,beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.r2 "+
+                "-B:beagleProbs,beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.gprobs.bgl "+
+                "-B:beaglePhased,beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.phased.bgl "+
+                "-L 20:1-70000 -o %s -NO_HEADER ",1,Arrays.asList("fd104b7da9e6c99b662c6ad746fd53f3"));
+
+        executeTest("testBeagleChangesSitesToRef",spec);
+    }
+
 }

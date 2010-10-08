@@ -28,13 +28,14 @@ package org.broadinstitute.sting.gatk.walkers.beagle;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFConstants;
-import org.broad.tribble.vcf.VCFWriter;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
@@ -42,6 +43,8 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -53,6 +56,7 @@ import java.util.*;
 public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     public static final String ROD_NAME = "variant";
+    public static final String VALIDATION_ROD_NAME = "validation";
 
     @Output(doc="File to which BEAGLE input should be written",required=true)
     protected PrintStream  beagleWriter = null;
@@ -61,9 +65,24 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     public PrintStream beagleGenotypesWriter  = null;
     @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)
     public double insertedNoCallRate  = 0;
+    @Argument(fullName = "validation_genotype_ptrue", shortName = "valp", doc = "Flat probability to assign to validation genotypes. Will override GL field.", required = false)
+    public double validationPrior = -1.0;
+    @Argument(fullName = "validation_bootstrap", shortName = "bs", doc = "Proportion of records to be used in bootstrap set", required = false)
+    public double bootstrap = 0.0;
+    @Argument(fullName = "bootstrap_vcf",shortName = "bvcf", doc = "Output a VCF with the records used for bootstrapping filtered out", required = false)
+    VCFWriter bootstrapVCFOutput = null;
+
+    @Hidden
+    @Argument(fullName = "variant_genotype_ptrue", shortName = "varp", doc = "Flat probability prior to assign to variant (not validation) genotypes. Does not override GL field.", required = false)
+    public double variantPrior = 0.96;
+
 
     private Set<String> samples = null;
+    private Set<String> BOOTSTRAP_FILTER = new HashSet<String>( Arrays.asList("bootstrap") );
     private Random generator;
+    private int bootstrapCount = -1;
+    private int bootstrapSetSize = 0;
+    private int testSetSize = 0;
 
     public void initialize() {
         generator = new Random();
@@ -77,113 +96,175 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         beagleWriter.println();
         if (beagleGenotypesWriter != null)
             beagleGenotypesWriter.println("dummy header");
+
+        if ( bootstrapVCFOutput != null ) {
+            initializeVcfWriter();
+        }
     }
 
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
-         if( tracker != null ) {
+        if( tracker != null ) {
             GenomeLoc loc = context.getLocation();
-            VariantContext vc_eval;
+            VariantContext variant_eval;
+            VariantContext validation_eval;
 
-            vc_eval = tracker.getVariantContext(ref, ROD_NAME, null, loc, false);
-            if ( vc_eval == null || vc_eval.isFiltered() )
+            variant_eval = tracker.getVariantContext(ref, ROD_NAME, null, loc, false);
+            validation_eval = tracker.getVariantContext(ref,VALIDATION_ROD_NAME,null,loc,false);
+            if ( goodSite(variant_eval,validation_eval) ) {
+                if ( useValidation(variant_eval,validation_eval, ref) ) {
+                    writeBeagleOutput(validation_eval,variant_eval,true,validationPrior);
+                } else {
+                    if ( goodSite(variant_eval) ) {
+                        writeBeagleOutput(variant_eval,validation_eval,false,variantPrior);
+                        return 1;
+                    } else { // todo -- if the variant site is bad, validation is good, but not in bootstrap set -- what do?
+                        return 0;
+                    }
+                }
+                return 1;
+            } else {
                 return 0;
-
-             if (!vc_eval.isSNP())
-                     return 0;
-
-             if (!vc_eval.isBiallelic())
-                     return 0;
-             
-            // output marker ID to Beagle input file
-            beagleWriter.print(String.format("%s ", VariantContextUtils.getLocation(vc_eval).toString()));
-
-            if (beagleGenotypesWriter != null)
-                beagleGenotypesWriter.print(String.format("%s ", VariantContextUtils.getLocation(vc_eval).toString()));
-
-            for (Allele allele: vc_eval.getAlleles()) {
-                // TODO -- check whether this is really needed by Beagle
-                String bglPrintString;
-                if (allele.isNoCall() || allele.isNull())
-                    bglPrintString = "0";
-                else
-                    bglPrintString = allele.toString().substring(0,1);  // get rid of * in case of reference allele
-
-                beagleWriter.print(String.format("%s ", bglPrintString));
             }
-
-            if ( !vc_eval.hasGenotypes() )
-                return 0;
-
-            Map<String, Genotype> genotypes = vc_eval.getGenotypes();
-            for ( String sample : samples ) {
-                // use sample as key into genotypes structure
-                Genotype genotype = genotypes.get(sample);
-                if (genotype.isCalled() && genotype.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
-                    String[] glArray = genotype.getAttributeAsString(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).split(",");
-
-                    double[] likeArray = new double[glArray.length];
-
-                    // convert to double array so we can normalize
-                    int k=0;
-                    for (String gl : glArray) {
-                        likeArray[k++] = Double.valueOf(gl);
-                    }
-
-                    double[] normalizedLikelihoods = MathUtils.normalizeFromLog10(likeArray);
-                    // see if we need to randomly mask out genotype in this position.
-                    Double d = generator.nextDouble();
-                    if (d > insertedNoCallRate ) {
-//                    System.out.format("%5.4f ", d);
-                        for (Double likeVal: normalizedLikelihoods)
-                            beagleWriter.print(String.format("%5.4f ",likeVal));
-                    }
-                    else {
-                        // we are masking out this genotype
-                        beagleWriter.print("0.33 0.33 0.33 ");
-                    }
-
-                    if (beagleGenotypesWriter != null) {
-                        char a = genotype.getAllele(0).toString().charAt(0);
-                        char b = genotype.getAllele(0).toString().charAt(0);
-
-                        beagleGenotypesWriter.format("%c %c ", a, b);
-                    }
-                }
-                else if (genotype.isCalled() && !genotype.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
-                    // hack to deal with input VCFs with no genotype likelihoods.  Just assume the called genotype
-                    // is confident.  This is useful for Hapmap and 1KG release VCFs.
-                    double AA = 0.02;
-                    double AB = 0.02;
-                    double BB = 0.02;
-
-                    if (genotype.isHomRef()) { AA = 0.96; }
-                    else if (genotype.isHet()) { AB = 0.96; }
-                    else if (genotype.isHomVar()) { BB = 0.96; }
-
-                    beagleWriter.printf("%.2f %.2f %.2f ", AA, AB, BB);
-
-                    if (beagleGenotypesWriter != null) {
-                        char a = genotype.getAllele(0).toString().charAt(0);
-                        char b = genotype.getAllele(0).toString().charAt(0);
-
-                        beagleGenotypesWriter.format("%c %c ", a, b);
-                    }
-                }
-                else  {
-                    beagleWriter.print("0.33 0.33 0.33 "); // write 1/3 likelihoods for uncalled genotypes.
-                    if (beagleGenotypesWriter != null)
-                         beagleGenotypesWriter.print(". . ");
-                }
-            }
-
-            beagleWriter.println();
-            if (beagleGenotypesWriter != null)
-                 beagleGenotypesWriter.println();
+        } else {
+            return 0;
         }
-        return 1;
-        
     }
+
+    public boolean goodSite(VariantContext a, VariantContext b) {
+        return goodSite(a) || goodSite(b);
+    }
+
+    public boolean goodSite(VariantContext v) {
+       return v != null && ! v.isFiltered() && v.isSNP() && v.isBiallelic() && v.hasGenotypes();
+    }
+
+    public boolean useValidation(VariantContext variant, VariantContext validation, ReferenceContext ref) {
+        if( goodSite(validation) ) {
+            // if using record keeps us below expected proportion, use it
+            logger.debug(String.format("boot: %d, test: %d, total: %d", bootstrapSetSize, testSetSize, bootstrapSetSize+testSetSize+1));
+            if ( (bootstrapSetSize+1.0)/(1.0+bootstrapSetSize+testSetSize) <= bootstrap ) {
+                if ( bootstrapVCFOutput != null ) {
+                    bootstrapVCFOutput.add(VariantContext.modifyFilters(validation, BOOTSTRAP_FILTER), ref.getBase() );
+                }
+                bootstrapSetSize ++;
+                return true;
+            } else {
+                if ( bootstrapVCFOutput != null ) {
+                    bootstrapVCFOutput.add(validation,ref.getBase());
+                }
+                testSetSize++;
+                return false;
+            }
+        } else {
+            if ( validation != null && bootstrapVCFOutput != null ) {
+                bootstrapVCFOutput.add(validation,ref.getBase());
+            }
+            return false;
+        }
+    }
+
+    public void writeBeagleOutput(VariantContext preferredVC, VariantContext otherVC, boolean isValidationSite, double prior) {
+        beagleWriter.print(String.format("%s ",VariantContextUtils.getLocation(preferredVC).toString()));
+        if ( beagleGenotypesWriter != null ) {
+            beagleGenotypesWriter.print(String.format("%s ",VariantContextUtils.getLocation(preferredVC).toString()));
+        }
+
+        for ( Allele allele : preferredVC.getAlleles() ) {
+            String bglPrintString;
+            if (allele.isNoCall() || allele.isNull())
+                bglPrintString = "0";
+            else
+                bglPrintString = allele.toString().substring(0,1);  // get rid of * in case of reference allele
+
+            beagleWriter.print(String.format("%s ", bglPrintString));
+        }
+
+        Map<String,Genotype> preferredGenotypes = preferredVC.getGenotypes();
+        Map<String,Genotype> otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
+        boolean isValidation;
+        for ( String sample : samples ) {
+            Genotype genotype;
+            // use sample as key into genotypes structure
+            if ( preferredGenotypes.keySet().contains(sample) ) {
+                genotype = preferredGenotypes.get(sample);
+                isValidation = isValidationSite;
+            } else if ( otherGenotypes != null && otherGenotypes.keySet().contains(sample) ) {
+                genotype = otherGenotypes.get(sample);
+                isValidation = ! isValidationSite;
+            } else {
+                // there is magically no genotype for this sample.
+                throw new StingException("Sample "+sample+" arose with no genotype in variant or validation VCF. This should never happen.");
+            }
+            /**
+             * Use likelihoods if: is validation, prior is negative; or: is not validation, has genotype key
+             */
+            if ( (isValidation && prior < 0.0) || genotype.isCalled() && genotype.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
+                String[] glArray = genotype.getAttributeAsString(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).split(",");
+
+                double[] likeArray = new double[glArray.length];
+
+                // convert to double array so we can normalize
+                int k=0;
+                for (String gl : glArray) {
+                    likeArray[k++] = Double.valueOf(gl);
+                }
+
+                double[] normalizedLikelihoods = MathUtils.normalizeFromLog10(likeArray);
+                // see if we need to randomly mask out genotype in this position.
+                Double d = generator.nextDouble();
+                if (d > insertedNoCallRate ) {
+//                    System.out.format("%5.4f ", d);
+                    for (Double likeVal: normalizedLikelihoods)
+                        beagleWriter.print(String.format("%5.4f ",likeVal));
+                }
+                else {
+                    // we are masking out this genotype
+                    beagleWriter.print("0.33 0.33 0.33 ");
+                }
+
+                if (beagleGenotypesWriter != null) {
+                    char a = genotype.getAllele(0).toString().charAt(0);
+                    char b = genotype.getAllele(0).toString().charAt(0);
+
+                    beagleGenotypesWriter.format("%c %c ", a, b);
+                }
+            }
+            /**
+             * otherwise, use the prior uniformly
+             */
+            else if (! isValidation && genotype.isCalled() && !genotype.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
+                // hack to deal with input VCFs with no genotype likelihoods.  Just assume the called genotype
+                // is confident.  This is useful for Hapmap and 1KG release VCFs.
+                double AA = (1.0-prior)/2.0;
+                double AB = (1.0-prior)/2.0;
+                double BB = (1.0-prior)/2.0;
+
+                if (genotype.isHomRef()) { AA = prior; }
+                else if (genotype.isHet()) { AB = prior; }
+                else if (genotype.isHomVar()) { BB = prior; }
+
+                beagleWriter.printf("%.2f %.2f %.2f ", AA, AB, BB);
+
+                if (beagleGenotypesWriter != null) {
+                    char a = genotype.getAllele(0).toString().charAt(0);
+                    char b = genotype.getAllele(0).toString().charAt(0);
+
+                    beagleGenotypesWriter.format("%c %c ", a, b);
+                }
+            }
+            else  {
+                beagleWriter.print("0.33 0.33 0.33 "); // write 1/3 likelihoods for uncalled genotypes.
+                if (beagleGenotypesWriter != null)
+                    beagleGenotypesWriter.print(". . ");
+            }
+        }
+
+        beagleWriter.println();
+        if (beagleGenotypesWriter != null)
+            beagleGenotypesWriter.println();
+    }
+
 
     public Integer reduceInit() {
         return 0; // Nothing to do here
@@ -195,6 +276,19 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     public void onTraversalDone( Integer sum ) {
 
-   }
-    
+    }
+
+    private void initializeVcfWriter() {
+
+        final ArrayList<String> inputNames = new ArrayList<String>();
+        inputNames.add( VALIDATION_ROD_NAME );
+
+        // setup the header fields
+        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
+        hInfo.add(new VCFFilterHeaderLine("bootstrap","This site used for genotype bootstrapping with ProduceBeagleInputWalker"));
+
+        bootstrapVCFOutput.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
+    }
+
 }

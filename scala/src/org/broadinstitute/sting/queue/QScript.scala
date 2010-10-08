@@ -38,4 +38,5 @@ trait QScript extends Logging {
    * Adds one or more command line functions to be run.
    */
   def add(functions: CommandLineFunction*) = this.functions ++= List(functions:_*)
+
 }

@@ -32,6 +32,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.features.beagle.BeagleFeature;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -161,6 +162,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         int numGenotypesChangedByBeagle = 0;
         Integer alleleCountH = 0, chrCountH = 0;
         Double alleleFrequencyH = 0.0;
+        int beagleVarCounts = 0;
 
         Map<String,Genotype> hapmapGenotypes = null;
 
@@ -284,31 +286,26 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
                 originalAttributes.put("OG",".");
             }
             Genotype imputedGenotype = new Genotype(originalGenotypes.getKey(), alleles, genotypeQuality, filters,originalAttributes , genotypeIsPhased);
-
+            if ( imputedGenotype.isHet() || imputedGenotype.isHomVar() ) {
+                beagleVarCounts++;
+            }
 
             genotypes.put(originalGenotypes.getKey(), imputedGenotype);
 
         }
 
-        VariantContext filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
-
-        Set<Allele> altAlleles = filteredVC.getAlternateAlleles();
-        StringBuffer altAlleleCountString = new StringBuffer();
-        for ( Allele allele : altAlleles ) {
-            if ( altAlleleCountString.length() > 0 )
-                altAlleleCountString.append(",");
-            altAlleleCountString.append(filteredVC.getChromosomeCount(allele));
+        VariantContext filteredVC;
+        if ( beagleVarCounts > 0)
+            filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
+        else {
+            Set<String> removedFilters = vc_input.filtersWereApplied() ? new HashSet<String>(vc_input.getFilters()) : new HashSet<String>(1);
+            removedFilters.add(String.format("BGL_RM_WAS_%s/%s",vc_input.getReference().getBaseString(),vc_input.getAlternateAllele(0)));
+            filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), new HashSet<Allele>(Arrays.asList(vc_input.getReference())), genotypes, vc_input.getNegLog10PError(), removedFilters, vc_input.getAttributes());
         }
 
         HashMap<String, Object> attributes = new HashMap<String, Object>(filteredVC.getAttributes());
-        if ( filteredVC.getChromosomeCount() > 0 ) {
-            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, String.format("%d", filteredVC.getChromosomeCount()));
-            if ( altAlleleCountString.length() > 0 )  {
-                attributes.put(VCFConstants.ALLELE_COUNT_KEY, altAlleleCountString.toString());
-                attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, String.format("%4.2f",
-                        Double.valueOf(altAlleleCountString.toString())/(filteredVC.getChromosomeCount())));
-            }
-        }
+        // re-compute chromosome counts
+        VariantContextUtils.calculateChromosomeCounts(filteredVC, attributes, false);
 
         // Get Hapmap AC and AF
         if (vc_comp != null) {
@@ -322,8 +319,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         attributes.put("R2", beagleR2Feature.getR2value().toString() );
 
 
-
-        vcfWriter.add(VariantContext.modifyAttributes(filteredVC, attributes), ref.getBase());
+        vcfWriter.add(VariantContext.modifyAttributes(filteredVC,attributes), ref.getBase());
 
 
         return 1;
