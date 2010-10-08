@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.gatk.io.storage;
 
-import org.broad.tribble.vcf.StandardVCFWriter;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.readers.LineReader;
+import org.broad.tribble.source.BasicFeatureSource;
+import org.broad.tribble.vcf.*;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 
@@ -12,6 +11,7 @@ import java.io.*;
 
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.text.XReadLines;
 
 /**
  * Provides temporary and permanent storage for genotypes in VCF format.
@@ -21,7 +21,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
  */
 public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
     protected final File file;
-    protected final OutputStream stream;
+    protected OutputStream stream;
     protected final VCFWriter writer;
 
     /**
@@ -30,28 +30,39 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
      * @param stub Stub to use when constructing the output file.
      */
     public VCFWriterStorage( VCFWriterStub stub )  {
-
         if ( stub.getFile() != null ) {
-            file = stub.getFile();
-            try {
-                if ( stub.isCompressed() )
-                    stream = new BlockCompressedOutputStream(file);
-                else
-                    stream = new PrintStream(file);
-            }
-            catch(IOException ex) {
-                throw new UserException.CouldNotCreateOutputFile(file, "Unable to open target output stream", ex);
-            }
+            this.file = stub.getFile();
+            writer = VCFWriterToFile(stub, stub.getFile());
         }
         else if ( stub.getOutputStream() != null ) {
             this.file = null;
             this.stream = stub.getOutputStream();
+            writer = new StandardVCFWriter(stream);
         }
         else
             throw new ReviewedStingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
-
-        writer = new StandardVCFWriter(stream);
     }
+
+    /**
+     * common initialization routine for multiple constructors
+     * @param stub
+     * @param file
+     * @return A VCF writer for use with this class
+     */
+    private StandardVCFWriter VCFWriterToFile(VCFWriterStub stub, File file) {
+        try {
+            if ( stub.isCompressed() )
+                stream = new BlockCompressedOutputStream(file);
+            else
+                stream = new PrintStream(file);
+        }
+        catch(IOException ex) {
+            throw new UserException.CouldNotCreateOutputFile(file, "Unable to open target output stream", ex);
+        }
+
+        return new StandardVCFWriter(file, this.stream);
+    }
+
 
     /**
      * Constructs an object which will redirect into a different file.
@@ -60,13 +71,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
      */
     public VCFWriterStorage(VCFWriterStub stub, File file) {
         this.file = file;
-        try {
-            this.stream = new PrintStream(file);
-        }
-        catch(IOException ex) {
-            throw new UserException.CouldNotCreateOutputFile(file, "Unable to open target output stream",ex);
-        }
-        writer = new StandardVCFWriter(this.stream);
+        this.writer = VCFWriterToFile(stub, file);
         writer.writeHeader(stub.getVCFHeader());
     }
 
@@ -94,20 +99,33 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
      * Merges the stream backing up this temporary storage into the target.
      * @param target Target stream for the temporary storage.  May not be null.
      */
+//    public void mergeInto(VCFWriterStorage target) {
+//        PrintStream formattingTarget = new PrintStream(target.stream);
+//        try {
+//            BufferedReader reader = new BufferedReader(new FileReader(file));
+//            String line = reader.readLine();
+//            while ( line != null ) {
+//                if (!VCFHeaderLine.isHeaderLine(line))
+//                    formattingTarget.printf("%s%n",line);
+//                line = reader.readLine();
+//            }
+//
+//            reader.close();
+//        } catch (IOException e) {
+//            throw new UserException.CouldNotReadInputFile(file, "Error reading file in VCFWriterStorage: ", e);
+//        }
+//    }
     public void mergeInto(VCFWriterStorage target) {
-        PrintStream formattingTarget = new PrintStream(target.stream);
         try {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            String line = reader.readLine();
-            while ( line != null ) {
-                if (!VCFHeaderLine.isHeaderLine(line))
-                    formattingTarget.printf("%s%n",line);
-                line = reader.readLine();
+            BasicFeatureSource<VariantContext> source = BasicFeatureSource.getFeatureSource(file.getAbsolutePath(), new VCFCodec());
+            
+            for ( VariantContext vc : source.iterator() ) {
+                target.writer.add(vc, vc.getReferenceBaseForIndel());
             }
 
-            reader.close();
+            source.close();
         } catch (IOException e) {
             throw new UserException.CouldNotReadInputFile(file, "Error reading file in VCFWriterStorage: ", e);
         }
-    }    
+    }
 }

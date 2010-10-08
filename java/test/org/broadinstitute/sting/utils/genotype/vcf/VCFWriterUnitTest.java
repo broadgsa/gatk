@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
+import org.broad.tribble.Tribble;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
@@ -76,7 +77,7 @@ public class VCFWriterUnitTest extends BaseTest {
                 counter++;
             }
             Assert.assertEquals(2,counter);
-            new File(fakeVCFFile + RMDTrackBuilder.indexExtension).delete();
+            Tribble.indexFile(fakeVCFFile).delete();
             fakeVCFFile.delete();
         }
         catch (IOException e ) {

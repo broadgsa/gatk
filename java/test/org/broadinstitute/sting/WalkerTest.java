@@ -26,12 +26,16 @@
 package org.broadinstitute.sting;
 
 import junit.framework.Assert;
+import org.broad.tribble.Tribble;
+import org.broad.tribble.index.IndexFactory;
+import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.junit.Test;
 import org.apache.commons.io.FileUtils;
 
@@ -139,10 +143,25 @@ public class WalkerTest extends BaseTest {
         }
     }
 
+    public void maybeValidateSupplementaryFile(final String name, final File resultFile) {
+        File indexFile = Tribble.indexFile(resultFile);
+        //System.out.println("Putative index file is " + indexFile);
+        if ( indexFile.exists() ) {
+            if ( resultFile.getAbsolutePath().contains(".vcf") ) {
+                // todo -- currently we only understand VCF files! Blow up since we can't test them
+                throw new StingException("Found an index created for file " + resultFile + " but we can only validate VCF files.  Extend this code!");
+            }
+
+            System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
+            Assert.assertTrue(IndexFactory.onDiskIndexEqualToNewlyCreatedIndex(resultFile, indexFile, new VCFCodec()));
+        }
+    }
+
     public List<String> assertMatchingMD5s(final String name, List<File> resultFiles, List<String> expectedMD5s) {
         List<String> md5s = new ArrayList<String>();
         for (int i = 0; i < resultFiles.size(); i++) {
             String md5 = assertMatchingMD5(name, resultFiles.get(i), expectedMD5s.get(i));
+            maybeValidateSupplementaryFile(name, resultFiles.get(i));
             md5s.add(i, md5);
         }
 

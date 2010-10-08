@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.BaseTest;
@@ -77,7 +78,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
         }
         // make sure we didn't write the file (check that it's timestamp is within bounds)
         //System.err.println(new File(vcfFile + RMDTrackBuilder.indexExtension).lastModified());
-        Assert.assertTrue(Math.abs(1279591752000l - new File(vcfFile + RMDTrackBuilder.indexExtension).lastModified()) < 100);
+        Assert.assertTrue(Math.abs(1279591752000l - Tribble.indexFile(vcfFile).lastModified()) < 100);
 
     }
 
@@ -86,7 +87,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     @Test
     public void testDirIsLockedIndexFromDisk() {
         File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/good_index.vcf");
-        File vcfFileIndex = new File(validationDataLocation + "/ROD_validation/read_only/good_index.vcf.idx");
+        File vcfFileIndex = Tribble.indexFile(vcfFile);
         Index ind = null;
         try {
             ind = builder.attemptIndexFromDisk(vcfFile,new VCFCodec(),vcfFileIndex,new FSLockWithShared(vcfFile));
@@ -102,7 +103,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     @Test
     public void testBuilderIndexDirectoryUnwritable() {
         File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/no_index.vcf");
-        File vcfFileIndex = new File(validationDataLocation + "/ROD_validation/read_only/no_index.vcf.idx");
+        File vcfFileIndex = Tribble.indexFile(vcfFile);
 
         Index ind = null;
         try {
@@ -121,7 +122,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     @Test
     public void testGenerateIndexForUnindexedFile() {
         File vcfFile = new File(validationDataLocation + "/ROD_validation/always_reindex.vcf");
-        File vcfFileIndex = new File(validationDataLocation + "/ROD_validation/always_reindex.vcf.idx");
+        File vcfFileIndex = Tribble.indexFile(vcfFile);
 
         // if we can't write to the directory, don't fault the tester, just pass
         if (!vcfFileIndex.getParentFile().canWrite()) {
@@ -147,7 +148,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     @Test
     public void testBuilderIndexSequenceDictionary() {
         File vcfFile = createCorrectDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
-        Long indexTimeStamp = new File(vcfFile.getAbsolutePath() + ".idx").lastModified();
+        Long indexTimeStamp = Tribble.indexFile(vcfFile).lastModified();
         try {
             Index idx = builder.loadIndex(vcfFile, new VCFCodec());
             RMDTrackBuilder.setIndexSequenceDictionary(idx,seq.getSequenceDictionary(),vcfFile,false);
@@ -157,11 +158,9 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
             e.printStackTrace();
             Assert.fail("IO exception unexpected" + e.getMessage());
         }
-        //System.err.println("index : " + new File(vcfFile + ".idx").lastModified());
-        //System.err.println("old : " + indexTimeStamp);
 
         // make sure that we removed and updated the index
-        Assert.assertTrue("Fail: index file was modified", new File(vcfFile + ".idx").lastModified() == indexTimeStamp);
+        Assert.assertTrue("Fail: index file was modified", Tribble.indexFile(vcfFile).lastModified() == indexTimeStamp);
     }
 
     /**
@@ -184,11 +183,11 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
             Thread.sleep(2000);
 
             // create a fake index, before we copy so it's out of date
-            File tmpIndex = new File(tmpFile.getAbsolutePath() + ".idx");
+            File tmpIndex = Tribble.indexFile(tmpFile);
             tmpIndex.deleteOnExit();
 
             // copy the vcf (tribble) file to the tmp file location
-            copyFile(new File(tribbleFile + ".idx"), tmpIndex);
+            copyFile(Tribble.indexFile(tribbleFile), tmpIndex);
 
             return tmpFile;
 

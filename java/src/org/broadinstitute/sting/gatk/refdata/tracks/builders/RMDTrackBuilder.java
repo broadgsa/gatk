@@ -69,9 +69,6 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     // the input strings we use to create RODs from
     private final List<RMDTriplet> inputs = new ArrayList<RMDTriplet>();
 
-    // the linear index extension
-    public static final String indexExtension = ".idx";
-
     private Map<String, Class> classes = null;
 
     // private sequence dictionary we use to set our tracks with
@@ -201,7 +198,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
 
             // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
             if (dictFromIndex.size() == 0 && dict != null) {
-                File indexFile = indexFileForFile(inputFile);
+                File indexFile = Tribble.indexFile(inputFile);
                 setIndexSequenceDictionary(index,dict,indexFile,true);
                 dictFromIndex = getSequenceDictionaryFromProperties(index);
             }
@@ -218,10 +215,6 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         return reader;
     }
 
-    public static File indexFileForFile(File inputFile) {
-        return new File(inputFile.getAbsoluteFile() + indexExtension);
-    }
-
     /**
      * create an index for the input file
      * @param inputFile the input file
@@ -231,7 +224,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      */
     public synchronized static Index loadIndex(File inputFile, FeatureCodec codec) throws IOException {
         // create the index file name, locking on the index file name
-        File indexFile = indexFileForFile(inputFile);
+        File indexFile = Tribble.indexFile(inputFile);
         FSLockWithShared lock = new FSLockWithShared(indexFile);
 
         // acquire a lock on the file
