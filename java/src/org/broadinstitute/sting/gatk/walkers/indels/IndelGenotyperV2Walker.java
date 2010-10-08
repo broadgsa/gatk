@@ -302,7 +302,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 } else {
                     // read in the whole list of intervals for cleaning
                     GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(
-                        IntervalUtils.parseIntervalArguments(Arrays.asList(genotypeIntervalsFile)), IntervalMergingRule.OVERLAPPING_ONLY);
+                        IntervalUtils.parseIntervalArguments(Arrays.asList(genotypeIntervalsFile),true), IntervalMergingRule.OVERLAPPING_ONLY);
                     genotypeIntervals = locs.iterator();
                 }
                 currentGenotypeInterval = genotypeIntervals.hasNext() ? genotypeIntervals.next() : null;
