@@ -35,7 +35,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
    * @Return: UnifiedGenotyper with the standard GSA arguments
    * @TODO: Add a formula: f(#bams)=memory; allow yaml to specify triggers and perhaps other information
    */
-  protected def StandardUnifiedGenotyper(bams : List[File], output : File) : UnifiedGenotyper = {
+  def StandardUnifiedGenotyper(bams : List[File], output : File) : UnifiedGenotyper = {
     var ug = new UnifiedGenotyper with StandardCommandLineGATK
     ug.analysisName = "UnifiedGenotyper"
     ug.input_file = bams
@@ -63,7 +63,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
    * @Doc: Creates a CLF to call indels on a specific .bam file, outputting to a given output file
    * @Returns: An IndelGenotyperV2 CLF with standard GSA arguments
    */
-  protected def StandardIndelGenotyper(bam : File, output: File) : IndelGenotyperV2 = {
+  def StandardIndelGenotyper(bam : File, output: File) : IndelGenotyperV2 = {
     var ig = new IndelGenotyperV2 with StandardCommandLineGATK
     ig.analysisName = "IndelGenotyper"
     ig.input_file :+= bam
@@ -86,7 +86,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
    * @Doc: Combines a list of indel VCFs to a single output file
    * @Returns: A CombineVariants CLF with standard GSA arguments
    */
-  protected def StandardIndelCombine( igList : List[IndelGenotyperV2], output : File ) : CombineVariants = {
+  def StandardIndelCombine( igList : List[IndelGenotyperV2], output : File ) : CombineVariants = {
     var cv = new CombineVariants with StandardCommandLineGATK
     cv.out = output
     cv.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNIQUIFY)
@@ -105,7 +105,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
    * @Doc: Generates indel calls on a list of .bam files, and merges those calls into an output file. This is a small pipeline.
    * @Returns: A list of CLFs that run indel calls and indel merging. User has zero control over individual indel VCF names.
    */
-  protected def StandardIndelCalls ( bams : List[File], output : File ) : List[CommandLineGATK] = {
+  def StandardIndelCalls ( bams : List[File], output : File ) : List[CommandLineGATK] = {
     var genotypers = bams.foldLeft[List[IndelGenotyperV2]](Nil)( (igs,bam) => igs ::: List(this.StandardIndelGenotyper(bam, swapExt(bam,".bam",".indels.vcf"), false)))
     var combine = this.StandardIndelCombine( genotypers, output )
     var callFunctions: List[CommandLineGATK] = genotypers
@@ -114,7 +114,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return callFunctions    
   }
 
-  protected def StandardFilterAtIndels ( snps: File, indels: File, output : File ) : VariantFiltration = {
+  def StandardFilterAtIndels ( snps: File, indels: File, output : File ) : VariantFiltration = {
     var iFil = new VariantFiltration with StandardCommandLineGATK
     iFil.analysisName = "FilterAtIndels"
     iFil.out = output
@@ -128,7 +128,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return iFil
   }
 
-  protected def StandardHandfilter( snps: File, output: File ) : VariantFiltration = {
+  def StandardHandfilter( snps: File, output: File ) : VariantFiltration = {
     var hFil = new VariantFiltration with StandardCommandLineGATK
     hFil.analysisName = "HandFilter"
     hFil.out = output
@@ -143,7 +143,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return hFil
   }
 
-  protected def StandardVariantCluster( snps: File, output: File ) : GenerateVariantClusters = {
+  def StandardVariantCluster( snps: File, output: File ) : GenerateVariantClusters = {
     var genC = new GenerateVariantClusters with StandardCommandLineGATK
     genC.analysisName = "VariantQualityRecalibration"
     genC.rodBind :+= new RodBind("input","VCF",snps)
@@ -157,7 +157,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return genC
   }
 
-  protected def StandardVariantRecalibrator ( raw_vcf: File, cluster: File, target_titv: scala.Double, out_vcf: File,
+  def StandardVariantRecalibrator ( raw_vcf: File, cluster: File, target_titv: scala.Double, out_vcf: File,
                                               out_tranches: File, out_dat: File) : VariantRecalibrator = {
     var vr = new VariantRecalibrator with StandardCommandLineGATK
     vr.analysisName = "VariantQualityRecalibration"
@@ -176,7 +176,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
 
   }
 
-  protected def StandardApplyVariantCuts( snpRecal: File, tranches: File, output: File) : ApplyVariantCuts = {
+  def StandardApplyVariantCuts( snpRecal: File, tranches: File, output: File) : ApplyVariantCuts = {
     var avc = new ApplyVariantCuts with StandardCommandLineGATK
     avc.analysisName = "VariantQualityRecalibration"
     avc.rodBind :+= new RodBind("input","VCF",snpRecal)
@@ -187,7 +187,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return avc
   }
 
-  protected def StandardRecalibrateVariants( snps: File, targetTiTv: scala.Double, recalVcf: File) : List[CommandLineGATK] = {
+  def StandardRecalibrateVariants( snps: File, targetTiTv: scala.Double, recalVcf: File) : List[CommandLineGATK] = {
     var clust = StandardVariantCluster(snps, swapExt(snps,".vcf",".cluster"))
     var recal = StandardVariantRecalibrator(snps,clust.clusterFile,targetTiTv,swapExt(snps,".vcf",".recal.vcf"),
                 swapExt(snps,".vcf",".recal.tranch"),swapExt(snps,".vcf",".recal.dat"))
@@ -201,7 +201,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return cmds
   }
 
-  protected def StandardGenomicAnnotation ( snps: File, refseqFile: File, outputVCF: File) : GenomicAnnotator = {
+  def StandardGenomicAnnotation ( snps: File, refseqFile: File, outputVCF: File) : GenomicAnnotator = {
     var ga = new GenomicAnnotator with StandardCommandLineGATK
     ga.analysisName = "GenomicAnnotator"
     ga.variantVCF = snps
@@ -212,7 +212,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return ga
   }
 
-  protected def StandardSNPCalls( bams: List[File], output: File, targetTiTv: scala.Double, refGene: File = null ) : List[CommandLineGATK] = {
+  def StandardSNPCalls( bams: List[File], output: File, targetTiTv: scala.Double, refGene: File = null ) : List[CommandLineGATK] = {
     var commands : List[CommandLineGATK] = Nil
     var dir = ""
 
@@ -250,7 +250,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return commands
   }
 
-  protected def StandardSNPCallsBothFilterTypes(bams: List[File], recalOut: File, handFilteredOut: File, targetTiTv: scala.Double, refGene: File = null ) : List[CommandLineGATK] = {
+  def StandardSNPCallsBothFilterTypes(bams: List[File], recalOut: File, handFilteredOut: File, targetTiTv: scala.Double, refGene: File = null ) : List[CommandLineGATK] = {
     var commands : List[CommandLineGATK] = Nil
     var dir = ""
 
@@ -292,7 +292,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return commands
   }
 
-  protected def StandardCallingPipeline(bams: List[File], indelOut: File, recalOut: File, handFilteredOut: File, targetTiTv: scala.Double, refGene: File = null ) : List[CommandLineGATK] = {
+  def StandardCallingPipeline(bams: List[File], indelOut: File, recalOut: File, handFilteredOut: File, targetTiTv: scala.Double, refGene: File = null ) : List[CommandLineGATK] = {
     var commands : List[CommandLineGATK] = Nil
     var dir = ""
 

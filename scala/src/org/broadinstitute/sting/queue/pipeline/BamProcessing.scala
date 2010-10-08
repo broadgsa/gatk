@@ -33,7 +33,7 @@ class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
    * @Doc: Creates a standard realigner target creator CLF given a bam, an output file, and the contigs over which to run
    * @Returns: A CLF for the realigner target creator job
    */
-  protected def StandardRealignerTargetCreator(bam: File, contigs: List[String], output: File) : RealignerTargetCreator = {
+  def StandardRealignerTargetCreator(bam: File, contigs: List[String], output: File) : RealignerTargetCreator = {
     var rtc = new RealignerTargetCreator with StandardCommandLineGATK
     rtc.intervals = null
     rtc.intervalsString = contigs
@@ -48,7 +48,7 @@ class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
    * @Doc: Creates a standard indel cleaner CLF given a bam, the results of the target creator, and an output .bam file
    * @Returns: A CLF for the indel cleaning job
    */
-  protected def StandardIndelCleaner(bam: File, contigs: List[String], targets: File, outBam: File) : IndelRealigner = {
+  def StandardIndelCleaner(bam: File, contigs: List[String], targets: File, outBam: File) : IndelRealigner = {
     var realigner = new IndelRealigner with StandardCommandLineGATK
     realigner.intervalsString = contigs
     realigner.intervals = null
@@ -65,7 +65,7 @@ class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
    * @Doc: Creates a standard split-by-contig indel cleaner job for a given bam file, RTC output, and bam to merge everything to
    * @Returns: A list of CLFs (todo -- wrapped in a Pipeline)
    */
-  protected def StandardIndelCleanBam(bam: File, jobContigs: List[List[String]], targets: File, cleanedBam: File) : List[CommandLineFunction] = {
+  def StandardIndelCleanBam(bam: File, jobContigs: List[List[String]], targets: File, cleanedBam: File) : List[CommandLineFunction] = {
     var cmds : List[CommandLineFunction] = Nil
     var jobSpecs : List[(File,File,List[String])] = jobContigs.map[(File,File,List[String]),List[(File,File,List[String])]](
       ctigs => { (bam, swapExt(bam,".bam",".%s.bam".format(ctigs.mkString("_"))), ctigs) }
@@ -89,7 +89,7 @@ class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
    * @Returns: A list of command line functions for the full indel realignment pipeline from the collection
    * of uncleaned bams to the collection of cleaned bams
    */
-  protected def StandardIndelRealign( bamsUncleanCleanPairs: List[(File,File)], nJobs: Int = 1 ) : List[CommandLineFunction] = {
+  def StandardIndelRealign( bamsUncleanCleanPairs: List[(File,File)], nJobs: Int = 1 ) : List[CommandLineFunction] = {
     val contigsForJobs : List[List[String]] = PipelineUtils.smartSplitContigs(library.attributes.getProject.getReferenceFile, library.attributes.getProject.getIntervalList, nJobs)
     var commands : List[CommandLineFunction] = Nil
     for ( bamPair <- bamsUncleanCleanPairs ) {
@@ -110,7 +110,7 @@ class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
    * @Doc: Merges N bam files into one bam file, fixing mate pairs in the process; does not assume they are sorted
    * @Returns: Command line function for the merge, fix-mate, and sort operation
    */
-  protected def StandardPicardFixMates(inBams: List[File], outBam: File, picardJar: File) : CommandLineFunction = {
+  def StandardPicardFixMates(inBams: List[File], outBam: File, picardJar: File) : CommandLineFunction = {
     var pfm : PicardFixMates = new PicardFixMates
     pfm.bams = inBams
     pfm.outBam = outBam
