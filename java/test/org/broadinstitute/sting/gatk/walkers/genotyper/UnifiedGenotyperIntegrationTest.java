@@ -47,6 +47,31 @@ public class
 
     // --------------------------------------------------------------------------------------------------------------
     //
+    // testing compressed output
+    //
+    // --------------------------------------------------------------------------------------------------------------
+
+    private final static String COMPRESSED_OUTPUT_MD5 = "dfbdccf53668b95e3490c198cbad77e8";
+
+    @Test
+    public void testCompressedOutput() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,100,000", 1,
+                Arrays.asList("gz"), Arrays.asList(COMPRESSED_OUTPUT_MD5));
+        executeTest("testCompressedOutput", spec);
+    }
+
+    // todo -- fixme
+//    @Test
+//    public void testCompressedOutputParallel() {
+//        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+//                baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,100,000 -nt 4", 1,
+//                Arrays.asList("gz"), Arrays.asList(COMPRESSED_OUTPUT_MD5));
+//        executeTest("testCompressedOutput-nt4", spec);
+//    }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
     // testing parallelization
     //
     // --------------------------------------------------------------------------------------------------------------

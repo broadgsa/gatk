@@ -60,7 +60,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
             throw new UserException.CouldNotCreateOutputFile(file, "Unable to open target output stream", ex);
         }
 
-        return new StandardVCFWriter(file, this.stream);
+        return new StandardVCFWriter(file, this.stream, ! stub.isCompressed());
     }
 
 
@@ -117,6 +117,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
 //    }
     public void mergeInto(VCFWriterStorage target) {
         try {
+            System.out.printf("merging %s%n", file);
             BasicFeatureSource<VariantContext> source = BasicFeatureSource.getFeatureSource(file.getAbsolutePath(), new VCFCodec());
             
             for ( VariantContext vc : source.iterator() ) {
