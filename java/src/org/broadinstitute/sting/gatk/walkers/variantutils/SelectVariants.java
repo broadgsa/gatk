@@ -243,33 +243,35 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
 
-        int alleleCount = 0;
-        int numberOfAlleles = 0;
+        VariantContextUtils.calculateChromosomeCounts(sub, attributes, false);
+
+        // because we may want to select against the chromosome count attributes,
+        // we need to convert them to literals instead of arrays
+        if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) && attributes.get(VCFConstants.ALLELE_COUNT_KEY) instanceof List ) {
+            List<Integer> counts = (List<Integer>)attributes.get(VCFConstants.ALLELE_COUNT_KEY);
+            if ( counts.size() == 1 )
+                attributes.put(VCFConstants.ALLELE_COUNT_KEY, counts.get(0));
+        }
+        if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) && attributes.get(VCFConstants.ALLELE_FREQUENCY_KEY) instanceof List ) {
+            List<Double> freqs = (List<Double>)attributes.get(VCFConstants.ALLELE_FREQUENCY_KEY);
+            if ( freqs.size() == 1 )
+                attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, freqs.get(0));
+        }
+
         int depth = 0;
         for (String sample : sub.getSampleNames()) {
             Genotype g = sub.getGenotype(sample);
 
             if (g.isNotFiltered() && g.isCalled()) {
-                numberOfAlleles += g.getPloidy();
 
-                if (g.isHet()) { alleleCount++; }
-                else if (g.isHomVar()) { alleleCount += 2; }
-                
-                String dp = (String) g.getAttribute("DP");
+                String dp = (String) g.getAttribute(VCFConstants.DEPTH_KEY);
                 if (dp != null && ! dp.equals(VCFConstants.MISSING_DEPTH_v3) && ! dp.equals(VCFConstants.MISSING_VALUE_v4) ) {
                     depth += Integer.valueOf(dp);
                 }
             }
         }
 
-        attributes.put("AC", alleleCount);
-        attributes.put("AN", numberOfAlleles);
-        if (numberOfAlleles == 0) {
-            attributes.put("AF", 0.0);
-        } else {
-            attributes.put("AF", ((double) alleleCount) / ((double) numberOfAlleles));
-        }
-        attributes.put("DP", depth);
+        attributes.put(VCFConstants.DEPTH_KEY, depth);
 
         sub = VariantContext.modifyAttributes(sub, attributes);
 

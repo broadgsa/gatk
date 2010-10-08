@@ -25,13 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 
@@ -51,20 +51,7 @@ public class ChromosomeCounts implements InfoFieldAnnotation, StandardAnnotation
             return null;
         
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getChromosomeCount());
-
-        if ( vc.getAlternateAlleles().size() > 0 ) {
-            ArrayList<Double> alleleFreqs = new ArrayList<Double>();
-            ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
-            for ( Allele allele : vc.getAlternateAlleles() ) {
-                alleleCounts.add(vc.getChromosomeCount(allele));
-                alleleFreqs.add((double)vc.getChromosomeCount(allele) / (double)vc.getChromosomeCount());
-            }
-
-            map.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts);
-            map.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs);
-        }
-        
+        VariantContextUtils.calculateChromosomeCounts(vc, map, false);
         return map;
     }
 

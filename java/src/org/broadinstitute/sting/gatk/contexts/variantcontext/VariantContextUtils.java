@@ -46,6 +46,7 @@ public class VariantContextUtils {
      * @param negLog10PError  qual
      * @param filters         filters: use null for unfiltered and empty set for passes filters
      * @param attributes      attributes
+     * @return VariantContext object
      */
     public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes, double negLog10PError, Set<String> filters, Map<String, ?> attributes) {
         return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes != null ? VariantContext.genotypeCollectionToMap(new TreeMap<String, Genotype>(), genotypes) : null, negLog10PError, filters, attributes);
@@ -56,6 +57,7 @@ public class VariantContextUtils {
      * @param name            name
      * @param loc             location
      * @param alleles         alleles
+     * @return VariantContext object
      */
     public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles) {
         return new VariantContext (name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, VariantContext.NO_GENOTYPES, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
@@ -67,6 +69,7 @@ public class VariantContextUtils {
      * @param loc             location
      * @param alleles         alleles
      * @param genotypes       genotypes
+     * @return VariantContext object
      */
     public static VariantContext toVC(String name, GenomeLoc loc, Collection<Allele> alleles, Collection<Genotype> genotypes) {
         return new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, InferredGeneticContext.NO_NEG_LOG_10PERROR, null, null);
@@ -76,12 +79,60 @@ public class VariantContextUtils {
      * Copy constructor
      *
      * @param other the VariantContext to copy
+     * @return VariantContext object
      */
     public static VariantContext toVC(VariantContext other) {
         return new VariantContext(other.getName(), other.getChr(), other.getStart(), other.getEnd(), other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.getFilters(), other.getAttributes());
     }
 
-    /** 
+    /**
+     * Update the attributes of the attributes map given the VariantContext to reflect the proper chromosome-based VCF tags
+     *
+     * @param vc          the VariantContext
+     * @param attributes  the attributes map to populate; must not be null; may contain old values
+     * @param removeStaleValues should we remove stale values from the mapping?
+     */
+    public static void calculateChromosomeCounts(VariantContext vc, Map<String, Object> attributes, boolean removeStaleValues) {
+        // if everyone is a no-call, remove the old attributes if requested
+        if ( vc.getChromosomeCount() == 0 && removeStaleValues ) {
+            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
+                attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
+            if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
+                attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
+            if ( attributes.containsKey(VCFConstants.ALLELE_NUMBER_KEY) )
+                attributes.remove(VCFConstants.ALLELE_NUMBER_KEY);
+            return;
+        }
+
+        attributes.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getChromosomeCount());
+
+        // if there are alternate alleles, record the relevant tags
+        if ( vc.getAlternateAlleles().size() > 0 ) {
+            ArrayList<Double> alleleFreqs = new ArrayList<Double>();
+            ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
+            for ( Allele allele : vc.getAlternateAlleles() ) {
+                alleleCounts.add(vc.getChromosomeCount(allele));
+                alleleFreqs.add((double)vc.getChromosomeCount(allele) / (double)vc.getChromosomeCount());
+            }
+
+            attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts);
+            attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs);
+        }
+        // otherwise, remove them if present and requested
+        else if ( removeStaleValues ) {
+            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
+                attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
+            if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
+                attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
+        }
+        // otherwise, set them to 0
+        else {
+            attributes.put(VCFConstants.ALLELE_COUNT_KEY, 0);
+            attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
+        }
+    }
+
+    /**
      * A simple but common wrapper for matching VariantContext objects using JEXL expressions
      */
     public static class JexlVCMatchExp {
