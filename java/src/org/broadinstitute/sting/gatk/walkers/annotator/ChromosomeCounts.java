@@ -51,7 +51,7 @@ public class ChromosomeCounts implements InfoFieldAnnotation, StandardAnnotation
             return null;
         
         Map<String, Object> map = new HashMap<String, Object>();
-        VariantContextUtils.calculateChromosomeCounts(vc, map, false);
+        VariantContextUtils.calculateChromosomeCounts(vc, map, true);
         return map;
     }
 
