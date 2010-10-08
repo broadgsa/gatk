@@ -19,5 +19,7 @@ class CreateTempDirsFunction extends InProcessFunction {
 
   override def useStatusOutput(file: File) = false
 
+  override def isDone = Some(tempDirectories.forall(_.exists))
+
   def run() = tempDirectories.foreach(_.mkdirs)
 }

@@ -12,11 +12,11 @@ class FunctionEdge(var function: QFunction) extends QEdge {
   var runner: JobRunner =_
 
   private var currentStatus = {
-    val doneOutputs = function.doneOutputs
-    val failOutputs = function.failOutputs
-    if (failOutputs.exists(_.exists))
+    val isDone = function.isDone
+    val isFail = function.isFail
+    if (isFail.isDefined && isFail.get)
       RunnerStatus.FAILED
-    else if (doneOutputs.size > 0 && doneOutputs.forall(_.exists))
+    else if (isDone.isDefined && isDone.get)
       RunnerStatus.DONE
     else
       RunnerStatus.PENDING

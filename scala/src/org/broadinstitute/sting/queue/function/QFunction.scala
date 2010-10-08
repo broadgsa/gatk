@@ -35,6 +35,30 @@ trait QFunction {
   def dotString = ""
 
   /**
+   * Returns true if the function is done, false if it's
+   * not done and None if the done status is unknown.
+   */
+  def isDone = {
+    val files = doneOutputs
+    if (files.size == 0)
+      None
+    else
+      Some(files.forall(_.exists))
+  }
+
+  /**
+   * Returns true if the function has failed, false if it
+   * has not failed and None if the fail status is unknown.
+   */
+  def isFail = {
+    val files = failOutputs
+    if (files.size == 0)
+      None
+    else
+      Some(files.exists(_.exists))
+  }
+
+  /**
    * Returns true if the file should be used for status output.
    * @return true if the file should be used for status output.
    */
