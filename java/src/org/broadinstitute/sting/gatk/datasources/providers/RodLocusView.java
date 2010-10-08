@@ -31,7 +31,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.collections.MergingIterator;
+import org.broadinstitute.sting.utils.collections.RODMergingIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 
@@ -44,7 +44,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     /**
      * The data sources along with their current states.
      */
-    private MergingIterator rodQueue = null;
+    private RODMergingIterator rodQueue = null;
 
     RefMetaDataTracker tracker = null;
     GenomeLoc lastLoc = null;
@@ -94,7 +94,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
             }
         }
 
-        rodQueue = new MergingIterator(iterators);
+        rodQueue = new RODMergingIterator(iterators);
 
         //throw new StingException("RodLocusView currently disabled");
     }
