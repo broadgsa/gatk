@@ -472,11 +472,11 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         double QUAL_STEP2 = (MAX_QUAL * 1.0 / 10.0) / ((double) NUM_BINS / 2.0);
         if( QUAL_STEP2 < 0.01 ) { QUAL_STEP2 = 0.01; } // QUAL field in VCF file is rounded to two decimal places
 
-        final int numKnownAtCut[] = new int[NUM_BINS+1];
-        final int numNovelAtCut[] = new int[NUM_BINS+1];
-        final double knownTiTvAtCut[] = new double[NUM_BINS+1];
-        final double novelTiTvAtCut[] = new double[NUM_BINS+1];
-        final double theCut[] = new double[NUM_BINS+1];
+        final int numKnownAtCut[] = new int[NUM_BINS+2];
+        final int numNovelAtCut[] = new int[NUM_BINS+2];
+        final double knownTiTvAtCut[] = new double[NUM_BINS+2];
+        final double novelTiTvAtCut[] = new double[NUM_BINS+2];
+        final double theCut[] = new double[NUM_BINS+2];
 
         final double fdrCutAsTiTv[] = new double[FDRtranches.length];
         for( int iii = 0; iii < FDRtranches.length; iii++ ) {
