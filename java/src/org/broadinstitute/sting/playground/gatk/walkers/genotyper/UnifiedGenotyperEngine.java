@@ -142,10 +142,6 @@ public class UnifiedGenotyperEngine {
         if ( GLs.size() == 0 )
             return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), false);
 
-        // reset the optimization value and determine the p(AF>0)
-        // TODO: get rid of this optimization, it is wrong!
-        afcm.get().setMinAlleleFrequencyToTest(0);
-
         // 'zero' out the AFs (so that we don't have to worry if not all samples have reads at this position)
         clearAFarray(log10AlleleFrequencyPosteriors.get());
         afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
@@ -220,9 +216,6 @@ public class UnifiedGenotyperEngine {
             double overallLog10PofF = log10AlleleFrequencyPosteriors.get()[bestAFguess];
             double lod = overallLog10PofF - overallLog10PofNull;
             //System.out.println("overallLog10PofNull=" + overallLog10PofNull + ", overallLog10PofF=" + overallLog10PofF);
-
-            // set the optimization value for the subsequent strand calculations
-            afcm.get().setMinAlleleFrequencyToTest(bestAFguess);
 
             // the forward lod
             GLs.clear();

@@ -61,8 +61,6 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
     protected Logger logger;
     protected PrintStream verboseWriter;
 
-    private int minAlleleFrequencyToTest;
-
     protected AlleleFrequencyCalculationModel(int N, Logger logger, PrintStream verboseWriter) {
         this.N = N;
         this.logger = logger;
@@ -107,15 +105,6 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
         }
 
         return generateCalls(contexts, GLs, AFofMaxLikelihood);
-    }
-
-    // TODO: get rid of this optimization, it is wrong!
-    protected int getMinAlleleFrequencyToTest() {
-        return minAlleleFrequencyToTest;
-    }
-
-    protected void setMinAlleleFrequencyToTest(int minAF) {
-        minAlleleFrequencyToTest = minAF;
     }
 
     protected Map<String, Genotype> generateCalls(Map<String, StratifiedAlignmentContext> contexts,
