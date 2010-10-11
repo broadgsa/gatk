@@ -12,7 +12,7 @@
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation" />
       <!-- The annotations -->
-      <class name="org.broadinstitute.sting.gatk.walkers.annotator.AlleleBalance" />
+      <class name="org.broadinstitute.sting.gatk.walkers.annotator.DepthPerAlleleBySample" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.DepthOfCoverage" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.HomopolymerRun" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.MappingQualityZero" />
@@ -20,6 +20,7 @@
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.RMSMappingQuality" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.SpanningDeletions" />
       <class name="org.broadinstitute.sting.gatk.walkers.annotator.HaplotypeScore" />
+      <class name="org.broadinstitute.sting.gatk.walkers.annotator.ChromosomeCounts" />
     </dependencies>
   </executable>
 </package>
