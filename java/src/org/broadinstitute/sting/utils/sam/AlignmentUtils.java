@@ -37,6 +37,7 @@ import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 
 
 public class AlignmentUtils {
@@ -235,15 +236,112 @@ public class AlignmentUtils {
                     if ( currentPos > windowStart )
                         refIndex += Math.min(cigarElementLength, currentPos - windowStart);
                     break;
-                default:
-                    // fail silently
-                    return 0;
+                case H:
+                case P:
+                    break;
             }
         }
 
         return sum;
     }
 
+    /** Returns the number of mismatches in the pileup element within the given reference context.
+     *
+     * @param read          the SAMRecord
+     * @param ref           the reference context
+     * @param maxMismatches the maximum number of surrounding mismatches we tolerate to consider a base good
+     * @param windowSize    window size (on each side) to test
+     * @return a bitset representing which bases are good
+     */
+    public static BitSet mismatchesInRefWindow(SAMRecord read, ReferenceContext ref, int maxMismatches, int windowSize) {
+        // first determine the positions with mismatches
+        int readLength = read.getReadLength();
+        BitSet mismatches = new BitSet(readLength);
+
+        // TODO -- we only care about starting from curpos
+
+        byte[] refBases = ref.getBases();
+        int refIndex = read.getAlignmentStart() - (int)ref.getWindow().getStart();
+        // it's possible we aren't starting at the beginning of a read
+        int startOffset = 0;
+        if ( refIndex < 0 ) {
+            startOffset = -1 * refIndex;
+            refIndex = 0;
+
+            // TODO -- fix me
+            return null;
+        }
+
+        byte[] readBases = read.getReadBases();
+        int readIndex = 0;
+
+        Cigar c = read.getCigar();
+
+        for (int i = 0 ; i < c.numCigarElements() ; i++) {
+            CigarElement ce = c.getCigarElement(i);
+            int cigarElementLength = ce.getLength();
+            switch ( ce.getOperator() ) {
+                case M:
+                    for (int j = 0; j < cigarElementLength; j++, readIndex++, refIndex++) {
+                        if ( refIndex >= refBases.length ) {
+                            // TODO -- fix me
+                            return null;                            
+                        }
+                        byte refChr = refBases[refIndex];
+                        byte readChr = readBases[readIndex];
+                        if ( readChr != refChr )
+                            mismatches.set(readIndex);
+                    }
+                    break;
+                case I:
+                case S:
+                    readIndex += cigarElementLength;
+                    break;
+                case D:
+                case N:
+                    refIndex += cigarElementLength;
+                    break;
+                case H:
+                case P:
+                    break;
+            }
+        }
+
+        // all bits are set to false by default
+        BitSet result = new BitSet(readLength);
+
+        int currentPos = 0, leftPos = 0, rightPos;
+        int mismatchCount = 0;
+
+        // calculate how many mismatches exist in the windows to the left/right
+        for ( rightPos = 1; rightPos <= windowSize && rightPos < readLength; rightPos++) {
+            if ( mismatches.get(rightPos) )
+                mismatchCount++;
+        }
+        if ( mismatchCount <= maxMismatches )
+            result.set(currentPos);
+
+        // now, traverse over the read positions
+        while ( currentPos < readLength ) {
+            // add a new rightmost position
+            if ( rightPos < readLength && mismatches.get(rightPos++) )
+                mismatchCount++;
+            // re-penalize the previous position
+            if ( mismatches.get(currentPos++) )
+                mismatchCount++;
+            // don't penalize the current position
+            if ( mismatches.get(currentPos) )
+                mismatchCount--;
+            // subtract the leftmost position
+            if ( leftPos < currentPos - windowSize && mismatches.get(leftPos++) )
+                    mismatchCount--;
+
+            if ( mismatchCount <= maxMismatches )
+                result.set(currentPos);
+        }
+
+        return result;
+    }
     /** Returns number of alignment blocks (continuous stretches of aligned bases) in the specified alignment.
      * This method follows closely the SAMRecord::getAlignmentBlocks() implemented in samtools library, but
      * it only counts blocks without actually allocating and filling the list of blocks themselves. Hence, this method is

@@ -3,7 +3,6 @@ package org.broadinstitute.sting.utils.sam;
 import java.util.*;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
@@ -39,6 +38,11 @@ public class GATKSAMRecord extends SAMRecord {
     // These attributes exist in memory only, and are never written to disk.
     private Map<Object, Object> temporaryAttributes;
 
+    // A bitset which represents the bases of the read.  If a bit is set, then
+    // the base is good; otherwise it is a bad base (as defined by the setter).
+    // TODO: this is a temporary hack.  If it works, clean it up.
+    private BitSet mBitSet = null;
+
     public GATKSAMRecord(SAMRecord record, boolean useOriginalBaseQualities) {
         super(null); // it doesn't matter - this isn't used
         if ( record == null )
@@ -54,7 +58,7 @@ public class GATKSAMRecord extends SAMRecord {
         for ( SAMTagAndValue attribute : attributes )
             setAttribute(attribute.tag, attribute.value);
 
-        // if we are using original quals, set them now if t hey are present in the record
+        // if we are using original quals, set them now if they are present in the record
         if ( useOriginalBaseQualities ) {
             byte[] originalQuals = mRecord.getOriginalBaseQualities();
             if ( originalQuals != null )
@@ -64,6 +68,15 @@ public class GATKSAMRecord extends SAMRecord {
         // sanity check that the lengths of the base and quality strings are equal
         if ( getBaseQualities().length  != getReadLength() )
             throw new UserException.MalformedBam(this, String.format("Error: the number of base qualities does not match the number of bases in %s (and the GATK does not currently support '*' for the quals)", mRecord.getReadName()));
+    }
+
+    public void setGoodBases(GATKSAMRecordFilter filter, boolean abortIfAlreadySet) {
+        if ( mBitSet == null || !abortIfAlreadySet )
+            mBitSet = filter.getGoodBases(this);
+    }
+
+    public boolean isGoodBase(int index) {
+        return ( mBitSet == null || mBitSet.length() <= index ? true : mBitSet.get(index));
     }
 
     ///////////////////////////////////////////////////////////////////////////////
