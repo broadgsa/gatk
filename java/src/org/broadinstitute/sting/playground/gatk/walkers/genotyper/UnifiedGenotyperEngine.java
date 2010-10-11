@@ -197,6 +197,10 @@ public class UnifiedGenotyperEngine {
         for ( Genotype g : genotypes.values() )
             alleles.addAll(g.getAlleles());
 
+        // print out stats if we have a writer
+        if ( verboseWriter != null )
+            printVerboseData(refContext.getLocus().toString(), alleles, PofF, phredScaledConfidence, normalizedPosteriors);
+
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         HashMap<String, Object> attributes = new HashMap<String, Object>();
 
@@ -211,16 +215,44 @@ public class UnifiedGenotyperEngine {
 
         if ( !UAC.NO_SLOD ) {
 
-            // TODO: implement me
+            // the overall lod
+            double overallLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
+            double overallLog10PofF = log10AlleleFrequencyPosteriors.get()[bestAFguess];
+            double lod = overallLog10PofF - overallLog10PofNull;
+            //System.out.println("overallLog10PofNull=" + overallLog10PofNull + ", overallLog10PofF=" + overallLog10PofF);
 
-            //Map<String, BiallelicGenotypeLikelihoods> forwardGLs = glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD, genotypePriors);
-            //Map<String, BiallelicGenotypeLikelihoods> reverseGLs = glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE, genotypePriors);
+            // set the optimization value for the subsequent strand calculations
+            afcm.get().setMinAlleleFrequencyToTest(bestAFguess);
 
+            // the forward lod
+            GLs.clear();
+            glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD, genotypePriors, GLs);
+            clearAFarray(log10AlleleFrequencyPosteriors.get());
+            afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
+            double forwardLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
+            double forwardLog10PofF = log10AlleleFrequencyPosteriors.get()[bestAFguess];
+            //System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
+            // the reverse lod
+            GLs.clear();
+            glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE, genotypePriors, GLs);
+            clearAFarray(log10AlleleFrequencyPosteriors.get());
+            afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
+            double reverseLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
+            double reverseLog10PofF = log10AlleleFrequencyPosteriors.get()[bestAFguess];
+            //System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
 
+            double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofNull;
+            double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofNull;
+            //System.out.println("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
 
+            // strand score is max bias between forward and reverse strands
+            double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
+            // rescale by a factor of 10
+            strandScore *= 10.0;
+            //logger.debug(String.format("SLOD=%f", strandScore));
 
-
+            attributes.put("SB", Double.valueOf(strandScore));
         }
 
         GenomeLoc loc = refContext.getLocus();
@@ -245,10 +277,6 @@ public class UnifiedGenotyperEngine {
             Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vc);
             vc = variantContexts.iterator().next(); //We know the collection will always have exactly 1 element.
         }
-
-        // print out stats if we have a writer
-        if ( verboseWriter != null )
-            printVerboseData(vc, PofF, phredScaledConfidence, normalizedPosteriors);
 
         VariantCallContext call = new VariantCallContext(vc, passesCallThreshold(phredScaledConfidence, atTriggerTrack));
         call.setRefBase(refContext.getBase());
@@ -338,15 +366,26 @@ public class UnifiedGenotyperEngine {
         return new VariantCallContext(QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING);
     }
 
-    protected void printVerboseData(VariantContext vc, double PofF, double phredScaledConfidence, double[] normalizedPosteriors) {
+    protected void printVerboseData(String pos, Set<Allele> alleles, double PofF, double phredScaledConfidence, double[] normalizedPosteriors) {
+        Allele refAllele = null, altAllele = null;
+        for ( Allele allele : alleles ) {
+            if ( allele.isReference() )
+                refAllele = allele;
+            else
+                altAllele = allele;
+        }
+
         for (int i = 0; i <= N; i++) {
             StringBuilder AFline = new StringBuilder("AFINFO\t");
-            AFline.append(vc.getChr()).append(":").append(vc.getStart()).append("\t");
-            AFline.append(vc.getReference()).append("\t");
-            if ( vc.isBiallelic() )
-                AFline.append(vc.getAlternateAllele(0)).append("\t");
+            AFline.append(pos);
+            AFline.append("\t");
+            AFline.append(refAllele);
+            AFline.append("\t");
+            if ( altAllele != null )
+                AFline.append(altAllele);
             else
-                AFline.append("N/A\t");
+                AFline.append("N/A");
+            AFline.append("\t");
             AFline.append(i + "/" + N + "\t");
             AFline.append(String.format("%.2f\t", ((float)i)/N));
             AFline.append(String.format("%.8f\t", log10AlleleFrequencyPriors[i]));
