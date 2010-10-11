@@ -72,8 +72,8 @@ public class MalformedReadFilter implements SamRecordHeaderFilter {
      * @return true if read end is valid, false otherwise.
      */
     private static boolean checkInvalidAlignmentEnd( SAMRecord read ) {
-        // Alignment ends prior to its beginning
-        if( !read.getReadUnmappedFlag() && read.getAlignmentEnd() != -1 && read.getAlignmentEnd() < read.getAlignmentStart() )
+        // Alignment aligns to negative number of bases in the reference.
+        if( !read.getReadUnmappedFlag() && read.getAlignmentEnd() != -1 && (read.getAlignmentEnd()-read.getAlignmentStart()+1)<0 )
             return false;
         return true;
     }
@@ -105,7 +105,7 @@ public class MalformedReadFilter implements SamRecordHeaderFilter {
         if( !read.getReadUnmappedFlag() &&
             read.getAlignmentStart() != -1 &&
             read.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START &&
-            read.getAlignmentBlocks().size() == 0 )
+            read.getAlignmentBlocks().size() < 0 )
             return false;
         return true;
     }

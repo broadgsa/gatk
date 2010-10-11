@@ -92,7 +92,6 @@ public class TraverseReads<M,T> extends TraversalEngine<M,T,ReadWalker<M,T>,Read
             // update the number of reads we've seen
             ReadMetrics readMetrics = dataProvider.getShard().getReadMetrics();
             readMetrics.incrementNumIterations();
-            readMetrics.incrementNumReadsSeen();
 
             // if the read is mapped, create a metadata tracker
             ReadMetaDataTracker tracker = (read.getReferenceIndex() >= 0) ? rodView.getReferenceOrderedDataForRead(read) : null;
