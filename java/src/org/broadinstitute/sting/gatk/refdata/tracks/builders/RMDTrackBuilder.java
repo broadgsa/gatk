@@ -166,7 +166,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         try {
             return new Pair<BasicFeatureSource, SAMSequenceDictionary>(BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
         } catch (TribbleException e) {
-            throw new UserException(e.getTribbleExceptionMessage(), e);
+            throw new UserException(e.getMessage(), e);
         }
     }
 
@@ -208,7 +208,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
                                                                                                 createCodec(targetClass, name)),
                                                                                                 dictFromIndex);
         } catch (TribbleException e) {
-            throw new UserException(e.getTribbleExceptionMessage());
+            throw new UserException(e.getMessage());
         } catch (IOException e) {
             throw new UserException("Unable to create the index file for " + inputFile, e);
         }

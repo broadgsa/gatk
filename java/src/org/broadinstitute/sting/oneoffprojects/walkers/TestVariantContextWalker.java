@@ -59,15 +59,9 @@ public class TestVariantContextWalker extends RodWalker<Integer, Integer> {
     boolean printContexts = false;
 
     @Argument(fullName="outputVCF", doc="If provided, we'll convert the first input context into a VCF", required=false)
-    String outputVCF = null;
+    VCFWriter writer = null;
 
-    private VCFWriter writer = null;
     private boolean wroteHeader = false;
-
-    public void initialize() {
-        if ( outputVCF != null )
-            writer = new StandardVCFWriter(new File(outputVCF));
-    }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( ref == null )
