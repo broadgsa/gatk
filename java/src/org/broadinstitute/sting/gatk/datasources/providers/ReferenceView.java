@@ -74,8 +74,15 @@ public class ReferenceView implements View {
 
     protected byte[] getReferenceBases( GenomeLoc genomeLoc ) {
         SAMSequenceRecord sequenceInfo = reference.getSequenceDictionary().getSequence(genomeLoc.getContig());
+
+        long start = genomeLoc.getStart();
         long stop = Math.min( genomeLoc.getStop(), sequenceInfo.getSequenceLength() );
-        ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(), genomeLoc.getStart(), stop);
+
+        // Read with no aligned bases?  Return an empty array.
+        if(stop - start + 1 == 0)
+            return new byte[0];
+
+        ReferenceSequence subsequence = reference.getSubsequenceAt(genomeLoc.getContig(), start, stop);
 
         int overhang = (int)(genomeLoc.getStop() - stop);
         if ( overhang > 0 ) {
