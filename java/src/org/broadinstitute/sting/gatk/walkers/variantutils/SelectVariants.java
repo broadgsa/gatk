@@ -203,20 +203,23 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        VariantContext vc = tracker.getVariantContext(ref, "variant", null, context.getLocation(), true);
-	if ( vc == null ){
-	    return 0;
-	}
-        VariantContext sub = subsetRecord(vc, samples);
+        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+        if ( vcs == null || vcs.size() == 0) {
+            return 0;
+        }
 
-        if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
-            for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
-                if ( !VariantContextUtils.match(sub, jexl) ) {
-                    return 0;
+        for (VariantContext vc : vcs) {
+            VariantContext sub = subsetRecord(vc, samples);
+    
+            if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+                for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
+                    if ( !VariantContextUtils.match(sub, jexl) ) {
+                        return 0;
+                    }
                 }
-            }
 
-            vcfWriter.add(sub, ref.getBase());
+                vcfWriter.add(sub, ref.getBase());
+            }
         }
 
         return 1;
@@ -243,35 +246,33 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
 
-        VariantContextUtils.calculateChromosomeCounts(sub, attributes, false);
-
-        // because we may want to select against the chromosome count attributes,
-        // we need to convert them to literals instead of arrays
-        if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) && attributes.get(VCFConstants.ALLELE_COUNT_KEY) instanceof List ) {
-            List<Integer> counts = (List<Integer>)attributes.get(VCFConstants.ALLELE_COUNT_KEY);
-            if ( counts.size() == 1 )
-                attributes.put(VCFConstants.ALLELE_COUNT_KEY, counts.get(0));
-        }
-        if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) && attributes.get(VCFConstants.ALLELE_FREQUENCY_KEY) instanceof List ) {
-            List<Double> freqs = (List<Double>)attributes.get(VCFConstants.ALLELE_FREQUENCY_KEY);
-            if ( freqs.size() == 1 )
-                attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, freqs.get(0));
-        }
-
+        int alleleCount = 0;
+        int numberOfAlleles = 0;
         int depth = 0;
         for (String sample : sub.getSampleNames()) {
             Genotype g = sub.getGenotype(sample);
 
             if (g.isNotFiltered() && g.isCalled()) {
+                numberOfAlleles += g.getPloidy();
 
-                String dp = (String) g.getAttribute(VCFConstants.DEPTH_KEY);
+                if (g.isHet()) { alleleCount++; }
+                else if (g.isHomVar()) { alleleCount += 2; }
+                
+                String dp = (String) g.getAttribute("DP");
                 if (dp != null && ! dp.equals(VCFConstants.MISSING_DEPTH_v3) && ! dp.equals(VCFConstants.MISSING_VALUE_v4) ) {
                     depth += Integer.valueOf(dp);
                 }
             }
         }
 
-        attributes.put(VCFConstants.DEPTH_KEY, depth);
+        attributes.put("AC", alleleCount);
+        attributes.put("AN", numberOfAlleles);
+        if (numberOfAlleles == 0) {
+            attributes.put("AF", 0.0);
+        } else {
+            attributes.put("AF", ((double) alleleCount) / ((double) numberOfAlleles));
+        }
+        attributes.put("DP", depth);
 
         sub = VariantContext.modifyAttributes(sub, attributes);
 

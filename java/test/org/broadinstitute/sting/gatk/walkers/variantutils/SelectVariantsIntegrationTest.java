@@ -23,4 +23,17 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
 
         executeTest("testComplexSelection--" + testfile, spec);
     }
+
+    @Test
+    public void testRepeatedLineSelection() {
+        String testfile = validationDataLocation + "test.dup.vcf";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString(" -sn A -sn B -sn C -B:variant,VCF " + testfile + " -NO_HEADER"),
+                1,
+                Arrays.asList("fae9822d5f7ad6c76b411e8ca0886409")
+        );
+
+        executeTest("testRepeatedLineSelection--" + testfile, spec);
+    }
 }
