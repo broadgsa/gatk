@@ -924,9 +924,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             // for reads that end in an insertion
             if ( myPosOnAlt + aRead.getReadLength() < endOfFirstBlock + indelCE.getLength() ) {
                 int partialInsertionLength = myPosOnAlt + aRead.getReadLength() - endOfFirstBlock;
-                // if we also started inside the insertion, then we need to modify the length by 1 base
+                // if we also started inside the insertion, then we need to modify the length
                 if ( !sawAlignmentStart )
-                    partialInsertionLength--;
+                    partialInsertionLength = aRead.getReadLength();
                 readCigar.add(new CigarElement(partialInsertionLength, CigarOperator.I));
                 aRead.setCigar(readCigar);
                 return true;
