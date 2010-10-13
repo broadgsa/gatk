@@ -114,7 +114,7 @@ public class
 
     @Test
     public void testVEWriteVCF() {
-        String extraArgs = "-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 30 -E MendelianViolationEvaluator";
+        String extraArgs = "-L 1:1-10,000,000 -NO_HEADER -family NA19238+NA19239=NA19240 -MVQ 30 -E MendelianViolationEvaluator";
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s",
                     2,

@@ -162,7 +162,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
 
     @Argument(shortName="outputVCF", fullName="InterestingSitesVCF", doc="If provided, interesting sites emitted to this vcf and the INFO field annotated as to why they are interesting", required=false)
-    protected String outputVCF = null;
+    protected VCFWriter writer = null;
 
     @Argument(shortName="gcLog", fullName="GenotypeCocordanceLog", doc="If provided, sites with genotype concordance problems (e.g., FP and FNs) will be emitted ot this file", required=false)
     protected PrintStream gcLog = null;
@@ -291,7 +291,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     private Set<Class<? extends VariantEvaluator>> evaluationClasses = null;
 
     /** output writer for interesting sites */
-    private VCFWriter writer = null;
     private boolean wroteHeader = false;
 
     // --------------------------------------------------------------------------------------------------------------
@@ -347,9 +346,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
         contexts = initializeEvaluationContexts(evalNames, compNames, selectExps);
         determineContextNamePartSizes();
-
-        if ( outputVCF != null )
-            writer = new StandardVCFWriter(new File(outputVCF));
 
         if ( rsIDFile != null ) {
             if ( maxRsIDBuild == Integer.MAX_VALUE )
