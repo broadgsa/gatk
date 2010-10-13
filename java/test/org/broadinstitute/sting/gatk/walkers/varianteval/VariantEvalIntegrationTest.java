@@ -29,7 +29,7 @@ public class
         String extraArgs = "-L 1:1-10,000,000";
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
-                    1, Arrays.asList("482c868400f59e17dbc59d667b4b2eca"));
+                    1, Arrays.asList("158ac8e6d32eb2ea1bbeebfa512965de"));
             executeTest("testSelect1", spec);
         }
     }
@@ -38,7 +38,7 @@ public class
     public void testSelect2() {
         String extraArgs = "-L 1:1-10,000,000";
         WalkerTestSpec spec = new WalkerTestSpec( withSelect(withSelect(root, "DP < 50", "DP50"), "set==\"Intersection\"", "intersection") + " " + extraArgs + " -o %s",
-                1, Arrays.asList("4dfaa72b23ce297a2c29d9f7e9661c37"));
+                1, Arrays.asList("cee96f61ffa1d042fe0c63550c508ec9"));
         executeTest("testSelect2", spec);
     }
 
@@ -48,7 +48,7 @@ public class
         for (String vcfFile : vcfFiles) {
             WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B:eval,VCF " + validationDataLocation + vcfFile + " -B:comp,VCF " + validationDataLocation + "GenotypeConcordanceComp.vcf -noStandard -E GenotypeConcordance -reportType CSV -o %s",
                     1,
-                    Arrays.asList("15d1075d384da2bb7445f7493f2b6a07"));
+                    Arrays.asList("7e9ce1b26cdeaa50705f5de163847638"));
             executeTest("testVEGenotypeConcordance" + vcfFile, spec);
         }
 
@@ -57,8 +57,8 @@ public class
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "8891969e7522e728b64c112a2b2f9d1e");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0 -E MendelianViolationEvaluator", "ace2f6170e740a9ee6abc25f130c6848");
+        expectations.put("-L 1:1-10,000,000", "ff8c4ba16c7c14b4edbaf440f20641f9");
+        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -MVQ 0 -E MendelianViolationEvaluator", "9b509ce5d31658eb09bb9597799b2908");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -80,10 +80,10 @@ public class
                 " -B:comp_hapmap,VCF " + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
 
-        String matchingMD5 = "dd513bc72860133a58e9ee542782162b";
+        String matchingMD5 = "1e6d6e152c9a90513dd5b6eaa3729388";
         expectations.put("", matchingMD5);
         expectations.put(" -known comp_hapmap -known dbsnp", matchingMD5);
-        expectations.put(" -known comp_hapmap", "bef6d1e5fa3a79faf745711e0d8fa2dd");
+        expectations.put(" -known comp_hapmap", "d28dd504017f39a91cde8e6f096879d6");
         for (String tests : testsEnumerations) {
             for (Map.Entry<String, String> entry : expectations.entrySet()) {
                 String extraArgs2 = entry.getKey();
@@ -118,9 +118,16 @@ public class
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s",
                     2,
-                    Arrays.asList("77abdb58b3166d87daadf397e7fb51c4", "989bc30dea6c8a4cf771cd1b9fdab488"));
+                    Arrays.asList("6b97a019402b3984fead9a4e8b7c7c2a", "989bc30dea6c8a4cf771cd1b9fdab488"));
             executeTest("testVEWriteVCF", spec);
         }
+    }
+
+    @Test
+    public void testCompVsEvalAC() {
+        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -E GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf -reportType CSV";
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("25a681855cb26e7380fbf1a93de0a41f"));
+        executeTest("testACDiscordanceAtAC1EvalAC2Comp",spec);
     }
 
     private static String withSelect(String cmd, String select, String name) {

@@ -673,6 +673,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             if ( vc != null && vc.hasGenotypes(SAMPLES_LIST) && SAMPLES_LIST.size() > 0 ) {
                 //if ( ! name.equals("eval") ) logger.info(String.format("subsetting VC %s", vc));
                 vc = vc.subContextFromGenotypes(vc.getGenotypes(SAMPLES_LIST).values());
+                HashMap<String,Object> newAts = new HashMap<String,Object>(vc.getAttributes());
+                VariantContextUtils.calculateChromosomeCounts(vc,newAts,true);
+                vc = VariantContext.modifyAttributes(vc,newAts);
                 //if ( ! name.equals("eval") ) logger.info(String.format("  => VC %s", vc));
             }
 

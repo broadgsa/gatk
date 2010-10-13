@@ -1,8 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
@@ -61,6 +63,12 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
     @DataPoint(description = "the variant quality score histograms for true positive and false positive calls")
     QualityScoreHistograms qualityScoreHistograms = null;
 
+    @DataPoint(description = "the concordance statistics summary by allele count")
+    ACSummaryStats alleleCountSummary = null;
+
+    @DataPoint(description = "the concordance statistics by allele count")
+    ACStats alleleCountStats = null;
+
     private static final int MAX_MISSED_VALIDATION_DATA = 100;
 
 		private boolean discordantInteresting = false;
@@ -73,12 +81,12 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
             public long nFound = 0;
             public long nMissed = 0;
         }
-        public HashMap<Integer, Stats> alleleCountStats = new HashMap<Integer, Stats>();
+        public HashMap<Integer, Stats> foundMissedByAC = new HashMap<Integer, Stats>();
 
         public Object[] getRowKeys() {
-            String rows[] = new String[alleleCountStats.size()];
+            String rows[] = new String[foundMissedByAC.size()];
             int index = 0;
-            for (int i : alleleCountStats.keySet()) rows[index++] = "Allele Count " + i;
+            for (int i : foundMissedByAC.keySet()) rows[index++] = "Allele Count " + i;
             return rows;
         }
 
@@ -91,23 +99,23 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
         }
 
         public String getCell(int x, int y) {
-            if (x >= alleleCountStats.size()) throw new IllegalStateException(x + " is greater than the max index of " + (alleleCountStats.size()-1));
-            if (y == 0) return String.valueOf(alleleCountStats.get(alleleCountStats.keySet().toArray(new Integer[alleleCountStats.size()])[x]).nFound);
-            else return String.valueOf(alleleCountStats.get(alleleCountStats.keySet().toArray(new Integer[alleleCountStats.size()])[x]).nMissed);
+            if (x >= foundMissedByAC.size()) throw new IllegalStateException(x + " is greater than the max index of " + (foundMissedByAC.size()-1));
+            if (y == 0) return String.valueOf(foundMissedByAC.get(foundMissedByAC.keySet().toArray(new Integer[foundMissedByAC.size()])[x]).nFound);
+            else return String.valueOf(foundMissedByAC.get(foundMissedByAC.keySet().toArray(new Integer[foundMissedByAC.size()])[x]).nMissed);
         }
 
         public void incrementFoundCount(int alleleFreq) {
-            if (!alleleCountStats.containsKey(alleleFreq))
-                alleleCountStats.put(alleleFreq,new Stats(1,0));
+            if (!foundMissedByAC.containsKey(alleleFreq))
+                foundMissedByAC.put(alleleFreq,new Stats(1,0));
             else
-                alleleCountStats.get(alleleFreq).nFound++;
+                foundMissedByAC.get(alleleFreq).nFound++;
         }
 
         public void incrementMissedCount(int alleleFreq) {
-            if (!alleleCountStats.containsKey(alleleFreq))
-                alleleCountStats.put(alleleFreq,new Stats(0,1));
+            if (!foundMissedByAC.containsKey(alleleFreq))
+                foundMissedByAC.put(alleleFreq,new Stats(0,1));
             else
-                alleleCountStats.get(alleleFreq).nMissed++;
+                foundMissedByAC.get(alleleFreq).nMissed++;
         }
     }
 
@@ -256,7 +264,9 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
             if (eval != null) {
                 // initialize the concordance table
                 sampleStats = new SampleStats(eval,Genotype.Type.values().length);
+                alleleCountStats = new ACStats(eval,Genotype.Type.values().length);
                 sampleSummaryStats = new SampleSummaryStats(eval);
+                alleleCountSummary = new ACSummaryStats(eval);
                 for (final VariantContext vc : missedValidationData) {
                     determineStats(null, vc);
                 }
@@ -287,6 +297,8 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
         String interesting = null;
 
         final boolean validationIsValidVC = isValidVC(validation);
+        final String evalAC = (eval != null && eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) ? String.format("evalAC%s",eval.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)) : null ;
+        final String validationAC = ( validationIsValidVC &&  validation.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) ? String.format("compAC%s",validation.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)) : null;
 
         // determine concordance for eval data
         if (eval != null) {
@@ -306,6 +318,12 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
                 }
 
                 sampleStats.incrValue(sample, truth, called);
+                if ( evalAC != null ) {
+                    alleleCountStats.incrValue(evalAC,truth,called);
+                }
+                if ( validationAC != null ) {
+                    alleleCountStats.incrValue(validationAC,truth,called);
+                }
             }
         }
         // otherwise, mark no-calls for all samples
@@ -315,7 +333,9 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
             for (final String sample : validation.getSampleNames()) {
                 final Genotype.Type truth = validation.getGenotype(sample).getType();
                 sampleStats.incrValue(sample, truth, called);
-
+                if ( evalAC != null ) {
+                    alleleCountStats.incrValue(evalAC,truth,called);
+                }
                 // print out interesting sites
                 if ( PRINT_INTERESTING_SITES && super.getVEWalker().gcLog != null ) {
                     if ( (truth == Genotype.Type.HOM_VAR || truth == Genotype.Type.HET) && called == Genotype.Type.NO_CALL ) {
@@ -328,7 +348,7 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
             }
         }
 
-        // determine allele count concordance ()
+        // determine allele count concordance () // this is really a FN rate estimate -- CH
         if (validationIsValidVC && validation.isPolymorphic()) {
             int trueAlleleCount = 0;
             for (final Allele a : validation.getAlternateAlleles()) {
@@ -370,6 +390,10 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
 
         if( sampleSummaryStats != null && sampleStats != null ) {
             sampleSummaryStats.generateSampleSummaryStats( sampleStats );
+        }
+
+        if ( alleleCountSummary != null && alleleCountStats != null ) {
+            alleleCountSummary.generateSampleSummaryStats( alleleCountStats );
         }
     }
 }
@@ -417,10 +441,15 @@ class SampleStats implements TableType {
                             "n_hom/ref","n_hom/het","n_hom/hom"};
     }
 
+
     public SampleStats(VariantContext vc, int nGenotypeTypes) {
         this.nGenotypeTypes = nGenotypeTypes;
         for (String sample : vc.getSampleNames())
             concordanceStats.put(sample, new long[nGenotypeTypes][nGenotypeTypes]);
+    }
+
+    public SampleStats(int genotypeTypes) {
+        nGenotypeTypes = genotypeTypes;
     }
 
     public Object getCell(int x, int y) {
@@ -450,11 +479,34 @@ class SampleStats implements TableType {
 }
 
 /**
+ * Sample stats, but for AC
+ */
+class ACStats extends SampleStats {
+    public ACStats(VariantContext vc, int nGenotypeTypes) {
+        super(nGenotypeTypes);
+        for ( int i = 0; i <= 2*vc.getNSamples(); i++ ) { // todo -- assuming ploidy 2 here...
+            concordanceStats.put(String.format("evalAC%d",i),new long[nGenotypeTypes][nGenotypeTypes]);
+            concordanceStats.put(String.format("compAC%d",i), new long[nGenotypeTypes][nGenotypeTypes]);
+        }
+    }
+
+    public String getName() {
+        return "Allele Count Statistics";
+    }
+
+    public Object[] getRowKeys() {
+        String[] acNames = (String[]) super.getRowKeys();
+        Arrays.sort(acNames,new CompACNames());
+        return acNames;
+    }
+}
+
+/**
  * a table of sample names to genotype concordance summary statistics
  */
 class SampleSummaryStats implements TableType {
-    private final static String ALL_SAMPLES_KEY = "allSamples";
-    private final static String[] COLUMN_KEYS = new String[]{
+    protected final static String ALL_SAMPLES_KEY = "allSamples";
+    protected final static String[] COLUMN_KEYS = new String[]{
             "percent_comp_ref_called_var",
             "percent_comp_het_called_het",
             "percent_comp_het_called_var",
@@ -465,7 +517,7 @@ class SampleSummaryStats implements TableType {
             "percent_non-reference_discrepancy_rate"};
 
     // sample to concordance stats object
-    private final HashMap<String, double[]> concordanceSummary = new HashMap<String, double[]>();
+    protected final HashMap<String, double[]> concordanceSummary = new HashMap<String, double[]>();
 
     /**
      *
@@ -488,6 +540,10 @@ class SampleSummaryStats implements TableType {
         for( final String sample : vc.getSampleNames() ) {
             concordanceSummary.put(sample, new double[COLUMN_KEYS.length]);
         }
+    }
+
+    public SampleSummaryStats() {
+
     }
 
     public Object getCell(int x, int y) {
@@ -615,3 +671,59 @@ class SampleSummaryStats implements TableType {
         return "Sample Summary Statistics";
     }
 }
+
+/**
+ * SampleSummaryStats .. but for allele counts
+ */
+class ACSummaryStats extends SampleSummaryStats {
+    public ACSummaryStats (final VariantContext vc) {
+        concordanceSummary.put(ALL_SAMPLES_KEY, new double[COLUMN_KEYS.length]);
+        for( int i = 0; i <= 2*vc.getNSamples() ; i ++ ) {
+            concordanceSummary.put(String.format("evalAC%d",i), new double[COLUMN_KEYS.length]);
+            concordanceSummary.put(String.format("compAC%d",i), new double[COLUMN_KEYS.length]);
+        }
+    }
+
+    public String getName() {
+        return "Allele Count Summary Statistics";
+    }
+
+    public Object[] getRowKeys() {
+        String[] acNames = (String[]) super.getRowKeys();
+        Arrays.sort(acNames,new CompACNames());
+        return acNames;
+    }
+}
+
+class CompACNames implements Comparator{
+
+    public boolean equals(Object o) {
+        return ( o.getClass() == CompACNames.class );
+    }
+
+    public int compare(Object o1, Object o2) {
+        //System.out.printf("Objects %s %s get ranks %d %d%n",o1.toString(),o2.toString(),getRank(o1),getRank(o2));
+        return getRank(o1) - getRank(o2);
+    }
+
+    public int getRank(Object o) {
+        if ( o.getClass() != String.class ) {
+            return Integer.MIN_VALUE/4;
+        } else {
+            String s = (String) o;
+            if ( s.startsWith("eval") ) {
+                return Integer.MIN_VALUE/4 + 1 + parseAC(s);
+            } else if ( s.startsWith("comp") ) {
+                return 1+ parseAC(s);
+            } else {
+                return Integer.MIN_VALUE/4;
+            }
+        }
+    }
+
+    public int parseAC(String s) {
+        String[] g = s.split("AC");
+        return Integer.parseInt(g[1]);
+    }
+}
+
