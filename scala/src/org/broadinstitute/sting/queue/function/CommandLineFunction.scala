@@ -33,6 +33,9 @@ trait CommandLineFunction extends QFunction with Logging {
   /** Job queue to run the command */
   var jobQueue: String = _
 
+  /** Extra arguments to specify on the command line */
+  var extraArgs: List[String] = Nil
+
   /** Temporary directory to write any files */
   var jobTempDir: File = IOUtils.javaTempDir
 

@@ -85,14 +85,14 @@ trait QFunction {
   def failOutputs = statusPaths.map(path => new File(path + ".fail"))
 
   /** The complete list of fields on this CommandLineFunction. */
-  lazy val functionFields: List[ArgumentSource] = initFunctionFields
+  def functionFields = QFunction.classFields(this.getClass).functionFields
   /** The @Input fields on this CommandLineFunction. */
-  lazy val inputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Input]))
+  def inputFields = QFunction.classFields(this.getClass).inputFields
   /** The @Output fields on this CommandLineFunction. */
-  lazy val outputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Output]))
+  def outputFields = QFunction.classFields(this.getClass).outputFields
   /** The @Argument fields on this CommandLineFunction. */
-  lazy val argumentFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Argument]))
-
+  def argumentFields = QFunction.classFields(this.getClass).argumentFields
+  
   /**
    * Called at most once, returns the list of fields for this function.
    */
@@ -343,4 +343,41 @@ trait QFunction {
    * @return Object to invoke the field on.
    */
   private def invokeObj(source: ArgumentSource) = source.parentFields.foldLeft[AnyRef](this)(ReflectionUtils.getValue(_, _))
+}
+
+object QFunction {
+  /**
+   * The list of fields defined on a class
+   * @param clazz The class to lookup fields.
+   */
+  private class ClassFields(clazz: Class[_]) {
+    /** The complete list of fields on this CommandLineFunction. */
+    val functionFields: List[ArgumentSource] = ParsingEngine.extractArgumentSources(clazz).toList
+    /** The @Input fields on this CommandLineFunction. */
+    val inputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Input]))
+    /** The @Output fields on this CommandLineFunction. */
+    val outputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Output]))
+    /** The @Argument fields on this CommandLineFunction. */
+    val argumentFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Argument]))
+  }
+
+  /**
+   * The mapping from class to fields.
+   */
+  private var classFieldsMap = Map.empty[Class[_], ClassFields]
+
+  /**
+   * Returns the fields for a class.
+   * @param clazz Class to retrieve fields for.
+   * @return the fields for the class.
+   */
+  private def classFields(clazz: Class[_]) = {
+    classFieldsMap.get(clazz) match {
+      case Some(classFields) => classFields
+      case None =>
+        val classFields = new ClassFields(clazz)
+        classFieldsMap += clazz -> classFields
+        classFields
+    }
+  }
 }

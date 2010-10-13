@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.queue.engine
 
 import java.io.File
-import org.broadinstitute.sting.queue.util.{IOUtils, LsfJob, Logging}
 import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.sting.queue.util._
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -45,6 +45,8 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
     if (!IOUtils.CURRENT_DIR.getCanonicalFile.equals(function.commandDirectory))
       job.workingDir = function.commandDirectory
 
+    job.extraBsubArgs ++= function.extraArgs
+
     if (function.jobRestartable)
       job.extraBsubArgs :+= "-r"
 
@@ -74,9 +76,19 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
       function.jobErrorFile.delete()
 
     runStatus = RunnerStatus.RUNNING
-    job.run()
-    jobStatusPath = IOUtils.absolute(new File(function.commandDirectory, "." + job.bsubJobId)).toString
-    logger.info("Submitted LSF job id: " + job.bsubJobId)
+    try {
+      Retry.attempt(() => job.run(), 1, 5, 10)
+      jobStatusPath = IOUtils.absolute(new File(function.commandDirectory, "." + job.bsubJobId)).toString
+      logger.info("Submitted LSF job id: " + job.bsubJobId)
+    } catch {
+      case re: RetryException =>
+        removeTemporaryFiles()
+        runStatus = RunnerStatus.FAILED
+      case e =>
+        logger.error("Error trying to start job.", e)
+        removeTemporaryFiles()
+        runStatus = RunnerStatus.FAILED
+    }
   }
 
   /**

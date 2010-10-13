@@ -10,6 +10,7 @@ import java.lang.String
 import org.apache.log4j.Level
 import scala.tools.nsc.util.{FakePos, NoPosition, Position}
 import org.broadinstitute.sting.utils.classloader.{PackageUtils, PluginManager}
+import org.broadinstitute.sting.queue.util.TextFormatUtils._
 
 /**
  * Plugin manager for QScripts which loads QScripts into the current class loader.
@@ -80,13 +81,6 @@ object QScriptManager extends Logging {
       PackageUtils.addClasspath(outdir.toURI.toURL)
     }
   }
-
-  /**
-   * Returns the string "s" if x is greater than 1.
-   * @param x Value to test.
-   * @return "s" if x is greater than one else "".
-   */
-  private def plural(x: Int) = if (x > 1) "s" else ""
 
   /**
    * NSC (New Scala Compiler) reporter which logs to Log4J.
