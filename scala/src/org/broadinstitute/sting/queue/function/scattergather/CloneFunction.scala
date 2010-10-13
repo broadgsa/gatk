@@ -33,7 +33,7 @@ class CloneFunction extends CommandLineFunction {
 
   override def dotString = originalFunction.dotString
   override def description = originalFunction.description
-  override protected def initFunctionFields = originalFunction.functionFields
+  override protected def functionFieldClass = originalFunction.getClass
   override def useStatusOutput(file: File) =
     file != jobOutputFile && file != jobErrorFile && originalFunction.useStatusOutput(file)
 

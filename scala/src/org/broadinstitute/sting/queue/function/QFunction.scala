@@ -85,18 +85,18 @@ trait QFunction {
   def failOutputs = statusPaths.map(path => new File(path + ".fail"))
 
   /** The complete list of fields on this CommandLineFunction. */
-  def functionFields = QFunction.classFields(this.getClass).functionFields
+  def functionFields = QFunction.classFields(this.functionFieldClass).functionFields
   /** The @Input fields on this CommandLineFunction. */
-  def inputFields = QFunction.classFields(this.getClass).inputFields
+  def inputFields = QFunction.classFields(this.functionFieldClass).inputFields
   /** The @Output fields on this CommandLineFunction. */
-  def outputFields = QFunction.classFields(this.getClass).outputFields
+  def outputFields = QFunction.classFields(this.functionFieldClass).outputFields
   /** The @Argument fields on this CommandLineFunction. */
-  def argumentFields = QFunction.classFields(this.getClass).argumentFields
+  def argumentFields = QFunction.classFields(this.functionFieldClass).argumentFields
   
   /**
-   * Called at most once, returns the list of fields for this function.
+   * Returns the class that should be used for looking up fields.
    */
-  protected def initFunctionFields = ParsingEngine.extractArgumentSources(this.getClass).toList
+  protected def functionFieldClass = this.getClass
 
   /**
    * Returns the input files for this function.
