@@ -105,6 +105,7 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
 
             }
         }
+        vcfWriter.close();
 
 
     }

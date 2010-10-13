@@ -40,8 +40,10 @@ import org.broadinstitute.sting.gatk.AbstractGenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
+import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 
 import java.io.*;
 import java.util.*;
@@ -194,6 +196,9 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         Pair<BasicFeatureSource, SAMSequenceDictionary> reader;
         try {
             Index index = loadIndex(inputFile, createCodec(targetClass, name));
+            try { logger.info(String.format("  Index for %s has size in bytes %d", inputFile, Sizeof.getObjectGraphSize(index))); }
+            catch ( ReviewedStingException e) { }
+
             SAMSequenceDictionary dictFromIndex = getSequenceDictionaryFromProperties(index);
 
             // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
@@ -222,7 +227,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @return a linear index for the specified type
      * @throws IOException if we cannot write the index file
      */
-    public synchronized static Index loadIndex(File inputFile, FeatureCodec codec) throws IOException {
+    public synchronized Index loadIndex(File inputFile, FeatureCodec codec) throws IOException {
         // create the index file name, locking on the index file name
         File indexFile = Tribble.indexFile(inputFile);
         FSLockWithShared lock = new FSLockWithShared(indexFile);
@@ -248,7 +253,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @return an index, or null if we couldn't load one
      * @throws IOException if we fail for FS issues
      */
-    protected static Index attemptIndexFromDisk(File inputFile, FeatureCodec codec, File indexFile, FSLockWithShared lock) throws IOException {
+    protected Index attemptIndexFromDisk(File inputFile, FeatureCodec codec, File indexFile, FSLockWithShared lock) throws IOException {
         boolean locked;
         try {
             locked = lock.sharedLock();
@@ -314,6 +319,10 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
             }
             else // we can't write it to disk, just store it in memory, tell them this
                 logger.warn("Unable to write to " + indexFile + " for the index file, creating index in memory only");
+
+            try { logger.info(String.format("  Index for %s has size in bytes %d", indexFile, Sizeof.getObjectGraphSize(index))); }
+            catch ( ReviewedStingException e) { }
+
             return index;
         }
         catch(FileSystemInabilityToLockException ex) {
@@ -332,10 +341,12 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @return a LinearIndex, given the file location
      * @throws IOException when unable to create the index in memory
      */
-    private static Index createIndexInMemory(File inputFile, FeatureCodec codec) {
+    private Index createIndexInMemory(File inputFile, FeatureCodec codec) {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
-        return IndexFactory.createIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
+        Index idx = IndexFactory.createIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
+        setIndexSequenceDictionary(idx, dict, null, false);
+        return idx;
     }
 
     /**
