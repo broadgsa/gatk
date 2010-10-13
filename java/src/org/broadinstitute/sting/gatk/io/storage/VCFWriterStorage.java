@@ -117,7 +117,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
 //    }
     public void mergeInto(VCFWriterStorage target) {
         try {
-            System.out.printf("merging %s%n", file);
+            //System.out.printf("merging %s%n", file);
             BasicFeatureSource<VariantContext> source = BasicFeatureSource.getFeatureSource(file.getAbsolutePath(), new VCFCodec());
             
             for ( VariantContext vc : source.iterator() ) {
