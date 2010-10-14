@@ -1,7 +1,7 @@
 import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
-import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
+import org.broadinstitute.sting.gatk.{CommandLineGATK, DownsampleType}
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
@@ -313,6 +313,7 @@ class fullCallingPipeline extends QScript {
     eval.reportLocation = new File(base+".eval")
     eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.R)
     eval.analysisName = base+"_VariantEval"
+    eval.DBSNP = qscript.pipeline.getProject.getDBSNP
 
     add(snps)
 
