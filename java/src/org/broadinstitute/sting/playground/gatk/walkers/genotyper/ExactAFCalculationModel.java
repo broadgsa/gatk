@@ -47,7 +47,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     private static final double LOGEPS = -300;
 
     protected ExactAFCalculationModel(int N, Logger logger, PrintStream verboseWriter) {
-        super(N, logger, verboseWriter);
+        super(N, logger, verboseWriter, true);
     }
 
     public void getLog10PNonRef(RefMetaDataTracker tracker,

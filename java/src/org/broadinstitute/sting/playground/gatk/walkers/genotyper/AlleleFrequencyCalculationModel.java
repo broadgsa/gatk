@@ -63,10 +63,13 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
     protected Logger logger;
     protected PrintStream verboseWriter;
 
-    protected AlleleFrequencyCalculationModel(int N, Logger logger, PrintStream verboseWriter) {
+    protected boolean useReferenceSampleOptimization;
+
+    protected AlleleFrequencyCalculationModel(int N, Logger logger, PrintStream verboseWriter, boolean useReferenceSampleOptimization) {
         this.N = N;
         this.logger = logger;
         this.verboseWriter = verboseWriter;
+        this.useReferenceSampleOptimization = useReferenceSampleOptimization;
         AFMatrix = new AlleleFrequencyMatrix(N);
         refCalls = new HashSet<BiallelicGenotypeLikelihoods>();
     }
@@ -171,7 +174,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
         AFMatrix.clear();
 
         for ( BiallelicGenotypeLikelihoods GL : GLs.values() ) {
-            if ( isClearRefCall(GL) ) {
+            if ( useReferenceSampleOptimization && isClearRefCall(GL) ) {
                 refCalls.add(GL);
             } else {
                 AFMatrix.setLikelihoods(GL.getPosteriors(), GL.getSample());

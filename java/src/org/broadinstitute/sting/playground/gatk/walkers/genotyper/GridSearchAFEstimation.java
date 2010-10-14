@@ -41,7 +41,7 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
     protected static final double LOG10_OPTIMIZATION_EPSILON = 8.0;
 
     protected GridSearchAFEstimation(int N, Logger logger, PrintStream verboseWriter) {
-        super(N, logger, verboseWriter);
+        super(N, logger, verboseWriter, false);
     }
 
     public void getLog10PNonRef(RefMetaDataTracker tracker,
