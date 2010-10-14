@@ -11,8 +11,8 @@ import java.io.File
 import org.jgrapht.event.{TraversalListenerAdapter, EdgeTraversalEvent}
 import org.broadinstitute.sting.queue.{QSettings, QException}
 import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFunction, QFunction}
-import org.broadinstitute.sting.queue.util.{JobExitException, LsfKillJob, Logging}
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, GatherFunction, ScatterGatherableFunction}
+import org.broadinstitute.sting.queue.util.{EmailMessage, JobExitException, LsfKillJob, Logging}
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -25,6 +25,9 @@ class QGraph extends Logging {
   var expandedDotFile: File = _
   var qSettings: QSettings = _
   var debugMode = false
+  var statusEmailFrom: String = _
+  var statusEmailTo: List[String] = _
+
   private val jobGraph = newGraph
 
   /**
@@ -262,35 +265,51 @@ class QGraph extends Logging {
    * Runs the jobs by traversing the graph.
    */
   private def runJobs() = {
-    traverseFunctions(edge => {
-      val isDone = !this.startClean &&
-              edge.status == RunnerStatus.DONE &&
-              this.previousFunctions(edge).forall(_.status == RunnerStatus.DONE)
-      if (!isDone)
-        edge.resetToPending()
-    })
-
-    var readyJobs = getReadyJobs
-    var runningJobs = Set.empty[FunctionEdge]
-    while (readyJobs.size + runningJobs.size > 0) {
-      var exitedJobs = List.empty[FunctionEdge]
-      runningJobs.foreach(runner => {
-        if (runner.status != RunnerStatus.RUNNING)
-          exitedJobs :+= runner
-      })
-      exitedJobs.foreach(runner => runningJobs -= runner)
-
-      readyJobs.foreach(f => {
-        f.runner = newRunner(f.function)
-        f.runner.start()
-        if (f.status == RunnerStatus.RUNNING) {
-          runningJobs += f
-        }
+    try {
+      traverseFunctions(edge => {
+        val isDone = !this.startClean &&
+                edge.status == RunnerStatus.DONE &&
+                this.previousFunctions(edge).forall(_.status == RunnerStatus.DONE)
+        if (!isDone)
+          edge.resetToPending()
       })
 
-      if (readyJobs.size == 0 && runningJobs.size > 0)
-        Thread.sleep(30000L)
-      readyJobs = getReadyJobs
+      var readyJobs = getReadyJobs
+      var runningJobs = Set.empty[FunctionEdge]
+      while (readyJobs.size + runningJobs.size > 0) {
+        var exitedJobs = List.empty[FunctionEdge]
+        var failedJobs = List.empty[FunctionEdge]
+
+        runningJobs.foreach(runner => runner.status match {
+          case RunnerStatus.RUNNING => /* do nothing while still running */
+          case RunnerStatus.FAILED => exitedJobs :+= runner; failedJobs :+= runner
+          case RunnerStatus.DONE => exitedJobs :+= runner
+        })
+        exitedJobs.foreach(runner => runningJobs -= runner)
+
+        readyJobs.foreach(f => {
+          f.runner = newRunner(f.function)
+          f.runner.start()
+          f.status match {
+            case RunnerStatus.RUNNING => runningJobs += f
+            case RunnerStatus.FAILED => failedJobs :+= f
+            case RunnerStatus.DONE => /* do nothing and move on */
+          }
+        })
+
+        if (failedJobs.size > 0)
+          emailFailedJobs(failedJobs)
+
+        if (readyJobs.size == 0 && runningJobs.size > 0)
+          Thread.sleep(30000L)
+        readyJobs = getReadyJobs
+      }
+
+      emailStatus()
+    } catch {
+      case e =>
+        logger.error("Uncaught error running jobs.", e)
+        throw e
     }
   }
 
@@ -306,6 +325,57 @@ class QGraph extends Logging {
       case _ =>
         throw new QException("Unexpected function: " + f)
     }
+  }
+
+  private def emailFailedJobs(jobs: List[FunctionEdge]) = {
+    if (statusEmailTo.size > 0) {
+      val emailMessage = new EmailMessage
+      emailMessage.from = statusEmailFrom
+      emailMessage.to = statusEmailTo
+      emailMessage.body = getStatus
+      emailMessage.subject = "Queue function: Failure"
+      emailMessage.body = "Failed functions: %n%n%s%n"
+              .format(jobs.map(_.function.description).mkString("%n%n".format()))
+      emailMessage.attachments = jobs.flatMap(edge => logFiles(edge))
+      emailMessage.trySend(qSettings.emailSettings)
+    }
+  }
+
+  private def emailStatus() = {
+    if (statusEmailTo.size > 0) {
+      var failedFunctions = List.empty[String]
+      var failedOutputs = List.empty[File]
+      foreachFunction(edge => {
+        if (edge.status == RunnerStatus.FAILED) {
+          failedFunctions :+= edge.function.description
+          failedOutputs ++= logFiles(edge)
+        }
+      })
+
+      val emailMessage = new EmailMessage
+      emailMessage.from = statusEmailFrom
+      emailMessage.to = statusEmailTo
+      emailMessage.body = getStatus + "%n".format()
+      if (failedFunctions.size == 0) {
+        emailMessage.subject = "Queue run: Success"
+      } else {
+        emailMessage.subject = "Queue run: Failure"
+        emailMessage.attachments = failedOutputs
+      }
+      emailMessage.trySend(qSettings.emailSettings)
+    }
+  }
+
+  private def logFiles(edge: FunctionEdge) = {
+    // TODO: All functions should be writing error files, including InProcessFunctions
+    var failedOutputs = List.empty[File]
+    if (edge.function.isInstanceOf[CommandLineFunction]) {
+      val clf = edge.function.asInstanceOf[CommandLineFunction]
+      failedOutputs :+= clf.jobOutputFile
+      if (clf.jobErrorFile != null)
+        failedOutputs :+= clf.jobErrorFile
+    }
+    failedOutputs.filter(file => file != null && file.exists)
   }
 
   /**
@@ -327,9 +397,26 @@ class QGraph extends Logging {
   }
 
   /**
-   * Gets job statuses by traversing the graph and looking for status-related files
+   * Logs job statuses by traversing the graph and looking for status-related files
    */
   private def logStatus = {
+    doStatus(status => logger.info(status))
+  }
+
+  /**
+   * Gets job statuses by traversing the graph and looking for status-related files
+   */
+  private def getStatus = {
+    val buffer = new StringBuilder
+    val nl = "%n".format()
+    doStatus(status => buffer.append(status).append(nl))
+    buffer.toString
+  }
+
+  /**
+   * Gets job statuses by traversing the graph and looking for status-related files
+   */
+  private def doStatus(statusFunc: String => Unit) = {
     var statuses = Map.empty[String, AnalysisStatus]
     foreachFunction(edgeCLF => {
       if (edgeCLF.function.analysisName != null) {
@@ -360,7 +447,7 @@ class QGraph extends Logging {
         info += formatSGStatus(status.scatter, "s")
         info += formatSGStatus(status.gather, "g")
       }
-      logger.info(info)
+      statusFunc(info)
     })
   }
 

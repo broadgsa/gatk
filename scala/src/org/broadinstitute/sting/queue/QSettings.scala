@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.queue
 
-import org.broadinstitute.sting.commandline.Argument
 import java.io.File
-import java.lang.management.ManagementFactory
+import org.broadinstitute.sting.commandline.{ArgumentCollection, Argument}
+import org.broadinstitute.sting.queue.util.{SystemUtils, EmailSettings}
 
 /**
  * Default settings settable on the command line and passed to CommandLineFunctions.
@@ -22,18 +22,15 @@ class QSettings {
 
   @Argument(fullName="default_memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes.", required=false)
   var memoryLimit: Option[Int] = None
+
+  @ArgumentCollection
+  val emailSettings = new EmailSettings
 }
 
 /**
  * Default settings settable on the command line and passed to CommandLineFunctions.
  */
 object QSettings {
-    /** A semi-unique job prefix using the host name and the process id. */
-  private val processNamePrefix = "Q-" + {
-    var prefix = ManagementFactory.getRuntimeMXBean.getName
-    val index = prefix.indexOf(".")
-    if (index >= 0)
-      prefix = prefix.substring(0, index)
-    prefix
-  }
+  /** A semi-unique job prefix using the host name and the process id. */
+  private val processNamePrefix = "Q-" + SystemUtils.pidAtHost.split('.')(0)
 }

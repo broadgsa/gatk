@@ -4,7 +4,7 @@ import java.io.File
 import java.util.Arrays
 import org.broadinstitute.sting.queue.engine.QGraph
 import org.broadinstitute.sting.commandline._
-import org.broadinstitute.sting.queue.util.{ProcessController, Logging, ScalaCompoundArgumentTypeDescriptor}
+import org.broadinstitute.sting.queue.util._
 
 /**
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
@@ -38,6 +38,12 @@ class QCommandLine extends CommandLineProgram with Logging {
   @ArgumentCollection
   private val qSettings = new QSettings
 
+  @Argument(fullName="statusEmailFrom", shortName="statusFrom", doc="Email address to send emails from upon completion or on error.", required=false)
+  private var statusEmailFrom: String = System.getProperty("user.name") + "@" + SystemUtils.domainName
+
+  @Argument(fullName="statusEmailTo", shortName="statusTo", doc="Email address to send emails to upon completion or on error.", required=false)
+  private var statusEmailTo: List[String] = Nil
+
   /**
    * Takes the QScripts passed in, runs their script() methods, retrieves their generated
    * functions, and then builds and runs a QGraph based on the dependencies.
@@ -52,6 +58,8 @@ class QCommandLine extends CommandLineProgram with Logging {
     qGraph.expandedDotFile = expandedDotFile
     qGraph.qSettings = qSettings
     qGraph.debugMode = debugMode == true
+    qGraph.statusEmailFrom = statusEmailFrom
+    qGraph.statusEmailTo = statusEmailTo
 
     val scripts = qScriptManager.createScripts()
     for (script <- scripts) {
