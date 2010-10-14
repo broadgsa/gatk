@@ -297,8 +297,8 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
         String interesting = null;
 
         final boolean validationIsValidVC = isValidVC(validation);
-        final String evalAC = (eval != null && eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) ? String.format("evalAC%s",eval.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)) : null ;
-        final String validationAC = ( validationIsValidVC &&  validation.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) ? String.format("compAC%s",validation.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)) : null;
+        final String evalAC = (eval != null && eval.getAlternateAlleles().size() == 1 && eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) ? String.format("evalAC%s",eval.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)) : null ;
+        final String validationAC = ( validationIsValidVC && validation.getAlternateAlleles().size() == 1 &&  validation.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) ? String.format("compAC%s",validation.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)) : null;
 
         // determine concordance for eval data
         if (eval != null) {
