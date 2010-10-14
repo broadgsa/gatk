@@ -27,6 +27,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -305,14 +306,9 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         int n = 0;
 
         for ( PileupElement p : pileup ) {
-            // ignore deletions
-            if ( p.isDeletion() )
-                continue;
-
-            byte base = p.getBase();
-            if ( ! ignoreBadBases || ! badBase(base) ) {
+            if ( usableBase(p, ignoreBadBases) ) {
                 byte qual = capBaseQualsAtMappingQual ? (byte)Math.min((int)p.getQual(), p.getMappingQual()) : p.getQual();
-                n += add(base, qual, p.getRead(), p.getOffset());
+                n += add(p.getBase(), qual, p.getRead(), p.getOffset());
             }
         }
         
@@ -453,6 +449,22 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     }
 
     /**
+     * Returns true when the observedBase is considered usable.
+     * @param p          pileup element
+     * @param ignoreBadBases should we ignore bad bases?
+     * @return true if the base is a usable base
+     */
+    protected static boolean usableBase(PileupElement p, boolean ignoreBadBases) {
+        // ignore deletions and filtered bases
+        if ( p.isDeletion() ||
+                (p.getRead() instanceof GATKSAMRecord &&
+                 !((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) )
+            return false;
+
+        return ( !ignoreBadBases || !badBase(p.getBase()) );
+    }
+
+    /**
      * Returns true when the observedBase is considered bad and shouldn't be processed by this object.  A base
      * is considered bad if:
      *
@@ -461,7 +473,7 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
      * @param observedBase observed base
      * @return true if the base is a bad base
      */
-    protected boolean badBase(byte observedBase) {
+    protected static boolean badBase(byte observedBase) {
         return BaseUtils.simpleBaseToBaseIndex(observedBase) == -1;
     }
 

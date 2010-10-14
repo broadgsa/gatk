@@ -1,10 +1,8 @@
 package org.broadinstitute.sting.utils.sam;
 
-import java.lang.reflect.Method;
 import java.util.*;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
@@ -18,11 +16,6 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
  *   if they are ever modified externally then one must also invoke the
  *   setReadGroup() method here to ensure that the cache is kept up-to-date.
  *
- * 13 Oct 2010 - mhanna - this class is fundamentally flawed: it uses a decorator
- *                        pattern to wrap a heavyweight object, which can lead
- *                        to heinous side effects if the wrapping is not carefully
- *                        done.  Hopefully SAMRecord will become an interface and
- *                        this will eventually be fixed.
  */
 public class GATKSAMRecord extends SAMRecord {
 
@@ -83,7 +76,7 @@ public class GATKSAMRecord extends SAMRecord {
     }
 
     public boolean isGoodBase(int index) {
-        return ( mBitSet == null || mBitSet.length() <= index ? true : mBitSet.get(index));
+        return ( mBitSet == null || mBitSet.size() <= index ? true : mBitSet.get(index));
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -333,76 +326,6 @@ public class GATKSAMRecord extends SAMRecord {
     public net.sf.samtools.SAMFileReader.ValidationStringency getValidationStringency() { return mRecord.getValidationStringency(); }
 
     public void setValidationStringency(net.sf.samtools.SAMFileReader.ValidationStringency validationStringency) { mRecord.setValidationStringency(validationStringency); }
-
-    public Object getAttribute(final String tag) { return mRecord.getAttribute(tag); }
-
-    public Integer getIntegerAttribute(final String tag) { return mRecord.getIntegerAttribute(tag); }
-
-    public Short getShortAttribute(final String tag) { return mRecord.getShortAttribute(tag); }
-
-    public Byte getByteAttribute(final String tag) { return mRecord.getByteAttribute(tag); }
-
-    public String getStringAttribute(final String tag) { return mRecord.getStringAttribute(tag); }
-
-    public Character getCharacterAttribute(final String tag) { return mRecord.getCharacterAttribute(tag); }
-
-    public Float getFloatAttribute(final String tag) { return mRecord.getFloatAttribute(tag); }
-
-    public byte[] getByteArrayAttribute(final String tag) { return mRecord.getByteArrayAttribute(tag); }
-
-    protected Object getAttribute(final short tag) {
-        Object attribute;
-        try {
-            Method method = mRecord.getClass().getDeclaredMethod("getAttribute",Short.TYPE);
-            method.setAccessible(true);
-            attribute = method.invoke(mRecord,tag);
-        }
-        catch(Exception ex) {
-            throw new ReviewedStingException("Unable to invoke getAttribute method",ex);    
-        }
-        return attribute;
-    }
-
-    public void setAttribute(final String tag, final Object value) { mRecord.setAttribute(tag,value); }
-
-    protected void setAttribute(final short tag, final Object value) {
-        try {
-            Method method = mRecord.getClass().getDeclaredMethod("setAttribute",Short.TYPE,Object.class);
-            method.setAccessible(true);
-            method.invoke(mRecord,tag,value);
-        }
-        catch(Exception ex) {
-            throw new ReviewedStingException("Unable to invoke setAttribute method",ex);
-        }
-    }
-
-    public void clearAttributes() { mRecord.clearAttributes(); }
-
-    protected void setAttributes(final SAMBinaryTagAndValue attributes) {
-        try {
-            Method method = mRecord.getClass().getDeclaredMethod("setAttributes",SAMBinaryTagAndValue.class);
-            method.setAccessible(true);
-            method.invoke(mRecord,attributes);
-        }
-        catch(Exception ex) {
-            throw new ReviewedStingException("Unable to invoke setAttributes method",ex);
-        }
-    }
-
-    protected SAMBinaryTagAndValue getBinaryAttributes() {
-        SAMBinaryTagAndValue binaryAttributes;
-        try {
-            Method method = mRecord.getClass().getDeclaredMethod("getBinaryAttributes");
-            method.setAccessible(true);
-            binaryAttributes = (SAMBinaryTagAndValue)method.invoke(mRecord);
-        }
-        catch(Exception ex) {
-            throw new ReviewedStingException("Unable to invoke getBinaryAttributes method",ex);
-        }
-        return binaryAttributes;
-    }
-
-    public List<SAMTagAndValue> getAttributes() { return mRecord.getAttributes(); }
 
     public SAMFileHeader getHeader() { return mRecord.getHeader(); }
 

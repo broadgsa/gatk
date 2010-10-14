@@ -30,6 +30,8 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broad.tribble.util.variantcontext.Genotype;
@@ -133,7 +135,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
             }
 
             HashMap<String, Object> attributes = new HashMap<String, Object>();
-            attributes.put(VCFConstants.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
+            attributes.put(VCFConstants.DEPTH_KEY, getUnfilteredDepth(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup()));
 
             GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
             attributes.put(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, likelihoods.getAsString());
@@ -151,7 +153,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
             myAlleles.add(ref);
 
             HashMap<String, Object> attributes = new HashMap<String, Object>();
-            attributes.put(VCFConstants.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
+            attributes.put(VCFConstants.DEPTH_KEY, getUnfilteredDepth(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup()));
 
             GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
             attributes.put(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, likelihoods.getAsString());
@@ -159,7 +161,6 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
             double GQ = GL.getAALikelihoods() - Math.max(GL.getABLikelihoods(), GL.getBBLikelihoods());
 
             calls.put(sample, new Genotype(sample, myAlleles, GQ, null, attributes, false));
-
         }
 
         return calls;
@@ -185,6 +186,16 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
         double[] likelihoods = GL.getLikelihoods();
         double refLikelihoodMinusEpsilon = likelihoods[0] - LOG10_REFERENCE_CALL_EPSILON;
         return ( refLikelihoodMinusEpsilon > likelihoods[1] && refLikelihoodMinusEpsilon > likelihoods[2]);
+    }
+
+    private int getUnfilteredDepth(ReadBackedPileup pileup) {
+        int count = 0;
+        for ( PileupElement p : pileup ) {
+            if ( DiploidSNPGenotypeLikelihoods.usableBase(p, true) )
+                count++;
+        }
+
+        return count;
     }
 
     protected class CalculatedAlleleFrequency {

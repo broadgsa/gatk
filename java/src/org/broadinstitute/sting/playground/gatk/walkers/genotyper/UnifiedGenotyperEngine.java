@@ -40,11 +40,17 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.*;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecordFilter;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 
 import java.io.PrintStream;
 import java.util.*;
+
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.StringUtil;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 
 public class UnifiedGenotyperEngine {
@@ -77,13 +83,18 @@ public class UnifiedGenotyperEngine {
     private Logger logger = null;
     private PrintStream verboseWriter = null;
 
+    // fasta reference reader to supplement the edges of the reference sequence for long reads
+    private IndexedFastaSequenceFile referenceReader;
+
     // number of chromosomes (2 * samples) in input
     private int N;
 
     // the standard filter to use for calls below the confidence threshold but above the emit threshold
     private static final Set<String> filter = new HashSet<String>(1);
 
+    private static final int MISMATCH_WINDOW_SIZE = 20;
 
+    
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
         // get the number of samples
         // if we're supposed to assume a single sample, do so
@@ -92,14 +103,14 @@ public class UnifiedGenotyperEngine {
             numSamples = 1;
         else
             numSamples = SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()).size();
-        initialize(UAC, null, null, null, numSamples);
+        initialize(toolkit, UAC, null, null, null, numSamples);
     }
 
-    public UnifiedGenotyperEngine(UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, int numSamples) {
-        initialize(UAC, logger, verboseWriter, engine, numSamples);
+    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, int numSamples) {
+        initialize(toolkit, UAC, logger, verboseWriter, engine, numSamples);
     }
 
-    private void initialize(UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, int numSamples) {
+    private void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, int numSamples) {
         this.UAC = UAC;
         this.logger = logger;
         this.verboseWriter = verboseWriter;
@@ -111,6 +122,8 @@ public class UnifiedGenotyperEngine {
         genotypePriors = createGenotypePriors(UAC);
 
         filter.add(LOW_QUAL_FILTER_NAME);
+
+        referenceReader = new IndexedFastaSequenceFile(toolkit.getArguments().referenceFile);
     }
 
     /**
@@ -130,7 +143,7 @@ public class UnifiedGenotyperEngine {
             afcm.set(getAlleleFrequencyCalculationObject(N, logger, verboseWriter, UAC));
         }
 
-        BadReadPileupFilter badReadPileupFilter = new BadReadPileupFilter(refContext);
+        BadBaseFilter badReadPileupFilter = new BadBaseFilter(refContext, UAC);
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, badReadPileupFilter);
         if ( stratifiedContexts == null )
             return null;
@@ -280,7 +293,7 @@ public class UnifiedGenotyperEngine {
         return ( d >= 0.0 && d <= 1.0 );
     }
 
-    private Map<String, StratifiedAlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext, BadReadPileupFilter badReadPileupFilter) {
+    private Map<String, StratifiedAlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext, BadBaseFilter badBaseFilter) {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = null;
 
         if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL && rawContext.hasExtendedEventPileup() ) {
@@ -289,9 +302,6 @@ public class UnifiedGenotyperEngine {
 
             // filter the context based on min mapping quality
             ReadBackedExtendedEventPileup pileup = rawPileup.getMappingFilteredPileup(UAC.MIN_MAPPING_QUALTY_SCORE);
-
-            // filter the context based on bad mates and mismatch rate
-            pileup = pileup.getFilteredPileup(badReadPileupFilter);
 
             // don't call when there is no coverage
             if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
@@ -306,13 +316,13 @@ public class UnifiedGenotyperEngine {
             if ( !BaseUtils.isRegularBase(ref) )
                 return null;
 
-            ReadBackedPileup rawPileup = rawContext.getBasePileup();
+            ReadBackedPileup pileup = rawContext.getBasePileup();
 
-            // filter the context based on min base and mapping qualities
-            ReadBackedPileup pileup = rawPileup.getBaseAndMappingFilteredPileup(UAC.MIN_BASE_QUALTY_SCORE, UAC.MIN_MAPPING_QUALTY_SCORE);
+            // filter the reads
+            filterPileup(pileup, badBaseFilter);
 
             // filter the context based on bad mates and mismatch rate
-            pileup = pileup.getFilteredPileup(badReadPileupFilter);
+            //pileup = pileup.getFilteredPileup(badReadPileupFilter);
 
             // don't call when there is no coverage
             if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
@@ -395,23 +405,55 @@ public class UnifiedGenotyperEngine {
         verboseWriter.println();
     }
 
-    /**
-     * Filters low quality reads out of the pileup.
-     */
-    private class BadReadPileupFilter implements PileupElementFilter {
-        private ReferenceContext refContext;
+    private void filterPileup(ReadBackedPileup pileup, BadBaseFilter badBaseFilter) {
+        for ( PileupElement p : pileup ) {
+            final SAMRecord read = p.getRead();
+            if ( read instanceof GATKSAMRecord )
+                ((GATKSAMRecord)read).setGoodBases(badBaseFilter, true);
+        }
+    }
 
-        public BadReadPileupFilter(ReferenceContext ref) {
-            // create the +/-20bp window
-            GenomeLoc window = GenomeLocParser.createGenomeLoc(ref.getLocus().getContig(), Math.max(ref.getWindow().getStart(), ref.getLocus().getStart()-20), Math.min(ref.getWindow().getStop(), ref.getLocus().getStart()+20));
-            byte[] bases = new byte[41];
-            System.arraycopy(ref.getBases(), (int)Math.max(0, window.getStart()-ref.getWindow().getStart()), bases, 0, (int)window.size());
-            refContext = new ReferenceContext(ref.getLocus(), window, bases);
+    /**
+     * Filters low quality bases out of the SAMRecords.
+     */
+    private class BadBaseFilter implements GATKSAMRecordFilter {
+        private ReferenceContext refContext;
+        private final UnifiedArgumentCollection UAC;
+
+        public BadBaseFilter(ReferenceContext refContext, UnifiedArgumentCollection UAC) {
+            this.refContext = refContext;
+            this.UAC = UAC;
         }
 
-        public boolean allow(PileupElement pileupElement) {
-              return  ((UAC.USE_BADLY_MATED_READS || !BadMateFilter.hasBadMate(pileupElement.getRead())) &&
-                     AlignmentUtils.mismatchesInRefWindow(pileupElement, refContext, true) <= UAC.MAX_MISMATCHES );
+        public BitSet getGoodBases(final GATKSAMRecord record) {
+            // all bits are set to false by default
+            BitSet bitset = new BitSet(record.getReadLength());
+
+            // if the mapping quality is too low or the mate is bad, we can just zero out the whole read and continue
+            if ( record.getMappingQuality() < UAC.MIN_MAPPING_QUALTY_SCORE ||
+                 (!UAC.USE_BADLY_MATED_READS && BadMateFilter.hasBadMate(record)) ) {
+                return bitset;
+            }
+
+            byte[] quals = record.getBaseQualities();
+            for (int i = 0; i < quals.length; i++) {
+                if ( quals[i] >= UAC.MIN_BASE_QUALTY_SCORE )
+                    bitset.set(i);
+            }
+
+            // if a read is too long for the reference context, extend the context
+            if ( record.getAlignmentEnd() > refContext.getWindow().getStop() ) {
+                GenomeLoc window = GenomeLocParser.createGenomeLoc(refContext.getLocus().getContig(), refContext.getWindow().getStart(), record.getAlignmentEnd());
+                byte[] bases = referenceReader.getSubsequenceAt(window.getContig(), window.getStart(), window.getStop()).getBases();
+                StringUtil.toUpperCase(bases);
+                refContext = new ReferenceContext(refContext.getLocus(), window, bases);
+            }            
+
+            BitSet mismatches = AlignmentUtils.mismatchesInRefWindow(record, refContext, UAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE);
+            if ( mismatches != null )
+                bitset.and(mismatches);
+
+            return bitset;
         }
     }
 

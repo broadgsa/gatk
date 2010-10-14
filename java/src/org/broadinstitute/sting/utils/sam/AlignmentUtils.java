@@ -258,18 +258,16 @@ public class AlignmentUtils {
         int readLength = read.getReadLength();
         BitSet mismatches = new BitSet(readLength);
 
-        // TODO -- we only care about starting from curpos
+        // it's possible we aren't starting at the beginning of a read,
+        //  and we don't need to look at any of the previous context outside our window
+        //  (although we do need future context)
+        int readStartPos = Math.max(read.getAlignmentStart(), (int)ref.getLocus().getStart() - windowSize);
+        int currentReadPos = read.getAlignmentStart();
 
         byte[] refBases = ref.getBases();
-        int refIndex = read.getAlignmentStart() - (int)ref.getWindow().getStart();
-        // it's possible we aren't starting at the beginning of a read
-        int startOffset = 0;
+        int refIndex = readStartPos - (int)ref.getWindow().getStart();
         if ( refIndex < 0 ) {
-            startOffset = -1 * refIndex;
-            refIndex = 0;
-
-            // TODO -- fix me
-            return null;
+            throw new IllegalStateException("When calculating mismatches, we somehow don't have enough previous reference context for read " + read.getReadName() + " at position " + ref.getLocus());
         }
 
         byte[] readBases = read.getReadBases();
@@ -282,15 +280,21 @@ public class AlignmentUtils {
             int cigarElementLength = ce.getLength();
             switch ( ce.getOperator() ) {
                 case M:
-                    for (int j = 0; j < cigarElementLength; j++, readIndex++, refIndex++) {
+                    for (int j = 0; j < cigarElementLength; j++, readIndex++) {
+                        // skip over unwanted bases
+                        if ( currentReadPos++ < readStartPos )
+                            continue;
+
                         if ( refIndex >= refBases.length ) {
-                            // TODO -- fix me
-                            return null;                            
+                            throw new IllegalStateException("When calculating mismatches, we somehow don't have enough trailing reference context for read " + read.getReadName() + " at position " + ref.getLocus());
                         }
+
                         byte refChr = refBases[refIndex];
                         byte readChr = readBases[readIndex];
                         if ( readChr != refChr )
                             mismatches.set(readIndex);
+
+                        refIndex++;
                     }
                     break;
                 case I:
@@ -299,7 +303,9 @@ public class AlignmentUtils {
                     break;
                 case D:
                 case N:
-                    refIndex += cigarElementLength;
+                    if ( currentReadPos >= readStartPos )
+                        refIndex += cigarElementLength;
+                    currentReadPos += cigarElementLength;
                     break;
                 case H:
                 case P:

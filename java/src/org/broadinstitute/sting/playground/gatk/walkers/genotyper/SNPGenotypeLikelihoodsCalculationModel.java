@@ -84,7 +84,10 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
             // create the GenotypeLikelihoods object
             DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods(UAC.baseModel, (DiploidSNPGenotypePriors)priors, UAC.defaultPlatform);
-            GL.add(pileup, true, UAC.CAP_BASE_QUALITY);
+            int nGoodBases = GL.add(pileup, true, UAC.CAP_BASE_QUALITY);
+            if ( nGoodBases == 0 )
+                continue;
+
             double[] likelihoods = GL.getLikelihoods();
             double[] posteriors = GL.getPosteriors();
 
