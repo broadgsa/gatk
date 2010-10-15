@@ -7,6 +7,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
 import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.utils.TableType;
@@ -264,9 +265,9 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
             if (eval != null) {
                 // initialize the concordance table
                 sampleStats = new SampleStats(eval,Genotype.Type.values().length);
-                alleleCountStats = new ACStats(eval,Genotype.Type.values().length);
+                alleleCountStats = new ACStats(eval,Genotype.Type.values().length, new CompACNames(veWalker.getLogger()));
                 sampleSummaryStats = new SampleSummaryStats(eval);
-                alleleCountSummary = new ACSummaryStats(eval);
+                alleleCountSummary = new ACSummaryStats(eval, new CompACNames(veWalker.getLogger()));
                 for (final VariantContext vc : missedValidationData) {
                     determineStats(null, vc);
                 }
@@ -297,12 +298,12 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
         String interesting = null;
 
         final boolean validationIsValidVC = isValidVC(validation);
-        final String evalAC = (eval != null && eval.getAlternateAlleles().size() == 1 && eval.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) ? String.format("evalAC%s",eval.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)) : null ;
-        final String validationAC = ( validationIsValidVC && validation.getAlternateAlleles().size() == 1 &&  validation.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) ? String.format("compAC%s",validation.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)) : null;
+        final String evalAC = ( vcHasGoodAC(eval) ) ? String.format("evalAC%d",getAC(eval)) : null ;
+        final String validationAC = ( vcHasGoodAC(validation) ) ? String.format("compAC%d",getAC(validation)) : null;
 
         // determine concordance for eval data
         if (eval != null) {
-           for (final String sample : eval.getSampleNames()) {
+           for (final String sample : eval.getGenotypes().keySet()) {
                 final Genotype.Type called = eval.getGenotype(sample).getType();
                 final Genotype.Type truth;
 
@@ -330,7 +331,7 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
         else {
             final Genotype.Type called = Genotype.Type.NO_CALL;
 
-            for (final String sample : validation.getSampleNames()) {
+            for (final String sample : validation.getGenotypes().keySet()) {
                 final Genotype.Type truth = validation.getGenotype(sample).getType();
                 sampleStats.incrValue(sample, truth, called);
                 if ( evalAC != null ) {
@@ -363,8 +364,8 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
 
         // TP & FP quality score histograms
         if( eval != null && eval.isPolymorphic() && validationIsValidVC ) {
-            if( eval.getSampleNames().size() == 1 ) { // single sample calls
-                for( final String sample : eval.getSampleNames() ) { // only one sample
+            if( eval.getGenotypes().keySet().size() == 1 ) { // single sample calls
+                for( final String sample : eval.getGenotypes().keySet() ) { // only one sample
                     if( validation.hasGenotype(sample) ) {
                         final Genotype truth = validation.getGenotype(sample);
                         qualityScoreHistograms.incrValue( eval.getPhredScaledQual(), !truth.isHomRef() );
@@ -394,6 +395,33 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
 
         if ( alleleCountSummary != null && alleleCountStats != null ) {
             alleleCountSummary.generateSampleSummaryStats( alleleCountStats );
+        }
+    }
+
+    private boolean vcHasGoodAC(VariantContext vc) {
+        return ( vc != null && vc.getAlternateAlleles().size() == 1 && vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) );
+
+    }
+
+    private int getAC(VariantContext vc) {
+        if ( vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass().isAssignableFrom(List.class) ) {
+            return ((List<Integer>) vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY)).get(0);
+        } else if ( vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass().isAssignableFrom(Integer.class)) {
+            return (Integer) vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY);
+        } else if ( vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass().isAssignableFrom(String.class)) {
+            // two ways of parsing
+            String ac = (String) vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY);
+            if ( ac.startsWith("[") ) {
+                return Integer.parseInt(ac.replaceAll("[","").replaceAll("]",""));
+            } else {
+                try {
+                    return Integer.parseInt(ac);
+                } catch ( NumberFormatException e ) {
+                    throw new UserException(String.format("The format of the AC field is improperly formatted: AC=%s",ac));
+                }
+            }
+        } else {
+            throw new UserException(String.format("The format of the AC field does not appear to be of integer-list or String format"));
         }
     }
 }
@@ -444,7 +472,7 @@ class SampleStats implements TableType {
 
     public SampleStats(VariantContext vc, int nGenotypeTypes) {
         this.nGenotypeTypes = nGenotypeTypes;
-        for (String sample : vc.getSampleNames())
+        for (String sample : vc.getGenotypes().keySet())
             concordanceStats.put(sample, new long[nGenotypeTypes][nGenotypeTypes]);
     }
 
@@ -482,12 +510,24 @@ class SampleStats implements TableType {
  * Sample stats, but for AC
  */
 class ACStats extends SampleStats {
-    public ACStats(VariantContext vc, int nGenotypeTypes) {
+    private final CompACNames myComp;
+    private String[] rowKeys;
+
+    public ACStats(VariantContext vc, int nGenotypeTypes, CompACNames comp) {
         super(nGenotypeTypes);
-        for ( int i = 0; i <= 2*vc.getNSamples(); i++ ) { // todo -- assuming ploidy 2 here...
+        rowKeys = new String[2+4*vc.getGenotypes().size()];
+        for ( int i = 0; i <= 2*vc.getGenotypes().size(); i++ ) { // todo -- assuming ploidy 2 here...
             concordanceStats.put(String.format("evalAC%d",i),new long[nGenotypeTypes][nGenotypeTypes]);
-            concordanceStats.put(String.format("compAC%d",i), new long[nGenotypeTypes][nGenotypeTypes]);
+            rowKeys[i] = String.format("evalAC%d",i);
+
         }
+
+        for ( int i = 0; i <= 2*vc.getGenotypes().size(); i++ ) {
+            concordanceStats.put(String.format("compAC%d",i), new long[nGenotypeTypes][nGenotypeTypes]);
+            rowKeys[1+2*vc.getGenotypes().size()+i] = String.format("compAC%d",i);
+        }
+
+        myComp = comp;
     }
 
     public String getName() {
@@ -495,9 +535,10 @@ class ACStats extends SampleStats {
     }
 
     public Object[] getRowKeys() {
-        String[] acNames = (String[]) super.getRowKeys();
-        Arrays.sort(acNames,new CompACNames());
-        return acNames;
+        if ( rowKeys == null ) {
+            throw new StingException("RowKeys is null!");
+        }
+        return rowKeys;
     }
 }
 
@@ -537,7 +578,7 @@ class SampleSummaryStats implements TableType {
 
     public SampleSummaryStats(final VariantContext vc) {
         concordanceSummary.put(ALL_SAMPLES_KEY, new double[COLUMN_KEYS.length]);
-        for( final String sample : vc.getSampleNames() ) {
+        for( final String sample : vc.getGenotypes().keySet() ) {
             concordanceSummary.put(sample, new double[COLUMN_KEYS.length]);
         }
     }
@@ -676,12 +717,23 @@ class SampleSummaryStats implements TableType {
  * SampleSummaryStats .. but for allele counts
  */
 class ACSummaryStats extends SampleSummaryStats {
-    public ACSummaryStats (final VariantContext vc) {
+    final private CompACNames myComp;
+    private String[] rowKeys;
+
+    public ACSummaryStats (final VariantContext vc, CompACNames comp) {
         concordanceSummary.put(ALL_SAMPLES_KEY, new double[COLUMN_KEYS.length]);
-        for( int i = 0; i <= 2*vc.getNSamples() ; i ++ ) {
+        rowKeys = new String[3+4*vc.getGenotypes().size()];
+        rowKeys[0] = ALL_SAMPLES_KEY;
+        for( int i = 0; i <= 2*vc.getGenotypes().size() ; i ++ ) {
             concordanceSummary.put(String.format("evalAC%d",i), new double[COLUMN_KEYS.length]);
-            concordanceSummary.put(String.format("compAC%d",i), new double[COLUMN_KEYS.length]);
+            rowKeys[i+1] = String.format("evalAC%d",i);
         }
+        for( int i = 0; i <= 2*vc.getGenotypes().size() ; i ++ ) {
+            concordanceSummary.put(String.format("compAC%d",i), new double[COLUMN_KEYS.length]);
+            rowKeys[2+2*vc.getGenotypes().size()+i] = String.format("compAC%d",i);
+        }
+
+        myComp = comp;
     }
 
     public String getName() {
@@ -689,19 +741,31 @@ class ACSummaryStats extends SampleSummaryStats {
     }
 
     public Object[] getRowKeys() {
-        String[] acNames = (String[]) super.getRowKeys();
-        Arrays.sort(acNames,new CompACNames());
-        return acNames;
+        if ( rowKeys == null) {
+            throw new StingException("rowKeys is null!!");
+        }
+        return rowKeys;
     }
 }
 
 class CompACNames implements Comparator{
+
+    final Logger myLogger;
+    private boolean info = true;
+
+    public CompACNames(Logger l) {
+        myLogger = l;
+    }
 
     public boolean equals(Object o) {
         return ( o.getClass() == CompACNames.class );
     }
 
     public int compare(Object o1, Object o2) {
+        if ( info ) {
+            myLogger.info("Sorting AC names");
+            info = false;
+        }
         //System.out.printf("Objects %s %s get ranks %d %d%n",o1.toString(),o2.toString(),getRank(o1),getRank(o2));
         return getRank(o1) - getRank(o2);
     }

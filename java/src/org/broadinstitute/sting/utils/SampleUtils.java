@@ -31,9 +31,14 @@ import org.broad.tribble.vcf.VCFHeader;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -183,6 +188,31 @@ public class SampleUtils {
             sampleOverlapMap.put(newSample, 2);
         }
 
+    }
+
+    public static List<String> getSamplesFromCommandLineInput(Collection<String> sampleArgs) {
+        if (sampleArgs != null) {
+            // Let's first go through the list and see if we were given any files.  We'll add every entry in the file to our
+            // sample list set, and treat the entries as if they had been specified on the command line.
+            List<String> samplesFromFiles = new ArrayList<String>();
+            for (String SAMPLE_EXPRESSION : sampleArgs) {
+                File sampleFile = new File(SAMPLE_EXPRESSION);
+
+                try {
+                    XReadLines reader = new XReadLines(sampleFile);
+
+                    List<String> lines = reader.readLines();
+                    for (String line : lines) {
+                        samplesFromFiles.add(line);
+                    }
+                } catch (FileNotFoundException e) {
+                    samplesFromFiles.add(SAMPLE_EXPRESSION); // not a file, so must be a sample
+                }
+            }
+
+            return samplesFromFiles;
+        }
+        return new ArrayList<String>();
     }
 
     

@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.StandardVCFWriter;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -41,6 +42,7 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.ApplyVariantCuts;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.utils.report.VE2ReportFactory;
 import org.broadinstitute.sting.utils.report.templates.ReportFormat;
@@ -311,7 +313,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         if ( LIST )
             listModulesAndExit();
 
-        SAMPLES_LIST = Arrays.asList(SAMPLES);
+        SAMPLES_LIST = SampleUtils.getSamplesFromCommandLineInput(Arrays.asList(SAMPLES));
 
         determineEvalations();
 
@@ -676,11 +678,26 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                 HashMap<String,Object> newAts = new HashMap<String,Object>(vc.getAttributes());
                 VariantContextUtils.calculateChromosomeCounts(vc,newAts,true);
                 vc = VariantContext.modifyAttributes(vc,newAts);
+                logger.debug(String.format("VC %s subset to %s AC%n",vc.getName(),vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
                 //if ( ! name.equals("eval") ) logger.info(String.format("  => VC %s", vc));
+            } else if ( vc != null && ! vc.hasGenotypes(SAMPLES_LIST) ) {
+                throw new UserException(String.format("Genotypes for the variant context %s do not contain all the provided samples %s",vc.getName(), getMissingSamples(SAMPLES_LIST,vc)));
             }
 
             map.put(name, allowExcludes && excludeComp(vc) ? null : vc);
         }
+    }
+
+    private static String getMissingSamples(Collection<String> soughtSamples, VariantContext vc) {
+        StringBuffer buf = new StringBuffer();
+        buf.append("Missing samples are:");
+        for ( String s : soughtSamples ) {
+            if ( ! vc.getGenotypes().keySet().contains(s) ) {
+                buf.append(String.format("%n%s",s));    
+            }
+        }
+
+        return buf.toString();
     }
 
     // --------------------------------------------------------------------------------------------------------------
