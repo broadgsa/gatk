@@ -64,8 +64,8 @@ public class OverlappingIntervalIterator implements Iterator<GenomeLoc> {
         this.boundBy = new PushbackIterator<GenomeLoc>(boundBy);
 
         if ( iter.hasNext() && boundBy.hasNext() ) {
-            GenomeLoc currentInterval = iter.next(); // load first interval
-            GenomeLoc currentBound = boundBy.next(); // load first bounding interval
+            currentInterval = iter.next(); // load first interval
+            currentBound = boundBy.next(); // load first bounding interval
             fetchNextOverlap();
         }
     }
@@ -76,16 +76,18 @@ public class OverlappingIntervalIterator implements Iterator<GenomeLoc> {
     private void fetchNextOverlap() {
 
         prefetchedOverlap = null;
-
+ //       System.out.println("Fetching... (interval="+currentInterval+"; bound="+currentBound+")");
         while ( currentInterval != null && currentBound != null ) {
 
             if ( currentInterval.isBefore(currentBound) ) {
+//                System.out.println(currentInterval +" is before "+currentBound );
                 if ( ! iter.hasNext() ) currentInterval = null;
                 else currentInterval = iter.next();
                 continue;
             }
 
             if ( currentInterval.isPast(currentBound) ) {
+//                System.out.println(currentInterval +" is past "+currentBound );
                 if ( ! boundBy.hasNext() ) currentBound = null;
                 else currentBound = boundBy.next();
                 continue;
@@ -94,7 +96,7 @@ public class OverlappingIntervalIterator implements Iterator<GenomeLoc> {
             // we are at this point only if currentInterval overlaps with currentBound
 
             prefetchedOverlap = currentInterval.intersect(currentBound);
-
+//            System.out.println("Fetched next overlap: "+prefetchedOverlap);
             // now we need to advance at least one of the iterators, so that we would not
             // call the same overlap again
 
