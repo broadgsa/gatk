@@ -7,10 +7,10 @@ import org.broadinstitute.sting.queue.util._
 /**
  * Runs jobs on an LSF compute cluster.
  */
-class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with Logging {
+class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner with Logging {
   private var runStatus: RunnerStatus.Value = _
 
-  var job: LsfJob = _
+  var job: LsfJob = new LsfJob
 
   /** A file to look for to validate that the function ran to completion. */
   private var jobStatusPath: String = _
@@ -35,59 +35,62 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
    * @param function Command to run.
    */
   def start() = {
-    job = new LsfJob
-    // job.name = function.jobName TODO: Make setting the job name optional.
-    job.outputFile = function.jobOutputFile
-    job.errorFile = function.jobErrorFile
-    job.project = function.jobProject
-    job.queue = function.jobQueue
-
-    if (!IOUtils.CURRENT_DIR.getCanonicalFile.equals(function.commandDirectory))
-      job.workingDir = function.commandDirectory
-
-    job.extraBsubArgs ++= function.extraArgs
-
-    if (function.jobRestartable)
-      job.extraBsubArgs :+= "-r"
-
-    if (function.memoryLimit.isDefined)
-      job.extraBsubArgs ++= List("-R", "rusage[mem=" + function.memoryLimit.get + "]")
-
-    job.name = function.commandLine.take(1000)
-
-    // TODO: Look into passing in a single chained script as recommended by Doug instead of pre, exec, and post.
-    exec = writeExec()
-    job.command = "sh " + exec
-
-    preExec = writePreExec()
-    job.preExecCommand = "sh " + preExec
-
-    postExec = writePostExec()
-    job.postExecCommand = "sh " + postExec
-
-    if (logger.isDebugEnabled) {
-      logger.debug("Starting: " + function.commandDirectory + " > " + job.bsubCommand.mkString(" "))
-    } else {
-      logger.info("Starting: " + job.bsubCommand.mkString(" "))
-    }
-
-    function.jobOutputFile.delete()
-    if (function.jobErrorFile != null)
-      function.jobErrorFile.delete()
-
-    runStatus = RunnerStatus.RUNNING
     try {
+      function.mkOutputDirectories()
+
+      // job.name = function.jobName TODO: Make setting the job name optional.
+      job.outputFile = function.jobOutputFile
+      job.errorFile = function.jobErrorFile
+      job.project = function.jobProject
+      job.queue = function.jobQueue
+
+      if (!IOUtils.CURRENT_DIR_ABS.equals(function.commandDirectory))
+        job.workingDir = function.commandDirectory
+
+      job.extraBsubArgs ++= function.extraArgs
+
+      if (function.jobRestartable)
+        job.extraBsubArgs :+= "-r"
+
+      if (function.memoryLimit.isDefined)
+        job.extraBsubArgs ++= List("-R", "rusage[mem=" + function.memoryLimit.get + "]")
+
+      job.name = function.commandLine.take(1000)
+
+      exec = writeExec()
+      job.command = "sh " + exec
+
+      preExec = writePreExec()
+      job.preExecCommand = "sh " + preExec
+
+      postExec = writePostExec()
+      job.postExecCommand = "sh " + postExec
+
+      if (logger.isDebugEnabled) {
+        logger.debug("Starting: " + function.commandDirectory + " > " + job.bsubCommand.mkString(" "))
+      } else {
+        logger.info("Starting: " + job.bsubCommand.mkString(" "))
+      }
+
+      function.jobOutputFile.delete()
+      if (function.jobErrorFile != null)
+        function.jobErrorFile.delete()
+
+      runStatus = RunnerStatus.RUNNING
       Retry.attempt(() => job.run(), 1, 5, 10)
       jobStatusPath = IOUtils.absolute(new File(function.commandDirectory, "." + job.bsubJobId)).toString
       logger.info("Submitted LSF job id: " + job.bsubJobId)
     } catch {
-      case re: RetryException =>
-        removeTemporaryFiles()
-        runStatus = RunnerStatus.FAILED
       case e =>
-        logger.error("Error trying to start job.", e)
-        removeTemporaryFiles()
         runStatus = RunnerStatus.FAILED
+        try {
+          removeTemporaryFiles()
+          function.failOutputs.foreach(_.createNewFile())
+          writeStackTrace(e)
+        } catch {
+          case _ => /* ignore errors in the exception handler */
+        }
+        logger.error("Error: " + job.bsubCommand.mkString(" "), e)
     }
   }
 
@@ -100,20 +103,33 @@ class LsfJobRunner(function: CommandLineFunction) extends DispatchJobRunner with
    * .done files used to determine if a file has been created successfully.
    */
   def status = {
-    if (logger.isDebugEnabled) {
-      logger.debug("Done %s exists = %s".format(jobDoneFile, jobDoneFile.exists))
-      logger.debug("Fail %s exists = %s".format(jobFailFile, jobFailFile.exists))
-    }
+    try {
+      if (logger.isDebugEnabled) {
+        logger.debug("Done %s exists = %s".format(jobDoneFile, jobDoneFile.exists))
+        logger.debug("Fail %s exists = %s".format(jobFailFile, jobFailFile.exists))
+      }
 
-    if (jobFailFile.exists) {
-      removeTemporaryFiles()
-      runStatus = RunnerStatus.FAILED
-      logger.info("Error: " + job.bsubCommand.mkString(" "))
-      tailError()
-    } else if (jobDoneFile.exists) {
-      removeTemporaryFiles()
-      runStatus = RunnerStatus.DONE
-      logger.info("Done: " + job.bsubCommand.mkString(" "))
+      if (jobFailFile.exists) {
+        removeTemporaryFiles()
+        runStatus = RunnerStatus.FAILED
+        logger.info("Error: " + job.bsubCommand.mkString(" "))
+        tailError()
+      } else if (jobDoneFile.exists) {
+        removeTemporaryFiles()
+        runStatus = RunnerStatus.DONE
+        logger.info("Done: " + job.bsubCommand.mkString(" "))
+      }
+    } catch {
+      case e =>
+        runStatus = RunnerStatus.FAILED
+        try {
+          removeTemporaryFiles()
+          function.failOutputs.foreach(_.createNewFile())
+          writeStackTrace(e)
+        } catch {
+          case _ => /* ignore errors in the exception handler */
+        }
+        logger.error("Error: " + job.bsubCommand.mkString(" "), e)
     }
 
     runStatus

@@ -10,6 +10,8 @@ object IOUtils {
   /** The current directory "." */
   val CURRENT_DIR = new File(".")
 
+  val CURRENT_DIR_ABS = absolute(CURRENT_DIR)
+
   /**
    * Returns the sub path rooted at the parent.
    * If the sub path is already absolute, returns the sub path.
@@ -20,8 +22,8 @@ object IOUtils {
    * @param path The sub path to append to the parent, if the path is not absolute.
    * @return The absolute path to the file in the parent dir if the path was not absolute, otherwise the original path.
    */
-  def subDir(dir: File, path: String): File =
-    subDir(dir, new File(path))
+  def subDir(parent: File, path: String): File =
+    subDir(parent, new File(path))
 
   /**
    * Returns the sub path rooted at the parent.
@@ -36,24 +38,15 @@ object IOUtils {
   def subDir(parent: File, file: File): File = {
     val parentAbs = absolute(parent)
     val fileAbs = absolute(file)
-    val currentAbs = absolute(CURRENT_DIR)
-    if (parentAbs == currentAbs && fileAbs == currentAbs)
-      absolute(CURRENT_DIR.getCanonicalFile)
-    else if (parentAbs == currentAbs || file.isAbsolute)
+    if (parentAbs == CURRENT_DIR_ABS && fileAbs == CURRENT_DIR_ABS)
+      CURRENT_DIR_ABS
+    else if (parentAbs == CURRENT_DIR_ABS || file.isAbsolute)
       fileAbs
-    else if (fileAbs == currentAbs)
+    else if (fileAbs == CURRENT_DIR_ABS)
       parentAbs
     else
       absolute(new File(parentAbs, file.getPath))
   }
-
-  /**
-   * Resets the parent of the file to the directory.
-   * @param dir New parent directory.
-   * @param file Path to the file to be re-rooted.
-   * @return Absolute path to the new file.
-   */
-  def resetParent(dir: File, file: File) = absolute(subDir(dir, file.getName))
 
   /**
    * Returns the temp directory as defined by java.

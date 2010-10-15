@@ -6,6 +6,7 @@ import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.queue.util.{CollectionUtils, IOUtils, ReflectionUtils}
 import org.broadinstitute.sting.queue.{QException, QSettings}
 import collection.JavaConversions._
+import org.broadinstitute.sting.queue.function.scattergather.{Gather, SimpleTextGatherFunction}
 
 /**
  * The base interface for all functions in Queue.
@@ -18,11 +19,30 @@ trait QFunction {
    */
   var analysisName: String = _
 
+  /** Prefix for automatic job name creation */
+  var jobNamePrefix: String = _
+
+  /** The name name of the job */
+  var jobName: String = _
+
   /** Default settings */
   var qSettings: QSettings = _
 
   /** Directory to run the command in. */
   var commandDirectory: File = IOUtils.CURRENT_DIR
+
+  /** Temporary directory to write any files */
+  var jobTempDir: File = IOUtils.javaTempDir
+
+  /** File to redirect any output.  Defaults to <jobName>.out */
+  @Output(doc="File to redirect any output", required=false)
+  @Gather(classOf[SimpleTextGatherFunction])
+  var jobOutputFile: File = _
+
+  /** File to redirect any errors.  Defaults to <jobName>.out */
+  @Output(doc="File to redirect any errors", required=false)
+  @Gather(classOf[SimpleTextGatherFunction])
+  var jobErrorFile: File = _
 
   /**
    * Description of this command line function.
@@ -32,7 +52,7 @@ trait QFunction {
   /**
    * The function description in .dot files
    */
-  def dotString = ""
+  def dotString = jobName + " => " + description
 
   /**
    * Returns true if the function is done, false if it's
@@ -62,7 +82,8 @@ trait QFunction {
    * Returns true if the file should be used for status output.
    * @return true if the file should be used for status output.
    */
-  def useStatusOutput(file: File): Boolean
+  def useStatusOutput(file: File) =
+    file != jobOutputFile && file != jobErrorFile
 
   /**
    * Returns the output files for this function.
@@ -109,6 +130,28 @@ trait QFunction {
    * @return Set[File] outputs for this function.
    */
   def outputs = getFieldFiles(outputFields)
+
+  /**
+   * Returns the set of directories where files may be written.
+   */
+  def outputDirectories = {
+    var dirs = Set.empty[File]
+    dirs += commandDirectory
+    if (jobTempDir != null)
+      dirs += jobTempDir
+    dirs ++= outputs.map(_.getParentFile)
+    dirs
+  }
+
+  /**
+   * Creates the output directories for this function if it doesn't exist.
+   */
+  def mkOutputDirectories() = {
+    outputDirectories.foreach(dir => {
+      if (!dir.exists && !dir.mkdirs)
+        throw new QException("Unable to create directory: " + dir)
+    })
+  }
 
   /**
    * Returns fields that do not have values which are required.
@@ -187,33 +230,6 @@ trait QFunction {
   }
 
   /**
-   * Resets the field to the temporary directory.
-   * @param field Field to get and set the file.
-   * @param tempDir new root for the file.
-   */
-  def resetFieldFile(field: ArgumentSource, tempDir: File): File = {
-    getFieldValue(field) match {
-      case fileExtension: FileExtension => {
-        val newFile = IOUtils.resetParent(tempDir, fileExtension)
-        val newFileExtension = fileExtension.withPath(newFile.getPath)
-        setFieldValue(field, newFileExtension)
-        newFileExtension
-      }
-      case file: File => {
-        if (file.getClass != classOf[File])
-          throw new QException("Extensions of file must also extend with FileExtension so that the path can be modified.");
-        val newFile = IOUtils.resetParent(tempDir, file)
-        setFieldValue(field, newFile)
-        newFile
-      }
-      case null => null
-      case unknown =>
-        throw new QException("Unable to set file from %s: %s".format(field, unknown))
-    }
-  }
-
-
-  /**
    * After a function is frozen no more updates are allowed by the user.
    * The function is allow to make necessary updates internally to make sure
    * the inputs and outputs will be equal to other inputs and outputs.
@@ -223,7 +239,19 @@ trait QFunction {
     canonFieldValues
   }
 
+  /**
+   * Sets all field values.
+   */
   def freezeFieldValues = {
+    if (jobNamePrefix == null)
+      jobNamePrefix = qSettings.jobNamePrefix
+
+    if (jobName == null)
+      jobName = QFunction.nextJobName(jobNamePrefix)
+
+    if (jobOutputFile == null)
+      jobOutputFile = new File(jobName + ".out")
+
     commandDirectory = IOUtils.subDir(IOUtils.CURRENT_DIR, commandDirectory)
   }
 
@@ -346,6 +374,19 @@ trait QFunction {
 }
 
 object QFunction {
+  /** Job index counter for this run of Queue. */
+  private var jobIndex = 0
+
+  /**
+   * Returns the next job name using the prefix.
+   * @param prefix Prefix of the job name.
+   * @return the next job name.
+   */
+  private def nextJobName(prefix: String) = {
+    jobIndex += 1
+    prefix + "-" + jobIndex
+  }
+
   /**
    * The list of fields defined on a class
    * @param clazz The class to lookup fields.

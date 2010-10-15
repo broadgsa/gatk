@@ -42,12 +42,6 @@ class IOUtilsUnitTest extends BaseTest {
   }
 
   @Test
-  def testResetParent = {
-    val newFile = IOUtils.resetParent(new File("/new/parent/dir"), new File("/old/parent_dir/file.name"))
-    Assert.assertEquals(new File("/new/parent/dir/file.name"), newFile)
-  }
-
-  @Test
   def testTempDir = {
     val tempDir = IOUtils.tempDir("Q-Unit-Test")
     Assert.assertTrue(tempDir.exists)

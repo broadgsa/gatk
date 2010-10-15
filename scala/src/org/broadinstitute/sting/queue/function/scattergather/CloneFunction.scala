@@ -52,33 +52,31 @@ class CloneFunction extends CommandLineFunction {
       this.jobProject = originalFunction.jobProject
     if (this.jobName == null)
       this.jobName = originalFunction.jobName
-    if (this.jobOutputFile == null)
-      this.jobOutputFile = overriddenFile("jobOutputFile").get
-    if (this.jobErrorFile == null)
-      this.jobErrorFile = overriddenFile("jobErrorFile").getOrElse(null)
     super.freezeFieldValues
   }
 
   def commandLine = withScatterPart(() => originalFunction.commandLine)
 
   override def getFieldValue(source: ArgumentSource) = {
-    overriddenFields.get(source) match {
-      case Some(value) => value.asInstanceOf[AnyRef]
-      case None => {
-        val value = originalFunction.getFieldValue(source)
-        overriddenFields += source -> value
-        value
+    source.field.getName match {
+      case "jobOutputFile" => jobOutputFile
+      case "jobErrorFile" => jobErrorFile
+      case _ => overriddenFields.get(source) match {
+        case Some(value) => value.asInstanceOf[AnyRef]
+        case None => {
+          val value = originalFunction.getFieldValue(source)
+          overriddenFields += source -> value
+          value
+        }
       }
     }
   }
 
   override def setFieldValue(source: ArgumentSource, value: Any) = {
-    overriddenFields += source -> value
-  }
-
-  private def overriddenFile(name: String) = {
-    overriddenFields
-            .find{case (key, _) => key.field.getName == name}
-            .map{case (_, value) => value.asInstanceOf[File]}
+    source.field.getName match {
+      case "jobOutputFile" => jobOutputFile = value.asInstanceOf[File]
+      case "jobErrorFile" => jobErrorFile = value.asInstanceOf[File]
+      case _ => overriddenFields += source -> value
+    }
   }
 }

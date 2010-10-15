@@ -14,9 +14,6 @@ trait ScatterFunction extends QFunction {
   @Output(doc="Scattered parts of the original input, one per temp directory")
   var scatterParts: List[File] = Nil
 
-  @Input(doc="Temporary directories for each scatter part")
-  var tempDirectories: List[File] = Nil
-
   /**
    * Sets the original function used to create this scatter function.
    * @param originalFunction The ScatterGatherableFunction.

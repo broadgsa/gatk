@@ -95,7 +95,7 @@ class EmailMessage extends Logging {
   }
 
   override def toString = {
-    """|
+    """
     |From: %s
     |To: %s
     |Cc: %s
@@ -106,7 +106,7 @@ class EmailMessage extends Logging {
     |
     |Attachments:
     |%s
-    |""".stripMargin.trim.format(
+    |""".stripMargin.format(
       this.from, this.to.mkString(", "),
       this.cc.mkString(", "), this.bcc.mkString(", "),
       this.subject, this.body,

@@ -30,12 +30,39 @@ trait QScript extends Logging {
 
   /**
    * Exchanges the extension on a file.
+   * @param file File to look for the extension.
+   * @param oldExtension Old extension to strip off, if present.
+   * @param newExtension New extension to append.
+   * @return new File with the new extension in the current directory.
    */
   protected def swapExt(file: File, oldExtension: String, newExtension: String) =
     new File(file.getName.stripSuffix(oldExtension) + newExtension)
 
   /**
+   * Exchanges the extension on a file.
+   * @param dir New directory for the file.
+   * @param file File to look for the extension.
+   * @param oldExtension Old extension to strip off, if present.
+   * @param newExtension New extension to append.
+   * @return new File with the new extension in dir.
+   */
+  protected def swapExt(dir: String, file: File, oldExtension: String, newExtension: String) =
+    new File(dir, file.getName.stripSuffix(oldExtension) + newExtension)
+
+  /**
+   * Exchanges the extension on a file.
+   * @param dir New directory for the file.
+   * @param file File to look for the extension.
+   * @param oldExtension Old extension to strip off, if present.
+   * @param newExtension New extension to append.
+   * @return new File with the new extension in dir.
+   */
+  protected def swapExt(dir: File, file: File, oldExtension: String, newExtension: String) =
+    new File(dir, file.getName.stripSuffix(oldExtension) + newExtension)
+
+  /**
    * Adds one or more command line functions to be run.
+   * @param functions Functions to add.
    */
   def add(functions: CommandLineFunction*) = this.functions ++= List(functions:_*)
 

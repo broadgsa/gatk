@@ -29,6 +29,8 @@ class QGraph extends Logging {
   var statusEmailTo: List[String] = _
 
   private val jobGraph = newGraph
+  private var shuttingDown = false
+  private val nl = "%n".format()
 
   /**
    * Adds a QScript created CommandLineFunction to the graph.
@@ -86,7 +88,7 @@ class QGraph extends Logging {
                 .function.asInstanceOf[ScatterGatherableFunction]
                 .generateFunctions()
         if (this.debugMode)
-          logger.debug("Scattered into %d parts: %n%s".format(functions.size, functions.mkString("%n".format())))
+          logger.debug("Scattered into %d parts: %n%s".format(functions.size, functions.mkString(nl)))
         addedFunctions ++= functions
       }
 
@@ -240,22 +242,19 @@ class QGraph extends Logging {
   private def dryRunJobs() = {
     traverseFunctions(edge => {
       edge.function match {
-        case clf: CommandLineFunction => {
+        case qFunction => {
           if (logger.isDebugEnabled) {
-            logger.debug(clf.commandDirectory + " > " + clf.commandLine)
+            logger.debug(qFunction.commandDirectory + " > " + qFunction.description)
           } else {
-            logger.info(clf.commandLine)
+            logger.info(qFunction.description)
           }
-          logger.info("Output written to " + clf.jobOutputFile)
-          if (clf.jobErrorFile != null) {
-            logger.info("Errors written to " + clf.jobErrorFile)
+          logger.info("Output written to " + qFunction.jobOutputFile)
+          if (qFunction.jobErrorFile != null) {
+            logger.info("Errors written to " + qFunction.jobErrorFile)
           } else {
             if (logger.isDebugEnabled)
-              logger.info("Errors also written to " + clf.jobOutputFile)
+              logger.info("Errors also written to " + qFunction.jobOutputFile)
           }
-        }
-        case qFunction => {
-          logger.info(qFunction.description)
         }
       }
     })
@@ -276,7 +275,7 @@ class QGraph extends Logging {
 
       var readyJobs = getReadyJobs
       var runningJobs = Set.empty[FunctionEdge]
-      while (readyJobs.size + runningJobs.size > 0) {
+      while (!shuttingDown && readyJobs.size + runningJobs.size > 0) {
         var exitedJobs = List.empty[FunctionEdge]
         var failedJobs = List.empty[FunctionEdge]
 
@@ -304,12 +303,12 @@ class QGraph extends Logging {
           Thread.sleep(30000L)
         readyJobs = getReadyJobs
       }
-
-      emailStatus()
     } catch {
       case e =>
         logger.error("Uncaught error running jobs.", e)
         throw e
+    } finally {
+      emailStatus()
     }
   }
 
@@ -327,54 +326,64 @@ class QGraph extends Logging {
     }
   }
 
-  private def emailFailedJobs(jobs: List[FunctionEdge]) = {
+  private def emailFailedJobs(failed: List[FunctionEdge]) = {
     if (statusEmailTo.size > 0) {
       val emailMessage = new EmailMessage
       emailMessage.from = statusEmailFrom
       emailMessage.to = statusEmailTo
-      emailMessage.body = getStatus
       emailMessage.subject = "Queue function: Failure"
-      emailMessage.body = "Failed functions: %n%n%s%n"
-              .format(jobs.map(_.function.description).mkString("%n%n".format()))
-      emailMessage.attachments = jobs.flatMap(edge => logFiles(edge))
+      addFailedFunctions(emailMessage, failed)
       emailMessage.trySend(qSettings.emailSettings)
     }
   }
 
   private def emailStatus() = {
     if (statusEmailTo.size > 0) {
-      var failedFunctions = List.empty[String]
-      var failedOutputs = List.empty[File]
+      var failed = List.empty[FunctionEdge]
       foreachFunction(edge => {
         if (edge.status == RunnerStatus.FAILED) {
-          failedFunctions :+= edge.function.description
-          failedOutputs ++= logFiles(edge)
+          failed :+= edge
         }
       })
 
       val emailMessage = new EmailMessage
       emailMessage.from = statusEmailFrom
       emailMessage.to = statusEmailTo
-      emailMessage.body = getStatus + "%n".format()
-      if (failedFunctions.size == 0) {
+      emailMessage.body = getStatus + nl
+      if (failed.size == 0) {
         emailMessage.subject = "Queue run: Success"
       } else {
         emailMessage.subject = "Queue run: Failure"
-        emailMessage.attachments = failedOutputs
+        addFailedFunctions(emailMessage, failed)
       }
       emailMessage.trySend(qSettings.emailSettings)
     }
   }
 
+  private def addFailedFunctions(emailMessage: EmailMessage, failed: List[FunctionEdge]) = {
+    val logs = failed.flatMap(edge => logFiles(edge))
+
+    if (emailMessage.body == null)
+      emailMessage.body = ""
+    emailMessage.body += """
+    |Failed functions:
+    |
+    |%s
+    |
+    |Logs:
+    |%s%n
+    |""".stripMargin.trim.format(
+      failed.map(_.function.description).mkString(nl+nl),
+      logs.map(_.getAbsolutePath).mkString(nl))
+
+    emailMessage.attachments = logs
+  }
+
   private def logFiles(edge: FunctionEdge) = {
-    // TODO: All functions should be writing error files, including InProcessFunctions
     var failedOutputs = List.empty[File]
-    if (edge.function.isInstanceOf[CommandLineFunction]) {
-      val clf = edge.function.asInstanceOf[CommandLineFunction]
-      failedOutputs :+= clf.jobOutputFile
-      if (clf.jobErrorFile != null)
-        failedOutputs :+= clf.jobErrorFile
-    }
+    failedOutputs :+= edge.function.jobOutputFile
+    if (edge.function.jobErrorFile != null)
+      failedOutputs :+= edge.function.jobErrorFile
     failedOutputs.filter(file => file != null && file.exists)
   }
 
@@ -408,7 +417,6 @@ class QGraph extends Logging {
    */
   private def getStatus = {
     val buffer = new StringBuilder
-    val nl = "%n".format()
     doStatus(status => buffer.append(status).append(nl))
     buffer.toString
   }
@@ -631,6 +639,7 @@ class QGraph extends Logging {
    * Kills any forked jobs still running.
    */
   def shutdown() {
+    shuttingDown = true
     val lsfJobRunners = getRunningJobs.filter(_.runner.isInstanceOf[LsfJobRunner]).map(_.runner.asInstanceOf[LsfJobRunner])
     if (lsfJobRunners.size > 0) {
       for (jobRunners <- lsfJobRunners.filterNot(_.job.bsubJobId == null).grouped(10)) {

@@ -86,7 +86,6 @@ class CleanBamFile extends QScript {
     this.reference_sequence = qscript.referenceFile
     this.intervals = qscript.intervals
     this.input_file :+= recalibratedBam
-    this.cleanupTempDirectories = true
   }
 
   def baseFile(suffix: String) = new File(baseName + suffix)
