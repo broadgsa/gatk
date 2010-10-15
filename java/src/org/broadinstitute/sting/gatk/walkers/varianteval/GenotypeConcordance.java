@@ -404,15 +404,15 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
     }
 
     private int getAC(VariantContext vc) {
-        if ( vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass().isAssignableFrom(List.class) ) {
+        if ( List.class.isAssignableFrom(vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass()) ) {
             return ((List<Integer>) vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY)).get(0);
-        } else if ( vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass().isAssignableFrom(Integer.class)) {
+        } else if ( Integer.class.isAssignableFrom(vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass())) {
             return (Integer) vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY);
-        } else if ( vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass().isAssignableFrom(String.class)) {
+        } else if ( String.class.isAssignableFrom(vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass()) ) {
             // two ways of parsing
             String ac = (String) vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY);
             if ( ac.startsWith("[") ) {
-                return Integer.parseInt(ac.replaceAll("[","").replaceAll("]",""));
+                return Integer.parseInt(ac.replaceAll("\\[","").replaceAll("\\]",""));
             } else {
                 try {
                     return Integer.parseInt(ac);
@@ -421,7 +421,7 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
                 }
             }
         } else {
-            throw new UserException(String.format("The format of the AC field does not appear to be of integer-list or String format"));
+            throw new UserException(String.format("The format of the AC field does not appear to be of integer-list or String format, class was %s",vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY).getClass()));
         }
     }
 }
