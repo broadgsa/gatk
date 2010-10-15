@@ -25,18 +25,20 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.SortingVCFWriter;
+import org.broad.tribble.TribbleException;
 
 import java.io.File;
 import java.util.*;
@@ -53,13 +55,17 @@ import net.sf.samtools.SAMFileReader;
 public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter writer = null;
+    protected File file = null;
+    protected SortingVCFWriter writer = null;
 
     @Argument(fullName="chain", shortName="chain", doc="Chain file", required=true)
     protected File CHAIN = null;
 
     @Argument(fullName="newSequenceDictionary", shortName="dict", doc="Sequence .dict file for the new build", required=true)
     protected File NEW_SEQ_DICT = null;
+
+    @Argument(fullName="maxCachingDistance", shortName="cache", doc="Maximum genomic distance for which we will cache variants", required=false)
+    protected Integer maxCachingDistance = 50000;
 
     private LiftOver liftOver;
 
@@ -76,6 +82,8 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 
         final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey("variant") ? vcfHeaders.get("variant").getMetaData() : null, samples);
+
+        writer = new SortingVCFWriter(file, maxCachingDistance);
         writer.writeHeader(vcfHeader);
     }
 
@@ -87,7 +95,11 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
 
         if ( toInterval != null ) {
             vc = VariantContextUtils.modifyLocation(vc, GenomeLocParser.createPotentiallyInvalidGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length));
-            writer.add(vc, ref.getBase());
+            try {
+                writer.add(vc, ref.getBase());
+            } catch (TribbleException e) {
+                throw new UserException(e.getMessage());
+            }
             successfulIntervals++;
         } else {
             failedIntervals++;
@@ -110,6 +122,8 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
     public Integer reduce(Integer value, Integer sum) { return 0; }
 
     public void onTraversalDone(Integer result) {
+        writer.flush();
+        writer.close();
         System.out.println("Converted " + successfulIntervals + " records; failed to convert " + failedIntervals + " records.");
     }
 }
