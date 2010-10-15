@@ -34,6 +34,9 @@ trait QFunction {
   /** Temporary directory to write any files */
   var jobTempDir: File = IOUtils.javaTempDir
 
+  /** Order the function was added to the graph. */
+  var addOrder: List[Int] = Nil
+
   /** File to redirect any output.  Defaults to <jobName>.out */
   @Output(doc="File to redirect any output", required=false)
   @Gather(classOf[SimpleTextGatherFunction])

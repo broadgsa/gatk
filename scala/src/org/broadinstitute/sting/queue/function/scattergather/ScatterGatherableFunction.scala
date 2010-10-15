@@ -74,6 +74,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
     // Create the scatter function based on @Scatter
     val scatterFunction = this.newScatterFunction(this.scatterField)
+    scatterFunction.addOrder = this.addOrder :+ 1
     scatterFunction.analysisName = this.analysisName
     scatterFunction.qSettings = this.qSettings
     scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter-" + scatterField.field.getName)
@@ -86,9 +87,11 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     // Create the gather functions for each output field
     var gatherFunctions = Map.empty[ArgumentSource, GatherFunction]
     var gatherOutputs = Map.empty[ArgumentSource, File]
+    var gatherAddOrder = this.scatterCount + 2
     for (gatherField <- outputFieldsWithValues) {
       val gatherFunction = this.newGatherFunction(gatherField)
       val gatherOutput = getFieldFile(gatherField)
+      gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
       gatherFunction.analysisName = this.analysisName
       gatherFunction.qSettings = this.qSettings
       gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
@@ -99,6 +102,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       functions :+= gatherFunction
       gatherFunctions += gatherField -> gatherFunction
       gatherOutputs += gatherField -> gatherOutput
+      gatherAddOrder += 1
     }
 
     // Create the clone functions for running the parallel jobs
@@ -108,6 +112,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
       cloneFunction.originalFunction = this
       cloneFunction.index = i
+      cloneFunction.addOrder = this.addOrder :+ (i+1)
 
       // Setup the fields on the clone function, outputing each as a relative file in the sg directory.
       cloneFunction.commandDirectory = this.scatterGatherTempDir("temp-"+i)

@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.queue
 
 import org.broadinstitute.sting.queue.util.Logging
+import org.broadinstitute.sting.queue.function.QFunction
 
 /**
  * Defines a Queue pipeline as a collection of CommandLineFunctions.
@@ -13,6 +14,7 @@ trait QScript extends Logging {
   type Argument = org.broadinstitute.sting.commandline.Argument
   type ArgumentCollection = org.broadinstitute.sting.commandline.ArgumentCollection
   type CommandLineFunction = org.broadinstitute.sting.queue.function.CommandLineFunction
+  type InProcessFunction = org.broadinstitute.sting.queue.function.InProcessFunction
   type ScatterGatherableFunction = org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction
   type Scatter = org.broadinstitute.sting.queue.function.scattergather.Scatter
   type Gather = org.broadinstitute.sting.queue.function.scattergather.Gather
@@ -26,7 +28,7 @@ trait QScript extends Logging {
   /**
    * The command line functions that will be executed for this QScript.
    */
-  var functions = List.empty[CommandLineFunction]
+  var functions = List.empty[QFunction]
 
   /**
    * Exchanges the extension on a file.
@@ -64,6 +66,16 @@ trait QScript extends Logging {
    * Adds one or more command line functions to be run.
    * @param functions Functions to add.
    */
-  def add(functions: CommandLineFunction*) = this.functions ++= List(functions:_*)
+  def add(functions: QFunction*) = {
+    functions.foreach(function => function.addOrder = QScript.nextAddOrder)
+    this.functions ++= functions
+  }
+}
 
+object QScript {
+  private var addOrder = 0
+  private def nextAddOrder = {
+    addOrder += 1
+    List(addOrder)
+  }
 }

@@ -180,14 +180,14 @@ class QGraph extends Logging {
       case f: FunctionEdge =>
         this.previousFunctions(f).forall(_.status == RunnerStatus.DONE) && f.status == RunnerStatus.PENDING
       case _ => false
-    }.map(_.asInstanceOf[FunctionEdge])
+    }.map(_.asInstanceOf[FunctionEdge]).toList.sortWith(compare(_,_))
   }
 
   private def getRunningJobs = {
     jobGraph.edgeSet.filter{
       case f: FunctionEdge => f.status == RunnerStatus.RUNNING
       case _ => false
-    }.map(_.asInstanceOf[FunctionEdge])
+    }.map(_.asInstanceOf[FunctionEdge]).toList.sortWith(compare(_,_))
   }
 
   /**
@@ -425,20 +425,23 @@ class QGraph extends Logging {
    * Gets job statuses by traversing the graph and looking for status-related files
    */
   private def doStatus(statusFunc: String => Unit) = {
-    var statuses = Map.empty[String, AnalysisStatus]
-    foreachFunction(edgeCLF => {
-      if (edgeCLF.function.analysisName != null) {
-        updateStatus(statuses.get(edgeCLF.function.analysisName) match {
+    var statuses = List.empty[AnalysisStatus]
+    var maxWidth = 0
+    foreachFunction(edge => {
+      val name = edge.function.analysisName
+      if (name != null) {
+        updateStatus(statuses.find(_.analysisName == name) match {
           case Some(status) => status
           case None =>
-            val status = new AnalysisStatus(edgeCLF.function.analysisName)
-            statuses += edgeCLF.function.analysisName -> status
+            val status = new AnalysisStatus(name)
+            maxWidth = maxWidth max name.length
+            statuses :+= status
             status
-        }, edgeCLF)
+        }, edge)
       }
     })
 
-    statuses.values.toList.sortBy(_.analysisName).foreach(status => {
+    statuses.foreach(status => {
       if (status.scatter.total + status.gather.total > 0) {
         var sgStatus = RunnerStatus.PENDING
         if (status.scatter.failed + status.gather.failed > 0)
@@ -450,7 +453,7 @@ class QGraph extends Logging {
         status.status = sgStatus
       }
 
-      var info = status.analysisName + ": [" + status.status + "]"
+      var info = ("%-" + maxWidth + "s [%#7s]").format(status.analysisName, status.status)
       if (status.scatter.total + status.gather.total > 1) {
         info += formatSGStatus(status.scatter, "s")
         info += formatSGStatus(status.gather, "g")
@@ -582,10 +585,33 @@ class QGraph extends Logging {
    * @param edgeFunction Function to run for each FunctionEdge.
    */
   private def foreachFunction(f: (FunctionEdge) => Unit) = {
-    jobGraph.edgeSet.foreach{
-      case functionEdge: FunctionEdge => f(functionEdge)
-      case map: MappingEdge => /* do nothing for mapping functions */
+    jobGraph.edgeSet.toList
+            .filter(_.isInstanceOf[FunctionEdge])
+            .map(_.asInstanceOf[FunctionEdge])
+            .sortWith(compare(_,_))
+            .foreach(f(_))
+  }
+
+  private def compare(f1: FunctionEdge, f2: FunctionEdge): Boolean =
+    compare(f1.function, f2.function)
+
+  private def compare(f1: QFunction, f2: QFunction): Boolean = {
+    val len1 = f1.addOrder.size
+    val len2 = f2.addOrder.size
+    val len = len1 min len2
+    
+    for (i <- 0 until len) {
+      val order1 = f1.addOrder(i)
+      val order2 = f2.addOrder(i)
+      if (order1 < order2)
+        return true
+      if (order1 > order2)
+        return false
     }
+    if (len1 < len2)
+      return true
+    else
+      return false
   }
 
   /**
