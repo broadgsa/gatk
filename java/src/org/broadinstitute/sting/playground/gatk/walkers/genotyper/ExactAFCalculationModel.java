@@ -29,7 +29,6 @@ import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
-import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.*;
@@ -54,7 +53,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                 ReferenceContext ref,
                                 Map<String, BiallelicGenotypeLikelihoods> GLs,
                                 double[] log10AlleleFrequencyPriors,
-                                double[] log10AlleleFrequencyPosteriors) {
+                                double[] log10AlleleFrequencyPosteriors,
+                                int minFrequencyToCalculate) {
 
         // Math requires linear math to make efficient updates.
         double[] alleleFrequencyPriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPriors);
@@ -233,7 +233,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             HashMap<String, Object> attributes = new HashMap<String, Object>();
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
             attributes.put(VCFConstants.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
-            double qual = 0.0;
+            double qual;
             double[] posteriors = GLs.get(sample).getPosteriors();
 
             if (bestGTguess == 0) {

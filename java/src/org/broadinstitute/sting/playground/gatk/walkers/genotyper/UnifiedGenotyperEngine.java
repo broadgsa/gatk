@@ -157,7 +157,7 @@ public class UnifiedGenotyperEngine {
 
         // 'zero' out the AFs (so that we don't have to worry if not all samples have reads at this position)
         clearAFarray(log10AlleleFrequencyPosteriors.get());
-        afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
+        afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get(), 0);
 
         // find the most likely frequency
         int bestAFguess = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get());
@@ -234,9 +234,8 @@ public class UnifiedGenotyperEngine {
             GLs.clear();
             glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD, genotypePriors, GLs);
             clearAFarray(log10AlleleFrequencyPosteriors.get());
-            afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
+            afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get(), bestAFguess);
             double forwardLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
-            bestAFguess = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get());
             double forwardLog10PofF = log10AlleleFrequencyPosteriors.get()[bestAFguess];
             //System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
@@ -244,9 +243,8 @@ public class UnifiedGenotyperEngine {
             GLs.clear();
             glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE, genotypePriors, GLs);
             clearAFarray(log10AlleleFrequencyPosteriors.get());
-            afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
+            afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get(), bestAFguess);
             double reverseLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
-            bestAFguess = MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors.get());
             double reverseLog10PofF = log10AlleleFrequencyPosteriors.get()[bestAFguess];
             //System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
 

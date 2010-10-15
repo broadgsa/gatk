@@ -48,7 +48,8 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
                                 ReferenceContext ref,
                                 Map<String, BiallelicGenotypeLikelihoods> GLs,
                                 double[] log10AlleleFrequencyPriors,
-                                double[] log10AlleleFrequencyPosteriors) {
+                                double[] log10AlleleFrequencyPosteriors,
+                                int minFrequencyToCalculate) {
 
         initializeAFMatrix(GLs);
 
@@ -68,12 +69,17 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
 
             // an optimization to speed up the calculation: if we are beyond the local maximum such
             //  that subsequent likelihoods won't factor into the confidence score, just quit
-            if ( maxLikelihoodSeen - log10AlleleFrequencyPosteriors[i] > LOG10_OPTIMIZATION_EPSILON )
+            if ( i >= minFrequencyToCalculate && maxLikelihoodSeen - log10AlleleFrequencyPosteriors[i] > LOG10_OPTIMIZATION_EPSILON )
                 return;
 
             if ( log10AlleleFrequencyPosteriors[i] > maxLikelihoodSeen )
                 maxLikelihoodSeen = log10AlleleFrequencyPosteriors[i];
         }
+
+        // TODO: we really need to get rid of this and the minFrequencyToCalculate argument
+        // it's possible that we need to calculate higher frequencies
+        for (int i = maxAlleleFrequencyToTest; i <= minFrequencyToCalculate; i++)
+            log10AlleleFrequencyPosteriors[i] = log10AlleleFrequencyPosteriors[maxAlleleFrequencyToTest];
     }
 
     /**
