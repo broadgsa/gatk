@@ -67,5 +67,7 @@ system($cmd);
 # clean up
 unlink $unsorted_vcf;
 unlink $sorted_vcf;
+my $sorted_index = "$sorted_vcf.idx";
+unlink $sorted_index;
 
 print "\nDone!\n";
