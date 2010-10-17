@@ -6,11 +6,14 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
 import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.utils.TableType;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -40,6 +43,12 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
         if ( ! (isValidVC(eval) && isValidVC(comp))  ) {
             return null;
         } else {
+            if ( missingField(eval) ) {
+                recalculateCounts(eval);
+            }
+            if ( missingField(comp) ) {
+                recalculateCounts(comp);
+            }
             afTable.update(getAF(eval),getAF(comp));
             acTable.update(getAC(eval),getAC(comp));
         }
@@ -47,16 +56,64 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
         return null; // there is nothing interesting
     }
 
+    private static boolean missingField(final VariantContext vc) {
+        return ! ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) && vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
+    }
+
+    private static void recalculateCounts(VariantContext vc) {
+        Map<String,Object> attributes = vc.getAttributes();
+        VariantContextUtils.calculateChromosomeCounts(vc,attributes,false);
+        VariantContext.modifyAttributes(vc,attributes);
+    }
+
     private static boolean isValidVC(final VariantContext vc) {
-        return (vc != null && !vc.isFiltered() && vc.getAlternateAlleles().size() == 1 && vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) && vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
+        return (vc != null && !vc.isFiltered() && vc.getAlternateAlleles().size() == 1);
     }
 
     private static double getAF(VariantContext vc) {
-        return ((List<Double>) vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY)).get(0);
+        Object af = vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY);
+        if ( List.class.isAssignableFrom(af.getClass())) {
+            return ( (List<Double>) af ).get(0);
+        } else if ( String.class.isAssignableFrom(af.getClass())) {
+            // two possibilities
+            String s = (String) af;
+            try {
+                if ( s.startsWith("[") ) {
+                    return Double.parseDouble(s.replace("\\[","").replace("\\]",""));
+                } else {
+                    return Double.parseDouble(s);
+                }
+            } catch (NumberFormatException e) {
+                throw new UserException("Allele frequency field may be improperly formatted, found AF="+s);
+            }
+        } else if ( Double.class.isAssignableFrom(vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY).getClass())) {
+            return (Double) af;
+        } else {
+            throw new UserException(String.format("Class of Allele Frequency does not appear to be formated, had AF=%s, of class %s",af.toString(),af.getClass()));
+        }
     }
 
     private static int getAC(VariantContext vc) {
-        return ((List<Integer>) vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY)).get(0);
+        Object ac = vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY);
+        if ( List.class.isAssignableFrom(ac.getClass())) {
+            return ( (List<Integer>) ac ).get(0);
+        } else if ( String.class.isAssignableFrom(ac.getClass())) {
+            // two possibilities
+            String s = (String) ac;
+            try {
+                if ( s.startsWith("[") ) {
+                    return Integer.parseInt(s.replace("\\[","").replace("\\]",""));
+                } else {
+                    return Integer.parseInt(s);
+                }
+            } catch (NumberFormatException e) {
+                throw new UserException("Allele count field may be improperly formatted, found AC="+s);
+            }
+        } else if ( Double.class.isAssignableFrom(vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY).getClass())) {
+            return (Integer) ac;
+        } else {
+            throw new UserException(String.format("Class of Allele Frequency does not appear to be formated, had AF=%s, of class %s",ac.toString(),ac.getClass()));
+        }
     }
 }
 

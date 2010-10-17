@@ -212,6 +212,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             VariantContext sub = subsetRecord(vc, samples);
     
             if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+                    //System.out.printf("%s%n",sub.toString());
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
                     if ( !VariantContextUtils.match(sub, jexl) ) {
                         return 0;
@@ -231,7 +232,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      * @param vc       the VariantContext record to subset
      * @param samples  the samples to extract
      * @return the subsetted VariantContext
-     */
+     */                                                             
     private VariantContext subsetRecord(VariantContext vc, Set<String> samples) {
         if ( samples == null || samples.isEmpty() )
             return vc;
@@ -246,17 +247,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
 
-        int alleleCount = 0;
-        int numberOfAlleles = 0;
         int depth = 0;
         for (String sample : sub.getSampleNames()) {
             Genotype g = sub.getGenotype(sample);
 
             if (g.isNotFiltered() && g.isCalled()) {
-                numberOfAlleles += g.getPloidy();
-
-                if (g.isHet()) { alleleCount++; }
-                else if (g.isHomVar()) { alleleCount += 2; }
                 
                 String dp = (String) g.getAttribute("DP");
                 if (dp != null && ! dp.equals(VCFConstants.MISSING_DEPTH_v3) && ! dp.equals(VCFConstants.MISSING_VALUE_v4) ) {
@@ -265,13 +260,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             }
         }
 
-        attributes.put("AC", alleleCount);
-        attributes.put("AN", numberOfAlleles);
-        if (numberOfAlleles == 0) {
-            attributes.put("AF", 0.0);
-        } else {
-            attributes.put("AF", ((double) alleleCount) / ((double) numberOfAlleles));
-        }
+
+        VariantContextUtils.calculateChromosomeCounts(sub,attributes,false);
         attributes.put("DP", depth);
 
         sub = VariantContext.modifyAttributes(sub, attributes);
