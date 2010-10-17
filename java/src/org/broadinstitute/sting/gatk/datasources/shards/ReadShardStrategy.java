@@ -124,7 +124,6 @@ public class ReadShardStrategy implements ShardStrategy {
     public void advance() {
         Map<SAMReaderID,SAMFileSpan> shardPosition = new HashMap<SAMReaderID,SAMFileSpan>();
         nextShard = null;
-        SamRecordFilter filter = null;
 
         if(locations != null) {
             Map<SAMReaderID,SAMFileSpan> selectedReaders = new HashMap<SAMReaderID,SAMFileSpan>();
@@ -137,8 +136,7 @@ public class ReadShardStrategy implements ShardStrategy {
                 }
 
                 if(selectedReaders.size() > 0) {
-                    filter = new ReadOverlapFilter(currentFilePointer.locations);
-                    BAMFormatAwareShard shard = new ReadShard(dataSource,selectedReaders,filter);
+                    BAMFormatAwareShard shard = new ReadShard(dataSource,selectedReaders,currentFilePointer.locations);
                     dataSource.fillShard(shard);
 
                     if(!shard.isBufferEmpty()) {
@@ -152,7 +150,7 @@ public class ReadShardStrategy implements ShardStrategy {
             }
         }
         else {
-            BAMFormatAwareShard shard = new ReadShard(dataSource,position,filter);
+            BAMFormatAwareShard shard = new ReadShard(dataSource,position,null);
             dataSource.fillShard(shard);
             nextShard = !shard.isBufferEmpty() ? shard : null;
         }

@@ -50,19 +50,19 @@ public class ReadShard implements BAMFormatAwareShard {
     private final Collection<SAMRecord> reads = new ArrayList<SAMRecord>(ReadShardStrategy.MAX_READS);
 
     /**
+     * currently our location
+     */
+    private final List<GenomeLoc> loci;
+
+    /**
      * Statistics about which reads in this shards were used and which were filtered away.
      */
     private final ReadMetrics readMetrics = new ReadMetrics();
 
-    /**
-     * The filter to be applied to all reads meeting this criteria.
-     */
-    private final SamRecordFilter filter;
-
-    public ReadShard(SAMDataSource readsDataSource, Map<SAMReaderID,SAMFileSpan> fileSpans, SamRecordFilter filter) {
+    public ReadShard(SAMDataSource readsDataSource, Map<SAMReaderID,SAMFileSpan> fileSpans, List<GenomeLoc> loci) {
         this.readsDataSource = readsDataSource;
         this.fileSpans = fileSpans;
-        this.filter = filter;
+        this.loci = loci;
     }
 
     /**
@@ -85,7 +85,7 @@ public class ReadShard implements BAMFormatAwareShard {
     /** @return the genome location represented by this shard */
     @Override
     public List<GenomeLoc> getGenomeLocs() {
-        throw new UnsupportedOperationException("ReadShard isn't genome loc aware");
+        return loci;
     }
 
     /**
@@ -134,11 +134,6 @@ public class ReadShard implements BAMFormatAwareShard {
     @Override
     public StingSAMIterator iterator() {
         return StingSAMIteratorAdapter.adapt(reads.iterator());
-    }
-
-    @Override
-    public SamRecordFilter getFilter() {
-        return filter;
     }
 
     /**

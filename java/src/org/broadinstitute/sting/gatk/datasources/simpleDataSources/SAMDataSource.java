@@ -42,6 +42,7 @@ import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -434,14 +435,15 @@ public class SAMDataSource implements SimpleDataSource {
 
         // Set up merging to dynamically merge together multiple BAMs.
         MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readers.values(),true);
+
         for(SAMReaderID id: getReaderIDs()) {
             if(shard.getFileSpans().get(id) == null)
                 continue;
-            CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));
+            CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));            
             if(readProperties.getReadBufferSize() != null)
                 iterator = new BufferingReadIterator(iterator,readProperties.getReadBufferSize());
-            if(shard.getFilter() != null)
-                iterator = new FilteringIterator(iterator,shard.getFilter()); // not a counting iterator because we don't want to show the filtering of reads
+            if(shard.getGenomeLocs() != null)
+                iterator = new IntervalOverlapFilteringIterator(iterator,shard.getGenomeLocs());
             mergingIterator.addIterator(readers.getReader(id),iterator);
         }
 
@@ -733,6 +735,100 @@ public class SAMDataSource implements SimpleDataSource {
      * Maps read groups in the original SAMFileReaders to read groups in
      */
     private class ReadGroupMapping extends HashMap<String,String> {}
+
+    /**
+     * Filters out reads that do not overlap the current GenomeLoc.
+     * Note the custom implementation: BAM index querying returns all reads that could
+     * possibly overlap the given region (and quite a few extras).  In order not to drag
+     * down performance, this implementation is highly customized to its task. 
+     */
+    private class IntervalOverlapFilteringIterator implements CloseableIterator<SAMRecord> {
+        /**
+         * The wrapped iterator.
+         */
+        private CloseableIterator<SAMRecord> iterator;
+
+        /**
+         * The next read, queued up and ready to go.
+         */
+        private SAMRecord nextRead;
+
+        /**
+         * Custom representation of interval bounds.
+         * Makes it simpler to track current position. 
+         */
+        private int[] intervalStarts;
+        private int[] intervalEnds;
+
+        /**
+         * Position within the interval list.
+         */
+        private int currentBound = 0;
+
+        public IntervalOverlapFilteringIterator(CloseableIterator<SAMRecord> iterator, List<GenomeLoc> intervals) {
+            this.iterator = iterator;
+            this.intervalStarts = new int[intervals.size()];
+            this.intervalEnds = new int[intervals.size()];
+            int i = 0;
+            for(GenomeLoc interval: intervals) {
+                intervalStarts[i] = (int)interval.getStart();
+                intervalEnds[i] = (int)interval.getStop();
+                i++;
+            }
+            advance();
+        }
+
+        public boolean hasNext() {
+            return nextRead != null;
+        }
+
+        public SAMRecord next() {
+            if(nextRead == null)
+                throw new NoSuchElementException("No more reads left in this iterator.");
+            SAMRecord currentRead = nextRead;
+            advance();
+            return currentRead;
+        }
+
+        public void remove() {
+            throw new UnsupportedOperationException("Cannot remove from an IntervalOverlapFilteringIterator");
+        }
+
+
+        public void close() {
+            iterator.close();
+        }
+
+        private void advance() {
+            nextRead = null;
+
+            if(!iterator.hasNext())
+                return;
+
+            SAMRecord candidateRead = iterator.next();
+            while(nextRead == null && currentBound < intervalStarts.length) {
+                if(candidateRead.getAlignmentEnd() >= intervalStarts[currentBound] ||
+                  (candidateRead.getReadUnmappedFlag() && candidateRead.getAlignmentStart() >= intervalStarts[currentBound])) {
+                    // This read ends after the current interval begins (or, if unmapped, starts within the bounds of the interval.
+                    // Promising, but this read must be checked against the ending bound.
+                    if(candidateRead.getAlignmentStart() <= intervalEnds[currentBound]) {
+                        // Yes, this read is within both bounds.  This must be our next read.
+                        nextRead = candidateRead;
+                        break;
+                    }
+                    else {
+                        // Oops, we're past the end bound.  Increment the current bound and try again.
+                        currentBound++;
+                        continue;
+                    }
+                }
+
+                // No reasonable read found; advance the iterator.
+                if(iterator.hasNext())
+                    candidateRead = iterator.next();                
+            }
+        }
+    }
 }
 
 

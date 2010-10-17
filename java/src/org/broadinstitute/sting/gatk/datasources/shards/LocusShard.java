@@ -110,15 +110,6 @@ public class LocusShard implements BAMFormatAwareShard {
     public StingSAMIterator iterator() { throw new UnsupportedOperationException("This shard does not buffer reads."); }
 
     /**
-     * Gets a filter testing for overlap of this read with the given shard.
-     * @return A filter capable of filtering out reads outside a given shard.
-     */
-    @Override
-    public SamRecordFilter getFilter() {
-        return new ReadOverlapFilter(loci);
-    }
-
-    /**
      * returns the type of shard.
      */
     @Override

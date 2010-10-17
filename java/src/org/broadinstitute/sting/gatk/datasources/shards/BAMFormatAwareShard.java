@@ -53,10 +53,4 @@ public interface BAMFormatAwareShard extends Shard {
      * @return An iterator over the reads stored in the shard.
      */
     public StingSAMIterator iterator();
-
-    /**
-     * Gets any filter associated with this shard.  Useful for filtering out overlaps, etc.
-     * @return A filter if one exists.  Null if not.
-     */
-    public SamRecordFilter getFilter();
 }
