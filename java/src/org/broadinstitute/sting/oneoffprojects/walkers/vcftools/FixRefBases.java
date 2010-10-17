@@ -17,6 +17,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.SampleUtils;
 
 import java.util.*;
 
@@ -34,9 +35,10 @@ public class FixRefBases extends RodWalker<Integer,Integer> {
 
     public void initialize() {
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
+	Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
-        out.writeHeader(new VCFHeader(headerLines));
+        out.writeHeader(new VCFHeader(headerLines,vcfSamples));
     }
 
     public Integer reduceInit() {
