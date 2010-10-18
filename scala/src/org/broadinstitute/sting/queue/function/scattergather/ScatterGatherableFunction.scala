@@ -63,7 +63,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    */
   def generateFunctions() = {
     var functions = List.empty[QFunction]
-    var tempDirectories = List.empty[File]
 
     // Only depend on input fields that have a value
     val inputFieldsWithValues = this.inputFields.filter(hasFieldValue(_))
@@ -74,14 +73,12 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
     // Create the scatter function based on @Scatter
     val scatterFunction = this.newScatterFunction(this.scatterField)
+    syncFunction(scatterFunction)
     scatterFunction.addOrder = this.addOrder :+ 1
-    scatterFunction.analysisName = this.analysisName
-    scatterFunction.qSettings = this.qSettings
     scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter-" + scatterField.field.getName)
     scatterFunction.originalInput = originalInput
     scatterFunction.setOriginalFunction(this, scatterField)
     initScatterFunction(scatterFunction, this.scatterField)
-    tempDirectories :+= scatterFunction.commandDirectory
     functions :+= scatterFunction
 
     // Create the gather functions for each output field
@@ -91,14 +88,12 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     for (gatherField <- outputFieldsWithValues) {
       val gatherFunction = this.newGatherFunction(gatherField)
       val gatherOutput = getFieldFile(gatherField)
+      syncFunction(gatherFunction)
       gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
-      gatherFunction.analysisName = this.analysisName
-      gatherFunction.qSettings = this.qSettings
       gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
       gatherFunction.originalOutput = this.getFieldFile(gatherField)
       gatherFunction.setOriginalFunction(this, gatherField)
       initGatherFunction(gatherFunction, gatherField)
-      tempDirectories :+= gatherFunction.commandDirectory
       functions :+= gatherFunction
       gatherFunctions += gatherField -> gatherFunction
       gatherOutputs += gatherField -> gatherOutput
@@ -110,11 +105,13 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     for (i <- 1 to this.scatterCount) {
       val cloneFunction = this.newCloneFunction()
 
+      syncFunction(cloneFunction)
       cloneFunction.originalFunction = this
       cloneFunction.index = i
       cloneFunction.addOrder = this.addOrder :+ (i+1)
+      cloneFunction.memoryLimit = this.memoryLimit
 
-      // Setup the fields on the clone function, outputing each as a relative file in the sg directory.
+      // Setup the fields on the clone function, outputting each as a relative file in the sg directory.
       cloneFunction.commandDirectory = this.scatterGatherTempDir("temp-"+i)
       var scatterPart = new File(originalInput.getName)
       cloneFunction.setFieldValue(scatterField, scatterPart)
@@ -137,7 +134,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       }
 
       cloneFunctions :+= cloneFunction
-      tempDirectories :+= cloneFunction.commandDirectory
     }
     functions ++= cloneFunctions
 
@@ -233,6 +229,24 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     if (this.setupCloneFunction != null)
       if (this.setupCloneFunction.isDefinedAt(cloneFunction, index))
         this.setupCloneFunction(cloneFunction, index)
+  }
+
+  /**
+   * Copies standard values from this function to the just created function.
+   * @param newFunction newly created function.
+   */
+  protected def syncFunction(newFunction: QFunction) = {
+    newFunction.isIntermediate = this.isIntermediate
+    newFunction.analysisName = this.analysisName
+    newFunction.qSettings = this.qSettings
+    newFunction.jobTempDir = this.jobTempDir
+    newFunction.jobName = this.jobName
+    newFunction match {
+      case newCLFFunction: CommandLineFunction =>
+        newCLFFunction.jobQueue = this.jobQueue
+        newCLFFunction.jobProject = this.jobProject
+      case _ => /* ignore */
+    }
   }
 
   /**

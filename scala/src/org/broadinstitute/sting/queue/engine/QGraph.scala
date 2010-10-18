@@ -13,6 +13,7 @@ import org.broadinstitute.sting.queue.{QSettings, QException}
 import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFunction, QFunction}
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, GatherFunction, ScatterGatherableFunction}
 import org.broadinstitute.sting.queue.util.{EmailMessage, JobExitException, LsfKillJob, Logging}
+import org.apache.commons.lang.StringUtils
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -135,14 +136,14 @@ class QGraph extends Logging {
    * @param qGraph The graph that contains the jobs.
    * @return A list of prior jobs.
    */
-  def previousFunctions(edge: QEdge) : List[FunctionEdge] = {
+  private def previousFunctions(edge: QEdge): List[FunctionEdge] = {
     var previous = List.empty[FunctionEdge]
 
     val source = this.jobGraph.getEdgeSource(edge)
     for (incomingEdge <- this.jobGraph.incomingEdgesOf(source)) {
       incomingEdge match {
 
-      // Stop recursing when we find a job along the edge and return its job id
+        // Stop recursing when we find a job along the edge and return its job id
         case functionEdge: FunctionEdge => previous :+= functionEdge
 
         // For any other type of edge find the jobs preceding the edge
@@ -266,11 +267,10 @@ class QGraph extends Logging {
   private def runJobs() = {
     try {
       traverseFunctions(edge => {
-        val isDone = !this.startClean &&
-                edge.status == RunnerStatus.DONE &&
-                this.previousFunctions(edge).forall(_.status == RunnerStatus.DONE)
-        if (!isDone)
+        if (startClean)
           edge.resetToPending()
+        else
+          checkDone(edge)
       })
 
       var readyJobs = getReadyJobs
@@ -309,6 +309,43 @@ class QGraph extends Logging {
         throw e
     } finally {
       emailStatus()
+    }
+  }
+
+  /**
+   * Checks if an edge is done or if it's an intermediate edge if it can be skipped.
+   * This function may modify previous edges if it discovers that the edge passed in
+   * is dependent jobs that were previously marked as skipped.
+   * @param edge Edge to check to see if it's done or can be skipped.
+   */
+  private def checkDone(edge: FunctionEdge) = {
+    if (edge.function.isIntermediate) {
+      // By default we do not need to run intermediate edges.
+      // Mark any intermediate edges as skipped, if they're not already done.
+      if (edge.status != RunnerStatus.DONE)
+        edge.markAsSkipped()
+    } else {
+      val previous = this.previousFunctions(edge)
+      val isDone = edge.status == RunnerStatus.DONE &&
+              previous.forall(edge => edge.status == RunnerStatus.DONE || edge.status == RunnerStatus.SKIPPED)
+      if (!isDone) {
+        edge.resetToPending()
+        resetPreviousSkipped(edge, previous)
+      }
+    }
+  }
+
+  /**
+   * From the previous edges, resets any that are marked as skipped to pending.
+   * If those that are reset have skipped edges, those skipped edges are recursively also set
+   * to pending.
+   * @param edge Dependent edge.
+   * @param previous Previous edges that provide inputs to edge.
+   */
+  private def resetPreviousSkipped(edge: FunctionEdge, previous: List[FunctionEdge]): Unit = {
+    for (previousEdge <- previous.filter(_.status == RunnerStatus.SKIPPED)) {
+      previousEdge.resetToPending()
+      resetPreviousSkipped(previousEdge, this.previousFunctions(previousEdge))
     }
   }
 
@@ -403,6 +440,7 @@ class QGraph extends Logging {
     var total = 0
     var done = 0
     var failed = 0
+    var skipped = 0
   }
 
   /**
@@ -442,18 +480,25 @@ class QGraph extends Logging {
     })
 
     statuses.foreach(status => {
-      if (status.scatter.total + status.gather.total > 0) {
+      val sgTotal = status.scatter.total + status.gather.total
+      val sgDone = status.scatter.done + status.gather.done
+      val sgFailed = status.scatter.failed + status.gather.failed
+      val sgSkipped = status.scatter.skipped + status.gather.skipped
+      if (sgTotal > 0) {
         var sgStatus = RunnerStatus.PENDING
-        if (status.scatter.failed + status.gather.failed > 0)
+        if (sgFailed > 0)
           sgStatus = RunnerStatus.FAILED
-        else if (status.scatter.done + status.gather.done == status.scatter.total + status.gather.total)
+        else if (sgDone == sgTotal)
           sgStatus = RunnerStatus.DONE
-        else if (status.scatter.done + status.gather.done > 0)
+        else if (sgDone + sgSkipped == sgTotal)
+          sgStatus = RunnerStatus.SKIPPED
+        else if (sgDone > 0)
           sgStatus = RunnerStatus.RUNNING
         status.status = sgStatus
       }
 
-      var info = ("%-" + maxWidth + "s [%#7s]").format(status.analysisName, status.status)
+      var info = ("%-" + maxWidth + "s [%s]")
+              .format(status.analysisName, StringUtils.center(status.status.toString, 7))
       if (status.scatter.total + status.gather.total > 1) {
         info += formatSGStatus(status.scatter, "s")
         info += formatSGStatus(status.gather, "g")
@@ -478,12 +523,9 @@ class QGraph extends Logging {
   private def updateSGStatus(stats: ScatterGatherStatus, edge: FunctionEdge) = {
     stats.total += 1
     edge.status match {
-      case RunnerStatus.DONE => {
-        stats.done += 1
-      }
-      case RunnerStatus.FAILED => {
-        stats.failed += 1
-      }
+      case RunnerStatus.DONE => stats.done += 1
+      case RunnerStatus.FAILED => stats.failed += 1
+      case RunnerStatus.SKIPPED => stats.skipped += 1
       /* can't tell the difference between pending and running right now! */
       case RunnerStatus.PENDING =>
       case RunnerStatus.RUNNING =>
@@ -658,6 +700,18 @@ class QGraph extends Logging {
   def hasFailed = {
     !this.dryRun && this.jobGraph.edgeSet.exists(edge => {
       edge.isInstanceOf[FunctionEdge] && edge.asInstanceOf[FunctionEdge].status == RunnerStatus.FAILED
+    })
+  }
+
+  def logFailed = {
+    foreachFunction(edge => {
+      if (edge.status == RunnerStatus.FAILED) {
+        logger.error("-----")
+        logger.error("Failed: " + edge.function.description)
+        logger.error("Log: " + edge.function.jobOutputFile.getAbsolutePath)
+        if (edge.function.jobErrorFile != null)
+          logger.error("Error: " + edge.function.jobErrorFile.getAbsolutePath)
+      }
     })
   }
 

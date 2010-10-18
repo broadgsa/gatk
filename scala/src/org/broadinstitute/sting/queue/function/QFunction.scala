@@ -116,6 +116,12 @@ trait QFunction {
   def outputFields = QFunction.classFields(this.functionFieldClass).outputFields
   /** The @Argument fields on this CommandLineFunction. */
   def argumentFields = QFunction.classFields(this.functionFieldClass).argumentFields
+
+  /**
+   * If true, unless another unfinished function is dependent on this function,
+   * this function will NOT be run even if the outputs have not been created.
+   */
+  var isIntermediate = false
   
   /**
    * Returns the class that should be used for looking up fields.

@@ -86,6 +86,7 @@ class QCommandLine extends CommandLineProgram with Logging {
 
     if (qGraph.hasFailed) {
       logger.info("Done with errors")
+      qGraph.logFailed
       1
     } else {
       logger.info("Done")

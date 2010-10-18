@@ -5,4 +5,5 @@ object RunnerStatus extends Enumeration {
   val RUNNING = Value("running")
   val FAILED = Value("failed")
   val DONE = Value("done")
+  val SKIPPED = Value("skipped")
 }

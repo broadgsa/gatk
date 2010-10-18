@@ -29,6 +29,10 @@ class FunctionEdge(var function: QFunction) extends QEdge {
     currentStatus
   }
 
+  def markAsSkipped() = {
+    currentStatus = RunnerStatus.SKIPPED
+  }
+
   def resetToPending() = {
     currentStatus = RunnerStatus.PENDING
     function.doneOutputs.foreach(_.delete())

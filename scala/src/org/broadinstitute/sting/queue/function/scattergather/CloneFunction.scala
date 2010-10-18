@@ -12,48 +12,37 @@ class CloneFunction extends CommandLineFunction {
   var index: Int = _
 
   private var overriddenFields = Map.empty[ArgumentSource, Any]
+  private var withScatterPartCount = 0
 
   private def withScatterPart[A](f: () => A): A = {
     var originalValues = Map.empty[ArgumentSource, Any]
-    overriddenFields.foreach{
-      case (field, overrideValue) => {
-        originalValues += field -> originalFunction.getFieldValue(field)
-        originalFunction.setFieldValue(field, overrideValue)
+    withScatterPartCount += 1
+    if (withScatterPartCount == 1) {
+      overriddenFields.foreach{
+        case (field, overrideValue) => {
+          originalValues += field -> originalFunction.getFieldValue(field)
+          originalFunction.setFieldValue(field, overrideValue)
+        }
       }
     }
     try {
       f()
     } finally {
-      originalValues.foreach{
-        case (name, value) =>
-          originalFunction.setFieldValue(name, value)
+      if (withScatterPartCount == 1) {
+        originalValues.foreach{
+          case (name, value) =>
+            originalFunction.setFieldValue(name, value)
+        }
       }
+      withScatterPartCount -= 1
     }
   }
 
-  override def dotString = originalFunction.dotString
-  override def description = originalFunction.description
+  override def dotString = withScatterPart(() => originalFunction.dotString)
+  override def description = withScatterPart(() => originalFunction.description)
   override protected def functionFieldClass = originalFunction.getClass
   override def useStatusOutput(file: File) =
     file != jobOutputFile && file != jobErrorFile && originalFunction.useStatusOutput(file)
-
-  override def freezeFieldValues = {
-    if (this.analysisName == null)
-      this.analysisName = originalFunction.analysisName
-    if (this.qSettings == null)
-      this.qSettings = originalFunction.qSettings
-    if (this.memoryLimit.isEmpty && originalFunction.memoryLimit.isDefined)
-      this.memoryLimit = originalFunction.memoryLimit
-    if (this.jobTempDir == null)
-      this.jobTempDir = originalFunction.jobTempDir
-    if (this.jobQueue == null)
-      this.jobQueue = originalFunction.jobQueue
-    if (this.jobProject == null)
-      this.jobProject = originalFunction.jobProject
-    if (this.jobName == null)
-      this.jobName = originalFunction.jobName
-    super.freezeFieldValues
-  }
 
   def commandLine = withScatterPart(() => originalFunction.commandLine)
 

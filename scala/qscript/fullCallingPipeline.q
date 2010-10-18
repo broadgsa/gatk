@@ -58,6 +58,9 @@ class fullCallingPipeline extends QScript {
   //@Input(doc="Sequencing experiement type (for use by adpr)--Whole_Exome, Whole_Genome, or Hybrid_Selection")
   //var protocol: String = _
 
+  @Argument(doc="Job queue for large memory jobs (>4 to 16GB)", shortName="bigMemQueue", required=false)
+  var big_mem_queue: String = _
+
   private var pipeline: Pipeline = _
 
   trait CommandLineGATKArgs extends CommandLineGATK {
@@ -109,6 +112,7 @@ class fullCallingPipeline extends QScript {
       targetCreator.input_file :+= bam
       targetCreator.out = indel_targets
       targetCreator.memoryLimit = Some(2)
+      targetCreator.isIntermediate = true
 
       val realigner = new IndelRealigner with CommandLineGATKArgs
       realigner.jobOutputFile = new File(".queue/logs/Cleaning/%s/IndelRealigner.out".format(sampleId))
@@ -117,6 +121,7 @@ class fullCallingPipeline extends QScript {
       realigner.intervals = qscript.contigIntervals
       realigner.targetIntervals = targetCreator.out
       realigner.scatterCount = contigCount
+      realigner.isIntermediate = true
 
       // may need to explicitly run fix mates
       var fixMates = new PicardBamJarFunction {
@@ -170,6 +175,7 @@ class fullCallingPipeline extends QScript {
         fixMates.unfixed = realigner.out
         fixMates.fixed = cleaned_bam
         fixMates.analysisName = "FixMates_"+sampleId
+        fixMates.isIntermediate = true
         // Add the fix mates explicitly
       }
 
@@ -177,6 +183,7 @@ class fullCallingPipeline extends QScript {
       samtoolsindex.jobOutputFile = new File(".queue/logs/Cleaning/%s/SamtoolsIndex.out".format(sampleId))
       samtoolsindex.bamFile = cleaned_bam
       samtoolsindex.analysisName = "index_cleaned_"+sampleId
+      samtoolsindex.isIntermediate = true
 
       if (!qscript.skip_cleaning) {
         if ( realigner.scatterCount > 1 ) {
@@ -282,7 +289,7 @@ class fullCallingPipeline extends QScript {
     mergeIndels.rodBind = indelCallFiles
     mergeIndels.analysisName = base+"_MergeIndels"
     mergeIndels.memoryLimit = Some(16)
-    mergeIndels.jobQueue = "gsa"
+    mergeIndels.jobQueue = qscript.big_mem_queue
 
     // 1b. genomically annotate SNPs -- no longer slow
     val annotated = new GenomicAnnotator with CommandLineGATKArgs
@@ -326,7 +333,7 @@ class fullCallingPipeline extends QScript {
     val clusters_clusterFile = swapExt("SnpCalls/IntermediateFiles",snps.out,".vcf",".cluster")
     clusters.clusterFile = clusters_clusterFile
     clusters.memoryLimit = Some(6)
-    clusters.jobQueue = "gsa"
+    clusters.jobQueue = qscript.big_mem_queue
 
     clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
     clusters.analysisName = base+"_Cluster"
