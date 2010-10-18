@@ -54,10 +54,10 @@ while ( $inHeader == 1 ) {
     }
 }
 close(UNSORTED);
-
-$cmd = "grep \"^#\" -v $unsorted_vcf | sort -n -k2 -T $tmp | $gatk/perl/sortByRef.pl --tmp $tmp - $newRef.fasta.fai";
-print SORTED `$cmd`;
 close(SORTED);
+
+$cmd = "grep \"^#\" -v $unsorted_vcf | sort -n -k2 -T $tmp | $gatk/perl/sortByRef.pl --tmp $tmp - $newRef.fasta.fai >> $sorted_vcf";
+system($cmd);
 
 # Filter the VCF for bad records
 print "\nFixing/removing bad records...\n";
