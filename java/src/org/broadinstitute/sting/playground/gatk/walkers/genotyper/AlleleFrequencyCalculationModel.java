@@ -104,7 +104,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
                                                              double[] log10AlleleFrequencyPosteriors,
                                                              int AFofMaxLikelihood);
 
-    protected int getUnfilteredDepth(ReadBackedPileup pileup) {
+    protected int getFilteredDepth(ReadBackedPileup pileup) {
         int count = 0;
         for ( PileupElement p : pileup ) {
             if ( DiploidSNPGenotypeLikelihoods.usableBase(p, true) )
