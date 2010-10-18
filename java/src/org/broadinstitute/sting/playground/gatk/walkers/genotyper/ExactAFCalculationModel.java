@@ -224,7 +224,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             HashMap<String, Object> attributes = new HashMap<String, Object>();
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
-            attributes.put(VCFConstants.DEPTH_KEY, contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size());
+            attributes.put(VCFConstants.DEPTH_KEY, getUnfilteredDepth(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup()));
             double qual;
             double[] posteriors = GLs.get(sample).getPosteriors();
 
