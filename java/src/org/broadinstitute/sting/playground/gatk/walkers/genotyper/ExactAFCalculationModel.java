@@ -46,7 +46,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     private static final double LOGEPS = -300;
 
     protected ExactAFCalculationModel(int N, Logger logger, PrintStream verboseWriter) {
-        super(N, logger, verboseWriter, true);
+        super(N, logger, verboseWriter);
     }
 
     public void getLog10PNonRef(RefMetaDataTracker tracker,
@@ -151,25 +151,17 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                                  Map<String, BiallelicGenotypeLikelihoods> GLs,
                                                  double[] log10AlleleFrequencyPosteriors,
                                                  int AFofMaxLikelihood) {
-
-        // overriding implementation in AlleleFrequencyCalculationModel to avoid filling out AF matrix which is not used.
-        return generateCalls(contexts, GLs, AFofMaxLikelihood);
-    }
-
-    protected Map<String, Genotype> generateCalls(Map<String, StratifiedAlignmentContext> contexts,
-                                                  Map<String, BiallelicGenotypeLikelihoods> GLs,
-                                                  int bestAFguess) {
-         HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
+        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
 
 
-        double[][] pathMetricArray = new double[GLs.size()+1][bestAFguess+1];
-        int[][] tracebackArray = new int[GLs.size()+1][bestAFguess+1];
+        double[][] pathMetricArray = new double[GLs.size()+1][AFofMaxLikelihood+1];
+        int[][] tracebackArray = new int[GLs.size()+1][AFofMaxLikelihood+1];
 
         ArrayList<String> sampleIndices = new ArrayList<String>();
         int sampleIdx = 0;
 
         // todo - optimize initialization
-        for (int k=0; k <= bestAFguess; k++)
+        for (int k=0; k <= AFofMaxLikelihood; k++)
             for (int j=0; j <= GLs.size(); j++)
                 pathMetricArray[j][k] = -1e30;
 
@@ -186,7 +178,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
                 double[] likelihoods = GLs.get(sample).getLikelihoods();
 
-                for (int k=0; k <= bestAFguess; k++) {
+                for (int k=0; k <= AFofMaxLikelihood; k++) {
 
                     double bestMetric = pathMetricArray[sampleIdx][k] + likelihoods[0];
                     int bestIndex = k;
@@ -214,7 +206,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             }
         }
 
-        int startIdx = bestAFguess;
+        int startIdx = AFofMaxLikelihood;
         for (int k = sampleIdx; k > 0; k--) {
             int bestGTguess;
             String sample = sampleIndices.get(k-1);
@@ -262,7 +254,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             calls.put(sample, new Genotype(sample, myAlleles, qual, null, attributes, false));
 
         }
-
 
         return calls;
     }
