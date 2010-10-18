@@ -117,6 +117,7 @@ public class UnifiedArgumentCollection {
         uac.MAX_MISMATCHES = MAX_MISMATCHES;
         uac.USE_BADLY_MATED_READS = USE_BADLY_MATED_READS;
         uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
+        uac.CAP_BASE_QUALITY = CAP_BASE_QUALITY;
 
         return uac;
     }
