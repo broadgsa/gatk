@@ -7,6 +7,8 @@ import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFWriter;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -15,6 +17,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
@@ -32,8 +35,14 @@ import java.util.*;
 public class FixRefBases extends RodWalker<Integer,Integer> {
     @Output(doc="output file to write to",required=true)
     VCFWriter out;
+    @Hidden
+    @Argument(doc="",fullName="bypassException",required=false)
+    boolean bypass = false;
 
     public void initialize() {
+        if ( ! bypass ) {
+            throw new ReviewedStingException("This walker is currently broken. This exception is being thrown because you will not get out what you think you will.");
+        }
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 	Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
