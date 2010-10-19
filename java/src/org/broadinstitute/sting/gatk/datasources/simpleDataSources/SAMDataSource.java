@@ -823,9 +823,12 @@ public class SAMDataSource implements SimpleDataSource {
                     }
                 }
 
+                // No more reads available.  Stop the search.
+                if(!iterator.hasNext())
+                    break;
+
                 // No reasonable read found; advance the iterator.
-                if(iterator.hasNext())
-                    candidateRead = iterator.next();                
+                candidateRead = iterator.next();
             }
         }
     }
