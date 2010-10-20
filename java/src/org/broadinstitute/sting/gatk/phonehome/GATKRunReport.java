@@ -172,6 +172,8 @@ public class GATKRunReport {
         if ( type == PhoneHomeOption.NO_ET )
             throw new ReviewedStingException("Trying to create a run report when type is NO_ET!");
 
+        logger.info("Aggregating data for run report");
+
         mGATKHeader = CommandLineGATK.createApplicationHeader();
         currentPath = System.getProperty("user.dir");
 
