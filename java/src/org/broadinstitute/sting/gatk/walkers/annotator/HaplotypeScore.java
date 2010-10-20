@@ -44,6 +44,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
+    private final static int MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER = 20;
     private final static char REGEXP_WILDCARD = '.';
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
@@ -124,7 +125,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
           */
             }
 
-            if (!foundHaplotypeMatch) {
+            if (!foundHaplotypeMatch && haplotypeList.size() < MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER) {
                 haplotypeList.add(elem);
             }
         }
@@ -293,7 +294,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             byte haplotypeBase = haplotypeBases[i];
             byte readBase = readBases[baseOffset];
 
-            boolean matched = BaseUtils.basesAreEqual(readBase, haplotypeBase );
+            boolean matched = readBase == haplotypeBase;
             double e = QualityUtils.qualToErrorProb(readQuals[baseOffset]);
             expected += e;
             mismatches += matched ? e : 1 - e / 3;

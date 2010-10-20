@@ -23,7 +23,13 @@ public class RMSMappingQuality implements InfoFieldAnnotation, StandardAnnotatio
         if ( stratifiedContexts.size() == 0 )
             return null;
 
-        ArrayList<Integer> qualities = new ArrayList<Integer>();
+        int totalSize = 0;
+        for ( StratifiedAlignmentContext context : stratifiedContexts.values() )
+            totalSize += context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
+
+        int[] qualities = new int[totalSize];
+        int index = 0;
+
         for ( Map.Entry<String, StratifiedAlignmentContext> sample : stratifiedContexts.entrySet() ) {
             AlignmentContext context = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
             ReadBackedPileup pileup = null;
@@ -34,14 +40,11 @@ public class RMSMappingQuality implements InfoFieldAnnotation, StandardAnnotatio
 
             if (pileup != null) {
                 for (PileupElement p : pileup )
-                    qualities.add(p.getRead().getMappingQuality());
+                    qualities[index++] = p.getRead().getMappingQuality();
             }
         }
-        int[] quals = new int[qualities.size()];
-        int index = 0;
-        for ( Integer i : qualities )
-            quals[index++] = i;
-        double rms = MathUtils.rms(quals);
+
+        double rms = MathUtils.rms(qualities);
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%.2f", rms));
         return map;

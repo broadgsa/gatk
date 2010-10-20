@@ -318,12 +318,6 @@ public class UnifiedGenotyperEngine {
 
             ReadBackedPileup pileup = rawContext.getBasePileup();
 
-            // filter the reads
-            filterPileup(pileup, badBaseFilter);
-
-            // filter the context based on bad mates and mismatch rate
-            //pileup = pileup.getFilteredPileup(badReadPileupFilter);
-
             // don't call when there is no coverage
             if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
                 return null;
@@ -335,6 +329,9 @@ public class UnifiedGenotyperEngine {
 
             // stratify the AlignmentContext and cut by sample
             stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+
+            // filter the reads
+            filterPileup(stratifiedContexts, badBaseFilter);
         }
 
         return stratifiedContexts;
@@ -405,11 +402,14 @@ public class UnifiedGenotyperEngine {
         verboseWriter.println();
     }
 
-    private void filterPileup(ReadBackedPileup pileup, BadBaseFilter badBaseFilter) {
-        for ( PileupElement p : pileup ) {
-            final SAMRecord read = p.getRead();
-            if ( read instanceof GATKSAMRecord )
-                ((GATKSAMRecord)read).setGoodBases(badBaseFilter, true);
+    private void filterPileup(Map<String, StratifiedAlignmentContext> stratifiedContexts, BadBaseFilter badBaseFilter) {
+        for ( StratifiedAlignmentContext context : stratifiedContexts.values() ) {
+            ReadBackedPileup pileup = context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+            for ( PileupElement p : pileup ) {
+               final SAMRecord read = p.getRead();
+                if ( read instanceof GATKSAMRecord )
+                    ((GATKSAMRecord)read).setGoodBases(badBaseFilter, true);
+            }
         }
     }
 
