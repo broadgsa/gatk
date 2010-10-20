@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -104,7 +105,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                 String clpClassName = clpManager.getName(clp);
 
                 writeClass("org.broadinstitute.sting.queue.function.JarCommandLineFunction", COMMANDLINE_PACKAGE_NAME, clpClassName,
-                        "", ArgumentDefinitionField.getArgumentFields(clp));
+                        false, "", ArgumentDefinitionField.getArgumentFields(clp));
 
                 if (clp == CommandLineGATK.class) {
                     for (Entry<String, Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage(false).entrySet()) {
@@ -116,9 +117,16 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                             argumentFields.addAll(RodBindField.getRodArguments(walkerType, trackBuilder));
                             argumentFields.addAll(ReadFilterField.getFilterArguments(walkerType));
 
+                            String constructor = String.format("analysisName = \"%1$s\"%nanalysis_type = \"%1$s\"%n", walkerName);
+                            String scatterClass = getScatterClass(walkerType);
+                            boolean isScatter = false;
+                            if (scatterClass != null) {
+                                isScatter = true;
+                                constructor += String.format("scatterClass = classOf[%s]%n", scatterClass);
+                            }
+
                             writeClass(COMMANDLINE_PACKAGE_NAME + "." + clpClassName, WALKER_PACKAGE_NAME, walkerName,
-                                    String.format("analysisName = \"%1$s\"%nanalysis_type = \"%1$s\"%n", walkerName),
-                                    argumentFields);
+                                    isScatter, constructor, argumentFields);
                         }
                     }
                 }
@@ -149,15 +157,22 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
         return false;
     }
 
-    private void writeClass(String baseClass, String packageName, String className, String constructor,
-                            List<? extends ArgumentField> argumentFields) throws IOException {
-        String content = getContent(CLASS_TEMPLATE, baseClass, packageName, className, constructor, "", argumentFields);
+    private String getScatterClass(Class<? extends Walker> walkerType) {
+        if (ReadWalker.class.isAssignableFrom(walkerType))
+            return "ContigScatterFunction";
+        else
+            return "IntervalScatterFunction";
+    }
+
+    private void writeClass(String baseClass, String packageName, String className, boolean isScatter,
+                            String constructor, List<? extends ArgumentField> argumentFields) throws IOException {
+        String content = getContent(CLASS_TEMPLATE, baseClass, packageName, className, constructor, isScatter, "", argumentFields);
         writeFile(packageName + "." + className, content);
     }
 
     private void writeFilter(String packageName, String className, List<? extends ArgumentField> argumentFields) throws IOException {
         String content = getContent(TRAIT_TEMPLATE, "org.broadinstitute.sting.queue.function.CommandLineFunction",
-                packageName, className, "", String.format(" + \" -read_filter %s\"", className), argumentFields);
+                packageName, className, "", false, String.format(" + \" -read_filter %s\"", className), argumentFields);
         writeFile(packageName + "." + className, content);
     }
 
@@ -172,12 +187,12 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     }
 
     private static String getContent(String scalaTemplate, String baseClass, String packageName, String className,
-                                     String constructor, String commandLinePrefix, List<? extends ArgumentField> argumentFields) {
+                                     String constructor, boolean isScatter,
+                                     String commandLinePrefix, List<? extends ArgumentField> argumentFields) {
         StringBuilder arguments = new StringBuilder();
         StringBuilder commandLine = new StringBuilder(commandLinePrefix);
 
         Set<String> importSet = new HashSet<String>();
-        boolean isScatter = false;
         boolean isGather = false;
         List<String> freezeFields = new ArrayList<String>();
         for(ArgumentField argumentField: argumentFields) {
@@ -186,13 +201,11 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
             importSet.addAll(argumentField.getImportStatements());
             freezeFields.add(argumentField.getFreezeFields());
 
-            isScatter |= argumentField.isScatter();
             isGather |= argumentField.isGather();
         }
 
         if (isScatter) {
             importSet.add("import org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction");
-            importSet.add("import org.broadinstitute.sting.queue.function.scattergather.Scatter");
             baseClass += " with ScatterGatherableFunction";
         }
         if (isGather)
@@ -210,8 +223,10 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
             freezeFieldOverride.append(String.format("}%n%n"));
         }
 
+        String importText = sortedImports.size() == 0 ? "" : NEWLINE + StringUtils.join(sortedImports, NEWLINE) + NEWLINE;
+
         // see CLASS_TEMPLATE and TRAIT_TEMPLATE below
-        return String.format(scalaTemplate, packageName, StringUtils.join(sortedImports, NEWLINE),
+        return String.format(scalaTemplate, packageName, importText,
                 className, baseClass, constructor, arguments, freezeFieldOverride, commandLine);
     }
     

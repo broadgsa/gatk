@@ -3,6 +3,7 @@ package org.broadinstitute.sting.queue.function.scattergather
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.commandline.ArgumentSource
 import java.io.File
+import org.broadinstitute.sting.queue.QException
 
 /**
  * Shadow clones another command line function.
@@ -61,7 +62,7 @@ class CloneFunction extends CommandLineFunction {
     }
   }
 
-  override def setFieldValue(source: ArgumentSource, value: Any) = {
+  override def setFieldValue(source: ArgumentSource, value: Any): Unit = {
     source.field.getName match {
       case "jobOutputFile" => jobOutputFile = value.asInstanceOf[File]
       case "jobErrorFile" => jobErrorFile = value.asInstanceOf[File]

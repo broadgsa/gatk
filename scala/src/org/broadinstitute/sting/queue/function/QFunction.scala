@@ -153,6 +153,15 @@ trait QFunction {
   }
 
   /**
+   * Deletes the output files and all the status files for this function.
+   */
+  def deleteOutputs() = {
+    outputs.foreach(_.delete())
+    doneOutputs.foreach(_.delete())
+    failOutputs.foreach(_.delete())
+  }
+
+  /**
    * Creates the output directories for this function if it doesn't exist.
    */
   def mkOutputDirectories() = {
@@ -415,6 +424,19 @@ object QFunction {
    * The mapping from class to fields.
    */
   private var classFieldsMap = Map.empty[Class[_], ClassFields]
+
+  /**
+   * Returns the field on clazz.
+   * @param clazz Class to search.
+   * @param name Name of the field to return.
+   * @return Argument source for the field.
+   */
+  def findField(clazz: Class[_], name: String) = {
+    classFields(clazz).functionFields.find(_.field.getName == name) match {
+      case Some(source) => source
+      case None => throw new QException("Could not find a field on class %s with name %s".format(clazz, name))
+    }
+  }
 
   /**
    * Returns the fields for a class.

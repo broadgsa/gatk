@@ -23,7 +23,7 @@ class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
 
   trait StandardCommandLineGATK extends CommandLineGATK {
     this.reference_sequence = library.attributes.getProject.getReferenceFile
-    this.intervals = library.attributes.getProject.getIntervalList
+    this.intervals :+= library.attributes.getProject.getIntervalList
     this.DBSNP = library.attributes.getProject.getDbsnpFile
     this.memoryLimit = Some(2)
     this.jarFile = library.gatkJar
@@ -35,7 +35,7 @@ class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
    */
   def StandardRealignerTargetCreator(bam: File, contigs: List[String], output: File) : RealignerTargetCreator = {
     var rtc = new RealignerTargetCreator with StandardCommandLineGATK
-    rtc.intervals = null
+    rtc.intervals = Nil
     rtc.intervalsString = contigs
     rtc.input_file :+= bam
     rtc.out = output
@@ -51,7 +51,7 @@ class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
   def StandardIndelCleaner(bam: File, contigs: List[String], targets: File, outBam: File) : IndelRealigner = {
     var realigner = new IndelRealigner with StandardCommandLineGATK
     realigner.intervalsString = contigs
-    realigner.intervals = null
+    realigner.intervals = Nil
     realigner.input_file :+= bam
     realigner.out = outBam
     realigner.targetIntervals = targets

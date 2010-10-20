@@ -377,11 +377,11 @@ public class ParsingEngine {
      * Extract all the argument sources from a given object, along with their bindings if obj != null .
      * @param obj the object corresponding to the sourceClass
      * @param sourceClass class to act as sources for other arguments.
-     * @param parentFields
+     * @param parentFields Parent Fields
      * @return A map of sources associated with this object and its aggregated objects and bindings to their bindings values
      */
     private static Map<ArgumentSource, Object> extractArgumentBindings(Object obj, Class sourceClass, Field[] parentFields) {
-        Map<ArgumentSource, Object> bindings = new HashMap<ArgumentSource, Object>();
+        Map<ArgumentSource, Object> bindings = new LinkedHashMap<ArgumentSource, Object>();
 
         while( sourceClass != null ) {
             Field[] fields = sourceClass.getDeclaredFields();

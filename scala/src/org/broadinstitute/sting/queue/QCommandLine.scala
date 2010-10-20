@@ -26,8 +26,8 @@ class QCommandLine extends CommandLineProgram with Logging {
   @Argument(fullName="expanded_dot_graph", shortName="expandedDot", doc="Outputs the queue graph of scatter gather to a .dot file.  Otherwise overwrites the dot_graph", required=false)
   private var expandedDotFile: File = _
 
-  @Argument(fullName="start_clean", shortName="clean", doc="Runs all command line functions even if the outputs were previously output successfully.", required=false)
-  private var startClean = false
+  @Argument(fullName="start_from_scratch", shortName="startFromScratch", doc="Runs all command line functions even if the outputs were previously output successfully.", required=false)
+  private var startFromScratch = false
 
   @Argument(fullName="for_reals", shortName="forReals", doc="Run QScripts", required=false) @Hidden
   private var runScripts = false
@@ -38,11 +38,14 @@ class QCommandLine extends CommandLineProgram with Logging {
   @ArgumentCollection
   private val qSettings = new QSettings
 
-  @Argument(fullName="statusEmailFrom", shortName="statusFrom", doc="Email address to send emails from upon completion or on error.", required=false)
+  @Argument(fullName="status_email_from", shortName="statusFrom", doc="Email address to send emails from upon completion or on error.", required=false)
   private var statusEmailFrom: String = System.getProperty("user.name") + "@" + SystemUtils.domainName
 
-  @Argument(fullName="statusEmailTo", shortName="statusTo", doc="Email address to send emails to upon completion or on error.", required=false)
+  @Argument(fullName="status_email_to", shortName="statusTo", doc="Email address to send emails to upon completion or on error.", required=false)
   private var statusEmailTo: List[String] = Nil
+
+  @Argument(fullName="delete_intermediate_outputs", shortName="deleteIntermediates", doc="After a successful run delete the outputs of any Function marked as intermediate.", required=false)
+  private var deleteIntermediates = false
 
   /**
    * Takes the QScripts passed in, runs their script() methods, retrieves their generated
@@ -53,13 +56,14 @@ class QCommandLine extends CommandLineProgram with Logging {
     val qGraph = new QGraph
     qGraph.dryRun = !(run || runScripts)
     qGraph.bsubAllJobs = bsubAllJobs
-    qGraph.startClean = startClean
+    qGraph.startFromScratch = startFromScratch
     qGraph.dotFile = dotFile
     qGraph.expandedDotFile = expandedDotFile
     qGraph.qSettings = qSettings
     qGraph.debugMode = debugMode == true
     qGraph.statusEmailFrom = statusEmailFrom
     qGraph.statusEmailTo = statusEmailTo
+    qGraph.deleteIntermediates = deleteIntermediates
 
     val scripts = qScriptManager.createScripts()
     for (script <- scripts) {

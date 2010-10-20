@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.queue.extensions.gatk;
 
 import net.sf.samtools.SAMFileWriter;
+import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.*;
 
 import java.io.File;
@@ -59,15 +60,15 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
             return "";
         else
             return String.format("%n" +
-                    "/** %n" +
-                    " *  Short name of %1$s%n" +
-                    " *  @return Short name of %1$s%n" +
+                    "/**%n" +
+                    " * Short name of %1$s%n" +
+                    " * @return Short name of %1$s%n" +
                     " */%n" +
                     "def %3$s = this.%1$s%n" +
                     "%n" +
-                    "/** %n" +
-                    " *  Short name of %1$s%n" +
-                    " *  @param value Short name of %1$s%n" +
+                    "/**%n" +
+                    " * Short name of %1$s%n" +
+                    " * @param value Short name of %1$s%n" +
                     " */%n" +
                     "def %4$s(value: %2$s) = this.%1$s = value%n",
                     getFieldName(),
@@ -96,7 +97,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     }
 
     @Override
-    protected String getScatterGatherAnnotation() {
+    protected String getGatherAnnotation() {
         return "";
     }
 
@@ -120,9 +121,8 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
     private static List<? extends ArgumentField> getArgumentFields(ArgumentDefinition argumentDefinition) {
         if (intervalFields.contains(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
-            boolean scatter = "intervals".equals(argumentDefinition.fullName);
             return Arrays.asList(
-                    new IntervalFileArgumentField(argumentDefinition, scatter),
+                    new IntervalFileArgumentField(argumentDefinition),
                     new IntervalStringArgumentField(argumentDefinition));
 
         // ROD Bindings are set by the RodBindField
@@ -166,18 +166,10 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     }
 
     // if (intervalFields.contains(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT)
-    // Change intervals to an input file, and optionally scatter it.
+    // Change intervals exclusize of intervalsString.
     private static class IntervalFileArgumentField extends InputArgumentField {
-        private final boolean scatter;
-        public IntervalFileArgumentField(ArgumentDefinition argumentDefinition, boolean scatter) {
+        public IntervalFileArgumentField(ArgumentDefinition argumentDefinition) {
             super(argumentDefinition);
-            this.scatter = scatter;
-        }
-
-        @Override protected boolean isMultiValued() { return !this.scatter && super.isMultiValued(); }
-        @Override public boolean isScatter() { return this.scatter; }
-        @Override protected String getScatterGatherAnnotation() {
-            return scatter ? String.format("@Scatter(classOf[IntervalScatterFunction])%n") : super.getScatterGatherAnnotation();
         }
 
         @Override
@@ -241,10 +233,15 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected String getDefaultValue() { return "_"; }
 
         @Override public boolean isGather() { return true; }
-        @Override protected String getScatterGatherAnnotation() {
-            return String.format(SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType)
-                ? "@Gather(classOf[BamGatherFunction])%n"
-                : "@Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])%n");
+        @Override protected String getGatherAnnotation() {
+            String gather;
+            if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+                gather = "@Gather(classOf[BamGatherFunction])%n";
+            else if (VCFWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+                gather = "@Gather(classOf[VcfGatherFunction])%n";
+            else
+                gather = "@Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])%n";
+            return String.format(gather);
         }
     }
 

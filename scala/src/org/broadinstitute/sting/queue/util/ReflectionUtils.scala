@@ -20,15 +20,45 @@ object ReflectionUtils {
   def hasAnnotation(field: Field, annotation: Class[_ <: Annotation]) = field.getAnnotation(annotation) != null
 
   /**
+   * Returns true if clazz or one of its superclasses has the annotation.
+   * @param clazz Class to check.
+   * @param annotation Class of the annotation to look for.
+   * @return true if field has the annotation.
+   */
+  def hasAnnotation(clazz: Class[_], annotation: Class[_ <: Annotation]) = {
+    var foundAnnotation = false
+    while (!foundAnnotation && clazz != null)
+      foundAnnotation = (clazz.getAnnotation(annotation) != null)
+    foundAnnotation
+  }
+
+  /**
    * Gets the annotation or throws an exception if the annotation is not found.
    * @param field Field to check.
    * @param annotation Class of the annotation to look for.
    * @return The annotation.
    */
   def getAnnotation[T <: Annotation](field: Field, annotation: Class[T]): T = {
-    if (!hasAnnotation(field, annotation))
-      throw new QException("Field %s is missing annotation %s".format(field, annotation))
-    field.getAnnotation(annotation).asInstanceOf[T]
+    field.getAnnotation(annotation) match {
+      case null =>
+        throw new QException("Field %s is missing annotation %s".format(field, annotation))
+      case fieldAnnotation => fieldAnnotation.asInstanceOf[T]
+    }
+  }
+
+  /**
+   * Gets the annotation or throws an exception if the annotation is not found.
+   * @param clazz Class to check.
+   * @param annotation Class of the annotation to look for.
+   * @return The annotation.
+   */
+  def getAnnotation[T <: Annotation](clazz: Class[_], annotation: Class[T]): T = {
+    var result: T = null.asInstanceOf[T]
+    while (result == null && clazz != null)
+      result = clazz.getAnnotation(annotation)
+    if (result == null)
+      throw new QException("Class %s is missing annotation %s".format(clazz, annotation))
+    result
   }
 
   /**

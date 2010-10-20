@@ -16,7 +16,7 @@ val MERGED_DIR = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/ma
 trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { 
     this.logging_level = "INFO"; 
     this.jarFile = gatkJarFile;
-    this.intervals = new File(TARGET_INTERVAL);
+    this.intervals :+= new File(TARGET_INTERVAL);
     this.reference_sequence = referenceFile; 
     this.jobQueue = "gsa"; 
     this.et = Option(org.broadinstitute.sting.gatk.phonehome.GATKRunReport.PhoneHomeOption.STANDARD);

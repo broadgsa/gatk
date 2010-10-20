@@ -21,11 +21,12 @@ import org.apache.commons.lang.StringUtils
 class QGraph extends Logging {
   var dryRun = true
   var bsubAllJobs = false
-  var startClean = false
+  var startFromScratch = false
   var dotFile: File = _
   var expandedDotFile: File = _
   var qSettings: QSettings = _
   var debugMode = false
+  var deleteIntermediates = false
   var statusEmailFrom: String = _
   var statusEmailTo: List[String] = _
 
@@ -127,6 +128,7 @@ class QGraph extends Logging {
     // build up the full DAG with scatter-gather jobs
     fillGraph
     logger.info("Checking pipeline status.")
+    updateGraphStatus(false)
     logStatus
   }
 
@@ -241,24 +243,18 @@ class QGraph extends Logging {
    * Dry-runs the jobs by traversing the graph.
    */
   private def dryRunJobs() = {
-    traverseFunctions(edge => {
-      edge.function match {
-        case qFunction => {
-          if (logger.isDebugEnabled) {
-            logger.debug(qFunction.commandDirectory + " > " + qFunction.description)
-          } else {
-            logger.info(qFunction.description)
-          }
-          logger.info("Output written to " + qFunction.jobOutputFile)
-          if (qFunction.jobErrorFile != null) {
-            logger.info("Errors written to " + qFunction.jobErrorFile)
-          } else {
-            if (logger.isDebugEnabled)
-              logger.info("Errors also written to " + qFunction.jobOutputFile)
-          }
-        }
-      }
-    })
+    updateGraphStatus(false)
+    traverseFunctions(edge => logEdge(edge))
+  }
+
+  private def logEdge(edge: FunctionEdge) = {
+    logger.info("-------")
+    logger.info(StringUtils.capitalize(edge.status.toString) + ": " + edge.function.description)
+    if (logger.isDebugEnabled)
+      logger.debug(edge.function.commandDirectory + " > " + edge.function.description)
+    logger.info("Log: " + edge.function.jobOutputFile.getAbsolutePath)
+    if (edge.function.jobErrorFile != null)
+      logger.info("Error: " + edge.function.jobErrorFile.getAbsolutePath)
   }
 
   /**
@@ -266,12 +262,11 @@ class QGraph extends Logging {
    */
   private def runJobs() = {
     try {
-      traverseFunctions(edge => {
-        if (startClean)
-          edge.resetToPending()
-        else
-          checkDone(edge)
-      })
+      if (startFromScratch) {
+        logger.info("Removing outputs from previous runs.")
+        foreachFunction(_.resetToPending(true))
+      } else
+        updateGraphStatus(true)
 
       var readyJobs = getReadyJobs
       var runningJobs = Set.empty[FunctionEdge]
@@ -303,6 +298,8 @@ class QGraph extends Logging {
           Thread.sleep(30000L)
         readyJobs = getReadyJobs
       }
+
+      deleteIntermediateOutputs()
     } catch {
       case e =>
         logger.error("Uncaught error running jobs.", e)
@@ -313,12 +310,21 @@ class QGraph extends Logging {
   }
 
   /**
+   * Updates the status of edges in the graph.
+   * @param cleanOutputs If true will delete outputs when setting edges to pending.
+   */
+  private def updateGraphStatus(cleanOutputs: Boolean) = {
+    traverseFunctions(edge => checkDone(edge, cleanOutputs))
+  }
+
+  /**
    * Checks if an edge is done or if it's an intermediate edge if it can be skipped.
    * This function may modify previous edges if it discovers that the edge passed in
    * is dependent jobs that were previously marked as skipped.
    * @param edge Edge to check to see if it's done or can be skipped.
+   * @param cleanOutputs If true will delete outputs when setting edges to pending.
    */
-  private def checkDone(edge: FunctionEdge) = {
+  private def checkDone(edge: FunctionEdge, cleanOutputs: Boolean) = {
     if (edge.function.isIntermediate) {
       // By default we do not need to run intermediate edges.
       // Mark any intermediate edges as skipped, if they're not already done.
@@ -329,8 +335,8 @@ class QGraph extends Logging {
       val isDone = edge.status == RunnerStatus.DONE &&
               previous.forall(edge => edge.status == RunnerStatus.DONE || edge.status == RunnerStatus.SKIPPED)
       if (!isDone) {
-        edge.resetToPending()
-        resetPreviousSkipped(edge, previous)
+        edge.resetToPending(cleanOutputs)
+        resetPreviousSkipped(edge, previous, cleanOutputs)
       }
     }
   }
@@ -341,11 +347,12 @@ class QGraph extends Logging {
    * to pending.
    * @param edge Dependent edge.
    * @param previous Previous edges that provide inputs to edge.
+   * @param cleanOutputs If true will clean up the output files when resetting skipped jobs to pending.
    */
-  private def resetPreviousSkipped(edge: FunctionEdge, previous: List[FunctionEdge]): Unit = {
+  private def resetPreviousSkipped(edge: FunctionEdge, previous: List[FunctionEdge], cleanOutputs: Boolean): Unit = {
     for (previousEdge <- previous.filter(_.status == RunnerStatus.SKIPPED)) {
-      previousEdge.resetToPending()
-      resetPreviousSkipped(previousEdge, this.previousFunctions(previousEdge))
+      previousEdge.resetToPending(cleanOutputs)
+      resetPreviousSkipped(previousEdge, this.previousFunctions(previousEdge), cleanOutputs)
     }
   }
 
@@ -468,7 +475,7 @@ class QGraph extends Logging {
     foreachFunction(edge => {
       val name = edge.function.analysisName
       if (name != null) {
-        updateStatus(statuses.find(_.analysisName == name) match {
+        updateAnalysisStatus(statuses.find(_.analysisName == name) match {
           case Some(status) => status
           case None =>
             val status = new AnalysisStatus(name)
@@ -484,11 +491,13 @@ class QGraph extends Logging {
       val sgDone = status.scatter.done + status.gather.done
       val sgFailed = status.scatter.failed + status.gather.failed
       val sgSkipped = status.scatter.skipped + status.gather.skipped
+      val gatherTotal = status.gather.total
+      val gatherDone = status.gather.done
       if (sgTotal > 0) {
         var sgStatus = RunnerStatus.PENDING
         if (sgFailed > 0)
           sgStatus = RunnerStatus.FAILED
-        else if (sgDone == sgTotal)
+        else if (gatherDone == gatherTotal)
           sgStatus = RunnerStatus.DONE
         else if (sgDone + sgSkipped == sgTotal)
           sgStatus = RunnerStatus.SKIPPED
@@ -510,7 +519,7 @@ class QGraph extends Logging {
   /**
    * Updates a status map with scatter/gather status information (e.g. counts)
    */
-  private def updateStatus(stats: AnalysisStatus, edge: FunctionEdge) = {
+  private def updateAnalysisStatus(stats: AnalysisStatus, edge: FunctionEdge) = {
     if (edge.function.isInstanceOf[GatherFunction]) {
       updateSGStatus(stats.gather, edge)
     } else if (edge.function.isInstanceOf[CloneFunction]) {
@@ -671,7 +680,19 @@ class QGraph extends Logging {
       }
     })
     iterator.foreach(_ => {})
-  }  
+  }
+
+  private def deleteIntermediateOutputs() = {
+    if (this.deleteIntermediates && !hasFailed) {
+      logger.info("Deleting intermediate files.")
+      traverseFunctions(edge => {
+        if (edge.function.isIntermediate) {
+          logger.debug("Deleting intermediates:" + edge.function.description)
+          edge.function.deleteOutputs()
+        }
+      })
+    }
+  }
 
   /**
    * Outputs the graph to a .dot file.
@@ -705,13 +726,8 @@ class QGraph extends Logging {
 
   def logFailed = {
     foreachFunction(edge => {
-      if (edge.status == RunnerStatus.FAILED) {
-        logger.error("-----")
-        logger.error("Failed: " + edge.function.description)
-        logger.error("Log: " + edge.function.jobOutputFile.getAbsolutePath)
-        if (edge.function.jobErrorFile != null)
-          logger.error("Error: " + edge.function.jobErrorFile.getAbsolutePath)
-      }
+      if (edge.status == RunnerStatus.FAILED)
+        logEdge(edge)
     })
   }
 

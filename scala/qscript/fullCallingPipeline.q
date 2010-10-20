@@ -64,7 +64,7 @@ class fullCallingPipeline extends QScript {
   private var pipeline: Pipeline = _
 
   trait CommandLineGATKArgs extends CommandLineGATK {
-    this.intervals = qscript.pipeline.getProject.getIntervalList
+    this.intervals :+= qscript.pipeline.getProject.getIntervalList
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.pipeline.getProject.getReferenceFile
     this.memoryLimit = Some(4)
@@ -118,10 +118,9 @@ class fullCallingPipeline extends QScript {
       realigner.jobOutputFile = new File(".queue/logs/Cleaning/%s/IndelRealigner.out".format(sampleId))
       realigner.analysisName = "RealignBam_"+sampleId
       realigner.input_file = targetCreator.input_file
-      realigner.intervals = qscript.contigIntervals
+      realigner.intervals :+= qscript.contigIntervals
       realigner.targetIntervals = targetCreator.out
       realigner.scatterCount = contigCount
-      realigner.isIntermediate = true
 
       // may need to explicitly run fix mates
       var fixMates = new PicardBamJarFunction {
@@ -134,7 +133,6 @@ class fullCallingPipeline extends QScript {
         }
 
       // realigner.out = cleaned_bam
-      // realigner.scatterClass = classOf[ContigScatterFunction]
       // realigner.setupGatherFunction = { case (f: BamGatherFunction, _) => f.jarFile = qscript.picardFixMatesJar }
       // realigner.jobQueue = "week"
 
@@ -142,9 +140,8 @@ class fullCallingPipeline extends QScript {
       if (realigner.scatterCount > 1) {
         realigner.out = cleaned_bam
         // While gathering run fix mates.
-        realigner.scatterClass = classOf[ContigScatterFunction]
         realigner.setupScatterFunction = {
-          case (scatter: ScatterFunction, _) =>
+          case scatter: ScatterFunction =>
             scatter.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather".format(sampleId))
             scatter.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Scatter.out".format(sampleId))
         }
@@ -167,6 +164,7 @@ class fullCallingPipeline extends QScript {
         }
       } else {
         realigner.out = swapExt("CleanedBams/IntermediateFiles/"+sampleId,bam,"bam","unfixed.cleaned.bam")
+        realigner.isIntermediate = true
 
         // Explicitly run fix mates if the function won't be scattered.
 
@@ -175,7 +173,6 @@ class fullCallingPipeline extends QScript {
         fixMates.unfixed = realigner.out
         fixMates.fixed = cleaned_bam
         fixMates.analysisName = "FixMates_"+sampleId
-        fixMates.isIntermediate = true
         // Add the fix mates explicitly
       }
 
@@ -183,7 +180,6 @@ class fullCallingPipeline extends QScript {
       samtoolsindex.jobOutputFile = new File(".queue/logs/Cleaning/%s/SamtoolsIndex.out".format(sampleId))
       samtoolsindex.bamFile = cleaned_bam
       samtoolsindex.analysisName = "index_cleaned_"+sampleId
-      samtoolsindex.isIntermediate = true
 
       if (!qscript.skip_cleaning) {
         if ( realigner.scatterCount > 1 ) {
@@ -238,7 +234,7 @@ class fullCallingPipeline extends QScript {
 
     snps.scatterCount = qscript.num_snp_scatter_jobs
     snps.setupScatterFunction = {
-      case (scatter: ScatterFunction, _) =>
+      case scatter: ScatterFunction =>
         scatter.commandDirectory = new File("SnpCalls/ScatterGather")
         scatter.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/SNPCalling/ScatterGather/Scatter.out")
     }

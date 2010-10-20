@@ -16,7 +16,6 @@ trait QScript extends Logging {
   type CommandLineFunction = org.broadinstitute.sting.queue.function.CommandLineFunction
   type InProcessFunction = org.broadinstitute.sting.queue.function.InProcessFunction
   type ScatterGatherableFunction = org.broadinstitute.sting.queue.function.scattergather.ScatterGatherableFunction
-  type Scatter = org.broadinstitute.sting.queue.function.scattergather.Scatter
   type Gather = org.broadinstitute.sting.queue.function.scattergather.Gather
   type SimpleTextGatherFunction = org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction
 

@@ -72,7 +72,7 @@ public abstract class ArgumentField {
                 isRequired(),
                 getExclusiveOf(),
                 getValidation(),
-                getScatterGatherAnnotation(), getFieldName(), getFieldType(), getDefaultValue(),
+                getGatherAnnotation(), getFieldName(), getFieldType(), getDefaultValue(),
                 getDefineAddition());
     }
 
@@ -105,8 +105,8 @@ public abstract class ArgumentField {
     /** @return A validation string for the argument. */
     protected String getValidation() { return ""; }
 
-    /** @return A scatter or gather annotation with a line feed, or "". */
-    protected String getScatterGatherAnnotation() { return ""; }
+    /** @return A gather annotation with a line feed, or "". */
+    protected String getGatherAnnotation() { return ""; }
 
     // Scala
 
@@ -135,9 +135,6 @@ public abstract class ArgumentField {
                 importClasses.add(innerType);
         return importClasses;
     }
-
-    /** @return True if this field uses @Scatter. */
-    public boolean isScatter() { return false; }
 
     /** @return True if this field uses @Gather. */
     public boolean isGather() { return false; }

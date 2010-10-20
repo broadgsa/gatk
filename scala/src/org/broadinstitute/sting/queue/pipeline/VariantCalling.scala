@@ -23,7 +23,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
    */
   trait StandardCommandLineGATK extends CommandLineGATK {
     this.reference_sequence = vc.attributes.getProject.getReferenceFile
-    this.intervals = vc.attributes.getProject.getIntervalList
+    this.intervals :+= vc.attributes.getProject.getIntervalList
     this.DBSNP = vc.attributes.getProject.getDbsnpFile
     // set global memory limit on the low side. Additional input bams will affect it.
     this.memoryLimit = Some(2)

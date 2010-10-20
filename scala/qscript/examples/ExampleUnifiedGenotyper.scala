@@ -41,7 +41,7 @@ class ExampleUnifiedGenotyper extends QScript {
   trait UnifiedGenotyperArguments extends CommandLineGATK {
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.referenceFile
-    this.intervals = qscript.intervals
+    this.intervals :+= qscript.intervals
     // Some() is how you set the value for an scala Option.
     // Set the memory limit to 2 gigabytes on each command.
     this.memoryLimit = Some(2)

@@ -4,6 +4,7 @@ import java.io.File
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
+import org.broadinstitute.sting.queue.QException
 
 /**
  * A function that can be run faster by splitting it up into pieces and then joining together the results.
@@ -29,9 +30,8 @@ trait ScatterGatherableFunction extends CommandLineFunction {
   /**
    * Allows external modification of the ScatterFunction that will create the scatter pieces in the temporary directories.
    * @param scatterFunction The function that will create the scatter pieces in the temporary directories.
-   * @param scatterField The input field being scattered.
    */
-  var setupScatterFunction: PartialFunction[(ScatterFunction, ArgumentSource), Unit] = _
+  var setupScatterFunction: PartialFunction[ScatterFunction, Unit] = _
 
   /**
    * Allows external modification of the GatherFunction that will collect the gather pieces in the temporary directories.
@@ -50,10 +50,10 @@ trait ScatterGatherableFunction extends CommandLineFunction {
   /**
    * Returns true if the function is ready to be scatter / gathered.
    * The base implementation checks if the scatter count is greater than one,
-   * and that the scatter field has a value.
+   * and that the scatter function can scatter this instance.
    * @return true if the function is ready to be scatter / gathered.
    */
-  def scatterGatherable = this.scatterCount > 1 && hasFieldValue(this.scatterField)
+  def scatterGatherable = this.scatterCount > 1 && scatterFunction.isScatterGatherable(this)
 
   /**
    * Returns a list of scatter / gather and clones of this function
@@ -68,17 +68,15 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     val inputFieldsWithValues = this.inputFields.filter(hasFieldValue(_))
     // Only gather up fields that will have a value
     val outputFieldsWithValues = this.outputFields.filter(hasFieldValue(_))
-    // The field containing the file to split
-    val originalInput = getFieldFile(scatterField)
 
     // Create the scatter function based on @Scatter
-    val scatterFunction = this.newScatterFunction(this.scatterField)
     syncFunction(scatterFunction)
     scatterFunction.addOrder = this.addOrder :+ 1
-    scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter-" + scatterField.field.getName)
-    scatterFunction.originalInput = originalInput
-    scatterFunction.setOriginalFunction(this, scatterField)
-    initScatterFunction(scatterFunction, this.scatterField)
+    scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter")
+    scatterFunction.originalInputs = this.inputs
+    scatterFunction.isIntermediate = true
+    scatterFunction.setScatterGatherable(this)
+    initScatterFunction(scatterFunction)
     functions :+= scatterFunction
 
     // Create the gather functions for each output field
@@ -92,7 +90,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
       gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
       gatherFunction.originalOutput = this.getFieldFile(gatherField)
-      gatherFunction.setOriginalFunction(this, gatherField)
+      gatherFunction.isIntermediate = this.isIntermediate
       initGatherFunction(gatherFunction, gatherField)
       functions :+= gatherFunction
       gatherFunctions += gatherField -> gatherFunction
@@ -110,11 +108,11 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       cloneFunction.index = i
       cloneFunction.addOrder = this.addOrder :+ (i+1)
       cloneFunction.memoryLimit = this.memoryLimit
+      cloneFunction.isIntermediate = true
 
       // Setup the fields on the clone function, outputting each as a relative file in the sg directory.
       cloneFunction.commandDirectory = this.scatterGatherTempDir("temp-"+i)
-      var scatterPart = new File(originalInput.getName)
-      cloneFunction.setFieldValue(scatterField, scatterPart)
+      scatterFunction.initCloneInputs(cloneFunction, i)
       for (gatherField <- outputFieldsWithValues) {
         val gatherPart = new File(gatherOutputs(gatherField).getName)
         cloneFunction.setFieldValue(gatherField, gatherPart)
@@ -124,9 +122,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       initCloneFunction(cloneFunction, i)
 
       // Get absolute paths to the files and bind the sg functions to the clone function via the absolute paths.
-      scatterPart = IOUtils.subDir(cloneFunction.commandDirectory, cloneFunction.getFieldFile(scatterField))
-      cloneFunction.setFieldValue(scatterField, scatterPart)
-      scatterFunction.scatterParts :+= scatterPart
+      scatterFunction.bindCloneInputs(cloneFunction, i)
       for (gatherField <- outputFieldsWithValues) {
         val gatherPart = IOUtils.subDir(cloneFunction.commandDirectory, cloneFunction.getFieldFile(gatherField))
         cloneFunction.setFieldValue(gatherField, gatherPart)
@@ -137,7 +133,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     }
     functions ++= cloneFunctions
 
-    // Return all the various functions we created
+    // Return all the various created functions.
     functions
   }
 
@@ -155,34 +151,24 @@ trait ScatterGatherableFunction extends CommandLineFunction {
   }
 
   /**
-   * Retrieves the scatter field from the first field that has the annotation @Scatter.
+   * Creates a new ScatterFunction.
+   * @return A ScatterFunction instantiated scatterClass
    */
-  protected lazy val scatterField =
-    this.inputFields.find(field => ReflectionUtils.hasAnnotation(field.field, classOf[Scatter])).get
-
-  /**
-   * Creates a new ScatterFunction for the scatterField.
-   * @param scatterField Field that defined @Scatter.
-   * @return A ScatterFunction instantiated from @Scatter or scatterClass if scatterClass was set on this ScatterGatherableFunction.
-   */
-  protected def newScatterFunction(scatterField: ArgumentSource): ScatterFunction = {
-    var scatterClass = this.scatterClass
-    if (scatterClass == null)
-      scatterClass = ReflectionUtils.getAnnotation(scatterField.field, classOf[Scatter])
-              .value.asSubclass(classOf[ScatterFunction])
-    scatterClass.newInstance.asInstanceOf[ScatterFunction]
+  protected def newScatterFunction(): ScatterFunction = {
+    if (this.scatterClass == null)
+      throw new QException("scatterClass is null.")
+    this.scatterClass.newInstance.asInstanceOf[ScatterFunction]
   }
 
   /**
    * Initializes the ScatterFunction created by newScatterFunction() that will create the scatter pieces in the temporary directories.
    * Calls setupScatterFunction with scatterFunction.
    * @param scatterFunction The function that will create the scatter pieces in the temporary directories.
-   * @param scatterField The input field being scattered.
    */
-  protected def initScatterFunction(scatterFunction: ScatterFunction, scatterField: ArgumentSource) = {
+  protected def initScatterFunction(scatterFunction: ScatterFunction) = {
     if (this.setupScatterFunction != null)
-      if (this.setupScatterFunction.isDefinedAt(scatterFunction, scatterField))
-        this.setupScatterFunction(scatterFunction, scatterField)
+      if (this.setupScatterFunction.isDefinedAt(scatterFunction))
+        this.setupScatterFunction(scatterFunction)
   }
 
   /**
@@ -236,7 +222,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param newFunction newly created function.
    */
   protected def syncFunction(newFunction: QFunction) = {
-    newFunction.isIntermediate = this.isIntermediate
     newFunction.analysisName = this.analysisName
     newFunction.qSettings = this.qSettings
     newFunction.jobTempDir = this.jobTempDir
@@ -248,6 +233,11 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       case _ => /* ignore */
     }
   }
+
+  /**
+   * The scatter function.
+   */
+  private lazy val scatterFunction = newScatterFunction()
 
   /**
    * Returns a temporary directory under this scatter gather directory.

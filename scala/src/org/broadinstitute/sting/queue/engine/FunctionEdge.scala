@@ -33,10 +33,10 @@ class FunctionEdge(var function: QFunction) extends QEdge {
     currentStatus = RunnerStatus.SKIPPED
   }
 
-  def resetToPending() = {
+  def resetToPending(cleanOutputs: Boolean) = {
     currentStatus = RunnerStatus.PENDING
-    function.doneOutputs.foreach(_.delete())
-    function.failOutputs.foreach(_.delete())
+    if (cleanOutputs)
+      function.deleteOutputs()
   }
 
   def inputs = function.inputs
