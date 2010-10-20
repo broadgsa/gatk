@@ -44,7 +44,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
-    private final static String REGEXP_WILDCARD = ".";
+    private final static char REGEXP_WILDCARD = '.';
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( !vc.isBiallelic() || !vc.isSNP() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
@@ -81,7 +81,6 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             return 0;
         }
     }
-
 
     private List<Haplotype> computeHaplotypes(ReadBackedPileup pileup, int contextSize) {
         // Compute all possible haplotypes consistent with current pileup
@@ -168,7 +167,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         byte[] haplotypeBases = new byte[contextSize];
 
         for(int i=0; i < contextSize; i++) {
-            haplotypeBases[i] = REGEXP_WILDCARD.getBytes()[0];
+            haplotypeBases[i] = (byte)REGEXP_WILDCARD;
         }
 
         double[] baseQualities = new double[contextSize];
@@ -185,30 +184,26 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             baseQualities[i] = (double)read.getBaseQualities()[baseOffset];
         }
 
-
         return new Haplotype(haplotypeBases, baseQualities);
-
     }
 
-
-
     private Haplotype getConsensusHaplotype(Haplotype haplotypeA, Haplotype haplotypeB) {
-        String a = haplotypeA.toString();
-        String b = haplotypeB.toString();
+        byte[] a = haplotypeA.getBasesAsBytes();
+        byte[] b = haplotypeB.getBasesAsBytes();
 
-        if (a.length() != b.length())
+        if (a.length != b.length)
             throw new ReviewedStingException("Haplotypes a and b must be of same length");
 
-        char chA, chB;
-        char wc = REGEXP_WILDCARD.charAt(0);
+        byte chA, chB;
+        byte wc = (byte)REGEXP_WILDCARD;
 
+        final int length = a.length;
+        byte[] consensusChars = new byte[length];
+        double[] consensusQuals = new double[length];
 
-        char[] consensusChars = new char[a.length()];
-        double[] consensusQuals = new double[a.length()];
-
-        for (int i=0; i < a.length(); i++) {
-            chA = a.charAt(i);
-            chB = b.charAt(i);
+        for (int i=0; i < length; i++) {
+            chA = a[i];
+            chB = b[i];
 
             if ((chA != chB) && (chA != wc) && (chB != wc))
                 return null;
@@ -228,12 +223,9 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
                 consensusChars[i] = chA;
                 consensusQuals[i] = haplotypeA.getQuals()[i]+haplotypeB.getQuals()[i];
             }
-
-
         }
 
-
-        return new Haplotype(new String(consensusChars), consensusQuals);
+        return new Haplotype(consensusChars, consensusQuals);
     }
     // calculate the haplotype scores by walking over all reads and comparing them to the haplotypes
     private double scoreReadsAgainstHaplotypes(List<Haplotype> haplotypes, ReadBackedPileup pileup, int contextSize) {

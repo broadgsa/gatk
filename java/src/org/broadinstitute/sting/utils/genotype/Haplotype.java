@@ -33,7 +33,6 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 public class Haplotype {
     protected byte[] bases = null;
@@ -59,11 +58,6 @@ public class Haplotype {
         this.quals = quals;
     }
 
-    public Haplotype(String bases, double[] quals) {
-        this.bases = bases.getBytes();
-        this.quals = quals;
-    }
-
     public Haplotype(byte[] bases) {
         this(bases, 0);
     }
@@ -77,9 +71,6 @@ public class Haplotype {
         this(bases, loc);
         this.isReference = isRef;
     }
-
-
-    public String toString() { return new String(this.bases); }
 
     public double getQualitySum() {
         double s = 0;
@@ -103,7 +94,6 @@ public class Haplotype {
     public boolean isReference() {
         return isReference;
     }
-
 
     public static List<Haplotype> makeHaplotypeListFromVariantContextAlleles(VariantContext vc, ReferenceContext ref, final int haplotypeSize) {
 
