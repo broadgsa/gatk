@@ -25,9 +25,13 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import java.io.Serializable;
 import java.util.*;
+
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.samtools.util.StringUtil;
 import org.apache.commons.jexl2.*;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broad.tribble.util.variantcontext.*;
+import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -717,4 +721,226 @@ public class VariantContextUtils {
         return GenomeLocParser.createGenomeLoc(vc.getChr(),(int)vc.getStart(),(int)vc.getEnd());
     }
 
+    // NOTE: returns null if vc1 and vc2 are not mergeable into a single MNP record
+    public static VariantContext mergeIntoMNP(VariantContext vc1, VariantContext vc2, ReferenceSequenceFile referenceFile) {
+        if (!mergeIntoMNPvalidationCheck(vc1, vc2))
+            return null;
+
+        Map<Allele, Allele> allele1ToAllele2 = calcMergeAllele1WithAllele2Map(vc1, vc2);
+        if (allele1ToAllele2 == null)
+            return null;
+
+        return reallyMergeIntoMNP(vc1, vc2, referenceFile, allele1ToAllele2);
+    }
+
+    private static VariantContext reallyMergeIntoMNP(VariantContext vc1, VariantContext vc2, ReferenceSequenceFile referenceFile, Map<Allele, Allele> allele1ToAllele2) {
+        int startInter = vc1.getEnd() + 1;
+        int endInter = vc2.getStart() - 1;
+        byte[] intermediateBases = null;
+        int intermediateLength = 0;
+        if (startInter <= endInter) {
+            intermediateBases = referenceFile.getSubsequenceAt(vc1.getChr(), startInter, endInter).getBases();
+            StringUtil.toUpperCase(intermediateBases);
+            intermediateLength = intermediateBases.length;
+        }
+
+        Map<Allele, Allele> allele1ToMergedAllele = new HashMap<Allele, Allele>();
+        for (Map.Entry<Allele, Allele> all1all2Entry : allele1ToAllele2.entrySet()) {
+            Allele all1 = all1all2Entry.getKey();
+            Allele all2 = all1all2Entry.getValue();
+
+            byte[] bases1 = all1.getBases();
+            byte[] bases2 = all2.getBases();
+
+            byte[] mergedBases = new byte[bases1.length + intermediateLength + bases2.length];
+            System.arraycopy(bases1, 0, mergedBases, 0, bases1.length);
+            if (intermediateBases != null)
+                System.arraycopy(intermediateBases, 0, mergedBases, bases1.length, intermediateLength);
+            System.arraycopy(bases2, 0, mergedBases, bases1.length + intermediateLength, bases2.length);
+
+            Allele mergedAllele = Allele.create(mergedBases, all1.equals(vc1.getReference()));
+            allele1ToMergedAllele.put(all1, mergedAllele);
+        }
+
+        Set<Allele> allMergedAlleles = new HashSet<Allele>();
+        Allele mergedRefAllele = allele1ToMergedAllele.get(vc1.getReference());
+        allMergedAlleles.add(mergedRefAllele); // ensure that the reference allele is added
+
+        Map<String, Genotype> mergedGenotypes = new HashMap<String, Genotype>();
+        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
+            String sample = gt1Entry.getKey();
+            Genotype gt1 = gt1Entry.getValue();
+            Genotype gt2 = vc2.getGenotype(sample);
+
+            List<Allele> site1Alleles = gt1.getAlleles();
+            List<Allele> mergedAllelesForSample = new LinkedList<Allele>();
+            for (Allele all1 : site1Alleles) {
+                Allele mergedAllele = allele1ToMergedAllele.get(all1);
+                allMergedAlleles.add(mergedAllele);
+                mergedAllelesForSample.add(mergedAllele);
+            }
+
+            double mergedGQ = Math.max(gt1.getNegLog10PError(), gt2.getNegLog10PError());
+            Set<String> mergedGtFilters = new HashSet<String>(); // Since gt1 and gt2 were unfiltered, the Genotype remains unfiltered
+
+            Map<String, Object> mergedGtAttribs = new HashMap<String, Object>();
+            Object PQ = gt1.getAttribute(ReadBackedPhasingWalker.PQ_KEY);
+            if (PQ != null)
+                mergedGtAttribs.put(ReadBackedPhasingWalker.PQ_KEY, PQ);
+
+            Genotype mergedGt = new Genotype(sample, mergedAllelesForSample, mergedGQ, mergedGtFilters, mergedGtAttribs, gt1.genotypesArePhased());
+            mergedGenotypes.put(sample, mergedGt);
+        }
+
+        String mergedName = VariantContextUtils.mergeVariantContextNames(vc1.getName(), vc2.getName());
+        double mergedNegLog10PError = Math.max(vc1.getNegLog10PError(), vc2.getNegLog10PError());
+        Set<String> mergedFilters = new HashSet<String>(); // Since vc1 and vc2 were unfiltered, the merged record remains unfiltered
+        Map<String, Object> mergedAttribs = VariantContextUtils.mergeVariantContextAttributes(vc1.getAttributes(), vc2.getAttributes(), allMergedAlleles);
+        if (mergedAttribs == null)
+            return null;
+
+        VariantContext mergedVc = new VariantContext(mergedName, vc1.getChr(), vc1.getStart(), vc2.getEnd(), allMergedAlleles, mergedGenotypes, mergedNegLog10PError, mergedFilters, mergedAttribs);
+
+        /* Calculate VCFConstants.ALLELE_NUMBER_KEY, VCFConstants.ALLELE_COUNT_KEY, VCFConstants.ALLELE_FREQUENCY_KEY from scratch
+           [though technically they should already be consistent with each of vc1 and vc2's respective alleles]:
+         */
+        mergedAttribs = new HashMap<String, Object>(mergedVc.getAttributes());
+        VariantContextUtils.calculateChromosomeCounts(mergedVc, mergedAttribs, true);
+        mergedVc = VariantContext.modifyAttributes(mergedVc, mergedAttribs);
+
+        return mergedVc;
+    }
+
+    private static String mergeVariantContextNames(String name1, String name2) {
+        return name1 + "_" + name2;
+    }
+
+    private static Map<String, Object> mergeVariantContextAttributes(Map<String, Object> attribs1, Map<String, Object> attribs2, Set<Allele> allMergedAlleles) {
+        Map<String, Object> mergedAttribs = new HashMap<String, Object>();
+
+        List<Map<String, Object>> attribsList = new LinkedList<Map<String, Object>>();
+        attribsList.add(attribs1);
+        attribsList.add(attribs2);
+
+        String[] MERGE_OR_ATTRIBS = {VCFConstants.DBSNP_KEY};
+        for (String orAttrib : MERGE_OR_ATTRIBS) {
+            boolean attribVal = false;
+            for (Map<String, Object> attribs : attribsList) {
+                Boolean val = getBooleanAttribute(attribs, orAttrib);
+                if (val != null)
+                    attribVal = (attribVal || val);
+            }
+            mergedAttribs.put(orAttrib, attribVal);
+        }
+
+        // Merge ID fields:
+        String iDVal = null;
+        for (Map<String, Object> attribs : attribsList) {
+            String val = getStringAttribute(attribs, VariantContext.ID_KEY);
+            if (val != null && !val.equals(VCFConstants.EMPTY_ID_FIELD)) {
+                if (iDVal == null)
+                    iDVal = val;
+                else
+                    iDVal += ";" + val;
+            }
+        }
+        if (iDVal != null)
+            mergedAttribs.put(VariantContext.ID_KEY, iDVal);
+
+        return mergedAttribs;
+    }
+
+    private static Boolean getBooleanAttribute(Map<String, Object> attribs, String attribName) {
+        Object val = attribs.get(attribName);
+        if (val == null)
+            return null;
+
+        return new Boolean(val.toString());
+    }
+
+    private static String getStringAttribute(Map<String, Object> attribs, String attribName) {
+        Object val = attribs.get(attribName);
+        if (val == null)
+            return null;
+
+        return val.toString();
+    }
+
+    private static boolean mergeIntoMNPvalidationCheck(VariantContext vc1, VariantContext vc2) {
+        GenomeLoc loc1 = VariantContextUtils.getLocation(vc1);
+        GenomeLoc loc2 = VariantContextUtils.getLocation(vc2);
+
+        if (!loc1.onSameContig(loc2))
+            throw new ReviewedStingException("Can only merge vc1, vc2 if on the same chromosome");
+
+        if (!loc1.isBefore(loc2))
+            throw new ReviewedStingException("Can only merge if vc1 is BEFORE vc2");
+
+        if (vc1.isFiltered() || vc2.isFiltered())
+            return false;
+
+        if (!vc1.getSampleNames().equals(vc2.getSampleNames())) // vc1, vc2 refer to different sample sets
+            return false;
+
+        if (!allGenotypesAreUnfilteredAndCalled(vc1) || !allGenotypesAreUnfilteredAndCalled(vc2))
+            return false;
+
+        return true;
+    }
+
+    private static boolean allGenotypesAreUnfilteredAndCalled(VariantContext vc) {
+        for (Map.Entry<String, Genotype> gtEntry : vc.getGenotypes().entrySet()) {
+            Genotype gt = gtEntry.getValue();
+            if (gt.isNoCall() || gt.isFiltered())
+                return false;
+        }
+
+        return true;
+    }
+
+    private static Map<Allele, Allele> calcMergeAllele1WithAllele2Map(VariantContext vc1, VariantContext vc2) {
+        // Check that Alleles at vc1 and at vc2 always segregate together in all samples (including reference):
+        Map<Allele, Allele> allele1ToAllele2 = new HashMap<Allele, Allele>();
+        Map<Allele, Allele> allele2ToAllele1 = new HashMap<Allele, Allele>();
+
+        // Note the segregation of the alleles for the reference genome:
+        allele1ToAllele2.put(vc1.getReference(), vc2.getReference());
+        allele2ToAllele1.put(vc2.getReference(), vc1.getReference());
+
+        // Note the segregation of the alleles for each sample (and check that it is consistent with the reference and all previous samples).
+        // [Also, check that each sample's genotype in vc2 is uniquely appendable onto its genotype in vc1.]
+        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
+            String sample = gt1Entry.getKey();
+            Genotype gt1 = gt1Entry.getValue();
+            Genotype gt2 = vc2.getGenotype(sample);
+
+            if (gt1.getPloidy() != gt2.getPloidy())
+                return null;
+
+            if (!gt2.genotypesArePhased() && !gt2.isHom()) // since can merge if phased or even if an unphased hom
+                return null;
+
+            List<Allele> site1Alleles = gt1.getAlleles();
+            List<Allele> site2Alleles = gt2.getAlleles();
+
+            Iterator<Allele> all2It = site2Alleles.iterator();
+            for (Allele all1 : site1Alleles) {
+                Allele all2 = all2It.next();
+
+                Allele all1To2 = allele1ToAllele2.get(all1);
+                if (all1To2 == null)
+                    allele1ToAllele2.put(all1, all2);
+                else if (!all1To2.equals(all2)) // all1 segregates with two different alleles at site 2
+                    return null;
+
+                Allele all2To1 = allele2ToAllele1.get(all2);
+                if (all2To1 == null)
+                    allele2ToAllele1.put(all2, all1);
+                else if (!all2To1.equals(all1)) // all2 segregates with two different alleles at site 1
+                    return null;
+            }
+        }
+
+        return allele1ToAllele2;
+    }
 }
