@@ -173,23 +173,25 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         double[] baseQualities = new double[contextSize];
         Arrays.fill(baseQualities,0.0);
 
+        final byte[] readBases = read.getReadBases();
+        final byte[] readQuals = read.getBaseQualities();
         for (int i = 0; i < contextSize; i++ ) {
             int baseOffset = i + baseOffsetStart;
             if ( baseOffset < 0 )
                 continue;
-            if ( baseOffset >= read.getReadLength() )
+            if ( baseOffset >= readBases.length )
                 break;
 
-            haplotypeBases[i] = read.getReadBases()[baseOffset];
-            baseQualities[i] = (double)read.getBaseQualities()[baseOffset];
+            haplotypeBases[i] = readBases[baseOffset];
+            baseQualities[i] = (double)readQuals[baseOffset];
         }
 
         return new Haplotype(haplotypeBases, baseQualities);
     }
 
     private Haplotype getConsensusHaplotype(Haplotype haplotypeA, Haplotype haplotypeB) {
-        byte[] a = haplotypeA.getBasesAsBytes();
-        byte[] b = haplotypeB.getBasesAsBytes();
+        final byte[] a = haplotypeA.getBasesAsBytes();
+        final byte[] b = haplotypeB.getBasesAsBytes();
 
         if (a.length != b.length)
             throw new ReviewedStingException("Haplotypes a and b must be of same length");
@@ -200,6 +202,9 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         final int length = a.length;
         byte[] consensusChars = new byte[length];
         double[] consensusQuals = new double[length];
+
+        final double[] qualsA = haplotypeA.getQuals();
+        final double[] qualsB = haplotypeB.getQuals();
 
         for (int i=0; i < length; i++) {
             chA = a[i];
@@ -214,14 +219,14 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             }
             else if ((chA == wc)) {
                 consensusChars[i] = chB;
-                consensusQuals[i] = haplotypeB.getQuals()[i];
+                consensusQuals[i] = qualsB[i];
             }
             else if ((chB == wc)){
                 consensusChars[i] = chA;
-                consensusQuals[i] = haplotypeA.getQuals()[i];
+                consensusQuals[i] = qualsA[i];
             } else {
                 consensusChars[i] = chA;
-                consensusQuals[i] = haplotypeA.getQuals()[i]+haplotypeB.getQuals()[i];
+                consensusQuals[i] = qualsA[i]+qualsB[i];
             }
         }
 
@@ -275,18 +280,21 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         // actually be a miscall in a matching direction, which would happen at a e / 3 rate.  If b != c, then
         // the chance that it is actually a mismatch is 1 - e, since any of the other 3 options would be a mismatch.
         // so the probability-weighted mismatch rate is sum_i ( matched ? e_i / 3 : 1 - e_i ) for i = 1 ... n
+        final byte[] haplotypeBases = haplotype.getBasesAsBytes();
+        final byte[] readBases = read.getReadBases();
+        final byte[] readQuals = read.getBaseQualities();
         for ( int i = 0; i < contextSize; i++ ) {
             int baseOffset = i + baseOffsetStart;
             if ( baseOffset < 0 )
                 continue;
-            if ( baseOffset >= read.getReadLength() )
+            if ( baseOffset >= readBases.length )
                 break;
 
-            byte haplotypeBase = haplotype.getBasesAsBytes()[i];
-            byte readBase = read.getReadBases()[baseOffset];
+            byte haplotypeBase = haplotypeBases[i];
+            byte readBase = readBases[baseOffset];
 
             boolean matched = BaseUtils.basesAreEqual(readBase, haplotypeBase );
-            double e = QualityUtils.qualToErrorProb(read.getBaseQualities()[baseOffset]);
+            double e = QualityUtils.qualToErrorProb(readQuals[baseOffset]);
             expected += e;
             mismatches += matched ? e : 1 - e / 3;
 
@@ -294,7 +302,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             // the mismatching of poorly determined regions of the consensus
 
             if ( DEBUG ) System.out.printf("Read %s: scoring %c vs. %c => e = %f Q%d esum %f vs. msum %f%n",
-                    read.getReadName(), (char)haplotypeBase, (char)readBase, e, read.getBaseQualities()[baseOffset], expected, mismatches);
+                    read.getReadName(), (char)haplotypeBase, (char)readBase, e, readQuals[baseOffset], expected, mismatches);
         }
 
         return mismatches - expected;
