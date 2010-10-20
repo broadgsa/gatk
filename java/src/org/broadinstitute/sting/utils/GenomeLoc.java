@@ -201,7 +201,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     }
 
     public final int minus( final GenomeLoc that ) {
-        if ( this.contigIndex == that.contigIndex )
+        if ( this.onSameContig(that) )
             return (int) (this.getStart() - that.getStart());
         else
             return Integer.MAX_VALUE;
@@ -223,6 +223,36 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     public final boolean isPast( GenomeLoc that ) {
         int comparison = this.compareContigs(that);
         return ( comparison == 1 || ( comparison == 0 && this.getStart() > that.getStop() ));
+    }
+
+    public final boolean startsBefore( GenomeLoc that ) {
+        int comparison = this.compareContigs(that);
+        return ( comparison == -1 || ( comparison == 0 && this.getStart() < that.getStart() ));
+    }
+
+    public final boolean startsAfter( GenomeLoc that ) {
+        int comparison = this.compareContigs(that);
+        return ( comparison == 1 || ( comparison == 0 && this.getStart() > that.getStart() ));
+    }
+
+    // Return the minimum distance between any pair of bases in this and that GenomeLocs:
+    public final int minDistance( final GenomeLoc that ) {
+        if (!this.onSameContig(that))
+            return Integer.MAX_VALUE;
+
+        int minDistance;
+        if (this.isBefore(that))
+            minDistance = distanceFirstStopToSecondStart(this, that);
+        else if (that.isBefore(this))
+            minDistance = distanceFirstStopToSecondStart(that, this);
+        else // this and that overlap [and possibly one contains the other]:
+            minDistance = 0;
+
+        return minDistance;
+    }
+
+    private static int distanceFirstStopToSecondStart(GenomeLoc locFirst, GenomeLoc locSecond) {
+        return (int) (locSecond.getStart() - locFirst.getStop());
     }
 
 
