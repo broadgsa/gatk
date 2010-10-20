@@ -84,9 +84,8 @@ public class XReadLines implements Iterator<String>, Iterable<String> {
      * Creates a new xReadLines object to read lines from an input stream
      *
      * @param inputStream
-     * @throws FileNotFoundException
      */
-    public XReadLines(final InputStream inputStream, final boolean trimWhitespace) throws FileNotFoundException {
+    public XReadLines(final InputStream inputStream, final boolean trimWhitespace) {
         this(new BufferedReader(new InputStreamReader(inputStream)), trimWhitespace);
     }
 
@@ -99,9 +98,8 @@ public class XReadLines implements Iterator<String>, Iterable<String> {
      * Creates a new xReadLines object to read lines from an bufferedReader
      *
      * @param reader
-     * @throws FileNotFoundException
      */
-    public XReadLines(final BufferedReader reader, final boolean trimWhitespace) throws FileNotFoundException {
+    public XReadLines(final BufferedReader reader, final boolean trimWhitespace) {
         try {
             this.in = reader;
             nextline = readNextLine();

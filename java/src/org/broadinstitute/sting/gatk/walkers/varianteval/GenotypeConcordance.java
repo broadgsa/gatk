@@ -312,10 +312,10 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
                 } else {
                     truth = validation.getGenotype(sample).getType();
                     // interesting = "ConcordanceStatus=FP";
-										if (discordantInteresting && truth.ordinal() != called.ordinal())
-										{
-												interesting = "ConcordanceStatus=" + truth.ordinal() + "/" + called.ordinal();
-										}
+                    if (discordantInteresting && truth.ordinal() != called.ordinal())
+                    {
+                        interesting = "ConcordanceStatus=" + truth + "/" + called;
+                    }
                 }
 
                 sampleStats.incrValue(sample, truth, called);

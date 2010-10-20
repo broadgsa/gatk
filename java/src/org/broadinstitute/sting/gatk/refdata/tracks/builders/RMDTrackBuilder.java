@@ -32,6 +32,7 @@ import org.broad.tribble.*;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.source.BasicFeatureSource;
+import org.broad.tribble.source.CachingFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
@@ -121,7 +122,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      */
     public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
         // return a feature reader track
-        Pair<BasicFeatureSource, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
+        Pair<FeatureSource, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
         if (pair == null) throw new UserException.CouldNotReadInputFile(inputFile, "Unable to make the feature reader for input file");
         return new RMDTrack(targetClass, name, inputFile, pair.first, pair.second, createCodec(targetClass, name));
     }
@@ -132,7 +133,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param inputFile the input file, that corresponds to the feature type
      * @return a pair of <BasicFeatureSource, SAMSequenceDictionary>
      */
-    public Pair<BasicFeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, File inputFile) {
+    public Pair<FeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, File inputFile) {
         return createFeatureReader(targetClass, "anonymous", inputFile);
     }
 
@@ -143,8 +144,8 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param inputFile the input file to create the track from (of the codec type)
      * @return the FeatureReader instance
      */
-    public Pair<BasicFeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, String name, File inputFile) {
-        Pair<BasicFeatureSource, SAMSequenceDictionary> pair;
+    public Pair<FeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, String name, File inputFile) {
+        Pair<FeatureSource, SAMSequenceDictionary> pair;
         if (inputFile.getAbsolutePath().endsWith(".gz"))
             pair = createBasicFeatureSourceNoAssumedIndex(targetClass, name, inputFile);
         else
@@ -162,11 +163,11 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param inputFile the file to load
      * @return a feature reader implementation
      */
-    private Pair<BasicFeatureSource, SAMSequenceDictionary> createBasicFeatureSourceNoAssumedIndex(Class targetClass, String name, File inputFile) {
+    private Pair<FeatureSource, SAMSequenceDictionary> createBasicFeatureSourceNoAssumedIndex(Class targetClass, String name, File inputFile) {
         // we might not know the index type, try loading with the default reader constructor
         logger.info("Attempting to blindly load " + inputFile + " as a tabix indexed file");
         try {
-            return new Pair<BasicFeatureSource, SAMSequenceDictionary>(BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
+            return new Pair<FeatureSource, SAMSequenceDictionary>(BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(), createCodec(targetClass, name)),null);
         } catch (TribbleException e) {
             throw new UserException(e.getMessage(), e);
         }
@@ -192,8 +193,8 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param inputFile the tribble file to parse
      * @return the input file as a FeatureReader
      */
-    private Pair<BasicFeatureSource, SAMSequenceDictionary> getFeatureSource(Class targetClass, String name, File inputFile) {
-        Pair<BasicFeatureSource, SAMSequenceDictionary> reader;
+    private Pair<FeatureSource, SAMSequenceDictionary> getFeatureSource(Class targetClass, String name, File inputFile) {
+        Pair<FeatureSource, SAMSequenceDictionary> reader;
         try {
             Index index = loadIndex(inputFile, createCodec(targetClass, name));
             try { logger.info(String.format("  Index for %s has size in bytes %d", inputFile, Sizeof.getObjectGraphSize(index))); }
@@ -207,11 +208,10 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
                 setIndexSequenceDictionary(index,dict,indexFile,true);
                 dictFromIndex = getSequenceDictionaryFromProperties(index);
             }
-            
-            reader = new Pair<BasicFeatureSource, SAMSequenceDictionary>(new BasicFeatureSource(inputFile.getAbsolutePath(),
-                                                                                                index,
-                                                                                                createCodec(targetClass, name)),
-                                                                                                dictFromIndex);
+
+            FeatureSource source = new BasicFeatureSource(inputFile.getAbsolutePath(), index, createCodec(targetClass, name));
+            //source = new CachingFeatureSource(source, 100, 100000);
+            reader = new Pair<FeatureSource, SAMSequenceDictionary>(source, dictFromIndex);
         } catch (TribbleException e) {
             throw new UserException(e.getMessage());
         } catch (IOException e) {

@@ -27,7 +27,6 @@ import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.FeatureSource;
-import org.broad.tribble.source.BasicFeatureSource;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -55,7 +54,7 @@ public class RMDTrack {
     private final File file;            // the associated file we create the reader from
 
     // our feature reader - allows queries
-    private BasicFeatureSource reader;
+    private FeatureSource reader;
 
     // our sequence dictionary, which can be null
     private final SAMSequenceDictionary dictionary;
@@ -102,7 +101,7 @@ public class RMDTrack {
      * @param dict the sam sequence dictionary
      * @param codec the feature codec we use to decode this type
      */
-    public RMDTrack(Class type, String name, File file, BasicFeatureSource reader, SAMSequenceDictionary dict, FeatureCodec codec) {
+    public RMDTrack(Class type, String name, File file, FeatureSource reader, SAMSequenceDictionary dict, FeatureCodec codec) {
         this.type = type;
         this.recordType = codec.getFeatureType();
         this.name = name;
