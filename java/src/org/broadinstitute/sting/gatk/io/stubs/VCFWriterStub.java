@@ -184,6 +184,10 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
         outputTracker.getStorage(this).close();
     }
 
+    public void flush() {
+        outputTracker.getStorage(this).flush();
+    }
+
     /**
      * Gets a string representation of this object.
      * @return

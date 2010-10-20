@@ -93,7 +93,11 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
      */
     public void close() {
         writer.close();
-    }    
+    }
+
+    public void flush() {
+        writer.flush();
+    }
 
     /**
      * Merges the stream backing up this temporary storage into the target.
