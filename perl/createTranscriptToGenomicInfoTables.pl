@@ -42,10 +42,10 @@ open(UNSORTED, "< $unsorted_table") or die "can't open $unsorted_table: $!";
 my $line = <UNSORTED>;
 print SORTED "$line";
 close(UNSORTED);
-
-$cmd = "grep haplotypeReference -v $unsorted_table | sort -n -k2 -T $tmp | $gatk/perl/sortByRef.pl --tmp $tmp - $ref.fai";
-print SORTED `$cmd`;
 close(SORTED);
+
+$cmd = "grep haplotypeReference -v $unsorted_table | sort -n -k2 -T $tmp | $gatk/perl/sortByRef.pl --tmp $tmp - $ref.fai >> $out";
+system($cmd);
 
 # clean up
 unlink $unsorted_table;
