@@ -96,10 +96,15 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         if (mustPrint || nRecords == 1 || nRecords % N_RECORDS_TO_PRINT == 0 || maxElapsedIntervalForPrinting(curTime)) {
             this.lastProgressPrintTime = curTime;
             final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
-            if (loc != null)
-                logger.info(String.format("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)", loc, nRecords, getTraversalType(), elapsed, secsPer1MReads, getTraversalType()));
-            else
-                logger.info(String.format("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)", nRecords, getTraversalType(), elapsed, secsPer1MReads, getTraversalType()));
+
+            if ( nRecords == 1 )
+                logger.info("[INITIALIZATION COMPLETE; TRAVERSAL STARTING]");
+            else {
+                if (loc != null)
+                    logger.info(String.format("[PROGRESS] Traversed to %s, processing %,d %s in %.2f secs (%.2f secs per 1M %s)", loc, nRecords, getTraversalType(), elapsed, secsPer1MReads, getTraversalType()));
+                else
+                    logger.info(String.format("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)", nRecords, getTraversalType(), elapsed, secsPer1MReads, getTraversalType()));
+            }
         }   
     }
 
@@ -135,6 +140,12 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      */
     public void initialize(GenomeAnalysisEngine engine) {
         this.engine = engine;
+    }
+
+    /**
+     * Should be called to indicate that we're going to process records and the timer should start ticking
+     */
+    public void startTimers() {
         lastProgressPrintTime = startTime = System.currentTimeMillis();
     }
 

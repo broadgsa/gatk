@@ -45,6 +45,7 @@ public class LinearMicroScheduler extends MicroScheduler {
      * @param shardStrategy A strategy for sharding the data.
      */
     public Object execute(Walker walker, ShardStrategy shardStrategy) {
+        traversalEngine.startTimers();
         walker.initialize();
         Accumulator accumulator = Accumulator.create(engine,walker);
 
