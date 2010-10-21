@@ -109,8 +109,8 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             VariantContext variant_eval;
             VariantContext validation_eval;
 
-            variant_eval = tracker.getVariantContext(ref, ROD_NAME, null, loc, false);
-            validation_eval = tracker.getVariantContext(ref,VALIDATION_ROD_NAME,null,loc,false);
+            variant_eval = tracker.getVariantContext(ref, ROD_NAME, null, loc, true);
+            validation_eval = tracker.getVariantContext(ref,VALIDATION_ROD_NAME,null,loc, true);
             if ( goodSite(variant_eval,validation_eval) ) {
                 if ( useValidation(variant_eval,validation_eval, ref) ) {
                     writeBeagleOutput(validation_eval,variant_eval,true,validationPrior);
@@ -136,7 +136,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     public boolean goodSite(VariantContext v) {
-       return v != null && ! v.isFiltered() && v.isSNP() && v.isBiallelic() && v.hasGenotypes();
+       return v != null && ! v.isFiltered() && v.isBiallelic() && v.hasGenotypes();
     }
 
     public boolean useValidation(VariantContext variant, VariantContext validation, ReferenceContext ref) {
@@ -165,7 +165,8 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     public void writeBeagleOutput(VariantContext preferredVC, VariantContext otherVC, boolean isValidationSite, double prior) {
-        beagleWriter.print(String.format("%s ",VariantContextUtils.getLocation(preferredVC).toString()));
+        GenomeLoc currentLoc = VariantContextUtils.getLocation(preferredVC);
+        beagleWriter.print(String.format("%s:%d ",currentLoc.getContig(),currentLoc.getStart()));
         if ( beagleGenotypesWriter != null ) {
             beagleGenotypesWriter.print(String.format("%s ",VariantContextUtils.getLocation(preferredVC).toString()));
         }
@@ -173,9 +174,9 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         for ( Allele allele : preferredVC.getAlleles() ) {
             String bglPrintString;
             if (allele.isNoCall() || allele.isNull())
-                bglPrintString = "0";
+                bglPrintString = "-";
             else
-                bglPrintString = allele.toString().substring(0,1);  // get rid of * in case of reference allele
+                bglPrintString = allele.getBaseString();  // get rid of * in case of reference allele
 
             beagleWriter.print(String.format("%s ", bglPrintString));
         }

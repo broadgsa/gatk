@@ -115,9 +115,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             return 0;
 
         GenomeLoc loc = context.getLocation();
-        VariantContext vc_input = tracker.getVariantContext(ref,INPUT_ROD_NAME, null, loc, false);
+        VariantContext vc_input = tracker.getVariantContext(ref,INPUT_ROD_NAME, null, loc, true);
 
-        VariantContext vc_comp = tracker.getVariantContext(ref,COMP_ROD_NAME, null, loc, false);
+        VariantContext vc_comp = tracker.getVariantContext(ref,COMP_ROD_NAME, null, loc, true);
 
         if ( vc_input == null  )
             return 0;
@@ -199,8 +199,11 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             ArrayList<String> beagleProbabilities = beagleProbsFeature.getProbLikelihoods().get(sample);
             ArrayList<String> beagleGenotypePairs = beaglePhasedFeature.getGenotypes().get(sample);
 
+            // original alleles at this genotype
             Allele originalAlleleA = g.getAllele(0);
+
             Allele originalAlleleB = (g.getAlleles().size() == 2) ? g.getAllele(1) : g.getAllele(0); // hack to deal with no-call genotypes
+
 
             // We have phased genotype in hp. Need to set the isRef field in the allele.
             List<Allele> alleles = new ArrayList<Allele>();
@@ -208,23 +211,26 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             String alleleA = beagleGenotypePairs.get(0);
             String alleleB = beagleGenotypePairs.get(1);
 
-            byte[] r = alleleA.getBytes();
+            // Beagle always produces genotype strings based on the strings we input in the likelihood file.
+            String refString = vc_input.getReference().getDisplayString();
+            if (refString.length() == 0) // ref was null
+                refString = Allele.NULL_ALLELE_STRING;
 
-            //System.out.println(context.getLocation() + " : " + alleleA + " " + alleleB);
+            Allele bglAlleleA, bglAlleleB;
 
-            byte rA = r[0];
+            if (alleleA.matches(refString))
+               bglAlleleA = Allele.create(alleleA,true);
+            else
+               bglAlleleA = Allele.create(alleleA,false);
 
-            Boolean isRefA = (refByte  == rA);
+            if (alleleB.matches(refString))
+                bglAlleleB = Allele.create(alleleB,true);
+            else
+                bglAlleleB = Allele.create(alleleB,false);
 
-            Allele refAllele = Allele.create(r, isRefA );
-            alleles.add(refAllele);
 
-            r = alleleB.getBytes();
-            byte rB = r[0];
-
-            Boolean isRefB = (refByte  == rB);
-            Allele altAllele = Allele.create(r,isRefB);
-            alleles.add(altAllele);
+            alleles.add(bglAlleleA);
+            alleles.add(bglAlleleB);
 
             // Compute new GQ field = -10*log10Pr(Genotype call is wrong)
             // Beagle gives probability that genotype is AA, AB and BB.
@@ -234,20 +240,22 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             Double hetProbability = Double.valueOf(beagleProbabilities.get(1));
             Double homVarProbability = Double.valueOf(beagleProbabilities.get(2));
 
-            if (isRefA && isRefB) // HomRef call
+            if (bglAlleleA.isReference() && bglAlleleB.isReference()) // HomRef call
                 probWrongGenotype = hetProbability + homVarProbability;
-            else if ((isRefB && !isRefA) || (isRefA && !isRefB))
+            else if ((bglAlleleB.isReference() && bglAlleleA.isNonReference()) || (bglAlleleA.isReference() && bglAlleleB.isNonReference()))
                 probWrongGenotype = homRefProbability + homVarProbability;
             else // HomVar call
                 probWrongGenotype = hetProbability + homRefProbability;
 
+            // deal with numerical errors coming from limited formatting value on Beagle output files
+            if (probWrongGenotype > 1 - MIN_PROB_ERROR)
+                probWrongGenotype = 1 - MIN_PROB_ERROR;
+            
             if (1-probWrongGenotype < noCallThreshold) {
                 // quality is bad: don't call genotype
                 alleles.clear();
-                refAllele = originalAlleleA;
-                altAllele = originalAlleleB;
-                alleles.add(refAllele);
-                alleles.add(altAllele);
+                alleles.add(originalAlleleA);
+                alleles.add(originalAlleleB);
                 genotypeIsPhased = false;
             }
 
@@ -277,8 +285,8 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             og = a1+"/"+a2;
 
             // See if Beagle switched genotypes
-            if (!((refAllele.equals(originalAlleleA) && altAllele.equals(originalAlleleB) ||
-                    (refAllele.equals(originalAlleleB) && altAllele.equals(originalAlleleA))))){
+            if (!((bglAlleleA.equals(originalAlleleA) && bglAlleleB.equals(originalAlleleB) ||
+                    (bglAlleleA.equals(originalAlleleB) && bglAlleleB.equals(originalAlleleA))))){
                 originalAttributes.put("OG",og);
                 numGenotypesChangedByBeagle++;
             }

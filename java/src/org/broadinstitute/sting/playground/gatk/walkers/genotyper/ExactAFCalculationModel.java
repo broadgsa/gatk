@@ -30,6 +30,7 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
 import org.broad.tribble.vcf.VCFConstants;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -224,7 +225,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             HashMap<String, Object> attributes = new HashMap<String, Object>();
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
-            attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup()));
+            AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+
+            if (context.hasBasePileup())
+                attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(context.getBasePileup()));
+
+            else if (context.hasExtendedEventPileup())
+                attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(context.getExtendedEventPileup()));
+
             double qual;
             double[] posteriors = GLs.get(sample).getPosteriors();
 

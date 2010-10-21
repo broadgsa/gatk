@@ -264,9 +264,23 @@ public class UnifiedGenotyperEngine {
         GenomeLoc loc = refContext.getLocus();
 
         // todo - temp fix until we can deal with extended events properly
+        long endLoc;
+        // for indels, stop location is one more than ref allele length
+        boolean isSNP = true;
+        for (Allele a:alleles){
+            if (a.getBaseString().length() != 1) {
+                isSNP = false;
+                break;
+            }
+        }
+
+        if (isSNP)
+            endLoc = loc.getStart();
+        else
+            endLoc = loc.getStart() + refAllele.length();
+
         //VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
-        VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(),
-                (refAllele.length() > 0 ? loc.getStart()+refAllele.length()-1 : loc.getStart()),
+        VariantContext vc = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
                 alleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
 
 

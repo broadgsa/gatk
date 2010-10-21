@@ -152,7 +152,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         if (haplotypeList.size() > 0) {
             Haplotype haplotypeR = haplotypeList.get(bestIdx);
             Haplotype haplotypeA = haplotypeList.get(secondBestIdx);
-
+    //System.out.format("%d %d\n",bestIdx, secondBestIdx);
             // Temp hack to match old implementation's scaling, TBD better behavior
 
             return Arrays.asList(new Haplotype(haplotypeR.getBasesAsBytes(), 60), new Haplotype(haplotypeA.getBasesAsBytes(), contextSize));
