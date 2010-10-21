@@ -672,7 +672,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
             VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
 
-            if ( vc != null && vc.hasGenotypes(SAMPLES_LIST) && SAMPLES_LIST.size() > 0 && !name.equals("dbsnp") ) {
+            if ( vc != null && vc.hasGenotypes(SAMPLES_LIST) && SAMPLES_LIST.size() > 0 ) {
                 //if ( ! name.equals("eval") ) logger.info(String.format("subsetting VC %s", vc));
                 vc = vc.subContextFromGenotypes(vc.getGenotypes(SAMPLES_LIST).values());
                 HashMap<String,Object> newAts = new HashMap<String,Object>(vc.getAttributes());
@@ -680,7 +680,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                 vc = VariantContext.modifyAttributes(vc,newAts);
                 logger.debug(String.format("VC %s subset to %s AC%n",vc.getName(),vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
                 //if ( ! name.equals("eval") ) logger.info(String.format("  => VC %s", vc));
-            } else if ( vc != null && ! vc.hasGenotypes(SAMPLES_LIST) ) {
+            } else if ( vc != null && ! vc.hasGenotypes(SAMPLES_LIST) && !name.equals("dbsnp")  ) {
                 throw new UserException(String.format("Genotypes for the variant context %s do not contain all the provided samples %s",vc.getName(), getMissingSamples(SAMPLES_LIST,vc)));
             }
 
