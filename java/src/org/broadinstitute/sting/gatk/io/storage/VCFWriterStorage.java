@@ -95,10 +95,6 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         writer.close();
     }
 
-    public void flush() {
-        writer.flush();
-    }
-
     /**
      * Merges the stream backing up this temporary storage into the target.
      * @param target Target stream for the temporary storage.  May not be null.
