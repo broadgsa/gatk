@@ -79,6 +79,9 @@ public class UnifiedGenotyperEngine {
     // the priors object
     private GenotypePriors genotypePriors;
 
+    // samples in input
+    private Set<String> samples = new TreeSet<String>();
+
     // the various loggers and writers
     private Logger logger = null;
     private PrintStream verboseWriter = null;
@@ -98,16 +101,18 @@ public class UnifiedGenotyperEngine {
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
         // get the number of samples
         // if we're supposed to assume a single sample, do so
-        int numSamples;
+        samples = new TreeSet<String>();
         if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-            numSamples = 1;
+            samples.add(UAC.ASSUME_SINGLE_SAMPLE);
         else
-            numSamples = SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()).size();
-        initialize(toolkit, UAC, null, null, null, numSamples);
+            samples = SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader());
+
+        initialize(toolkit, UAC, null, null, null, samples.size());
     }
 
-    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, int numSamples) {
-        initialize(toolkit, UAC, logger, verboseWriter, engine, numSamples);
+    public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, Set<String> samples) {
+        this.samples = new TreeSet<String>(samples);
+        initialize(toolkit, UAC, logger, verboseWriter, engine, samples.size());
     }
 
     private void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, int numSamples) {
@@ -153,7 +158,7 @@ public class UnifiedGenotyperEngine {
 
         // estimate our confidence in a reference call and return
         if ( GLs.size() == 0 )
-            return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), false);
+            return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), false, 1.0);
 
         // 'zero' out the AFs (so that we don't have to worry if not all samples have reads at this position)
         clearAFarray(log10AlleleFrequencyPosteriors.get());
@@ -194,7 +199,7 @@ public class UnifiedGenotyperEngine {
         if ( !UAC.ALL_BASES_MODE && !passesEmitThreshold(phredScaledConfidence, bestAFguess, atTriggerTrack) ) {
             // technically, at this point our confidence in a reference call isn't accurately estimated
             //  because it didn't take into account samples with no data, so let's get a better estimate
-            return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), true);
+            return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), true, 1.0 - PofF);
         }
 
         // create the genotypes
@@ -356,26 +361,19 @@ public class UnifiedGenotyperEngine {
             AFs[i] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
     }
 
-    private VariantCallContext estimateReferenceConfidence(Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples) {
+    private VariantCallContext estimateReferenceConfidence(Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples, double initialPofRef) {
 
-        // TODO: implement me
-
-        double P_of_ref = 1.0;
-
-        // use the AF=0 prob if it's calculated
-        //if ( ignoreCoveredSamples )
-        //    P_of_ref = 1.0 - PofFs[BaseUtils.simpleBaseToBaseIndex(bestAlternateAllele)];
+        double P_of_ref = initialPofRef;
 
         // for each sample that we haven't examined yet
-        //for ( String sample : samples ) {
-        //    boolean isCovered = contexts.containsKey(sample);
-        //    if ( ignoreCoveredSamples && isCovered )
-        //        continue;
+        for ( String sample : samples ) {
+            boolean isCovered = contexts.containsKey(sample);
+            if ( ignoreCoveredSamples && isCovered )
+                continue;
 
-        P_of_ref = 0.5;
-        //    int depth = isCovered ? contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().size() : 0;
-        //    P_of_ref *= 1.0 - (theta / 2.0) * MathUtils.binomialProbability(0, depth, 0.5);
-        //}
+            int depth = isCovered ? contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().size() : 0;
+            P_of_ref *= 1.0 - (theta / 2.0) * MathUtils.binomialProbability(0, depth, 0.5);
+        }
 
         return new VariantCallContext(QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING);
     }

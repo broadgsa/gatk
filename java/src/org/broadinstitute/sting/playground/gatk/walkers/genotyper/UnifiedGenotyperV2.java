@@ -78,9 +78,6 @@ public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedG
     // the annotation engine
     private VariantAnnotatorEngine annotationEngine;
 
-    // samples in input
-    private Set<String> samples = new TreeSet<String>();
-
     // enable deletions in the pileup
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
@@ -118,6 +115,7 @@ public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedG
     public void initialize() {
         // get all of the unique sample names
         // if we're supposed to assume a single sample, do so
+        Set<String> samples = new TreeSet<String>();
         if ( UAC.ASSUME_SINGLE_SAMPLE != null )
             samples.add(UAC.ASSUME_SINGLE_SAMPLE);
         else
@@ -128,7 +126,7 @@ public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedG
             verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tAFposterior\tNormalizedPosterior");
 
         annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples.size());
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples);
 
         // initialize the header
         writer.writeHeader(new VCFHeader(getHeaderInfo(), samples)) ;
