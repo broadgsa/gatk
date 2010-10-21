@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 public class ClusteredSnps {
     private int window = 10;
@@ -22,10 +23,10 @@ public class ClusteredSnps {
             if ( variants[i] == null || variants[i+snpThreshold-1] == null )
                 continue;
 
-            // note: not all calls are variant, so we need to be careful.
-            // if we don't start with a variant, skip to the next one
+            // note: the documentation tells users we'll blow up if ref calls are present.
+            //   if we ever get a windowed rod context that isn't a hack, we can actually allow this...
             if ( !variants[i].getVariantContext().isVariant() )
-                continue;
+                throw new UserException.BadInput("The clustered SNPs filter does not work in the presence of non-variant records; see the documentation for more details");
 
             // find the nth variant
             GenomeLoc left = VariantContextUtils.getLocation(variants[i].getVariantContext());
