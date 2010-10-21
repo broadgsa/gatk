@@ -124,8 +124,11 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private void initializeVcfWriter() {
+        // Wrapper VCFWriters will take ownership of inner writers iff: inner writer != origWriter [which wasn't created here]
+        VCFWriter origWriter = writer;
+
         if (enableMergePhasedSegregatingPolymorphismsToMNP)
-            writer = new MergePhasedSegregatingPolymorphismsToMNPvcfWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger);
+            writer = new MergePhasedSegregatingPolymorphismsToMNPvcfWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger, writer != origWriter);
 
         /* Due to discardIrrelevantPhasedSites(), the startDistance spanned by [partiallyPhasedSites.peek(), unphasedSiteQueue.peek()] is <= cacheWindow
            Due to processQueue(), the startDistance spanned by [unphasedSiteQueue.peek(), mostDownstreamLocusReached] is <= cacheWindow
@@ -136,7 +139,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
            But, NOTE that map() is careful to pass out a list of records to be written that FIRST includes any records discarded due to having reached mostDownstreamLocusReached,
            and only THEN records located at mostDownstreamLocusReached.  The opposite order in map() would violate the startDistance limits imposed when contracting SortingVCFWriter with (2 * cacheWindow).
          */
-        writer = new SortingVCFWriter(writer, 2 * cacheWindow);
+        writer = new SortingVCFWriter(writer, 2 * cacheWindow, writer != origWriter);
 
         // setup the header fields:
         Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -923,7 +926,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     public void onTraversalDone(PhasingStats result) {
         List<VariantContext> finalList = processQueue(result, true); // process all remaining data
         writeVcList(finalList);
-        writer.flush();
+        writer.close();
 
         if (statsWriter != null)
             statsWriter.close();

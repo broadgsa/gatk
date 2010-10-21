@@ -66,7 +66,8 @@ public class MergeSegregatingPolymorphismsWalker extends RodWalker<Integer, Inte
     }
 
     private void initializeVcfWriter() {
-        vcMergerWriter = new MergePhasedSegregatingPolymorphismsToMNPvcfWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger);
+        // false <-> don't take control of writer, since didn't create it:
+        vcMergerWriter = new MergePhasedSegregatingPolymorphismsToMNPvcfWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger, false);
         writer = null; // so it can't be accessed directly [i.e., not through vcMergerWriter]
 
         // setup the header fields:
@@ -132,7 +133,7 @@ public class MergeSegregatingPolymorphismsWalker extends RodWalker<Integer, Inte
      * @param result Empty for now...
      */
     public void onTraversalDone(Integer result) {
-        vcMergerWriter.flush();
+        vcMergerWriter.close();
         System.out.println("Number of records merged: " + vcMergerWriter.getNumMergedRecords());
     }
 }

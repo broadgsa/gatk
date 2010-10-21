@@ -31,7 +31,6 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
@@ -51,17 +50,10 @@ public class MergePhasedSegregatingPolymorphismsToMNPvcfWriter implements VCFWri
 
     private Logger logger;
 
-    private static class VCFRecord {
-        public VariantContext vc;
-        public byte refBase;
+    // Should we call innerWriter.close() in close()
+    private boolean takeOwnershipOfInner;
 
-        public VCFRecord(VariantContext vc, byte refBase) {
-            this.vc = vc;
-            this.refBase = refBase;
-        }
-    }
-
-    public MergePhasedSegregatingPolymorphismsToMNPvcfWriter(VCFWriter innerWriter, File referenceFile, int maxGenomicDistanceForMNP, Logger logger) {
+    public MergePhasedSegregatingPolymorphismsToMNPvcfWriter(VCFWriter innerWriter, File referenceFile, int maxGenomicDistanceForMNP, Logger logger, boolean takeOwnershipOfInner) {
         this.innerWriter = innerWriter;
         this.referenceFileForMNPmerging = new IndexedFastaSequenceFile(referenceFile);
         this.maxGenomicDistanceForMNP = maxGenomicDistanceForMNP;
@@ -69,6 +61,11 @@ public class MergePhasedSegregatingPolymorphismsToMNPvcfWriter implements VCFWri
         this.filteredVcfrList = new LinkedList<VCFRecord>();
         this.numMergedRecords = 0;
         this.logger = logger;
+        this.takeOwnershipOfInner = takeOwnershipOfInner;
+    }
+
+    public MergePhasedSegregatingPolymorphismsToMNPvcfWriter(VCFWriter innerWriter, File referenceFile, int maxGenomicDistanceForMNP, Logger logger) {
+        this(innerWriter, referenceFile, maxGenomicDistanceForMNP, logger, false); // by default, don't own inner
     }
 
     public void writeHeader(VCFHeader header) {
@@ -76,13 +73,10 @@ public class MergePhasedSegregatingPolymorphismsToMNPvcfWriter implements VCFWri
     }
 
     public void close() {
-        flush();
-        innerWriter.close();
-    }
-
-    public void flush() {
         stopWaitingToMerge();
-        innerWriter.flush();        
+
+        if (takeOwnershipOfInner)
+            innerWriter.close();
     }
 
     public void add(VariantContext vc, byte refBase) {
@@ -160,5 +154,15 @@ public class MergePhasedSegregatingPolymorphismsToMNPvcfWriter implements VCFWri
     @Override
     public String toString() {
         return getClass().getName();
+    }
+
+    private static class VCFRecord {
+        public VariantContext vc;
+        public byte refBase;
+
+        public VCFRecord(VariantContext vc, byte refBase) {
+            this.vc = vc;
+            this.refBase = refBase;
+        }
     }
 }
