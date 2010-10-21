@@ -12,7 +12,8 @@ public class MergeSegregatingPolymorphismsIntegrationTest extends WalkerTest {
                 " -R " + reference +
                 " -B:variant,VCF " + validationDataLocation + VCF +
                 " --maxGenomicDistanceForMNP " + maxDistMNP +
-                " -o %s";
+                " -o %s" +
+                " -NO_HEADER";
     }
 
 
@@ -22,7 +23,7 @@ public class MergeSegregatingPolymorphismsIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "merging_test_chr20_556259_756570.vcf", 1)
                         + " -L chr20:556259-756570",
                 1,
-                Arrays.asList("f0e9796bc9866201aed0e97d76ed4a84"));
+                Arrays.asList("19d0b2361367024bb9a83b9c15ef2453"));
         executeTest("Merge MNP het sites within genomic distance of 1 [TEST ONE]", spec);
     }
 
@@ -32,7 +33,7 @@ public class MergeSegregatingPolymorphismsIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "merging_test_chr20_556259_756570.vcf", 10)
                         + " -L chr20:556259-756570",
                 1,
-                Arrays.asList("ab2b05dc6e7e4464e8f9e08d1d02f8ae"));
+                Arrays.asList("f25a6403579dab1395773b3ba365c327"));
         executeTest("Merge MNP het sites within genomic distance of 10 [TEST TWO]", spec);
     }
 
@@ -42,7 +43,7 @@ public class MergeSegregatingPolymorphismsIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "merging_test_chr20_556259_756570.vcf", 100)
                         + " -L chr20:556259-756570",
                 1,
-                Arrays.asList("d446a0076f9d3d13c128bc8402b087a4"));
+                Arrays.asList("a064955ffeea7fc4e09512f3e9cdbb9e"));
         executeTest("Merge MNP het sites within genomic distance of 100 [TEST THREE]", spec);
     }
 
