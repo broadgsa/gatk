@@ -795,7 +795,7 @@ public class VariantContextUtils {
         String mergedName = VariantContextUtils.mergeVariantContextNames(vc1.getName(), vc2.getName());
         double mergedNegLog10PError = Math.max(vc1.getNegLog10PError(), vc2.getNegLog10PError());
         Set<String> mergedFilters = new HashSet<String>(); // Since vc1 and vc2 were unfiltered, the merged record remains unfiltered
-        Map<String, Object> mergedAttribs = VariantContextUtils.mergeVariantContextAttributes(vc1.getAttributes(), vc2.getAttributes(), allMergedAlleles);
+        Map<String, Object> mergedAttribs = VariantContextUtils.mergeVariantContextAttributes(vc1.getAttributes(), vc2.getAttributes());
         if (mergedAttribs == null)
             return null;
 
@@ -815,7 +815,7 @@ public class VariantContextUtils {
         return name1 + "_" + name2;
     }
 
-    private static Map<String, Object> mergeVariantContextAttributes(Map<String, Object> attribs1, Map<String, Object> attribs2, Set<Allele> allMergedAlleles) {
+    private static Map<String, Object> mergeVariantContextAttributes(Map<String, Object> attribs1, Map<String, Object> attribs2) {
         Map<String, Object> mergedAttribs = new HashMap<String, Object>();
 
         List<Map<String, Object>> attribsList = new LinkedList<Map<String, Object>>();
@@ -829,6 +829,8 @@ public class VariantContextUtils {
                 Boolean val = getBooleanAttribute(attribs, orAttrib);
                 if (val != null)
                     attribVal = (attribVal || val);
+                if (attribVal) // already true, so no reason to continue:
+                    break;
             }
             mergedAttribs.put(orAttrib, attribVal);
         }
@@ -841,7 +843,7 @@ public class VariantContextUtils {
                 if (iDVal == null)
                     iDVal = val;
                 else
-                    iDVal += ";" + val;
+                    iDVal += VCFConstants.ID_FIELD_SEPARATOR + val;
             }
         }
         if (iDVal != null)
