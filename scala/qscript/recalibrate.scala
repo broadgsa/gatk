@@ -39,7 +39,7 @@ def script = {
           add(new CountCovariates(bamIn, recalData) { useOriginalQualities = true } )
       val tableRecal = new TableRecalibrate(bamIn, recalData, recalBam) { useOriginalQualities = true }
       if ( scatter ) {
-          tableRecal.intervals :+= new File("/humgen/gsa-hpprojects/GATK/data/chromosomes.hg18.interval_list")
+          tableRecal.intervals = List(new File("/humgen/gsa-hpprojects/GATK/data/chromosomes.hg18.interval_list"))
 	  //tableRecal.scatterClass = classOf[ContigScatterFunction]
 	  tableRecal.setupGatherFunction = { case (f: PicardBamJarFunction, _) => f.jarFile = picardMergeSamFilesJar; f.memoryLimit = Some(4) }
       	  tableRecal.scatterCount = 25

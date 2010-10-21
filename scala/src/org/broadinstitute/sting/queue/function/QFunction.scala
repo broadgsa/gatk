@@ -3,17 +3,18 @@ package org.broadinstitute.sting.queue.function
 import java.io.File
 import java.lang.annotation.Annotation
 import org.broadinstitute.sting.commandline._
-import org.broadinstitute.sting.queue.util.{CollectionUtils, IOUtils, ReflectionUtils}
 import org.broadinstitute.sting.queue.{QException, QSettings}
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.function.scattergather.{Gather, SimpleTextGatherFunction}
+import org.broadinstitute.sting.queue.util.{Logging, CollectionUtils, IOUtils, ReflectionUtils}
+import org.apache.commons.io.FileUtils
 
 /**
  * The base interface for all functions in Queue.
  * Inputs and outputs are specified as Sets of values.
  * Inputs are matched to other outputs by using .equals()
  */
-trait QFunction {
+trait QFunction extends Logging {
   /**
    * Analysis function name
    */
@@ -153,12 +154,26 @@ trait QFunction {
   }
 
   /**
+   * Deletes the log files for this function.
+   */
+  def deleteLogs() = {
+    deleteOutput(jobOutputFile)
+    if (jobErrorFile != null)
+      deleteOutput(jobErrorFile)
+  }
+
+  /**
    * Deletes the output files and all the status files for this function.
    */
   def deleteOutputs() = {
-    outputs.foreach(_.delete())
-    doneOutputs.foreach(_.delete())
-    failOutputs.foreach(_.delete())
+    outputs.foreach(file => deleteOutput(file))
+    doneOutputs.foreach(file => deleteOutput(file))
+    failOutputs.foreach(file => deleteOutput(file))
+  }
+
+  private def deleteOutput(file: File) = {
+    if (FileUtils.deleteQuietly(file))
+      logger.debug("Deleted " + file)
   }
 
   /**

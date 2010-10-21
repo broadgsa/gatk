@@ -34,7 +34,7 @@
     <!-- Commons Dependencies -->  
     <dependency org="org.apache.commons" name="commons-jexl" rev="2.0"/>
     <dependency org="commons-logging" name="commons-logging" rev="1.1.1"/>
-    <dependency org="commons-io" name="commons-io" rev="1.3.2"/>
+    <dependency org="commons-io" name="commons-io" rev="2.0"/>
 
     <!-- Dependencies for Queue GATK Extensions code generator living in java/src -->
     <dependency org="commons-lang" name="commons-lang" rev="2.5"/>

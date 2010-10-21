@@ -16,9 +16,6 @@ import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
 class fullCallingPipeline extends QScript {
   qscript =>
 
-  @Argument(doc="list of contigs in the reference over which indel-cleaning jobs should be scattered (ugly)", shortName="contigIntervals")
-  var contigIntervals: File = _
-
   @Argument(doc="the YAML file specifying inputs, interval lists, reference sequence, etc.", shortName="Y")
   var yamlFile: File = _
 
@@ -64,7 +61,7 @@ class fullCallingPipeline extends QScript {
   private var pipeline: Pipeline = _
 
   trait CommandLineGATKArgs extends CommandLineGATK {
-    this.intervals :+= qscript.pipeline.getProject.getIntervalList
+    this.intervals = List(qscript.pipeline.getProject.getIntervalList)
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.pipeline.getProject.getReferenceFile
     this.memoryLimit = Some(4)
@@ -88,10 +85,9 @@ class fullCallingPipeline extends QScript {
     //val expKind = qscript.protocol
 
     // count number of contigs (needed for indel cleaning parallelism)
-    var contigCount = 0
-    for ( line <- scala.io.Source.fromFile(qscript.contigIntervals).getLines ) {
-      contigCount += 1
-    }
+    val contigCount = IntervalScatterFunction.countContigs(
+      qscript.pipeline.getProject.getReferenceFile,
+      List(qscript.pipeline.getProject.getIntervalList.toString))
 
     for ( sample <- recalibratedSamples ) {
       val sampleId = sample.getId
@@ -118,7 +114,6 @@ class fullCallingPipeline extends QScript {
       realigner.jobOutputFile = new File(".queue/logs/Cleaning/%s/IndelRealigner.out".format(sampleId))
       realigner.analysisName = "RealignBam_"+sampleId
       realigner.input_file = targetCreator.input_file
-      realigner.intervals :+= qscript.contigIntervals
       realigner.targetIntervals = targetCreator.out
       realigner.scatterCount = contigCount
 

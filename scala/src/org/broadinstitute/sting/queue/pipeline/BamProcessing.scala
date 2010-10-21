@@ -23,7 +23,7 @@ class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
 
   trait StandardCommandLineGATK extends CommandLineGATK {
     this.reference_sequence = library.attributes.getProject.getReferenceFile
-    this.intervals :+= library.attributes.getProject.getIntervalList
+    this.intervals = List(library.attributes.getProject.getIntervalList)
     this.DBSNP = library.attributes.getProject.getDbsnpFile
     this.memoryLimit = Some(2)
     this.jarFile = library.gatkJar

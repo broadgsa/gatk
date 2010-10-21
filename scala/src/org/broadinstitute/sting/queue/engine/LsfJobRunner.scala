@@ -3,6 +3,7 @@ package org.broadinstitute.sting.queue.engine
 import java.io.File
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.queue.util._
+import org.apache.commons.io.FileUtils
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -72,9 +73,8 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
         logger.info("Starting: " + job.bsubCommand.mkString(" "))
       }
 
-      function.jobOutputFile.delete()
-      if (function.jobErrorFile != null)
-        function.jobErrorFile.delete()
+      function.deleteLogs()
+      function.deleteOutputs()
 
       runStatus = RunnerStatus.RUNNING
       Retry.attempt(() => job.run(), 1, 5, 10)
@@ -139,11 +139,11 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    * Removes all temporary files used for this LSF job.
    */
   def removeTemporaryFiles() = {
-    exec.delete()
-    preExec.delete()
-    postExec.delete()
-    jobDoneFile.delete()
-    jobFailFile.delete()
+    FileUtils.deleteQuietly(exec)
+    FileUtils.deleteQuietly(preExec)
+    FileUtils.deleteQuietly(postExec)
+    FileUtils.deleteQuietly(jobDoneFile)
+    FileUtils.deleteQuietly(jobFailFile)
   }
 
   /**

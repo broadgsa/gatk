@@ -51,32 +51,49 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
   }
 
   def run() = {
-    IntervalScatterFunction.scatter(this.intervals, this.scatterParts, this.referenceSequence, this.splitByContig)
+    IntervalScatterFunction.scatter(this.referenceSequence, this.intervals, this.scatterParts, this.splitByContig)
   }
 }
 
 object IntervalScatterFunction {
-  def scatter(intervals: List[String], scatterParts: List[File], reference: File, splitByContig: Boolean) = {
-    val referenceSource = new ReferenceDataSource(reference)
+  private def parseLocs(referenceSource: ReferenceDataSource, intervals: List[String]) = {
     GenomeLocParser.setupRefContigOrdering(referenceSource.getReference)
     val locs = {
       // TODO: Abstract genome analysis engine has richer logic for parsing.  We need to use it!
       if (intervals.size == 0) {
-        GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSource.getReference.getSequenceDictionary).toList
+        GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSource.getReference.getSequenceDictionary)
       } else {
-        IntervalUtils.parseIntervalArguments(intervals, false)
+        new GenomeLocSortedSet(IntervalUtils.parseIntervalArguments(intervals, false))
       }
     }
+    if (locs == null || locs.size == 0)
+      throw new QException("Intervals are empty: " + intervals.mkString(", "))
+    locs.toList
+  }
 
+  def countContigs(reference: File, intervals: List[String]) = {
+    val referenceSource = new ReferenceDataSource(reference)
+    val locs = parseLocs(referenceSource, intervals)
+    var count = 0
+    var contig: String = null
+    for (loc <- locs) {
+      if (contig != loc.getContig) {
+        count += 1
+        contig = loc.getContig
+      }
+    }
+    count
+  }
+
+  def scatter(reference: File, intervals: List[String], scatterParts: List[File], splitByContig: Boolean) = {
+    val referenceSource = new ReferenceDataSource(reference)
+    val locs = parseLocs(referenceSource, intervals)
     val fileHeader = new SAMFileHeader
     fileHeader.setSequenceDictionary(referenceSource.getReference.getSequenceDictionary)
 
     var intervalList: IntervalList = null
     var fileIndex = -1
     var locIndex = 0
-
-    if (locs == null || locs.size == 0)
-      throw new QException("Locs produced an empty interval list: " + intervals.mkString(", "))
 
     if (splitByContig) {
       var contig: String = null

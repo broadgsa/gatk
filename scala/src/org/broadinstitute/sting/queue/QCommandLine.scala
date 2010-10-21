@@ -75,18 +75,18 @@ class QCommandLine extends CommandLineProgram with Logging {
     }
 
     Runtime.getRuntime.addShutdownHook(new Thread {
-      /** Kills running processes as the JVM shuts down. */
+      /** Cleanup as the JVM shuts down. */
       override def run = {
         qGraph.shutdown()
         ProcessController.shutdown()
+        QScriptManager.deleteOutdir()
       }
     })
 
-    if ( ! getStatus ) {
-      qGraph.run
-    } else {
+    if (getStatus)
       qGraph.checkStatus
-    }
+    else
+      qGraph.run
 
     if (qGraph.hasFailed) {
       logger.info("Done with errors")

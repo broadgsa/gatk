@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.queue.engine
 
 import org.broadinstitute.sting.queue.function.InProcessFunction
-import org.broadinstitute.sting.queue.util.{IOUtils, Logging}
+import org.broadinstitute.sting.queue.util.Logging
 
 /**
  * Runs a function that executes in process and does not fork out an external process.
@@ -17,8 +17,8 @@ class InProcessRunner(val function: InProcessFunction) extends JobRunner with Lo
         logger.info("Starting: " + function.description)
       }
 
-      function.doneOutputs.foreach(_.delete())
-      function.failOutputs.foreach(_.delete())
+      function.deleteLogs()
+      function.deleteOutputs()
       runStatus = RunnerStatus.RUNNING
       function.mkOutputDirectories()
       function.run()

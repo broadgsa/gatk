@@ -20,6 +20,12 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
   }
 
   @Test
+  def testCountContigs = {
+    Assert.assertEquals(3, IntervalScatterFunction.countContigs(reference, List("1:1-1", "2:1-1", "3:2-2")))
+    Assert.assertEquals(1, IntervalScatterFunction.countContigs(reference, List(BaseTest.validationDataLocation + "chr1_b36_pilot3.interval_list")))
+  }
+
+  @Test
   def testBasicScatter = {
     val chr1 = GenomeLocParser.parseGenomeInterval("1")
     val chr2 = GenomeLocParser.parseGenomeInterval("2")
@@ -27,7 +33,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
     val files = (1 to 3).toList.map(index => new File(testDir + "basic." + index + ".intervals"))
 
-    IntervalScatterFunction.scatter(List("1", "2", "3"), files, reference, false)
+    IntervalScatterFunction.scatter(reference, List("1", "2", "3"), files, false)
 
     val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
     val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
@@ -51,7 +57,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
     val files = (1 to 3).toList.map(index => new File(testDir + "less." + index + ".intervals"))
 
-    IntervalScatterFunction.scatter(List("1", "2", "3", "4"), files, reference, false)
+    IntervalScatterFunction.scatter(reference, List("1", "2", "3", "4"), files, false)
 
     val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
     val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
@@ -70,7 +76,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
   @Test(expected=classOf[QException])
   def testScatterMoreFiles = {
     val files = (1 to 3).toList.map(index => new File(testDir + "more." + index + ".intervals"))
-    IntervalScatterFunction.scatter(List("1", "2"), files, reference, false)
+    IntervalScatterFunction.scatter(reference, List("1", "2"), files, false)
   }
 
   @Test
@@ -83,7 +89,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
     val files = (1 to 3).toList.map(index => new File(testDir + "split." + index + ".intervals"))
 
-    IntervalScatterFunction.scatter(intervals, files, reference, true)
+    IntervalScatterFunction.scatter(reference, intervals, files, true)
 
     val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
     val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
@@ -99,6 +105,29 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
     Assert.assertEquals(chr3, locs3.get(0))
   }
 
+  @Test
+  def testScatterOrder = {
+    val intervals = List("2:1-1", "1:1-1", "3:2-2")
+    val chr1 = GenomeLocParser.parseGenomeInterval("1:1-1")
+    val chr2 = GenomeLocParser.parseGenomeInterval("2:1-1")
+    val chr3 = GenomeLocParser.parseGenomeInterval("3:2-2")
+
+    val files = (1 to 3).toList.map(index => new File(testDir + "split." + index + ".intervals"))
+
+    IntervalScatterFunction.scatter(reference, intervals, files, true)
+
+    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+
+    Assert.assertEquals(1, locs1.size)
+    Assert.assertEquals(1, locs2.size)
+    Assert.assertEquals(1, locs3.size)
+
+    Assert.assertEquals(chr1, locs1.get(0))
+    Assert.assertEquals(chr2, locs2.get(0))
+    Assert.assertEquals(chr3, locs3.get(0))
+  }
 
   @Test
   def testBasicScatterByContig = {
@@ -108,7 +137,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_basic." + index + ".intervals"))
 
-    IntervalScatterFunction.scatter(List("1", "2", "3"), files, reference, true)
+    IntervalScatterFunction.scatter(reference, List("1", "2", "3"), files, true)
 
     val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
     val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
@@ -132,7 +161,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_less." + index + ".intervals"))
 
-    IntervalScatterFunction.scatter(List("1", "2", "3", "4"), files, reference, true)
+    IntervalScatterFunction.scatter(reference, List("1", "2", "3", "4"), files, true)
 
     val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
     val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
@@ -151,7 +180,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
   @Test(expected=classOf[QException])
   def testScatterByContigMoreFiles = {
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_more." + index + ".intervals"))
-    IntervalScatterFunction.scatter(List("1", "2"), files, reference, true)
+    IntervalScatterFunction.scatter(reference, List("1", "2"), files, true)
   }
 
   @Test
@@ -164,7 +193,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_split_start." + index + ".intervals"))
 
-    IntervalScatterFunction.scatter(intervals, files, reference, true)
+    IntervalScatterFunction.scatter(reference, intervals, files, true)
 
     val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
     val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
@@ -190,7 +219,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_split_middle." + index + ".intervals"))
 
-    IntervalScatterFunction.scatter(intervals, files, reference, true)
+    IntervalScatterFunction.scatter(reference, intervals, files, true)
 
     val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
     val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
@@ -216,7 +245,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_split_end." + index + ".intervals"))
 
-    IntervalScatterFunction.scatter(intervals, files, reference, true)
+    IntervalScatterFunction.scatter(reference, intervals, files, true)
 
     val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
     val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)

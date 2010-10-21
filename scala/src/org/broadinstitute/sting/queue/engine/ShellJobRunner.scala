@@ -28,18 +28,11 @@ class ShellJobRunner(val function: CommandLineFunction) extends JobRunner with L
       }
 
       logger.info("Output written to " + function.jobOutputFile)
-      if (function.jobErrorFile != null) {
-        logger.info("Errors written to " + function.jobErrorFile)
-      } else {
-        if (logger.isDebugEnabled)
-          logger.info("Errors also written to " + function.jobOutputFile)
-      }
-
-      function.jobOutputFile.delete()
       if (function.jobErrorFile != null)
-        function.jobErrorFile.delete()
-      function.doneOutputs.foreach(_.delete())
-      function.failOutputs.foreach(_.delete())
+        logger.info("Errors written to " + function.jobErrorFile)
+
+      function.deleteLogs()
+      function.deleteOutputs()
       runStatus = RunnerStatus.RUNNING
       function.mkOutputDirectories()
       job.run()

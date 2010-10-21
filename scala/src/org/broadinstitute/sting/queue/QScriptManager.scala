@@ -11,6 +11,7 @@ import org.apache.log4j.Level
 import scala.tools.nsc.util.{FakePos, NoPosition, Position}
 import org.broadinstitute.sting.utils.classloader.{PackageUtils, PluginManager}
 import org.broadinstitute.sting.queue.util.TextFormatUtils._
+import org.apache.commons.io.FileUtils
 
 /**
  * Plugin manager for QScripts which loads QScripts into the current class loader.
@@ -40,6 +41,8 @@ class QScriptManager extends PluginManager[QScript](classOf[QScript], "QScript",
  * Plugin manager for QScripts which loads QScripts into the current classloader.
  */
 object QScriptManager extends Logging {
+  private val outdir = IOUtils.tempDir("Q-classes")
+
   /**
    * Compiles and loads the scripts in the files into the current classloader.
    * Heavily based on scala/src/compiler/scala/tools/ant/Scalac.scala
@@ -49,7 +52,6 @@ object QScriptManager extends Logging {
     if (scripts.size > 0) {
 
       val settings = new Settings((error: String) => logger.error(error))
-      val outdir = IOUtils.tempDir("Q-classes")
       settings.deprecation.value = true
       settings.outdir.value = outdir.getPath
 
@@ -80,6 +82,14 @@ object QScriptManager extends Logging {
       // Add the new compilation output directory to the classpath.
       PackageUtils.addClasspath(outdir.toURI.toURL)
     }
+  }
+
+  /**
+   * Removes the outdir cleaning up the temporary classes.
+   */
+  def deleteOutdir() = {
+    if (FileUtils.deleteQuietly(outdir))
+      logger.debug("Deleted " + outdir)
   }
 
   /**
