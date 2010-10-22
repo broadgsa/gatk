@@ -44,6 +44,8 @@ import java.util.*;
 @Requires(value={},referenceMetaData=@RMD(name="variant",type= VariantContext.class))
 public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
 
+    private static final int MAX_VARIANT_SIZE = 100;
+
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter writer = null;
 
@@ -64,6 +66,8 @@ public class FilterLiftedVariants extends RodWalker<Integer, Integer> {
         boolean failed = false;
         byte[] recordRef = vc.getReference().getBases();
         for (int i = 0; i < recordRef.length; i++) {
+            if ( i > MAX_VARIANT_SIZE )
+                break;
             if ( recordRef[i] != ref[i + (vc.isSNP() ? 0 : 1)] ) {
                 failed = true;
                 break;
