@@ -284,7 +284,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         Index index = IndexFactory.loadIndex(indexFile.getAbsolutePath());
 
         // check if the file is up-to date (filestamp and version check)
-        if (index.isCurrentVersion() && indexFile.lastModified() > inputFile.lastModified())
+        if (index.isCurrentVersion() && indexFile.lastModified() >= inputFile.lastModified())
             return index;
         else if (indexFile.lastModified() < inputFile.lastModified())
             logger.warn("Index file " + indexFile + " is out of date (index older than input file), deleting and updating the index file");
