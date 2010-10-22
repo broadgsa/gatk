@@ -285,9 +285,9 @@ public class AlignmentUtils {
                         if ( currentReadPos++ < readStartPos )
                             continue;
 
-                        if ( refIndex >= refBases.length ) {
-                            throw new IllegalStateException("When calculating mismatches, we somehow don't have enough trailing reference context for read " + read.getReadName() + " at position " + ref.getLocus());
-                        }
+                        // this is possible if reads extend beyond the contig end
+                        if ( refIndex >= refBases.length )
+                            break;
 
                         byte refChr = refBases[refIndex];
                         byte readChr = readBases[readIndex];

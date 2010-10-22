@@ -453,9 +453,9 @@ public class UnifiedGenotyperEngine {
                     bitset.set(i);
             }
 
-            // if a read is too long for the reference context, extend the context
+            // if a read is too long for the reference context, extend the context (being sure not to extend past the end of the chromosome)
             if ( record.getAlignmentEnd() > refContext.getWindow().getStop() ) {
-                GenomeLoc window = GenomeLocParser.createGenomeLoc(refContext.getLocus().getContig(), refContext.getWindow().getStart(), record.getAlignmentEnd());
+                GenomeLoc window = GenomeLocParser.createGenomeLoc(refContext.getLocus().getContig(), refContext.getWindow().getStart(), Math.min(record.getAlignmentEnd(), referenceReader.getSequenceDictionary().getSequence(refContext.getLocus().getContig()).getSequenceLength()));
                 byte[] bases = referenceReader.getSubsequenceAt(window.getContig(), window.getStart(), window.getStop()).getBases();
                 StringUtil.toUpperCase(bases);
                 refContext = new ReferenceContext(refContext.getLocus(), window, bases);
