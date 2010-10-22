@@ -29,6 +29,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -87,6 +88,12 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             }
         });
         getters.put("QUAL", new Getter() { public String get(VariantContext vc) { return Double.toString(vc.getPhredScaledQual()); } });
+        getters.put("TRANSITION", new Getter() { public String get(VariantContext vc) {
+            if ( vc.isSNP() && vc.isBiallelic() )
+                return VariantContextUtils.isTransition(vc) ? "1" : "0";
+            else
+                return "-1";
+        }});
         getters.put("FILTER", new Getter() { public String get(VariantContext vc) {
             return vc.isNotFiltered() ? "PASS" : Utils.join(",", vc.getFilters()); } 
         });
