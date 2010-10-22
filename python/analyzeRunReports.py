@@ -9,6 +9,7 @@ import re
 
 MISSING_VALUE = "NA"
 RUN_REPORT_LIST = "GATK-run-reports"
+RUN_REPORT = "GATK-run-report"
 
 def main():
     global OPTIONS
@@ -31,9 +32,9 @@ def main():
                         action='store_true', default=False,
                         help="if provided, only records not coming from a dev version of GATK will be included")
 
-    parser.add_option("", "--stingExceptionsOnly", dest="stingExceptionsOnly",
-                        action='store_true', default=False,
-                        help="if provided, only records with StingExceptions will be generated in report")
+    parser.add_option("-E", "", dest="exception_selection",
+                        type='choice', choices=['all', 'user', 'sting'], default='all',
+                        help="if provided, will only emit records matching of the provided class [default %default]")
 
     parser.add_option("", "--max_days", dest="maxDays",
                         type='int', default=None,
@@ -67,6 +68,7 @@ def main():
         # todo -- add matching here
         handler.processRecord(report)
         counter += 1
+        report.clear()
 
     handler.finalize(files)
     if OPTIONS.output != None: out.close()
@@ -110,16 +112,16 @@ def parseException(elt):
     if msgElt != None: msgText = msgElt.text
     stackTrace = elt.find("stacktrace").find("string").text
     if elt.find("is-user-exception") != None:
-    	#print elt.find("is-user-exception")
+        #print elt.find("is-user-exception")
         userException = elt.find("is-user-exception").text
     return msgText, stackTrace, userException
 
 def javaExceptionFile(javaException):
-	m = re.search("\((.*\.java:.*)\)", javaException)
-	if m != None:
-		return m.group(1)
-	else:
-		javaException
+    m = re.search("\((.*\.java:.*)\)", javaException)
+    if m != None:
+        return m.group(1)
+    else:
+        javaException
 
 class RecordDecoder:
     def __init__(self):
@@ -189,13 +191,31 @@ class RecordAsTable(StageHandler):
             val = MISSING_VALUE
             if field in parsed:
                 val = parsed[field]
-                if val.find(" ") != -1:
+                if val == None:
+                    if OPTIONS.verbose: print >> sys.stderr, 'field', field, 'is missing in', parsed['id']
+                elif val.find(" ") != -1:
                     val = "\"" + val + "\""
             return val
-
-        print >> self.out, "\t".join([ oneField(field) for field in self.decoder.fields ])
+        try:
+            print >> self.out, "\t".join([ oneField(field) for field in self.decoder.fields ])
+        except:
+            pass
+            #print 'Failed to convert to table ', parsed
 
 addHandler('table', RecordAsTable)
+
+class CountRecords(StageHandler):
+    def __init__(self, name, out):
+        StageHandler.__init__(self, name, out)
+        
+    def initialize(self, args):
+        self.counter = 0
+
+    def processRecord(self, record):
+        self.counter += 1
+
+addHandler('count', CountRecords)
+
 
 class RecordAsXML(StageHandler):
     def __init__(self, name, out):
@@ -259,7 +279,7 @@ class ExceptionReport(StageHandler):
         for common in commonExceptions:
             msg, at, svns, walkers, counts, ids, duration, users, userError = common.toStrings()
             
-            if OPTIONS.stingExceptionsOnly and userError == "true":
+            if not matchesExceptionSelection(userError):
                 continue
                 
             print >> self.out, ''.join(['*'] * 80)
@@ -273,6 +293,16 @@ class ExceptionReport(StageHandler):
             print >> self.out, '    users              :', users
             print >> self.out, '    ids                :', ids
             
+
+def matchesExceptionSelection(userError):
+    if OPTIONS.exception_selection == "all":
+        return True
+    elif OPTIONS.exception_selection == "user" and userError == "true":
+        return True
+    elif OPTIONS.exception_selection == "sting" and userError == "false":
+        return True
+    return False
+    
 class CommonException:
     MAX_SET_ITEMS_TO_SHOW = 5
 
@@ -395,8 +425,17 @@ def decodeTime(time):
         return datetime.datetime.strptime(time.split()[0], "%Y/%m/%d")
     #return datetime.datetime.strptime(time, "%Y/%m/%d %H.%M.%S")
 
+def eltTagEquals(elt, tag, value):
+    if elt == None:
+        return False
+    msgElt = elt.find(tag)
+    found = msgElt != None and msgElt.text == value
+    #print 'finding', tag, 'in', elt, msgElt, msgElt.text, found
+    return found
+
 def passesFilters(elt):
-    if OPTIONS.noDev and eltTagEquals(elt,'build-type','dev'):
+    if OPTIONS.noDev and eltTagEquals(elt.find('argument-collection'),'phone-home-type','DEV'):
+        print 'skipping', elt
         return False
     if OPTIONS.maxDays != None:
         now = datetime.datetime.today()
@@ -410,7 +449,7 @@ def passesFilters(elt):
 
     return True
     
-def readReports(files):
+def readReportsSlow(files):
     #print files
     for file in files:
         if OPTIONS.verbose: print 'Reading file', file
@@ -423,12 +462,33 @@ def readReports(files):
 
         elem = tree.getroot()
         if elem.tag == RUN_REPORT_LIST:
+            counter = 0
             for sub in elem:
                 if passesFilters(sub):
+                    counter += 1
+                    if counter % 1000 == 0: print 'Returning', counter
                     yield sub
         else:
             if passesFilters(elem):
                 yield elem
     
+def readReports(files):
+    #print files
+    for file in files:
+        if OPTIONS.verbose: print 'Reading file', file
+        input = openFile(file)
+        try:
+            counter = 0
+            for event, elem in iterparse(input):
+                if elem.tag == RUN_REPORT:
+                    if passesFilters(elem):
+                        counter += 1
+                        #if counter % 1000 == 0: print 'Returning', counter
+                        yield elem    
+        except:
+            print "Ignoring excepting file", file
+            continue
+
+
 if __name__ == "__main__":
     main()
