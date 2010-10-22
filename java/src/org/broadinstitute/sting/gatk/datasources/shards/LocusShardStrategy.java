@@ -94,8 +94,13 @@ public class LocusShardStrategy implements ShardStrategy {
                 }
             }
             else {
-                for(GenomeLoc interval: locations)
+                for(GenomeLoc interval: locations) {
+                    while(interval.size() > maxShardSize) {
+                        filePointers.add(new FilePointer(GenomeLocParser.createGenomeLoc(interval.getContig(),interval.getStart(),interval.getStart()+maxShardSize-1)));
+                        interval = GenomeLocParser.createGenomeLoc(interval.getContig(),interval.getStart()+maxShardSize,interval.getStop());
+                    }
                     filePointers.add(new FilePointer(interval));
+                }
             }
             filePointerIterator = filePointers.iterator();
         }
