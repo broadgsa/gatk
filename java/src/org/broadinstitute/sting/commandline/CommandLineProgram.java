@@ -28,7 +28,6 @@ package org.broadinstitute.sting.commandline;
 import org.apache.log4j.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.help.ApplicationDetails;
 import org.broadinstitute.sting.utils.help.HelpFormatter;
 
@@ -381,7 +380,7 @@ public abstract class CommandLineProgram {
         System.exit(1);
     }
 
-    public static void exitSystemWithUserError(UserException e) {
+    public static void exitSystemWithUserError(final Exception e) {
         if ( e.getMessage() == null )
             throw new ReviewedStingException("UserException found with no message!", e);
 

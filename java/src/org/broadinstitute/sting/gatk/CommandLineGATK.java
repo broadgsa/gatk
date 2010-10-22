@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk;
 
+import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.Attribution;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -86,6 +87,10 @@ public class CommandLineGATK extends CommandLineExecutable {
             start(instance, argv);
             System.exit(CommandLineProgram.result); // todo -- this is a painful hack
         } catch (UserException e) {
+            exitSystemWithUserError(e);
+        } catch (TribbleException e) {
+            // We can generate Tribble Exceptions in weird places when e.g. VCF genotype fields are
+            //   lazy loaded, so they aren't caught elsewhere and made into User Exceptions
             exitSystemWithUserError(e);
         } catch (Exception e) {
             exitSystemWithError(e);
