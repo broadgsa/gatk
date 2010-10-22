@@ -371,7 +371,18 @@ public class UnifiedGenotyperEngine {
             if ( ignoreCoveredSamples && isCovered )
                 continue;
 
-            int depth = isCovered ? contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().size() : 0;
+
+            int depth = 0;
+
+            if (isCovered) {
+                AlignmentContext context =  contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+
+                if (context.hasBasePileup())
+                    depth = context.getBasePileup().size();
+                else if (context.hasExtendedEventPileup())
+                    depth = context.getExtendedEventPileup().size();
+            }
+
             P_of_ref *= 1.0 - (theta / 2.0) * MathUtils.binomialProbability(0, depth, 0.5);
         }
 
