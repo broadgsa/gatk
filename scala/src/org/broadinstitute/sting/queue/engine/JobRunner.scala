@@ -33,13 +33,18 @@ trait JobRunner {
     IOUtils.writeContents(function.jobOutputFile, content)
   }
 
+  protected def writeError(content: String) = {
+    IOUtils.writeContents(functionErrorFile, content)
+  }
+
   protected def writeStackTrace(e: Throwable) = {
     val stackTrace = new StringWriter
     val printWriter = new PrintWriter(stackTrace)
     printWriter.println(function.description)
     e.printStackTrace(printWriter)
     printWriter.close
-    val outputFile = if (function.jobErrorFile != null) function.jobErrorFile else function.jobOutputFile
-    IOUtils.writeContents(outputFile, stackTrace.toString)
+    IOUtils.writeContents(functionErrorFile, stackTrace.toString)
   }
+
+  private def functionErrorFile = if (function.jobErrorFile != null) function.jobErrorFile else function.jobOutputFile
 }

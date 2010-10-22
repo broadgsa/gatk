@@ -11,6 +11,14 @@ import org.broadinstitute.sting.queue.function.QFunction
 class FunctionEdge(var function: QFunction) extends QEdge {
   var runner: JobRunner =_
 
+  /**
+   * The number of times this edge has been run.
+   */
+  var retries = 0
+
+  /**
+   * Initializes with the current status of the function.
+   */
   private var currentStatus = {
     val isDone = function.isDone
     val isFail = function.isFail
@@ -22,6 +30,9 @@ class FunctionEdge(var function: QFunction) extends QEdge {
       RunnerStatus.PENDING
   }
 
+  /**
+   * Returns the current status of the edge.
+   */
   def status = {
     if (currentStatus == RunnerStatus.PENDING || currentStatus == RunnerStatus.RUNNING)
       if (runner != null)
@@ -29,14 +40,21 @@ class FunctionEdge(var function: QFunction) extends QEdge {
     currentStatus
   }
 
+  /**
+   * Marks this edge as skipped as it is not needed for the current run.
+   */
   def markAsSkipped() = {
     currentStatus = RunnerStatus.SKIPPED
   }
 
+  /**
+   * Resets the edge to pending status.
+   */
   def resetToPending(cleanOutputs: Boolean) = {
     currentStatus = RunnerStatus.PENDING
     if (cleanOutputs)
       function.deleteOutputs()
+    runner = null
   }
 
   def inputs = function.inputs

@@ -21,8 +21,9 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
   @Test
   def testCountContigs = {
-    Assert.assertEquals(3, IntervalScatterFunction.countContigs(reference, List("1:1-1", "2:1-1", "3:2-2")))
-    Assert.assertEquals(1, IntervalScatterFunction.countContigs(reference, List(BaseTest.validationDataLocation + "chr1_b36_pilot3.interval_list")))
+    Assert.assertEquals(List("1"), IntervalScatterFunction.distinctContigs(reference, List(BaseTest.validationDataLocation + "chr1_b36_pilot3.interval_list")))
+    Assert.assertEquals(List("1","2","3"), IntervalScatterFunction.distinctContigs(reference, List("1:1-1", "2:1-1", "3:2-2")))
+    Assert.assertEquals(List("1","2","3"), IntervalScatterFunction.distinctContigs(reference, List("2:1-1", "1:1-1", "3:2-2")))
   }
 
   @Test

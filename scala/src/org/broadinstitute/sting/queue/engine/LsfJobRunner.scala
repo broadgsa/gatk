@@ -151,9 +151,13 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    */
   private def tailError() = {
     val errorFile = if (job.errorFile != null) job.errorFile else job.outputFile
-    val tailLines = IOUtils.tail(errorFile, 100)
-    val nl = "%n".format()
-    logger.error("Last %d lines of %s:%n%s".format(tailLines.size, errorFile, tailLines.mkString(nl)))
+    if (FileUtils.waitFor(errorFile, 120)) {
+      val tailLines = IOUtils.tail(errorFile, 100)
+      val nl = "%n".format()
+      logger.error("Last %d lines of %s:%n%s".format(tailLines.size, errorFile, tailLines.mkString(nl)))
+    } else {
+      logger.error("Unable to access log file: %s".format(errorFile))
+    }
   }
 
   /**

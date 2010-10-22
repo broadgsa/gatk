@@ -1,4 +1,3 @@
-import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
@@ -8,7 +7,7 @@ import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, CloneFunction, ScatterFunction}
 import org.broadinstitute.sting.queue.util.IOUtils
-import org.broadinstitute.sting.queue.{QException, QScript}
+import org.broadinstitute.sting.queue.QScript
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
@@ -37,6 +36,9 @@ class fullCallingPipeline extends QScript {
   @Input(doc="per-sample downsampling level",shortName="dcov",required=false)
   var downsampling_coverage = 300
 
+  @Input(doc="level of parallelism for IndelRealigner.  By default uses number of contigs.", shortName="cleanerScatter", required=false)
+  var num_cleaner_scatter_jobs: Option[Int] = None
+
   @Input(doc="level of parallelism for UnifiedGenotyper", shortName="snpScatter", required=false)
   var num_snp_scatter_jobs = 20
 
@@ -58,6 +60,9 @@ class fullCallingPipeline extends QScript {
   @Argument(doc="Job queue for large memory jobs (>4 to 16GB)", shortName="bigMemQueue", required=false)
   var big_mem_queue: String = _
 
+  @Argument(doc="Job queue for short run jobs (<1hr)", shortName="shortJobQueue", required=false)
+  var short_job_queue: String = _
+
   private var pipeline: Pipeline = _
 
   trait CommandLineGATKArgs extends CommandLineGATK {
@@ -75,123 +80,118 @@ class fullCallingPipeline extends QScript {
     pipeline = YamlUtils.load(classOf[Pipeline], qscript.yamlFile)
 
     val projectBase: String = qscript.pipeline.getProject.getName
-    val cleanedBase: String = projectBase + ".cleaned"
-    val uncleanedBase: String = projectBase + ".uncleaned"
-
-    // there are commands that use all the bam files
-    val recalibratedSamples = qscript.pipeline.getSamples.filter(_.getBamFiles.contains("recalibrated"))
-    //val adprRScript = qscript.adprScript
-    //val seq = qscript.machine
-    //val expKind = qscript.protocol
-
-    // count number of contigs (needed for indel cleaning parallelism)
-    val contigCount = IntervalScatterFunction.countContigs(
-      qscript.pipeline.getProject.getReferenceFile,
-      List(qscript.pipeline.getProject.getIntervalList.toString))
-
-    for ( sample <- recalibratedSamples ) {
-      val sampleId = sample.getId
-      // put unclean bams in unclean genotypers in advance, create the extension files
-      val bam = sample.getBamFiles.get("recalibrated")
-      if (!sample.getBamFiles.contains("cleaned")) {
-        sample.getBamFiles.put("cleaned", swapExt("CleanedBams", bam,"bam","cleaned.bam"))
-      }
-
-      val cleaned_bam = sample.getBamFiles.get("cleaned")
-      val indel_targets = swapExt("CleanedBams/IntermediateFiles/"+sampleId, bam,"bam","realigner_targets.interval_list")
-
-      // create the cleaning commands
-      val targetCreator = new RealignerTargetCreator with CommandLineGATKArgs
-      targetCreator.jobOutputFile = new File(".queue/logs/Cleaning/%s/RealignerTargetCreator.out".format(sampleId))
-      targetCreator.jobName = "CreateTargets_"+sampleId
-      targetCreator.analysisName = "CreateTargets_"+sampleId
-      targetCreator.input_file :+= bam
-      targetCreator.out = indel_targets
-      targetCreator.memoryLimit = Some(2)
-      targetCreator.isIntermediate = true
-
-      val realigner = new IndelRealigner with CommandLineGATKArgs
-      realigner.jobOutputFile = new File(".queue/logs/Cleaning/%s/IndelRealigner.out".format(sampleId))
-      realigner.analysisName = "RealignBam_"+sampleId
-      realigner.input_file = targetCreator.input_file
-      realigner.targetIntervals = targetCreator.out
-      realigner.scatterCount = contigCount
-
-      // may need to explicitly run fix mates
-      var fixMates = new PicardBamJarFunction {
-          jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
-          // Declare inputs/outputs for dependency tracking.
-          @Input(doc="unfixed bam") var unfixed: File = _
-          @Output(doc="fixed bam") var fixed: File = _
-          def inputBams = List(unfixed)
-          def outputBam = fixed
-        }
-
-      // realigner.out = cleaned_bam
-      // realigner.setupGatherFunction = { case (f: BamGatherFunction, _) => f.jarFile = qscript.picardFixMatesJar }
-      // realigner.jobQueue = "week"
-
-      // if scatter count is > 1, do standard scatter gather, if not, explicitly set up fix mates
-      if (realigner.scatterCount > 1) {
-        realigner.out = cleaned_bam
-        // While gathering run fix mates.
-        realigner.setupScatterFunction = {
-          case scatter: ScatterFunction =>
-            scatter.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather".format(sampleId))
-            scatter.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Scatter.out".format(sampleId))
-        }
-        realigner.setupCloneFunction = {
-          case (clone: CloneFunction, index: Int) =>
-            clone.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Scatter_%s".format(sampleId, index))
-            clone.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Scatter_%s.out".format(sampleId, index))
-        }
-        realigner.setupGatherFunction = {
-          case (gather: BamGatherFunction, source: ArgumentSource) =>
-            gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
-            gather.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
-            gather.memoryLimit = Some(6)
-            gather.jarFile = qscript.picardFixMatesJar
-            // Don't pass this AS=true to fix mates!
-            gather.assumeSorted = None
-          case (gather: GatherFunction, source: ArgumentSource) =>
-            gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
-            gather.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Gather_%s.out".format(sampleId, source.field.getName))
-        }
-      } else {
-        realigner.out = swapExt("CleanedBams/IntermediateFiles/"+sampleId,bam,"bam","unfixed.cleaned.bam")
-        realigner.isIntermediate = true
-
-        // Explicitly run fix mates if the function won't be scattered.
-
-        fixMates.memoryLimit = Some(6)
-        fixMates.jarFile = qscript.picardFixMatesJar
-        fixMates.unfixed = realigner.out
-        fixMates.fixed = cleaned_bam
-        fixMates.analysisName = "FixMates_"+sampleId
-        // Add the fix mates explicitly
-      }
-
-      var samtoolsindex = new SamtoolsIndexFunction
-      samtoolsindex.jobOutputFile = new File(".queue/logs/Cleaning/%s/SamtoolsIndex.out".format(sampleId))
-      samtoolsindex.bamFile = cleaned_bam
-      samtoolsindex.analysisName = "index_cleaned_"+sampleId
-
-      if (!qscript.skip_cleaning) {
-        if ( realigner.scatterCount > 1 ) {
-            add(targetCreator,realigner,samtoolsindex)
-        } else {
-            add(targetCreator,realigner,fixMates,samtoolsindex)
-        }
-      }
-    }
-
-    // actually make calls
-    if (!qscript.skip_cleaning) {
-      //endToEnd(cleanedBase, "cleaned", adprRscript, seq, expKind)
-      endToEnd(cleanedBase, "cleaned")
+    if (qscript.skip_cleaning) {
+      //endToEnd(projectBase + ".uncleaned", "recalibrated", adprRscript, seq, expKind)
+      endToEnd(projectBase + ".uncleaned", "recalibrated")
     } else {
-      //endToEnd(uncleanedBase, "recalibrated", adprRscript, seq, expKind)
-      endToEnd(uncleanedBase, "recalibrated")
+      // there are commands that use all the bam files
+      val recalibratedSamples = qscript.pipeline.getSamples.filter(_.getBamFiles.contains("recalibrated"))
+      //val adprRScript = qscript.adprScript
+      //val seq = qscript.machine
+      //val expKind = qscript.protocol
+
+      // get contigs (needed for indel cleaning parallelism)
+      val contigs = IntervalScatterFunction.distinctContigs(
+        qscript.pipeline.getProject.getReferenceFile,
+        List(qscript.pipeline.getProject.getIntervalList.toString))
+
+      for ( sample <- recalibratedSamples ) {
+        val sampleId = sample.getId
+        // put unclean bams in unclean genotypers in advance, create the extension files
+        val bam = sample.getBamFiles.get("recalibrated")
+        if (!sample.getBamFiles.contains("cleaned")) {
+          sample.getBamFiles.put("cleaned", swapExt("CleanedBams", bam,"bam","cleaned.bam"))
+        }
+
+        val cleaned_bam = sample.getBamFiles.get("cleaned")
+        val indel_targets = swapExt("CleanedBams/IntermediateFiles/"+sampleId, bam,"bam","realigner_targets.interval_list")
+
+        // create the cleaning commands
+        val targetCreator = new RealignerTargetCreator with CommandLineGATKArgs
+        targetCreator.jobOutputFile = new File(".queue/logs/Cleaning/%s/RealignerTargetCreator.out".format(sampleId))
+        targetCreator.jobName = "CreateTargets_"+sampleId
+        targetCreator.analysisName = "CreateTargets_"+sampleId
+        targetCreator.input_file :+= bam
+        targetCreator.out = indel_targets
+        targetCreator.memoryLimit = Some(2)
+        targetCreator.isIntermediate = true
+
+        val realigner = new IndelRealigner with CommandLineGATKArgs
+        realigner.jobOutputFile = new File(".queue/logs/Cleaning/%s/IndelRealigner.out".format(sampleId))
+        realigner.analysisName = "RealignBam_"+sampleId
+        realigner.input_file = targetCreator.input_file
+        realigner.targetIntervals = targetCreator.out
+        realigner.intervals = Nil
+        realigner.intervalsString = contigs
+        realigner.scatterCount = {
+          if (num_cleaner_scatter_jobs.isDefined)
+            num_cleaner_scatter_jobs.get min contigs.size
+          else
+            contigs.size
+        }
+
+        // if scatter count is > 1, do standard scatter gather, if not, explicitly set up fix mates
+        if (realigner.scatterCount > 1) {
+          realigner.out = cleaned_bam
+          // While gathering run fix mates.
+          realigner.setupScatterFunction = {
+            case scatter: ScatterFunction =>
+              scatter.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather".format(sampleId))
+              scatter.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Scatter.out".format(sampleId))
+          }
+          realigner.setupCloneFunction = {
+            case (clone: CloneFunction, index: Int) =>
+              clone.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Scatter_%s".format(sampleId, index))
+              clone.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Scatter_%s.out".format(sampleId, index))
+          }
+          realigner.setupGatherFunction = {
+            case (gather: BamGatherFunction, source: ArgumentSource) =>
+              gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
+              gather.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
+              gather.memoryLimit = Some(6)
+              gather.jarFile = qscript.picardFixMatesJar
+              // Don't pass this AS=true to fix mates!
+              gather.assumeSorted = None
+            case (gather: GatherFunction, source: ArgumentSource) =>
+              gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
+              gather.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Gather_%s.out".format(sampleId, source.field.getName))
+          }
+
+          add(targetCreator,realigner)
+        } else {
+          realigner.out = swapExt("CleanedBams/IntermediateFiles/"+sampleId,bam,"bam","unfixed.cleaned.bam")
+          realigner.isIntermediate = true
+
+          // Explicitly run fix mates if the function won't be scattered.
+          val fixMates = new PicardBamJarFunction {
+            // Declare inputs/outputs for dependency tracking.
+            @Input(doc="unfixed bam") var unfixed: File = _
+            @Output(doc="fixed bam") var fixed: File = _
+            def inputBams = List(unfixed)
+            def outputBam = fixed
+          }
+
+          fixMates.jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
+          fixMates.memoryLimit = Some(6)
+          fixMates.jarFile = qscript.picardFixMatesJar
+          fixMates.unfixed = realigner.out
+          fixMates.fixed = cleaned_bam
+          fixMates.analysisName = "FixMates_"+sampleId
+
+          // Add the fix mates explicitly
+          add(targetCreator,realigner,fixMates)
+        }
+
+        var samtoolsindex = new SamtoolsIndexFunction
+        samtoolsindex.jobOutputFile = new File(".queue/logs/Cleaning/%s/SamtoolsIndex.out".format(sampleId))
+        samtoolsindex.bamFile = cleaned_bam
+        samtoolsindex.analysisName = "index_cleaned_"+sampleId
+        samtoolsindex.jobQueue = qscript.short_job_queue
+        add(samtoolsindex)
+      }
+
+      //endToEnd(projectBase + ".cleaned", "cleaned", adprRscript, seq, expKind)
+      endToEnd(projectBase + ".cleaned", "cleaned")
     }
   }
 

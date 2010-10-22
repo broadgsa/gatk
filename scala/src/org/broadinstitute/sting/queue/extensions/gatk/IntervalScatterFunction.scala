@@ -20,7 +20,8 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
   var splitByContig = false
 
   private var referenceSequence: File = _
-  private var intervalField: ArgumentSource = _
+  private var intervalsField: ArgumentSource = _
+  private var intervalsStringField: ArgumentSource = _
   private var intervals: List[String] = Nil
 
   def isScatterGatherable(originalFunction: ScatterGatherableFunction) = {
@@ -35,18 +36,20 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
     this.referenceSequence = gatk.reference_sequence
     this.intervals ++= gatk.intervalsString
     this.intervals ++= gatk.intervals.map(_.toString)
-    this.intervalField = QFunction.findField(originalFunction.getClass, "intervals")
+    this.intervalsField = QFunction.findField(originalFunction.getClass, "intervals")
+    this.intervalsStringField = QFunction.findField(originalFunction.getClass, "intervalsString")
   }
 
   def initCloneInputs(cloneFunction: CloneFunction, index: Int) = {
-    cloneFunction.setFieldValue(this.intervalField, List(new File("scatter.intervals")))
+    cloneFunction.setFieldValue(this.intervalsField, List(new File("scatter.intervals")))
+    cloneFunction.setFieldValue(this.intervalsStringField, List.empty[String])
   }
 
   def bindCloneInputs(cloneFunction: CloneFunction, index: Int) = {
-    val scatterPart = cloneFunction.getFieldValue(this.intervalField)
+    val scatterPart = cloneFunction.getFieldValue(this.intervalsField)
             .asInstanceOf[List[File]]
             .map(file => IOUtils.subDir(cloneFunction.commandDirectory, file))
-    cloneFunction.setFieldValue(this.intervalField, scatterPart)
+    cloneFunction.setFieldValue(this.intervalsField, scatterPart)
     this.scatterParts ++= scatterPart
   }
 
@@ -71,18 +74,18 @@ object IntervalScatterFunction {
     locs.toList
   }
 
-  def countContigs(reference: File, intervals: List[String]) = {
+  def distinctContigs(reference: File, intervals: List[String]) = {
     val referenceSource = new ReferenceDataSource(reference)
     val locs = parseLocs(referenceSource, intervals)
-    var count = 0
     var contig: String = null
+    var contigs = List.empty[String]
     for (loc <- locs) {
       if (contig != loc.getContig) {
-        count += 1
         contig = loc.getContig
+        contigs :+= contig
       }
     }
-    count
+    contigs
   }
 
   def scatter(reference: File, intervals: List[String], scatterParts: List[File], splitByContig: Boolean) = {

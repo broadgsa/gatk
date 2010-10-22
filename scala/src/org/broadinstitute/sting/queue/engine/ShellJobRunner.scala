@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.queue.engine
 
-import org.broadinstitute.sting.queue.util.{Logging, ShellJob}
 import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.sting.queue.util.{JobExitException, Logging, ShellJob}
 
 /**
  * Runs jobs one at a time locally
@@ -40,6 +40,16 @@ class ShellJobRunner(val function: CommandLineFunction) extends JobRunner with L
       runStatus = RunnerStatus.DONE
       logger.info("Done: " + function.commandLine)
     } catch {
+      case jee: JobExitException =>
+        runStatus = RunnerStatus.FAILED
+        try {
+          function.failOutputs.foreach(_.createNewFile())
+          writeError(jee.getMessage)
+        } catch {
+          case _ => /* ignore errors in the exception handler */
+        }
+        logger.error("Error: " + function.commandLine)
+        logger.error(jee.stdErr)
       case e =>
         runStatus = RunnerStatus.FAILED
         try {

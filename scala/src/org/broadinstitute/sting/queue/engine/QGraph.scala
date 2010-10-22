@@ -9,7 +9,7 @@ import org.jgrapht.EdgeFactory
 import org.jgrapht.ext.DOTExporter
 import java.io.File
 import org.jgrapht.event.{TraversalListenerAdapter, EdgeTraversalEvent}
-import org.broadinstitute.sting.queue.{QSettings, QException}
+import org.broadinstitute.sting.queue.QException
 import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFunction, QFunction}
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, GatherFunction, ScatterGatherableFunction}
 import org.broadinstitute.sting.queue.util.{EmailMessage, JobExitException, LsfKillJob, Logging}
@@ -19,17 +19,10 @@ import org.apache.commons.lang.StringUtils
  * The internal dependency tracker between sets of function input and output files.
  */
 class QGraph extends Logging {
-  var dryRun = true
-  var bsubAllJobs = false
-  var startFromScratch = false
-  var dotFile: File = _
-  var expandedDotFile: File = _
-  var qSettings: QSettings = _
+  var settings: QGraphSettings = _
   var debugMode = false
-  var deleteIntermediates = false
-  var statusEmailFrom: String = _
-  var statusEmailTo: List[String] = _
 
+  private def dryRun = !settings.run
   private val jobGraph = newGraph
   private var shuttingDown = false
   private val nl = "%n".format()
@@ -40,7 +33,7 @@ class QGraph extends Logging {
    */
   def add(command: QFunction) {
     try {
-      command.qSettings = this.qSettings
+      command.qSettings = settings.qSettings
       command.freeze
       addEdge(new FunctionEdge(command))
     } catch {
@@ -56,7 +49,10 @@ class QGraph extends Logging {
     val numMissingValues = fillGraph
     val isReady = numMissingValues == 0
 
-    if (this.dryRun) {
+    if (settings.getStatus) {
+      logger.info("Checking pipeline status.")
+      logStatus()
+    } else if (this.dryRun) {
       dryRunJobs()
     } else if (isReady) {
       logger.info("Running jobs.")
@@ -76,11 +72,11 @@ class QGraph extends Logging {
   private def fillGraph = {
     logger.info("Generating graph.")
     fill
-    if (dotFile != null)
-      renderToDot(dotFile)
+    if (settings.dotFile != null)
+      renderToDot(settings.dotFile)
     var numMissingValues = validate
 
-    if (numMissingValues == 0 && bsubAllJobs) {
+    if (numMissingValues == 0 && settings.bsubAllJobs) {
       logger.info("Generating scatter gather jobs.")
       val scatterGathers = jobGraph.edgeSet.filter(edge => scatterGatherable(edge))
 
@@ -103,7 +99,7 @@ class QGraph extends Logging {
 
       logger.info("Regenerating graph.")
       fill
-      val scatterGatherDotFile = if (expandedDotFile != null) expandedDotFile else dotFile
+      val scatterGatherDotFile = if (settings.expandedDotFile != null) settings.expandedDotFile else settings.dotFile
       if (scatterGatherDotFile != null)
         renderToDot(scatterGatherDotFile)
       numMissingValues = validate
@@ -122,14 +118,6 @@ class QGraph extends Logging {
       }
       case _ => false
     }
-  }
-
-  def checkStatus = {
-    // build up the full DAG with scatter-gather jobs
-    fillGraph
-    logger.info("Checking pipeline status.")
-    updateGraphStatus(false)
-    logStatus
   }
 
   /**
@@ -258,11 +246,19 @@ class QGraph extends Logging {
   }
 
   /**
+   * Logs job statuses by traversing the graph and looking for status-related files
+   */
+  private def logStatus() = {
+    updateGraphStatus(false)
+    doStatus(status => logger.info(status))
+  }
+
+  /**
    * Runs the jobs by traversing the graph.
    */
   private def runJobs() = {
     try {
-      if (startFromScratch) {
+      if (settings.startFromScratch) {
         logger.info("Removing outputs from previous runs.")
         foreachFunction(_.resetToPending(true))
       } else
@@ -291,8 +287,10 @@ class QGraph extends Logging {
           }
         })
 
-        if (failedJobs.size > 0)
+        if (failedJobs.size > 0) {
           emailFailedJobs(failedJobs)
+          checkRetryJobs(failedJobs)
+        }
 
         if (readyJobs.size == 0 && runningJobs.size > 0)
           Thread.sleep(30000L)
@@ -359,7 +357,7 @@ class QGraph extends Logging {
   private def newRunner(f: QFunction) = {
     f match {
       case cmd: CommandLineFunction =>
-        if (this.bsubAllJobs)
+        if (settings.bsubAllJobs)
           new LsfJobRunner(cmd)
         else
           new ShellJobRunner(cmd)
@@ -371,18 +369,34 @@ class QGraph extends Logging {
   }
 
   private def emailFailedJobs(failed: List[FunctionEdge]) = {
-    if (statusEmailTo.size > 0) {
+    if (settings.statusEmailTo.size > 0) {
       val emailMessage = new EmailMessage
-      emailMessage.from = statusEmailFrom
-      emailMessage.to = statusEmailTo
+      emailMessage.from = settings.statusEmailFrom
+      emailMessage.to = settings.statusEmailTo
       emailMessage.subject = "Queue function: Failure"
       addFailedFunctions(emailMessage, failed)
-      emailMessage.trySend(qSettings.emailSettings)
+      emailMessage.trySend(settings.qSettings.emailSettings)
+    }
+  }
+
+  private def checkRetryJobs(failed: List[FunctionEdge]) = {
+    if (settings.retries > 0) {
+      for (failedJob <- failed) {
+        if (failedJob.retries < settings.retries) {
+          failedJob.retries += 1
+          failedJob.resetToPending(true)
+          logger.info("Reset for retry attempt %d of %d: %s".format(
+            failedJob.retries, settings.retries, failedJob.function.description))
+        } else {
+          logger.info("Giving up after retrying %d times: %s".format(
+            settings.retries, failedJob.function.description))
+        }
+      }
     }
   }
 
   private def emailStatus() = {
-    if (statusEmailTo.size > 0) {
+    if (settings.statusEmailTo.size > 0) {
       var failed = List.empty[FunctionEdge]
       foreachFunction(edge => {
         if (edge.status == RunnerStatus.FAILED) {
@@ -391,8 +405,8 @@ class QGraph extends Logging {
       })
 
       val emailMessage = new EmailMessage
-      emailMessage.from = statusEmailFrom
-      emailMessage.to = statusEmailTo
+      emailMessage.from = settings.statusEmailFrom
+      emailMessage.to = settings.statusEmailTo
       emailMessage.body = getStatus + nl
       if (failed.size == 0) {
         emailMessage.subject = "Queue run: Success"
@@ -400,7 +414,7 @@ class QGraph extends Logging {
         emailMessage.subject = "Queue run: Failure"
         addFailedFunctions(emailMessage, failed)
       }
-      emailMessage.trySend(qSettings.emailSettings)
+      emailMessage.trySend(settings.qSettings.emailSettings)
     }
   }
 
@@ -417,10 +431,18 @@ class QGraph extends Logging {
     |Logs:
     |%s%n
     |""".stripMargin.trim.format(
-      failed.map(_.function.description).mkString(nl+nl),
+      failed.map(edge => failedDescription(edge)).mkString(nl+nl),
       logs.map(_.getAbsolutePath).mkString(nl))
 
     emailMessage.attachments = logs
+  }
+
+  private def failedDescription(failed: FunctionEdge) = {
+    var description = new StringBuilder
+    if (settings.retries > 0)
+      description.append("Attempt %d of %d.%n".format(failed.retries + 1, settings.retries + 1))
+    description.append(failed.function.description)
+    description.toString
   }
 
   private def logFiles(edge: FunctionEdge) = {
@@ -448,13 +470,6 @@ class QGraph extends Logging {
     var done = 0
     var failed = 0
     var skipped = 0
-  }
-
-  /**
-   * Logs job statuses by traversing the graph and looking for status-related files
-   */
-  private def logStatus = {
-    doStatus(status => logger.info(status))
   }
 
   /**
@@ -683,7 +698,7 @@ class QGraph extends Logging {
   }
 
   private def deleteIntermediateOutputs() = {
-    if (this.deleteIntermediates && !hasFailed) {
+    if (settings.deleteIntermediates && !hasFailed) {
       logger.info("Deleting intermediate files.")
       traverseFunctions(edge => {
         if (edge.function.isIntermediate) {
