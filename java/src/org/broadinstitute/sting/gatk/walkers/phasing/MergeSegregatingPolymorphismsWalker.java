@@ -134,6 +134,7 @@ public class MergeSegregatingPolymorphismsWalker extends RodWalker<Integer, Inte
      */
     public void onTraversalDone(Integer result) {
         vcMergerWriter.close();
+        System.out.println("Number of potentially merged records (distance <= "+ maxGenomicDistanceForMNP + "): " + vcMergerWriter.getNumMergeableRecordsWithinDistance());        
         System.out.println("Number of records merged: " + vcMergerWriter.getNumMergedRecords());
     }
 }

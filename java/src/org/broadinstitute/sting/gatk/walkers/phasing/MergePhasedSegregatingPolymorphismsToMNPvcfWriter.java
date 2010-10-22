@@ -46,6 +46,7 @@ public class MergePhasedSegregatingPolymorphismsToMNPvcfWriter implements VCFWri
 
     private VCFRecord vcfrWaitingToMerge;
     private List<VCFRecord> filteredVcfrList;
+    private int numRecordsWithinDistance;
     private int numMergedRecords;
 
     private Logger logger;
@@ -59,6 +60,7 @@ public class MergePhasedSegregatingPolymorphismsToMNPvcfWriter implements VCFWri
         this.maxGenomicDistanceForMNP = maxGenomicDistanceForMNP;
         this.vcfrWaitingToMerge = null;
         this.filteredVcfrList = new LinkedList<VCFRecord>();
+        this.numRecordsWithinDistance = 0;
         this.numMergedRecords = 0;
         this.logger = logger;
         this.takeOwnershipOfInner = takeOwnershipOfInner;
@@ -108,6 +110,7 @@ public class MergePhasedSegregatingPolymorphismsToMNPvcfWriter implements VCFWri
             else { // waiting to merge vcfrWaitingToMerge, and curVcIsNotFiltered. So, attempt to merge them:
                 boolean mergedRecords = false;
                 if (minDistance(vcfrWaitingToMerge.vc, vc) <= maxGenomicDistanceForMNP) {
+                    numRecordsWithinDistance++;
                     VariantContext mergedVc = VariantContextUtils.mergeIntoMNP(vcfrWaitingToMerge.vc, vc, referenceFileForMNPmerging);
                     if (mergedVc != null) {
                         mergedRecords = true;
@@ -137,6 +140,10 @@ public class MergePhasedSegregatingPolymorphismsToMNPvcfWriter implements VCFWri
         for (VCFRecord vcfr : filteredVcfrList)
             innerWriter.add(vcfr.vc, vcfr.refBase);
         filteredVcfrList.clear();
+    }
+
+    public int getNumMergeableRecordsWithinDistance() {
+        return numRecordsWithinDistance;
     }
 
     public int getNumMergedRecords() {
