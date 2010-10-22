@@ -312,15 +312,12 @@ public abstract class AbstractGenomeAnalysisEngine {
 
         sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
 
-        if (argCollection.DBSNPFile != null)
-            bindConvenienceRods(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile);
-
         RMDTrackBuilder manager = new RMDTrackBuilder();
 
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
         manager.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary());
 
-        List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection.RODBindings);
+        List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection);
         validateSuppliedReferenceOrderedData(tracks);
 
         // validate all the sequence dictionaries against the reference

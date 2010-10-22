@@ -34,10 +34,13 @@ import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.source.CachingFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.AbstractGenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -369,41 +372,45 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     /**
      * find the associated reference meta data
      *
-     * @param bindings the bindings of strings from the -B command line option
+     * @param argCollection the input arguments to the GATK.
      * @param engine the GATK engine to bind the tracks to
      *
      * @return a list of RMDTracks, one for each -B option
      */
-    public List<RMDTrack> getReferenceMetaDataSources(AbstractGenomeAnalysisEngine engine, List<String> bindings) {
-        initializeBindings(engine,bindings);
+    public List<RMDTrack> getReferenceMetaDataSources(AbstractGenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
+        initializeConvenienceBindings(engine,argCollection);
+        initializeFullBindings(engine,argCollection);
         // try and make the tracks given their requests
         return createRequestedTrackObjects();
+    }
+
+    private void initializeConvenienceBindings(AbstractGenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
+        if (argCollection.DBSNPFile != null)
+            inputs.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile));
     }
 
     /**
      * initialize our lists of bindings
      * @param engine The engine, used to populate tags.
-     * @param bindings the input to the GATK, as a list of strings passed in through the -B options
+     * @param argCollection input arguments to the GATK.
      */
-    private void initializeBindings(AbstractGenomeAnalysisEngine engine,List<String> bindings) {
+    private void initializeFullBindings(AbstractGenomeAnalysisEngine engine,GATKArgumentCollection argCollection) {
         // NOTE: Method acts as a static.  Once the inputs have been passed once they are locked in.
-        if (inputs.size() > 0 || bindings.size() == 0)
+        if (argCollection.RODBindings.size() == 0)
             return;
 
-        for (String binding: bindings) {
-            if(engine != null && engine.getTags(binding).size() == 2) {
+        for (String binding: argCollection.RODBindings) {
+            if(engine != null) {
+                if(engine.getTags(binding).size() != 2)
+                    throw new UserException("Invalid syntax for -B (reference-ordered data) input flag.  " +
+                                            "Please use the following syntax when providing reference-ordered " +
+                                            "data: -B:<name>,<type> <filename>.");
                 // Assume that if tags are present, those tags are name and type.
                 // Name is always first, followed by type.
                 List<String> parameters = engine.getTags(binding);
                 String name = parameters.get(0);
                 String type = parameters.get(1);
                 inputs.add(new RMDTriplet(name,type,binding));
-            }
-            else {
-                // Otherwise, use old-format bindings.
-                String[] split = binding.split(",");
-                if (split.length != 3) throw new IllegalArgumentException(binding + " is not a valid reference metadata track description");
-                inputs.add(new RMDTriplet(split[0], split[1], split[2]));
             }
         }
     }
