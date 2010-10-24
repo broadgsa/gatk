@@ -74,7 +74,7 @@ object IntervalScatterFunction {
     locs.toList
   }
 
-  def distinctContigs(reference: File, intervals: List[String]) = {
+  def distinctContigs(reference: File, intervals: List[String] = Nil) = {
     val referenceSource = new ReferenceDataSource(reference)
     val locs = parseLocs(referenceSource, intervals)
     var contig: String = null

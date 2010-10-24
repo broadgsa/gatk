@@ -42,8 +42,8 @@ class fullCallingPipeline extends QScript {
   @Input(doc="level of parallelism for UnifiedGenotyper", shortName="snpScatter", required=false)
   var num_snp_scatter_jobs = 20
 
-  @Input(doc="level of parallelism for IndelGenotyperV2", shortName="indelScatter", required=false)
-  var num_indel_scatter_jobs = 5
+  //@Input(doc="level of parallelism for IndelGenotyperV2", shortName="indelScatter", required=false)
+  //var num_indel_scatter_jobs = 5
 
   @Input(doc="Skip indel-cleaning for BAM files (for testing only)", shortName="skipCleaning", required=false)
   var skip_cleaning = false
@@ -92,8 +92,7 @@ class fullCallingPipeline extends QScript {
 
       // get contigs (needed for indel cleaning parallelism)
       val contigs = IntervalScatterFunction.distinctContigs(
-        qscript.pipeline.getProject.getReferenceFile,
-        List(qscript.pipeline.getProject.getIntervalList.toString))
+        qscript.pipeline.getProject.getReferenceFile)
 
       for ( sample <- recalibratedSamples ) {
         val sampleId = sample.getId
@@ -122,7 +121,7 @@ class fullCallingPipeline extends QScript {
         realigner.input_file = targetCreator.input_file
         realigner.targetIntervals = targetCreator.out
         realigner.intervals = Nil
-        realigner.intervalsString = contigs
+        realigner.intervalsString = Nil
         realigner.scatterCount = {
           if (num_cleaner_scatter_jobs.isDefined)
             num_cleaner_scatter_jobs.get min contigs.size
@@ -132,6 +131,7 @@ class fullCallingPipeline extends QScript {
 
         // if scatter count is > 1, do standard scatter gather, if not, explicitly set up fix mates
         if (realigner.scatterCount > 1) {
+          realigner.intervalsString = contigs
           realigner.out = cleaned_bam
           // While gathering run fix mates.
           realigner.setupScatterFunction = {
