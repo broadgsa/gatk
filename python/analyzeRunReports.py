@@ -435,7 +435,7 @@ def eltTagEquals(elt, tag, value):
 
 def passesFilters(elt):
     if OPTIONS.noDev and eltTagEquals(elt.find('argument-collection'),'phone-home-type','DEV'):
-        print 'skipping', elt
+        #print 'skipping', elt
         return False
     if OPTIONS.maxDays != None:
         now = datetime.datetime.today()
