@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.walkers.varianteval;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.StandardVCFWriter;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -672,7 +671,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
             VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
 
-            if ( vc != null && vc.hasGenotypes(SAMPLES_LIST) && SAMPLES_LIST.size() > 0 ) {
+            if ( vc != null && SAMPLES_LIST.size() > 0 && vc.hasGenotypes(SAMPLES_LIST) ) {
                 //if ( ! name.equals("eval") ) logger.info(String.format("subsetting VC %s", vc));
                 vc = vc.subContextFromGenotypes(vc.getGenotypes(SAMPLES_LIST).values());
                 HashMap<String,Object> newAts = new HashMap<String,Object>(vc.getAttributes());
