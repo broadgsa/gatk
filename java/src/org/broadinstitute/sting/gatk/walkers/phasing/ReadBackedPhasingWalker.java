@@ -28,6 +28,7 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -74,7 +75,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     @Argument(fullName = "phaseQualityThresh", shortName = "phaseThresh", doc = "The minimum phasing quality score required to output phasing; [default:10.0]", required = false)
     protected Double phaseQualityThresh = 10.0; // PQ = 10.0 <=> P(error) = 10^(-10/10) = 0.1, P(correct) = 0.9
 
-    @Argument(fullName = "variantStatsFilePrefix", shortName = "variantStats", doc = "The prefix of the VCF/phasing statistics files", required = false)
+    @Hidden
+    @Argument(fullName = "variantStatsFilePrefix", shortName = "variantStats", doc = "The prefix of the VCF/phasing statistics files [For DEBUGGING purposes only - DO NOT USE!]", required = false)
     protected String variantStatsFilePrefix = null;
 
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for phasing [default: 10]", required = false)
@@ -286,81 +288,88 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             Genotype gt = sampGtEntry.getValue();
 
             logger.debug("sample = " + samp);
-            if (isUnfilteredCalledDiploidGenotype(gt) && gt.isHet()) { // Can attempt to phase this genotype
-                PhasingWindow phaseWindow = new PhasingWindow(vr, samp);
-                if (phaseWindow.hasPreviousHets()) { // Otherwise, nothing to phase this against
-                    SNPallelePair allelePair = new SNPallelePair(gt);
-                    logger.debug("Want to phase TOP vs. BOTTOM for: " + "\n" + allelePair);
+            if (isUnfilteredCalledDiploidGenotype(gt)) {
+                if (gt.isHom()) {
+                    // true <-> can trivially phase a hom site relative to ANY previous site:
+                    Genotype phasedGt = new Genotype(gt.getSampleName(), gt.getAlleles(), gt.getNegLog10PError(), gt.getFilters(), gt.getAttributes(), true);
+                    uvc.setGenotype(samp, phasedGt);
+                }
+                else if (gt.isHet()) { // Attempt to phase this het genotype relative to the previous het genotype
+                    PhasingWindow phaseWindow = new PhasingWindow(vr, samp);
+                    if (phaseWindow.hasPreviousHets()) { // Otherwise, nothing to phase this against
+                        SNPallelePair allelePair = new SNPallelePair(gt);
+                        logger.debug("Want to phase TOP vs. BOTTOM for: " + "\n" + allelePair);
 
-                    DoublyLinkedList.BidirectionalIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = phaseWindow.prevHetAndInteriorIt;
-                    /* Notes:
-                     1. Call to next() advances iterator to next position in partiallyPhasedSites.
-                     2. prevHetGenotype != null, since otherwise prevHetAndInteriorIt would not have been chosen to point to its UnfinishedVariantAndReads.
-                     */
-                    UnfinishedVariantContext prevUvc = prevHetAndInteriorIt.next().unfinishedVariant;
-                    Genotype prevHetGenotype = prevUvc.getGenotype(samp);
+                        DoublyLinkedList.BidirectionalIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = phaseWindow.prevHetAndInteriorIt;
+                        /* Notes:
+                        1. Call to next() advances iterator to next position in partiallyPhasedSites.
+                        2. prevHetGenotype != null, since otherwise prevHetAndInteriorIt would not have been chosen to point to its UnfinishedVariantAndReads.
+                        */
+                        UnfinishedVariantContext prevUvc = prevHetAndInteriorIt.next().unfinishedVariant;
+                        Genotype prevHetGenotype = prevUvc.getGenotype(samp);
 
-                    PhaseResult pr = phaseSample(phaseWindow);
-                    boolean genotypesArePhased = passesPhasingThreshold(pr.phaseQuality);
+                        PhaseResult pr = phaseSampleAtSite(phaseWindow);
+                        boolean genotypesArePhased = passesPhasingThreshold(pr.phaseQuality);
 
-                    if (pr.phasingContainsInconsistencies) {
-                        logger.debug("MORE than " + (MAX_FRACTION_OF_INCONSISTENT_READS * 100) + "% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(vc));
-                        uvc.setPhasingInconsistent();
-                    }
-
-                    if (genotypesArePhased) {
-                        SNPallelePair prevAllelePair = new SNPallelePair(prevHetGenotype);
-
-                        logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevAllelePair + "\n");
-                        logger.debug("THE PHASE CHOSEN HERE:\n" + allelePair + "\n\n");
-
-                        ensurePhasing(allelePair, prevAllelePair, pr.haplotype);
-                        Map<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
-                        gtAttribs.put(PQ_KEY, pr.phaseQuality);
-                        Genotype phasedGt = new Genotype(gt.getSampleName(), allelePair.getAllelesAsList(), gt.getNegLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
-                        uvc.setGenotype(samp, phasedGt);
-                    }
-
-                    // Now, update the 0 or more "interior" hom sites in between the previous het site and this het site:
-                    while (prevHetAndInteriorIt.hasNext()) {
-                        UnfinishedVariantContext interiorUvc = prevHetAndInteriorIt.next().unfinishedVariant;
-                        Genotype handledGt = interiorUvc.getGenotype(samp);
-                        if (handledGt == null || !isUnfilteredCalledDiploidGenotype(handledGt))
-                            throw new ReviewedStingException("LOGICAL error: should not have breaks WITHIN haplotype");
-                        if (!handledGt.isHom())
-                            throw new ReviewedStingException("LOGICAL error: should not have anything besides hom sites IN BETWEEN two het sites");
-
-                        // Use the same phasing consistency and PQ for each hom site in the "interior" as for the het-het phase:
-                        if (pr.phasingContainsInconsistencies)
-                            interiorUvc.setPhasingInconsistent();
+                        if (pr.phasingContainsInconsistencies) {
+                            logger.debug("MORE than " + (MAX_FRACTION_OF_INCONSISTENT_READS * 100) + "% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(vc));
+                            uvc.setPhasingInconsistent();
+                        }
 
                         if (genotypesArePhased) {
-                            Map<String, Object> handledGtAttribs = new HashMap<String, Object>(handledGt.getAttributes());
-                            handledGtAttribs.put(PQ_KEY, pr.phaseQuality);
-                            Genotype phasedHomGt = new Genotype(handledGt.getSampleName(), handledGt.getAlleles(), handledGt.getNegLog10PError(), handledGt.getFilters(), handledGtAttribs, genotypesArePhased);
-                            interiorUvc.setGenotype(samp, phasedHomGt);
+                            SNPallelePair prevAllelePair = new SNPallelePair(prevHetGenotype);
+
+                            logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevAllelePair + "\n");
+                            logger.debug("THE PHASE CHOSEN HERE:\n" + allelePair + "\n\n");
+
+                            ensurePhasing(allelePair, prevAllelePair, pr.haplotype);
+                            Map<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
+                            gtAttribs.put(PQ_KEY, pr.phaseQuality);
+                            Genotype phasedGt = new Genotype(gt.getSampleName(), allelePair.getAllelesAsList(), gt.getNegLog10PError(), gt.getFilters(), gtAttribs, genotypesArePhased);
+                            uvc.setGenotype(samp, phasedGt);
                         }
-                    }
 
-                    if (statsWriter != null)
-                        statsWriter.addStat(samp, VariantContextUtils.getLocation(vc), startDistance(prevUvc, vc), pr.phaseQuality, phaseWindow.readsAtHetSites.size(), phaseWindow.hetGenotypes.length);
+                        // Now, update the 0 or more "interior" hom sites in between the previous het site and this het site:
+                        while (prevHetAndInteriorIt.hasNext()) {
+                            UnfinishedVariantContext interiorUvc = prevHetAndInteriorIt.next().unfinishedVariant;
+                            Genotype handledGt = interiorUvc.getGenotype(samp);
+                            if (handledGt == null || !isUnfilteredCalledDiploidGenotype(handledGt))
+                                throw new ReviewedStingException("LOGICAL error: should not have breaks WITHIN haplotype");
+                            if (!handledGt.isHom())
+                                throw new ReviewedStingException("LOGICAL error: should not have anything besides hom sites IN BETWEEN two het sites");
 
-                    PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
-                    if (sampPhaseCounts == null) {
-                        sampPhaseCounts = new PhaseCounts();
-                        samplePhaseStats.put(samp, sampPhaseCounts);
-                    }
-                    sampPhaseCounts.numTestedSites++;
+                            // Use the same phasing consistency and PQ for each hom site in the "interior" as for the het-het phase:
+                            if (pr.phasingContainsInconsistencies)
+                                interiorUvc.setPhasingInconsistent();
 
-                    if (pr.phasingContainsInconsistencies) {
+                            if (genotypesArePhased) {
+                                Map<String, Object> handledGtAttribs = new HashMap<String, Object>(handledGt.getAttributes());
+                                handledGtAttribs.put(PQ_KEY, pr.phaseQuality);
+                                Genotype phasedHomGt = new Genotype(handledGt.getSampleName(), handledGt.getAlleles(), handledGt.getNegLog10PError(), handledGt.getFilters(), handledGtAttribs, genotypesArePhased);
+                                interiorUvc.setGenotype(samp, phasedHomGt);
+                            }
+                        }
+
+                        if (statsWriter != null)
+                            statsWriter.addStat(samp, VariantContextUtils.getLocation(vc), startDistance(prevUvc, vc), pr.phaseQuality, phaseWindow.readsAtHetSites.size(), phaseWindow.hetGenotypes.length);
+
+                        PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
+                        if (sampPhaseCounts == null) {
+                            sampPhaseCounts = new PhaseCounts();
+                            samplePhaseStats.put(samp, sampPhaseCounts);
+                        }
+                        sampPhaseCounts.numTestedSites++;
+
+                        if (pr.phasingContainsInconsistencies) {
+                            if (genotypesArePhased)
+                                sampPhaseCounts.numInconsistentSitesPhased++;
+                            else
+                                sampPhaseCounts.numInconsistentSitesNotPhased++;
+                        }
+
                         if (genotypesArePhased)
-                            sampPhaseCounts.numInconsistentSitesPhased++;
-                        else
-                            sampPhaseCounts.numInconsistentSitesNotPhased++;
+                            sampPhaseCounts.numPhased++;
                     }
-
-                    if (genotypesArePhased)
-                        sampPhaseCounts.numPhased++;
                 }
             }
         }
@@ -769,7 +778,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
     }
 
-    private PhaseResult phaseSample(PhasingWindow phaseWindow) {
+    private PhaseResult phaseSampleAtSite(PhasingWindow phaseWindow) {
         /* Will map a phase and its "complement" to a single representative phase,
           and marginalizeAsNewTable() marginalizes to 2 positions [starting at the previous position, and then the current position]:
         */

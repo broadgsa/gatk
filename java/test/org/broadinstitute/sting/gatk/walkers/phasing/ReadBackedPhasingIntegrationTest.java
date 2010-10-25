@@ -26,7 +26,7 @@ public class ReadBackedPhasingIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "phasing_test_chr20_332341_1332503.bam", "phasing_test_chr20_332341_1332503.vcf", 20000, 10, 10)
                         + " -L chr20:332341-382503",
                 1,
-                Arrays.asList("cfa2a436008c0090ec03935b6efc6bb3"));
+                Arrays.asList("3994aed2a117b93aa5010ea131033aea"));
         executeTest("MAX 10 het sites [TEST ONE]; require PQ >= 10", spec);
     }
 
@@ -36,7 +36,7 @@ public class ReadBackedPhasingIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "phasing_test_chr20_332341_1332503.bam", "phasing_test_chr20_332341_1332503.vcf", 20000, 10, 10)
                         + " -L chr20:1232503-1332503",
                 1,
-                Arrays.asList("60da5d2da66ae51bf42ad2b1c9505739"));
+                Arrays.asList("61768bcdcbf9aeef62bfd44862155ec3"));
         executeTest("MAX 10 het sites [TEST TWO]; require PQ >= 10", spec);
     }
 
@@ -46,7 +46,7 @@ public class ReadBackedPhasingIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "phasing_test_chr20_332341_1332503.bam", "phasing_test_chr20_332341_1332503.vcf", 20000, 2, 30)
                         + " -L chr20:332341-382503",
                 1,
-                Arrays.asList("26befb1f5b11117f0ccb326fd05f9be7"));
+                Arrays.asList("98261406ac4c587eb4444ad06d40507b"));
         executeTest("MAX 2 het sites [TEST THREE]; require PQ >= 30", spec);
     }
 
@@ -56,7 +56,7 @@ public class ReadBackedPhasingIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "phasing_test_chr20_332341_1332503.bam", "phasing_test_chr20_332341_1332503.vcf", 20000, 5, 100)
                         + " -L chr20:332341-382503",
                 1,
-                Arrays.asList("51ce38de72cf4163a272f00ba34832ff"));
+                Arrays.asList("d8464f2d2cf07e344986e417be8fce14"));
         executeTest("MAX 5 het sites [TEST FOUR]; require PQ >= 100", spec);
     }
 
@@ -66,7 +66,7 @@ public class ReadBackedPhasingIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "phasing_test_chr20_332341_1332503.bam", "phasing_test_chr20_332341_1332503.vcf", 1000, 7, 10)
                         + " -L chr20:332341-482503",
                 1,
-                Arrays.asList("252964ea02d83ccf1e229e01fbfaaefa"));
+                Arrays.asList("1dee7950ab0ec27e1ee081c064159776"));
         executeTest("MAX 7 het sites [TEST FIVE]; require PQ >= 10; cacheWindow = 1000", spec);
     }
 
@@ -76,9 +76,8 @@ public class ReadBackedPhasingIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "phasing_test_chr20_332341_1332503.bam", "phasing_test_chr20_332341_1332503.vcf", 20000, 10, 10)
                         + " -L chr20:652810-681757",
                 1,
-                Arrays.asList("6983a121363ef4131b217805ae558313"));
+                Arrays.asList("e4f4de185bdbfaf067004c187419ac4c"));
         executeTest("MAX 10 het sites [TEST SIX]; require PQ >= 10; cacheWindow = 20000; has inconsistent sites", spec);
     }
-
 
 }
