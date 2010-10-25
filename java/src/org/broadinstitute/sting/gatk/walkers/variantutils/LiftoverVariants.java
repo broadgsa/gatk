@@ -88,6 +88,12 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         final Interval toInterval = liftOver.liftOver(fromInterval);
 
         if ( toInterval != null ) {
+            // check whether the strand flips, and if so reverse complement everything
+            // TODO -- make this work for indels (difficult because the 'previous base' context needed will be changing based on indel type/size)
+            if ( fromInterval.isPositiveStrand() != toInterval.isPositiveStrand() && (vc.isSNP() || !vc.isVariant()) ) {
+                vc = VariantContextUtils.reverseComplement(vc);
+            }
+
             vc = VariantContextUtils.modifyLocation(vc, GenomeLocParser.createPotentiallyInvalidGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length));
             writer.add(vc, ref.getBase());
             successfulIntervals++;

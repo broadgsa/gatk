@@ -675,6 +675,41 @@ public class VariantContextUtils {
         return new VariantContext(vc.getName(), loc.getContig(), loc.getStart(), loc.getStop(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
     }
 
+    /**
+     * Returns a context identical to this with the REF and ALT alleles reverse complemented.
+     *
+     * @param vc        variant context
+     * @return new vc
+     */
+    public static VariantContext reverseComplement(VariantContext vc) {
+        // create a mapping from original allele to reverse complemented allele
+        HashMap<Allele, Allele> alleleMap = new HashMap<Allele, Allele>(vc.getAlleles().size());
+        for ( Allele originalAllele : vc.getAlleles() ) {
+            Allele newAllele;
+            if ( originalAllele.isNoCall() || originalAllele.isNull() )
+                newAllele = originalAllele;
+            else
+                newAllele = Allele.create(BaseUtils.simpleReverseComplement(originalAllele.getBases()), originalAllele.isReference());
+            alleleMap.put(originalAllele, newAllele);
+        }
+
+        // create new Genotype objects
+        Map<String, Genotype> newGenotypes = new HashMap<String, Genotype>(vc.getNSamples());
+        for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
+            List<Allele> newAlleles = new ArrayList<Allele>();
+            for ( Allele allele : genotype.getValue().getAlleles() ) {
+                Allele newAllele = alleleMap.get(allele);
+                if ( newAllele == null )
+                    newAllele = Allele.NO_CALL;
+                newAlleles.add(newAllele);
+            }
+            newGenotypes.put(genotype.getKey(), Genotype.modifyAlleles(genotype.getValue(), newAlleles));
+        }
+
+        return new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
+
+    }
+
     public static VariantContext purgeUnallowedGenotypeAttributes(VariantContext vc, Set<String> allowedAttributes) {
         if ( allowedAttributes == null )
             return vc;
