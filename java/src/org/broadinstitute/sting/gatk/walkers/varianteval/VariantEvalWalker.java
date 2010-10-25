@@ -671,17 +671,20 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
 
             VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
 
-            if ( vc != null && SAMPLES_LIST.size() > 0 && vc.hasGenotypes(SAMPLES_LIST) ) {
-                //if ( ! name.equals("eval") ) logger.info(String.format("subsetting VC %s", vc));
-                vc = vc.subContextFromGenotypes(vc.getGenotypes(SAMPLES_LIST).values());
-                HashMap<String,Object> newAts = new HashMap<String,Object>(vc.getAttributes());
-                VariantContextUtils.calculateChromosomeCounts(vc,newAts,true);
-                vc = VariantContext.modifyAttributes(vc,newAts);
-                logger.debug(String.format("VC %s subset to %s AC%n",vc.getName(),vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
-                //if ( ! name.equals("eval") ) logger.info(String.format("  => VC %s", vc));
-            } else if ( vc != null && ! vc.hasGenotypes(SAMPLES_LIST) && !name.equals("dbsnp")  ) {
-                throw new UserException(String.format("Genotypes for the variant context %s do not contain all the provided samples %s",vc.getName(), getMissingSamples(SAMPLES_LIST,vc)));
-            }
+	    if ( SAMPLES_LIST.size() > 0 && vc != null ) {
+		boolean hasGenotypes = vc.hasGenotypes(SAMPLES_LIST);
+		if ( hasGenotypes ) {
+		    //if ( ! name.equals("eval") ) logger.info(String.format("subsetting VC %s", vc));
+		    vc = vc.subContextFromGenotypes(vc.getGenotypes(SAMPLES_LIST).values());
+		    HashMap<String,Object> newAts = new HashMap<String,Object>(vc.getAttributes());
+		    VariantContextUtils.calculateChromosomeCounts(vc,newAts,true);
+		    vc = VariantContext.modifyAttributes(vc,newAts);
+		    logger.debug(String.format("VC %s subset to %s AC%n",vc.getName(),vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
+		    //if ( ! name.equals("eval") ) logger.info(String.format("  => VC %s", vc));
+		} else if ( !hasGenotypes && !name.equals("dbsnp")  ) {
+		    throw new UserException(String.format("Genotypes for the variant context %s do not contain all the provided samples %s",vc.getName(), getMissingSamples(SAMPLES_LIST,vc)));
+		}
+	    }
 
             map.put(name, allowExcludes && excludeComp(vc) ? null : vc);
         }
