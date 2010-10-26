@@ -30,7 +30,7 @@ public class
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
                     1, Arrays.asList("158ac8e6d32eb2ea1bbeebfa512965de"));
-            executeTest("testSelect1", spec);
+            executeTestParallel("testSelect1", spec);
         }
     }
 
@@ -39,7 +39,7 @@ public class
         String extraArgs = "-L 1:1-10,000,000";
         WalkerTestSpec spec = new WalkerTestSpec( withSelect(withSelect(root, "DP < 50", "DP50"), "set==\"Intersection\"", "intersection") + " " + extraArgs + " -o %s",
                 1, Arrays.asList("cee96f61ffa1d042fe0c63550c508ec9"));
-        executeTest("testSelect2", spec);
+        executeTestParallel("testSelect2", spec);
     }
 
     @Test
@@ -49,7 +49,7 @@ public class
             WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B:eval,VCF " + validationDataLocation + vcfFile + " -B:comp,VCF " + validationDataLocation + "GenotypeConcordanceComp.vcf -noStandard -E GenotypeConcordance -reportType CSV -o %s",
                     1,
                     Arrays.asList("7e9ce1b26cdeaa50705f5de163847638"));
-            executeTest("testVEGenotypeConcordance" + vcfFile, spec);
+            executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
         }
 
     }
@@ -67,7 +67,7 @@ public class
                 WalkerTestSpec spec = new WalkerTestSpec( tests + " " + extraArgs + " -o %s",
                     1, // just one output file
                     Arrays.asList(md5));
-                executeTest("testVESimple", spec);
+                executeTestParallel("testVESimple", spec);
             }
         }
     }
@@ -92,7 +92,7 @@ public class
                 WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs1 + extraArgs2 + " -o %s",
                         1, // just one output file
                         Arrays.asList(md5));
-                executeTest("testVEComplex", spec);
+                executeTestParallel("testVEComplex", spec);
             }
         }
     }
@@ -109,17 +109,17 @@ public class
         String md5 = "d41d8cd98f00b204e9800998ecf8427e";
 
         WalkerTestSpec spec = new WalkerTestSpec(vecmd, 1, Arrays.asList(md5));
-        executeTest("testVEGenomicallyAnnotated", spec);
+        executeTestParallel("testVEGenomicallyAnnotated", spec);
     }
 
     @Test
     public void testVEWriteVCF() {
         String extraArgs = "-L 1:1-10,000,000 -NO_HEADER -family NA19238+NA19239=NA19240 -MVQ 30 -E MendelianViolationEvaluator";
         for (String tests : testsEnumerations) {
-            WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s",
+            WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s -NO_HEADER",
                     2,
                     Arrays.asList("6b97a019402b3984fead9a4e8b7c7c2a", "989bc30dea6c8a4cf771cd1b9fdab488"));
-            executeTest("testVEWriteVCF", spec);
+            executeTestParallel("testVEWriteVCF", spec);
         }
     }
 
@@ -127,7 +127,7 @@ public class
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -E GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf -reportType CSV";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("25a681855cb26e7380fbf1a93de0a41f"));
-        executeTest("testACDiscordanceAtAC1EvalAC2Comp",spec);
+        executeTestParallel("testACDiscordanceAtAC1EvalAC2Comp",spec);
     }
 
     private static String withSelect(String cmd, String select, String name) {

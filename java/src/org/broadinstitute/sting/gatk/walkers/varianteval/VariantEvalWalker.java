@@ -30,6 +30,8 @@ import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.vcf.VCFWriter;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -40,6 +42,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.ApplyVariantCuts;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.report.ReportMarshaller;
@@ -49,6 +52,7 @@ import org.broadinstitute.sting.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
@@ -112,7 +116,7 @@ import java.util.*;
  * General-purpose tool for variant evaluation (% in dbSNP, genotype concordance, Ts/Tv ratios, and a lot more)
  */
 @Reference(window=@Window(start=-50,stop=50))
-public class VariantEvalWalker extends RodWalker<Integer, Integer> {
+public class VariantEvalWalker extends RodWalker<Integer, Integer> implements TreeReducible<Integer> {
     @Output
     protected PrintStream out;
 
@@ -162,7 +166,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     @Argument(shortName="MVQ", fullName="MendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
     protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
 
-    @Argument(shortName="outputVCF", fullName="InterestingSitesVCF", doc="If provided, interesting sites emitted to this vcf and the INFO field annotated as to why they are interesting", required=false)
+    @Output(shortName="outputVCF", fullName="InterestingSitesVCF", doc="If provided, interesting sites emitted to this vcf and the INFO field annotated as to why they are interesting", required=false)
     protected VCFWriter writer = null;
 
     @Argument(shortName="gcLog", fullName="GenotypeCocordanceLog", doc="If provided, sites with genotype concordance problems (e.g., FP and FNs) will be emitted ot this file", required=false)
@@ -291,9 +295,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
     // Dynamically determined variantEvaluation classes
     private Set<Class<? extends VariantEvaluator>> evaluationClasses = null;
 
-    /** output writer for interesting sites */
-    private boolean wroteHeader = false;
-
     // --------------------------------------------------------------------------------------------------------------
     //
     // initialize
@@ -352,6 +353,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             if ( maxRsIDBuild == Integer.MAX_VALUE )
                 throw new IllegalArgumentException("rsIDFile " + rsIDFile + " was given but associated max RSID build parameter wasn't available");
             rsIDsToExclude = getrsIDsToExclude(new File(rsIDFile), maxRsIDBuild);
+        }
+
+        if ( writer != null ) {
+            Set<String> samples = SampleUtils.getUniqueSamplesFromRods(getToolkit(), evalNames);
+            final VCFHeader vcfHeader = new VCFHeader(new HashSet<VCFHeaderLine>(),  samples);
+            writer.writeHeader(vcfHeader);
         }
     }
 
@@ -514,48 +521,50 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             List<String> interestingReasons = new ArrayList<String>();
 
             for ( VariantEvaluator evaluation : evaluations ) {
-                if ( evaluation.enabled() ) {
-                    // we always call update0 in case the evaluation tracks things like number of bases covered
-                    evaluation.update0(tracker, ref, context);
+                synchronized ( evaluation ) {
+                    if ( evaluation.enabled() ) {
+                        // we always call update0 in case the evaluation tracks things like number of bases covered
+                        evaluation.update0(tracker, ref, context);
 
-                    // the other updateN methods don't see a null context
-                    if ( tracker == null )
-                        continue;
+                        // the other updateN methods don't see a null context
+                        if ( tracker == null )
+                            continue;
 
-                    // now call the single or paired update function
-                    switch ( evaluation.getComparisonOrder() ) {
-                        case 1:
-                            if ( evalWantsVC && vc != null ) {
-                                String interesting = evaluation.update1(vc, tracker, ref, context, group);
+                        // now call the single or paired update function
+                        switch ( evaluation.getComparisonOrder() ) {
+                            case 1:
+                                if ( evalWantsVC && vc != null ) {
+                                    String interesting = evaluation.update1(vc, tracker, ref, context, group);
+                                    if ( interesting != null ) interestingReasons.add(interesting);
+                                }
+                                break;
+                            case 2:
+                                VariantContext comp = vcs.get(group.compTrackName);
+                                if ( comp != null &&
+                                        minCompQualScore != NO_MIN_QUAL_SCORE &&
+                                        comp.hasNegLog10PError() &&
+                                        comp.getNegLog10PError() < (minCompQualScore / 10.0) )
+                                    comp = null;
+
+                                String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
+
+                                /** TODO
+                                 -- for Eric: Fix me (current implementation causes GenotypeConcordance
+                                 to treat sites that don't match JEXL as no-calls)
+
+                                 String interesting = null;
+                                 if (evalWantsVC)
+                                 {
+                                 interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
+                                 }
+                                 **/
+
+
                                 if ( interesting != null ) interestingReasons.add(interesting);
-                            }
-                            break;
-                        case 2:
-                            VariantContext comp = vcs.get(group.compTrackName);
-                            if ( comp != null &&
-                                    minCompQualScore != NO_MIN_QUAL_SCORE &&
-                                    comp.hasNegLog10PError() &&
-                                    comp.getNegLog10PError() < (minCompQualScore / 10.0) )
-                                comp = null;
-
-                            String interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
-
-                            /** TODO
-                             -- for Eric: Fix me (current implementation causes GenotypeConcordance
-                             to treat sites that don't match JEXL as no-calls)
-
-                             String interesting = null;
-                             if (evalWantsVC)
-                             {
-                             interesting = evaluation.update2( evalWantsVC ? vc : null, comp, tracker, ref, context, group );
-                             }
-                             **/
-
-
-                            if ( interesting != null ) interestingReasons.add(interesting);
-                            break;
-                        default:
-                            throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
+                                break;
+                            default:
+                                throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
+                        }
                     }
                 }
             }
@@ -592,10 +601,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
                 mvc.putAttribute(key, value);
             }
 
-            if ( ! wroteHeader ) {
-                writer.writeHeader(VariantContextAdaptors.createVCFHeader(null, vc));
-                wroteHeader = true;
-            }
 
             writer.add(mvc, ref);
             //interestingReasons.clear();
@@ -715,6 +720,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
         return point + sum;
     }
 
+    public Integer treeReduce(Integer point, Integer sum) {
+        return point + sum;
+    }
+
     public VariantEvaluator getEvalByName(String name, Set<VariantEvaluator> s) {
         for ( VariantEvaluator e : s )
             if ( e.getName().equals(name) )
@@ -733,20 +742,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> {
             }
         }
     }
-
-//    private String formatKeyword(String keyWord) {
-//        //System.out.printf("keyword %s%n", keyWord);
-//
-//        StringBuilder s = new StringBuilder();
-//        int i = 0;
-//        for ( String part : keyWord.split("\\.") ) {
-//            //System.out.printf("part %s %d%n", part, nameSizes[i]);
-//            s.append(String.format("%" + nameSizes[i] + "s ", part));
-//            i++;
-//        }
-//
-//        return s.toString();
-//    }
 
     public void onTraversalDone(Integer result) {
         // our report mashaller

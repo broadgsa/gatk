@@ -246,6 +246,23 @@ public class WalkerTest extends BaseTest {
         return false;
     }
 
+    protected Pair<List<File>, List<String>> executeTestParallel(final String name, WalkerTestSpec spec) {
+        return executeTest(name, spec, Arrays.asList(1, 4));
+    }
+
+    protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec, List<Integer> parallelThreads) {
+        String originalArgs = spec.args;
+        Pair<List<File>, List<String>> results = null;
+
+        for ( int nt : parallelThreads ) {
+            String extra = nt == 1 ? "" : (" -nt " + nt);
+            spec.args = originalArgs + extra;
+            results = executeTest(name + "-nt-" + nt, spec);
+        }
+
+        return results;
+    }
+
     protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec) {
         ensureMd5DbDirectory(); // ensure the md5 directory exists
 

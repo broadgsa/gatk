@@ -278,7 +278,7 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
                 // todo -- method that gets the header (or samples) for the first eval sites?
                 if (missedValidationData.size() > MAX_MISSED_VALIDATION_DATA) {
                     if (!warnedAboutValidationData) {
-                        logger.warn("Too many genotype sites missed before eval site appeared; ignoring");
+                        //logger.warn("Too many genotype sites missed before eval site appeared; ignoring");
                         warnedAboutValidationData = true;
                     }
                 } else {
