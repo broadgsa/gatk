@@ -36,10 +36,10 @@ class fullCallingPipeline extends QScript {
   @Input(doc="per-sample downsampling level",shortName="dcov",required=false)
   var downsampling_coverage = 300
 
-  @Input(doc="level of parallelism for IndelRealigner.  By default uses number of contigs.", shortName="cleanerScatter", required=false)
-  var num_cleaner_scatter_jobs: Option[Int] = None
+  @Input(doc="level of parallelism for IndelRealigner.  By default is set to 1.", shortName="cleanerScatter", required=false)
+  var num_cleaner_scatter_jobs = 1
 
-  @Input(doc="level of parallelism for UnifiedGenotyper", shortName="snpScatter", required=false)
+  @Input(doc="level of parallelism for UnifiedGenotyper.   By default is set to 20.", shortName="snpScatter", required=false)
   var num_snp_scatter_jobs = 20
 
   //@Input(doc="level of parallelism for IndelGenotyperV2", shortName="indelScatter", required=false)
@@ -92,7 +92,8 @@ class fullCallingPipeline extends QScript {
 
       // get contigs (needed for indel cleaning parallelism)
       val contigs = IntervalScatterFunction.distinctContigs(
-        qscript.pipeline.getProject.getReferenceFile)
+        qscript.pipeline.getProject.getReferenceFile,
+        List(qscript.pipeline.getProject.getIntervalList.getAbsolutePath))
 
       for ( sample <- recalibratedSamples ) {
         val sampleId = sample.getId
@@ -122,12 +123,7 @@ class fullCallingPipeline extends QScript {
         realigner.targetIntervals = targetCreator.out
         realigner.intervals = Nil
         realigner.intervalsString = Nil
-        realigner.scatterCount = {
-          if (num_cleaner_scatter_jobs.isDefined)
-            num_cleaner_scatter_jobs.get min contigs.size
-          else
-            contigs.size
-        }
+        realigner.scatterCount = num_cleaner_scatter_jobs min contigs.size
 
         // if scatter count is > 1, do standard scatter gather, if not, explicitly set up fix mates
         if (realigner.scatterCount > 1) {

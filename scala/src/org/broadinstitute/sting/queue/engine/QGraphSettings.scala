@@ -36,8 +36,8 @@ class QGraphSettings {
   @Argument(fullName="status_email_to", shortName="statusTo", doc="Email address to send emails to upon completion or on error.", required=false)
   var statusEmailTo: List[String] = Nil
 
-  @Argument(fullName="delete_intermediate_outputs", shortName="deleteIntermediates", doc="After a successful run delete the outputs of any Function marked as intermediate.", required=false)
-  var deleteIntermediates = false
+  @Argument(fullName="keep_intermediate_outputs", shortName="keepIntermediates", doc="After a successful run keep the outputs of any Function marked as intermediate.", required=false)
+  var keepIntermediates = false
 
   @Argument(fullName="retry_failed", shortName="retry", doc="Retry the specified number of times after a command fails.  Defaults to no retries.", required=false)
   var retries = 0

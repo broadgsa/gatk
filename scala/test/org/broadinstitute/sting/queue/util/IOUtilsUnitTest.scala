@@ -3,8 +3,31 @@ package org.broadinstitute.sting.queue.util
 import org.broadinstitute.sting.BaseTest
 import org.junit.{Assert, Test}
 import java.io.File
+import org.broadinstitute.sting.utils.exceptions.UserException
 
 class IOUtilsUnitTest extends BaseTest {
+  @Test
+  def testGoodTempDir = {
+    val tmpDir = System.getProperty("java.io.tmpdir")
+    try {
+      System.setProperty("java.io.tmpdir", "/tmp/queue")
+      IOUtils.checkTempDir
+    } finally {
+      System.setProperty("java.io.tmpdir", tmpDir)
+    }
+  }
+
+  @Test(expected=classOf[UserException.BadTmpDir])
+  def testBadTempDir = {
+    val tmpDir = System.getProperty("java.io.tmpdir")
+    try {
+      System.setProperty("java.io.tmpdir", "/tmp")
+      IOUtils.checkTempDir
+    } finally {
+      System.setProperty("java.io.tmpdir", tmpDir)
+    }
+  }
+
   @Test
   def testAbsoluteSubDir = {
     var subDir = IOUtils.subDir(IOUtils.CURRENT_DIR, new File("/path/to/file"))

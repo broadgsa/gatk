@@ -12,8 +12,8 @@ import org.jgrapht.event.{TraversalListenerAdapter, EdgeTraversalEvent}
 import org.broadinstitute.sting.queue.QException
 import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFunction, QFunction}
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, GatherFunction, ScatterGatherableFunction}
-import org.broadinstitute.sting.queue.util.{EmailMessage, JobExitException, LsfKillJob, Logging}
 import org.apache.commons.lang.StringUtils
+import org.broadinstitute.sting.queue.util._
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -46,6 +46,7 @@ class QGraph extends Logging {
    * Checks the functions for missing values and the graph for cyclic dependencies and then runs the functions in the graph.
    */
   def run = {
+    IOUtils.checkTempDir
     val numMissingValues = fillGraph
     val isReady = numMissingValues == 0
 
@@ -698,7 +699,7 @@ class QGraph extends Logging {
   }
 
   private def deleteIntermediateOutputs() = {
-    if (settings.deleteIntermediates && !hasFailed) {
+    if (!settings.keepIntermediates && !hasFailed) {
       logger.info("Deleting intermediate files.")
       traverseFunctions(edge => {
         if (edge.function.isIntermediate) {

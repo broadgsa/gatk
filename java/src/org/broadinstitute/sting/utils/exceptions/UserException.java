@@ -73,7 +73,7 @@ public class UserException extends ReviewedStingException {
 
     public static class BadTmpDir extends UserException {
         public BadTmpDir(String message) {
-            super(String.format("Failure working with the tmp directory %s. Override with -Djava.io.tmpdir=X on the command line to a bigger/better file system.  Exact error was %s", System.getProperties().get("java.io. tmpdir"), message));
+            super(String.format("Failure working with the tmp directory %s. Override with -Djava.io.tmpdir=X on the command line to a bigger/better file system.  Exact error was %s", System.getProperties().get("java.io.tmpdir"), message));
         }
     }
 

@@ -23,7 +23,7 @@ class QCommandLine extends CommandLineProgram with Logging {
    */
   def execute = {
 
-    val qGraph = new QGraph
+    val qGraph = QCommandLine.qGraph
     qGraph.settings = settings
     qGraph.debugMode = debugMode == true
 
@@ -35,15 +35,6 @@ class QCommandLine extends CommandLineProgram with Logging {
       script.functions.foreach(qGraph.add(_))
       logger.info("Added " + script.functions.size + " functions")
     }
-
-    Runtime.getRuntime.addShutdownHook(new Thread {
-      /** Cleanup as the JVM shuts down. */
-      override def run = {
-        qGraph.shutdown()
-        ProcessController.shutdown()
-        QScriptManager.deleteOutdir()
-      }
-    })
 
     qGraph.run
 
@@ -98,11 +89,23 @@ class QCommandLine extends CommandLineProgram with Logging {
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
  */
 object QCommandLine {
+  private val qGraph = new QGraph
+
+
   /**
    * Main.
    * @param argv Arguments.
    */
   def main(argv: Array[String]) {
+    Runtime.getRuntime.addShutdownHook(new Thread {
+      /** Cleanup as the JVM shuts down. */
+      override def run = {
+        qGraph.shutdown()
+        ProcessController.shutdown()
+        QScriptManager.deleteOutdir()
+      }
+    })
+
     try {
       CommandLineProgram.start(new QCommandLine, argv);
       if (CommandLineProgram.result != 0)

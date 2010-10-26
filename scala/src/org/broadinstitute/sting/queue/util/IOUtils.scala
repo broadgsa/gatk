@@ -1,7 +1,8 @@
 package org.broadinstitute.sting.queue.util
 
 import org.apache.commons.io.FileUtils
-import java.io.{FileReader, IOException, File}
+import java.io.{FileReader, File}
+import org.broadinstitute.sting.utils.exceptions.UserException
 
 /**
  * A collection of utilities for modifying java.io.
@@ -48,21 +49,23 @@ object IOUtils {
       absolute(new File(parentAbs, file.getPath))
   }
 
+  def checkTempDir = {
+    val javaTemp = System.getProperty("java.io.tmpdir")
+    // Keeps the user from leaving the temp directory as the default, and on Macs from having pluses
+    // in the path which can cause problems with the Google Reflections library.
+    // see also: http://benjchristensen.com/2009/09/22/mac-osx-10-6-java-java-io-tmpdir/
+    if (javaTemp.startsWith("/var/folders/") || (javaTemp == "/tmp") || (javaTemp == "/tmp/"))
+      throw new UserException.BadTmpDir("java.io.tmpdir must be explicitly set")
+  }
+
   /**
    * Returns the temp directory as defined by java.
    * @return the temp directory as defined by java.
    */
   def javaTempDir() = {
-    var javaTemp = System.getProperty("java.io.tmpdir")
-    // Keep the temp directory from having pluses in it, which can cause problems with the Google Reflections library.
-    // see also: http://benjchristensen.com/2009/09/22/mac-osx-10-6-java-java-io-tmpdir/
-    if (javaTemp.startsWith("/var/folders/")) {
-      javaTemp = "/tmp/"
-      System.setProperty("java.io.tmpdir", javaTemp)
-    }
-    val tempDir = new File(javaTemp)
+    val tempDir = new File(System.getProperty("java.io.tmpdir"))
     if (!tempDir.exists && !tempDir.mkdirs)
-      throw new IOException("Could not create directory: " + tempDir.getAbsolutePath())
+      throw new UserException.BadTmpDir("Could not create directory: " + tempDir.getAbsolutePath())
     absolute(tempDir)
   }
 
@@ -71,36 +74,22 @@ object IOUtils {
    * @param prefix Prefix for the directory name.
    * @param suffix Optional suffix for the directory name.  Defaults to "".
    * @return The created temporary directory.
-   * @throws IOException if the directory could not be created.
    */
   def tempDir(prefix: String, suffix: String = "") = {
     val tempDirParent = javaTempDir()
     if (!tempDirParent.exists && !tempDirParent.mkdirs)
-       throw new IOException("Could not create temp directory: " + tempDirParent)
+       throw new UserException.BadTmpDir("Could not create temp directory: " + tempDirParent)
     val temp = File.createTempFile(prefix + "-", suffix)
     if (!temp.delete)
-      throw new IOException("Could not delete sub file: " + temp.getAbsolutePath())
+      throw new UserException.BadTmpDir("Could not delete sub file: " + temp.getAbsolutePath())
     if (!temp.mkdir)
-      throw new IOException("Could not create sub directory: " + temp.getAbsolutePath())
+      throw new UserException.BadTmpDir("Could not create sub directory: " + temp.getAbsolutePath())
     absolute(temp)
-  }
-
-  /**
-   * Returns a temp directory that should be accessible from any network location.
-   * @return a temp directory that should be accessible from any network location.
-   */
-  def networkTempDir() = {
-    var tempDir = javaTempDir()
-    if (tempDir.getAbsolutePath.startsWith("/tmp"))
-      tempDir = new File(System.getProperty("user.home"), ".queue")
-    if (!tempDir.exists && !tempDir.mkdirs)
-      throw new IOException("Could not create directory: " + tempDir.getAbsolutePath())
-    absolute(tempDir)
   }
 
   def writeContents(file: File, content: String) =  FileUtils.writeStringToFile(file, content)
 
-  def writeTempFile(content: String, prefix: String, suffix: String = "", directory: File = networkTempDir) = {
+  def writeTempFile(content: String, prefix: String, suffix: String = "", directory: File) = {
     val tempFile = absolute(File.createTempFile(prefix, suffix, directory))
     writeContents(tempFile, content)
     tempFile
