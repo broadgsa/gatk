@@ -123,10 +123,11 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
             nSkippedReads += countsByFilter.getValue();
 
         logger.info(String.format("Total runtime %.2f secs, %.2f min, %.2f hours", elapsed, elapsed / 60, elapsed / 3600));
-        logger.info(String.format("%d reads were filtered out during traversal out of %d total (%.2f%%)",
-                nSkippedReads,
-                cumulativeMetrics.getNumReadsSeen(),
-                100.0 * MathUtils.ratio(nSkippedReads,cumulativeMetrics.getNumReadsSeen())));
+        if ( cumulativeMetrics.getNumReadsSeen() > 0 )
+            logger.info(String.format("%d reads were filtered out during traversal out of %d total (%.2f%%)",
+                    nSkippedReads,
+                    cumulativeMetrics.getNumReadsSeen(),
+                    100.0 * MathUtils.ratio(nSkippedReads,cumulativeMetrics.getNumReadsSeen())));
         for ( Map.Entry<Class, Long> filterCounts : cumulativeMetrics.getCountsByFilter().entrySet() ) {
             long count = filterCounts.getValue();
             logger.info(String.format("  -> %d reads (%.2f%% of total) failing %s",
