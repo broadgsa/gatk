@@ -1071,7 +1071,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         return reduces;
     }
 
-    private static Cigar unclipCigar(Cigar cigar) {
+    protected static Cigar unclipCigar(Cigar cigar) {
         ArrayList<CigarElement> elements = new ArrayList<CigarElement>(cigar.numCigarElements());
         for ( CigarElement ce : cigar.getCigarElements() ) {
             if ( !isClipOperator(ce.getOperator()) )
@@ -1082,6 +1082,26 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     private static boolean isClipOperator(CigarOperator op) {
         return op == CigarOperator.S || op == CigarOperator.H || op == CigarOperator.P;
+    }
+
+    protected static Cigar reclipCigar(Cigar cigar, SAMRecord read) {
+        ArrayList<CigarElement> elements = new ArrayList<CigarElement>();
+
+        int i = 0;
+        int n = read.getCigar().numCigarElements();
+        while ( i < n && isClipOperator(read.getCigar().getCigarElement(i).getOperator()) )
+            elements.add(read.getCigar().getCigarElement(i++));
+
+        elements.addAll(cigar.getCigarElements());
+
+        i++;
+        while ( i < n && !isClipOperator(read.getCigar().getCigarElement(i).getOperator()) )
+            i++;
+
+        while ( i < n && isClipOperator(read.getCigar().getCigarElement(i).getOperator()) )
+            elements.add(read.getCigar().getCigarElement(i++));
+
+        return new Cigar(elements);
     }
 
     private class AlignedRead {
@@ -1191,23 +1211,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // pull out the bases that aren't clipped out
         private Cigar reclipCigar(Cigar cigar) {
-            ArrayList<CigarElement> elements = new ArrayList<CigarElement>();
-
-            int i = 0;
-            int n = read.getCigar().numCigarElements();
-            while ( i < n && isClipOperator(read.getCigar().getCigarElement(i).getOperator()) )
-                elements.add(read.getCigar().getCigarElement(i++));
-
-            elements.addAll(cigar.getCigarElements());
-
-            i++;
-            while ( i < n && !isClipOperator(read.getCigar().getCigarElement(i).getOperator()) )
-                i++;
-
-            while ( i < n && isClipOperator(read.getCigar().getCigarElement(i).getOperator()) )
-                elements.add(read.getCigar().getCigarElement(i++));
-
-            return new Cigar(elements);
+            return IndelRealigner.reclipCigar(cigar, read);
         }
 
         // tentatively sets the new start, but it needs to be confirmed later
