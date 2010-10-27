@@ -105,7 +105,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                 String clpClassName = clpManager.getName(clp);
 
                 writeClass("org.broadinstitute.sting.queue.function.JarCommandLineFunction", COMMANDLINE_PACKAGE_NAME, clpClassName,
-                        false, "", ArgumentDefinitionField.getArgumentFields(clp));
+                        false, "", ArgumentDefinitionField.getArgumentFields(parser,clp));
 
                 if (clp == CommandLineGATK.class) {
                     for (Entry<String, Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage(false).entrySet()) {
@@ -113,9 +113,9 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                             String walkerName = walkerManager.getName(walkerType);
                             List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
 
-                            argumentFields.addAll(ArgumentDefinitionField.getArgumentFields(walkerType));
+                            argumentFields.addAll(ArgumentDefinitionField.getArgumentFields(parser,walkerType));
                             argumentFields.addAll(RodBindField.getRodArguments(walkerType, trackBuilder));
-                            argumentFields.addAll(ReadFilterField.getFilterArguments(walkerType));
+                            argumentFields.addAll(ReadFilterField.getFilterArguments(parser,walkerType));
 
                             String constructor = String.format("analysisName = \"%1$s\"%nanalysis_type = \"%1$s\"%n", walkerName);
                             String scatterClass = getScatterClass(walkerType);
@@ -134,7 +134,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
 
             for (Class<? extends SamRecordFilter> filter: filterManager.getValues()) {
                 String filterName = filterManager.getName(filter);
-                writeFilter(FILTER_PACKAGE_NAME, filterName, ArgumentDefinitionField.getArgumentFields(filter));
+                writeFilter(FILTER_PACKAGE_NAME, filterName, ArgumentDefinitionField.getArgumentFields(new ParsingEngine(null),filter));
             }
 
             return 0;

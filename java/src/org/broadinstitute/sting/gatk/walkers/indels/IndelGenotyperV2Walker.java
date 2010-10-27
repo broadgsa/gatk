@@ -211,7 +211,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         Set<Object> args = new HashSet<Object>();
         args.add(this);
         args.addAll(getToolkit().getFilters());
-        Map<String,String> commandLineArgs = CommandLineUtils.getApproximateCommandLineArguments(args);
+        Map<String,String> commandLineArgs = getToolkit().getApproximateCommandLineArguments(args);
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
             headerInfo.add(new VCFHeaderLine(String.format("IGv2_%s", commandLineArg.getKey()), commandLineArg.getValue()));
         // also, the list of input bams

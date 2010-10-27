@@ -44,7 +44,7 @@ class ScalaCompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
    */
   def parse(parsingEngine: ParsingEngine, source: ArgumentSource, classType: Class[_], argumentMatches: ArgumentMatches) = {
     val componentType = ReflectionUtils.getCollectionType(source.field)
-    val componentArgumentParser = ArgumentTypeDescriptor.create(componentType)
+    val componentArgumentParser = parsingEngine.selectBestTypeDescriptor(componentType)
 
     if (classOf[List[_]].isAssignableFrom(classType)) {
       var list = List.empty[Any]

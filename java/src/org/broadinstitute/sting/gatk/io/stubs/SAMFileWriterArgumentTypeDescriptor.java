@@ -82,12 +82,12 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     }
 
     @Override
-    public boolean createsTypeDefault(ArgumentSource source,Class type) {
+    public boolean createsTypeDefault(ArgumentSource source) {
         return true;
     }
 
     @Override
-    public Object createTypeDefault(ArgumentSource source,Class type) {
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) {
         SAMFileWriterStub stub = new SAMFileWriterStub(engine,defaultOutputStream);
         engine.addOutput(stub);
         return stub;

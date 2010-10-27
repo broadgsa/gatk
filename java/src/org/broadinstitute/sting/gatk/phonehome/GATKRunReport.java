@@ -180,7 +180,7 @@ public class GATKRunReport {
         // what did we run?
         id = org.apache.commons.lang.RandomStringUtils.randomAlphanumeric(32);
         try {
-            cmdLine = CommandLineUtils.createApproximateCommandLineArgumentString(engine, walker);
+            cmdLine = engine.createApproximateCommandLineArgumentString(engine, walker);
         } catch (Exception ignore) { }
 
         this.mCollection = engine.getArguments();

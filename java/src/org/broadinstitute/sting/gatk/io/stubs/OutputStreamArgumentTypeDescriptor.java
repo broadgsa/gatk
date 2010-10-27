@@ -63,15 +63,15 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public boolean createsTypeDefault(ArgumentSource source,Class type) {
+    public boolean createsTypeDefault(ArgumentSource source) {
         return true;
     }
 
     @Override
-    public Object createTypeDefault(ArgumentSource source,Class type) {
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) {
         OutputStreamStub stub = new OutputStreamStub(defaultOutputStream);
         engine.addOutput(stub);
-        return createInstanceOfClass(type,stub);        
+        return createInstanceOfClass(source.field.getType(),stub);        
     }
 
     @Override

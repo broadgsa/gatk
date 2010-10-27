@@ -103,13 +103,13 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
      * @return true always.
      */
     @Override
-    public boolean createsTypeDefault(ArgumentSource source,Class type) {
+    public boolean createsTypeDefault(ArgumentSource source) {
         return true;
     }
 
     @Override
-    public Object createTypeDefault(ArgumentSource source,Class type) {
-        VCFWriterStub stub = new VCFWriterStub(defaultOutputStream, false, argumentSources, false);
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) {
+        VCFWriterStub stub = new VCFWriterStub(engine, defaultOutputStream, false, argumentSources, false);
         engine.addOutput(stub);
         return stub;
     }
@@ -133,8 +133,8 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         boolean skipWritingHeader = argumentIsPresent(createNoHeaderArgumentDefinition(),matches);
 
         // Create a stub for the given object.
-        VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(writerFile, compress, argumentSources, skipWritingHeader)
-                                                  : new VCFWriterStub(defaultOutputStream, compress, argumentSources, skipWritingHeader);
+        VCFWriterStub stub = (writerFile != null) ? new VCFWriterStub(engine, writerFile, compress, argumentSources, skipWritingHeader)
+                                                  : new VCFWriterStub(engine, defaultOutputStream, compress, argumentSources, skipWritingHeader);
 
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(stub,getArgumentTags(matches));

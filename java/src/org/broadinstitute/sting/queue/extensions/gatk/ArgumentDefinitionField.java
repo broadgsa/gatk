@@ -108,9 +108,9 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         return OPTIONAL_TEMPLATE;
     }
 
-    public static List<? extends ArgumentField> getArgumentFields(Class<?> classType) {
+    public static List<? extends ArgumentField> getArgumentFields(ParsingEngine parsingEngine,Class<?> classType) {
         List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
-        for (ArgumentSource argumentSource: ParsingEngine.extractArgumentSources(classType))
+        for (ArgumentSource argumentSource: parsingEngine.extractArgumentSources(classType))
             if (!argumentSource.isDeprecated())
                 for (ArgumentDefinition argumentDefinition: argumentSource.createArgumentDefinitions())
                     argumentFields.addAll(getArgumentFields(argumentDefinition));

@@ -37,7 +37,7 @@ import java.util.*;
 public abstract class CommandLineProgram {
 
     /** The command-line program and the arguments it returned. */
-    private ParsingEngine parser = null;
+    protected ParsingEngine parser = null;
 
     /** our log, which we want to capture anything from org.broadinstitute.sting */
     private static Logger logger = Logger.getRootLogger();

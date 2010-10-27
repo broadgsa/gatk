@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.junit.Before;
 import org.junit.Assert;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.EnumSet;
 /**

@@ -31,6 +31,8 @@ import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.ArgumentSource;
+import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
@@ -61,6 +63,11 @@ import java.util.*;
  * Parses a GATKArgumentCollection into various gatk objects and then executes() some function.
  */
 public abstract class AbstractGenomeAnalysisEngine {
+
+    /**
+     * The GATK command-line argument parsing code.
+     */
+    private ParsingEngine parsingEngine;
 
     /**
      * Accessor for sharded read data.
@@ -125,6 +132,10 @@ public abstract class AbstractGenomeAnalysisEngine {
     private final FilterManager filterManager = new FilterManager();
 
     private Date startTime = null; // the start time for execution
+
+    public void setParser(ParsingEngine parsingEngine) {
+        this.parsingEngine = parsingEngine;    
+    }
 
     /**
      * Actually run the engine.
@@ -863,5 +874,11 @@ public abstract class AbstractGenomeAnalysisEngine {
         return sampleDataSource.subContextFromSampleProperty(context, key, value);
     }
 
+    public Map<String,String> getApproximateCommandLineArguments(Object... argumentProviders) {
+        return CommandLineUtils.getApproximateCommandLineArguments(parsingEngine,argumentProviders);
+    }
 
+    public String createApproximateCommandLineArgumentString(Object... argumentProviders) {
+        return CommandLineUtils.createApproximateCommandLineArgumentString(parsingEngine,argumentProviders);
+    }
 }

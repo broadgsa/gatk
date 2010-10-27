@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.queue.extensions.gatk;
 
 import net.sf.picard.filter.SamRecordFilter;
+import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 
@@ -37,10 +38,10 @@ public class ReadFilterField {
      * @param walkerClass the class of the walker
      * @return the list of argument fields
      */
-    public static List<ArgumentField> getFilterArguments(Class<? extends Walker> walkerClass) {
+    public static List<ArgumentField> getFilterArguments(ParsingEngine parser, Class<? extends Walker> walkerClass) {
         List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
         for(Class<? extends SamRecordFilter> filter: WalkerManager.getReadFilterTypes(walkerClass))
-            argumentFields.addAll(ArgumentDefinitionField.getArgumentFields(filter));
+            argumentFields.addAll(ArgumentDefinitionField.getArgumentFields(parser,filter));
         return argumentFields;
     }
 }

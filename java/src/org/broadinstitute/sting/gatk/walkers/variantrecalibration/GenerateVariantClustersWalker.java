@@ -129,7 +129,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
         if( !NO_HEADER_LINE ) {
             CLUSTER_FILE.print("##GenerateVariantClusters = ");
-            CLUSTER_FILE.println("\"" + CommandLineUtils.createApproximateCommandLineArgumentString(getToolkit(), this) + "\"");
+            CLUSTER_FILE.println("\"" + getToolkit().createApproximateCommandLineArgumentString(getToolkit(), this) + "\"");
         }
 
         boolean foundDBSNP = false;

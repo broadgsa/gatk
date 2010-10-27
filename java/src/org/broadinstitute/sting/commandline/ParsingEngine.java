@@ -65,6 +65,16 @@ public class ParsingEngine {
     private List<ParsingMethod> parsingMethods = new ArrayList<ParsingMethod>();
 
     /**
+     * Class reference to the different types of descriptors that the create method can create.
+     * The type of set used must be ordered (but not necessarily sorted).
+     */
+    private static final Set<ArgumentTypeDescriptor> STANDARD_ARGUMENT_TYPE_DESCRIPTORS = new LinkedHashSet<ArgumentTypeDescriptor>( Arrays.asList(new SimpleArgumentTypeDescriptor(),
+            new CompoundArgumentTypeDescriptor(),
+            new MultiplexArgumentTypeDescriptor()) );
+
+    private Set<ArgumentTypeDescriptor> argumentTypeDescriptors = new LinkedHashSet<ArgumentTypeDescriptor>();
+
+    /**
      * our log, which we want to capture anything from org.broadinstitute.sting
      */
     protected static Logger logger = Logger.getLogger(ParsingEngine.class);
@@ -75,9 +85,10 @@ public class ParsingEngine {
         parsingMethods.add( ParsingMethod.FullNameParsingMethod );
         parsingMethods.add( ParsingMethod.ShortNameParsingMethod );
 
-        // Null check for unit tests.  Perhaps we should mock up an empty CLP?
-        if( clp != null )
-            ArgumentTypeDescriptor.addDescriptors( clp.getArgumentTypeDescriptors() );
+        // Order matters here!  Make sure the clp's new type descriptors go in before the original type descriptors.
+        if(clp != null)
+            argumentTypeDescriptors.addAll(clp.getArgumentTypeDescriptors());
+        argumentTypeDescriptors.addAll(STANDARD_ARGUMENT_TYPE_DESCRIPTORS);
     }
 
     /**
@@ -259,7 +270,7 @@ public class ParsingEngine {
         List<ArgumentSource> dependentArguments = new ArrayList<ArgumentSource>();
 
         for( ArgumentSource argumentSource: argumentSources ) {
-            if(argumentSource.isDeprecated() && argumentMatches.findMatches(argumentSource).size() > 0)
+            if(argumentSource.isDeprecated() && argumentMatches.findMatches(this,argumentSource).size() > 0)
                 notifyDeprecatedCommandLineArgument(argumentSource);
 
             // If this argument source depends on other command-line arguments, skip it and make a note to process it later.
@@ -267,13 +278,13 @@ public class ParsingEngine {
                 dependentArguments.add(argumentSource);
                 continue;
             }
-            loadValueIntoObject( argumentSource, object, argumentMatches.findMatches(argumentSource) );
+            loadValueIntoObject( argumentSource, object, argumentMatches.findMatches(this,argumentSource) );
         }
 
         for(ArgumentSource dependentArgument: dependentArguments) {
-            MultiplexArgumentTypeDescriptor dependentDescriptor = dependentArgument.createDependentTypeDescriptor(object);
+            MultiplexArgumentTypeDescriptor dependentDescriptor = dependentArgument.createDependentTypeDescriptor(this,object);
             ArgumentSource dependentSource = dependentArgument.copyWithCustomTypeDescriptor(dependentDescriptor);
-            loadValueIntoObject(dependentSource,object,argumentMatches.findMatches(dependentSource));
+            loadValueIntoObject(dependentSource,object,argumentMatches.findMatches(this,dependentSource));
         }
     }
 
@@ -306,8 +317,10 @@ public class ParsingEngine {
      * @param instance Object into which to inject the value.  The target might be in a container within the instance.
      */
     private void loadValueIntoObject( ArgumentSource source, Object instance, ArgumentMatches argumentMatches ) {
+        ArgumentTypeDescriptor typeDescriptor = selectBestTypeDescriptor(source.field.getType());
+
         // Nothing to load
-        if( argumentMatches.size() == 0 && !(source.overridesDefault() && source.isRequired()))
+        if( argumentMatches.size() == 0 && !(typeDescriptor.createsTypeDefault(source) && source.isRequired()))
             return;
 
         // Target instance into which to inject the value.
@@ -318,7 +331,7 @@ public class ParsingEngine {
             throw new ReviewedStingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
 
         for( Object target: targets ) {
-            Object value = (argumentMatches.size() != 0) ? source.parse(this,argumentMatches) : source.createDefault();
+            Object value = (argumentMatches.size() != 0) ? source.parse(this,argumentMatches) : typeDescriptor.createTypeDefault(this,source);
 
             JVMUtils.setFieldValue(source.field,target,value);
         }
@@ -357,18 +370,28 @@ public class ParsingEngine {
      * @param sourceClass class to act as sources for other arguments.
      * @return A list of sources associated with this object and its aggregated objects.
      */
-    public static List<ArgumentSource> extractArgumentSources(Class sourceClass) {
+    public List<ArgumentSource> extractArgumentSources(Class sourceClass) {
         return extractArgumentSources(sourceClass, new Field[0]);
     }
 
-    private static List<ArgumentSource> extractArgumentSources(Class sourceClass, Field[] parentFields) {
+    /**
+     * Fetch the best command-line argument descriptor for the given class.
+     * @param type Class for which to specify a descriptor.
+     * @return descriptor for the given type.
+     */
+    public ArgumentTypeDescriptor selectBestTypeDescriptor(Class type) {
+        return ArgumentTypeDescriptor.selectBest(argumentTypeDescriptors,type);
+    }
+
+
+    private List<ArgumentSource> extractArgumentSources(Class sourceClass, Field[] parentFields) {
         // now simply call into the truly general routine extract argument bindings but with a null
         // object so bindings aren't computed
         Map<ArgumentSource, Object> bindings = extractArgumentBindings(null, sourceClass, parentFields);
         return new ArrayList<ArgumentSource>(bindings.keySet());
     }
 
-    public static Map<ArgumentSource, Object> extractArgumentBindings(Object obj) {
+    public Map<ArgumentSource, Object> extractArgumentBindings(Object obj) {
         if ( obj == null ) throw new IllegalArgumentException("Incoming object cannot be null");
         return extractArgumentBindings(obj, obj.getClass(), new Field[0]);
     }
@@ -380,7 +403,7 @@ public class ParsingEngine {
      * @param parentFields Parent Fields
      * @return A map of sources associated with this object and its aggregated objects and bindings to their bindings values
      */
-    private static Map<ArgumentSource, Object> extractArgumentBindings(Object obj, Class sourceClass, Field[] parentFields) {
+    private Map<ArgumentSource, Object> extractArgumentBindings(Object obj, Class sourceClass, Field[] parentFields) {
         Map<ArgumentSource, Object> bindings = new LinkedHashMap<ArgumentSource, Object>();
 
         while( sourceClass != null ) {
@@ -388,7 +411,7 @@ public class ParsingEngine {
             for( Field field: fields ) {
                 if( ArgumentTypeDescriptor.isArgumentAnnotationPresent(field) ) {
                     Object val = obj != null ? JVMUtils.getFieldValue(field, obj) : null;
-                    bindings.put( new ArgumentSource(parentFields, field), val );
+                    bindings.put( new ArgumentSource(parentFields, field, selectBestTypeDescriptor(field.getType())), val );
                 }
                 if( field.isAnnotationPresent(ArgumentCollection.class) ) {
                     Object val = obj != null ? JVMUtils.getFieldValue(field, obj) : null;

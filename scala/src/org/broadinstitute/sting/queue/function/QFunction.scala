@@ -410,6 +410,8 @@ object QFunction {
   /** Job index counter for this run of Queue. */
   private var jobIndex = 0
 
+  var parsingEngine: ParsingEngine = _
+
   /**
    * Returns the next job name using the prefix.
    * @param prefix Prefix of the job name.
@@ -426,7 +428,7 @@ object QFunction {
    */
   private class ClassFields(clazz: Class[_]) {
     /** The complete list of fields on this CommandLineFunction. */
-    val functionFields: List[ArgumentSource] = ParsingEngine.extractArgumentSources(clazz).toList
+    val functionFields: List[ArgumentSource] = parsingEngine.extractArgumentSources(clazz).toList
     /** The @Input fields on this CommandLineFunction. */
     val inputFields = functionFields.filter(source => ReflectionUtils.hasAnnotation(source.field, classOf[Input]))
     /** The @Output fields on this CommandLineFunction. */

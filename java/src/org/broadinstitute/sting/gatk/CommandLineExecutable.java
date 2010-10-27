@@ -69,6 +69,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      * @return the return code to exit the program with
      */
     protected int execute() throws Exception {
+        engine.setParser(parser);
         argumentSources.add(this);
 
         Walker<?,?> walker = engine.getWalkerByName(getAnalysisName());

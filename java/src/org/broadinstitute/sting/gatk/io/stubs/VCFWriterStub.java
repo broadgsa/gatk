@@ -38,6 +38,7 @@ import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 
@@ -48,6 +49,10 @@ import org.broadinstitute.sting.utils.classloader.JVMUtils;
  * @version 0.1
  */
 public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
+    /**
+     * The engine, central to the GATK's processing.
+     */
+    private final GenomeAnalysisEngine engine;
 
     /**
      * The file that this stub should write to.  Should be mutually
@@ -93,7 +98,8 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * @param genotypeFile  file to (ultimately) create.
      * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader) {
+    public VCFWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader) {
+        this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
         this.isCompressed = isCompressed;
@@ -106,7 +112,8 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * @param genotypeStream  stream to (ultimately) write.
      * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader) {
+    public VCFWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader) {
+        this.engine = engine;
         this.genotypeFile = null;
         this.genotypeStream = new PrintStream(genotypeStream);
         this.isCompressed = isCompressed;
@@ -199,6 +206,6 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      */
     private VCFHeaderLine getCommandLineArgumentHeaderLine() {
         CommandLineExecutable executable = JVMUtils.getObjectOfType(argumentSources,CommandLineExecutable.class);
-        return new VCFHeaderLine(executable.getAnalysisName(), "\"" + CommandLineUtils.createApproximateCommandLineArgumentString(argumentSources.toArray()) + "\"");
+        return new VCFHeaderLine(executable.getAnalysisName(), "\"" + engine.createApproximateCommandLineArgumentString(argumentSources.toArray()) + "\"");
     }
 }

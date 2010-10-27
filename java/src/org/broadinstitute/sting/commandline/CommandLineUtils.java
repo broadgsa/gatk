@@ -48,11 +48,11 @@ public class CommandLineUtils {
      * @return A key-value mapping of argument full names to argument values.  Produces best string representation
      *         possible given the information available.
      */
-    public static Map<String,String> getApproximateCommandLineArguments(Object... argumentProviders) {
+    public static Map<String,String> getApproximateCommandLineArguments(ParsingEngine parsingEngine, Object... argumentProviders) {
         Map<String,String> commandLineArguments = new LinkedHashMap<String,String>();
 
         for(Object argumentProvider: argumentProviders) {
-            Map<ArgumentSource, Object> argBindings = ParsingEngine.extractArgumentBindings(argumentProvider);
+            Map<ArgumentSource, Object> argBindings = parsingEngine.extractArgumentBindings(argumentProvider);
             for(Map.Entry<ArgumentSource, Object> elt: argBindings.entrySet()) {
                 Object argumentValue = elt.getValue();
                 String argumentValueString = argumentValue != null ? argumentValue.toString() : null;
@@ -72,8 +72,8 @@ public class CommandLineUtils {
      * @param argumentProviders Argument providers to inspect.
      * @return A string representing the given command-line arguments.
      */
-    public static String createApproximateCommandLineArgumentString(Object... argumentProviders) {
-        Map<String,String> commandLineArgs = getApproximateCommandLineArguments(argumentProviders);
+    public static String createApproximateCommandLineArgumentString(ParsingEngine parsingEngine, Object... argumentProviders) {
+        Map<String,String> commandLineArgs = getApproximateCommandLineArguments(parsingEngine,argumentProviders);
         StringBuffer sb = new StringBuffer();
 
         boolean first = true;

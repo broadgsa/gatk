@@ -111,8 +111,8 @@ public class ArgumentMatches implements Iterable<ArgumentMatch> {
      * @return List of all matches.
      */
 
-    ArgumentMatches findMatches( ArgumentSource argumentSource ) {
-        List<ArgumentDefinition> sourceDefinitions = ArgumentTypeDescriptor.create(argumentSource.field.getType()).createArgumentDefinitions(argumentSource);
+    ArgumentMatches findMatches(ParsingEngine parsingEngine, ArgumentSource argumentSource) {
+        List<ArgumentDefinition> sourceDefinitions = parsingEngine.selectBestTypeDescriptor(argumentSource.field.getType()).createArgumentDefinitions(argumentSource);
 
         ArgumentMatches matches = new ArgumentMatches();
         for( ArgumentMatch argumentMatch: getUniqueMatches() ) {

@@ -57,28 +57,11 @@ public class ArgumentSource {
 
     /**
      * Create a new command-line argument target.
-     * @param field Field containing the argument.  Field must be annotated with 'Input' or 'Output'.
-     */
-    public ArgumentSource( Field field ) {
-        this(new Field[0], field);
-    }
-
-    /**
-     * Create a new command-line argument target.
-     * @param parentFields Parent fields containing the the field.  Field must be annotated with 'ArgumentCollection'.
-     * @param field Field containing the argument.  Field must be annotated with 'Input' or 'Output'.
-     */
-    public ArgumentSource( Field[] parentFields, Field field ) {
-        this(parentFields,field,ArgumentTypeDescriptor.create(field.getType()));
-    }
-
-    /**
-     * Create a new command-line argument target.
      * @param parentFields Parent fields containing the the field.  Field must be annotated with 'ArgumentCollection'.
      * @param field Field containing the argument.  Field must be annotated with 'Input' or 'Output'.
      * @param typeDescriptor custom type descriptor to use when parsing.
      */
-    private ArgumentSource( Field[] parentFields, Field field, ArgumentTypeDescriptor typeDescriptor) {
+    protected ArgumentSource( Field[] parentFields, Field field, ArgumentTypeDescriptor typeDescriptor) {
         this.parentFields = parentFields;
         this.field = field;
         this.typeDescriptor = typeDescriptor;
@@ -125,22 +108,6 @@ public class ArgumentSource {
      */
     public List<ArgumentDefinition> createArgumentDefinitions() {
         return typeDescriptor.createArgumentDefinitions( this );
-    }
-
-    /**
-     * This argument type descriptor wants to override any default value the user might have specified.
-     * @return True if this descriptor wants to override any default the user specified.  False otherwise.
-     */
-    public boolean overridesDefault() {
-        return typeDescriptor.createsTypeDefault(this,field.getType());
-    }
-
-    /**
-     * Provides the default value for the command-line argument.
-     * @return Default value to load into the object.
-     */
-    public Object createDefault() {
-        return typeDescriptor.createTypeDefault(this,field.getType());
     }
 
     /**
@@ -203,13 +170,14 @@ public class ArgumentSource {
     /**
      * Builds out a new type descriptor for the given dependent argument as a function
      * of the containing object.
+     * @param parsingEngine the parsing engine to use when building out this custom type descriptor.
      * @param containingObject The containing object.
      * @return An argument type descriptor for the custom derivative field.
      */
-    public MultiplexArgumentTypeDescriptor createDependentTypeDescriptor(Object containingObject) {
+    public MultiplexArgumentTypeDescriptor createDependentTypeDescriptor(ParsingEngine parsingEngine,Object containingObject) {
         if(!isDependent())
             throw new ReviewedStingException("Field " + field.getName() + " is independent; no dependent type descriptor can be derived.");
-        return ((MultiplexArgumentTypeDescriptor)typeDescriptor).createCustomTypeDescriptor(this,containingObject);
+        return ((MultiplexArgumentTypeDescriptor)typeDescriptor).createCustomTypeDescriptor(parsingEngine,this,containingObject);
     }
 
     /**

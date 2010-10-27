@@ -51,34 +51,14 @@ public abstract class ArgumentTypeDescriptor {
      * our log, which we want to capture anything from org.broadinstitute.sting
      */
     protected static Logger logger = Logger.getLogger(ArgumentTypeDescriptor.class);
-    
-    /**
-     * Class reference to the different types of descriptors that the create method can create.
-     * The type of set used must be ordered (but not necessarily sorted).
-     */
-    private static Set<ArgumentTypeDescriptor> descriptors = new LinkedHashSet<ArgumentTypeDescriptor>( Arrays.asList(new SimpleArgumentTypeDescriptor(),
-                                                                                                                      new CompoundArgumentTypeDescriptor(),
-                                                                                                                      new MultiplexArgumentTypeDescriptor()) );
-
-    /**
-     * Adds new, user defined descriptors to the head of the descriptor list.
-     * @param argumentTypeDescriptors New descriptors to add.  List can be empty, but should not be null.
-     */
-    public static void addDescriptors( Collection<ArgumentTypeDescriptor> argumentTypeDescriptors ) {
-        // We care about ordering; newly added descriptors should have priority over stock descriptors.
-        // Enforce this by creating a new *ordered* set, adding the new descriptors, then adding the old descriptors.
-        Set<ArgumentTypeDescriptor> allDescriptors = new LinkedHashSet<ArgumentTypeDescriptor>();
-        allDescriptors.addAll( argumentTypeDescriptors );
-        allDescriptors.addAll( descriptors );
-        descriptors = allDescriptors;
-    }
 
     /**
      * Fetch the given descriptor from the descriptor repository.
+     * @param descriptors the descriptors from which to select a good match.
      * @param type Class for which to specify a descriptor.
      * @return descriptor for the given type.
      */
-    public static ArgumentTypeDescriptor create( Class type ) {
+    public static ArgumentTypeDescriptor selectBest( Collection<ArgumentTypeDescriptor> descriptors, Class type ) {
         for( ArgumentTypeDescriptor descriptor: descriptors ) {
             if( descriptor.supports(type) )
                 return descriptor;
@@ -98,14 +78,15 @@ public abstract class ArgumentTypeDescriptor {
      * @param source Source of the command-line argument.
      * @return True to throw in a type specific default.  False otherwise.
      */
-    public boolean createsTypeDefault(ArgumentSource source,Class type) { return false; }
+    public boolean createsTypeDefault(ArgumentSource source) { return false; }
 
     /**
      * Generates a default for the given type.
+     * @param parsingEngine the parsing engine used to validate this argument type descriptor.
      * @param source Source of the command-line argument.
      * @return A default value for the given type.
      */
-    public Object createTypeDefault(ArgumentSource source,Class type) { throw new UnsupportedOperationException("Unable to create default for type " + getClass()); }
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) { throw new UnsupportedOperationException("Unable to create default for type " + getClass()); }
 
     /**
      * Given the given argument source and attributes, synthesize argument definitions for command-line arguments.
@@ -153,7 +134,7 @@ public abstract class ArgumentTypeDescriptor {
                                        ArgumentDefinition.getFullName(argumentAnnotation, source.field.getName()),
                                        ArgumentDefinition.getShortName(argumentAnnotation),
                                        ArgumentDefinition.getDoc(argumentAnnotation),
-                                       source.isRequired() && !source.overridesDefault() && !source.isFlag() && !source.isDeprecated(),
+                                       source.isRequired() && !createsTypeDefault(source) && !source.isFlag() && !source.isDeprecated(),
                                        source.isFlag(),
                                        source.isMultiValued(),
                                        source.isHidden(),
@@ -412,7 +393,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             }
 
             componentType = getCollectionComponentType( source.field );
-            ArgumentTypeDescriptor componentArgumentParser = ArgumentTypeDescriptor.create( componentType );
+            ArgumentTypeDescriptor componentArgumentParser = parsingEngine.selectBestTypeDescriptor(componentType);
 
             Collection collection;
             try {
@@ -439,7 +420,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         }
         else if( type.isArray() ) {
             componentType = type.getComponentType();
-            ArgumentTypeDescriptor componentArgumentParser = ArgumentTypeDescriptor.create( componentType );
+            ArgumentTypeDescriptor componentArgumentParser = parsingEngine.selectBestTypeDescriptor(componentType);
 
             // Assemble a collection of individual values used in this computation.
             Collection<ArgumentMatch> values = new ArrayList<ArgumentMatch>();
@@ -516,24 +497,24 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public boolean createsTypeDefault(ArgumentSource source,Class type) {
+    public boolean createsTypeDefault(ArgumentSource source) {
         // Multiplexing always creates a type default.
         return true;
     }
 
     @Override
-    public Object createTypeDefault(ArgumentSource source,Class type) {
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) {
         if(multiplexer == null || multiplexedIds == null)
             throw new ReviewedStingException("No multiplexed ids available");
 
         Map<Object,Object> multiplexedMapping = new HashMap<Object,Object>();
         Class componentType = getCollectionComponentType(source.field);
-        ArgumentTypeDescriptor componentTypeDescriptor = ArgumentTypeDescriptor.create(componentType);
+        ArgumentTypeDescriptor componentTypeDescriptor = parsingEngine.selectBestTypeDescriptor(componentType);
 
         for(Object id: multiplexedIds) {
             Object value = null;
-            if(componentTypeDescriptor.createsTypeDefault(source,componentType))
-                value = componentTypeDescriptor.createTypeDefault(source,componentType);
+            if(componentTypeDescriptor.createsTypeDefault(source))
+                value = componentTypeDescriptor.createTypeDefault(parsingEngine,source);
             multiplexedMapping.put(id,value);
         }
         return multiplexedMapping;
@@ -551,7 +532,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
 
         for(Object id: multiplexedIds) {
-            Object value = ArgumentTypeDescriptor.create(componentType).parse(parsingEngine,source,componentType,matches.transform(multiplexer,id));
+            Object value = parsingEngine.selectBestTypeDescriptor(componentType).parse(parsingEngine,source,componentType,matches.transform(multiplexer,id));
             multiplexedMapping.put(id,value);
         }
 
@@ -560,10 +541,10 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         return multiplexedMapping;
     }
 
-    public MultiplexArgumentTypeDescriptor createCustomTypeDescriptor(ArgumentSource dependentArgument,Object containingObject) {
+    public MultiplexArgumentTypeDescriptor createCustomTypeDescriptor(ParsingEngine parsingEngine,ArgumentSource dependentArgument,Object containingObject) {
         String[] sourceFields = dependentArgument.field.getAnnotation(Multiplex.class).arguments();
 
-        List<ArgumentSource> allSources = ParsingEngine.extractArgumentSources(containingObject.getClass());
+        List<ArgumentSource> allSources = parsingEngine.extractArgumentSources(containingObject.getClass());
         Class[] sourceTypes = new Class[sourceFields.length];
         Object[] sourceValues = new Object[sourceFields.length];
         int currentField = 0;

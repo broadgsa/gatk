@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.queue
 
+import function.QFunction
 import java.io.File
 import java.util.Arrays
 import org.broadinstitute.sting.commandline._
@@ -16,6 +17,8 @@ class QCommandLine extends CommandLineProgram with Logging {
 
   @ArgumentCollection
   private val settings = new QGraphSettings
+
+  QFunction.parsingEngine = new ParsingEngine(this)    
 
   /**
    * Takes the QScripts passed in, runs their script() methods, retrieves their generated
