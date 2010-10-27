@@ -56,6 +56,12 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
     @Argument(fullName = "maxGenomicDistanceForMNP", shortName = "maxDistMNP", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records into a MNP record; [default:1]", required = false)
     protected int maxGenomicDistanceForMNP = 1;
 
+    @Argument(fullName = "useSingleSample", shortName = "useSample", doc = "Only output genotypes for the single sample given; [default:use all samples]", required = false)
+    protected String useSingleSample = null;
+
+    @Argument(fullName = "emitOnlyMergedRecords", shortName = "emitOnlyMerged", doc = "Only output records that resulted from merging; [default:false]", required = false)
+    protected boolean emitOnlyMergedRecords = false;
+
     @Argument(fullName = "disablePrintAltAlleleStats", shortName = "noAlleleStats", doc = "Should the print-out of alternate allele statistics be disabled?; [default:false]", required = false)
     protected boolean disablePrintAlternateAlleleStatistics = false;
 
@@ -70,7 +76,7 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
 
     private void initializeVcfWriter() {
         // false <-> don't take control of writer, since didn't create it:
-        vcMergerWriter = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger, false, !disablePrintAlternateAlleleStatistics);
+        vcMergerWriter = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, useSingleSample, emitOnlyMergedRecords, logger, false, !disablePrintAlternateAlleleStatistics);
         writer = null; // so it can't be accessed directly [i.e., not through vcMergerWriter]
 
         // setup the header fields:
@@ -139,7 +145,7 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
         vcMergerWriter.close();
 
         System.out.println("Number of successive pairs of records (any distance): " + vcMergerWriter.getNumRecordsAttemptToMerge());
-        System.out.println("Number of potentially merged records (distance <= "+ maxGenomicDistanceForMNP + "): " + vcMergerWriter.getNumRecordsWithinDistance());
+        System.out.println("Number of potentially merged records (distance <= " + maxGenomicDistanceForMNP + "): " + vcMergerWriter.getNumRecordsWithinDistance());
         System.out.println("Number of records merged [all samples are mergeable, some sample has a MNP of ALT alleles]: " + vcMergerWriter.getNumMergedRecords());
         System.out.println(vcMergerWriter.getAltAlleleStats());
     }

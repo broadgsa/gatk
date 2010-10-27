@@ -47,6 +47,10 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     private ReferenceSequenceFile referenceFileForMNPmerging;
     private int maxGenomicDistanceForMNP;
 
+    private String useSingleSample = null;
+
+    private boolean emitOnlyMergedRecords;
+
     private VCFRecord vcfrWaitingToMerge;
     private List<VCFRecord> filteredVcfrList;
 
@@ -60,10 +64,13 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     // Should we call innerWriter.close() in close()
     private boolean takeOwnershipOfInner;
 
-    public MergePhasedSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, File referenceFile, int maxGenomicDistanceForMNP, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
+    public MergePhasedSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, File referenceFile, int maxGenomicDistanceForMNP, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
         this.innerWriter = innerWriter;
         this.referenceFileForMNPmerging = new IndexedFastaSequenceFile(referenceFile);
         this.maxGenomicDistanceForMNP = maxGenomicDistanceForMNP;
+        this.useSingleSample = singleSample;
+        this.emitOnlyMergedRecords = emitOnlyMergedRecords;
+
         this.vcfrWaitingToMerge = null;
         this.filteredVcfrList = new LinkedList<VCFRecord>();
         this.numRecordsWithinDistance = 0;
@@ -77,7 +84,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     }
 
     public MergePhasedSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, File referenceFile, int maxGenomicDistanceForMNP, Logger logger) {
-        this(innerWriter, referenceFile, maxGenomicDistanceForMNP, logger, false, false); // by default, don't own inner and don't keep track of alt allele statistics
+        this(innerWriter, referenceFile, maxGenomicDistanceForMNP, null, false, logger, false, false); // by default: consider all samples, emit all records, don't own inner, don't keep track of alt allele statistics
     }
 
     public void writeHeader(VCFHeader header) {
@@ -92,6 +99,14 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     }
 
     public void add(VariantContext vc, byte refBase) {
+        if (useSingleSample != null) { // only want to output context for one sample
+            Genotype sampGt = vc.getGenotype(useSingleSample);
+            if (sampGt != null)
+                vc = vc.subContextFromGenotypes(sampGt);
+            else // asked for a sample that this vc does not contain, so ignore this vc:
+                return;
+        }
+
         logger.debug("Next VC input = " + VariantContextUtils.getLocation(vc));
         boolean curVcIsNotFiltered = vc.isNotFiltered();
 
@@ -103,9 +118,9 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
 
             if (curVcIsNotFiltered) { // still need to wait before can release vc
                 logger.debug("Waiting for new variant " + VariantContextUtils.getLocation(vc));
-                vcfrWaitingToMerge = new VCFRecord(vc, refBase);
+                vcfrWaitingToMerge = new VCFRecord(vc, refBase, false);
             }
-            else {
+            else if (!emitOnlyMergedRecords) { // filtered records are never merged
                 logger.debug("DIRECTLY output " + VariantContextUtils.getLocation(vc));
                 innerWriter.add(vc, refBase);
             }
@@ -114,8 +129,10 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
             logger.debug("Waiting to merge " + VariantContextUtils.getLocation(vcfrWaitingToMerge.vc));
 
             if (!curVcIsNotFiltered) {
-                logger.debug("Caching unprocessed output " + VariantContextUtils.getLocation(vc));
-                filteredVcfrList.add(new VCFRecord(vc, refBase));
+                if (!emitOnlyMergedRecords) { // filtered records are never merged
+                    logger.debug("Caching unprocessed output " + VariantContextUtils.getLocation(vc));
+                    filteredVcfrList.add(new VCFRecord(vc, refBase, false));
+                }
             }
             else { // waiting to merge vcfrWaitingToMerge, and curVcIsNotFiltered. So, attempt to merge them:
                 numRecordsAttemptToMerge++;
@@ -144,14 +161,14 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
                     VariantContext mergedVc = VariantContextUtils.mergeIntoMNP(vcfrWaitingToMerge.vc, vc, referenceFileForMNPmerging);
                     if (mergedVc != null) {
                         mergedRecords = true;
-                        vcfrWaitingToMerge = new VCFRecord(mergedVc, vcfrWaitingToMerge.refBase);
+                        vcfrWaitingToMerge = new VCFRecord(mergedVc, vcfrWaitingToMerge.refBase, true);
                         numMergedRecords++;
                     }
                 }
 
                 if (!mergedRecords) {
                     stopWaitingToMerge();
-                    vcfrWaitingToMerge = new VCFRecord(vc, refBase);
+                    vcfrWaitingToMerge = new VCFRecord(vc, refBase, false);
                 }
                 logger.debug("Merged? = " + mergedRecords);
             }
@@ -165,7 +182,8 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
             return;
         }
 
-        innerWriter.add(vcfrWaitingToMerge.vc, vcfrWaitingToMerge.refBase);
+        if (!emitOnlyMergedRecords || vcfrWaitingToMerge.resultedFromMerge)
+            innerWriter.add(vcfrWaitingToMerge.vc, vcfrWaitingToMerge.refBase);
         vcfrWaitingToMerge = null;
 
         for (VCFRecord vcfr : filteredVcfrList)
@@ -209,10 +227,12 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     private static class VCFRecord {
         public VariantContext vc;
         public byte refBase;
+        public boolean resultedFromMerge;
 
-        public VCFRecord(VariantContext vc, byte refBase) {
+        public VCFRecord(VariantContext vc, byte refBase, boolean resultedFromMerge) {
             this.vc = vc;
             this.refBase = refBase;
+            this.resultedFromMerge = resultedFromMerge;
         }
     }
 
@@ -284,7 +304,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
 
         private String percentageString(int count, int baseCount) {
             int NUM_DECIMAL_PLACES = 1;
-            String percent = new Formatter().format("%."+ NUM_DECIMAL_PLACES + "f", MathUtils.percentage(count, baseCount)).toString();
+            String percent = new Formatter().format("%." + NUM_DECIMAL_PLACES + "f", MathUtils.percentage(count, baseCount)).toString();
             return count + " (" + percent + "%)";
         }
     }
