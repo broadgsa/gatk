@@ -88,6 +88,12 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     }
 
     public void writeHeader(VCFHeader header) {
+        if (useSingleSample != null) { // only want to output context for one sample
+            Set<String> singSampSet = new TreeSet<String>();
+            singSampSet.add(useSingleSample);
+            header = new VCFHeader(header.getMetaData(), singSampSet);
+        }
+
         innerWriter.writeHeader(header);
     }
 

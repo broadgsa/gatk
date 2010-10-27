@@ -144,6 +144,9 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
     public void onTraversalDone(Integer result) {
         vcMergerWriter.close();
 
+        if (useSingleSample != null)
+            System.out.println("Only considered single sample: " + useSingleSample);
+
         System.out.println("Number of successive pairs of records (any distance): " + vcMergerWriter.getNumRecordsAttemptToMerge());
         System.out.println("Number of potentially merged records (distance <= " + maxGenomicDistanceForMNP + "): " + vcMergerWriter.getNumRecordsWithinDistance());
         System.out.println("Number of records merged [all samples are mergeable, some sample has a MNP of ALT alleles]: " + vcMergerWriter.getNumMergedRecords());
