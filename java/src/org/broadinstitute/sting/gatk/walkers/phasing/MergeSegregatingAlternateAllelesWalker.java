@@ -47,14 +47,17 @@ import static org.broadinstitute.sting.utils.vcf.VCFUtils.getVCFHeadersFromRods;
 @Requires(value = {DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
 @By(DataSource.REFERENCE_ORDERED_DATA)
 
-public class MergeSegregatingPolymorphismsWalker extends RodWalker<Integer, Integer> {
+public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, Integer> {
 
     @Output(doc = "File to which variants should be written", required = true)
     protected VCFWriter writer = null;
-    private MergePhasedSegregatingPolymorphismsToMNPvcfWriter vcMergerWriter = null;
+    private MergePhasedSegregatingAlternateAllelesVCFWriter vcMergerWriter = null;
 
     @Argument(fullName = "maxGenomicDistanceForMNP", shortName = "maxDistMNP", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records into a MNP record; [default:1]", required = false)
     protected int maxGenomicDistanceForMNP = 1;
+
+    @Argument(fullName = "disablePrintAltAlleleStats", shortName = "noAlleleStats", doc = "Should the print-out of alternate allele statistics be disabled?; [default:false]", required = false)
+    protected boolean disablePrintAlternateAlleleStatistics = false;
 
     private LinkedList<String> rodNames = null;
 
@@ -67,7 +70,7 @@ public class MergeSegregatingPolymorphismsWalker extends RodWalker<Integer, Inte
 
     private void initializeVcfWriter() {
         // false <-> don't take control of writer, since didn't create it:
-        vcMergerWriter = new MergePhasedSegregatingPolymorphismsToMNPvcfWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger, false);
+        vcMergerWriter = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger, false, !disablePrintAlternateAlleleStatistics);
         writer = null; // so it can't be accessed directly [i.e., not through vcMergerWriter]
 
         // setup the header fields:
@@ -134,7 +137,10 @@ public class MergeSegregatingPolymorphismsWalker extends RodWalker<Integer, Inte
      */
     public void onTraversalDone(Integer result) {
         vcMergerWriter.close();
-        System.out.println("Number of potentially merged records (distance <= "+ maxGenomicDistanceForMNP + "): " + vcMergerWriter.getNumMergeableRecordsWithinDistance());        
-        System.out.println("Number of records merged: " + vcMergerWriter.getNumMergedRecords());
+
+        System.out.println("Number of successive pairs of records (any distance): " + vcMergerWriter.getNumRecordsAttemptToMerge());
+        System.out.println("Number of potentially merged records (distance <= "+ maxGenomicDistanceForMNP + "): " + vcMergerWriter.getNumRecordsWithinDistance());
+        System.out.println("Number of records merged [all samples are mergeable, some sample has a MNP of ALT alleles]: " + vcMergerWriter.getNumMergedRecords());
+        System.out.println(vcMergerWriter.getAltAlleleStats());
     }
 }

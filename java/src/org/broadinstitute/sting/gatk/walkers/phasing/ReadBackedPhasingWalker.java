@@ -129,8 +129,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         // Wrapper VCFWriters will take ownership of inner writers iff: inner writer != origWriter [which wasn't created here]
         VCFWriter origWriter = writer;
 
-        if (enableMergePhasedSegregatingPolymorphismsToMNP)
-            writer = new MergePhasedSegregatingPolymorphismsToMNPvcfWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger, writer != origWriter);
+        if (enableMergePhasedSegregatingPolymorphismsToMNP) // false <-> don't track the statistics of alternate alleles being merged:
+            writer = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger, writer != origWriter, false);
 
         /* Due to discardIrrelevantPhasedSites(), the startDistance spanned by [partiallyPhasedSites.peek(), unphasedSiteQueue.peek()] is <= cacheWindow
            Due to processQueue(), the startDistance spanned by [unphasedSiteQueue.peek(), mostDownstreamLocusReached] is <= cacheWindow
@@ -289,7 +289,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
             logger.debug("sample = " + samp);
             if (isUnfilteredCalledDiploidGenotype(gt)) {
-                if (gt.isHom()) {
+                if (gt.isHom()) { // Note that this Genotype may be replaced later to contain the PQ of a downstream het site that was phased relative to a het site lying upstream of this hom site:
                     // true <-> can trivially phase a hom site relative to ANY previous site:
                     Genotype phasedGt = new Genotype(gt.getSampleName(), gt.getAlleles(), gt.getNegLog10PError(), gt.getFilters(), gt.getAttributes(), true);
                     uvc.setGenotype(samp, phasedGt);
