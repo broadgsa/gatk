@@ -54,7 +54,7 @@ public class IndelConsistencyReadCounter extends ReadWalker<Integer, Integer> {
                 Object rod = rodIter.next().getUnderlyingObject();
                 if ( VariantContextAdaptors.canBeConvertedToVariantContext(rod)) {
                     VariantContext vc = VariantContextAdaptors.toVariantContext("", rod, ref);
-                    if ( vc.getName().equals("indels") ) {
+                    if ( vc.getSource().equals("indels") ) {
                         indel = vc;
                         break;
                     }

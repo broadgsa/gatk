@@ -37,7 +37,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -52,7 +51,6 @@ import org.broadinstitute.sting.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
@@ -684,10 +682,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 		    HashMap<String,Object> newAts = new HashMap<String,Object>(vc.getAttributes());
 		    VariantContextUtils.calculateChromosomeCounts(vc,newAts,true);
 		    vc = VariantContext.modifyAttributes(vc,newAts);
-		    logger.debug(String.format("VC %s subset to %s AC%n",vc.getName(),vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
+		    logger.debug(String.format("VC %s subset to %s AC%n",vc.getSource(),vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
 		    //if ( ! name.equals("eval") ) logger.info(String.format("  => VC %s", vc));
 		} else if ( !hasGenotypes && !name.equals("dbsnp")  ) {
-		    throw new UserException(String.format("Genotypes for the variant context %s do not contain all the provided samples %s",vc.getName(), getMissingSamples(SAMPLES_LIST,vc)));
+		    throw new UserException(String.format("Genotypes for the variant context %s do not contain all the provided samples %s",vc.getSource(), getMissingSamples(SAMPLES_LIST,vc)));
 		}
 	    }
 

@@ -39,7 +39,6 @@ import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTa
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
@@ -133,7 +132,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                     //continue;            //TODO If this site is monomorphic in the VC, and the current record specifies a particular alternate allele, skip this record. Right?
                 //} else
                 if(alternateAlleles.size() > 1) {
-                    throw new UserException.MalformedFile("File associated with " + vc.getName() + " contains record [" + vc + "] contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
+                    throw new UserException.MalformedFile("File associated with " + vc.getSource() + " contains record [" + vc + "] contains " + alternateAlleles.size() + " alternate alleles. GenomicAnnotion currently only supports annotating 1 alternate allele.");
                 }
 
                 Allele vcAlt;

@@ -1044,7 +1044,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private Map<String, Object> attributes;
 
         public UnfinishedVariantContext(VariantContext vc) {
-            this.name = vc.getName();
+            this.name = vc.getSource();
             this.contig = vc.getChr();
             this.start = vc.getStart();
             this.stop = vc.getEnd();

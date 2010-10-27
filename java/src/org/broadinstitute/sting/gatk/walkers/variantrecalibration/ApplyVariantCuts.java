@@ -189,7 +189,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         }
 
         for( VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
-            if( vc != null && !vc.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
+            if( vc != null && !vc.getSource().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
                 String filterString = null;
                 if( !vc.isFiltered() ) {
                     final double qual = vc.getPhredScaledQual();

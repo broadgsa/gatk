@@ -86,7 +86,7 @@ public class VariantContextUtils {
      * @return VariantContext object
      */
     public static VariantContext toVC(VariantContext other) {
-        return new VariantContext(other.getName(), other.getChr(), other.getStart(), other.getEnd(), other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.getFilters(), other.getAttributes());
+        return new VariantContext(other.getSource(), other.getChr(), other.getStart(), other.getEnd(), other.getAlleles(), other.getGenotypes(), other.getNegLog10PError(), other.getFilters(), other.getAttributes());
     }
 
     /**
@@ -355,7 +355,7 @@ public class VariantContextUtils {
 
         // establish the baseline info from the first VC
         VariantContext first = VCs.get(0);
-        String name = first.getName();
+        String name = first.getSource();
         GenomeLoc loc = getLocation(first);
 
         Set<Allele> alleles = new TreeSet<Allele>();
@@ -445,7 +445,7 @@ public class VariantContextUtils {
                 List<String> s = new ArrayList<String>();
                 for ( VariantContext vc : VCs )
                     if ( vc.isVariant() )
-                        s.add( vc.isFiltered() ? "filterIn" + vc.getName() : vc.getName() );
+                        s.add( vc.isFiltered() ? "filterIn" + vc.getSource() : vc.getSource() );
                 setValue = Utils.join("-", s);
             }
             
@@ -609,7 +609,7 @@ public class VariantContextUtils {
                         g.getFilters(),g.getAttributes(),g.genotypesArePhased()));
 
             }
-            return new VariantContext(inputVC.getName(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(),
+            return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(),
                     inputVC.getFilters(), attributes);
 
         }
@@ -626,8 +626,8 @@ public class VariantContextUtils {
         }
 
         private int getIndex(VariantContext vc) {
-            int i = priorityListOfVCs.indexOf(vc.getName());
-            if ( i == -1 ) throw new UserException.BadArgumentValue(Utils.join(",", priorityListOfVCs), "Priority list " + priorityListOfVCs + " doesn't contain variant context " + vc.getName());
+            int i = priorityListOfVCs.indexOf(vc.getSource());
+            if ( i == -1 ) throw new UserException.BadArgumentValue(Utils.join(",", priorityListOfVCs), "Priority list " + priorityListOfVCs + " doesn't contain variant context " + vc.getSource());
             return i;
         }
 
@@ -651,7 +651,7 @@ public class VariantContextUtils {
 
     private static void mergeGenotypes(Map<String, Genotype> mergedGenotypes, VariantContext oneVC, AlleleMapper alleleMapping, boolean uniqifySamples) {
         for ( Genotype g : oneVC.getGenotypes().values() ) {
-            String name = mergedSampleName(oneVC.getName(), g.getSampleName(), uniqifySamples);
+            String name = mergedSampleName(oneVC.getSource(), g.getSampleName(), uniqifySamples);
             if ( ! mergedGenotypes.containsKey(name) ) {
                 // only add if the name is new
                 Genotype newG = g;
@@ -672,7 +672,7 @@ public class VariantContextUtils {
     }
 
     public static VariantContext modifyLocation(VariantContext vc, GenomeLoc loc) {
-        return new VariantContext(vc.getName(), loc.getContig(), loc.getStart(), loc.getStop(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
+        return new VariantContext(vc.getSource(), loc.getContig(), loc.getStart(), loc.getStop(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
     }
 
     /**
@@ -706,7 +706,7 @@ public class VariantContextUtils {
             newGenotypes.put(genotype.getKey(), Genotype.modifyAlleles(genotype.getValue(), newAlleles));
         }
 
-        return new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), alleleMap.values(), newGenotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
 
     }
 
@@ -809,7 +809,7 @@ public class VariantContextUtils {
             mergedGenotypes.put(sample, mergedGt);
         }
 
-        String mergedName = VariantContextUtils.mergeVariantContextNames(vc1.getName(), vc2.getName());
+        String mergedName = VariantContextUtils.mergeVariantContextNames(vc1.getSource(), vc2.getSource());
         double mergedNegLog10PError = Math.max(vc1.getNegLog10PError(), vc2.getNegLog10PError());
         Set<String> mergedFilters = new HashSet<String>(); // Since vc1 and vc2 were unfiltered, the merged record remains unfiltered
         Map<String, Object> mergedAttribs = VariantContextUtils.mergeVariantContextAttributes(vc1.getAttributes(), vc2.getAttributes());

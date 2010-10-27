@@ -57,14 +57,14 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 
         for ( VariantContext vc : tracker.getAllVariantContexts(ref) ) {
             // if we have multiple variants at a locus, just take the first one we see
-            if (!vc.getName().startsWith("snpmask") && vc.isDeletion()) {
+            if (!vc.getSource().startsWith("snpmask") && vc.isDeletion()) {
                 deletionBasesRemaining = vc.getReference().length();
                 // delete the next n bases, not this one
                 return new Pair<GenomeLoc, String>(context.getLocation(), refBase);
-            } else if (!vc.getName().startsWith("snpmask") && vc.isInsertion()) {
+            } else if (!vc.getSource().startsWith("snpmask") && vc.isInsertion()) {
                 return new Pair<GenomeLoc, String>(context.getLocation(), refBase.concat(vc.getAlternateAllele(0).toString()));
             } else if (vc.isSNP()) {
-                return new Pair<GenomeLoc, String>(context.getLocation(), (vc.getName().startsWith("snpmask") ? "N" : vc.getAlternateAllele(0).toString()));
+                return new Pair<GenomeLoc, String>(context.getLocation(), (vc.getSource().startsWith("snpmask") ? "N" : vc.getAlternateAllele(0).toString()));
             }
         }
 

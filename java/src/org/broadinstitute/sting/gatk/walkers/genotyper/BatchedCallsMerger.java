@@ -107,9 +107,9 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         Set<VariantContext> calls = new HashSet<VariantContext>();
         Set<String> seenRods = new HashSet<String>();
         for ( VariantContext vc : VCs ) {
-            if ( targetRods.contains(vc.getName()) ) {
+            if ( targetRods.contains(vc.getSource()) ) {
                 calls.add(vc);
-                seenRods.add(vc.getName());
+                seenRods.add(vc.getSource());
             }
         }
 

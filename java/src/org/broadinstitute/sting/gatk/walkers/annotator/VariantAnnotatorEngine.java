@@ -252,7 +252,7 @@ public class VariantAnnotatorEngine {
         //Create a separate VariantContext (aka. output line) for each element in infoAnnotationOutputsList
         Collection<VariantContext> returnValue = new LinkedList<VariantContext>();
         for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
-            returnValue.add( new VariantContext(vc.getName(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, infoAnnotationOutput) );
+            returnValue.add( new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, infoAnnotationOutput) );
         }
 
         return returnValue;

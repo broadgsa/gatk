@@ -436,7 +436,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             try {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
             } catch( Exception e ) {
-                throw new UserException.MalformedFile(vc.getName(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
+                throw new UserException.MalformedFile(vc.getSource(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
             }
         }
         return value;
