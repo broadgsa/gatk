@@ -31,6 +31,7 @@ import net.sf.samtools.CigarOperator;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.SortingVCFWriter;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFWriter;
@@ -56,14 +57,18 @@ import java.util.*;
 public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
     @Output(doc="File to which variants should be written",required=true)
-    protected VCFWriter writer = null;
+    protected VCFWriter baseWriter = null;
+
+    private SortingVCFWriter writer;
 
     public void initialize() {
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 
         Set<VCFHeaderLine> headerLines = vcfHeaders.get("variant").getMetaData();
-        writer.writeHeader(new VCFHeader(headerLines, samples));
+        baseWriter.writeHeader(new VCFHeader(headerLines, samples));
+
+        writer = new SortingVCFWriter(baseWriter, 200);
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
@@ -115,7 +120,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         Cigar newCigar = AlignmentUtils.leftAlignIndel(originalCigar, refSeq, originalIndel, 0, 0);
 
         // update if necessary and write
-        if ( !newCigar.equals(originalCigar) ) {
+        if ( !newCigar.equals(originalCigar) && newCigar.numCigarElements() > 1 ) {
             int difference = originalIndex - newCigar.getCigarElement(0).getLength();
             GenomeLoc newLoc = GenomeLocParser.createPotentiallyInvalidGenomeLoc(vc.getChr(), vc.getStart()-difference, vc.getEnd()-difference);
             //System.out.println("Moving record from " + vc.getChr()+":"+vc.getStart() + " to " + newLoc);
