@@ -402,7 +402,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     }
 
     private boolean excludeComp(VariantContext vc) {
-        String id = vc != null && vc.hasAttribute(VariantContext.ID_KEY) ? vc.getAttributeAsString(VariantContext.ID_KEY) : null;
+        String id = vc != null && vc.hasID() ? vc.getID() : null;
         boolean ex = rsIDsToExclude != null && id != null && rsIDsToExclude.contains(id);
         //System.out.printf("Testing id %s ex=%b against %s%n", id, ex, vc);
         return ex;

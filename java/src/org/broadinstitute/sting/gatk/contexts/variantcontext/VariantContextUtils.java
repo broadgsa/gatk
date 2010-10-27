@@ -403,8 +403,8 @@ public class VariantContextUtils {
             //
             if ( vc.hasAttribute(VCFConstants.DEPTH_KEY) )
                 depth += Integer.valueOf(vc.getAttributeAsString(VCFConstants.DEPTH_KEY));
-            if ( rsID == null && vc.hasAttribute(VariantContext.ID_KEY) )
-                rsID = vc.getAttributeAsString(VariantContext.ID_KEY);
+            if ( rsID == null && vc.hasID() )
+                rsID = vc.getID();
 
             for ( Map.Entry<String, Object> p : vc.getAttributes().entrySet() ) {
                 String key = p.getKey();
