@@ -343,7 +343,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     private static class IndexFilesField extends ArgumentField {
         @Override protected Class<? extends Annotation> getAnnotationIOClass() { return Input.class; }
         @Override public String getCommandLineAddition() { return ""; }
-        @Override protected String getDoc() { return "Dependencies on any index files for any bams or sams added to input_files"; }
+        @Override protected String getDoc() { return "Dependencies on any index files for any bams added to input_files"; }
         @Override protected String getFullName() { return "index_files"; }
         @Override protected boolean isRequired() { return false; }
         @Override protected String getFieldType() { return "List[File]"; }
@@ -352,8 +352,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override protected String getRawFieldName() { return "index_files"; }
         @Override protected String getFreezeFields() {
             return String.format(
-                    "index_files ++= input_file.filter(bam => bam != null && bam.getName.endsWith(\".bam\")).map(bam => new File(bam.getPath + \".bai\"))%n" +
-                    "index_files ++= input_file.filter(sam => sam != null && sam.getName.endsWith(\".sam\")).map(sam => new File(sam.getPath + \".sai\"))%n");
+                    "index_files ++= input_file.filter(bam => bam != null && bam.getName.endsWith(\".bam\")).map(bam => new File(bam.getPath + \".bai\"))%n");
         }
     }
 

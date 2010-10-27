@@ -125,7 +125,7 @@ class fullCallingPipeline extends QScript {
         realigner.intervalsString = Nil
         realigner.scatterCount = num_cleaner_scatter_jobs min contigs.size
         realigner.DBSNP = qscript.pipeline.getProject.getDbsnpFile
-        realigner.rodbind :+= RodBind("indels", "VCF", swapExt(qscript.pipeline.getProject.getReferenceFile, "fasta", "1kg_pilot_indels.vcf") 
+        realigner.rodBind :+= RodBind("indels", "VCF", swapExt(realigner.reference_sequence.getParentFile, realigner.reference_sequence, "fasta", "1kg_pilot_indels.vcf"))
 
         // if scatter count is > 1, do standard scatter gather, if not, explicitly set up fix mates
         if (realigner.scatterCount > 1) {
