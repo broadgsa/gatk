@@ -112,11 +112,6 @@ public abstract class AbstractGenomeAnalysisEngine {
     private Collection<Stub<?>> outputs = new ArrayList<Stub<?>>();
 
     /**
-     * List of tags associated with the given instantiation of the command-line argument.
-     */
-    private final Map<Object,List<String>> tags = new IdentityHashMap<Object,List<String>>();
-
-    /**
      * Collection of the filters applied to the input data.
      */
     private Collection<SamRecordFilter> filters;
@@ -274,24 +269,12 @@ public abstract class AbstractGenomeAnalysisEngine {
     }
 
     /**
-     * Adds an association between a object created by the
-     * command-line argument system and a freeform list of tags.
-     * @param key Object created by the command-line argument system.
-     * @param tags List of tags to use when reading arguments.
-     */
-    public void addTags(Object key, List<String> tags) {
-        this.tags.put(key,tags);
-    }
-
-    /**
      * Gets the tags associated with a given object.
      * @param key Key for which to find a tag.
      * @return List of tags associated with this key.
      */
     public List<String> getTags(Object key)  {
-        if(!tags.containsKey(key))
-            return Collections.emptyList();
-        return tags.get(key);
+        return parsingEngine.getTags(key);
     }
 
     /**

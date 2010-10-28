@@ -182,14 +182,4 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     protected String getArgumentSourceName( Class argumentSource ) {
         return engine.getWalkerName((Class<Walker>)argumentSource);
     }
-
-    /**
-     * Supply command-line argument tags to the GATK engine.
-     * @param key Key to use, created by the command-line argument system.
-     * @param tags List of freeform tags.
-     */
-    @Override
-    protected void addTags(Object key, List<String> tags) {
-        engine.addTags(key,tags);
-    }
-        }
+}

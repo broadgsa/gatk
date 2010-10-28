@@ -42,11 +42,6 @@ import java.util.*;
  */
 public class ParsingEngine {
     /**
-     * The command-line program at the heart of this parsing engine.
-     */
-    CommandLineProgram clp = null;
-
-    /**
      * A list of defined arguments against which command lines are matched.
      * Package protected for testing access.
      */
@@ -75,13 +70,16 @@ public class ParsingEngine {
     private Set<ArgumentTypeDescriptor> argumentTypeDescriptors = new LinkedHashSet<ArgumentTypeDescriptor>();
 
     /**
+     * List of tags associated with the given instantiation of the command-line argument.
+     */
+    private final Map<Object,List<String>> tags = new IdentityHashMap<Object,List<String>>();    
+
+    /**
      * our log, which we want to capture anything from org.broadinstitute.sting
      */
     protected static Logger logger = Logger.getLogger(ParsingEngine.class);
 
     public ParsingEngine( CommandLineProgram clp ) {
-        this.clp = clp;
-
         parsingMethods.add( ParsingMethod.FullNameParsingMethod );
         parsingMethods.add( ParsingMethod.ShortNameParsingMethod );
 
@@ -294,8 +292,19 @@ public class ParsingEngine {
      * @param tags List of tags, or empty list if no tags are present.
      */
     public void addTags(Object key, List<String> tags) {
-        if(clp!=null) clp.addTags(key,tags);
+        this.tags.put(key,tags);        
     }
+
+    /**
+     * Gets the tags associated with a given object.
+     * @param key Key for which to find a tag.
+     * @return List of tags associated with this key.
+     */
+    public List<String> getTags(Object key)  {
+        if(!tags.containsKey(key))
+            return Collections.emptyList();
+        return tags.get(key);
+    }    
 
     /**
      * Notify the user that a deprecated command-line argument has been used.

@@ -94,6 +94,12 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         super(engine, walker, reads, reference, rods);
 
         this.threadPool = Executors.newFixedThreadPool(nThreadsToUse);
+    }
+
+    public Object execute( Walker walker, ShardStrategy shardStrategy ) {
+        // Fast fail for walkers not supporting TreeReducible interface.
+        if (!( walker instanceof TreeReducible ))
+            throw new IllegalArgumentException("The GATK can currently run in parallel only with TreeReducible walkers");
 
         // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
         // To get around this limitation and since we have no job identifier at this point, register a simple counter that
@@ -101,22 +107,16 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         int thisInstance;
         synchronized(HierarchicalMicroScheduler.class) {
             thisInstance = instanceNumber++;
-        }
-
+        }        
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        ObjectName name = null;
         try {
-            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-            ObjectName name = new ObjectName("org.broadinstitute.sting.gatk.executive:type=HierarchicalMicroScheduler,instanceNumber="+thisInstance);
+            name = new ObjectName("org.broadinstitute.sting.gatk.executive:type=HierarchicalMicroScheduler,instanceNumber="+thisInstance);
             mbs.registerMBean(this, name);
         }
         catch (JMException ex) {
             throw new ReviewedStingException("Unable to register microscheduler with JMX", ex);
         }
-    }
-
-    public Object execute( Walker walker, ShardStrategy shardStrategy ) {
-        // Fast fail for walkers not supporting TreeReducible interface.
-        if (!( walker instanceof TreeReducible ))
-            throw new IllegalArgumentException("The GATK can currently run in parallel only with TreeReducible walkers");
 
         traversalEngine.startTimers();
         ReduceTree reduceTree = new ReduceTree(this);
@@ -162,6 +162,13 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         }
 
         outputTracker.close();
+
+        try {
+            mbs.unregisterMBean(name);
+        }
+        catch (JMException ex) {
+            throw new ReviewedStingException("Unable to unregister microscheduler with JMX", ex);
+        }
 
         return result;
     }

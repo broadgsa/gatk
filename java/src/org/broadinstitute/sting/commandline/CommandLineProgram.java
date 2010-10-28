@@ -135,19 +135,6 @@ public abstract class CommandLineProgram {
     protected String getArgumentSourceName( Class source ) { return source.toString(); }
 
     /**
-     * The command-line argument system allows free-form String tags to accompany each
-     * object.  However, there's no way for the clp to push these tags into the fields
-     * themselves, so we just provide a callback so that the clp can push tags into the
-     * argument system.
-     * @param key Key to use, created by the command-line argument system.
-     * @param tags List of freeform tags. 
-     */
-    protected void addTags(Object key, List<String> tags) {
-        // NO-OP by default.
-    }
-
-
-    /**
      * this is the function that the inheriting class can expect to have called
      * when all the argument processing is done
      *
