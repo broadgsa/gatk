@@ -30,6 +30,7 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -86,6 +87,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         final Interval fromInterval = new Interval(vc.getChr(), vc.getStart(), vc.getStart(), false, String.format("%s:%d", vc.getChr(), vc.getStart()));
         final int length = vc.getEnd() - vc.getStart();
         final Interval toInterval = liftOver.liftOver(fromInterval);
+        VariantContext originalVC = vc;
 
         if ( toInterval != null ) {
             // check whether the strand flips, and if so reverse complement everything
@@ -95,6 +97,14 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
             }
 
             vc = VariantContextUtils.modifyLocation(vc, GenomeLocParser.createPotentiallyInvalidGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length));
+            VariantContext newVC = VariantContext.createVariantContextWithPaddedAlleles(vc, ref.getBase(), false);
+
+            if ( VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(newVC) ) {
+                logger.warn(String.format("VCF at %s / %d => %s / %d is switching substitution type %s/%s to %s/%s",
+                        originalVC.getChr(), originalVC.getStart(), newVC.getChr(), newVC.getStart(),
+                        originalVC.getReference(), originalVC.getAlternateAllele(0), newVC.getReference(), newVC.getAlternateAllele(0)));
+            }
+
             writer.add(vc, ref.getBase());
             successfulIntervals++;
         } else {

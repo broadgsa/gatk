@@ -200,17 +200,8 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             /**
              * Use likelihoods if: is validation, prior is negative; or: is not validation, has genotype key
              */
-            if ( (isValidation && prior < 0.0) || genotype.isCalled() && genotype.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
-                String[] glArray = genotype.getAttributeAsString(VCFConstants.GENOTYPE_LIKELIHOODS_KEY).split(",");
-
-                double[] likeArray = new double[glArray.length];
-
-                // convert to double array so we can normalize
-                int k=0;
-                for (String gl : glArray) {
-                    likeArray[k++] = Double.valueOf(gl);
-                }
-
+            if ( (isValidation && prior < 0.0) || genotype.isCalled() && genotype.hasLikelihoods()) {
+                double[] likeArray = genotype.getLikelihoods().getAsVector();
                 double[] normalizedLikelihoods = MathUtils.normalizeFromLog10(likeArray);
                 // see if we need to randomly mask out genotype in this position.
                 Double d = generator.nextDouble();
@@ -234,7 +225,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             /**
              * otherwise, use the prior uniformly
              */
-            else if (! isValidation && genotype.isCalled() && !genotype.hasAttribute(VCFConstants.GENOTYPE_LIKELIHOODS_KEY)) {
+            else if (! isValidation && genotype.isCalled() && ! genotype.hasLikelihoods() ) {
                 // hack to deal with input VCFs with no genotype likelihoods.  Just assume the called genotype
                 // is confident.  This is useful for Hapmap and 1KG release VCFs.
                 double AA = (1.0-prior)/2.0;

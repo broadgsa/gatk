@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.playground.gatk.walkers.genotyper.AlleleFrequencyCalculationModel;
 
 /**
  * MathUtils is a static class (no instantiation allowed!) with some useful math methods.
@@ -756,4 +757,4 @@ public class MathUtils {
 
     public static double ratio(int num, int denom)      { return ((double)num) / (Math.max(denom, 1)); }
     public static double ratio(long num, long denom)    { return ((double)num) / (Math.max(denom, 1)); }
-}
+    }

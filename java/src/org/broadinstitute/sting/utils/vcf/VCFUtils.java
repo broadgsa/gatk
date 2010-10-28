@@ -27,11 +27,13 @@ package org.broadinstitute.sting.utils.vcf;
 
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -165,12 +167,19 @@ public class VCFUtils {
      * return a set of supported format lines; what we currently support for output in the genotype fields of a VCF
      * @return a set of VCF format lines
      */
-    public static Set<VCFFormatHeaderLine> getSupportedHeaderStrings() {
+    public static Set<VCFFormatHeaderLine> getSupportedHeaderStrings(String glType) {
         Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
         result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
         result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
         result.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Read Depth (only filtered reads used for calling)"));
-        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Log-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
+
+        if ( glType == VCFConstants.GENOTYPE_LIKELIHOODS_KEY )
+            result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Log-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
+        else if ( glType == VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY )
+                result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Normalized, Phred-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
+        else
+            throw new ReviewedStingException("Unexpected GL type " + glType);
+
         return result;
     }
     
