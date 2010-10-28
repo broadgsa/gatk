@@ -49,6 +49,8 @@ import java.io.PrintStream;
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
 public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedGenotyperV2.UGStatistics> implements TreeReducible<UnifiedGenotyperV2.UGStatistics> {
+    public static final String DEFAULT_GENOTYPE_LIKELIHOODS_KEY = VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY;
+
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
@@ -156,7 +158,7 @@ public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedG
         }
 
         // FORMAT and INFO fields
-        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY));
+        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(UnifiedGenotyperV2.DEFAULT_GENOTYPE_LIKELIHOODS_KEY));
 
         // FILTER fields
         if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING ||

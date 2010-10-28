@@ -127,7 +127,7 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
             HashMap<String, Object> attributes = new HashMap<String, Object>();
             attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup()));
 
-            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
+            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods(), UnifiedGenotyperV2.DEFAULT_GENOTYPE_LIKELIHOODS_KEY);
             attributes.put(likelihoods.getKey(), likelihoods.getAsString());
 
             calls.put(sample, new Genotype(sample, myAlleles, AFbasedGenotype.second, null, attributes, false));
