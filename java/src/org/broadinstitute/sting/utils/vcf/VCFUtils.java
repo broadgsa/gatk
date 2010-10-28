@@ -176,7 +176,7 @@ public class VCFUtils {
         if ( glType == VCFConstants.GENOTYPE_LIKELIHOODS_KEY )
             result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Log-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
         else if ( glType == VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY )
-                result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Normalized, Phred-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
+                result.add(new VCFFormatHeaderLine(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Normalized, Phred-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
         else
             throw new ReviewedStingException("Unexpected GL type " + glType);
 

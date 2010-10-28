@@ -257,7 +257,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             attributes.put(VCFConstants.GENOTYPE_QUALITY_KEY,String.format("%4.2f", 10*qual));
 
-            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
+            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods(), UnifiedGenotyperV2.DEFAULT_GENOTYPE_LIKELIHOODS_KEY);
             attributes.put(likelihoods.getKey(), likelihoods.getAsString());
             calls.put(sample, new Genotype(sample, myAlleles, qual, null, attributes, false));
 
