@@ -166,7 +166,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    * @return the file path to the pre-exec.
    */
   private def writeExec() = {
-    IOUtils.writeTempFile(function.commandLine, ".exec", "", function.commandDirectory)
+    IOUtils.writeTempFile(function.commandLine, ".exec", "")
   }
 
   /**
@@ -185,7 +185,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
     mountCommand(function).foreach(command =>
       preExec.append("%s%n".format(command)))
 
-    IOUtils.writeTempFile(preExec.toString, ".preExec", "", function.commandDirectory)
+    IOUtils.writeTempFile(preExec.toString, ".preExec", "")
   }
 
   /**
@@ -211,6 +211,6 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
   |fi
   |""".stripMargin.format(function.commandDirectory, touchDone, touchFail))
 
-    IOUtils.writeTempFile(postExec.toString, ".postExec", "", function.commandDirectory)
+    IOUtils.writeTempFile(postExec.toString, ".postExec", "")
   }
 }

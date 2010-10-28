@@ -89,7 +89,7 @@ object IOUtils {
 
   def writeContents(file: File, content: String) =  FileUtils.writeStringToFile(file, content)
 
-  def writeTempFile(content: String, prefix: String, suffix: String = "", directory: File) = {
+  def   writeTempFile(content: String, prefix: String, suffix: String = "", directory: File = null) = {
     val tempFile = absolute(File.createTempFile(prefix, suffix, directory))
     writeContents(tempFile, content)
     tempFile
