@@ -48,9 +48,9 @@ public class RefSeqCodec implements FeatureCodec {
         String[] exon_stops = fields[10].split(",");
         String[] eframes = fields[15].split(",");
 
-        if ( exon_starts.length == exon_stops.length )
+        if ( exon_starts.length != exon_stops.length )
             throw new UserException.MalformedFile("Data format error: numbers of exon start and stop positions differ for line=" + line);
-        if ( exon_starts.length == eframes.length )
+        if ( exon_starts.length != eframes.length )
             throw new UserException.MalformedFile("Data format error: numbers of exons and exon frameshifts differ for line=" + line);
 
         ArrayList<GenomeLoc> exons = new ArrayList<GenomeLoc>(exon_starts.length);
