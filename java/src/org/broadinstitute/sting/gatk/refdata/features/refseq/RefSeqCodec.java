@@ -38,7 +38,7 @@ public class RefSeqCodec implements FeatureCodec {
         feature.setTranscript_id(fields[1]);
         if ( fields[3].length()==1 && fields[3].charAt(0)=='+') feature.setStrand(1);
         else if ( fields[3].length()==1 && fields[3].charAt(0)=='-') feature.setStrand(-1);
-        else throw new UserException.MalformedFile("Expected strand symbol (+/-), found: "+fields[3]);
+        else throw new UserException.MalformedFile("Expected strand symbol (+/-), found: "+fields[3] + " for line=" + line);
 
 
         feature.setTranscript_interval(GenomeLocParser.parseGenomeLoc(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5])));
@@ -48,8 +48,10 @@ public class RefSeqCodec implements FeatureCodec {
         String[] exon_stops = fields[10].split(",");
         String[] eframes = fields[15].split(",");
 
-        assert exon_starts.length == exon_stops.length : "Data format error: numbers of exon start and stop positions differ";
-        assert exon_starts.length == eframes.length : "Data format error: numbers of exons and exon frameshifts differ";
+        if ( exon_starts.length == exon_stops.length )
+            throw new UserException.MalformedFile("Data format error: numbers of exon start and stop positions differ for line=" + line);
+        if ( exon_starts.length == eframes.length )
+            throw new UserException.MalformedFile("Data format error: numbers of exons and exon frameshifts differ for line=" + line);
 
         ArrayList<GenomeLoc> exons = new ArrayList<GenomeLoc>(exon_starts.length);
         ArrayList<Integer> exon_frames = new ArrayList<Integer>(eframes.length);
