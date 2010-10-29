@@ -60,6 +60,7 @@ public class VariantAnnotatorEngine {
 
     private List<InfoFieldAnnotation> requestedInfoAnnotations;
     private List<GenotypeAnnotation> requestedGenotypeAnnotations;
+    private List<VAExpression> requestedExpressions = new ArrayList<VAExpression>();
 
     private HashMap<String, String> dbAnnotations = new HashMap<String, String>();
 
@@ -77,17 +78,44 @@ public class VariantAnnotatorEngine {
     // printing out stats at the end.
     private Map<String, Integer> inputTableHitCounter = new HashMap<String, Integer>();
 
+    private static class VAExpression {
+        public String fullName, bindingName, fieldName;
+
+        public VAExpression(String fullEpression) {
+            int indexOfDot = fullEpression.lastIndexOf(".");
+            if ( indexOfDot == -1 )
+                throw new UserException.BadArgumentValue(fullEpression, "it should be in rodname.value format");
+
+            fullName = fullEpression;
+            bindingName = fullEpression.substring(0, indexOfDot);
+            fieldName = fullEpression.substring(indexOfDot+1);
+        }
+    }
 
     // use this constructor if you want all possible annotations
     public VariantAnnotatorEngine(GenomeAnalysisEngine engine) {
         requestedInfoAnnotations = PackageUtils.getInstancesOfClassesImplementingInterface(InfoFieldAnnotation.class);
         requestedGenotypeAnnotations = PackageUtils.getInstancesOfClassesImplementingInterface(GenotypeAnnotation.class);
-        initialize(engine);
+        initializeDBs(engine);
     }
 
-    // use this constructor if you want to select specific annotations (and/or interfaces)
+    // use this constructor if you want to select specific annotations (and/or interfaces), but no expressions
     public VariantAnnotatorEngine(GenomeAnalysisEngine engine, List<String> annotationGroupsToUse, List<String> annotationsToUse) {
+        initializeAnnotations(annotationGroupsToUse, annotationsToUse);
+        initializeDBs(engine);
+    }
 
+    // use this constructor if you want to select specific annotations (and/or interfaces) plus expressions
+    public VariantAnnotatorEngine(GenomeAnalysisEngine engine, List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> expressionsToUse) {
+        initializeAnnotations(annotationGroupsToUse, annotationsToUse);
+        initializeDBs(engine);
+
+        // set up the expressions
+        for ( String expression : expressionsToUse )
+            requestedExpressions.add(new VAExpression(expression));
+    }
+
+    private void initializeAnnotations(List<String> annotationGroupsToUse, List<String> annotationsToUse) {
         // create a map for all annotation classes which implement our top-level interfaces
         HashMap<String, Class> classMap = new HashMap<String, Class>();
         for ( Class c : PackageUtils.getClassesImplementingInterface(InfoFieldAnnotation.class) )
@@ -130,11 +158,9 @@ public class VariantAnnotatorEngine {
             if ( GenotypeAnnotation.class.isAssignableFrom(c) )
                 requestedGenotypeAnnotations.add((GenotypeAnnotation)PackageUtils.getSimpleInstance(c));
         }
-
-        initialize(engine);
     }
 
-    private void initialize(GenomeAnalysisEngine engine) {
+    private void initializeDBs(GenomeAnalysisEngine engine) {
 
         // check to see whether comp rods were included
         List<ReferenceOrderedDataSource> dataSources = engine.getRodDataSources();
@@ -180,6 +206,50 @@ public class VariantAnnotatorEngine {
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
         // annotate db occurrences
+        annotateDBs(tracker, ref, vc, infoAnnotations);
+
+        // annotate expressions where available
+        annotateExpressions(tracker, ref, infoAnnotations);
+
+        // process the info field
+        List<Map<String, Object>> infoAnnotationOutputsList = new LinkedList<Map<String, Object>>(); //each element in infoAnnotationOutputs corresponds to a single line in the output VCF file
+        infoAnnotationOutputsList.add(new LinkedHashMap<String, Object>(vc.getAttributes())); //keep the existing info-field annotations. After this infoAnnotationOutputsList.size() == 1, which means the output VCF file has 1 additional line.
+        infoAnnotationOutputsList.get(0).putAll(infoAnnotations);  // put the DB membership info in
+
+        // go through all the requested info annotationTypes
+        for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations )
+        {
+            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, ref, stratifiedContexts, vc);
+            if ( annotationsFromCurrentType == null ) {
+                continue;
+            }
+
+            if(annotationType instanceof GenomicAnnotation)
+            {
+                infoAnnotationOutputsList = processGenomicAnnotation( infoAnnotationOutputsList, annotationsFromCurrentType );
+            }
+            else
+            {
+                // add the annotations to each output line.
+                for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
+                    infoAnnotationOutput.putAll(annotationsFromCurrentType);
+                }
+            }
+        }
+
+        // annotate genotypes
+        Map<String, Genotype> genotypes = annotateGenotypes(tracker, ref, stratifiedContexts, vc);
+
+        // create a separate VariantContext (aka. output line) for each element in infoAnnotationOutputsList
+        Collection<VariantContext> returnValue = new LinkedList<VariantContext>();
+        for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
+            returnValue.add( new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, infoAnnotationOutput) );
+        }
+
+        return returnValue;
+    }
+
+    private void annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
         for ( Map.Entry<String, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
@@ -198,64 +268,43 @@ public class VariantAnnotatorEngine {
                 infoAnnotations.put(dbSet.getValue(), overlapsComp ? true : false);
             }
         }
+    }
 
-        //Process the info field
-        List<Map<String, Object>> infoAnnotationOutputsList = new LinkedList<Map<String, Object>>(); //each element in infoAnnotationOutputs corresponds to a single line in the output VCF file
-        infoAnnotationOutputsList.add(new LinkedHashMap<String, Object>(vc.getAttributes())); //keep the existing info-field annotations. After this infoAnnotationOutputsList.size() == 1, which means the output VCF file has 1 additional line.
-        infoAnnotationOutputsList.get(0).putAll(infoAnnotations);  // put the DB membership info in
+    private void annotateExpressions(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, Object> infoAnnotations) {
+        for ( VAExpression expression : requestedExpressions ) {
+            Collection<VariantContext> VCs = tracker.getVariantContexts(ref, expression.bindingName, null, ref.getLocus(), false, true);
+            if ( VCs.size() == 0 )
+                continue;
 
-        //go through all the requested info annotationTypes
-        for ( InfoFieldAnnotation annotationType : requestedInfoAnnotations )
-        {
-            Map<String, Object> annotationsFromCurrentType = annotationType.annotate(tracker, ref, stratifiedContexts, vc);
-            if ( annotationsFromCurrentType == null ) {
+            VariantContext vc = VCs.iterator().next();
+            if ( vc.hasAttribute(expression.fieldName) )
+                infoAnnotations.put(expression.fullName, vc.getAttribute(expression.fieldName));
+        }
+    }
+
+    private Map<String, Genotype> annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+        if ( requestedGenotypeAnnotations.size() == 0 )
+            return vc.getGenotypes();
+
+        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(vc.getNSamples());
+        for ( Map.Entry<String, Genotype> g : vc.getGenotypes().entrySet() ) {
+            Genotype genotype = g.getValue();
+            StratifiedAlignmentContext context = stratifiedContexts.get(g.getKey());
+            if ( context == null ) {
+                genotypes.put(g.getKey(), genotype);
                 continue;
             }
 
-            if(annotationType instanceof GenomicAnnotation)
-            {
-                infoAnnotationOutputsList = processGenomicAnnotation( infoAnnotationOutputsList, annotationsFromCurrentType );
+            Map<String, Object> genotypeAnnotations = new HashMap<String, Object>(genotype.getAttributes());
+            for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
+                Map<String, Object> result = annotation.annotate(tracker, ref, context, vc, genotype);
+                if ( result != null )
+                    genotypeAnnotations.putAll(result);
             }
-            else
-            {
-                //add the annotations to each output line.
-                for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
-                    infoAnnotationOutput.putAll(annotationsFromCurrentType);
-                }
-            }
+            genotypes.put(g.getKey(), new Genotype(g.getKey(), genotype.getAlleles(), genotype.getNegLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.genotypesArePhased()));
         }
 
-        //Process genotypes
-        Map<String, Genotype> genotypes;
-        if ( requestedGenotypeAnnotations.size() == 0 ) {
-            genotypes = vc.getGenotypes();
-        } else {
-            genotypes = new HashMap<String, Genotype>(vc.getNSamples());
-            for ( Map.Entry<String, Genotype> g : vc.getGenotypes().entrySet() ) {
-                Genotype genotype = g.getValue();
-                StratifiedAlignmentContext context = stratifiedContexts.get(g.getKey());
-                if ( context == null ) {
-                    genotypes.put(g.getKey(), genotype);
-                    continue;
-                }
-
-                Map<String, Object> genotypeAnnotations = new HashMap<String, Object>(genotype.getAttributes());
-                for ( GenotypeAnnotation annotation : requestedGenotypeAnnotations ) {
-                    Map<String, Object> result = annotation.annotate(tracker, ref, context, vc, genotype);
-                    if ( result != null )
-                        genotypeAnnotations.putAll(result);
-                }
-                genotypes.put(g.getKey(), new Genotype(g.getKey(), genotype.getAlleles(), genotype.getNegLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.genotypesArePhased()));
-            }
-        }
-
-        //Create a separate VariantContext (aka. output line) for each element in infoAnnotationOutputsList
-        Collection<VariantContext> returnValue = new LinkedList<VariantContext>();
-        for(Map<String, Object> infoAnnotationOutput : infoAnnotationOutputsList) {
-            returnValue.add( new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, infoAnnotationOutput) );
-        }
-
-        return returnValue;
+        return genotypes;
     }
 
     // Finish processing data from GenomicAnnotation.

@@ -108,6 +108,14 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testUsingExpression() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " -B:foo,VCF " + validationDataLocation + "targetAnnotations.vcf -G \"Standard\" -B:variant,VCF " + validationDataLocation + "vcfexample3empty.vcf -E foo.AF -BTI variant", 1,
+                Arrays.asList("9362ae272d5e2ff2cfe7db307a324b6d"));
+        executeTest("using expression", spec);
+    }
+
+    @Test
     public void testTabixAnnotations() {
         final String MD5 = "6c7a6a1c0027bf82656542a9b2671a35";
         for ( String file : Arrays.asList("CEU.exon.2010_03.sites.vcf", "CEU.exon.2010_03.sites.vcf.gz")) {
