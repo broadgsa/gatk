@@ -76,26 +76,35 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             return 0;
 
         Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
-        for ( VariantContext vc : VCs )
-            alignAndWrite(vc, ref);
 
-        return 0;
+        int changedSites = 0;
+        for ( VariantContext vc : VCs )
+            changedSites += alignAndWrite(vc, ref);
+
+        return changedSites;
     }
 
     public Integer reduceInit() { return 0; }
 
-    public Integer reduce(Integer value, Integer sum) { return 0; }
-
-    public void onTraversalDone(Integer result) {}
-
-    private void alignAndWrite(VariantContext vc, final ReferenceContext ref) {
-        if ( vc.isBiallelic() && vc.isIndel() )
-            writeLeftAlignedIndel(vc, ref);
-        else
-            writer.add(vc, ref.getBase());
+    public Integer reduce(Integer value, Integer sum) {
+        return sum + value;
     }
 
-    private void writeLeftAlignedIndel(final VariantContext vc, final ReferenceContext ref) {
+    public void onTraversalDone(Integer result) {
+        System.out.println(result + " variants were aligned");
+    }
+
+
+    private int alignAndWrite(VariantContext vc, final ReferenceContext ref) {
+        if ( vc.isBiallelic() && vc.isIndel() )
+            return writeLeftAlignedIndel(vc, ref);
+        else {
+            writer.add(vc, ref.getBase());
+            return 0;
+        }
+    }
+
+    private int writeLeftAlignedIndel(final VariantContext vc, final ReferenceContext ref) {
         final byte[] refSeq = ref.getBases();
 
         // get the indel length
@@ -133,8 +142,10 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
             newVC = updateAllele(newVC, newAllele);
 
             writer.add(newVC, refSeq[indelIndex-1]);
+            return 1;
         } else {
             writer.add(vc, ref.getBase());
+            return 0;
         }
     }
 
