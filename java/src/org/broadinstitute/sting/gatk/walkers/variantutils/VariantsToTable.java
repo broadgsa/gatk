@@ -53,6 +53,9 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     @Argument(fullName="fields", shortName="F", doc="Fields to emit from the VCF, allows any VCF field, any info field, and some meta fields like nHets", required=true)
     public String FIELDS;
 
+    @Argument(fullName="showFiltered", shortName="raw", doc="Include filtered records")
+    public boolean showFiltered = false;
+
     @Argument(fullName="maxRecords", shortName="M", doc="Maximum number of records to emit, if provided", required=false)
     public int MAX_RECORDS = -1;
     int nRecords = 0;
@@ -115,7 +118,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
             Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
             for ( VariantContext vc : vcs) {
-                if ( ! ignoreMultiAllelic || vc.isBiallelic() ) {
+                if ( ! ignoreMultiAllelic || vc.isBiallelic() || ( !showFiltered || !vc.isFiltered() ) ) {
                     List<String> vals = new ArrayList<String>();
 
                     for ( String field : fieldsToTake ) {

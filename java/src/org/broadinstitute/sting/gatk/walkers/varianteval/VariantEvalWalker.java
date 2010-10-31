@@ -218,6 +218,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName = "minPhaseQuality", shortName = "minPQ", doc = "The minimum phasing quality (PQ) score required to consider phasing; [default:0]", required = false)
     protected Double minPhaseQuality = 0.0; // accept any positive value of PQ
 
+    @Argument(shortName="min", fullName="minimalComparisons", doc="If passed, filters and raw site values won't be computed", required=false)
+    protected boolean MINIMAL = false;
+
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // private walker data
@@ -451,11 +455,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         // honor specifications of just one or a few samples), and put an "all" in here so
         // that we don't lose multi-sample evaluations
 
+        List<String> filterTypes = MINIMAL ? Arrays.asList(RETAINED_SET_NAME) : Arrays.asList(RAW_SET_NAME, RETAINED_SET_NAME, FILTERED_SET_NAME);
+
+
         selectExps = append(selectExps, null);
         for ( String evalName : evalNames ) {
             for ( String compName : compNames ) {
                 for ( VariantContextUtils.JexlVCMatchExp e : selectExps ) {
-                    for ( String filteredName : Arrays.asList(RAW_SET_NAME, RETAINED_SET_NAME, FILTERED_SET_NAME) ) {
+                    for ( String filteredName : filterTypes ) {
                         for ( String novelty : Arrays.asList(ALL_SET_NAME, KNOWN_SET_NAME, NOVEL_SET_NAME) ) {
                             EvaluationContext context = new EvaluationContext(evalName, compName, novelty, filteredName, e);
                             contexts.add(context);
@@ -516,6 +523,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             //logger.debug(String.format("Updating %s with variant", vc));
             Set<VariantEvaluator> evaluations = group.evaluations;
             boolean evalWantsVC = applyVCtoEvaluation(vc, vcs, group);
+            VariantContext interestingVC = vc;
             List<String> interestingReasons = new ArrayList<String>();
 
             for ( VariantEvaluator evaluation : evaluations ) {
@@ -558,7 +566,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                  **/
 
 
-                                if ( interesting != null ) interestingReasons.add(interesting);
+                                if ( interesting != null ) {
+                                    interestingVC = interestingVC == null ? ( vc == null ? comp : vc ) : interestingVC;
+                                    interestingReasons.add(interesting);
+                                }
                                 break;
                             default:
                                 throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
@@ -568,7 +579,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             }
 
             if ( tracker != null && group.enableInterestingSiteCaptures && captureInterestingSitesOfEvalSet(group) )
-                writeInterestingSite(interestingReasons, vc, ref.getBase());
+                writeInterestingSite(interestingReasons, interestingVC, ref.getBase());
         }
 
         return 0;

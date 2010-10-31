@@ -228,37 +228,39 @@ public class UnifiedGenotyperEngine {
 
 
         if ( !UAC.NO_SLOD ) {
+            final boolean DEBUG_SLOD = false;
 
             // the overall lod
-            double overallLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
-            double overallLog10PofF = log10AlleleFrequencyPosteriors.get()[bestAFguess];
-            double lod = overallLog10PofF - overallLog10PofNull;
-            //System.out.println("overallLog10PofNull=" + overallLog10PofNull + ", overallLog10PofF=" + overallLog10PofF);
+            //double overallLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
+            double overallLog10PofF = MathUtils.log10sum(log10AlleleFrequencyPosteriors.get(), 1);
+            if ( DEBUG_SLOD ) System.out.println("overallLog10PofF=" + overallLog10PofF);
 
             // the forward lod
             GLs.clear();
             glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD, genotypePriors, GLs);
             clearAFarray(log10AlleleFrequencyPosteriors.get());
             afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get(), bestAFguess);
+            //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
             double forwardLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
-            double forwardLog10PofF = log10AlleleFrequencyPosteriors.get()[bestAFguess];
-            //System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
+            double forwardLog10PofF = MathUtils.log10sum(log10AlleleFrequencyPosteriors.get(), 1);
+            if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
             // the reverse lod
             GLs.clear();
             glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE, genotypePriors, GLs);
             clearAFarray(log10AlleleFrequencyPosteriors.get());
             afcm.get().getLog10PNonRef(tracker, refContext, GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get(), bestAFguess);
+            //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
             double reverseLog10PofNull = log10AlleleFrequencyPosteriors.get()[0];
-            double reverseLog10PofF = log10AlleleFrequencyPosteriors.get()[bestAFguess];
-            //System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
+            double reverseLog10PofF = MathUtils.log10sum(log10AlleleFrequencyPosteriors.get(), 1);
+            if ( DEBUG_SLOD ) System.out.println("reverseLog10PofNull=" + reverseLog10PofNull + ", reverseLog10PofF=" + reverseLog10PofF);
 
-            double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofNull;
-            double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofNull;
-            //System.out.println("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
+            double forwardLod = forwardLog10PofF + reverseLog10PofNull - overallLog10PofF;
+            double reverseLod = reverseLog10PofF + forwardLog10PofNull - overallLog10PofF;
+            if ( DEBUG_SLOD ) System.out.println("forward lod=" + forwardLod + ", reverse lod=" + reverseLod);
 
             // strand score is max bias between forward and reverse strands
-            double strandScore = Math.max(forwardLod - lod, reverseLod - lod);
+            double strandScore = Math.max(forwardLod, reverseLod);
             // rescale by a factor of 10
             strandScore *= 10.0;
             //logger.debug(String.format("SLOD=%f", strandScore));

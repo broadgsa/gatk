@@ -58,6 +58,17 @@ public class MathUtils {
         return s;
     }
 
+    public static double log10sum(double[] log10p, int start) {
+        double sum = 0.0;
+
+        double maxValue = Utils.findMaxEntry(log10p);
+        for ( int i = start; i < log10p.length; i++ ) {
+            sum += Math.pow(10.0, log10p[i] - maxValue);
+        }
+
+        return Math.log10(sum) + maxValue;
+    }
+
     public static double sum(List<Double> values) {
         double s = 0.0;
         for ( double v : values) s += v;
