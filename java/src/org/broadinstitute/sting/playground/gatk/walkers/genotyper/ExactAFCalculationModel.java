@@ -43,11 +43,16 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     private boolean DEBUGOUT = false;
     private boolean SIMPLE_GREEDY_GENOTYPER = false;
-    private static final double EPS = 1e-300;
-    private static final double LOGEPS = -300;
+    private double[] log10Cache;
 
     protected ExactAFCalculationModel(int N, Logger logger, PrintStream verboseWriter) {
         super(N, logger, verboseWriter);
+
+        log10Cache = new double[2*N];
+
+        log10Cache[0] = Double.NEGATIVE_INFINITY;
+        for (int k=1; k < 2*N; k++)
+            log10Cache[k] = Math.log10(k);
     }
 
     public void getLog10PNonRef(RefMetaDataTracker tracker,
@@ -57,88 +62,125 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                 double[] log10AlleleFrequencyPosteriors,
                                 int minFrequencyToCalculate) {
 
-        // Math requires linear math to make efficient updates.
-        double[] alleleFrequencyPriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPriors);
-        double[] alleleFrequencyPosteriors;
- 
-
-        alleleFrequencyPosteriors = updateAFEstimate(GLs, alleleFrequencyPriors);
-
-        if (DEBUGOUT) {
-            double meanAF = computeMeanAF(alleleFrequencyPosteriors);
-            System.out.format("Mean AF: %5.4f. PVariant: %5.5f\n", meanAF,1.0-alleleFrequencyPosteriors[0]);
-        }
-
-
-        for (int k=0; k < alleleFrequencyPosteriors.length; k++) {
-            if (alleleFrequencyPosteriors[k] > 1-EPS)
-                log10AlleleFrequencyPosteriors[k] = -EPS;
-            else if (alleleFrequencyPosteriors[k] < EPS)
-                log10AlleleFrequencyPosteriors[k] = LOGEPS;
-            else
-                log10AlleleFrequencyPosteriors[k] = Math.log10(alleleFrequencyPosteriors[k]);
-        }
-    }
-
-    private double[] updateAFEstimate(Map<String, BiallelicGenotypeLikelihoods> GLs, double[] alleleFrequencyPriors) {
 
         int numSamples = GLs.size();
         int numChr = 2*numSamples;
 
-        double[][] YMatrix = new double[1+numSamples][1+numChr];
-        YMatrix[0][0] = 1.0;
+        double[][] logYMatrix = new double[1+numSamples][1+numChr];
+
+        for (int i=0; i <=numSamples; i++)
+            for (int j=0; j <=numChr; j++)
+                logYMatrix[i][j] = Double.NEGATIVE_INFINITY;
+
+        //YMatrix[0][0] = 1.0;
+        logYMatrix[0][0] = 0.0;
         int j=0;
 
+
+        // call clear ref sites separately to speed computation
+/*
+        boolean isClearRefSite = true;
+
+        int bestAFguess = 0;
+        for ( String sample : GLs.keySet() ) {
+
+            double[] genotypeLikelihoods = GLs.get(sample).getLikelihoods();
+            if (!(genotypeLikelihoods[0] > genotypeLikelihoods[1] &&
+                    genotypeLikelihoods[0] > genotypeLikelihoods[2]))
+                isClearRefSite = false;
+   
+            bestAFguess += MathUtils.maxElementIndex(genotypeLikelihoods);
+
+        }
+     */
         for ( String sample : GLs.keySet() ) {
             j++;
 
-            double[] genotypeLikelihoods = MathUtils.normalizeFromLog10(GLs.get(sample).getLikelihoods());
-            double sum = 0.0;
-            double den = 2.0*j*(2.0*j-1);
+            //double[] genotypeLikelihoods = MathUtils.normalizeFromLog10(GLs.get(sample).getLikelihoods());
+            double[] genotypeLikelihoods = GLs.get(sample).getLikelihoods();
+            //double logDenominator = Math.log10(2.0*j*(2.0*j-1));
+            double logDenominator = log10Cache[2*j] + log10Cache[2*j-1];
 
-            for (int k=0; k <= 2*j; k++ ) {
-                double tmp = (2.0*j-k)*(2.0*j-k-1)*YMatrix[j-1][k] * genotypeLikelihoods[GenotypeType.AA.ordinal()];
-                if (k > 0)
-                    tmp += (2.0*k)*(2.0*j-k)*YMatrix[j-1][k-1]*genotypeLikelihoods[GenotypeType.AB.ordinal()];
+            // special treatment for k=0: iteration reduces to:
+            //YMatrix[j][0] = YMatrix[j-1][0]*genotypeLikelihoods[GenotypeType.AA.ordinal()];
+            logYMatrix[j][0] = logYMatrix[j-1][0] + genotypeLikelihoods[GenotypeType.AA.ordinal()];
+
+            int k = 1;
+            for (k=1; k <= 2*j; k++ ) {
+   //             if (k > 3 && isClearRefSite)
+   //                 break;
+
+
+                //double num = (2.0*j-k)*(2.0*j-k-1)*YMatrix[j-1][k] * genotypeLikelihoods[GenotypeType.AA.ordinal()];
+                double logNumerator[];
+                logNumerator = new double[3];
+                if (k < 2*j-1)
+                    logNumerator[0] = log10Cache[2*j-k] + log10Cache[2*j-k-1] + logYMatrix[j-1][k] +
+                        genotypeLikelihoods[GenotypeType.AA.ordinal()];
+                else
+                    logNumerator[0] = Double.NEGATIVE_INFINITY;
+
+
+                if (k < 2*j)
+                    logNumerator[1] = log10Cache[2*k] + log10Cache[2*j-k]+ logYMatrix[j-1][k-1] +
+                        genotypeLikelihoods[GenotypeType.AB.ordinal()];
+                else
+                    logNumerator[1] = Double.NEGATIVE_INFINITY;
+
                 if (k > 1)
-                    tmp += k*(k-1)*YMatrix[j-1][k-2]*genotypeLikelihoods[GenotypeType.BB.ordinal()];
+                    logNumerator[2] = log10Cache[k] + log10Cache[k-1] + logYMatrix[j-1][k-2] +
+                        genotypeLikelihoods[GenotypeType.BB.ordinal()];
+                else
+                    logNumerator[2] = Double.NEGATIVE_INFINITY;
 
-                YMatrix[j][k] = tmp/den;
+                double logNum = softMax(logNumerator);
 
-                sum += YMatrix[j][k];
+                //YMatrix[j][k] = num/den;
+                logYMatrix[j][k] = logNum - logDenominator;
             }
-            // renormalize row
-            for (int k=0; k <= 2*j; k++ )
-                YMatrix[j][k] /= sum;
+      //      int kstart = k-1;
+     //       for (k=kstart; k <= 2*j; k++)
+       //         logYMatrix[j][k] = logYMatrix[j][kstart];
+
 
         }
-        double sum = 0.0;
-        double[] newAF = new double[alleleFrequencyPriors.length];
 
-        for (int k=0; k <= numChr; k++) {
-            double prod = YMatrix[j][k] * alleleFrequencyPriors[k];
-            newAF[k] = prod;
-            sum += prod;
-        }
-        //renormalize now
-        for (int k=0; k < newAF.length; k++)
-            newAF[k] /= sum;
 
-        return newAF;
+        for (int k=0; k <= numChr; k++)
+            log10AlleleFrequencyPosteriors[k] = logYMatrix[j][k] + log10AlleleFrequencyPriors[k];
 
+
+        // TODO: we really need to get rid of this and the minFrequencyToCalculate argument
+        // it's possible that we need to calculate higher frequencies
+        int maxAlleleFrequencyToTest = numChr;
+        for (int i = maxAlleleFrequencyToTest; i <= minFrequencyToCalculate; i++)
+            log10AlleleFrequencyPosteriors[i] = log10AlleleFrequencyPosteriors[maxAlleleFrequencyToTest];
 
     }
 
-    private double computeMeanAF(double[] afVector) {
-        // get now new site AF estimate
-        double sum = 0.0;
-        for (int k=0; k < afVector.length; k++)
-            sum += (double)k * afVector[k];
 
-        return  sum/afVector.length;
+    double softMax(double[] vec) {
+        // compute naively log10(10^x[0] + 10^x[1]+...)
+        //return Math.log10(MathUtils.sumLog10(vec));
+
+        //int maxInd = MathUtils.maxElementIndex(vec);
+        //return vec[maxInd];
+
+        // still more efficient: inline search for max. Hard-code fact that vec has length 3
+        if (vec[0] > vec[1])
+            if (vec[2] > vec[0])
+                return vec[2];
+            else
+                return vec[0];
+        else
+            if (vec[2]>vec[1])
+                return vec[2];
+            else
+                return vec[1];
+
+
 
     }
-
     /**
      * Can be overridden by concrete subclasses
      * @param contexts             alignment contexts
@@ -251,14 +293,18 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                 qual = posteriors[2] - Math.max(posteriors[1],posteriors[0]);
             }
 
-            if (qual <= 0.0) {
-                qual = 0.0;
-             }
 
-            attributes.put(VCFConstants.GENOTYPE_QUALITY_KEY,String.format("%4.2f", 10*qual));
+            if (qual < 0) {
+                // QUAL can be negative if the chosen genotype is not the most likely one individually.
+                // In this case, we compute the actual genotype probability and QUAL is the likelihood of it not being the chosen on
+                double[] normalized = MathUtils.normalizeFromLog10(posteriors);
+                double chosenGenotype = normalized[bestGTguess];
+                qual = -1.0 * Math.log10(1.0 - chosenGenotype);
+            }
 
             GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods(), UnifiedGenotyperV2.DEFAULT_GENOTYPE_LIKELIHOODS_KEY);
             attributes.put(likelihoods.getKey(), likelihoods.getAsString());
+
             calls.put(sample, new Genotype(sample, myAlleles, qual, null, attributes, false));
 
         }
