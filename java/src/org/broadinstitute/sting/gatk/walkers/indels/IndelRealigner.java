@@ -34,6 +34,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -42,8 +43,10 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
+import org.broadinstitute.sting.utils.interval.NwayIntervalMergingIterator;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -100,20 +103,41 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                        "if this value is exceeded, realignment is not attempted and the reads are passed to the output file(s) as-is", required=false)
     protected int MAX_READS = 20000;
 
-    @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", required=false, doc="Should we sort the final bam in coordinate order even though it will be malformed because mate pairs of realigned reads will contain inaccurate information?")
+    @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", required=false,
+            doc="Should we sort the final bam in coordinate order even though it will be malformed because "+
+                "mate pairs of realigned reads will contain inaccurate information?")
     protected boolean SORT_IN_COORDINATE_ORDER = false;
 
-    @Argument(fullName="realignReadsWithBadMates", required=false, doc="Should we try to realign paired-end reads whose mates map to other chromosomes?")
+    @Argument(fullName="realignReadsWithBadMates", required=false,
+            doc="Should we try to realign paired-end reads whose mates map to other chromosomes?")
     protected boolean REALIGN_BADLY_MATED_READS = false;
 
-    @Argument(fullName="noPGTag", shortName="noPG", required=false, doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.")
+    @Argument(fullName="noPGTag", shortName="noPG", required=false,
+            doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. "+
+                "This option is required in order to pass integration tests.")
     protected boolean NO_PG_TAG = false;
 
-    @Argument(fullName="noOriginalAlignmentTags", shortName="noTags", required=false, doc="Don't output the original cigar or alignment start tags for each realigned read in the output bam.")
+    @Argument(fullName="noOriginalAlignmentTags", shortName="noTags", required=false,
+            doc="Don't output the original cigar or alignment start tags for each realigned read in the output bam.")
     protected boolean NO_ORIGINAL_ALIGNMENT_TAGS = false;
 
-    @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false, doc="This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, it will throw an exception.  Use this argument when your interval list is not sorted to instruct the Realigner to first sort it in memory.")
+    @Argument(fullName="targetIntervalsAreNotSorted", shortName="targetNotSorted", required=false,
+            doc="This tool assumes that the target interval list is sorted; if the list turns out to be unsorted, "+
+                "it will throw an exception.  Use this argument when your interval list is not sorted to instruct "+"" +
+                "the Realigner to first sort it in memory.")
     protected boolean TARGET_NOT_SORTED = false;
+
+    //NWay output: testing, not ready for the prime time, hence hidden:
+
+    @Hidden
+    @Argument(fullName="nWayOut", shortName="nWayOut", required=false,
+            doc="In this mode, there will be one output file for each input (-I) bam file. Reads from all input files "+
+                "will be realigned together, but then each read wiil be saved in the output file corresponding to "+
+                "the input file the read came from. The names of the output bam files will be constructed by "+
+                "stripping extensions (\".bam\" or \".sam\") from the input file names and pasting the value "+
+                "of -nWayOut argument to the result.")
+    protected String N_WAY_OUT = null;
+
 
     // DEBUGGING OPTIONS FOLLOW
 
@@ -166,6 +190,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private FileWriter statsOutput = null;
     private FileWriter snpsOutput = null;
 
+    protected Map<SAMReaderID,SAMFileWriter> nwayWriters = null;
+
     public void initialize() {
 
         if ( LOD_THRESHOLD < 0.0 )
@@ -175,15 +201,58 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         referenceReader = new IndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
 
-        if ( !TARGET_NOT_SORTED && IntervalUtils.isIntervalFile(intervalsFile)) {
-            // prepare to read intervals one-by-one, as needed (assuming they are sorted). 
-            intervals = new IntervalFileMergingIterator( new java.io.File(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
+        if ( !TARGET_NOT_SORTED ) {
+
+            NwayIntervalMergingIterator merger = new NwayIntervalMergingIterator(IntervalMergingRule.OVERLAPPING_ONLY);
+            List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();
+            // separate argument on semicolon first
+            for (String fileOrInterval : intervalsFile.split(";")) {
+                // if it's a file, add items to raw interval list
+                if (IntervalUtils.isIntervalFile(fileOrInterval)) {
+                    merger.add(new IntervalFileMergingIterator( new java.io.File(fileOrInterval), IntervalMergingRule.OVERLAPPING_ONLY ) );
+                } else {
+                    rawIntervals.add(GenomeLocParser.parseGenomeInterval(fileOrInterval));
+                }
+            }
+            if ( ! rawIntervals.isEmpty() ) merger.add(rawIntervals.iterator());
+            // prepare to read intervals one-by-one, as needed (assuming they are sorted).
+            intervals = merger; 
         } else {
             // read in the whole list of intervals for cleaning
             GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Arrays.asList(intervalsFile),this.getToolkit().getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST), IntervalMergingRule.OVERLAPPING_ONLY);
             intervals = locs.iterator();
         }
         currentInterval = intervals.hasNext() ? intervals.next() : null;
+
+        if ( N_WAY_OUT != null ) {
+
+            if ( writer != null ) throw new UserException.BadInput("-nWayOut and -o arguments are mutually exclusive");
+
+            nwayWriters = new HashMap<SAMReaderID,SAMFileWriter>();
+
+            for ( SAMReaderID rid : getToolkit().getDataSource().getReaderIDs() ) {
+
+                String fName = getToolkit().getDataSource().getSAMFile(rid).getName();
+
+                int pos ;
+                if ( fName.toUpperCase().endsWith(".BAM") ) pos = fName.toUpperCase().lastIndexOf(".BAM");
+                else {
+                    if ( fName.toUpperCase().endsWith(".SAM") ) pos = fName.toUpperCase().lastIndexOf(".SAM");
+                    else throw new UserException.BadInput("Input file name "+fName+" does not end with .sam or .bam");
+                }
+                String prefix = fName.substring(0,pos);
+                
+                if ( nwayWriters.containsKey( rid ) )
+                    throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
+
+                SAMFileWriterImpl.setDefaultMaxRecordsInRam(MAX_RECORDS_IN_RAM);
+                SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(setupHeader(getToolkit().getSAMFileHeader(rid)),
+                        false,new File(prefix+N_WAY_OUT));
+                nwayWriters.put(rid,sw);
+
+            }
+
+        }
 
         // set up the output writer(s)
         if ( writer != null )
@@ -218,6 +287,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
+    private SAMFileHeader setupHeader(SAMFileHeader header) {
+         if ( SORT_IN_COORDINATE_ORDER )
+             header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+         else
+             header.setSortOrder(SAMFileHeader.SortOrder.queryname);
+         return header;
+    }
+
     private void setupWriter(SAMFileHeader header) {
         if ( SORT_IN_COORDINATE_ORDER )
             header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
@@ -248,12 +325,26 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private void emit(final SAMRecord read) {
         if ( writer != null )
             writer.addAlignment(read);
+        if ( N_WAY_OUT != null ) {
+            SAMReaderID rid =  getToolkit().getReaderIDForRead(read);
+            SAMFileWriter w = nwayWriters.get(rid);
+            w.addAlignment(read);
+        }
     }
 
     private void emit(final List<SAMRecord> reads) {
         if ( writer != null ) {
             for ( SAMRecord read : reads )
                 writer.addAlignment(read);
+        }
+        if ( N_WAY_OUT != null ) {
+            for ( SAMRecord read : reads ) {
+                // in initialize() we ensured that every reader has exactly one tag, so the following line is safe:
+                SAMReaderID rid =  getToolkit().getReaderIDForRead(read);
+                SAMFileWriter w = nwayWriters.get(rid);
+                w.addAlignment(read);
+
+            }
         }
     }
 
@@ -310,6 +401,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         readsToClean.clear();
         readsNotToClean.clear();
         currentInterval = intervals.hasNext() ? intervals.next() : null;
+
     }
 
     private boolean doNotTryToClean(SAMRecord read) {
@@ -334,6 +426,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         try {
             do {
                 currentInterval = intervals.hasNext() ? intervals.next() : null;
+
             } while ( currentInterval != null && (readLoc == null || currentInterval.isBefore(readLoc)) );
         } catch (ReviewedStingException e) {
             throw new UserException.MissortedFile(new File(intervalsFile), " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***", e);
@@ -382,6 +475,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             } catch (Exception e) {
                 logger.error("Failed to close "+OUT_SNPS+" gracefully. Data may be corrupt.");
             }
+        }
+
+        if ( N_WAY_OUT != null ) {
+            for ( SAMFileWriter w : nwayWriters.values() ) w.close();
         }
     }
 
