@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.vcf.*;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class VCFHeaderUnitTest extends BaseTest {
         for (String str : headerStr)
             headerFields.add(str);
         VCFHeader header = (VCFHeader)codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO");
-        Assert.assertEquals(headerStr.length /* for the # line */,header.getMetaData().size());
+        Assert.assertEquals(header.getMetaData().size(), headerStr.length /* for the # line */);
         return header;
     }
 

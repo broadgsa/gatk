@@ -26,16 +26,17 @@ package org.broadinstitute.sting.gatk.refdata.tracks.builders;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceDictionary;
-import net.sf.samtools.SAMSequenceRecord;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.vcf.VCFCodec;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeMethod;
+
+import org.testng.annotations.Test;
 
 import java.io.*;
 import java.nio.channels.FileChannel;
@@ -53,7 +54,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     private RMDTrackBuilder builder;
     private IndexedFastaSequenceFile seq;
 
-    @Before
+    @BeforeMethod
     public void setup() {
         builder = new RMDTrackBuilder();
         seq = new IndexedFastaSequenceFile(new File(b36KGReference));
@@ -160,7 +161,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
         }
 
         // make sure that we removed and updated the index
-        Assert.assertTrue("Fail: index file was modified", Tribble.indexFile(vcfFile).lastModified() == indexTimeStamp);
+        Assert.assertTrue(Tribble.indexFile(vcfFile).lastModified() == indexTimeStamp,"Fail: index file was modified");
     }
 
     /**

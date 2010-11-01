@@ -21,10 +21,10 @@
     <!-- where to find 'findbugs', which you must set if you plan to use 'ant findbugs' -->
     <property name="findbugs.home" value="./findbugs"/>
 
-    <!-- do we want to halt on failure of a junit test? default to yes (Bamboo uses 'no') -->
+    <!-- do we want to halt on failure of a unit test? default to yes (Bamboo uses 'no') -->
     <property name="halt" value="yes" />
     
-    <!-- should our junit test output go to a file or the screen?
+    <!-- should our unit test output go to a file or the screen?
     false means it goes to the screen (default) true to file -->
     <property name="usefile" value="false" />
 
@@ -57,7 +57,7 @@
     </path>
 
     <patternset id="dependency.mask" includes="*.jar">
-      <exclude name="junit*.jar" />
+      <exclude name="testng*.jar" />
       <exclude name="bcel*.jar" />
     </patternset>
     
@@ -413,7 +413,7 @@
             <classpath>
                 <path refid="external.dependencies" />
                 <pathelement location="${java.classes}"/>
-                <pathelement location="lib/junit-4.4.jar"/>
+                <pathelement location="lib/testng-5.14.1.jar"/>
             </classpath>
         </javac>
 
@@ -425,7 +425,7 @@
                 <path refid="queue.dependencies"/>
                 <pathelement location="${queue.classes}"/>
                 <pathelement location="${java.test.classes}"/>
-                <pathelement location="lib/junit-4.4.jar"/>
+                <pathelement location="lib/testng-5.14.1.jar"/>
             </classpath>
         </scalac>
     </target>
@@ -486,27 +486,33 @@
         <sequential>
             <mkdir dir="${report}"/>
             <echo message="Sting: Running @{testtype} test cases!"/>
-            <junit printsummary="yes" showoutput="yes" maxmemory="${test.maxmemory}" clonevm="yes" haltonfailure="${halt}" failureProperty="test.failure">
-                <formatter type="brief" usefile="false" />
-                <formatter type="xml"/>
+            <taskdef resource="testngtasks" classpath="lib/testng-5.14.1.jar"/>
+            <testng outputDir="${report}"
+                    haltOnFailure="true" verbose="2"
+                    workingDir="${basedir}">
+<!--
+            <jvmarg value="-Xdebug"/>
+            <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
+-->
                 <classpath>
-                    <path refid="build.results"/>
-                    <pathelement location="${java.test.classes}"/>
-                    <pathelement location="${queue.test.classes}"/>
-                    <pathelement location="lib/junit-4.4.jar"/>
+                    <path refid="external.dependencies" />
+		    <pathelement location="${java.classes}" />
+		    <pathelement location="${queue.classes}" />
+                    <pathelement location="${java.test.classes}" />
+                    <pathelement location="${queue.test.classes}" />
                 </classpath>
 
-                <batchtest fork="yes" todir="${report}">
-                    <fileset dir="${java.test.classes}">
-                        <include name="**/@{testtype}.class"/>
-                        <exclude name="**/BaseTest.class"/>
-                    </fileset>
-                    <fileset dir="${queue.test.classes}">
-                        <include name="**/@{testtype}.class"/>
-                        <exclude name="**/BaseTest.class"/>
-                    </fileset>
-                </batchtest>
-            </junit>
+                <classfileset dir="${java.test.classes}" includes="**/@{testtype}.class"/>
+                <classfileset dir="${queue.test.classes}" includes="**/@{testtype}*.class" />
+            </testng>
+
+            <!-- generate a report for Bamboo or Hudson to read in -->
+            <junitreport todir="${dist.dir}">
+                <fileset dir="${dist.dir}">
+                    <include name="*/*.xml"/>
+                </fileset>
+                <report format="noframes" todir="${dist.dir}"/>
+            </junitreport>
             <fail message="test failed" if="test.failure" />
         </sequential>
     </macrodef>

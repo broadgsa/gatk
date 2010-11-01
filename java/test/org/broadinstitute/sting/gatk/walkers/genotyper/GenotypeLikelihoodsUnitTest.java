@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Test;
-import org.junit.Assert;
+import org.testng.annotations.Test;
+
 
 import static java.lang.Math.log10;
 
@@ -13,7 +14,7 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
     @Test
     public void testBasic() {
         logger.warn("Executing testIsBetween");
-        Assert.assertEquals(DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,1e-3, DELTA);
+        Assert.assertEquals(DELTA, DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,1e-3);
     }
 
 
@@ -30,13 +31,13 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
         testPriorsFromHet(0.5, 0.25, 0.5, 0.25);
     }
 
-    @Test (expected = RuntimeException.class)
+    @Test(expectedExceptions=RuntimeException.class)
     public void testPriorsFromHetFail1() {
         logger.warn("Executing testPriorsFromHetFail1");
         testPriorsFromHet(1.0, 0, 0, 0);
     }
 
-    @Test (expected = RuntimeException.class)
+    @Test(expectedExceptions=RuntimeException.class)
     public void testPriorsFromHetFail2() {
         logger.warn("Executing testPriorsFromHetFail2");
         testPriorsFromHet(-1.0, 0, 0, 0);
@@ -76,7 +77,7 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
 
             val = log10(val);
             double e = array[g.ordinal()];
-            Assert.assertEquals(String.format("%s should have p=%f but has p=%f", g, val, e), val, e, DELTA);
+            Assert.assertEquals(val, e, DELTA, String.format("%s should have p=%f but has p=%f", g, val, e));
         }
     }
 
@@ -103,7 +104,7 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double val = Math.pow(10, priors.getPrior(g));
             double e = array[g.ordinal()];
-            Assert.assertEquals(String.format("%s should have p=%f but has p=%f", g, val, e), e, val, DELTA);
+            Assert.assertEquals(val, e, DELTA, String.format("%s should have p=%f but has p=%f", g, val, e));
         }
     }
 }

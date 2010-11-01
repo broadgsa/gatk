@@ -11,7 +11,8 @@
     <dependency org="net.sf" name="sam" rev="latest.integration"/>
     <dependency org="net.sf" name="picard" rev="latest.integration"/>
     <dependency org="edu.mit.broad" name="picard-private-parts" rev="latest.integration"/>
-    <dependency org="junit" name="junit" rev="4.4"/>
+    <dependency org="org.testng" name="testng" rev="5.14.1" />
+
     <dependency org="log4j" name="log4j" rev="1.2.15">
       <!-- Don't include javax.mail here in default, only used in scala->default by commons-email -->
       <exclude org="javax.mail" />

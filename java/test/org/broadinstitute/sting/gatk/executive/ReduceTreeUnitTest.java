@@ -1,10 +1,11 @@
 package org.broadinstitute.sting.gatk.executive;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.After;
-import org.junit.Ignore;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeMethod;
+
 import org.broadinstitute.sting.BaseTest;
 
 import java.util.concurrent.Callable;
@@ -42,12 +43,12 @@ public class ReduceTreeUnitTest extends BaseTest implements ReduceTree.TreeReduc
      */
     private List<List<Integer>> reduces = new ArrayList<List<Integer>>();
 
-    @Before
+    @BeforeMethod
     public void createTree() {
         reduceTree = new ReduceTree( this );
     }
 
-    @After
+    @AfterMethod
     public void destroyTree() {
         reduceTree = null;
         reduces.clear();
@@ -57,7 +58,7 @@ public class ReduceTreeUnitTest extends BaseTest implements ReduceTree.TreeReduc
     public void testNoValueReduce()
         throws InterruptedException, ExecutionException {
         reduceTree.complete();
-        Assert.assertEquals("Single-value reduce failed", null, reduceTree.getResult());
+        Assert.assertEquals(reduceTree.getResult(), null, "Single-value reduce failed");
     }
 
     @Test
@@ -65,10 +66,10 @@ public class ReduceTreeUnitTest extends BaseTest implements ReduceTree.TreeReduc
             throws InterruptedException, ExecutionException {
         reduceTree.addEntry( getReduceTestEntry(1) );
         reduceTree.complete();
-        Assert.assertEquals("Single-value reduce failed", 1, reduceTree.getResult().get());
+        Assert.assertEquals(reduceTree.getResult().get(), 1, "Single-value reduce failed");
     }
 
-    @Test(expected=IllegalStateException.class)
+    @Test(expectedExceptions=IllegalStateException.class)
     public void testIncompleteReduce()
             throws InterruptedException, ExecutionException {
         reduceTree.addEntry( getReduceTestEntry(1) );
@@ -87,11 +88,11 @@ public class ReduceTreeUnitTest extends BaseTest implements ReduceTree.TreeReduc
         expected.add( 2 );
 
         // Test the result
-        Assert.assertEquals("Dual-value reduce failed", expected, reduceTree.getResult().get());
+        Assert.assertEquals(reduceTree.getResult().get(), expected, "Dual-value reduce failed");
 
         // Test the intermediate steps
-        Assert.assertEquals("Size of incoming tree reduces incorrect", 1, reduces.size() );
-        Assert.assertEquals("Incoming tree reduce incorrect", expected, reduces.get(0) );
+        Assert.assertEquals(reduces.size(), 1, "Size of incoming tree reduces incorrect");
+        Assert.assertEquals(reduces.get(0), expected, "Incoming tree reduce incorrect");
     }
 
     @Test
@@ -107,26 +108,26 @@ public class ReduceTreeUnitTest extends BaseTest implements ReduceTree.TreeReduc
 
         reduceTree.addEntry( getReduceTestEntry(1) );
 
-        Assert.assertEquals("Reduce queue should be empty after entering a single element", 0, reduces.size());
+        Assert.assertEquals(reduces.size(), 0, "Reduce queue should be empty after entering a single element");
 
         reduceTree.addEntry( getReduceTestEntry(2) );
 
-        Assert.assertEquals("Reduce queue should have one element after two entries", 1, reduces.size());
-        Assert.assertEquals("Reduce queue element is incorrect after two entries", firstExpected, reduces.get(0));
+        Assert.assertEquals(reduces.size(), 1, "Reduce queue should have one element after two entries");
+        Assert.assertEquals(reduces.get(0), firstExpected, "Reduce queue element is incorrect after two entries");
 
         reduceTree.addEntry( getReduceTestEntry(3) );
 
-        Assert.assertEquals("Reduce queue should have one element after three entries", 1, reduces.size());
-        Assert.assertEquals("Reduce queue element is incorrect after three entries", firstExpected, reduces.get(0));
+        Assert.assertEquals(reduces.size(), 1, "Reduce queue should have one element after three entries");
+        Assert.assertEquals(reduces.get(0), firstExpected, "Reduce queue element is incorrect after three entries");
 
         reduceTree.complete();
 
         // Test the result
-        Assert.assertEquals("Three value reduce failed", finalExpected, reduceTree.getResult().get());
+        Assert.assertEquals(reduceTree.getResult().get(), finalExpected, "Three value reduce failed");
 
-        Assert.assertEquals("Reduce queue should have two elements after three entries (complete)", 2, reduces.size());
-        Assert.assertEquals("Reduce queue element is incorrect after three entries", firstExpected, reduces.get(0));
-        Assert.assertEquals("Reduce queue element is incorrect after three entries", finalExpected, reduces.get(1));        
+        Assert.assertEquals(reduces.size(), 2, "Reduce queue should have two elements after three entries (complete)");
+        Assert.assertEquals(reduces.get(0), firstExpected, "Reduce queue element is incorrect after three entries");
+        Assert.assertEquals(reduces.get(1), finalExpected, "Reduce queue element is incorrect after three entries");
     }
 
     @Test
@@ -146,35 +147,35 @@ public class ReduceTreeUnitTest extends BaseTest implements ReduceTree.TreeReduc
 
         reduceTree.addEntry( getReduceTestEntry(1) );
 
-        Assert.assertEquals("Reduce queue should be empty after entering a single element", 0, reduces.size());
+        Assert.assertEquals(reduces.size(), 0, "Reduce queue should be empty after entering a single element");
 
         reduceTree.addEntry( getReduceTestEntry(2) );
 
-        Assert.assertEquals("Reduce queue should have one element after two entries", 1, reduces.size());
-        Assert.assertEquals("Reduce queue element is incorrect after two entries", lhsExpected, reduces.get(0));
+        Assert.assertEquals(reduces.size(), 1, "Reduce queue should have one element after two entries");
+        Assert.assertEquals(reduces.get(0), lhsExpected, "Reduce queue element is incorrect after two entries");
 
         reduceTree.addEntry( getReduceTestEntry(3) );
 
-        Assert.assertEquals("Reduce queue should have one element after three entries", 1, reduces.size());
-        Assert.assertEquals("Reduce queue element is incorrect after three entries", lhsExpected, reduces.get(0));
+        Assert.assertEquals(reduces.size(), 1, "Reduce queue should have one element after three entries");
+        Assert.assertEquals(reduces.get(0), lhsExpected, "Reduce queue element is incorrect after three entries");
 
         reduceTree.addEntry( getReduceTestEntry(4) );
 
-        Assert.assertEquals("Reduce queue should have three elements after four entries", 3, reduces.size());
-        Assert.assertEquals("Reduce queue element 0 is incorrect after three entries", lhsExpected, reduces.get(0));
-        Assert.assertEquals("Reduce queue element 1 is incorrect after three entries", rhsExpected, reduces.get(1));
-        Assert.assertEquals("Reduce queue element 2 is incorrect after three entries", finalExpected, reduces.get(2));                
+        Assert.assertEquals(reduces.size(), 3, "Reduce queue should have three elements after four entries");
+        Assert.assertEquals(reduces.get(0), lhsExpected, "Reduce queue element 0 is incorrect after three entries");
+        Assert.assertEquals(reduces.get(1), rhsExpected, "Reduce queue element 1 is incorrect after three entries");
+        Assert.assertEquals(reduces.get(2), finalExpected, "Reduce queue element 2 is incorrect after three entries");
 
         reduceTree.complete();
 
                 // Test the result
-        Assert.assertEquals("Four-valued reduce failed",finalExpected,reduceTree.getResult().get());
+        Assert.assertEquals(reduceTree.getResult().get(), finalExpected, "Four-valued reduce failed");
 
         // Test the working tree
-        Assert.assertEquals("Didn't see correct number of reduces", 3, reduces.size());
-        Assert.assertEquals("lhs of four value reduce failed", lhsExpected, reduces.get(0));
-        Assert.assertEquals("rhs of four value reduce failed", rhsExpected, reduces.get(1));
-        Assert.assertEquals("final value four value reduce failed", finalExpected, reduces.get(2));
+        Assert.assertEquals(reduces.size(), 3, "Didn't see correct number of reduces");
+        Assert.assertEquals(reduces.get(0), lhsExpected, "lhs of four value reduce failed");
+        Assert.assertEquals(reduces.get(1), rhsExpected, "rhs of four value reduce failed");
+        Assert.assertEquals(reduces.get(2), finalExpected, "final value four value reduce failed");
     }
 
 
@@ -214,7 +215,6 @@ public class ReduceTreeUnitTest extends BaseTest implements ReduceTree.TreeReduc
         return getReduceTestEntry( reduce );
     }
 
-    @Ignore
     private class ReduceTestEntry implements Callable {
         private Object data;
 

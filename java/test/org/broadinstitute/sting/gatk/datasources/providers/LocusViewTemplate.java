@@ -16,8 +16,9 @@ import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.FileNotFoundException;
 import java.util.*;
@@ -40,7 +41,8 @@ public abstract class LocusViewTemplate extends BaseTest {
     protected static ReferenceSequenceFile sequenceSourceFile = null;
 
     @BeforeClass
-    public static void setupGenomeLoc() throws FileNotFoundException {
+    public void setupGenomeLoc() throws FileNotFoundException {
+        GenomeLocParserTestUtils.clearSequenceDictionary();
         sequenceSourceFile = fakeReferenceSequenceFile();
         GenomeLocParser.setupRefContigOrdering(sequenceSourceFile);
     }

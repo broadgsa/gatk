@@ -24,9 +24,9 @@
 
 package org.broadinstitute.sting.utils;
 
-import junit.framework.Assert;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,21 +43,21 @@ public class UtilsUnitTest extends BaseTest {
     @Test
     public void testDupStringNoChars() {
         String duped = Utils.dupString('a',0);
-        Assert.assertEquals("dupString did not produce zero-length string", 0, duped.length());
+        Assert.assertEquals(duped.length(), 0, "dupString did not produce zero-length string");
     }
 
     @Test
     public void testDupStringOneChar() {
         String duped = Utils.dupString('b',1);
-        Assert.assertEquals("dupString did not produce single character string", 1, duped.length());
-        Assert.assertEquals("dupString character was incorrect", 'b', duped.charAt(0));
+        Assert.assertEquals(duped.length(), 1, "dupString did not produce single character string");
+        Assert.assertEquals(duped.charAt(0), 'b', "dupString character was incorrect");
     }
 
     @Test
     public void testDupStringMultiChar() {
         String duped = Utils.dupString('c',5);
-        Assert.assertEquals("dupString did not produce five character string", 5, duped.length());
-        Assert.assertEquals("dupString string was incorrect", "ccccc", duped);
+        Assert.assertEquals(duped.length(), 5, "dupString did not produce five character string");
+        Assert.assertEquals(duped,"ccccc","dupString string was incorrect");
     }
 
     @Test

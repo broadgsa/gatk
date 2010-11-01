@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.junit.Assert;
+
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -48,17 +49,17 @@ public class AllLocusViewUnitTest extends LocusViewTemplate {
         for( long i = bounds.getStart(); i <= bounds.getStop(); i++ ) {
             GenomeLoc site = GenomeLocParser.createGenomeLoc("chr1",i);
             AlignmentContext locusContext = allLocusView.next();
-            Assert.assertEquals("Locus context location is incorrect", site, locusContext.getLocation() );
+            Assert.assertEquals(locusContext.getLocation(), site, "Locus context location is incorrect");
             int expectedReadsAtSite = 0;
 
             for( SAMRecord read: reads ) {
                 if(GenomeLocParser.createGenomeLoc(read).containsP(locusContext.getLocation())) {
-                    Assert.assertTrue("Target locus context does not contain reads", locusContext.getReads().contains(read) );
+                    Assert.assertTrue(locusContext.getReads().contains(read),"Target locus context does not contain reads");
                     expectedReadsAtSite++;
                 }
             }
 
-            Assert.assertEquals("Found wrong number of reads at site", expectedReadsAtSite, locusContext.getReads().size());
+            Assert.assertEquals(locusContext.getReads().size(), expectedReadsAtSite, "Found wrong number of reads at site");
         }
 
     }

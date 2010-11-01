@@ -1,13 +1,14 @@
 package org.broadinstitute.sting.utils;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Test;
-import org.junit.BeforeClass;
-import org.junit.Assert;
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeClass;
+
 
 public class BaseUtilsUnitTest extends BaseTest {
     @BeforeClass
-    public static void init() { }
+    public void init() { }
 
     @Test
     public void testMostFrequentBaseFraction() {

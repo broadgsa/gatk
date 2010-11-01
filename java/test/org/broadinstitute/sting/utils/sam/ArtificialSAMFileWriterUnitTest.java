@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.utils.sam;
 
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
@@ -53,7 +53,7 @@ public class ArtificialSAMFileWriterUnitTest extends BaseTest {
     private final int numChr = 2;
     private final int chrSize = 100;
 
-    @Before
+    @BeforeMethod
     public void before() {
         writer = new ArtificialSAMFileWriter();
         header = ArtificialSAMUtils.createArtificialSamHeader(numChr, startChr, chrSize);
@@ -65,7 +65,7 @@ public class ArtificialSAMFileWriterUnitTest extends BaseTest {
             SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, String.valueOf(x), 1, x, ArtificialSAMUtils.DEFAULT_READ_LENGTH);
             writer.addAlignment(rec);
         }
-        assertEquals(100, writer.getRecords().size());
+        assertEquals(writer.getRecords().size(), 100);
 
     }
 
@@ -78,7 +78,7 @@ public class ArtificialSAMFileWriterUnitTest extends BaseTest {
             SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, String.valueOf(x), 1, x, ArtificialSAMUtils.DEFAULT_READ_LENGTH);
             writer.addAlignment(rec);
         }
-        assertEquals(100, writer.getRecords().size());
+        assertEquals(writer.getRecords().size(), 100);
 
         // check the names
         for (int x = 0; x < 100; x++) {

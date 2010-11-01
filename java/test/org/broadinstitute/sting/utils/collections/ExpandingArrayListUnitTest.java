@@ -29,11 +29,12 @@ package org.broadinstitute.sting.utils.collections;
 
 // the imports for unit testing.
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.Before;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeMethod;
+
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 
 import java.util.Arrays;
 
@@ -43,7 +44,7 @@ import java.util.Arrays;
 public class ExpandingArrayListUnitTest extends BaseTest {
     ExpandingArrayList<Integer> empty, initCap10, hasOne, hasTen;
 
-    @Before
+    @BeforeMethod
     public void before() {
         empty = new ExpandingArrayList<Integer>();
 
@@ -60,10 +61,10 @@ public class ExpandingArrayListUnitTest extends BaseTest {
     public void testBasicSizes() {
         logger.warn("Executing testBasicSizes");
 
-        Assert.assertEquals(empty.size(), 0);
-        Assert.assertEquals(initCap10.size(), 0);
-        Assert.assertEquals(hasOne.size(), 1);
-        Assert.assertEquals(hasTen.size(), 10);
+        Assert.assertEquals(0, empty.size());
+        Assert.assertEquals(0, initCap10.size());
+        Assert.assertEquals(1, hasOne.size());
+        Assert.assertEquals(10, hasTen.size());
     }
 
     @Test
@@ -71,7 +72,7 @@ public class ExpandingArrayListUnitTest extends BaseTest {
         logger.warn("Executing testTenElements");
 
         for ( int i = 0; i < 10; i++ ) {
-            Assert.assertEquals((int)hasTen.get(i), i+1);
+            Assert.assertEquals(i+1, (int)hasTen.get(i));
         }
     }
 
@@ -80,12 +81,12 @@ public class ExpandingArrayListUnitTest extends BaseTest {
         logger.warn("Executing testSettingTenElements");
 
         for ( int i = 0; i < 10; i++ ) {
-            Assert.assertEquals((int)hasTen.set(i, 2*i), i+1);
+            Assert.assertEquals(i+1, (int)hasTen.set(i, 2*i));
         }
 
-        Assert.assertEquals(hasTen.size(), 10);
+        Assert.assertEquals(10, hasTen.size());
         for ( int i = 0; i < 10; i++ ) {
-            Assert.assertEquals((int)hasTen.get(i), 2*i);
+            Assert.assertEquals(2*i, (int)hasTen.get(i));
         }
     }
 
@@ -93,74 +94,74 @@ public class ExpandingArrayListUnitTest extends BaseTest {
     public void testAdd() {
         logger.warn("Executing testAdd");
 
-        Assert.assertEquals(empty.size(), 0);
+        Assert.assertEquals(0, empty.size());
         empty.add(1);
-        Assert.assertEquals(empty.size(), 1);
-        Assert.assertEquals((int)empty.get(0), 1);
+        Assert.assertEquals(1, empty.size());
+        Assert.assertEquals(1, (int)empty.get(0));
         empty.add(2);
-        Assert.assertEquals(empty.size(), 2);
-        Assert.assertEquals((int)empty.get(1), 2);        
+        Assert.assertEquals(2, empty.size());
+        Assert.assertEquals(2, (int)empty.get(1));
     }
 
     @Test
     public void testSet1() {
         logger.warn("Executing testSet1");
 
-        Assert.assertEquals(empty.size(), 0);
+        Assert.assertEquals(0, empty.size());
         empty.set(0, 1);
-        Assert.assertEquals(empty.size(), 1);
-        Assert.assertEquals((int)empty.get(0), 1);
+        Assert.assertEquals(1, empty.size());
+        Assert.assertEquals(1, (int)empty.get(0));
 
         empty.set(1, 2);
-        Assert.assertEquals(empty.size(), 2);
-        Assert.assertEquals((int)empty.get(1), 2);
+        Assert.assertEquals(2, empty.size());
+        Assert.assertEquals(2, (int)empty.get(1));
 
         // doesn't expand
         empty.set(0, 3);
-        Assert.assertEquals(empty.size(), 2);
-        Assert.assertEquals((int)empty.get(0), 3);
+        Assert.assertEquals(2, empty.size());
+        Assert.assertEquals(3, (int)empty.get(0));
     }
 
     @Test
     public void testSetExpanding() {
         logger.warn("Executing testSetExpanding");
 
-        Assert.assertEquals(empty.size(), 0);
+        Assert.assertEquals(0, empty.size());
         empty.set(3, 1);
-        Assert.assertEquals(empty.size(), 4);
+        Assert.assertEquals(4, empty.size());
         Assert.assertEquals(empty.get(0), null);
         Assert.assertEquals(empty.get(1), null);
         Assert.assertEquals(empty.get(2), null);
-        Assert.assertEquals((int)empty.get(3), 1);
+        Assert.assertEquals(1, (int)empty.get(3));
     }
 
     @Test
     public void testSetExpandingReset() {
         logger.warn("Executing testSetExpandingReset");
 
-        Assert.assertEquals(empty.size(), 0);
+        Assert.assertEquals(0, empty.size());
         empty.set(3, 3);
         empty.set(2, 2);
         empty.set(1, 1);
         empty.set(0, 0);
-        Assert.assertEquals(empty.size(), 4);
+        Assert.assertEquals(4, empty.size());
         for ( int i = 0; i < 4; i++ )
-            Assert.assertEquals((int)empty.get(i), i);
+            Assert.assertEquals(i, (int)empty.get(i));
     }
 
     @Test
     public void testSetExpandingBig() {
         logger.warn("Executing testSetExpandingBig");
 
-        Assert.assertEquals(empty.size(), 0);
+        Assert.assertEquals(0, empty.size());
         empty.set(1000, 1000);
-        Assert.assertEquals(empty.size(), 1001);
+        Assert.assertEquals(1001, empty.size());
         for ( int i = 0; i < 1000; i++ )
             Assert.assertEquals(empty.get(i), null);
-        Assert.assertEquals((int)empty.get(1000), 1000);
+        Assert.assertEquals(1000, (int)empty.get(1000));
     }
 
-    @Test (expected=IndexOutOfBoundsException.class )
+    @Test (expectedExceptions=IndexOutOfBoundsException.class )
     public void testSetBadGetNegative() {
         logger.warn("Executing testSetBadGetNegative");
         empty.get(-1);
@@ -171,7 +172,7 @@ public class ExpandingArrayListUnitTest extends BaseTest {
         logger.warn("Executing testSetBadGetPost");
         empty.set(1, 1);
         Assert.assertEquals(empty.get(0), null);
-        Assert.assertEquals((int)empty.get(1), 1);
+        Assert.assertEquals(1, (int)empty.get(1));
         Assert.assertEquals(empty.get(2), null);
     }
 }

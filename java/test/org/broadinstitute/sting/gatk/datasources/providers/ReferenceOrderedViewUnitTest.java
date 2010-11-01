@@ -1,19 +1,19 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.MockLocusShard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.features.table.TableCodec;
 import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -50,7 +50,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     RMDTrackBuilder builder = new RMDTrackBuilder();
 
     @BeforeClass
-    public static void init() throws FileNotFoundException {
+    public void init() throws FileNotFoundException {
         // sequence
         seq = new IndexedFastaSequenceFile(new File(hg18Reference));
         GenomeLocParser.setupRefContigOrdering(seq);
@@ -66,7 +66,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",10));
-        Assert.assertEquals("The tracker should not have produced any data", 0, tracker.getAllRods().size());
+        Assert.assertEquals(tracker.getAllRods().size(), 0, "The tracker should not have produced any data");
     }
 
     /**
@@ -86,9 +86,9 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
         TableFeature datum = tracker.lookup("tableTest",TableFeature.class);
 
-        Assert.assertEquals("datum parameter for COL1 is incorrect", "C", datum.get("COL1"));
-        Assert.assertEquals("datum parameter for COL2 is incorrect", "D", datum.get("COL2"));
-        Assert.assertEquals("datum parameter for COL3 is incorrect", "E", datum.get("COL3"));
+        Assert.assertEquals(datum.get("COL1"),"C","datum parameter for COL1 is incorrect");
+        Assert.assertEquals(datum.get("COL2"),"D","datum parameter for COL2 is incorrect");
+        Assert.assertEquals(datum.get("COL3"),"E","datum parameter for COL3 is incorrect");
     }
 
     /**
@@ -113,14 +113,14 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
         TableFeature datum1 = tracker.lookup("tableTest1",TableFeature.class);
 
-        Assert.assertEquals("datum1 parameter for COL1 is incorrect", "C", datum1.get("COL1"));
-        Assert.assertEquals("datum1 parameter for COL2 is incorrect", "D", datum1.get("COL2"));
-        Assert.assertEquals("datum1 parameter for COL3 is incorrect", "E", datum1.get("COL3"));
+        Assert.assertEquals(datum1.get("COL1"),"C","datum1 parameter for COL1 is incorrect");
+        Assert.assertEquals(datum1.get("COL2"),"D","datum1 parameter for COL2 is incorrect");
+        Assert.assertEquals(datum1.get("COL3"),"E","datum1 parameter for COL3 is incorrect");
 
         TableFeature datum2 = tracker.lookup("tableTest2", TableFeature.class);
 
-        Assert.assertEquals("datum2 parameter for COL1 is incorrect", "C", datum2.get("COL1"));
-        Assert.assertEquals("datum2 parameter for COL2 is incorrect", "D", datum2.get("COL2"));
-        Assert.assertEquals("datum2 parameter for COL3 is incorrect", "E", datum2.get("COL3"));
+        Assert.assertEquals(datum2.get("COL1"),"C","datum2 parameter for COL1 is incorrect");
+        Assert.assertEquals(datum2.get("COL2"),"D","datum2 parameter for COL2 is incorrect");
+        Assert.assertEquals(datum2.get("COL3"),"E","datum2 parameter for COL3 is incorrect");
     }
 }

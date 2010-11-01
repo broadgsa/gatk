@@ -3,7 +3,7 @@ package org.broadinstitute.sting;
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.junit.*;
+import org.testng.annotations.BeforeClass;
 
 import java.io.*;
 import java.math.BigInteger;
@@ -56,8 +56,7 @@ public abstract class BaseTest {
     
 
     /** before the class starts up */
-    @BeforeClass
-    public static void baseStartup() {
+    public BaseTest() {
         if (!alreadySetup) {
 
             alreadySetup = true;

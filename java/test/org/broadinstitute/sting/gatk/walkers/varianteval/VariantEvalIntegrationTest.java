@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,6 +31,7 @@ public class
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
                     1, Arrays.asList("158ac8e6d32eb2ea1bbeebfa512965de"));
             executeTestParallel("testSelect1", spec);
+            //executeTest("testSelect1", spec);
         }
     }
 
@@ -40,6 +41,7 @@ public class
         WalkerTestSpec spec = new WalkerTestSpec( withSelect(withSelect(root, "DP < 50", "DP50"), "set==\"Intersection\"", "intersection") + " " + extraArgs + " -o %s",
                 1, Arrays.asList("cee96f61ffa1d042fe0c63550c508ec9"));
         executeTestParallel("testSelect2", spec);
+        //executeTest("testSelect2", spec);
     }
 
     @Test
@@ -50,6 +52,7 @@ public class
                     1,
                     Arrays.asList("7e9ce1b26cdeaa50705f5de163847638"));
             executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
+            //executeTest("testVEGenotypeConcordance" + vcfFile, spec);
         }
 
     }
@@ -68,6 +71,7 @@ public class
                     1, // just one output file
                     Arrays.asList(md5));
                 executeTestParallel("testVESimple", spec);
+                //executeTest("testVESimple", spec);
             }
         }
     }
@@ -93,6 +97,7 @@ public class
                         1, // just one output file
                         Arrays.asList(md5));
                 executeTestParallel("testVEComplex", spec);
+                //executeTest("testVEComplex", spec);
             }
         }
     }
@@ -110,6 +115,7 @@ public class
 
         WalkerTestSpec spec = new WalkerTestSpec(vecmd, 1, Arrays.asList(md5));
         executeTestParallel("testVEGenomicallyAnnotated", spec);
+        //executeTest("testVEGenomicallyAnnotated", spec);
     }
 
     @Test
@@ -120,6 +126,7 @@ public class
                     2,
                     Arrays.asList("6b97a019402b3984fead9a4e8b7c7c2a", "989bc30dea6c8a4cf771cd1b9fdab488"));
             executeTestParallel("testVEWriteVCF", spec);
+            //executeTest("testVEWriteVCF", spec);
         }
     }
 
@@ -128,6 +135,7 @@ public class
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -E GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf -reportType CSV";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("25a681855cb26e7380fbf1a93de0a41f"));
         executeTestParallel("testACDiscordanceAtAC1EvalAC2Comp",spec);
+        //executeTest("testACDiscordanceAtAC1EvalAC2Comp",spec);
     }
 
     private static String withSelect(String cmd, String select, String name) {

@@ -1,12 +1,13 @@
 package org.broadinstitute.sting.gatk.filters;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -24,7 +25,7 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
     private static SAMFileHeader header;
 
     @BeforeClass
-    public static void beforeClass() {
+    public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
 
         List<String> readGroupIDs = new ArrayList<String>();
@@ -46,18 +47,18 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
 
-    @Test(expected = ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedStingException.class)
     public void testBadFilter() {
         List<String> badFilters = Collections.singletonList("bad");
         new ReadGroupBlackListFilter(badFilters);
     }
-    @Test(expected = ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedStingException.class)
     public void testBadFilterTag() {
         List<String> badFilters = Collections.singletonList("bad:filter");
         new ReadGroupBlackListFilter(badFilters);
     }
 
-    @Test(expected = ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedStingException.class)
     public void testBadFilterFile() {
         List<String> badFilters = Collections.singletonList("/foo/bar/rgbl.txt");
         new ReadGroupBlackListFilter(badFilters);
@@ -131,8 +132,8 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
 
         int filteredExpected = recordsPerGroup * 2;
         int unfilteredExpected = recordsPerGroup * (READ_GROUP_COUNT - 2);
-        Assert.assertEquals("Filtered", filteredExpected, filtered);
-        Assert.assertEquals("Uniltered", unfilteredExpected, unfiltered);
+        Assert.assertEquals(filtered, filteredExpected, "Filtered");
+        Assert.assertEquals(unfiltered, unfilteredExpected, "Uniltered");
     }
 
     @Test
@@ -170,8 +171,8 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
 
         int filteredExpected = 6;
         int unfilteredExpected = 9;
-        Assert.assertEquals("Filtered", filteredExpected, filtered);
-        Assert.assertEquals("Uniltered", unfilteredExpected, unfiltered);
+        Assert.assertEquals(filtered, filteredExpected, "Filtered");
+        Assert.assertEquals(unfiltered, unfilteredExpected, "Uniltered");
     }
 
     @Test
@@ -209,8 +210,8 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
 
         int filteredExpected = recordsPerGroup * 2;
         int unfilteredExpected = recordsPerGroup * (READ_GROUP_COUNT - 2);
-        Assert.assertEquals("Filtered", filteredExpected, filtered);
-        Assert.assertEquals("Uniltered", unfilteredExpected, unfiltered);
+        Assert.assertEquals(filtered, filteredExpected, "Filtered");
+        Assert.assertEquals(unfiltered, unfilteredExpected, "Uniltered");
     }
 
     @Test
@@ -248,7 +249,7 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
 
         int filteredExpected = recordsPerGroup * 2;
         int unfilteredExpected = recordsPerGroup * (READ_GROUP_COUNT - 2);
-        Assert.assertEquals("Filtered", filteredExpected, filtered);
-        Assert.assertEquals("Uniltered", unfilteredExpected, unfiltered);
+        Assert.assertEquals(filtered, filteredExpected, "Filtered");
+        Assert.assertEquals(unfiltered, unfilteredExpected, "Uniltered");
     }
 }

@@ -4,9 +4,10 @@ package org.broadinstitute.sting.utils;
 
 // the imports for unit testing.
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
 
 import java.io.File;
@@ -22,8 +23,9 @@ public class GenomeLocUnitTest extends BaseTest {
     private static ReferenceSequenceFile seq;
 
     @BeforeClass
-    public static void init() throws FileNotFoundException {
+    public void init() throws FileNotFoundException {
         // sequence
+        GenomeLocParserTestUtils.clearSequenceDictionary();
         seq = new IndexedFastaSequenceFile(new File(hg18Reference));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
@@ -49,17 +51,17 @@ public class GenomeLocUnitTest extends BaseTest {
     public void testContigIndex() {
         logger.warn("Executing testContigIndex");
         GenomeLoc locOne = GenomeLocParser.createGenomeLoc("chr1",1,1);
-        Assert.assertEquals(locOne.getContigIndex(), 1);
-        Assert.assertEquals(locOne.getContig(), "chr1");
+        Assert.assertEquals(1, locOne.getContigIndex());
+        Assert.assertEquals("chr1", locOne.getContig());
 
         GenomeLoc locX = GenomeLocParser.createGenomeLoc("chrX",1,1);
-        Assert.assertEquals(locX.getContigIndex(), 23);
-        Assert.assertEquals(locX.getContig(), "chrX");
+        Assert.assertEquals(23, locX.getContigIndex());
+        Assert.assertEquals("chrX", locX.getContig());
 
         GenomeLoc locNumber = GenomeLocParser.createGenomeLoc(1,1,1);
-        Assert.assertEquals(locNumber.getContigIndex(), 1);
-        Assert.assertEquals(locNumber.getContig(), "chr1");
-        Assert.assertEquals(locOne.compareTo(locNumber), 0);
+        Assert.assertEquals(1, locNumber.getContigIndex());
+        Assert.assertEquals("chr1", locNumber.getContig());
+        Assert.assertEquals(0, locOne.compareTo(locNumber));
 
     }
 
@@ -69,14 +71,14 @@ public class GenomeLocUnitTest extends BaseTest {
         GenomeLoc twoOne = GenomeLocParser.createGenomeLoc("chr2", 1);
         GenomeLoc twoFive = GenomeLocParser.createGenomeLoc("chr2", 5);
         GenomeLoc twoOtherFive = GenomeLocParser.createGenomeLoc("chr2", 5);
-        Assert.assertEquals(0, twoFive.compareTo(twoOtherFive));
+        Assert.assertEquals(twoFive.compareTo(twoOtherFive), 0);
 
-        Assert.assertEquals(-1, twoOne.compareTo(twoFive));
-        Assert.assertEquals(1, twoFive.compareTo(twoOne));
+        Assert.assertEquals(twoOne.compareTo(twoFive), -1);
+        Assert.assertEquals(twoFive.compareTo(twoOne), 1);
 
         GenomeLoc oneOne = GenomeLocParser.createGenomeLoc("chr1", 5);
-        Assert.assertEquals(-1, oneOne.compareTo(twoOne));
-        Assert.assertEquals(1, twoOne.compareTo(oneOne));
+        Assert.assertEquals(oneOne.compareTo(twoOne), -1);
+        Assert.assertEquals(twoOne.compareTo(oneOne), 1);
     }
 
 

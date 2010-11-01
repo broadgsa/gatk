@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 import net.sf.samtools.*;
-import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
 
 /*
@@ -79,8 +79,8 @@ public class ReadReferenceViewUnitTest extends ReferenceViewTemplate {
         byte[] expected = expectedAsSeq.getBases();
         byte[] actual = view.getReferenceBases(rec);
 
-        Assert.assertEquals(expected.length, (readLength - overlap));
-        Assert.assertEquals(actual.length, readLength);
+        Assert.assertEquals((readLength - overlap), expected.length);
+        Assert.assertEquals(readLength, actual.length);
         int xRange = 0;
         for (; xRange < (readLength - overlap); xRange++) {
             Assert.assertTrue(actual[xRange] != 'X');
@@ -105,9 +105,7 @@ public class ReadReferenceViewUnitTest extends ReferenceViewTemplate {
         byte[] expected = expectedAsSeq.getBases();
         byte[] actual = view.getReferenceBases(read);
 
-        Assert.assertArrayEquals(String.format("Base array at  in shard %s does not match expected",loc.toString()),
-                                 expected,
-                                 actual);
+        org.testng.Assert.assertEquals(actual,expected,String.format("Base array at  in shard %s does not match expected",loc.toString()));
     }
 
 

@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertTrue;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 
@@ -54,7 +54,7 @@ public class ArtificialPatternedSAMIteratorUnitTest extends BaseTest {
     private int DEFAULT_READ_LENGTH = ArtificialSAMUtils.DEFAULT_READ_LENGTH;
     SAMFileHeader header;
 
-    @Before
+    @BeforeMethod
     public void before() {
         header = ArtificialSAMUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
 

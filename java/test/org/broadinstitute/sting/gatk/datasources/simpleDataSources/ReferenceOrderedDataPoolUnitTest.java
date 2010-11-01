@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.refdata.features.table.TableCodec;
 import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -9,15 +9,15 @@ import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import static org.testng.Assert.assertTrue;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 
-import static org.junit.Assert.assertTrue;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 /**
  * User: hanna
@@ -40,17 +40,21 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     private RMDTrack rod = null;
 
-    private final GenomeLoc testSite1 = GenomeLocParser.createGenomeLoc("chrM",10);
-    private final GenomeLoc testSite2 = GenomeLocParser.createGenomeLoc("chrM",20);
-    private final GenomeLoc testSite3 = GenomeLocParser.createGenomeLoc("chrM",30);
+    private GenomeLoc testSite1;
+    private GenomeLoc testSite2;
+    private GenomeLoc testSite3;
 
     @BeforeClass
-    public static void init() throws FileNotFoundException {
+    public void init() throws FileNotFoundException {
         File sequenceFile = new File(hg18Reference);
         GenomeLocParser.setupRefContigOrdering(new IndexedFastaSequenceFile(sequenceFile));
+
+        testSite1 = GenomeLocParser.createGenomeLoc("chrM",10);
+        testSite2 = GenomeLocParser.createGenomeLoc("chrM",20);
+        testSite3 = GenomeLocParser.createGenomeLoc("chrM",30);
     }
 
-    @Before
+    @BeforeMethod
     public void setUp() {
         File file = new File(testDir + "TabularDataTest.dat");
         RMDTrackBuilder builder = new RMDTrackBuilder();
@@ -62,8 +66,8 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         ResourcePool iteratorPool = new ReferenceOrderedDataPool(rod, false);
         LocationAwareSeekableRODIterator iterator = (LocationAwareSeekableRODIterator)iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
+        Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 0, "Number of available iterators in the pool is incorrect");
 
         TableFeature datum = (TableFeature)iterator.next().get(0).getUnderlyingObject();
 
@@ -74,8 +78,8 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
         iteratorPool.release(iterator);
 
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 1, iteratorPool.numAvailableIterators());        
+        Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 1, "Number of available iterators in the pool is incorrect");
     }
 
     @Test
@@ -86,8 +90,8 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         // Create a new iterator at position 2.
         LocationAwareSeekableRODIterator iterator2 = iteratorPool.iterator( new MappedStreamSegment(testSite2) );
 
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
+        Assert.assertEquals(iteratorPool.numIterators(), 2, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 0, "Number of available iterators in the pool is incorrect");
 
         // Test out-of-order access: first iterator2, then iterator1.
         // Ugh...first call to a region needs to be a seek. 
@@ -119,13 +123,13 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         // Cleanup, and make sure the number of iterators dies appropriately.
         iteratorPool.release(iterator1);
 
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 1, iteratorPool.numAvailableIterators());
+        Assert.assertEquals(iteratorPool.numIterators(), 2, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 1, "Number of available iterators in the pool is incorrect");
 
         iteratorPool.release(iterator2);
 
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 2, iteratorPool.numAvailableIterators());        
+        Assert.assertEquals(iteratorPool.numIterators(), 2, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 2, "Number of available iterators in the pool is incorrect");
     }
 
     @Test
@@ -133,8 +137,8 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod, false);
         LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
+        Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 0, "Number of available iterators in the pool is incorrect");
 
         TableFeature datum = (TableFeature)iterator.next().get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite1));
@@ -148,8 +152,8 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
 
         // Make sure that the previously acquired iterator was reused.
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
+        Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 0, "Number of available iterators in the pool is incorrect");
 
         datum = (TableFeature)iterator.seekForward(testSite3).get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite3));
@@ -159,8 +163,8 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
         iteratorPool.release(iterator);
 
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 1, iteratorPool.numAvailableIterators());
+        Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 1, "Number of available iterators in the pool is incorrect");
     }
 
     @Test
@@ -168,8 +172,8 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod, false);
         LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
 
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 1, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 0, iteratorPool.numAvailableIterators());
+        Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 0, "Number of available iterators in the pool is incorrect");
 
         TableFeature datum = (TableFeature)iterator.seekForward(testSite3).get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite3));
@@ -183,8 +187,8 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         iterator = iteratorPool.iterator(new MappedStreamSegment(testSite1) );
 
         // Make sure that the previously acquired iterator was reused.
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 1, iteratorPool.numAvailableIterators());
+        Assert.assertEquals(iteratorPool.numIterators(), 2, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 1, "Number of available iterators in the pool is incorrect");
 
         datum = (TableFeature)iterator.next().get(0).getUnderlyingObject();
         assertTrue(datum.getLocation().equals(testSite1));
@@ -194,8 +198,8 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
         iteratorPool.release(iterator);
 
-        Assert.assertEquals("Number of iterators in the pool is incorrect", 2, iteratorPool.numIterators());
-        Assert.assertEquals("Number of available iterators in the pool is incorrect", 2, iteratorPool.numAvailableIterators());
+        Assert.assertEquals(iteratorPool.numIterators(), 2, "Number of iterators in the pool is incorrect");
+        Assert.assertEquals(iteratorPool.numAvailableIterators(), 2, "Number of available iterators in the pool is incorrect");
     }
 
 }

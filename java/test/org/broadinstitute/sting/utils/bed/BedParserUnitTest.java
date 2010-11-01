@@ -1,11 +1,13 @@
 package org.broadinstitute.sting.utils.bed;
 
+import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 
 import java.io.File;
 import java.util.List;
@@ -19,7 +21,8 @@ public class BedParserUnitTest extends BaseTest {
     private File bedFile = new File("testdata/sampleBedFile.bed");
 
     @BeforeClass
-    public static void beforeTests() {
+    public void beforeTests() {
+        GenomeLocParserTestUtils.clearSequenceDictionary();
         seq = new IndexedFastaSequenceFile(new File(b36KGReference));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
@@ -28,29 +31,29 @@ public class BedParserUnitTest extends BaseTest {
     public void testLoadBedFile() {
         BedParser parser = new BedParser(bedFile);
         List<GenomeLoc> location = parser.getLocations();
-        Assert.assertEquals(4, location.size());
+        Assert.assertEquals(location.size(), 4);
     }
 
     @Test
     public void testBedParsing() {
         BedParser parser = new BedParser(bedFile);
         List<GenomeLoc> location = parser.getLocations();
-        Assert.assertEquals(4, location.size());
+        Assert.assertEquals(location.size(), 4);
         Assert.assertTrue(location.get(0).getContig().equals("20"));
         Assert.assertTrue(location.get(1).getContig().equals("20"));
         Assert.assertTrue(location.get(2).getContig().equals("22"));
         Assert.assertTrue(location.get(3).getContig().equals("22"));
 
         // now check the the start positions
-        Assert.assertEquals(1, location.get(0).getStart());
-        Assert.assertEquals(1002, location.get(1).getStart());
-        Assert.assertEquals(1001, location.get(2).getStart());
-        Assert.assertEquals(2001, location.get(3).getStart());
+        Assert.assertEquals(location.get(0).getStart(), 1);
+        Assert.assertEquals(location.get(1).getStart(), 1002);
+        Assert.assertEquals(location.get(2).getStart(), 1001);
+        Assert.assertEquals(location.get(3).getStart(), 2001);
 
         // now check the the stop positions
-        Assert.assertEquals(999, location.get(0).getStop());
-        Assert.assertEquals(2000, location.get(1).getStop());
-        Assert.assertEquals(5000, location.get(2).getStop());
-        Assert.assertEquals(6000, location.get(3).getStop());
+        Assert.assertEquals(location.get(0).getStop(), 999);
+        Assert.assertEquals(location.get(1).getStop(), 2000);
+        Assert.assertEquals(location.get(2).getStop(), 5000);
+        Assert.assertEquals(location.get(3).getStop(), 6000);
     }
 }

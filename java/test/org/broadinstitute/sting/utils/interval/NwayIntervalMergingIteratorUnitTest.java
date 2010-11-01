@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2010, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,7 +12,6 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -28,10 +27,10 @@ package org.broadinstitute.sting.utils.interval;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.Assert;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -104,7 +103,7 @@ public class NwayIntervalMergingIteratorUnitTest extends BaseTest {
                 GenomeLoc l = it.next();
                 GenomeLoc l_expected = e_it.next();
                 //System.out.println("int: "+l+" expected: "+l_expected) ;
-                Assert.assertEquals("Unexpected location returned by the iterator: "+l,l,l_expected);
+                Assert.assertEquals(l,l_expected,"Unexpected location returned by the iterator: "+l);
         }
    }
 

@@ -2,10 +2,10 @@ package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static junit.framework.Assert.assertTrue;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
+import org.testng.annotations.Test;
 import net.sf.samtools.SAMRecord;
 
 /**
@@ -26,7 +26,7 @@ public class ArtificialSAMUtilsUnitTest extends BaseTest {
             SAMRecord rec = iter.next();
             count++;
         }
-        assertEquals(100 * 100, count);
+        assertEquals(count, 100 * 100);
     }
 
     @Test
@@ -39,7 +39,7 @@ public class ArtificialSAMUtilsUnitTest extends BaseTest {
             assertEquals(Integer.valueOf(Math.round(count / 10)), rec.getReferenceIndex());
             count++;
         }
-        assertEquals(100 * 10, count);
+        assertEquals(count, 100 * 10);
     }
 
     @Test
@@ -52,7 +52,7 @@ public class ArtificialSAMUtilsUnitTest extends BaseTest {
             assertEquals(Integer.valueOf(count), rec.getReferenceIndex());
             count++;
         }
-        assertEquals(100 * 1, count);
+        assertEquals(count, 100 * 1);
     }
 
     @Test
@@ -67,7 +67,7 @@ public class ArtificialSAMUtilsUnitTest extends BaseTest {
             assertTrue(rec.getReferenceIndex() >= 0);
             count++;
         }
-        assertEquals(count, 100 * 100);
+        assertEquals(100 * 100, count);
 
         // now we should have 1000 unmapped reads
         count = 0;
@@ -76,7 +76,7 @@ public class ArtificialSAMUtilsUnitTest extends BaseTest {
             assertTrue(rec.getReferenceIndex() < 0);
             count++;
         }
-        assertEquals(1000, count);
+        assertEquals(count, 1000);
     }
 
   

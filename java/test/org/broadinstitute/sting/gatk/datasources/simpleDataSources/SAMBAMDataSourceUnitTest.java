@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
-import static junit.framework.Assert.fail;
+import static org.testng.Assert.fail;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
@@ -8,13 +8,13 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -58,7 +58,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
      * <p/>
      * Called before every test case method.
      */
-    @Before
+    @BeforeMethod
     public void doForEachTest() throws FileNotFoundException {
         readers = new ArrayList<SAMReaderID>();
 
@@ -72,7 +72,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
      * <p/>
      * Called after every test case method.
      */
-    @After
+    @AfterMethod
     public void undoForEachTest() {
         seq = null;
         readers.clear();

@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.utils.genotype;
 
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
+import org.testng.annotations.BeforeMethod;
+
+import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import static junit.framework.Assert.assertTrue;
+
+import static org.testng.Assert.assertTrue;
 
 
 /*
@@ -44,7 +44,7 @@ public class LikelihoodObjectUnitTest extends BaseTest {
 
     private LikelihoodObject mLO = null;
 
-    @Before
+    @BeforeMethod
     public void before() {
         mLO = new LikelihoodObject();
     }

@@ -25,16 +25,18 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.providers.RODMetaDataContainer;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeMethod;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.util.*;
 
@@ -55,12 +57,12 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
     private Set<String> nameSet;
 
     @BeforeClass
-    public static void beforeClass() {
+    public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
 
-    @Before
+    @BeforeMethod
     public void beforeEach() {
         nameSet = new TreeSet<String>();
         nameSet.add("default");
@@ -75,9 +77,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
         int count = 0;
         for (Long x : tracker.getReadOffsetMapping().keySet()) {
             count++;
-            Assert.assertEquals(2, tracker.getReadOffsetMapping().get(x).size());
+            Assert.assertEquals(tracker.getReadOffsetMapping().get(x).size(), 2);
         }
-        Assert.assertEquals(10, count);
+        Assert.assertEquals(count, 10);
     }
 
     @Test
@@ -89,9 +91,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
         int count = 0;
         for (Long x : tracker.getReadOffsetMapping().keySet()) {
             count++;
-            Assert.assertEquals(1, tracker.getReadOffsetMapping().get(x).size());
+            Assert.assertEquals(tracker.getReadOffsetMapping().get(x).size(), 1);
         }
-        Assert.assertEquals(10, count);
+        Assert.assertEquals(count, 10);
     }
 
     @Test
@@ -104,9 +106,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
         Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping("default");
         for (Long x : map.keySet()) {
             count++;
-            Assert.assertEquals(1, map.get(x).size());
+            Assert.assertEquals(map.get(x).size(), 1);
         }
-        Assert.assertEquals(10, count);
+        Assert.assertEquals(count, 10);
     }
 
     @Test
@@ -118,9 +120,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
         Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
         for (Long x : map.keySet()) {
             count++;
-            Assert.assertEquals(2, map.get(x).size());
+            Assert.assertEquals(map.get(x).size(), 2);
         }
-        Assert.assertEquals(10, count);
+        Assert.assertEquals(count, 10);
     }
 
     // @Test this test can be uncommented to determine the speed impacts of any changes to the RODs for reads system
@@ -137,9 +139,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
                 Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
                 for (Long x : map.keySet()) {
                     count++;
-                    Assert.assertEquals(y + 2, map.get(x).size());
+                    Assert.assertEquals(map.get(x).size(), y + 2);
                 }
-                Assert.assertEquals(10, count);
+                Assert.assertEquals(count, 10);
             }
             System.err.println(y + " = " + (System.currentTimeMillis() - firstTime));
         }
@@ -156,9 +158,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
         Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(Fake2RODatum.class);
         for (long x : map.keySet()) {
             count++;
-            Assert.assertEquals(1, map.get(x).size());
+            Assert.assertEquals(map.get(x).size(), 1);
         }
-        Assert.assertEquals(10, count);
+        Assert.assertEquals(count, 10);
     }
 
     @Test
@@ -169,9 +171,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
         int count = 0;
         for (Long x : tracker.getReadOffsetMapping().keySet()) {
             count++;
-            Assert.assertEquals(1, tracker.getReadOffsetMapping().get(x).size());
+            Assert.assertEquals(tracker.getReadOffsetMapping().get(x).size(), 1);
         }
-        Assert.assertEquals(2, count);
+        Assert.assertEquals(count, 2);
     }
 
     @Test
@@ -182,9 +184,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
         int count = 0;
         for (Long x : tracker.getContigOffsetMapping().keySet()) {
             count++;
-            Assert.assertEquals(1, tracker.getContigOffsetMapping().get(x).size());
+            Assert.assertEquals(tracker.getContigOffsetMapping().get(x).size(), 1);
         }
-        Assert.assertEquals(10, count);
+        Assert.assertEquals(count, 10);
     }
 
 

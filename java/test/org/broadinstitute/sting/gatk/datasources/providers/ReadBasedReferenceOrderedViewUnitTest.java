@@ -25,6 +25,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTrackerUnitTest;
@@ -34,10 +35,11 @@ import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeMethod;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.util.*;
 
@@ -58,12 +60,12 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
     private static SAMFileHeader header;
 
     @BeforeClass
-    public static void beforeClass() {
+    public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
 
-    @Before
+    @BeforeMethod
     public void beforeEach() {
     }
 
@@ -83,9 +85,9 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
             ReadMetaDataTracker tracker = view.getReferenceOrderedDataForRead(rec);
             Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping();
             for (Long i : map.keySet()) {
-                Assert.assertEquals(1, map.get(i).size());
+                Assert.assertEquals(map.get(i).size(), 1);
             }
-            Assert.assertEquals(10, map.keySet().size());
+            Assert.assertEquals(map.keySet().size(), 10);
         }
 
     }

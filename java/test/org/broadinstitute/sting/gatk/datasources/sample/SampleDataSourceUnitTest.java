@@ -4,10 +4,11 @@ import net.sf.samtools.SAMFileHeader;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.*;
@@ -50,14 +51,14 @@ public class SampleDataSourceUnitTest extends BaseTest {
     }
 
     // but that file should fail if it has an extra character in it...
-    @Test(expected = StingException.class)
+    @Test(expectedExceptions=StingException.class)
     public void loadInvalidSampleExtraCharText() {
         File sampleFile = new File(sampleFilesDir + "invalidSyntaxExtraChar.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
     }
 
     // ...or a typo...
-    @Test(expected = StingException.class)
+    @Test(expectedExceptions=StingException.class)
     public void loadInvalidSampleTypoText() {
         File sampleFile = new File(sampleFilesDir + "invalidSyntaxTypo.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
@@ -65,14 +66,14 @@ public class SampleDataSourceUnitTest extends BaseTest {
     }
 
     // ...or an extra unrecognized array
-    @Test(expected = StingException.class)
+    @Test(expectedExceptions=StingException.class)
     public void loadInvalidSampleExtraArrayText() {
         File sampleFile = new File(sampleFilesDir + "invalidSyntaxExtraArray.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
     }
 
     // make sure aliases work
-    @Test(expected = StingException.class)
+    @Test(expectedExceptions=StingException.class)
     public void sampleAliasText() {
         File sampleFile = new File(sampleFilesDir + "basicSampleFileWithAlias.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
@@ -82,14 +83,14 @@ public class SampleDataSourceUnitTest extends BaseTest {
     }
 
     // error is thrown if property is included that's not in properties array
-    @Test(expected = StingException.class)
+    @Test(expectedExceptions=StingException.class)
     public void unallowedPropertySampleTest() {
         File sampleFile = new File(sampleFilesDir + "basicSampleFileUnallowedProperty.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
     }
 
     // same as above, with relationship
-    @Test(expected = StingException.class)
+    @Test(expectedExceptions=StingException.class)
     public void unallowedRelationshipSampleTest() {
         File sampleFile = new File(sampleFilesDir + "basicSampleFileUnallowedRelationship.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
@@ -109,7 +110,7 @@ public class SampleDataSourceUnitTest extends BaseTest {
     }
 
     // two sample files, with contradictory properties
-    @Test(expected = StingException.class)
+    @Test(expectedExceptions=StingException.class)
     public void twoContradictorySampleFilesTest() {
         File sampleFile = new File(sampleFilesDir + "basicSampleFile.yaml");
         File secondFile = new File(sampleFilesDir + "basicSampleFileInvalidExt.yaml");

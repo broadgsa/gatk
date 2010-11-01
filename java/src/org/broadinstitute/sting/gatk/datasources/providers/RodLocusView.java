@@ -208,7 +208,6 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     public void close() {
         for( ReferenceOrderedDataState state: states )
             state.dataSource.close( state.iterator );
-        states.clear();
 
         rodQueue = null;
         tracker = null;

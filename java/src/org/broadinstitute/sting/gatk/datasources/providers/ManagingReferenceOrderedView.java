@@ -62,7 +62,6 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
     public void close() {
         for( ReferenceOrderedDataState state: states )
             state.dataSource.close( state.iterator );
-        states.clear();
 
         // Clear out the existing data so that post-close() accesses to this data will fail-fast.
         states = null;

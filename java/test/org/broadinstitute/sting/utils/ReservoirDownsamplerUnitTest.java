@@ -1,15 +1,12 @@
 package org.broadinstitute.sting.utils;
 
-import org.junit.Test;
-import org.broadinstitute.sting.utils.sam.AlignmentStartComparator;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 
 import java.util.*;
-
-import junit.framework.Assert;
 
 /**
  * Basic tests to prove the integrity of the reservoir downsampler.
@@ -26,7 +23,7 @@ public class ReservoirDownsamplerUnitTest {
     @Test
     public void testEmptyIterator() {
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(1);
-        Assert.assertTrue("Downsampler is not empty but should be.",downsampler.isEmpty());
+        Assert.assertTrue(downsampler.isEmpty(),"Downsampler is not empty but should be.");
     }
 
     @Test
@@ -35,10 +32,10 @@ public class ReservoirDownsamplerUnitTest {
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(1);
         downsampler.addAll(reads);
 
-        Assert.assertFalse("Downsampler is empty but shouldn't be",downsampler.isEmpty());
+        Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
         Collection<SAMRecord> batchedReads = downsampler.getDownsampledContents();
-        Assert.assertEquals("Downsampler is returning the wrong number of reads",1,batchedReads.size());
-        Assert.assertSame("Downsampler is returning an incorrect read",reads.get(0),batchedReads.iterator().next());
+        Assert.assertEquals(batchedReads.size(), 1, "Downsampler is returning the wrong number of reads");
+        Assert.assertSame(batchedReads.iterator().next(), reads.get(0), "Downsampler is returning an incorrect read");
     }
 
     @Test
@@ -47,10 +44,10 @@ public class ReservoirDownsamplerUnitTest {
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(5);
         downsampler.addAll(reads);
 
-        Assert.assertFalse("Downsampler is empty but shouldn't be",downsampler.isEmpty());
+        Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
         Collection<SAMRecord> batchedReads = downsampler.getDownsampledContents();
-        Assert.assertEquals("Downsampler is returning the wrong number of reads",1,batchedReads.size());
-        Assert.assertSame("Downsampler is returning an incorrect read",reads.get(0),batchedReads.iterator().next());
+        Assert.assertEquals(batchedReads.size(), 1, "Downsampler is returning the wrong number of reads");
+        Assert.assertSame(batchedReads.iterator().next(), reads.get(0), "Downsampler is returning an incorrect read");
 
     }
 
@@ -63,13 +60,13 @@ public class ReservoirDownsamplerUnitTest {
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(5);
         downsampler.addAll(reads);
 
-        Assert.assertFalse("Downsampler is empty but shouldn't be",downsampler.isEmpty());
+        Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
         List<SAMRecord> batchedReads = new ArrayList<SAMRecord>(downsampler.getDownsampledContents());
-        Assert.assertEquals("Downsampler is returning the wrong number of reads",3,batchedReads.size());
+        Assert.assertEquals(batchedReads.size(), 3, "Downsampler is returning the wrong number of reads");
 
-        Assert.assertSame("Downsampler read 1 is incorrect",reads.get(0),batchedReads.get(0));
-        Assert.assertSame("Downsampler read 2 is incorrect",reads.get(1),batchedReads.get(1));
-        Assert.assertSame("Downsampler read 3 is incorrect",reads.get(2),batchedReads.get(2));
+        Assert.assertSame(batchedReads.get(0), reads.get(0), "Downsampler read 1 is incorrect");
+        Assert.assertSame(batchedReads.get(1), reads.get(1), "Downsampler read 2 is incorrect");
+        Assert.assertSame(batchedReads.get(2), reads.get(2), "Downsampler read 3 is incorrect");
     }
 
     @Test
@@ -83,16 +80,16 @@ public class ReservoirDownsamplerUnitTest {
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(5);
         downsampler.addAll(reads);
 
-        Assert.assertFalse("Downsampler is empty but shouldn't be",downsampler.isEmpty());
+        Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
         List<SAMRecord> batchedReads = new ArrayList<SAMRecord>(downsampler.getDownsampledContents());
-        Assert.assertEquals("Downsampler is returning the wrong number of reads",5,batchedReads.size());
-        Assert.assertSame("Downsampler is returning an incorrect read",reads.get(0),batchedReads.iterator().next());
+        Assert.assertEquals(batchedReads.size(), 5, "Downsampler is returning the wrong number of reads");
+        Assert.assertSame(batchedReads.iterator().next(), reads.get(0), "Downsampler is returning an incorrect read");
 
-        Assert.assertSame("Downsampler read 1 is incorrect",reads.get(0),batchedReads.get(0));
-        Assert.assertSame("Downsampler read 2 is incorrect",reads.get(1),batchedReads.get(1));
-        Assert.assertSame("Downsampler read 3 is incorrect",reads.get(2),batchedReads.get(2));
-        Assert.assertSame("Downsampler read 4 is incorrect",reads.get(3),batchedReads.get(3));
-        Assert.assertSame("Downsampler read 5 is incorrect",reads.get(4),batchedReads.get(4));
+        Assert.assertSame(batchedReads.get(0), reads.get(0), "Downsampler read 1 is incorrect");
+        Assert.assertSame(batchedReads.get(1), reads.get(1), "Downsampler read 2 is incorrect");
+        Assert.assertSame(batchedReads.get(2), reads.get(2), "Downsampler read 3 is incorrect");
+        Assert.assertSame(batchedReads.get(3), reads.get(3), "Downsampler read 4 is incorrect");
+        Assert.assertSame(batchedReads.get(4), reads.get(4), "Downsampler read 5 is incorrect");
     }
 
     @Test
@@ -104,9 +101,9 @@ public class ReservoirDownsamplerUnitTest {
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(0);
         downsampler.addAll(reads);
 
-        Assert.assertTrue("Downsampler isn't empty but should be",downsampler.isEmpty());
+        Assert.assertTrue(downsampler.isEmpty(),"Downsampler isn't empty but should be");
         List<SAMRecord> batchedReads = new ArrayList<SAMRecord>(downsampler.getDownsampledContents());
-        Assert.assertEquals("Downsampler is returning the wrong number of reads",0,batchedReads.size());
+        Assert.assertEquals(batchedReads.size(), 0, "Downsampler is returning the wrong number of reads");
     }
 
     @Test
@@ -120,10 +117,10 @@ public class ReservoirDownsamplerUnitTest {
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(1);
         downsampler.addAll(reads);
 
-        Assert.assertFalse("Downsampler is empty but shouldn't be",downsampler.isEmpty());
+        Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
         List<SAMRecord> batchedReads = new ArrayList<SAMRecord>(downsampler.getDownsampledContents());
-        Assert.assertEquals("Downsampler is returning the wrong number of reads",1,batchedReads.size());
-        Assert.assertTrue("Downsampler is returning a bad read.",reads.contains(batchedReads.get(0))) ;
+        Assert.assertEquals(batchedReads.size(), 1, "Downsampler is returning the wrong number of reads");
+        Assert.assertTrue(reads.contains(batchedReads.get(0)),"Downsampler is returning a bad read.");
     }
 
     @Test
@@ -133,10 +130,10 @@ public class ReservoirDownsamplerUnitTest {
         ReservoirDownsampler<SAMRecord> downsampler = new ReservoirDownsampler<SAMRecord>(5);
         downsampler.addAll(reads);
 
-        Assert.assertFalse("Downsampler is empty but shouldn't be",downsampler.isEmpty());
+        Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
         List<SAMRecord> batchedReads = new ArrayList<SAMRecord>(downsampler.getDownsampledContents());
-        Assert.assertEquals("Downsampler is returning the wrong number of reads",1,batchedReads.size());
-        Assert.assertEquals("Downsampler is returning an incorrect read.",reads.get(0),batchedReads.get(0));
+        Assert.assertEquals(batchedReads.size(), 1, "Downsampler is returning the wrong number of reads");
+        Assert.assertEquals(batchedReads.get(0), reads.get(0), "Downsampler is returning an incorrect read.");
 
         reads.clear();
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read2",0,2,76));
@@ -145,11 +142,11 @@ public class ReservoirDownsamplerUnitTest {
         downsampler.clear();
         downsampler.addAll(reads);
 
-        Assert.assertFalse("Downsampler is empty but shouldn't be",downsampler.isEmpty());
+        Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
         batchedReads = new ArrayList<SAMRecord>(downsampler.getDownsampledContents());
-        Assert.assertEquals("Downsampler is returning the wrong number of reads",2,batchedReads.size());
-        Assert.assertEquals("Downsampler is returning an incorrect read.",reads.get(0),batchedReads.get(0));
-        Assert.assertEquals("Downsampler is returning an incorrect read.",reads.get(1),batchedReads.get(1));
+        Assert.assertEquals(batchedReads.size(), 2, "Downsampler is returning the wrong number of reads");
+        Assert.assertEquals(batchedReads.get(0), reads.get(0), "Downsampler is returning an incorrect read.");
+        Assert.assertEquals(batchedReads.get(1), reads.get(1), "Downsampler is returning an incorrect read.");
 
         reads.clear();
         reads.add(ArtificialSAMUtils.createArtificialRead(header,"read4",0,3,76));
@@ -158,11 +155,11 @@ public class ReservoirDownsamplerUnitTest {
         downsampler.clear();
         downsampler.addAll(reads);
                 
-        Assert.assertFalse("Downsampler is empty but shouldn't be",downsampler.isEmpty());
+        Assert.assertFalse(downsampler.isEmpty(),"Downsampler is empty but shouldn't be");
         batchedReads = new ArrayList<SAMRecord>(downsampler.getDownsampledContents());
-        Assert.assertEquals("Downsampler is returning the wrong number of reads",2,batchedReads.size());
-        Assert.assertEquals("Downsampler is returning an incorrect read.",reads.get(0),batchedReads.get(0));
-        Assert.assertEquals("Downsampler is returning an incorrect read.",reads.get(1),batchedReads.get(1));
+        Assert.assertEquals(batchedReads.size(), 2, "Downsampler is returning the wrong number of reads");
+        Assert.assertEquals(batchedReads.get(0), reads.get(0), "Downsampler is returning an incorrect read.");
+        Assert.assertEquals(batchedReads.get(1), reads.get(1), "Downsampler is returning an incorrect read.");
     }
 
 }

@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.duplicates;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.Arrays;

@@ -2,7 +2,7 @@
 package org.broadinstitute.sting.gatk.contexts.variantcontext;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.HashMap;
 import java.util.Map;

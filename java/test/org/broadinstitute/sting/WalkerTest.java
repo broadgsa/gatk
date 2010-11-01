@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting;
 
-import junit.framework.Assert;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.vcf.VCFCodec;
@@ -36,7 +35,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.junit.Test;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -133,7 +133,7 @@ public class WalkerTest extends BaseTest {
                     // todo -- add support for simple inline display of the first N differences for text file
                 }
 
-                Assert.assertEquals(name + " Mismatching MD5s", expectedMD5, filemd5sum);
+                Assert.assertEquals(filemd5sum,expectedMD5,name + " Mismatching MD5s");
                 System.out.println(String.format("  => %s PASSED", name));
             }
 

@@ -1,19 +1,17 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.sam.ArtificialReadsTraversal;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMFileWriter;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileWriterFactory;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 
 /*
@@ -60,7 +58,7 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
     private ReferenceContext bases = null;
     //private ReferenceContext ref = new ReferenceContext()
 
-    @Before
+    @BeforeMethod
     public void before() {
         trav = new ArtificialReadsTraversal();
         readTotal = ( ( trav.endingChr - trav.startingChr ) + 1 ) * trav.readsPerChr + trav.unMappedReads;
@@ -74,7 +72,7 @@ public class PrintReadsWalkerUnitTest extends BaseTest {
         walker.out = writer;
 
         trav.traverse(walker, null, writer);
-        assertEquals(readTotal, writer.getRecords().size());
+        assertEquals(writer.getRecords().size(), readTotal);
     }
 
     /** test that we're ok with a null read */

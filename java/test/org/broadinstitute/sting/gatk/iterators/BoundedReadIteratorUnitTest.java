@@ -1,19 +1,20 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import static junit.framework.Assert.fail;
+import static org.testng.Assert.fail;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.ReadProperties;
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeMethod;
+
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -68,7 +69,7 @@ public class BoundedReadIteratorUnitTest extends BaseTest {
      * <p/>
      * Called before every test case method.
      */
-    @Before
+    @BeforeMethod
     public void doForEachTest() throws FileNotFoundException {
         fl = new ArrayList<File>();
 
@@ -92,7 +93,7 @@ public class BoundedReadIteratorUnitTest extends BaseTest {
             count++;
         }
 
-        Assert.assertEquals(expected,count);
+        Assert.assertEquals(count, expected);
     }
 }
 

@@ -3,7 +3,6 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
@@ -15,15 +14,18 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import static org.junit.Assert.fail;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.testng.Assert.fail;
+
+import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
@@ -65,12 +67,21 @@ public class TraverseReadsUnitTest extends BaseTest {
     private long readSize = 100000;
     private TraverseReads traversalEngine = null;
 
+    private IndexedFastaSequenceFile ref = null;
+
+    @BeforeClass
+    public void doOnce() {
+        GenomeLocParserTestUtils.clearSequenceDictionary();
+        ref = new IndexedFastaSequenceFile(refFile);
+        GenomeLocParser.setupRefContigOrdering(ref);
+    }
+
     /**
      * This function does the setup of our parser, before each method call.
      * <p/>
      * Called before every test case method.
      */
-    @Before
+    @BeforeMethod
     public void doForEachTest() {
         output = new File("testOut.txt");
         FileOutputStream out = null;
@@ -95,10 +106,6 @@ public class TraverseReadsUnitTest extends BaseTest {
     /** Test out that we can shard the file and iterate over every read */
     @Test
     public void testUnmappedReadCount() {
-        IndexedFastaSequenceFile ref = null;
-        ref = new IndexedFastaSequenceFile(refFile);
-        GenomeLocParser.setupRefContigOrdering(ref);
-
         SAMDataSource dataSource = new SAMDataSource(bamList);
         ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                 ref.getSequenceDictionary(),

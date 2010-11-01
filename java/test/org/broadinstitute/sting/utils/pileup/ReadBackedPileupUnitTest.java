@@ -27,9 +27,10 @@ package org.broadinstitute.sting.utils.pileup;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,7 +40,7 @@ import java.util.Map;
 /**
  * Test routines for read-backed pileup.
  */
-public class ReadBackedPileupTest {
+public class ReadBackedPileupUnitTest {
     /**
      * Ensure that basic read group splitting works.
      */
@@ -73,18 +74,18 @@ public class ReadBackedPileupTest {
 
         ReadBackedPileup rg1Pileup = pileup.getPileupForReadGroup("rg1");
         List<SAMRecord> rg1Reads = rg1Pileup.getReads();
-        Assert.assertEquals("Wrong number of reads in read group rg1",4,rg1Reads.size());
-        Assert.assertEquals("Read " + read1.getReadName() + " should be in rg1 but isn't",read1,rg1Reads.get(0));
-        Assert.assertEquals("Read " + read3.getReadName() + " should be in rg1 but isn't",read3,rg1Reads.get(1));
-        Assert.assertEquals("Read " + read6.getReadName() + " should be in rg1 but isn't",read6,rg1Reads.get(2));
-        Assert.assertEquals("Read " + read7.getReadName() + " should be in rg1 but isn't",read7,rg1Reads.get(3));
+        Assert.assertEquals(rg1Reads.size(), 4, "Wrong number of reads in read group rg1");
+        Assert.assertEquals(rg1Reads.get(0), read1, "Read " + read1.getReadName() + " should be in rg1 but isn't");
+        Assert.assertEquals(rg1Reads.get(1), read3, "Read " + read3.getReadName() + " should be in rg1 but isn't");
+        Assert.assertEquals(rg1Reads.get(2), read6, "Read " + read6.getReadName() + " should be in rg1 but isn't");
+        Assert.assertEquals(rg1Reads.get(3), read7, "Read " + read7.getReadName() + " should be in rg1 but isn't");
 
         ReadBackedPileup rg2Pileup = pileup.getPileupForReadGroup("rg2");
         List<SAMRecord> rg2Reads = rg2Pileup.getReads();        
-        Assert.assertEquals("Wrong number of reads in read group rg2",3,rg2Reads.size());
-        Assert.assertEquals("Read " + read2.getReadName() + " should be in rg2 but isn't",read2,rg2Reads.get(0));
-        Assert.assertEquals("Read " + read4.getReadName() + " should be in rg2 but isn't",read4,rg2Reads.get(1));
-        Assert.assertEquals("Read " + read5.getReadName() + " should be in rg2 but isn't",read5,rg2Reads.get(2));
+        Assert.assertEquals(rg2Reads.size(), 3, "Wrong number of reads in read group rg2");
+        Assert.assertEquals(rg2Reads.get(0), read2, "Read " + read2.getReadName() + " should be in rg2 but isn't");
+        Assert.assertEquals(rg2Reads.get(1), read4, "Read " + read4.getReadName() + " should be in rg2 but isn't");
+        Assert.assertEquals(rg2Reads.get(2), read5, "Read " + read5.getReadName() + " should be in rg2 but isn't");
     }
 
     /**
@@ -104,13 +105,13 @@ public class ReadBackedPileupTest {
 
         ReadBackedPileup nullRgPileup = pileup.getPileupForReadGroup(null);
         List<SAMRecord> nullRgReads = nullRgPileup.getReads();
-        Assert.assertEquals("Wrong number of reads in null read group",3,nullRgPileup.size());
-        Assert.assertEquals("Read " + read1.getReadName() + " should be in null rg but isn't",read1,nullRgReads.get(0));
-        Assert.assertEquals("Read " + read2.getReadName() + " should be in null rg but isn't",read2,nullRgReads.get(1));
-        Assert.assertEquals("Read " + read3.getReadName() + " should be in null rg but isn't",read3,nullRgReads.get(2));
+        Assert.assertEquals(nullRgPileup.size(), 3, "Wrong number of reads in null read group");
+        Assert.assertEquals(nullRgReads.get(0), read1, "Read " + read1.getReadName() + " should be in null rg but isn't");
+        Assert.assertEquals(nullRgReads.get(1), read2, "Read " + read2.getReadName() + " should be in null rg but isn't");
+        Assert.assertEquals(nullRgReads.get(2), read3, "Read " + read3.getReadName() + " should be in null rg but isn't");
 
         ReadBackedPileup rg1Pileup = pileup.getPileupForReadGroup("rg1");
-        Assert.assertNull("Pileup for non-existent read group should return null",rg1Pileup);
+        Assert.assertNull(rg1Pileup, "Pileup for non-existent read group should return null");
     }
 
     /**
@@ -151,15 +152,15 @@ public class ReadBackedPileupTest {
         ReadBackedPileup rg1Pileup = compositePileup.getPileupForReadGroup("rg1");
         List<SAMRecord> rg1Reads = rg1Pileup.getReads();
 
-        Assert.assertEquals("Wrong number of reads in read group rg1",2,rg1Reads.size());
-        Assert.assertEquals("Read " + read1.getReadName() + " should be in rg1 but isn't",read1,rg1Reads.get(0));
-        Assert.assertEquals("Read " + read3.getReadName() + " should be in rg1 but isn't",read3,rg1Reads.get(1));
+        Assert.assertEquals(rg1Reads.size(), 2, "Wrong number of reads in read group rg1");
+        Assert.assertEquals(rg1Reads.get(0), read1, "Read " + read1.getReadName() + " should be in rg1 but isn't");
+        Assert.assertEquals(rg1Reads.get(1), read3, "Read " + read3.getReadName() + " should be in rg1 but isn't");
 
         ReadBackedPileup rg2Pileup = compositePileup.getPileupForReadGroup("rg2");
         List<SAMRecord> rg2Reads = rg2Pileup.getReads();
 
-        Assert.assertEquals("Wrong number of reads in read group rg2",2,rg1Reads.size());
-        Assert.assertEquals("Read " + read2.getReadName() + " should be in rg2 but isn't",read2,rg2Reads.get(0));
-        Assert.assertEquals("Read " + read4.getReadName() + " should be in rg2 but isn't",read4,rg2Reads.get(1));
+        Assert.assertEquals(rg1Reads.size(), 2, "Wrong number of reads in read group rg2");
+        Assert.assertEquals(rg2Reads.get(0), read2, "Read " + read2.getReadName() + " should be in rg2 but isn't");
+        Assert.assertEquals(rg2Reads.get(1), read4, "Read " + read4.getReadName() + " should be in rg2 but isn't");
     }
 }

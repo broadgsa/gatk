@@ -3,10 +3,11 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderUnitTest;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +66,7 @@ public class CombineVariantsUnitTest {
         for (String str : headerStr)
             headerFields.add(str);
         VCFHeader head = (VCFHeader)codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO");
-        Assert.assertEquals(headerStr.length /* for the # line */,head.getMetaData().size());
+        Assert.assertEquals(head.getMetaData().size(), headerStr.length /* for the # line */);
         return head;
     }
 
@@ -77,10 +78,10 @@ public class CombineVariantsUnitTest {
         headers.add(one);
         headers.add(two);
         Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(headers, null);
-        Assert.assertEquals(VCFHeaderUnitTest.VCF4headerStrings.length,lines.size());
+        Assert.assertEquals(lines.size(), VCFHeaderUnitTest.VCF4headerStrings.length);
     }
 
-    @Test(expected=IllegalStateException.class)
+    @Test(expectedExceptions=IllegalStateException.class)
     public void testHeadersInfoDifferentValues() {
         VCFHeader one = createHeader(VCFHeaderUnitTest.VCF4headerStrings);
         VCFHeader two = createHeader(VCF4headerStringsBrokenInfo);
@@ -88,7 +89,7 @@ public class CombineVariantsUnitTest {
         headers.add(one);
         headers.add(two);
         Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(headers, null);
-        Assert.assertEquals(VCFHeaderUnitTest.VCF4headerStrings.length,lines.size());
+        Assert.assertEquals(lines.size(), VCFHeaderUnitTest.VCF4headerStrings.length);
     }
 
     @Test
@@ -99,6 +100,6 @@ public class CombineVariantsUnitTest {
         headers.add(one);
         headers.add(two);
         Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(headers, null);
-        Assert.assertEquals(VCFHeaderUnitTest.VCF4headerStrings.length,lines.size());
+        Assert.assertEquals(lines.size(), VCFHeaderUnitTest.VCF4headerStrings.length);
     }
 }

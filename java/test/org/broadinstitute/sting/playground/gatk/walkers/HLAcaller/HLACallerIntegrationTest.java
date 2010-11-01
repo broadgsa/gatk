@@ -26,7 +26,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.HLAcaller;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.Arrays;
 

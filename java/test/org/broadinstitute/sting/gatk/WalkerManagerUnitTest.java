@@ -24,15 +24,16 @@
 
 package org.broadinstitute.sting.gatk;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 /**
  * Tests basic functionality of the walker manager.
@@ -41,7 +42,7 @@ public class WalkerManagerUnitTest {
     private static WalkerManager walkerManager;
 
     @BeforeClass
-    public static void setUp() {
+    public void setUp() {
         walkerManager = new WalkerManager();
     }
 
@@ -51,12 +52,12 @@ public class WalkerManagerUnitTest {
         Assert.assertEquals(CountLociWalker.class,countLociWalker.getClass());
     }
 
-    @Test(expected=UserException.class)
+    @Test(expectedExceptions=UserException.class)
     public void testAbsentWalker() {
         walkerManager.createByName("Missing");
     }
 
-    @Test(expected=DynamicClassResolutionException.class)
+    @Test(expectedExceptions=DynamicClassResolutionException.class)
     public void testUninstantiableWalker() {
         walkerManager.createByName("Uninstantiable");
     }

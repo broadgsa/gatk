@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 
 /**
@@ -24,11 +25,11 @@ public class GLFRecordUnitTest extends BaseTest {
         GLFRecord rec = new GLFSingleCall("1",'A',1,100,(short)200,likelihoods);
 
         Assert.assertTrue("1".equals(rec.contig));
-        Assert.assertEquals('A',rec.getRefBase().toChar());
-        Assert.assertEquals(1,rec.getPosition());
-        Assert.assertEquals(10,rec.getMinimumLikelihood());
-        Assert.assertEquals(200,rec.getRmsMapQ());
-        Assert.assertEquals(100,rec.getReadDepth());
+        Assert.assertEquals(rec.getRefBase().toChar(), 'A');
+        Assert.assertEquals(rec.getPosition(), 1);
+        Assert.assertEquals(rec.getMinimumLikelihood(), 10);
+        Assert.assertEquals(rec.getRmsMapQ(), 200);
+        Assert.assertEquals(rec.getReadDepth(), 100);
 
     }
 

@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,7 @@ public class ReferenceOrderedDataUnitTest extends BaseTest {
         String file = validationDataLocation + "testRODFileImpl.csv";
         List<String> lst = new ArrayList<String>();
         ReferenceOrderedData.extractRodsFromFile(lst,file);
-        Assert.assertEquals(6,lst.size());
+        Assert.assertEquals(lst.size(), 6);
         int index = 0;
         for (String entry: lst) {
             String first = entry.subSequence(0,entry.indexOf(",")).toString();            
@@ -37,7 +38,7 @@ public class ReferenceOrderedDataUnitTest extends BaseTest {
         List<String> lst = new ArrayList<String>();
         ReferenceOrderedData.extractRodsFromFile(lst,file);
         ReferenceOrderedData.extractRodsFromFile(lst,file2);
-        Assert.assertEquals(12,lst.size());
+        Assert.assertEquals(lst.size(), 12);
         int index = 0;
         for (String entry: lst) {
             String first = entry.subSequence(0,entry.indexOf(",")).toString();

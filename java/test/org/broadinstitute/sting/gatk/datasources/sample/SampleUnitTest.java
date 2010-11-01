@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.gatk.datasources.sample;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,7 +20,7 @@ public class SampleUnitTest extends BaseTest {
     static Sample sampleC;
 
     @BeforeClass
-    public static void init() {
+    public void init() {
         sampleA = new Sample("sampleA");
         sampleA.setProperty("uniqueProperty", "uniqueValue");
         sampleA1 = new Sample("sampleA");

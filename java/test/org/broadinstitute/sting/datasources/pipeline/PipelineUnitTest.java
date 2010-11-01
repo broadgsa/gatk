@@ -24,9 +24,10 @@
 
 package org.broadinstitute.sting.datasources.pipeline;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.yaml.YamlUtils;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.Map;
@@ -53,29 +54,29 @@ public class PipelineUnitTest {
         YamlUtils.dump(pipeline, file);
         Pipeline pipelineLoad = YamlUtils.load(Pipeline.class, file);
 
-        Assert.assertEquals(pipeline.getProject().getName(), pipelineLoad.getProject().getName());
+        Assert.assertEquals(pipelineLoad.getProject().getName(), pipeline.getProject().getName());
         Assert.assertEquals(pipeline.getProject().getReferenceFile(), pipelineLoad.getProject().getReferenceFile());
         Assert.assertEquals(pipeline.getProject().getIntervalList(), pipelineLoad.getProject().getIntervalList());
         Assert.assertEquals(pipeline.getProject().getDbsnpFile(), pipelineLoad.getProject().getDbsnpFile());
 
-        Assert.assertEquals(pipeline.getProject().getTags().size(), pipelineLoad.getProject().getTags().size());
+        Assert.assertEquals(pipelineLoad.getProject().getTags().size(), pipeline.getProject().getTags().size());
         for (Map.Entry<String, String> entry : pipeline.getProject().getTags().entrySet())
-            Assert.assertEquals(entry.getValue(), pipeline.getProject().getTags().get(entry.getKey()));
+            Assert.assertEquals(pipeline.getProject().getTags().get(entry.getKey()), entry.getValue());
 
-        Assert.assertEquals(pipeline.getSamples().size(), pipelineLoad.getSamples().size());
+        Assert.assertEquals(pipelineLoad.getSamples().size(), pipeline.getSamples().size());
         for (int i = 0; i < pipeline.getSamples().size(); i++) {
             PipelineSample pipelineSample = pipeline.getSamples().get(i);
             PipelineSample pipelineLoadSample = pipelineLoad.getSamples().get(i);
 
-            Assert.assertEquals(pipelineSample.getId(), pipelineLoadSample.getId());
+            Assert.assertEquals(pipelineLoadSample.getId(), pipelineSample.getId());
 
-            Assert.assertEquals(pipelineSample.getBamFiles().size(), pipelineLoadSample.getBamFiles().size());
+            Assert.assertEquals(pipelineLoadSample.getBamFiles().size(), pipelineSample.getBamFiles().size());
             for (Map.Entry<String, File> entry : pipelineSample.getBamFiles().entrySet())
                 Assert.assertEquals(entry.getValue(), pipelineSample.getBamFiles().get(entry.getKey()));
 
-            Assert.assertEquals(pipelineSample.getTags().size(), pipelineLoadSample.getTags().size());
+            Assert.assertEquals(pipelineLoadSample.getTags().size(), pipelineSample.getTags().size());
             for (Map.Entry<String, String> entry : pipelineSample.getTags().entrySet())
-                Assert.assertEquals(entry.getValue(), pipelineSample.getTags().get(entry.getKey()));
+                Assert.assertEquals(pipelineSample.getTags().get(entry.getKey()), entry.getValue());
         }
     }
 }

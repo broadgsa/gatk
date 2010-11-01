@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.utils.sam;
 
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
+import static org.testng.Assert.assertEquals;
+import org.testng.annotations.Test;
 import net.sf.samtools.SAMRecord;
-import static junit.framework.Assert.assertTrue;
 
 
 /*
@@ -50,7 +49,7 @@ public class ArtificialSAMQueryIteratorUnitTest extends BaseTest {
             SAMRecord rec = iter.next();
             count++;
         }
-        assertEquals(100, count);
+        assertEquals(count, 100);
 
     }
 
@@ -63,7 +62,7 @@ public class ArtificialSAMQueryIteratorUnitTest extends BaseTest {
             SAMRecord rec = iter.next();
             count++;
         }
-        assertEquals(1, count);
+        assertEquals(count, 1);
 
     }
 
@@ -76,7 +75,7 @@ public class ArtificialSAMQueryIteratorUnitTest extends BaseTest {
             SAMRecord rec = iter.next();
             count++;
         }
-        assertEquals(50, count);
+        assertEquals(count, 50);
 
     }
 
@@ -89,7 +88,7 @@ public class ArtificialSAMQueryIteratorUnitTest extends BaseTest {
             SAMRecord rec = iter.next();
             count++;
         }
-        assertEquals(1, count);
+        assertEquals(count, 1);
 
     }
 
@@ -102,11 +101,11 @@ public class ArtificialSAMQueryIteratorUnitTest extends BaseTest {
             SAMRecord rec = iter.next();
             count++;
         }
-        assertEquals(50, count);
+        assertEquals(count, 50);
 
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expectedExceptions=IllegalArgumentException.class)
     public void testUnknownChromosome() {
         ArtificialSAMQueryIterator iter = ArtificialSAMUtils.queryReadIterator(1, 2, 100);
         iter.queryOverlapping("chr621", 25, 74);         

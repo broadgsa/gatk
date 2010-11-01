@@ -1,7 +1,8 @@
 package org.broadinstitute.sting.utils.report.templates;
 
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 
@@ -22,7 +23,7 @@ public class TextTableUnitTest {
                     entriesSeen++;
                 } else
                     Assert.assertTrue(rows.get(x).get(y).equals(""));
-        Assert.assertEquals("Incorrect number of entries seen",1,entriesSeen);
+        Assert.assertEquals(entriesSeen, 1, "Incorrect number of entries seen");
     }
 
     @Test
@@ -40,6 +41,6 @@ public class TextTableUnitTest {
                 }
                 else
                     Assert.assertTrue(rows.get(x).get(y).equals(""));
-        Assert.assertEquals("Incorrect number of entries seen",2,entriesSeen);
+        Assert.assertEquals(entriesSeen, 2, "Incorrect number of entries seen");
     }
 }

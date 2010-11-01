@@ -1,13 +1,16 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
+import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.genotype.LikelihoodObject;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeMethod;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.File;
 
@@ -56,13 +59,14 @@ public class GLFWriterUnitTest extends BaseTest {
     protected static final String[] genotypes = {"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT"};
     protected final static double SIGNIFICANCE = 5.1;
 
-    @Before
+    @BeforeMethod
     public void before() {
 
     }
 
     @BeforeClass
-    public static void beforeTests() {
+    public void beforeTests() {
+        GenomeLocParserTestUtils.clearSequenceDictionary();
         IndexedFastaSequenceFile seq;
         seq = new IndexedFastaSequenceFile(new File(b36KGReference));
         GenomeLocParser.setupRefContigOrdering(seq);
@@ -156,6 +160,6 @@ public class GLFWriterUnitTest extends BaseTest {
             reader.next();
             count++;
         }
-        Assert.assertEquals(count, 100);
+        Assert.assertEquals(100, count);
     }
 }

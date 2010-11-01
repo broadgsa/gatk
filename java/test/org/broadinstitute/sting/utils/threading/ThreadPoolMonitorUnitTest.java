@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.threading;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
 
 import java.util.concurrent.ExecutorService;
@@ -28,7 +28,7 @@ public class ThreadPoolMonitorUnitTest extends BaseTest {
     /**
      * Test to make sure the thread pool wait works properly. 
      */
-    @Test(timeout=2000)
+    @Test(timeOut=2000)
     public void testThreadPoolMonitor() {
         ThreadPoolMonitor monitor = new ThreadPoolMonitor();
         synchronized(monitor) {

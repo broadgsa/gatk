@@ -1,16 +1,17 @@
 package org.broadinstitute.sting.utils;
 
 import org.broadinstitute.sting.BaseTest;
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 
 import java.io.File;
 
 public class PathUtilsUnitTest extends BaseTest {
     @BeforeClass
-    public static void init() { }
+    public void init() { }
 
     /**
      * Tests that we can successfully refresh a volume

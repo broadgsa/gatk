@@ -25,14 +25,13 @@
 
 package org.broadinstitute.sting.utils;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.MathUtils;
 
 
-import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,7 +41,7 @@ import java.util.Collections;
  */
 public class MathUtilsUnitTest extends BaseTest {
     @BeforeClass
-    public static void init() { }
+    public void init() { }
 
     /**
      * Tests that we get the right values from the binomial distribution
@@ -134,7 +133,7 @@ public class MathUtilsUnitTest extends BaseTest {
 
         for ( int i = 0 ; i < numbers.length ; i++ ) r.add((double)numbers[i]);
 
-        Assert.assertEquals(r.observationCount(),(long)numbers.length);
+        Assert.assertEquals((long)numbers.length, r.observationCount());
         Assert.assertTrue(r.mean()- 3224.625 < 2e-10 );
         Assert.assertTrue(r.stddev()-9072.6515881128 < 2e-10);
     }

@@ -1,9 +1,11 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.junit.Before;
-import org.junit.Assert;
-import org.junit.Test;
+import org.testng.annotations.BeforeMethod;
+
+
+import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
 
 import java.util.Collection;
@@ -32,7 +34,7 @@ public class ShardDataProviderUnitTest extends BaseTest {
      */
     private ShardDataProvider provider = null;
 
-    @Before
+    @BeforeMethod
     public void createProvider() {
         provider = new LocusShardDataProvider( null,null,null,null,null,null );
     }
@@ -43,10 +45,10 @@ public class ShardDataProviderUnitTest extends BaseTest {
     @Test
     public void testClose() {
         TestView testView = new TestView( provider );
-        Assert.assertFalse("View is currently closed but should be open", testView.closed);
+        Assert.assertFalse(testView.closed,"View is currently closed but should be open");
 
         provider.close();
-        Assert.assertTrue("View is currently open but should be closed", testView.closed);
+        Assert.assertTrue(testView.closed,"View is currently open but should be closed");
     }
 
     /**
@@ -56,17 +58,17 @@ public class ShardDataProviderUnitTest extends BaseTest {
     public void testMultipleClose() {
         Collection<TestView> testViews = Arrays.asList(new TestView(provider),new TestView(provider));
         for( TestView testView: testViews )
-            Assert.assertFalse("View is currently closed but should be open", testView.closed);
+            Assert.assertFalse(testView.closed,"View is currently closed but should be open");
 
         provider.close();
         for( TestView testView: testViews )
-            Assert.assertTrue("View is currently open but should be closed", testView.closed);        
+            Assert.assertTrue(testView.closed,"View is currently open but should be closed");
     }
 
     /**
      * Try adding a view which conflicts with some other view that's already been registered.
      */
-    @Test(expected= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedStingException.class)
     public void testAddViewWithExistingConflict() {
         View initial = new ConflictingTestView( provider );
         View conflictsWithInitial = new TestView( provider );
@@ -75,7 +77,7 @@ public class ShardDataProviderUnitTest extends BaseTest {
     /**
      * Try adding a view which has a conflict with a previously registered view.
      */
-    @Test(expected= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedStingException.class)
     public void testAddViewWithNewConflict() {
         View conflictsWithInitial = new TestView( provider );
         View initial = new ConflictingTestView( provider );

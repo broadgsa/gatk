@@ -1,14 +1,16 @@
 package org.broadinstitute.sting.gatk.refdata.utils;
 
 import net.sf.samtools.SAMFileHeader;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeMethod;
+
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,7 +33,7 @@ public class FlashBackIteratorUnitTest extends BaseTest {
     private static final int STARTING_CHROMOSOME = 1;
     private static final int CHROMOSOME_SIZE = 1000;
 
-    @Before
+    @BeforeMethod
     public void setup() {
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
@@ -86,7 +88,7 @@ public class FlashBackIteratorUnitTest extends BaseTest {
             count++;
             iter.next();
         }
-        Assert.assertEquals(10, count);
+        Assert.assertEquals(count, 10);
     }
 
 
@@ -133,7 +135,7 @@ public class FlashBackIteratorUnitTest extends BaseTest {
             count++;
             iter.next();
         }
-        Assert.assertEquals(6, count); // chr1:5, 6, 7, 8, 9, and 10
+        Assert.assertEquals(count, 6); // chr1:5, 6, 7, 8, 9, and 10
     }
 }
 

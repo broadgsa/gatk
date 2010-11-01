@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.utils.interval;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.Arrays;
 import java.util.Collections;

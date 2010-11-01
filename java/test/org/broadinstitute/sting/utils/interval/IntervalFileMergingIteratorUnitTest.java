@@ -25,10 +25,11 @@
 
 package org.broadinstitute.sting.utils.interval;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -55,7 +56,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
         private static List<GenomeLoc> results2 = null;
 
         @BeforeClass
-        public static void init() {
+        public void init() {
             GenomeLocParser.setupRefContigOrdering(ReferenceSequenceFileFactory.getReferenceSequenceFile(refFile));
 
             results1 = new ArrayList<GenomeLoc>();
@@ -84,7 +85,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
                     GenomeLoc l = it.next();
                     GenomeLoc l_expected = check_it.next();
                     //System.out.println("int: "+l+" expected: "+l_expected) ;
-                    Assert.assertEquals("Unexpected location returned by the iterator: "+l,l,l_expected);
+                    Assert.assertEquals(l_expected, l, "Unexpected location returned by the iterator: "+l);
             }
        }
 
@@ -101,7 +102,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
 //                    System.out.println("int: "+l+" expected: "+l_expected) ;
                 }
             } catch ( ReviewedStingException e) {
-                    Assert.assertEquals( e.getMessage(), "Interval chr5:7414 in the interval file is out of order.");
+                    Assert.assertEquals("Interval chr5:7414 in the interval file is out of order.", e.getMessage());
             }
         }
 
@@ -115,7 +116,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
                 GenomeLoc l = it.next();
                 GenomeLoc l_expected = check_it.next();
 //                System.out.println("int: "+l+" expected: "+l_expected) ;
-                Assert.assertEquals("Unexpected location returned by the iterator: "+l,l,l_expected);
+                Assert.assertEquals(l_expected, l, "Unexpected location returned by the iterator: "+l);
         }
    }
 
@@ -129,7 +130,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
                 GenomeLoc l = it.next();
                 GenomeLoc l_expected = check_it.next();
 //                System.out.println("int: "+l+" expected: "+l_expected) ;
-                Assert.assertEquals("Unexpected location returned by the iterator: "+l,l,l_expected);
+                Assert.assertEquals(l_expected, l, "Unexpected location returned by the iterator: "+l);
         }
    }
 

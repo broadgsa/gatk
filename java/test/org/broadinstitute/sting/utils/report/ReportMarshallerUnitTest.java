@@ -24,7 +24,7 @@
 package org.broadinstitute.sting.utils.report;
 
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 
 /**

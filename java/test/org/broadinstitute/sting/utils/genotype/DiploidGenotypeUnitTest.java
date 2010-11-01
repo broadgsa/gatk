@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.utils.genotype;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 
 /**

@@ -26,14 +26,15 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 import net.sf.samtools.SAMFileHeader;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import java.util.Arrays;
 import java.util.List;
@@ -59,7 +60,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
     Allele del, delRef, ATC, ATCref;
     // A [ref] / T at 10
 
-    GenomeLoc snpLoc = GenomeLocParser.createGenomeLoc("chr1", 10, 10);
+    GenomeLoc snpLoc;
     // - / ATC [ref] from 20-23
 
     private static int startingChr = 1;
@@ -69,7 +70,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
     static SAMFileHeader header;
 
     @BeforeClass
-    public static void beforeClass() {
+    public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
         try {
@@ -77,9 +78,10 @@ public class VariantJEXLContextUnitTest extends BaseTest {
         } catch (Exception e) {
             Assert.fail("Unable to create expression" + e.getMessage());
         }
+        snpLoc = GenomeLocParser.createGenomeLoc("chr1", 10, 10);
     }
 
-    @Before
+    @BeforeMethod
     public void before() {
         del = Allele.create("-");
         delRef = Allele.create("-", true);
@@ -100,34 +102,34 @@ public class VariantJEXLContextUnitTest extends BaseTest {
 
         // make sure the context has a value
         Assert.assertTrue(!map.isEmpty());
-        Assert.assertEquals(1,map.size());
+        Assert.assertEquals(map.size(), 1);
 
         // eval our known expression
         Assert.assertTrue(!map.get(exp));
     }
 
-    @Test(expected=UnsupportedOperationException.class)
+    @Test(expectedExceptions=UnsupportedOperationException.class)
     public void testContainsValue() {
         Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = getVarContext();
 
         map.containsValue(exp);
     }
 
-    @Test(expected=UnsupportedOperationException.class)
+    @Test(expectedExceptions=UnsupportedOperationException.class)
     public void testRemove() {
         Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = getVarContext();
 
         map.remove(exp);
     }
 
-    @Test(expected=UnsupportedOperationException.class)
+    @Test(expectedExceptions=UnsupportedOperationException.class)
     public void testEntrySet() {
         Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = getVarContext();
 
         map.entrySet();
     }
 
-    @Test(expected=UnsupportedOperationException.class)
+    @Test(expectedExceptions=UnsupportedOperationException.class)
     public void testClear() {
         Map<VariantContextUtils.JexlVCMatchExp, Boolean> map = getVarContext();
 

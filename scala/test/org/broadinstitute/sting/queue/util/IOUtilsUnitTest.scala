@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.queue.util
 
 import org.broadinstitute.sting.BaseTest
-import org.junit.{Assert, Test}
 import java.io.File
 import org.broadinstitute.sting.utils.exceptions.UserException
+import org.testng.Assert
+import org.testng.annotations.Test
 
 class IOUtilsUnitTest extends BaseTest {
   @Test
@@ -17,7 +18,7 @@ class IOUtilsUnitTest extends BaseTest {
     }
   }
 
-  @Test(expected=classOf[UserException.BadTmpDir])
+  @Test(expectedExceptions=Array(classOf[UserException.BadTmpDir]))
   def testBadTempDir = {
     val tmpDir = System.getProperty("java.io.tmpdir")
     try {

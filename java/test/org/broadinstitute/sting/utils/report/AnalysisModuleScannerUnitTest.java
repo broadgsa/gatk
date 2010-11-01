@@ -1,11 +1,12 @@
 package org.broadinstitute.sting.utils.report;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
 import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.tags.Param;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.annotations.Test;
 
 
 /**
@@ -22,7 +23,7 @@ public class AnalysisModuleScannerUnitTest extends BaseTest {
         AnalysisModuleScanner scanner = new AnalysisModuleScanner(FakeAnalysis.class);
 
         // check we found one param, and check its description
-        Assert.assertEquals(3, scanner.getParameters().size());
+        Assert.assertEquals(scanner.getParameters().size(), 3);
         Assert.assertTrue("basic description".equals(scanner.getParameters().values().iterator().next().description()));
 
         // check that the analysis name and description were set

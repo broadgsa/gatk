@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.junit.Assert;
+
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -60,18 +61,18 @@ public class CoveredLocusViewUnitTest extends LocusViewTemplate {
             if( expectedReadsAtSite < 1 )
                 continue;
 
-            Assert.assertTrue("Incorrect number of loci in view",coveredLocusView.hasNext());
+            Assert.assertTrue(coveredLocusView.hasNext(),"Incorrect number of loci in view");
 
             AlignmentContext locusContext = coveredLocusView.next();
-            Assert.assertEquals("Target locus context location is incorrect", site, locusContext.getLocation() );
-            Assert.assertEquals("Found wrong number of reads at site", expectedReadsAtSite, locusContext.getReads().size());
+            Assert.assertEquals(locusContext.getLocation(), site, "Target locus context location is incorrect");
+            Assert.assertEquals(locusContext.getReads().size(), expectedReadsAtSite, "Found wrong number of reads at site");
 
             for( SAMRecord read: reads ) {
                 if(GenomeLocParser.createGenomeLoc(read).containsP(locusContext.getLocation()))
-                    Assert.assertTrue("Target locus context does not contain reads", locusContext.getReads().contains(read) );
+                    Assert.assertTrue(locusContext.getReads().contains(read),"Target locus context does not contain reads");
             }
         }
 
-        Assert.assertFalse("Iterator is not bounded at boundaries of shard", coveredLocusView.hasNext());
+        Assert.assertFalse(coveredLocusView.hasNext(),"Iterator is not bounded at boundaries of shard");
     }        
 }

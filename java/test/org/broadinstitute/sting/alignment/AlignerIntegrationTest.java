@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.alignment;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 import org.broadinstitute.sting.WalkerTest;
 
 import java.util.Arrays;

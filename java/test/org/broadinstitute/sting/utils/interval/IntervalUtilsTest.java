@@ -3,11 +3,12 @@ package org.broadinstitute.sting.utils.interval;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import org.broadinstitute.sting.BaseTest;
+import org.testng.Assert;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -24,7 +25,7 @@ public class IntervalUtilsTest extends BaseTest {
 
 
     @BeforeClass
-    public static void init() throws FileNotFoundException {
+    public void init() throws FileNotFoundException {
         seq = new IndexedFastaSequenceFile(new File(hg18Reference));
         GenomeLocParser.setupRefContigOrdering(seq);
 
@@ -45,9 +46,9 @@ public class IntervalUtilsTest extends BaseTest {
         }
 
         List<GenomeLoc> ret = IntervalUtils.mergeListsBySetOperator(listEveryTwoFromTwo, listEveryTwoFromOne, IntervalSetRule.UNION);
-        Assert.assertEquals(100,ret.size());
+        Assert.assertEquals(ret.size(), 100);
         ret = IntervalUtils.mergeListsBySetOperator(listEveryTwoFromTwo, listEveryTwoFromOne, IntervalSetRule.INTERSECTION);
-        Assert.assertEquals(0,ret.size());
+        Assert.assertEquals(ret.size(), 0);
     }
 
     @Test
@@ -64,9 +65,9 @@ public class IntervalUtilsTest extends BaseTest {
         }
 
         List<GenomeLoc> ret = IntervalUtils.mergeListsBySetOperator(listEveryTwoFromTwo, allSites, IntervalSetRule.UNION);
-        Assert.assertEquals(150,ret.size());
+        Assert.assertEquals(ret.size(), 150);
         ret = IntervalUtils.mergeListsBySetOperator(listEveryTwoFromTwo, allSites, IntervalSetRule.INTERSECTION);
-        Assert.assertEquals(50,ret.size());
+        Assert.assertEquals(ret.size(), 50);
     }
 
     @Test
@@ -84,8 +85,8 @@ public class IntervalUtilsTest extends BaseTest {
         }
 
         List<GenomeLoc> ret = IntervalUtils.mergeListsBySetOperator(listEveryTwoFromTwo, allSites, IntervalSetRule.UNION);
-        Assert.assertEquals(40,ret.size());
+        Assert.assertEquals(ret.size(), 40);
         ret = IntervalUtils.mergeListsBySetOperator(listEveryTwoFromTwo, allSites, IntervalSetRule.INTERSECTION);
-        Assert.assertEquals(20,ret.size());
+        Assert.assertEquals(ret.size(), 20);
     }
 }

@@ -6,14 +6,15 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.BeforeClass;
+
+import org.testng.annotations.Test;
+import org.testng.annotations.BeforeClass;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,7 +38,8 @@ public class VCFWriterUnitTest extends BaseTest {
     private File fakeVCFFile = new File("FAKEVCFFILEFORTESTING.vcf");
 
     @BeforeClass
-    public static void beforeTests() {
+    public void beforeTests() {
+        GenomeLocParserTestUtils.clearSequenceDictionary();
         IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(hg18Reference));
         GenomeLocParser.setupRefContigOrdering(seq);
     }
@@ -76,7 +78,7 @@ public class VCFWriterUnitTest extends BaseTest {
                 VariantContext vc = (VariantContext)reader.decode(line);
                 counter++;
             }
-            Assert.assertEquals(2,counter);
+            Assert.assertEquals(counter, 2);
             Tribble.indexFile(fakeVCFFile).delete();
             fakeVCFFile.delete();
         }
@@ -143,12 +145,12 @@ public class VCFWriterUnitTest extends BaseTest {
             Assert.assertEquals(VCFHeader.HEADER_FIELDS.values()[index], field);
             index++;
         }
-        Assert.assertEquals(metaData.size(), header.getMetaData().size());
+        Assert.assertEquals(header.getMetaData().size(), metaData.size());
         index = 0;
         for (String key : header.getGenotypeSamples()) {
             Assert.assertTrue(additionalColumns.contains(key));
             index++;
         }
-        Assert.assertEquals(additionalColumns.size(), index+1 /* for the header field we don't see */);
+        Assert.assertEquals(index+1, additionalColumns.size()  /* for the header field we don't see */);
     }
 }

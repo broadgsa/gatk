@@ -25,13 +25,12 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.junit.Test;
-import org.junit.Before;
-import org.junit.Assert;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.EnumSet;
 /**
@@ -40,7 +39,7 @@ import java.util.EnumSet;
 public class ParsingEngineUnitTest extends BaseTest {
     private ParsingEngine parsingEngine;
 
-    @Before
+    @BeforeMethod
     public void setUp() {
         parsingEngine = new ParsingEngine(null);
     }
@@ -61,7 +60,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         InputFileArgProvider argProvider = new InputFileArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Argument is not correctly initialized", "na12878.bam", argProvider.inputFile );
+        Assert.assertEquals(argProvider.inputFile,"na12878.bam","Argument is not correctly initialized");
     }
     
     @Test
@@ -75,7 +74,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         MultiCharShortNameArgProvider argProvider = new MultiCharShortNameArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Argument is not correctly initialized", "out.txt", argProvider.outputFile );
+        Assert.assertEquals(argProvider.outputFile,"out.txt","Argument is not correctly initialized");
     }
 
 
@@ -95,7 +94,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         InputFileArgProvider argProvider = new InputFileArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Argument is not correctly initialized", "na12878.bam", argProvider.inputFile );
+        Assert.assertEquals(argProvider.inputFile,"na12878.bam","Argument is not correctly initialized");
     }
 
     @Test
@@ -109,7 +108,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         InputFileArgProvider argProvider = new InputFileArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Argument is not correctly initialized", "na12878.bam", argProvider.inputFile );
+        Assert.assertEquals(argProvider.inputFile,"na12878.bam","Argument is not correctly initialized");
     }
 
     @Test
@@ -123,7 +122,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         PrimitiveArgProvider argProvider = new PrimitiveArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Argument is not correctly initialized", 5, argProvider.foo );
+        Assert.assertEquals(argProvider.foo, 5, "Argument is not correctly initialized");
     }
 
     private class PrimitiveArgProvider {
@@ -142,7 +141,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         AllLociArgProvider argProvider = new AllLociArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertTrue("Argument is not correctly initialized", argProvider.allLoci );
+        Assert.assertTrue(argProvider.allLoci,"Argument is not correctly initialized");
     }
 
     private class AllLociArgProvider {
@@ -161,9 +160,9 @@ public class ParsingEngineUnitTest extends BaseTest {
         MultiValueArgProvider argProvider = new MultiValueArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Argument array is of incorrect length", 2, argProvider.inputFile.length);
-        Assert.assertEquals("1st filename is incorrect", "foo.txt", argProvider.inputFile[0] );
-        Assert.assertEquals("2nd filename is incorrect", "bar.txt", argProvider.inputFile[1] );        
+        Assert.assertEquals(argProvider.inputFile.length, 2, "Argument array is of incorrect length");
+        Assert.assertEquals(argProvider.inputFile[0],"foo.txt","1st filename is incorrect");
+        Assert.assertEquals(argProvider.inputFile[1],"bar.txt","2nd filename is incorrect");
     }
 
     private class MultiValueArgProvider {
@@ -182,7 +181,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         EnumArgProvider argProvider = new EnumArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Enum value is not correct", TestEnum.TWO, argProvider.testEnum);
+        Assert.assertEquals(argProvider.testEnum, TestEnum.TWO, "Enum value is not correct");
     }
 
     @Test
@@ -196,7 +195,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         EnumArgProvider argProvider = new EnumArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Enum value is not correct", TestEnum.ONE, argProvider.testEnum);
+        Assert.assertEquals(argProvider.testEnum, TestEnum.ONE, "Enum value is not correct");
     }
     
     @Test
@@ -210,7 +209,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         EnumArgProvider argProvider = new EnumArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Enum value is not correct", TestEnum.THREE, argProvider.testEnum);
+        Assert.assertEquals(argProvider.testEnum, TestEnum.THREE, "Enum value is not correct");
     }
 
     public enum TestEnum { ONE, TWO, THREE }
@@ -231,13 +230,13 @@ public class ParsingEngineUnitTest extends BaseTest {
         IntegerListArgProvider argProvider = new IntegerListArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertNotNull("Argument array is null",argProvider.integers); 
-        Assert.assertEquals("Argument array is of incorrect length", 5, argProvider.integers.size());
-        Assert.assertEquals("1st integer is incorrect", 2, argProvider.integers.get(0).intValue() );
-        Assert.assertEquals("2nd integer is incorrect", 4, argProvider.integers.get(1).intValue() );
-        Assert.assertEquals("3rd integer is incorrect", 6, argProvider.integers.get(2).intValue() );
-        Assert.assertEquals("4th integer is incorrect", 8, argProvider.integers.get(3).intValue() );
-        Assert.assertEquals("5th integer is incorrect",10, argProvider.integers.get(4).intValue() );
+        Assert.assertNotNull(argProvider.integers, "Argument array is null");
+        Assert.assertEquals(argProvider.integers.size(), 5, "Argument array is of incorrect length");
+        Assert.assertEquals(argProvider.integers.get(0).intValue(), 2, "1st integer is incorrect");
+        Assert.assertEquals(argProvider.integers.get(1).intValue(), 4, "2nd integer is incorrect");
+        Assert.assertEquals(argProvider.integers.get(2).intValue(), 6, "3rd integer is incorrect");
+        Assert.assertEquals(argProvider.integers.get(3).intValue(), 8, "4th integer is incorrect");
+        Assert.assertEquals(argProvider.integers.get(4).intValue(), 10, "5th integer is incorrect");
     }
 
     private class IntegerListArgProvider {
@@ -256,13 +255,13 @@ public class ParsingEngineUnitTest extends BaseTest {
         UntypedListArgProvider argProvider = new UntypedListArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertNotNull("Argument array is null",argProvider.integers);
-        Assert.assertEquals("Argument array is of incorrect length", 5, argProvider.integers.size());
-        Assert.assertEquals("1st integer is incorrect", "2", argProvider.integers.get(0) );
-        Assert.assertEquals("2nd integer is incorrect", "4", argProvider.integers.get(1) );
-        Assert.assertEquals("3rd integer is incorrect", "6", argProvider.integers.get(2) );
-        Assert.assertEquals("4th integer is incorrect", "8", argProvider.integers.get(3) );
-        Assert.assertEquals("5th integer is incorrect","10", argProvider.integers.get(4) );
+        Assert.assertNotNull(argProvider.integers, "Argument array is null");
+        Assert.assertEquals(argProvider.integers.size(), 5, "Argument array is of incorrect length");
+        Assert.assertEquals(argProvider.integers.get(0), "2", "1st integer is incorrect");
+        Assert.assertEquals(argProvider.integers.get(1), "4", "2nd integer is incorrect");
+        Assert.assertEquals(argProvider.integers.get(2), "6", "3rd integer is incorrect");
+        Assert.assertEquals(argProvider.integers.get(3), "8", "4th integer is incorrect");
+        Assert.assertEquals(argProvider.integers.get(4), "10", "5th integer is incorrect");
     }
 
     private class UntypedListArgProvider {
@@ -270,7 +269,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         public List integers;
     }
 
-    @Test(expected=MissingArgumentException.class)
+    @Test(expectedExceptions=MissingArgumentException.class)
     public void requiredArgTest() {
         final String[] commandLine = new String[0];
 
@@ -296,7 +295,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         DefaultValueArgProvider argProvider = new DefaultValueArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Default value is not correctly initialized", 42, argProvider.value.intValue() );
+        Assert.assertEquals(argProvider.value.intValue(), 42, "Default value is not correctly initialized");
 
         // Then try to override it.
         commandLine = new String[] { "--value", "27" };
@@ -306,7 +305,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Default value is not correctly initialized", 27, argProvider.value.intValue() );        
+        Assert.assertEquals(argProvider.value.intValue(), 27, "Default value is not correctly initialized");
     }
 
     private class DefaultValueArgProvider {
@@ -325,7 +324,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         RequiredArgProvider argProvider = new RequiredArgProvider();
         parsingEngine.loadArgumentsIntoObject(argProvider );
 
-        Assert.assertNull("Value should have remain unset",argProvider.value);
+        Assert.assertNull(argProvider.value, "Value should have remain unset");
     }
 
     @Test
@@ -339,7 +338,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         UnrequiredArgProvider argProvider = new UnrequiredArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertNull( "Value was unrequired and unspecified; contents should be null", argProvider.value );
+        Assert.assertNull(argProvider.value, "Value was unrequired and unspecified; contents should be null");
     }
 
     private class UnrequiredArgProvider {
@@ -347,7 +346,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         public Integer value;
     }
 
-    @Test(expected=InvalidArgumentException.class)
+    @Test(expectedExceptions=InvalidArgumentException.class)
     public void invalidArgTest() {
         final String[] commandLine = new String[] { "--foo" };
 
@@ -356,7 +355,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.validate();
     }
 
-    @Test(expected= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedStingException.class)
     public void duplicateLongNameTest() {
         parsingEngine.addArgumentSource( DuplicateLongNameProvider.class );
     }
@@ -369,7 +368,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         public Integer bar;
     }
 
-    @Test(expected= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedStingException.class)
     public void duplicateShortNameTest() {
         parsingEngine.addArgumentSource( DuplicateShortNameProvider.class );
     }
@@ -383,7 +382,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         public Integer bar;
     }
 
-    @Test(expected=UnmatchedArgumentException.class)
+    @Test(expectedExceptions=UnmatchedArgumentException.class)
     public void missingArgumentNameTest() {
         final String[] commandLine = new String[] {"foo.txt"};
 
@@ -396,7 +395,7 @@ public class ParsingEngineUnitTest extends BaseTest {
 
     }
 
-    @Test(expected=UnmatchedArgumentException.class)
+    @Test(expectedExceptions=UnmatchedArgumentException.class)
     public void extraValueTest() {
         final String[] commandLine = new String[] {"-I", "foo.txt", "bar.txt"};
 
@@ -405,7 +404,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.validate();
     }
 
-    @Test(expected=MissingArgumentException.class)
+    @Test(expectedExceptions=MissingArgumentException.class)
     public void multipleInvalidArgTest() {
         final String[] commandLine = new String[] {"-N1", "-N2", "-N3"};
 
@@ -414,7 +413,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.validate();
     }
 
-    @Test(expected=TooManyValuesForArgumentException.class)
+    @Test(expectedExceptions=TooManyValuesForArgumentException.class)
     public void invalidArgCountTest() {
         final String[] commandLine = new String[] {"--value","1","--value","2","--value","3"};
 
@@ -434,7 +433,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         PackageProtectedArgProvider argProvider = new PackageProtectedArgProvider();
         parsingEngine.loadArgumentsIntoObject(argProvider);
 
-        Assert.assertEquals("Argument is not correctly initialized", 1, argProvider.foo.intValue() );
+        Assert.assertEquals(argProvider.foo.intValue(), 1, "Argument is not correctly initialized");
     }
 
     private class PackageProtectedArgProvider {
@@ -453,7 +452,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         DerivedArgProvider argProvider = new DerivedArgProvider();
         parsingEngine.loadArgumentsIntoObject(argProvider);
 
-        Assert.assertEquals("Argument is not correctly initialized", 5, argProvider.bar.intValue() );
+        Assert.assertEquals(argProvider.bar.intValue(), 5, "Argument is not correctly initialized");
     }
 
     private class DerivedArgProvider extends BaseArgProvider {
@@ -471,7 +470,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         DefinitionMatcher matcher = ArgumentDefinitions.FullNameDefinitionMatcher;
         ArgumentDefinition definition = parsingEngine.argumentDefinitions.findArgumentDefinition("myarg", matcher);
 
-        Assert.assertNotNull("Invalid default argument name assigned", definition );
+        Assert.assertNotNull(definition, "Invalid default argument name assigned");
     }
 
     private class CamelCaseArgProvider {
@@ -479,7 +478,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         Integer myArg;
     }
 
-    @Test(expected=UnmatchedArgumentException.class)
+    @Test(expectedExceptions=UnmatchedArgumentException.class)
     public void booleanWithParameterTest() {
         final String[] commandLine = new String[] {"--mybool", "true"};
 
@@ -504,7 +503,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         AnalysisTypeArgProvider argProvider = new AnalysisTypeArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Argument is not correctly initialized", "Pileup", argProvider.Analysis_Name );
+        Assert.assertEquals(argProvider.Analysis_Name,"Pileup","Argument is not correctly initialized");
     }
 
     private class AnalysisTypeArgProvider {
@@ -512,7 +511,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         public String Analysis_Name = null;
     }
 
-    @Test(expected=TooManyValuesForArgumentException.class)
+    @Test(expectedExceptions=TooManyValuesForArgumentException.class)
     public void invalidParseForAnalysisTypeTest() {
         final String[] commandLine = new String[] {"--analysis_type", "Pileup", "-T", "CountReads" };
 
@@ -521,7 +520,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         parsingEngine.validate( EnumSet.of(ParsingEngine.ValidationType.MissingRequiredArgument) );
     }
 
-    @Test(expected=ArgumentsAreMutuallyExclusiveException.class)
+    @Test(expectedExceptions=ArgumentsAreMutuallyExclusiveException.class)
     public void mutuallyExclusiveArgumentsTest() {
         // Passing only foo should work fine...
         String[] commandLine = new String[] {"--foo","5"};
@@ -533,7 +532,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         MutuallyExclusiveArgProvider argProvider = new MutuallyExclusiveArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Argument is not correctly initialized", 5, argProvider.foo.intValue() );
+        Assert.assertEquals(argProvider.foo.intValue(), 5, "Argument is not correctly initialized");
 
         // But when foo and bar come together, danger!
         commandLine = new String[] {"--foo","5","--bar","6"};
@@ -550,7 +549,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         Integer bar;
     }
 
-    @Test(expected=InvalidArgumentValueException.class)
+    @Test(expectedExceptions=InvalidArgumentValueException.class)
     public void argumentValidationTest() {
         // Passing only foo should work fine...
         String[] commandLine = new String[] {"--value","521"};
@@ -562,7 +561,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         ValidatingArgProvider argProvider = new ValidatingArgProvider();
         parsingEngine.loadArgumentsIntoObject( argProvider );
 
-        Assert.assertEquals("Argument is not correctly initialized", 521, argProvider.value.intValue() );
+        Assert.assertEquals(argProvider.value.intValue(), 521, "Argument is not correctly initialized");
 
         // Try some invalid arguments
         commandLine = new String[] {"--value","foo"};
@@ -586,7 +585,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         ArgumentCollectionProvider argProvider = new ArgumentCollectionProvider();
         parsingEngine.loadArgumentsIntoObject(argProvider);
 
-        Assert.assertEquals("Argument is not correctly initialized", 5, argProvider.rap.value.intValue() );
+        Assert.assertEquals(argProvider.rap.value.intValue(), 5, "Argument is not correctly initialized");
     }
 
     private class ArgumentCollectionProvider {
@@ -594,7 +593,7 @@ public class ParsingEngineUnitTest extends BaseTest {
         RequiredArgProvider rap = new RequiredArgProvider();
     }
 
-    @Test(expected= ReviewedStingException.class)
+    @Test(expectedExceptions= ReviewedStingException.class)
     public void multipleArgumentCollectionTest() {
         parsingEngine.addArgumentSource( MultipleArgumentCollectionProvider.class );
     }

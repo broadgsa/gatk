@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.Arrays;
 

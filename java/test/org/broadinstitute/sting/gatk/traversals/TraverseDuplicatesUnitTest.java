@@ -27,12 +27,14 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+
+import org.testng.annotations.BeforeMethod;
+
+import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +54,7 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
     private SAMFileHeader header;
 
 
-    @Before
+    @BeforeMethod
     public void doBefore() {
         header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
@@ -67,8 +69,8 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
             list.add(read);
         }
         Set<List<SAMRecord>> myPairings = obj.uniqueReadSets(list);
-        Assert.assertEquals(1, myPairings.size());
-        Assert.assertEquals(10, myPairings.iterator().next().size()); // dup's
+        Assert.assertEquals(myPairings.size(), 1);
+        Assert.assertEquals(myPairings.iterator().next().size(), 10); // dup's
     }
 
     @Test
@@ -81,7 +83,7 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
         }
 
         Set<List<SAMRecord>> myPairing = obj.uniqueReadSets(list);
-        Assert.assertEquals(10, myPairing.size()); // unique
+        Assert.assertEquals(myPairing.size(), 10); // unique
     }
 
     @Test
@@ -96,7 +98,7 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
             list.add(ArtificialSAMUtils.createArtificialRead(header, String.valueOf(x), 0, x, 100));
 
         Set<List<SAMRecord>> myPairing = obj.uniqueReadSets(list);
-        Assert.assertEquals(6, myPairing.size());  // unique
+        Assert.assertEquals(myPairing.size(), 6);  // unique
     }
 
     @Test
@@ -112,7 +114,7 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
         }
 
         Set<List<SAMRecord>> myPairing = obj.uniqueReadSets(list);
-        Assert.assertEquals(1, myPairing.size());  // unique
+        Assert.assertEquals(myPairing.size(), 1);  // unique
     }
 
     @Test
@@ -128,7 +130,7 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
         }
 
         Set<List<SAMRecord>> myPairing = obj.uniqueReadSets(list);
-        Assert.assertEquals(1, myPairing.size());  // unique
+        Assert.assertEquals(myPairing.size(), 1);  // unique
     }
 
     @Test
@@ -144,6 +146,6 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
         }
 
         Set<List<SAMRecord>> myPairing = obj.uniqueReadSets(list);
-        Assert.assertEquals(10, myPairing.size());  // unique
+        Assert.assertEquals(myPairing.size(), 10);  // unique
     }
 }

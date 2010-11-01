@@ -1,7 +1,8 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.junit.Test;
-import org.junit.Assert;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -44,7 +45,7 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
 
 //
 //    /** Multiple-base pair queries should generate exceptions. */
-//    @Test(expected = InvalidPositionException.class)
+//    @Test(expectedExceptions=InvalidPositionException.class)
 //    public void testSingleBPFailure() {
 //        Shard shard = new LocusShard(GenomeLocParser.createGenomeLoc(0, 1, 50));
 //
@@ -62,7 +63,7 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
 
         byte[] results = view.getReferenceBases(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length() + 9));
         System.out.printf("results are %s%n", new String(results));
-        Assert.assertEquals(20, results.length);
+        Assert.assertEquals(results.length, 20);
         for (int x = 0; x < results.length; x++) {
             if (x <= 10) Assert.assertTrue(results[x] != 'X');
             else Assert.assertTrue(results[x] == 'X');
@@ -106,9 +107,8 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
             char expected = Character.toUpperCase(StringUtil.bytesToString(expectedAsSeq.getBases()).charAt(0));
             char actual = view.getReferenceContext(locus).getBaseAsChar();
 
-            Assert.assertEquals(String.format("Value of base at position %s in shard %s does not match expected", locus.toString(), shard.getGenomeLocs()),
-                    expected,
-                    actual);
+            Assert.assertEquals(actual, expected, String.format("Value of base at position %s in shard %s does not match expected", locus.toString(), shard.getGenomeLocs())
+            );
         }
     }
 

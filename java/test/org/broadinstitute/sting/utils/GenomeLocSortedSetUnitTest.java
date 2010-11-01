@@ -4,10 +4,13 @@ import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-import org.junit.Before;
-import org.junit.Test;
+
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import java.util.Iterator;
 import java.util.Arrays;
@@ -45,10 +48,15 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
     private static final int STARTING_CHROMOSOME = 1;
     private static final int CHROMOSOME_SIZE = 1000;
 
-    @Before
+    @BeforeClass
     public void setup() {
+        GenomeLocParserTestUtils.clearSequenceDictionary();
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
-        mSortedSet = new GenomeLocSortedSet();
+    }
+
+    @BeforeMethod
+    public void initializeSortedSet() {
+        mSortedSet = new GenomeLocSortedSet();        
     }
 
     @Test
@@ -81,8 +89,8 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
     }
 
 
-    @Test(expected = ReviewedStingException.class)
-    public void testAddDupplicate() {
+    @Test(expectedExceptions=ReviewedStingException.class)
+    public void testAddDuplicate() {
         assertTrue(mSortedSet.size() == 0);
         GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 0, 0);
         mSortedSet.add(g);
@@ -186,9 +194,9 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
 //        logger.debug("Exclude   " + toExclude);
 //        logger.debug("Remaining " + remaining);
 
-        assertEquals(20, mSortedSet.coveredSize());
-        assertEquals(9, toExclude.coveredSize());
-        assertEquals(11, remaining.coveredSize());
+        assertEquals(mSortedSet.coveredSize(), 20);
+        assertEquals(toExclude.coveredSize(), 9);
+        assertEquals(remaining.coveredSize(), 11);
 
         Iterator<GenomeLoc> it = remaining.iterator();
         GenomeLoc p1 = it.next();

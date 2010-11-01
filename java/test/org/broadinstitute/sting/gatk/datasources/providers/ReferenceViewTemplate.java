@@ -5,8 +5,9 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -41,7 +42,8 @@ public abstract class ReferenceViewTemplate extends BaseTest {
      * Initialize the fasta.
      */
     @BeforeClass
-    public static void initialize() throws FileNotFoundException {
+    public void initialize() throws FileNotFoundException {
+        GenomeLocParserTestUtils.clearSequenceDictionary();
         sequenceFile = new IndexedFastaSequenceFile( new File(hg18Reference) );
         GenomeLocParser.setupRefContigOrdering(sequenceFile);
     }

@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.Arrays;
 

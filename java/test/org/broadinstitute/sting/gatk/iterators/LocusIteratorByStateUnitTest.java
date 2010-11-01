@@ -1,11 +1,11 @@
 package org.broadinstitute.sting.gatk.iterators;
 
-import junit.framework.Assert;
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
@@ -15,8 +15,8 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.util.*;
 
@@ -30,7 +30,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
     private LocusIteratorByState li;
 
     @BeforeClass
-    public static void beforeClass() {
+    public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
@@ -70,13 +70,13 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
                 continue;
 
             ReadBackedExtendedEventPileup pileup = context.getExtendedEventPileup().getBaseFilteredPileup(10);
-            Assert.assertEquals("Extended event pileup at wrong location",5,pileup.getLocation().getStart());
-            Assert.assertEquals("Pileup size is incorrect",3,pileup.size());
+            Assert.assertEquals(pileup.getLocation().getStart(), 5, "Extended event pileup at wrong location");
+            Assert.assertEquals(pileup.size(), 3, "Pileup size is incorrect");
 
             foundExtendedEventPileup = true;
         }
 
-        Assert.assertTrue("Extended event pileup not found",foundExtendedEventPileup);
+        Assert.assertTrue(foundExtendedEventPileup,"Extended event pileup not found");
     }
 
     /**
@@ -121,15 +121,15 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
             if(!context.hasExtendedEventPileup())
                 continue;
 
-            Assert.assertEquals("Extended event pileup at wrong location",10,context.getLocation().getStart());
-            Assert.assertEquals("Pileup size is incorrect",2,context.size());
-            Assert.assertEquals("Read in pileup is incorrect",during,context.getExtendedEventPileup().getReads().get(0));
-            Assert.assertEquals("Read in pileup is incorrect",after,context.getExtendedEventPileup().getReads().get(1));
+            Assert.assertEquals(context.getLocation().getStart(), 10, "Extended event pileup at wrong location");
+            Assert.assertEquals(context.size(), 2, "Pileup size is incorrect");
+            Assert.assertEquals(context.getExtendedEventPileup().getReads().get(0), during, "Read in pileup is incorrect");
+            Assert.assertEquals(context.getExtendedEventPileup().getReads().get(1), after, "Read in pileup is incorrect");
 
             foundExtendedEventPileup = true;
         }
 
-        Assert.assertTrue("Extended event pileup not found",foundExtendedEventPileup);
+        Assert.assertTrue(foundExtendedEventPileup,"Extended event pileup not found");
     }
 
     private static ReadProperties createTestReadProperties() {

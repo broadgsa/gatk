@@ -2,15 +2,15 @@ package org.broadinstitute.sting.utils;
 
 
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 /**
  * @author aaron
@@ -20,14 +20,21 @@ import org.junit.Test;
  *         Test out the functionality of the new genome loc parser
  */
 public class GenomeLocParserUnitTest extends BaseTest {
-    @Test(expected = ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedStingException.class)
     public void testUnsetupException() {
+        SAMSequenceDictionary contigInfoCache = GenomeLocParser.contigInfo;
         GenomeLocParser.contigInfo = null;
-        GenomeLocParser.createGenomeLoc(0, 0, 0);
+        try {
+            GenomeLocParser.createGenomeLoc(0, 0, 0);
+        }
+        finally {
+            GenomeLocParser.contigInfo = contigInfoCache;
+        }
     }
 
     @BeforeClass
-    public static void init() {
+    public void init() {
+        GenomeLocParserTestUtils.clearSequenceDictionary();
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
         GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
@@ -43,15 +50,15 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertTrue(GenomeLocParser.hasKnownContigOrdering());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test(expectedExceptions=RuntimeException.class)
     public void testGetContigIndex() {
-        assertEquals(-1, GenomeLocParser.getContigIndex("blah",true)); // should not be in the reference
+        assertEquals(GenomeLocParser.getContigIndex("blah",true), -1); // should not be in the reference
     }                
 
     @Test
     public void testGetContigIndexValid() {
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
-        assertEquals(0, GenomeLocParser.getContigIndex("chr1",true)); // should be in the reference
+        assertEquals(GenomeLocParser.getContigIndex("chr1",true), 0); // should be in the reference
     }
 
     @Test
@@ -63,10 +70,10 @@ public class GenomeLocParserUnitTest extends BaseTest {
     @Test
     public void testGetContigInfoKnownContig() {
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
-        assertEquals("chr1".compareTo(GenomeLocParser.getContigInfo("chr1").getSequenceName()), 0); // should be in the reference
+        assertEquals(0, "chr1".compareTo(GenomeLocParser.getContigInfo("chr1").getSequenceName())); // should be in the reference
     }
 
-    @Test(expected = ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedStingException.class)
     public void testParseBadString() {
         GenomeLocParser.parseGenomeLoc("Bad:0-1");
     }
@@ -74,106 +81,106 @@ public class GenomeLocParserUnitTest extends BaseTest {
     @Test
     public void testParseGoodString() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-100");
-        assertEquals(loc.getContigIndex(), 0);
-        assertEquals(100, loc.getStop());
-        assertEquals(1, loc.getStart());
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(loc.getStop(), 100);
+        assertEquals(loc.getStart(), 1);
     }
     
     @Test
     public void testCreateGenomeLoc1() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc("chr1", 1, 100);
-        assertEquals(loc.getContigIndex(), 0);
-        assertEquals(100, loc.getStop());
-        assertEquals(1, loc.getStart());
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(loc.getStop(), 100);
+        assertEquals(loc.getStart(), 1);
     }
 
     @Test
     public void testCreateGenomeLoc1point5() { // in honor of VAAL!
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1");
-        assertEquals(loc.getContigIndex(), 0);
-        assertEquals(1, loc.getStop());
-        assertEquals(1, loc.getStart());
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(loc.getStop(), 1);
+        assertEquals(loc.getStart(), 1);
     }
 
     @Test
     public void testCreateGenomeLoc2() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 1, 100);
-        assertEquals(loc.getContigIndex(), 0);
-        assertEquals(100, loc.getStop());
-        assertEquals(1, loc.getStart());
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(loc.getStop(), 100);
+        assertEquals(loc.getStart(), 1);
     }
 
     @Test
     public void testCreateGenomeLoc3() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 1);
-        assertEquals(loc.getContigIndex(), 0);
-        assertEquals(1, loc.getStop());
-        assertEquals(1, loc.getStart());
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(loc.getStop(), 1);
+        assertEquals(loc.getStart(), 1);
     }
 
     @Test
     public void testCreateGenomeLoc4() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc("chr1", 1);
-        assertEquals(loc.getContigIndex(), 0);
-        assertEquals(1, loc.getStop());
-        assertEquals(1, loc.getStart());
+        assertEquals(0, loc.getContigIndex());
+        assertEquals(loc.getStop(), 1);
+        assertEquals(loc.getStart(), 1);
     }
 
     @Test
     public void testCreateGenomeLoc5() {
         GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 1, 100);
         GenomeLoc copy = GenomeLocParser.createGenomeLoc(loc);
-        assertEquals(copy.getContigIndex(), 0);
-        assertEquals(100, copy.getStop());
-        assertEquals(1, copy.getStart());
+        assertEquals(0, copy.getContigIndex());
+        assertEquals(copy.getStop(), 100);
+        assertEquals(copy.getStart(), 1);
     }
 
     @Test
     public void testGenomeLocPlusSign() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1+");
-        assertEquals(0, loc.getContigIndex());
-        assertEquals(10, loc.getStop()); // the size
-        assertEquals(1, loc.getStart());
+        assertEquals(loc.getContigIndex(), 0);
+        assertEquals(loc.getStop(), 10); // the size
+        assertEquals(loc.getStart(), 1);
     }
 
     @Test
     public void testGenomeLocParseOnlyChrome() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1");
-        assertEquals(0, loc.getContigIndex());
-        assertEquals(10, loc.getStop()); // the size
-        assertEquals(1, loc.getStart());
+        assertEquals(loc.getContigIndex(), 0);
+        assertEquals(loc.getStop(), 10); // the size
+        assertEquals(loc.getStart(), 1);
     }
 
-    @Test(expected = ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedStingException.class)
     public void testGenomeLocParseOnlyBadChrome() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr12");
-        assertEquals(0, loc.getContigIndex());
-        assertEquals(10, loc.getStop()); // the size
-        assertEquals(1, loc.getStart());
+        assertEquals(loc.getContigIndex(), 0);
+        assertEquals(loc.getStop(), 10); // the size
+        assertEquals(loc.getStart(), 1);
     }
 
-    @Test(expected = ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedStingException.class)
     public void testGenomeLocBad() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-");
-        assertEquals(0, loc.getContigIndex());
-        assertEquals(10, loc.getStop()); // the size
-        assertEquals(1, loc.getStart());
+        assertEquals(loc.getContigIndex(), 0);
+        assertEquals(loc.getStop(), 10); // the size
+        assertEquals(loc.getStart(), 1);
     }
 
-    @Test(expected = ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedStingException.class)
     public void testGenomeLocBad2() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1-500-0");
-        assertEquals(0, loc.getContigIndex());
-        assertEquals(10, loc.getStop()); // the size
-        assertEquals(1, loc.getStart());
+        assertEquals(loc.getContigIndex(), 0);
+        assertEquals(loc.getStop(), 10); // the size
+        assertEquals(loc.getStart(), 1);
     }
 
-    @Test(expected = ReviewedStingException.class)
+    @Test(expectedExceptions=ReviewedStingException.class)
     public void testGenomeLocBad3() {
         GenomeLoc loc = GenomeLocParser.parseGenomeLoc("chr1:1--0");
-        assertEquals(0, loc.getContigIndex());
-        assertEquals(10, loc.getStop()); // the size
-        assertEquals(1, loc.getStart());
+        assertEquals(loc.getContigIndex(), 0);
+        assertEquals(loc.getStop(), 10); // the size
+        assertEquals(loc.getStart(), 1);
     }
 
     // test out the validating methods

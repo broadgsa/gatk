@@ -1,8 +1,9 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
 import org.broadinstitute.sting.BaseTest;
-import org.junit.Assert;
-import org.junit.Test;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ public class GLFReaderUnitTest extends BaseTest {
             System.err.println("Record count = " + recCount);
             e.printStackTrace();
         }
-        Assert.assertEquals(finalRecordCount, recCount);
-        Assert.assertEquals(contigCount, contigs.size());
+        Assert.assertEquals(recCount, finalRecordCount);
+        Assert.assertEquals(contigs.size(), contigCount);
     }
 }

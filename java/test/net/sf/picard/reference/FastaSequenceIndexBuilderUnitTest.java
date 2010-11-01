@@ -25,11 +25,11 @@
 
 package net.sf.picard.reference;
 
+import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSourceProgressListener;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -44,7 +44,7 @@ public class FastaSequenceIndexBuilderUnitTest extends BaseTest {
     private File fastaFile;
     private FastaSequenceIndex controlIndex;
 
-    @Before
+    @BeforeMethod
     public void doForEachTest() throws FileNotFoundException {
         controlIndex = new FastaSequenceIndex();
     }

@@ -3,8 +3,8 @@ package org.broadinstitute.sting.gatk.iterators;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.BaseTest;
-import static org.junit.Assert.assertEquals;
-import org.junit.Test;
+import static org.testng.Assert.assertEquals;
+import org.testng.annotations.Test;
 
 import java.util.Iterator;
 
@@ -105,9 +105,9 @@ public class StingSAMIteratorAdapterUnitTest extends BaseTest {
             //logger.warn("cnt = " + countCheck);
         }
 
-        assertEquals(COUNT, countCheck);
+        assertEquals(countCheck, COUNT);
 
-        assertEquals(COUNT, countCheck);
+        assertEquals(countCheck, COUNT);
     }
 
     @Test
@@ -124,7 +124,7 @@ public class StingSAMIteratorAdapterUnitTest extends BaseTest {
             ++countCheck;
         }
 
-        assertEquals(COUNT, countCheck);
+        assertEquals(countCheck, COUNT);
     }
 
     @Test
@@ -142,10 +142,10 @@ public class StingSAMIteratorAdapterUnitTest extends BaseTest {
             ++countCheck;
         }
 
-        assertEquals(COUNT, countCheck);
+        assertEquals(countCheck, COUNT);
 
         // check to see that the count get's set to -1
         samIt.close();
-        assertEquals(-1, it.count);
+        assertEquals(it.count, -1);
     }
 }

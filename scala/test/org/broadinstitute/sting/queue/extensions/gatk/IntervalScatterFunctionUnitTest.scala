@@ -2,19 +2,21 @@ package org.broadinstitute.sting.queue.extensions.gatk
 
 import collection.JavaConversions._
 import java.io.File
-import org.junit.{Before, Assert, Test}
+import org.testng.Assert
 import org.broadinstitute.sting.BaseTest
 import org.broadinstitute.sting.utils.interval.IntervalUtils
-import org.broadinstitute.sting.utils.GenomeLocParser
 import org.broadinstitute.sting.queue.QException
 import net.sf.picard.reference.IndexedFastaSequenceFile
+import org.testng.annotations.{Test, BeforeMethod}
+import org.broadinstitute.sting.utils.{GenomeLocParserTestUtils, GenomeLocParser}
 
 class IntervalScatterFunctionUnitTest extends BaseTest {
   private def reference = new File(BaseTest.b36KGReference)
   private var header: IndexedFastaSequenceFile = _
 
-  @Before
+  @BeforeMethod
   def setup() {
+    GenomeLocParserTestUtils.clearSequenceDictionary()
     header = new IndexedFastaSequenceFile(reference)
     GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary())
   }
@@ -74,7 +76,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
     Assert.assertEquals(chr4, locs3.get(0))
   }
 
-  @Test(expected=classOf[QException])
+  @Test(expectedExceptions=Array(classOf[QException]))
   def testScatterMoreFiles = {
     val files = (1 to 3).toList.map(index => new File(testDir + "more." + index + ".intervals"))
     IntervalScatterFunction.scatter(reference, List("1", "2"), files, false)
@@ -178,7 +180,7 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
     Assert.assertEquals(chr4, locs3.get(1))
   }
 
-  @Test(expected=classOf[QException])
+  @Test(expectedExceptions=Array(classOf[QException]))
   def testScatterByContigMoreFiles = {
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_more." + index + ".intervals"))
     IntervalScatterFunction.scatter(reference, List("1", "2"), files, true)
