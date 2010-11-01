@@ -254,11 +254,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( nwayWriters.containsKey( rid ) )
                     throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
 
+                File f = new File(prefix+N_WAY_OUT);
                 SAMFileWriterImpl.setDefaultMaxRecordsInRam(MAX_RECORDS_IN_RAM);
                 SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(setupHeader(getToolkit().getSAMFileHeader(rid)),
-                        false,new File(prefix+N_WAY_OUT));
+                        false,f);
                 try {
-                    fw.append(prefix+N_WAY_OUT);
+                    fw.append(f.getAbsolutePath());
                     fw.append('\n');
                 } catch (IOException e) {
                     throw new StingException("I/O error: write failed for results.list file");  //To change body of catch statement use File | Settings | File Templates.
