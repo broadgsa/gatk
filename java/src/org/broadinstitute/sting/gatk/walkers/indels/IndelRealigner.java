@@ -234,7 +234,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             try {
                 fw = new FileWriter("results.list");
             } catch (IOException e) {
-                throw new StingException("O/O error: Failed to create results.list file");
+                throw new StingException("I/O error: Failed to create results.list file");
             }
 
             nwayWriters = new HashMap<SAMReaderID,SAMFileWriter>();
