@@ -818,9 +818,6 @@ public class VariantContextUtils {
 
         VariantContext mergedVc = new VariantContext(mergedName, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles(), mergedGenotypes, mergedNegLog10PError, mergedFilters, mergedAttribs);
 
-        /* Calculate VCFConstants.ALLELE_NUMBER_KEY, VCFConstants.ALLELE_COUNT_KEY, VCFConstants.ALLELE_FREQUENCY_KEY from scratch
-           [though technically they should already be consistent with each of vc1 and vc2's respective alleles]:
-         */
         mergedAttribs = new HashMap<String, Object>(mergedVc.getAttributes());
         VariantContextUtils.calculateChromosomeCounts(mergedVc, mergedAttribs, true);
         mergedVc = VariantContext.modifyAttributes(mergedVc, mergedAttribs);
