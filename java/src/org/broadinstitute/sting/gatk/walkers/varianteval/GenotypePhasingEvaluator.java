@@ -2,7 +2,9 @@ package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.*;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.walkers.phasing.*;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
@@ -205,11 +207,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     }
 
     public static Double getPQ(Genotype gt) {
-        Object pq = gt.getAttributes().get(ReadBackedPhasingWalker.PQ_KEY);
-        if (pq == null)
-            return null;
-
-        return new Double(pq.toString());
+        return VariantContextUtils.getDoubleAttribute(gt.getAttributes(), ReadBackedPhasingWalker.PQ_KEY);
     }
 
     public boolean topMatchesTop(AllelePair b1, AllelePair b2) {

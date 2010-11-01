@@ -933,6 +933,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
      * @param result the number of reads and VariantContexts seen.
      */
     public void onTraversalDone(PhasingStats result) {
+        logger.debug("Entering onTraversalDone()");
+
         List<VariantContext> finalList = processQueue(result, true); // process all remaining data
         writeVcList(finalList);
         writer.close();
@@ -940,6 +942,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         if (statsWriter != null)
             statsWriter.close();
 
+        System.out.println("Coverage over ALL samples:");
         System.out.println("Number of reads observed: " + result.getNumReads());
         System.out.println("Number of variant sites observed: " + result.getNumVarSites());
         System.out.println("Average coverage: " + ((double) result.getNumReads() / result.getNumVarSites()));

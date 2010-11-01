@@ -934,20 +934,43 @@ public class VariantContextUtils {
         return mergedAttribs;
     }
 
-    private static Boolean getBooleanAttribute(Map<String, Object> attribs, String attribName) {
+    public static Boolean getBooleanAttribute(Map<String, Object> attribs, String attribName) {
         Object val = attribs.get(attribName);
-        if (val == null)
+        if (val == null || val.equals(VCFConstants.MISSING_VALUE_v4))
             return null;
 
-        return new Boolean(val.toString());
+        try {
+            return new Boolean(val.toString());
+        }
+        catch (Exception e) {// IGNORE unparseable data
+            return null;
+        }
     }
 
-    private static String getStringAttribute(Map<String, Object> attribs, String attribName) {
+    public static String getStringAttribute(Map<String, Object> attribs, String attribName) {
         Object val = attribs.get(attribName);
-        if (val == null)
+        if (val == null || val.equals(VCFConstants.MISSING_VALUE_v4))
             return null;
 
-        return val.toString();
+        try {
+            return val.toString();
+        }
+        catch (Exception e) {// IGNORE unparseable data
+            return null;
+        }
+    }
+
+    public static Double getDoubleAttribute(Map<String, Object> attribs, String attribName) {
+        Object val = attribs.get(attribName);
+        if (val == null || val.equals(VCFConstants.MISSING_VALUE_v4))
+            return null;
+
+        try {
+            return new Double(val.toString());
+        }
+        catch (Exception e) {// IGNORE unparseable data
+            return null;
+        }
     }
 
     private static boolean mergeIntoMNPvalidationCheck(VariantContext vc1, VariantContext vc2) {
