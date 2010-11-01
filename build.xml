@@ -507,8 +507,8 @@
             </testng>
 
             <!-- generate a report for Bamboo or Hudson to read in -->
-            <junitreport todir="${dist.dir}">
-                <fileset dir="${dist.dir}">
+            <junitreport todir="${report}">
+                <fileset dir="${report}">
                     <include name="*/*.xml"/>
                 </fileset>
                 <report format="noframes" todir="${dist.dir}"/>
