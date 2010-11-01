@@ -357,6 +357,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
                             logger.debug("Unknown segregation of alleles [not phased] for " + samp + " at " + VariantContextUtils.getLocation(vc1) + ", " + VariantContextUtils.getLocation(vc2));
                         }
                         else if (gt1.isHomRef() || gt2.isHomRef()) {
+                            logger.debug("gt1.isHomRef() || gt2.isHomRef() for " + samp + " at " + VariantContextUtils.getLocation(vc1) + ", " + VariantContextUtils.getLocation(vc2));
                             aas.eitherNotVariant++;
                         }
                         else { // BOTH gt1 and gt2 have at least one variant allele (so either hets, or homozygous variant):
