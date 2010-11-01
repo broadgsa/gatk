@@ -54,6 +54,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -132,10 +133,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Hidden
     @Argument(fullName="nWayOut", shortName="nWayOut", required=false,
             doc="In this mode, there will be one output file for each input (-I) bam file. Reads from all input files "+
-                "will be realigned together, but then each read wiil be saved in the output file corresponding to "+
+                "will be realigned together, but then each read will be saved in the output file corresponding to "+
                 "the input file the read came from. The names of the output bam files will be constructed by "+
                 "stripping extensions (\".bam\" or \".sam\") from the input file names and pasting the value "+
-                "of -nWayOut argument to the result.")
+                "of -nWayOut argument to the result. The names of all output files will be also saved in a "+
+                "separate results.list file")
     protected String N_WAY_OUT = null;
 
 
@@ -228,6 +230,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
             if ( writer != null ) throw new UserException.BadInput("-nWayOut and -o arguments are mutually exclusive");
 
+            FileWriter fw;
+            try {
+                fw = new FileWriter("results.list");
+            } catch (IOException e) {
+                throw new StingException("O/O error: Failed to create results.list file");
+            }
+
             nwayWriters = new HashMap<SAMReaderID,SAMFileWriter>();
 
             for ( SAMReaderID rid : getToolkit().getDataSource().getReaderIDs() ) {
@@ -248,8 +257,19 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 SAMFileWriterImpl.setDefaultMaxRecordsInRam(MAX_RECORDS_IN_RAM);
                 SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(setupHeader(getToolkit().getSAMFileHeader(rid)),
                         false,new File(prefix+N_WAY_OUT));
+                try {
+                    fw.append(prefix+N_WAY_OUT);
+                    fw.append('\n');
+                } catch (IOException e) {
+                    throw new StingException("I/O error: write failed for results.list file");  //To change body of catch statement use File | Settings | File Templates.
+                }
                 nwayWriters.put(rid,sw);
 
+            }
+            try {
+                fw.close();
+            } catch (IOException e) {
+                throw new StingException("I/O error: failed to close results.list file");  //To change body of catch statement use File | Settings | File Templates.
             }
 
         }
