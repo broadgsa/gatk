@@ -789,6 +789,9 @@ public class VariantContextUtils {
 
             List<Allele> mergedAllelesForSample = new LinkedList<Allele>();
 
+            /* NOTE: Since merged alleles are added to mergedAllelesForSample in the SAME order as in the input VC records,
+               we preserve phase information (if any) relative to whatever precedes vc1:
+             */
             Iterator<Allele> all2It = site2Alleles.iterator();
             for (Allele all1 : site1Alleles) {
                 Allele all2 = all2It.next(); // this is OK, since allSamplesAreMergeable()
@@ -801,11 +804,11 @@ public class VariantContextUtils {
             Set<String> mergedGtFilters = new HashSet<String>(); // Since gt1 and gt2 were unfiltered, the Genotype remains unfiltered
 
             Map<String, Object> mergedGtAttribs = new HashMap<String, Object>();
-            Object PQ = gt1.getAttribute(ReadBackedPhasingWalker.PQ_KEY);
-            if (PQ != null)
-                mergedGtAttribs.put(ReadBackedPhasingWalker.PQ_KEY, PQ);
+            PhaseAndQuality phaseQual = calcPhaseForMergedGenotypes(gt1, gt2);
+            if (phaseQual.PQ != null)
+                mergedGtAttribs.put(ReadBackedPhasingWalker.PQ_KEY, phaseQual.PQ);
 
-            Genotype mergedGt = new Genotype(sample, mergedAllelesForSample, mergedGQ, mergedGtFilters, mergedGtAttribs, calcPhaseForMergedGenotypes(gt1, gt2));
+            Genotype mergedGt = new Genotype(sample, mergedAllelesForSample, mergedGQ, mergedGtFilters, mergedGtAttribs, phaseQual.isPhased);
             mergedGenotypes.put(sample, mergedGt);
         }
 
@@ -1029,10 +1032,21 @@ public class VariantContextUtils {
         return (gt2.genotypesArePhased() || gt2.isHom() || gt1.isHom());
     }
 
+    private static class PhaseAndQuality {
+        public boolean isPhased;
+        public Double PQ = null;
+
+        public PhaseAndQuality(Genotype gt) {
+            this.isPhased = gt.genotypesArePhased();
+            if (this.isPhased)
+                this.PQ = VariantContextUtils.getDoubleAttribute(gt.getAttributes(), ReadBackedPhasingWalker.PQ_KEY);
+        }
+    }
+
     // Assumes that alleleSegregationIsKnown(gt1, gt2):
-    private static boolean calcPhaseForMergedGenotypes(Genotype gt1, Genotype gt2) {
+    private static PhaseAndQuality calcPhaseForMergedGenotypes(Genotype gt1, Genotype gt2) {
         if (gt2.genotypesArePhased() || gt2.isHom())
-            return gt1.genotypesArePhased(); // maintain the phase of gt1
+            return new PhaseAndQuality(gt1); // maintain the phase of gt1
 
         if (!gt1.isHom())
             throw new ReviewedStingException("alleleSegregationIsKnown(gt1, gt2) implies: gt2.genotypesArePhased() || gt2.isHom() || gt1.isHom()");
@@ -1048,7 +1062,7 @@ public class VariantContextUtils {
            0/1
            1/2
          */
-        return false; // maintain the phase of gt2 [since !gt2.genotypesArePhased()]
+        return new PhaseAndQuality(gt2); // maintain the phase of gt2 [since !gt2.genotypesArePhased()]
     }
 
     /* Checks if any sample has a MNP of ALT alleles (segregating together):

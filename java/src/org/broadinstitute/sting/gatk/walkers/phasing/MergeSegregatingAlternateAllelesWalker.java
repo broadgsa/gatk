@@ -28,6 +28,7 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -59,7 +60,8 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
     @Argument(fullName = "useSingleSample", shortName = "useSample", doc = "Only output genotypes for the single sample given; [default:use all samples]", required = false)
     protected String useSingleSample = null;
 
-    @Argument(fullName = "emitOnlyMergedRecords", shortName = "emitOnlyMerged", doc = "Only output records that resulted from merging; [default:false]", required = false)
+    @Hidden
+    @Argument(fullName = "emitOnlyMergedRecords", shortName = "emitOnlyMerged", doc = "Only output records that resulted from merging [For DEBUGGING purposes only - DO NOT USE, since it disregards the semantics of '|' as 'phased relative to previous non-filtered VC']; [default:false]", required = false)
     protected boolean emitOnlyMergedRecords = false;
 
     @Argument(fullName = "disablePrintAltAlleleStats", shortName = "noAlleleStats", doc = "Should the print-out of alternate allele statistics be disabled?; [default:false]", required = false)
