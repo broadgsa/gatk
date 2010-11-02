@@ -488,7 +488,8 @@
             <echo message="Sting: Running @{testtype} test cases!"/>
             <taskdef resource="testngtasks" classpath="lib/testng-5.14.1.jar"/>
             <testng outputDir="${report}/@{testtype}"
-                    haltOnFailure="true" verbose="2"
+                    haltOnFailure="false" failureProperty="test.failure"
+                    verbose="2"
                     workingDir="${basedir}" 
 		    useDefaultListeners="false" listeners="org.testng.reporters.XMLReporter,org.testng.reporters.JUnitXMLReporter">
 <!--
