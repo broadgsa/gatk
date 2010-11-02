@@ -601,12 +601,16 @@
     <!-- Build a package consisting of all supporting files -->
     <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
       <mkdir dir="${dist.dir}/packages" />
-      <xslt in="${package.xml.dir}/${executable}.xml" out="${dist.dir}/packages/Build${executable}.xml" style="packages/CreatePackager.xsl" />
-      <ant antfile="${dist.dir}/packages/Build${executable}.xml" target="package" />
+      <xslt destdir="${dist.dir}/packages" style="packages/CreatePackager.xsl">
+          <flattenmapper/>
+          <include name="${package.xml.dir}/${executable}.xml"/>
+          <include name="${external.dir}/*/${executable}.xml" />
+      </xslt>
+      <ant antfile="${dist.dir}/packages/${executable}.xml" target="package" />
     </target>
 
     <target name="release" depends="package" description="release a build, putting each file in a location specified by the package">
-      <ant antfile="${dist.dir}/packages/Build${executable}.xml" target="release" />      
+      <ant antfile="${dist.dir}/packages/${executable}.xml" target="release" />      
     </target>
 
     <!-- Build a subset of picard with only those classes we need by completely abusing the packaging system -->
