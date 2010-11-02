@@ -484,10 +484,10 @@
     <macrodef name="run-test">
         <attribute name="testtype"/>
         <sequential>
-            <mkdir dir="${report}"/>
+            <mkdir dir="${report}/@{testtype}"/>
             <echo message="Sting: Running @{testtype} test cases!"/>
             <taskdef resource="testngtasks" classpath="lib/testng-5.14.1.jar"/>
-            <testng outputDir="${report}"
+            <testng outputDir="${report}/@{testtype}"
                     haltOnFailure="true" verbose="2"
                     workingDir="${basedir}" 
 		    useDefaultListeners="false" listeners="org.testng.reporters.XMLReporter,org.testng.reporters.JUnitXMLReporter">
@@ -508,11 +508,11 @@
             </testng>
 
             <!-- generate a report for Bamboo or Hudson to read in -->
-            <junitreport todir="${report}">
-                <fileset dir="${report}">
+            <junitreport todir="${report}/@{testtype}">
+                <fileset dir="${report}/@{testtype}">
                     <include name="*/*.xml"/>
                 </fileset>
-                <report format="noframes" todir="${report}"/>
+                <report format="noframes" todir="${report}/@{testtype}"/>
             </junitreport>
             <fail message="test failed" if="test.failure" />
         </sequential>
