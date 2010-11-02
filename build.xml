@@ -511,7 +511,7 @@
                 <fileset dir="${report}">
                     <include name="*/*.xml"/>
                 </fileset>
-                <report format="noframes" todir="${dist.dir}"/>
+                <report format="noframes" todir="${report}"/>
             </junitreport>
             <fail message="test failed" if="test.failure" />
         </sequential>
