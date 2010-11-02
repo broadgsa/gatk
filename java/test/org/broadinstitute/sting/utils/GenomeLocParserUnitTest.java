@@ -41,8 +41,6 @@ public class GenomeLocParserUnitTest extends BaseTest {
 
     @Test
     public void testKnownContigOrder() {
-        if(true)
-            throw new ReviewedStingException("Forced fail to test Bamboo pipeline");        
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
         GenomeLocParser.contigInfo = null;
         // assert that it's false when the contig ordering is not setup
