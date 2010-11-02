@@ -489,7 +489,8 @@
             <taskdef resource="testngtasks" classpath="lib/testng-5.14.1.jar"/>
             <testng outputDir="${report}"
                     haltOnFailure="true" verbose="2"
-                    workingDir="${basedir}">
+                    workingDir="${basedir}" 
+		    useDefaultListeners="false" listeners="org.testng.reporters.XMLReporter,org.testng.reporters.JUnitXMLReporter">
 <!--
             <jvmarg value="-Xdebug"/>
             <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
