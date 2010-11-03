@@ -78,6 +78,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     @Hidden
     @Argument(fullName = "variantStatsFilePrefix", shortName = "variantStats", doc = "The prefix of the VCF/phasing statistics files [For DEBUGGING purposes only - DO NOT USE!]", required = false)
     protected String variantStatsFilePrefix = null;
+    private PhasingQualityStatsWriter statsWriter = null;
 
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for phasing [default: 10]", required = false)
     public int MIN_BASE_QUALITY_SCORE = 20;
@@ -93,7 +94,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     private static PreciseNonNegativeDouble ZERO = new PreciseNonNegativeDouble(0.0);
 
     private LinkedList<String> rodNames = null;
-    private PhasingQualityStatsWriter statsWriter = null;
 
     public static final String PQ_KEY = "PQ";
 
@@ -109,6 +109,11 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     @Argument(fullName = "maxGenomicDistanceForMNP", shortName = "maxDistMNP", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records into a MNP record; [default:1]", required = false)
     protected int maxGenomicDistanceForMNP = 1;
 
+    @Hidden
+    @Argument(fullName = "outputMultipleBaseCountsFile", shortName = "outputMultipleBaseCountsFile", doc = "File to output cases where a single read has multiple bases at the same position [For DEBUGGING purposes only - DO NOT USE!]", required = false)
+    protected File outputMultipleBaseCountsFile = null;
+    private MultipleBaseCountsWriter outputMultipleBaseCountsWriter = null;
+
     public void initialize() {
         if (maxPhaseSites <= 2)
             maxPhaseSites = 2; // by definition, must phase a site relative to previous site [thus, 2 in total]
@@ -123,6 +128,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         if (variantStatsFilePrefix != null)
             statsWriter = new PhasingQualityStatsWriter(variantStatsFilePrefix);
+
+        if (outputMultipleBaseCountsFile != null)
+            outputMultipleBaseCountsWriter = new MultipleBaseCountsWriter(outputMultipleBaseCountsFile);
     }
 
     private void initializeVcfWriter() {
@@ -215,32 +223,33 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     private List<VariantContext> processQueue(PhasingStats phaseStats, boolean processAll) {
         List<VariantContext> oldPhasedList = new LinkedList<VariantContext>();
 
-        if (!unphasedSiteQueue.isEmpty()) {
-            while (!unphasedSiteQueue.isEmpty()) {
-                if (!processAll) { // otherwise, phase until the end of unphasedSiteQueue
-                    VariantContext nextToPhaseVc = unphasedSiteQueue.peek().variant;
-                    if (startDistancesAreInWindowRange(mostDownstreamLocusReached, VariantContextUtils.getLocation(nextToPhaseVc))) {
-                        /* mostDownstreamLocusReached is still not far enough ahead of nextToPhaseVc to have all phasing information for nextToPhaseVc
-                          (note that we ASSUME that the VCF is ordered by <contig,locus>).
-                           Note that this will always leave at least one entry (the last one), since mostDownstreamLocusReached is in range of itself.
-                         */
-                        break;
-                    }
-                    // Already saw all variant positions within cacheWindow startDistance ahead of vc (on its contig)
+        while (!unphasedSiteQueue.isEmpty()) {
+            if (!processAll) { // otherwise, phase until the end of unphasedSiteQueue
+                VariantContext nextToPhaseVc = unphasedSiteQueue.peek().variant;
+                if (startDistancesAreInWindowRange(mostDownstreamLocusReached, VariantContextUtils.getLocation(nextToPhaseVc))) {
+                    /* mostDownstreamLocusReached is still not far enough ahead of nextToPhaseVc to have all phasing information for nextToPhaseVc
+                     (note that we ASSUME that the VCF is ordered by <contig,locus>).
+                      Note that this will always leave at least one entry (the last one), since mostDownstreamLocusReached is in range of itself.
+                    */
+                    break;
                 }
-                // Update partiallyPhasedSites before it's used in phaseSite:
-                oldPhasedList.addAll(discardIrrelevantPhasedSites());
-                logger.debug("oldPhasedList(1st) = " + toStringVCL(oldPhasedList));
-
-                VariantAndReads vr = unphasedSiteQueue.remove();
-                logger.debug("Performing phasing for " + VariantContextUtils.getLocation(vr.variant));
-                phaseSite(vr, phaseStats);
+                // Already saw all variant positions within cacheWindow startDistance ahead of vc (on its contig)
             }
+            // Update partiallyPhasedSites before it's used in phaseSite:
+            oldPhasedList.addAll(discardIrrelevantPhasedSites());
+            logger.debug("oldPhasedList(1st) = " + toStringVCL(oldPhasedList));
+
+            VariantAndReads vr = unphasedSiteQueue.remove();
+            logger.debug("Performing phasing for " + VariantContextUtils.getLocation(vr.variant));
+            phaseSite(vr, phaseStats);
         }
 
         // Update partiallyPhasedSites after phaseSite is done:
         oldPhasedList.addAll(discardIrrelevantPhasedSites());
         logger.debug("oldPhasedList(2nd) = " + toStringVCL(oldPhasedList));
+
+        if (outputMultipleBaseCountsWriter != null)
+            outputMultipleBaseCountsWriter.outputMultipleBaseCounts();
 
         return oldPhasedList;
     }
@@ -454,7 +463,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
 
             // First, assemble the "sub-reads" from the COMPLETE WINDOW-BASED SET of heterozygous positions for this sample:
-            buildReadsAtHetSites(listHetGenotypes);
+            buildReadsAtHetSites(listHetGenotypes, sample, grbPhase.loc);
 
             // Remove extraneous reads (those that do not "connect" the two core phasing sites):
             Set<String> onlyKeepReads = removeExtraneousReads(listHetGenotypes.size());
@@ -484,34 +493,39 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 hetGenotypes[index++] = copyGrb.genotype;
         }
 
-        private void buildReadsAtHetSites(List<GenotypeAndReadBases> listHetGenotypes) {
-            buildReadsAtHetSites(listHetGenotypes, null);
+        private void buildReadsAtHetSites(List<GenotypeAndReadBases> listHetGenotypes, String sample, GenomeLoc phasingLoc) {
+            buildReadsAtHetSites(listHetGenotypes, sample, phasingLoc, null);
         }
 
         private void buildReadsAtHetSites(List<GenotypeAndReadBases> listHetGenotypes, Set<String> onlyKeepReads) {
+            buildReadsAtHetSites(listHetGenotypes, null, null, onlyKeepReads);
+        }
+
+        private void buildReadsAtHetSites(List<GenotypeAndReadBases> listHetGenotypes, String sample, GenomeLoc phasingLoc, Set<String> onlyKeepReads) {
             readsAtHetSites = new HashMap<String, Read>();
 
-            LinkedList<ReadBasesAtPosition> basesAtPositions = new LinkedList<ReadBasesAtPosition>();
+            int index = 0;
             for (GenotypeAndReadBases grb : listHetGenotypes) {
                 ReadBasesAtPosition readBases = grb.readBases;
-                if (readBases == null)
-                    readBases = new ReadBasesAtPosition(); // for transparency, put an empty list of bases at this position for sample
-                basesAtPositions.add(readBases);
-            }
+                if (readBases != null) {
+                    for (ReadBase rb : readBases) {
+                        String readName = rb.readName;
+                        if (onlyKeepReads != null && !onlyKeepReads.contains(readName)) // if onlyKeepReads exists, ignore reads not in onlyKeepReads
+                            continue;
 
-            int index = 0;
-            for (ReadBasesAtPosition rbp : basesAtPositions) {
-                for (ReadBase rb : rbp) {
-                    String readName = rb.readName;
-                    if (onlyKeepReads != null && !onlyKeepReads.contains(readName)) // if onlyKeepReads exists, ignore reads not in onlyKeepReads
-                        continue;
+                        Read rd = readsAtHetSites.get(readName);
+                        if (rd == null) {
+                            rd = new Read(listHetGenotypes.size(), rb.mappingQual);
+                            readsAtHetSites.put(readName, rd);
+                        }
+                        else if (outputMultipleBaseCountsWriter != null && rd.getBase(index) != null // rd already has a base at index
+                                && sample != null && phasingLoc != null) {
+                            outputMultipleBaseCountsWriter.setMultipleBases(new SampleReadLocus(sample, readName, grb.loc), phasingLoc, rd.getBase(index), rb.base);
+                        }
 
-                    Read rd = readsAtHetSites.get(readName);
-                    if (rd == null) {
-                        rd = new Read(basesAtPositions.size(), rb.mappingQual);
-                        readsAtHetSites.put(readName, rd);
+                        // Arbitrarily updates to the last base observed for this sample and read (rb.base):
+                        rd.updateBaseAndQuality(index, rb.base, rb.baseQual);
                     }
-                    rd.updateBaseAndQuality(index, rb.base, rb.baseQual);
                 }
                 index++;
             }
@@ -942,6 +956,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         if (statsWriter != null)
             statsWriter.close();
 
+        if (outputMultipleBaseCountsWriter != null)
+            outputMultipleBaseCountsWriter.close();
+
         System.out.println("Coverage over ALL samples:");
         System.out.println("Number of reads observed: " + result.getNumReads());
         System.out.println("Number of variant sites observed: " + result.getNumVarSites());
@@ -1362,6 +1379,72 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     public static boolean isUnfilteredCalledDiploidGenotype(Genotype gt) {
         return (gt.isNotFiltered() && gt.isCalled() && gt.getPloidy() == 2);
     }
+
+    private class MultipleBaseCountsWriter {
+        private BufferedWriter writer = null;
+        private Map<SampleReadLocus, MultipleBaseCounts> multipleBaseCounts = null;
+
+        public MultipleBaseCountsWriter(File outputMultipleBaseCountsFile) {
+            FileOutputStream output;
+            try {
+                output = new FileOutputStream(outputMultipleBaseCountsFile);
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException("Unable to create multiple base count file at location: " + outputMultipleBaseCountsFile);
+            }
+            this.writer = new BufferedWriter(new OutputStreamWriter(output));
+
+            this.multipleBaseCounts = new TreeMap<SampleReadLocus, MultipleBaseCounts>(); // implemented SampleReadLocus.compareTo()
+        }
+
+        public void setMultipleBases(SampleReadLocus srl, GenomeLoc phasingLoc, byte prevBase, byte newBase) {
+            MultipleBaseCounts mbc = multipleBaseCounts.get(srl);
+            if (mbc == null) {
+                mbc = new MultipleBaseCounts(phasingLoc);
+                mbc.incrementBaseCount(prevBase); // only now, do we know to note this
+                multipleBaseCounts.put(srl, mbc);
+            }
+            if (mbc.samePhasingLocAs(phasingLoc)) // otherwise, don't want to count these multiple base counts again
+                mbc.incrementBaseCount(newBase);
+
+        }
+
+        public void outputMultipleBaseCounts() {
+            GenomeLoc nextToPhaseLoc = null;
+            if (!unphasedSiteQueue.isEmpty())
+                nextToPhaseLoc = VariantContextUtils.getLocation(unphasedSiteQueue.peek().variant);
+
+            outputMultipleBaseCounts(nextToPhaseLoc);
+        }
+
+        private void outputMultipleBaseCounts(GenomeLoc nextToPhaseLoc) {
+            try {
+                Iterator<Map.Entry<SampleReadLocus, MultipleBaseCounts>> multBaseCountIt = multipleBaseCounts.entrySet().iterator();
+                while (multBaseCountIt.hasNext()) {
+                    Map.Entry<SampleReadLocus, MultipleBaseCounts> sampleReadLocBaseCountsEntry = multBaseCountIt.next();
+                    SampleReadLocus srl = sampleReadLocBaseCountsEntry.getKey();
+                    if (nextToPhaseLoc == null || !startDistancesAreInWindowRange(srl.getLocus(), nextToPhaseLoc)) {
+                        // Done with entry, so print it and remove it from map:
+                        writer.write(srl + "\t" + sampleReadLocBaseCountsEntry.getValue() + "\n");
+                        multBaseCountIt.remove();
+                    }
+                }
+                writer.flush();
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to write to outputMultipleBaseCountsFile", e);
+            }
+        }
+
+        public void close() {
+            outputMultipleBaseCounts(null);
+
+            try {
+                writer.flush();
+                writer.close();
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to close outputMultipleBaseCountsFile");
+            }
+        }
+    }
 }
 
 
@@ -1714,5 +1797,73 @@ class PhasingQualityStatsWriter {
                 throw new RuntimeException("Unable to close per-sample phasing quality stats file");
             }
         }
+    }
+}
+
+class SampleReadLocus implements Comparable<SampleReadLocus> {
+    private String sample;
+    private String read;
+    private GenomeLoc locus;
+
+    public SampleReadLocus(String sample, String read, GenomeLoc locus) {
+        this.sample = sample;
+        this.read = read;
+        this.locus = locus;
+    }
+
+    public GenomeLoc getLocus() {
+        return locus;
+    }
+
+    public int compareTo(SampleReadLocus that) {
+        int comp = this.sample.compareTo(that.sample);
+        if (comp != 0)
+            return comp;
+
+        comp = this.read.compareTo(that.read);
+        if (comp != 0)
+            return comp;
+
+        return this.locus.compareTo(that.locus);
+    }
+
+    public String toString() {
+        return "Sample " + sample + ", read " + read + ", locus " + locus;
+    }
+}
+
+class MultipleBaseCounts {
+    private Map<Integer, Integer> baseCounts;
+    private GenomeLoc phasingLocus;
+
+    public MultipleBaseCounts(GenomeLoc phasingLoc) {
+        this.baseCounts = new HashMap<Integer, Integer>();
+        this.phasingLocus = phasingLoc;
+    }
+
+    public boolean samePhasingLocAs(GenomeLoc loc) {
+        return phasingLocus.equals(loc);
+    }
+
+    public void incrementBaseCount(byte base) {
+        int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
+        Integer cnt = baseCounts.get(baseIndex);
+        if (cnt == null)
+            cnt = 0;
+
+        baseCounts.put(baseIndex, cnt + 1);
+    }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Base counts");
+        for (Map.Entry<Integer, Integer> baseCountEntry : baseCounts.entrySet()) {
+            byte base = BaseUtils.baseIndexToSimpleBase(baseCountEntry.getKey());
+            int cnt = baseCountEntry.getValue();
+            sb.append("\t" + (char) base + ": " + cnt);
+        }
+
+        return sb.toString();
     }
 }
