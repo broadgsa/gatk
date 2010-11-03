@@ -12,6 +12,7 @@ import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,27 +44,38 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
         if ( ! (isValidVC(eval) && isValidVC(comp))  ) {
             return null;
         } else {
-            if ( missingField(eval) ) {
+            // todo -- this is a godawful hack. The "right way" isn't working, so do it the unsafe way for now. Note that
+            // todo -- this precludes getting the AC/AF values from the info field because some may not be there...
+            /*if ( missingField(eval) ) {
                 recalculateCounts(eval);
             }
             if ( missingField(comp) ) {
                 recalculateCounts(comp);
-            }
-            afTable.update(getAF(eval),getAF(comp));
-            acTable.update(getAC(eval),getAC(comp));
+            }*/
+            HashMap<String,Object> evalCounts = new HashMap<String,Object>(2);
+            HashMap<String,Object> compCounts = new HashMap<String,Object>(2);
+
+            VariantContextUtils.calculateChromosomeCounts(eval,evalCounts,false);
+            VariantContextUtils.calculateChromosomeCounts(comp,compCounts,false);
+            afTable.update(((List<Double>)evalCounts.get("AF")).get(0),((List<Double>)compCounts.get("AF")).get(0));
+            acTable.update(((List<Integer>)evalCounts.get("AC")).get(0),((List<Integer>)compCounts.get("AC")).get(0));
         }
 
         return null; // there is nothing interesting
     }
 
     private static boolean missingField(final VariantContext vc) {
-        return ! ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) && vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY));
+        return ! ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) && vc.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) );
     }
 
-    private static void recalculateCounts(VariantContext vc) {
-        Map<String,Object> attributes = vc.getAttributes();
+    private void recalculateCounts(VariantContext vc) {
+        Map<String,Object> attributes = new HashMap<String,Object>();
         VariantContextUtils.calculateChromosomeCounts(vc,attributes,false);
-        VariantContext.modifyAttributes(vc,attributes);
+        vc = VariantContext.modifyAttributes(vc,attributes);
+        getVEWalker().getLogger().debug(String.format("%s %s | %s %s",attributes.get("AC"),attributes.get("AF"),vc.getAttribute("AC"),vc.getAttribute("AF")));
+        if ( attributes.size() == 2 && missingField(vc) ) {
+            throw new org.broadinstitute.sting.utils.exceptions.StingException("VariantContext should have had attributes modified but did not");
+        }
     }
 
     private static boolean isValidVC(final VariantContext vc) {
@@ -72,7 +84,11 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
 
     private static double getAF(VariantContext vc) {
         Object af = vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY);
-        if ( List.class.isAssignableFrom(af.getClass())) {
+        if ( af == null ) {
+	    //throw new UserException("Variant context "+vc.getName()+" does not have allele frequency entry which is required for this walker");
+            // still none after being re-computed; this is 0.00
+            return 0.00;
+        } else if ( List.class.isAssignableFrom(af.getClass())) {
             return ( (List<Double>) af ).get(0);
         } else if ( String.class.isAssignableFrom(af.getClass())) {
             // two possibilities
@@ -84,7 +100,7 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
                     return Double.parseDouble(s);
                 }
             } catch (NumberFormatException e) {
-                throw new UserException("Allele frequency field may be improperly formatted, found AF="+s);
+                throw new UserException("Allele frequency field may be improperly formatted, found AF="+s,e);
             }
         } else if ( Double.class.isAssignableFrom(vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY).getClass())) {
             return (Double) af;
@@ -94,8 +110,11 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
     }
 
     private static int getAC(VariantContext vc) {
-        Object ac = vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY);
-        if ( List.class.isAssignableFrom(ac.getClass())) {
+        Object ac = vc.getAttribute(VCFConstants.ALLELE_COUNT_KEY);
+        if ( ac == null ) {
+            // still none after being re computed; this is 0
+            return 0;
+        } else if ( List.class.isAssignableFrom(ac.getClass())) {
             return ( (List<Integer>) ac ).get(0);
         } else if ( String.class.isAssignableFrom(ac.getClass())) {
             // two possibilities
@@ -107,9 +126,9 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
                     return Integer.parseInt(s);
                 }
             } catch (NumberFormatException e) {
-                throw new UserException("Allele count field may be improperly formatted, found AC="+s);
+                throw new UserException(String.format("Allele count field may be improperly formatted, found AC=%s for record %s:%d",ac,vc.getChr(),vc.getStart()),e);
             }
-        } else if ( Double.class.isAssignableFrom(vc.getAttribute(VCFConstants.ALLELE_FREQUENCY_KEY).getClass())) {
+        } else if ( Integer.class.isAssignableFrom(ac.getClass())) {
             return (Integer) ac;
         } else {
             throw new UserException(String.format("Class of Allele Frequency does not appear to be formated, had AF=%s, of class %s",ac.toString(),ac.getClass()));

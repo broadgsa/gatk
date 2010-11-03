@@ -3,10 +3,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers.vcftools;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFConstants;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFWriter;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
@@ -21,6 +18,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.exceptions.*;
 
 import java.util.*;
 
@@ -46,7 +44,8 @@ public class FixRefBases extends RodWalker<Integer,Integer> {
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 	Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
-        headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
+        headerLines.add(new VCFHeaderLine("source", "FixRefBases"));
+        headerLines.add(new VCFInfoHeaderLine("FRI",1,VCFHeaderLineType.String,"The Fix-Ref-Info (if present, either \"Flipped\" or \"Fixed\")"));
         out.writeHeader(new VCFHeader(headerLines,vcfSamples));
     }
 
@@ -56,7 +55,13 @@ public class FixRefBases extends RodWalker<Integer,Integer> {
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( tracker != null && tracker.hasROD("variant") ) {
-            VariantContext vc = tracker.getVariantContext(ref,"variant",null,context.getLocation(),true);
+            VariantContext vc = null;
+	    try {
+		vc = tracker.getVariantContext(ref,"variant",null,context.getLocation(),true);
+	    } catch ( ReviewedStingException e ) {
+		logger.warn("Multiple variants found, catching exception ",e);
+		return 0;
+	    }
             VariantContext newContext = null;
             if ( vc.isSNP() && ref.getBase() != vc.getReference().getBases()[0] && vc.getReference().length() == 1 ) {
                 if ( basesAreFlipped(vc,ref) ) {
@@ -66,13 +71,19 @@ public class FixRefBases extends RodWalker<Integer,Integer> {
                     HashSet<Allele> newAlleles = new HashSet<Allele>(vc.getAlternateAlleles());
                     Allele refAllele = Allele.create(ref.getBase(),true);
                     newAlleles.add(refAllele);
+                    HashMap<String,Object> newAttributes = new HashMap<String,Object>(vc.getAttributes());
+                    newAttributes.put("FRI",String.format("Fixed%s-%s",vc.getReference().toString(),refAllele));
                     newContext = new VariantContext("FixRefBasesVC", ref.getLocus().getContig(),
                             ref.getLocus().getStart(), ref.getLocus().getStop(), newAlleles, fixGenotypes(vc.getGenotypes(),refAllele),
                             vc.hasNegLog10PError() ? 10.0*vc.getNegLog10PError() : VCFConstants.MISSING_QUALITY_v3_DOUBLE,
-                            vc.isFiltered() ? null : vc.getFilters(), vc.getAttributes());
+                            vc.isFiltered() ? vc.getFilters() : null, newAttributes);
                 }
 
+                if ( ! newContext.hasAttribute("FRI") ) {
+                    throw new StingException("FRI for fixed base not propagated. vc="+vc.toString());
+                }
                 out.add(newContext,ref.getBase());
+                return 1;
 
             } else {
                 out.add(vc,ref.getBase());
@@ -100,9 +111,12 @@ public class FixRefBases extends RodWalker<Integer,Integer> {
     }
 
     private VariantContext flipBases(VariantContext vc, ReferenceContext ref) {
+        logger.info(String.format("Flipping bases at variant position %s:%d",vc.getChr(),vc.getStart()));
         HashSet<Allele> newAlleles = new HashSet<Allele>(vc.getAlleles().size());
         newAlleles.add(Allele.create(ref.getBase(),true));
         newAlleles.add(Allele.create(vc.getReference().getBases()[0],false));
+        Map<String,Object> attribs = new HashMap<String,Object>(vc.getAttributes());
+        attribs.put("FRI",String.format("Flipped%s-%s",vc.getReference().toString(),Allele.create(ref.getBase(),true).toString()));
         for ( Allele a : vc.getAlternateAlleles() ) {
             if ( a.getBases()[0] != ref.getBase() ) {
                 newAlleles.add(a);
@@ -112,9 +126,8 @@ public class FixRefBases extends RodWalker<Integer,Integer> {
         VariantContext newVC = new VariantContext("FixRefBasesVC", ref.getLocus().getContig(),
                 ref.getLocus().getStart(), ref.getLocus().getStop(), newAlleles, flipGenotypes(vc.getGenotypes(),newAlleles),
                 vc.hasNegLog10PError() ? 10.0*vc.getNegLog10PError() : VCFConstants.MISSING_QUALITY_v3_DOUBLE,
-                vc.isFiltered() ? null : vc.getFilters(), vc.getAttributes());
+                vc.isFiltered() ? vc.getFilters() : null, attribs);
 
-        Map<String,Object> attribs = new HashMap<String,Object>(newVC.getAttributes());
         VariantContextUtils.calculateChromosomeCounts(newVC,attribs,false);
         VariantContext.modifyAttributes(newVC,attribs);
         return newVC;

@@ -261,13 +261,16 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
             qualityScoreHistograms = new QualityScoreHistograms();
         }
 
+        if ( alleleCountStats == null && eval != null && validation != null ) {
+            alleleCountStats = new ACStats(eval,validation,Genotype.Type.values().length);
+            alleleCountSummary = new ACSummaryStats(eval, validation);
+        }
+
         if (sampleStats == null) {
             if (eval != null) {
                 // initialize the concordance table
                 sampleStats = new SampleStats(eval,Genotype.Type.values().length);
-                alleleCountStats = new ACStats(eval,Genotype.Type.values().length, new CompACNames(veWalker.getLogger()));
                 sampleSummaryStats = new SampleSummaryStats(eval);
-                alleleCountSummary = new ACSummaryStats(eval, new CompACNames(veWalker.getLogger()));
                 for (final VariantContext vc : missedValidationData) {
                     determineStats(null, vc);
                 }
@@ -319,10 +322,8 @@ public class GenotypeConcordance extends VariantEvaluator implements StandardEva
                 }
 
                 sampleStats.incrValue(sample, truth, called);
-                if ( evalAC != null ) {
+                if ( evalAC != null && validationAC != null) {
                     alleleCountStats.incrValue(evalAC,truth,called);
-                }
-                if ( validationAC != null ) {
                     alleleCountStats.incrValue(validationAC,truth,called);
                 }
             }
@@ -510,24 +511,21 @@ class SampleStats implements TableType {
  * Sample stats, but for AC
  */
 class ACStats extends SampleStats {
-    private final CompACNames myComp;
     private String[] rowKeys;
 
-    public ACStats(VariantContext vc, int nGenotypeTypes, CompACNames comp) {
+    public ACStats(VariantContext evalvc, VariantContext compvc, int nGenotypeTypes) {
         super(nGenotypeTypes);
-        rowKeys = new String[2+4*vc.getGenotypes().size()];
-        for ( int i = 0; i <= 2*vc.getGenotypes().size(); i++ ) { // todo -- assuming ploidy 2 here...
+        rowKeys = new String[1+2*evalvc.getGenotypes().size()+1+2*compvc.getGenotypes().size()];
+        for ( int i = 0; i <= 2*evalvc.getGenotypes().size(); i++ ) { // todo -- assuming ploidy 2 here...
             concordanceStats.put(String.format("evalAC%d",i),new long[nGenotypeTypes][nGenotypeTypes]);
             rowKeys[i] = String.format("evalAC%d",i);
 
         }
 
-        for ( int i = 0; i <= 2*vc.getGenotypes().size(); i++ ) {
+        for ( int i = 0; i <= 2*compvc.getGenotypes().size(); i++ ) {
             concordanceStats.put(String.format("compAC%d",i), new long[nGenotypeTypes][nGenotypeTypes]);
-            rowKeys[1+2*vc.getGenotypes().size()+i] = String.format("compAC%d",i);
+            rowKeys[1+2*evalvc.getGenotypes().size()+i] = String.format("compAC%d",i);
         }
-
-        myComp = comp;
     }
 
     public String getName() {
@@ -717,23 +715,21 @@ class SampleSummaryStats implements TableType {
  * SampleSummaryStats .. but for allele counts
  */
 class ACSummaryStats extends SampleSummaryStats {
-    final private CompACNames myComp;
     private String[] rowKeys;
 
-    public ACSummaryStats (final VariantContext vc, CompACNames comp) {
+    public ACSummaryStats (final VariantContext evalvc, final VariantContext compvc) {
         concordanceSummary.put(ALL_SAMPLES_KEY, new double[COLUMN_KEYS.length]);
-        rowKeys = new String[3+4*vc.getGenotypes().size()];
+        rowKeys = new String[3+2*evalvc.getGenotypes().size() + 2*compvc.getGenotypes().size()];
         rowKeys[0] = ALL_SAMPLES_KEY;
-        for( int i = 0; i <= 2*vc.getGenotypes().size() ; i ++ ) {
+        for( int i = 0; i <= 2*evalvc.getGenotypes().size() ; i ++ ) {
             concordanceSummary.put(String.format("evalAC%d",i), new double[COLUMN_KEYS.length]);
             rowKeys[i+1] = String.format("evalAC%d",i);
         }
-        for( int i = 0; i <= 2*vc.getGenotypes().size() ; i ++ ) {
+        for( int i = 0; i <= 2*compvc.getGenotypes().size() ; i ++ ) {
             concordanceSummary.put(String.format("compAC%d",i), new double[COLUMN_KEYS.length]);
-            rowKeys[2+2*vc.getGenotypes().size()+i] = String.format("compAC%d",i);
+            rowKeys[2+2*evalvc.getGenotypes().size()+i] = String.format("compAC%d",i);
         }
 
-        myComp = comp;
     }
 
     public String getName() {
