@@ -59,8 +59,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                                 ReferenceContext ref,
                                 Map<String, BiallelicGenotypeLikelihoods> GLs,
                                 double[] log10AlleleFrequencyPriors,
-                                double[] log10AlleleFrequencyPosteriors,
-                                int minFrequencyToCalculate) {
+                                double[] log10AlleleFrequencyPosteriors) {
 
 
         int numSamples = GLs.size();
@@ -148,14 +147,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         for (int k=0; k <= numChr; k++)
             log10AlleleFrequencyPosteriors[k] = logYMatrix[j][k] + log10AlleleFrequencyPriors[k];
-
-
-        // TODO: we really need to get rid of this and the minFrequencyToCalculate argument
-        // it's possible that we need to calculate higher frequencies
-        int maxAlleleFrequencyToTest = numChr;
-        for (int i = maxAlleleFrequencyToTest; i <= minFrequencyToCalculate; i++)
-            log10AlleleFrequencyPosteriors[i] = log10AlleleFrequencyPosteriors[maxAlleleFrequencyToTest];
-
     }
 
 

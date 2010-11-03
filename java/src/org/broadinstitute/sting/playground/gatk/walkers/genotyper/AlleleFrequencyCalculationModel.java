@@ -81,14 +81,12 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      * @param GLs                             genotype likelihoods
      * @param log10AlleleFrequencyPriors      priors
      * @param log10AlleleFrequencyPosteriors  array (pre-allocated) to store results
-     * @param minFrequencyToCalculate         the minimum frequency which needs to be calculated
      */
     protected abstract void getLog10PNonRef(RefMetaDataTracker tracker,
                                             ReferenceContext ref,
                                             Map<String, BiallelicGenotypeLikelihoods> GLs,
                                             double[] log10AlleleFrequencyPriors,
-                                            double[] log10AlleleFrequencyPosteriors,
-                                            int minFrequencyToCalculate);
+                                            double[] log10AlleleFrequencyPosteriors);
 
     /**
      * Can be overridden by concrete subclasses
