@@ -301,7 +301,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
             sb.append("ALT-ALT:\t" + alt_alt_pair + "]\n");
 
             int hetAfterHetSites = MNPsites + CHetSites;
-            sb.append("* Het-Het sites (with REF allele present at each):\t" + percentageString(hetAfterHetSites, numSuccessiveGenotypesWithinDistance) + "\n");
+            sb.append("* Het-Het sites (with REF allele present at each):\t" + percentageString(hetAfterHetSites, bothInPairHaveVariant) + "\n");
             sb.append("* MNPs:\t" + percentageString(MNPsites, hetAfterHetSites) + "\n");
             sb.append("Compound Hets:\t" + CHetSites + "\n");
 
