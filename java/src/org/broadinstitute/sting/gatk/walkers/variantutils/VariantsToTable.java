@@ -39,15 +39,11 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Combines VCF records from different sources; supports both full merges and set unions.
- * Merge: combines multiple records into a single one; if sample names overlap then they are uniquified.
- * Union: assumes each rod represents the same set of samples (although this is not enforced); using the
- *   priority list (if provided), emits a single record instance at every position represented in the rods.
+ * Emits specific fields as dictated by the user from one or more VCF files.
  */
-//@Reference(window=@Window(start=-50,stop=50))
 @Requires(value={})
 public class VariantsToTable extends RodWalker<Integer, Integer> {
-    @Output(doc="File to which variants should be written",required=true)
+    @Output(doc="File to which results should be written",required=true)
     protected PrintStream out;
 
     @Argument(fullName="fields", shortName="F", doc="Fields to emit from the VCF, allows any VCF field, any info field, and some meta fields like nHets", required=true)
