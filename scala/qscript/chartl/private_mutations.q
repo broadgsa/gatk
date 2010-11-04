@@ -365,6 +365,8 @@ class private_mutations extends QScript {
       var inSample = sample
       @Output(doc="foo")
       var outList = oList
+      @Input(doc = "foo")
+      var waitForMe: File = _
 
       def commandLine = {
         "grep %s /humgen/1kg/processing/allPopulations_wholeGenome_august_release/bamLists/*.list | tr ':' '\\t' | awk '{print $2}' > %s".format(
@@ -383,6 +385,7 @@ class private_mutations extends QScript {
       add(sites)
 
       var bamList : GetBamList = new GetBamList(s,new File(SCRATCH_DIR+"%s.bams.list".format(s)))
+      bamList.waitForMe = sites.out_list
 
       add(bamList)
 
