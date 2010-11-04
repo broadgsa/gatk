@@ -136,15 +136,16 @@ public class VariantAnnotatorEngine {
                     throw new UserException.BadArgumentValue("group", "Class " + group + " is not found; please check that you have specified the class name correctly");
                 classes.addAll(PackageUtils.getClassesImplementingInterface(interfaceClass));
             }
-            // get the specific classes provided
-            for ( String annotation : annotationsToUse ) {
-                Class annotationClass = classMap.get(annotation);
-                if ( annotationClass == null )
-                    annotationClass = classMap.get(annotation + "Annotation");
-                if ( annotationClass == null )
-                    throw new UserException.BadArgumentValue("annotation", "Class " + annotation + " is not found; please check that you have specified the class name correctly");
-                classes.add(annotationClass);
-            }
+        }
+
+        // get the specific classes provided
+        for ( String annotation : annotationsToUse ) {
+            Class annotationClass = classMap.get(annotation);
+            if ( annotationClass == null )
+                annotationClass = classMap.get(annotation + "Annotation");
+            if ( annotationClass == null )
+                throw new UserException.BadArgumentValue("annotation", "Class " + annotation + " is not found; please check that you have specified the class name correctly");
+            classes.add(annotationClass);
         }
 
         // get the instances
