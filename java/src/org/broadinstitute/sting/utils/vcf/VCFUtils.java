@@ -98,7 +98,9 @@ public class VCFUtils {
 
             RMDTrack rod = source.getReferenceOrderedData();
             if ( rod.getRecordType().equals(VariantContext.class)) {
-                fields.addAll(((VCFHeader)rod.getHeader()).getMetaData());
+                VCFHeader header = (VCFHeader)rod.getHeader();
+                if ( header != null )
+                    fields.addAll(header.getMetaData());
             }
         }
 
