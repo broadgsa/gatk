@@ -153,6 +153,8 @@ class private_mutations extends QScript {
     exome_single.filter = SINGLE_SAMPLE_EXPRESSION
     exome_single.out_list = new File(LIST_DIR+"g1k_exome_single_sample.variants.list")
 
+    add(exome_single)
+
     var exome_extract : ExtractSites = new ExtractSites(g1k_exome_calls,new File(VCF_DIR+"g1k_exome.sites.vcf"))
     add(exome_extract)
 
@@ -167,7 +169,7 @@ class private_mutations extends QScript {
     getVennExS.variantMergeOptions = Some(VariantContextUtils.VariantMergeType.UNION)
     getVennExS.out = new File(VCF_DIR + "g1k_exome_plus_lowpass.singlesample.merged.exome.sites.vcf")
 
-    add(getVennExS)
+    //add(getVennExS)
 
     var getVennLPS : CombineVariants = new CombineVariants
     getVennLPS.rodBind :+= new RodBind("lowpass","VCF",g1k_lowpass_hg19_merged);
@@ -189,7 +191,7 @@ class private_mutations extends QScript {
 
     add(getG1KOverlap)
 
-    callOverlaps(getG1KOverlap.samples,exome_single.out_list, g1k_exome_calls)
+    //callOverlaps(getG1KOverlap.samples,exome_single.out_list, g1k_exome_calls)
 
   }
 
@@ -288,7 +290,7 @@ class private_mutations extends QScript {
     var inVCF: File = vcfIn
     @Argument(doc="The sample to extract")
     var inSample: String = sample
-    @Input(doc="The VCF file to write to")
+    @Output(doc="The VCF file to write to")
     var outVCF: File = vcfOut
 
     def commandLine = {
@@ -369,7 +371,7 @@ class private_mutations extends QScript {
       var waitForMe: File = _
 
       def commandLine = {
-        "grep %s /humgen/1kg/processing/allPopulations_wholeGenome_august_release/bamLists/*.list | tr ':' '\\t' | awk '{print $2}' > %s".format(
+        "grep %s /humgen/1kg/processing/allPopulations_wholeGenome_august_release/bamLists/*.list | tr ':' '\\t' | awk '{print $2}' | sort | uniq > %s".format(
         inSample,
         outList.getAbsolutePath
           )
@@ -395,6 +397,8 @@ class private_mutations extends QScript {
       genotype.intervals :+= sites.out_list
       genotype.out = new File(VCF_DIR+"g1k_lowpass.%s.exome_sites.vcf".format(s))
       genotype.input_file :+= bamList.outList
+      genotype.memoryLimit = Some(3)
+      genotype.output_all_callable_bases = true
 
       add(genotype)
 
