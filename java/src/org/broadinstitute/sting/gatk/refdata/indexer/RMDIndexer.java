@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.refdata.indexer;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.log4j.Logger;
 import org.broad.tribble.FeatureCodec;
+import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.util.LittleEndianOutputStream;
@@ -40,10 +41,6 @@ public class RMDIndexer extends CommandLineProgram {
 
     @Override
     protected int execute() throws Exception {
-        logger.info(String.format("attempting to index file:   %s",inputFileSource));
-        logger.info(String.format("using reference:            %s",referenceFile.getAbsolutePath()));
-        logger.info(String.format("using type:                 %s",inputFileType));
-        logger.info(String.format("writing to location:        %s",indexFile.getAbsolutePath()));
 
         // check parameters
         // ---------------------------------------------------------------------------------
@@ -56,11 +53,19 @@ public class RMDIndexer extends CommandLineProgram {
         // create a reference file reader
         IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(referenceFile);
 
+        // set the index file to the default name if they didn't specify a file
+        if (indexFile == null && inputFileSource != null)
+            indexFile = new File(inputFileSource.getAbsolutePath() + Tribble.STANDARD_INDEX_EXTENSION);
+
         // check that we can create the output file
         if (indexFile == null || indexFile.exists())
             throw new IllegalArgumentException("We can't write to the index file location: "
                 + indexFile + ", the index exists");
 
+        logger.info(String.format("attempting to index file:   %s", inputFileSource));
+        logger.info(String.format("using reference:            %s", referenceFile.getAbsolutePath()));
+        logger.info(String.format("using type:                 %s", inputFileType));
+        logger.info(String.format("writing to location:        %s", indexFile.getAbsolutePath()));
 
         // try to index the file
         // ---------------------------------------------------------------------------------
