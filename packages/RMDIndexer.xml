@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package name="RMDIndexer">
+  <executable name="RMDIndexer">
+    <main-class name="org.broadinstitute.sting.gatk.refdata.indexer.RMDIndexer" />
+    <resource-bundle file="StingText.properties" />
+    <dependencies>
+      <package name="org.broad.tribble.*" />
+      <!-- the class itself -->
+      <class name="org.broadinstitute.sting.gatk.refdata.indexer.RMDIndexer" />
+    </dependencies>
+  </executable>
+</package>
