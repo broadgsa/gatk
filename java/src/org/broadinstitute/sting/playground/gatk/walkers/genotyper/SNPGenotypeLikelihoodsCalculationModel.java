@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 import java.util.*;
 
@@ -115,8 +116,9 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             // calculate the sum of quality scores for each base
             ReadBackedPileup pileup = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
             for ( PileupElement p : pileup ) {
-                // ignore deletions
-                if ( p.isDeletion() )
+                // ignore deletions and filtered bases
+                if ( p.isDeletion() ||
+                     (p.getRead() instanceof GATKSAMRecord && !((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) )
                     continue;
 
                 int index = BaseUtils.simpleBaseToBaseIndex(p.getBase());

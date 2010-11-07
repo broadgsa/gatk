@@ -228,6 +228,7 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
             /*
             System.out.println(frequency);
             for (int i = 0; i < N; i++) {
+                System.out.print(samples.get(i));
                 for (int j=0; j < 3; j++) {
                     System.out.print(String.valueOf(matrix[i][j]));
                     System.out.print(indexes[i] == j ? "* " : " ");
