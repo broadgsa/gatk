@@ -28,7 +28,7 @@ public class RMDIndexer extends CommandLineProgram {
     @Argument(shortName="t", fullName="type", doc="The reference meta data file format (e.g. vcf, bed)", required = true)
     String inputFileType = null;
 
-    @Input(fullName = "referenceSequence", shortName = "R", doc = "The reference to use when indexing; this sequence will be set in the index", required = true)
+    @Input(fullName = "referenceSequence", shortName = "R", doc = "The reference to use when indexing; this sequence will be set in the index", required = false)
     public File referenceFile = null;
 
     @Input(shortName = "i", fullName = "indexFile", doc = "Where to write the index to (as a file), if not supplied we write to <inputFile>.idx", required = false)
@@ -61,7 +61,7 @@ public class RMDIndexer extends CommandLineProgram {
                 + indexFile + ", the index exists");
 
         logger.info(String.format("attempting to index file:   %s", inputFileSource));
-        logger.info(String.format("using reference:            %s", referenceFile.getAbsolutePath()));
+        logger.info(String.format("using reference:            %s", ((referenceFile != null) ? referenceFile.getAbsolutePath() : "(not supplied)")));
         logger.info(String.format("using type:                 %s", inputFileType));
         logger.info(String.format("writing to location:        %s", indexFile.getAbsolutePath()));
 
