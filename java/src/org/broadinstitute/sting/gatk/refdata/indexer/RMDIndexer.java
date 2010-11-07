@@ -46,12 +46,10 @@ public class RMDIndexer extends CommandLineProgram {
         // ---------------------------------------------------------------------------------
 
         // check the input parameters
-        if (referenceFile == null || !referenceFile.canRead())
+        if (referenceFile != null && !referenceFile.canRead())
             throw new IllegalArgumentException("We can't read the reference file: "
                 + referenceFile + ", check that it exists, and that you have permissions to read it");
 
-        // create a reference file reader
-        IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(referenceFile);
 
         // set the index file to the default name if they didn't specify a file
         if (indexFile == null && inputFileSource != null)
@@ -87,6 +85,14 @@ public class RMDIndexer extends CommandLineProgram {
         long currentTime = System.currentTimeMillis();
 
         Index index = IndexFactory.createIndex(inputFileSource, codec, approach);
+
+        if (referenceFile != null) {
+            // create a reference file reader
+            IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(referenceFile);
+
+            // add writing of the sequence dictionary, if supplied
+            RMDTrackBuilder.setIndexSequenceDictionary(index, seq.getSequenceDictionary(), indexFile, false);
+        }
 
         // create the output stream, and write the index
         LittleEndianOutputStream stream = new LittleEndianOutputStream(new FileOutputStream(indexFile));
