@@ -67,8 +67,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         out.println(Utils.join("\t", fieldsToTake));
     }
 
-    private static abstract class Getter { public abstract String get(VariantContext vc); }
-    private static Map<String, Getter> getters = new HashMap<String, Getter>();
+    public static abstract class Getter { public abstract String get(VariantContext vc); }
+    public static Map<String, Getter> getters = new HashMap<String, Getter>();
 
     static {
         // #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT
@@ -79,6 +79,9 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             public String get(VariantContext vc) {
                 StringBuilder x = new StringBuilder();
                 int n = vc.getAlternateAlleles().size();
+
+                if ( n == 0 ) return ".";
+
                 for ( int i = 0; i < n; i++ ) {
                     if ( i != 0 ) x.append(",");
                     x.append(vc.getAlternateAllele(i).toString());
@@ -115,19 +118,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
             for ( VariantContext vc : vcs) {
                 if ( ! ignoreMultiAllelic || vc.isBiallelic() || ( !showFiltered || !vc.isFiltered() ) ) {
-                    List<String> vals = new ArrayList<String>();
-
-                    for ( String field : fieldsToTake ) {
-                        String val = "UNK";
-
-                        if ( getters.containsKey(field) ) {
-                            val = getters.get(field).get(vc);
-                        } else if ( vc.hasAttribute(field) ) {
-                            val = vc.getAttributeAsString(field);
-                        }
-
-                        vals.add(val);
-                    }
+                    List<String> vals = extractFields(vc, fieldsToTake);
 
                     out.println(Utils.join("\t", vals));
                 }
@@ -141,6 +132,24 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             }
             return 0;
         }
+    }
+
+    public static List<String> extractFields(VariantContext vc, List<String> fields) {
+        List<String> vals = new ArrayList<String>();
+
+        for ( String field : fields ) {
+            String val = "NA";
+
+            if ( getters.containsKey(field) ) {
+                val = getters.get(field).get(vc);
+            } else if ( vc.hasAttribute(field) ) {
+                val = vc.getAttributeAsString(field);
+            }
+
+            vals.add(val);
+        }
+
+        return vals;
     }
 
     public Integer reduceInit() {

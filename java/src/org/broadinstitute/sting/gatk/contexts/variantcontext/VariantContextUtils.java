@@ -122,13 +122,14 @@ public class VariantContextUtils {
             attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts);
             attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs);
         }
-        // otherwise, remove them if present and requested
-        else if ( removeStaleValues ) {
-            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
-                attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
-            if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
-                attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
-        }
+
+//        // otherwise, remove them if present and requested
+//        else if ( removeStaleValues ) {
+//            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
+//                attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
+//            if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
+//                attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
+//        }
         // otherwise, set them to 0
         else {
             attributes.put(VCFConstants.ALLELE_COUNT_KEY, 0);

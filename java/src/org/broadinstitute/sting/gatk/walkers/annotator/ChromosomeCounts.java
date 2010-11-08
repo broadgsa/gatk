@@ -46,8 +46,7 @@ public class ChromosomeCounts implements InfoFieldAnnotation, StandardAnnotation
             new VCFInfoHeaderLine(VCFConstants.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes") };
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
-
-        if ( vc.getChromosomeCount() == 0 )
+        if ( ! vc.hasGenotypes() )
             return null;
         
         Map<String, Object> map = new HashMap<String, Object>();

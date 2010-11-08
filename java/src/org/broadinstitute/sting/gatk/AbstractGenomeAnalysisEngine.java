@@ -74,7 +74,11 @@ public abstract class AbstractGenomeAnalysisEngine {
      */
     private SAMDataSource readsDataSource = null;
 
-    protected ReferenceDataSource getReferenceDataSource() {
+    /**
+     * Needs to be 
+     * @return
+     */
+    public ReferenceDataSource getReferenceDataSource() {
         return referenceDataSource;
     }
 

@@ -386,6 +386,15 @@ public class MathUtils {
         return minI;
     }
 
+    public static int arrayMax(List<Integer> array) {
+        if ( array == null ) throw new IllegalArgumentException("Array cannot be null!");
+        if ( array.size() == 0 ) throw new IllegalArgumentException("Array size cannot be 0!");
+
+        int m = array.get(0);
+        for ( int e : array ) m = Math.max(m, e);
+        return m;
+    }
+
     public static double average(List<Long> vals, int maxI) {
         long sum = 0L;
 
