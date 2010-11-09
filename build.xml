@@ -198,7 +198,7 @@
     <target name="gatk.compile" depends="tribble,init,resolve"
             description="compile the source">
         <!-- Compile the java code from ${src} into build -->
-        <javac srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies">
+        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies">
             <exclude name="**/examples/**" />
             <exclude name="**/playground/**" unless="include.playground"/>
             <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
@@ -237,7 +237,7 @@
     <target name="queue.compile" depends="init,resolve,gatk.compile,init.scalatasks,queue-extensions.generate" if="queue.include" description="compile Queue">
         <mkdir dir="${queue.classes}"/>
         <echo>Building Queue...</echo>
-        <scalac destdir="${queue.classes}" classpathref="queue.dependencies" deprecation="yes" unchecked="yes">
+        <scalac fork="true" jvmargs="-Xmx512m" destdir="${queue.classes}" classpathref="queue.dependencies" deprecation="yes" unchecked="yes">
             <src path="${queue.source.dir}" />
             <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala"/>
@@ -408,7 +408,7 @@
     <target name="test.compile" depends="init.buildall,dist">
         <echo message="Sting: Compiling test cases!"/>
         <mkdir dir="${java.test.classes}"/>
-        <javac destdir="${java.test.classes}" debug="true" optimize="on">
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on">
             <src path="${java.test.sources}"/>
             <classpath>
                 <path refid="external.dependencies" />
@@ -419,7 +419,7 @@
 
         <echo message="Queue: Compiling test cases!"/>
         <mkdir dir="${queue.test.classes}"/>
-        <scalac srcdir="${queue.test.sources}" destdir="${queue.test.classes}" deprecation="yes" unchecked="yes">
+        <scalac fork="true" jvmargs="-Xmx512m" srcdir="${queue.test.sources}" destdir="${queue.test.classes}" deprecation="yes" unchecked="yes">
             <include name="org/broadinstitute/sting/queue/**/*.scala"/>
             <classpath>
                 <path refid="queue.dependencies"/>
@@ -456,7 +456,7 @@
       </taskdef>
       <mkdir dir="${scala.classes}"/>
       <echo>Building Scala...</echo>
-      <scalac srcdir="${scala.source.dir}" destdir="${scala.classes}" classpathref="scala.classpath" force="changed">
+      <scalac fork="true" srcdir="${scala.source.dir}" destdir="${scala.classes}" classpathref="scala.classpath" force="changed">
         <include name="*.scala"/>
       </scalac>
       
