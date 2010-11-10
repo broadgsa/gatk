@@ -48,6 +48,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.interval.NwayIntervalMergingIterator;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -55,6 +56,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.FileReader;
 import java.util.*;
 
 /**
@@ -132,12 +134,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     @Hidden
     @Argument(fullName="nWayOut", shortName="nWayOut", required=false,
-            doc="In this mode, there will be one output file for each input (-I) bam file. Reads from all input files "+
+            doc="Generate one output file for each input (-I) bam file. Reads from all input files "+
                 "will be realigned together, but then each read will be saved in the output file corresponding to "+
-                "the input file the read came from. The names of the output bam files will be constructed by "+
-                "stripping extensions (\".bam\" or \".sam\") from the input file names and pasting the value "+
-                "of -nWayOut argument to the result. The names of all output files will be also saved in a "+
-                "separate results.list file")
+                "the input file the read came from. There are two ways to generate output bam file names: 1) if the "+
+                "value of this argument is a general string (e.g. '.cleaned.bam'), then "+
+                "extensions (\".bam\" or \".sam\") will be stripped from the input file names and the provided string value "+
+                "will be pasted on instead; 2) if the value ends with a '.map' (e.g. input_output.map), then  " +
+                "the two-column tab-separated file with the specified name must exist and list unique output file name (2nd column)" +
+                "for each input file name (1st column).")
     protected String N_WAY_OUT = null;
 
 
@@ -230,47 +234,68 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
             if ( writer != null ) throw new UserException.BadInput("-nWayOut and -o arguments are mutually exclusive");
 
-            FileWriter fw;
-            try {
-                fw = new FileWriter("results.list");
-            } catch (IOException e) {
-                throw new StingException("I/O error: Failed to create results.list file");
+            nwayWriters = new HashMap<SAMReaderID,SAMFileWriter>();
+
+            Map<String,String> fname_map = null;
+
+            if ( N_WAY_OUT.toUpperCase().endsWith(".MAP") ) {
+
+                fname_map = new HashMap<String,String>();
+
+                try {
+
+                    XReadLines reader = new XReadLines(new File(N_WAY_OUT),true);
+                    for ( String line : reader ) {
+                        if ( line.length() == 0 ) continue;
+
+                        String fields[] = line.split("\t");
+
+                        if ( fields.length != 2 )
+                            throw new UserException.BadInput("Input-output map file must have exactly two columns. Offending line:\n"+line);
+                        if ( fields[0].length() == 0 || fields[1].length() == 0 )
+                            throw new UserException.BadInput("Input-output map file can not have empty strings in either column. Offending line:\n"+line);
+
+                        if ( fname_map.containsKey(fields[0]) )
+                            throw new UserException.BadInput("Input-output map file contains duplicate entries for input name "+fields[0]);
+                        if ( fname_map.containsValue(fields[1]) )
+                            throw new UserException.BadInput("Input-output map file maps multiple entries onto single output name "+fields[1]);
+
+                        fname_map.put(fields[0],fields[1]);
+                    }
+                } catch (IOException e) {
+                    throw new StingException("I/O Error while reading input-output map file "+N_WAY_OUT+": "+e.getMessage());
+                }
             }
 
-            nwayWriters = new HashMap<SAMReaderID,SAMFileWriter>();
+            SAMFileWriterImpl.setDefaultMaxRecordsInRam(MAX_RECORDS_IN_RAM);
 
             for ( SAMReaderID rid : getToolkit().getReadsDataSource().getReaderIDs() ) {
 
                 String fName = getToolkit().getReadsDataSource().getSAMFile(rid).getName();
 
-                int pos ;
-                if ( fName.toUpperCase().endsWith(".BAM") ) pos = fName.toUpperCase().lastIndexOf(".BAM");
-                else {
-                    if ( fName.toUpperCase().endsWith(".SAM") ) pos = fName.toUpperCase().lastIndexOf(".SAM");
-                    else throw new UserException.BadInput("Input file name "+fName+" does not end with .sam or .bam");
+                String outName;
+                if ( fname_map != null ) {
+                    if ( ! fname_map.containsKey(fName) )
+                        throw new UserException.BadInput("Input-output map file does not contain an entry for the input file "+fName);
+                    outName = fname_map.get(fName);
+                } else {
+                    int pos ;
+                    if ( fName.toUpperCase().endsWith(".BAM") ) pos = fName.toUpperCase().lastIndexOf(".BAM");
+                    else {
+                        if ( fName.toUpperCase().endsWith(".SAM") ) pos = fName.toUpperCase().lastIndexOf(".SAM");
+                        else throw new UserException.BadInput("Input file name "+fName+" does not end with .sam or .bam");
+                    }
+                    String prefix = fName.substring(0,pos);
+                    outName = prefix+N_WAY_OUT;
                 }
-                String prefix = fName.substring(0,pos);
-                
+
                 if ( nwayWriters.containsKey( rid ) )
                     throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
 
-                File f = new File(prefix+N_WAY_OUT);
-                SAMFileWriterImpl.setDefaultMaxRecordsInRam(MAX_RECORDS_IN_RAM);
+                File f = new File(outName);
                 SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(setupHeader(getToolkit().getSAMFileHeader(rid)),
                         false,f);
-                try {
-                    fw.append(f.getAbsolutePath());
-                    fw.append('\n');
-                } catch (IOException e) {
-                    throw new StingException("I/O error: write failed for results.list file");  //To change body of catch statement use File | Settings | File Templates.
-                }
                 nwayWriters.put(rid,sw);
-
-            }
-            try {
-                fw.close();
-            } catch (IOException e) {
-                throw new StingException("I/O error: failed to close results.list file");  //To change body of catch statement use File | Settings | File Templates.
             }
 
         }
