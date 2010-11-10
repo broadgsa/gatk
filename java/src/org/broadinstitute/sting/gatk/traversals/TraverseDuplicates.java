@@ -59,12 +59,12 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
     }
 
     private List<SAMRecord> readsAtLoc(final SAMRecord read, PushbackIterator<SAMRecord> iter) {
-        GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
+        GenomeLoc site = engine.getGenomeLocParser().createGenomeLoc(read);
         ArrayList<SAMRecord> l = new ArrayList<SAMRecord>();
 
         l.add(read);
         for (SAMRecord read2 : iter) {
-            GenomeLoc site2 = GenomeLocParser.createGenomeLoc(read2);
+            GenomeLoc site2 = engine.getGenomeLocParser().createGenomeLoc(read2);
 
             // the next read starts too late
             if (site2.getStart() != site.getStart()) {
@@ -114,7 +114,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
     protected List<SAMRecord> findDuplicateReads(SAMRecord read, Set<List<SAMRecord>> readSets ) {
         if ( read.getReadPairedFlag() ) {
             // paired
-            final GenomeLoc readMateLoc = GenomeLocParser.createGenomeLoc(read.getMateReferenceIndex(), read.getMateAlignmentStart(), read.getMateAlignmentStart());
+            final GenomeLoc readMateLoc = engine.getGenomeLocParser().createGenomeLoc(read.getMateReferenceName(), read.getMateAlignmentStart(), read.getMateAlignmentStart());
 
             for (List<SAMRecord> reads : readSets) {
                 SAMRecord key = reads.get(0);
@@ -123,7 +123,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
                 // share a mate location or the read is flagged as a duplicate
                 if ( read.getAlignmentStart() == key.getAlignmentStart() && key.getReadPairedFlag() && ( key.getDuplicateReadFlag() || read.getDuplicateReadFlag() ) ) {
                     // at least one has to be marked as a duplicate
-                    final GenomeLoc keyMateLoc = GenomeLocParser.createGenomeLoc(key.getMateReferenceIndex(), key.getMateAlignmentStart(), key.getMateAlignmentStart());
+                    final GenomeLoc keyMateLoc = engine.getGenomeLocParser().createGenomeLoc(key.getMateReferenceName(), key.getMateAlignmentStart(), key.getMateAlignmentStart());
                     if ( readMateLoc.compareTo(keyMateLoc) == 0 ) {
                         // we are at the same position as the dup and have the same mat pos, it's a dup
                         if (DEBUG) logger.debug(String.format("  => Adding read to dups list: %s %d %s vs. %s", read, reads.size(), readMateLoc, keyMateLoc));
@@ -176,7 +176,7 @@ public class TraverseDuplicates<M,T> extends TraversalEngine<M,T,DuplicateWalker
          */
         for (SAMRecord read : iter) {
             // get the genome loc from the read
-            GenomeLoc site = GenomeLocParser.createGenomeLoc(read);
+            GenomeLoc site = engine.getGenomeLocParser().createGenomeLoc(read);
 
             Set<List<SAMRecord>> readSets = uniqueReadSets(readsAtLoc(read, iter));
             if ( DEBUG ) logger.debug(String.format("*** TraverseDuplicates.traverse at %s with %d read sets", site, readSets.size()));

@@ -113,7 +113,7 @@ public class CombineDuplicatesWalker extends DuplicateWalker<List<SAMRecord>, SA
 //                    out.printf("Combining Read %s%n", read.format());
 //                }
 //
-                combinedRead = DupUtils.combineDuplicates(reads, MAX_QUALITY_SCORE);
+                combinedRead = DupUtils.combineDuplicates(getToolkit().getGenomeLocParser(),reads, MAX_QUALITY_SCORE);
                 //out.printf("  => into %s%n", combinedRead.format());
             }
 

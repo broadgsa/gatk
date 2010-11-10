@@ -214,7 +214,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
                     //System.out.printf("%s%n",sub.toString());
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
-                    if ( !VariantContextUtils.match(sub, jexl) ) {
+                    if ( !VariantContextUtils.match(getToolkit().getGenomeLocParser(),sub, jexl) ) {
                         return 0;
                     }
                 }

@@ -468,10 +468,10 @@ public class UnifiedGenotyperEngine {
 
             // if a read is too long for the reference context, extend the context (being sure not to extend past the end of the chromosome)
             if ( record.getAlignmentEnd() > refContext.getWindow().getStop() ) {
-                GenomeLoc window = GenomeLocParser.createGenomeLoc(refContext.getLocus().getContig(), refContext.getWindow().getStart(), Math.min(record.getAlignmentEnd(), referenceReader.getSequenceDictionary().getSequence(refContext.getLocus().getContig()).getSequenceLength()));
+                GenomeLoc window = refContext.getGenomeLocParser().createGenomeLoc(refContext.getLocus().getContig(), refContext.getWindow().getStart(), Math.min(record.getAlignmentEnd(), referenceReader.getSequenceDictionary().getSequence(refContext.getLocus().getContig()).getSequenceLength()));
                 byte[] bases = referenceReader.getSubsequenceAt(window.getContig(), window.getStart(), window.getStop()).getBases();
                 StringUtil.toUpperCase(bases);
-                refContext = new ReferenceContext(refContext.getLocus(), window, bases);
+                refContext = new ReferenceContext(refContext.getGenomeLocParser(),refContext.getLocus(), window, bases);
             }            
 
             BitSet mismatches = AlignmentUtils.mismatchesInRefWindow(record, refContext, UAC.MAX_MISMATCHES, MISMATCH_WINDOW_SIZE);

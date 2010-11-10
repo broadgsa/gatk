@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.iterators.LocusIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,6 +35,11 @@ public abstract class LocusView extends LocusIterator implements View {
     protected GenomeLoc locus;
 
     /**
+     * The GenomeLocParser, used to create new genome locs.
+     */
+    protected GenomeLocParser genomeLocParser;
+
+    /**
      * Source info for this view.  Informs the class about downsampling requirements.
      */
     private ReadProperties sourceInfo;
@@ -53,6 +59,7 @@ public abstract class LocusView extends LocusIterator implements View {
         this.locus = provider.getLocus();
         
         this.sourceInfo = provider.getSourceInfo();
+        this.genomeLocParser = provider.getGenomeLocParser();
         this.loci = provider.getLocusIterator();
 
         seedNextLocus();

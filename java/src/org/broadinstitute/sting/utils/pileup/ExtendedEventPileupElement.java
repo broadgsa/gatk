@@ -90,10 +90,6 @@ public class ExtendedEventPileupElement extends PileupElement {
 
     public Type getType() { return type; }
 
-    public GenomeLoc getLocation() {
-        return GenomeLocParser.createGenomeLoc(read.getReferenceIndex(),read.getAlignmentStart()+offset, read.getAlignmentStart()+offset+eventLength);
-    }
-
     // The offset can be negative with insertions at the start of the read, but a valid base does exist at this position with
     // a valid base quality.  The following code attempts to compensate for that.'
 

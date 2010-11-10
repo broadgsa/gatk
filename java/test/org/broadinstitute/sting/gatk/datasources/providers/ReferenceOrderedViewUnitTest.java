@@ -43,17 +43,20 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
      * Sequence file.
      */
     private static IndexedFastaSequenceFile seq;
+    private GenomeLocParser genomeLocParser;
 
     /**
      * our track builder
      */
-    RMDTrackBuilder builder = new RMDTrackBuilder();
+    RMDTrackBuilder builder = null;
 
     @BeforeClass
     public void init() throws FileNotFoundException {
         // sequence
         seq = new IndexedFastaSequenceFile(new File(hg18Reference));
-        GenomeLocParser.setupRefContigOrdering(seq);
+        genomeLocParser = new GenomeLocParser(seq);
+        builder = new RMDTrackBuilder();
+        builder.setSequenceDictionary(seq.getSequenceDictionary(),genomeLocParser);
     }
 
     /**
@@ -61,11 +64,11 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
      */
     @Test
     public void testNoBindings() {
-        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
-        LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Collections.<ReferenceOrderedDataSource>emptyList());
+        Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));
+        LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, genomeLocParser, shard.getGenomeLocs().get(0), null, seq, Collections.<ReferenceOrderedDataSource>emptyList());
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
-        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",10));
+        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(genomeLocParser.createGenomeLoc("chrM",10));
         Assert.assertEquals(tracker.getAllRods().size(), 0, "The tracker should not have produced any data");
     }
 
@@ -76,14 +79,14 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     public void testSingleBinding() {
         File file = new File(testDir + "TabularDataTest.dat");
         RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest",file);
-        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(track,false);
+        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,track,false);
 
-        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
+        Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));
 
-        LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Collections.singletonList(dataSource));
+        LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, genomeLocParser, shard.getGenomeLocs().get(0), null, seq, Collections.singletonList(dataSource));
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
-        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
+        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(genomeLocParser.createGenomeLoc("chrM",20));
         TableFeature datum = tracker.lookup("tableTest",TableFeature.class);
 
         Assert.assertEquals(datum.get("COL1"),"C","datum parameter for COL1 is incorrect");
@@ -100,17 +103,17 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
 
 
         RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest1",file);
-        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(track,false);
+        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,track,false);
         RMDTrack track2 = builder.createInstanceOfTrack(TableCodec.class,"tableTest2",file);
-        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(track2,false);
+        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,track2,false);
 
 
-        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc("chrM",1,30)));
+        Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));
 
-        LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, seq, Arrays.asList(dataSource1,dataSource2));
+        LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, genomeLocParser, shard.getGenomeLocs().get(0), null, seq, Arrays.asList(dataSource1,dataSource2));
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
-        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(GenomeLocParser.createGenomeLoc("chrM",20));
+        RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(genomeLocParser.createGenomeLoc("chrM",20));
         TableFeature datum1 = tracker.lookup("tableTest1",TableFeature.class);
 
         Assert.assertEquals(datum1.get("COL1"),"C","datum1 parameter for COL1 is incorrect");

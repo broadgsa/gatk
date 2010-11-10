@@ -57,24 +57,33 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 public class GenomeLocParser {
     private static Logger logger = Logger.getLogger(GenomeLocParser.class);
 
-    //private static final Pattern mPattern = Pattern.compile("([\\p{Print}&&[^:]]+):*([\\d,]+)?([\\+-])?([\\d,]+)?$");  // matches case 3
-
-
     // --------------------------------------------------------------------------------------------------------------
     //
     // Ugly global variable defining the optional ordering of contig elements
     //
     // --------------------------------------------------------------------------------------------------------------
     //public static Map<String, Integer> refContigOrdering = null;
-    protected static SAMSequenceDictionary contigInfo = null;
+    protected SAMSequenceDictionary contigInfo = null;
 
     /**
-     * do we have a contig ordering setup?
-     *
-     * @return true if the contig order is setup
+     * set our internal reference contig order
+     * @param refFile the reference file
      */
-    public static boolean hasKnownContigOrdering() {
-        return contigInfo != null;
+    public GenomeLocParser(final ReferenceSequenceFile refFile) {
+        this(refFile.getSequenceDictionary());
+    }
+
+    public GenomeLocParser(SAMSequenceDictionary seqDict) {
+        if (seqDict == null) { // we couldn't load the reference dictionary
+            //logger.info("Failed to load reference dictionary, falling back to lexicographic order for contigs");
+            throw new UserException.CommandLineException("Failed to load reference dictionary");
+        } else if (contigInfo == null) {
+            contigInfo = seqDict;
+            logger.debug(String.format("Prepared reference sequence contig dictionary"));
+            for (SAMSequenceRecord contig : seqDict.getSequences()) {
+                logger.debug(String.format(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength()));
+            }
+        }
     }
 
     /**
@@ -84,7 +93,7 @@ public class GenomeLocParser {
      *
      * @return the sam sequence record
      */
-    public static SAMSequenceRecord getContigInfo(final String contig) {
+    public SAMSequenceRecord getContigInfo(final String contig) {
         return contigInfo.getSequence(contig);
     }
 
@@ -96,51 +105,11 @@ public class GenomeLocParser {
      *
      * @return the contig index, -1 if not found
      */
-    public static int getContigIndex(final String contig, boolean exceptionOut) {
+    public int getContigIndex(final String contig, boolean exceptionOut) {
         if (contigInfo.getSequenceIndex(contig) == -1 && exceptionOut)
             throw new UserException.CommandLineException(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
 
         return contigInfo.getSequenceIndex(contig);
-    }
-
-    /**
-     * set our internal reference contig order
-     *
-     * @param refFile the reference file
-     *
-     * @return true if we were successful
-     */
-    public static boolean setupRefContigOrdering(final ReferenceSequenceFile refFile) {
-        return setupRefContigOrdering(refFile.getSequenceDictionary());
-    }
-
-    /**
-     * setup our internal reference contig order
-     *
-     * @param seqDict the sequence dictionary
-     *
-     * @return true if we were successful
-     */
-    public static boolean setupRefContigOrdering(final SAMSequenceDictionary seqDict) {
-        if (seqDict == null) { // we couldn't load the reference dictionary
-            //logger.info("Failed to load reference dictionary, falling back to lexicographic order for contigs");
-            throw new UserException.CommandLineException("Failed to load reference dictionary");
-        } else if (contigInfo == null) {
-            contigInfo = seqDict;
-            logger.debug(String.format("Prepared reference sequence contig dictionary"));
-            for (SAMSequenceRecord contig : seqDict.getSequences()) {
-                logger.debug(String.format(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength()));
-            }
-        }
-        return true;
-    }
-
-    /**
-     * A package-protected method that can be used by the test system to reset the sequence dictionary
-     * being used.  Use this method sparingly. 
-     */
-    static void clearRefContigOrdering() {
-        contigInfo = null;
     }
 
     /**
@@ -155,7 +124,7 @@ public class GenomeLocParser {
      *
      */
 
-    public static GenomeLoc parseGenomeInterval(final String str) {
+    public GenomeLoc parseGenomeInterval(final String str) {
          GenomeLoc ret = parseGenomeLoc(str);
          exceptionOnInvalidGenomeLocBounds(ret);
          return ret;
@@ -173,13 +142,13 @@ public class GenomeLocParser {
      * @return a GenomeLoc representing the String
      *
      */
-    public static GenomeLoc parseGenomeLoc(final String str) {
+    public GenomeLoc parseGenomeLoc(final String str) {
         // 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
         //System.out.printf("Parsing location '%s'%n", str);
 
         String contig = null;
-        long start = 1;
-        long stop = -1;
+        int start = 1;
+        int stop = -1;
 
         final int colonIndex = str.indexOf(":");
         if(colonIndex == -1) {
@@ -210,7 +179,7 @@ public class GenomeLocParser {
         if (!isContigValid(contig))
             throw new UserException("Contig '" + contig + "' does not match any contig in the GATK sequence dictionary derived from the reference; are you sure you are using the correct reference fasta file?");
 
-        if (stop == Integer.MAX_VALUE && hasKnownContigOrdering())
+        if (stop == Integer.MAX_VALUE)
             // lookup the actually stop position!
             stop = getContigInfo(contig).getSequenceLength();
 
@@ -228,7 +197,7 @@ public class GenomeLocParser {
      * Parses a number like 1,000,000 into a long.
      * @param pos
      */
-    private static long parsePosition(final String pos) {
+    private int parsePosition(final String pos) {
         //String x = pos.replaceAll(",", "");  - this was replaced because it uses regexps
 	//System.out.println("Parsing position: '" + pos + "'");
 	if(pos.indexOf('-') != -1) {
@@ -244,13 +213,13 @@ public class GenomeLocParser {
                     continue;
                 } else if(c < '0' || c > '9') {
                     throw new NumberFormatException("Position: '" + pos + "' contains invalid chars." );
-                } else {		    
+                } else {
                     buffer.append(c);
                 }
             }
-            return Long.parseLong(buffer.toString());
+            return Integer.parseInt(buffer.toString());
         } else {
-            return Long.parseLong(pos);
+            return Integer.parseInt(pos);
         }
     }
 
@@ -263,7 +232,7 @@ public class GenomeLocParser {
      *
      * @return the list of merged locations
      */
-    public static List<GenomeLoc> mergeIntervalLocations(final List<GenomeLoc> raw, IntervalMergingRule rule) {
+    public List<GenomeLoc> mergeIntervalLocations(final List<GenomeLoc> raw, IntervalMergingRule rule) {
         if (raw.size() <= 1)
             return raw;
         else {
@@ -292,7 +261,7 @@ public class GenomeLocParser {
      *
      * @return True if the contig is valid.  False otherwise.
      */
-    private static boolean isContigValid(String contig) {
+    private boolean isContigValid(String contig) {
         int contigIndex = contigInfo.getSequenceIndex(contig);
         return contigIndex >= 0 && contigIndex < contigInfo.size();
     }
@@ -309,7 +278,7 @@ public class GenomeLocParser {
      * Validation: only checks that contig is valid
      * start/stop could be anything
      */
-    public static GenomeLoc parseGenomeLoc(final String contig, long start, long stop) {
+    public GenomeLoc parseGenomeLoc(final String contig, int start, int stop) {
         if (!isContigValid(contig))
             throw new MalformedGenomeLocException("Contig " + contig + " does not match any contig in the GATK sequence dictionary derived from the reference; are you sure you are using the correct reference fasta file?");
         return new GenomeLoc(contig, getContigIndex(contig,true), start, stop);
@@ -327,7 +296,7 @@ public class GenomeLocParser {
      * @param allowEmptyIntervalList if false empty interval lists will return null
      * @return List<GenomeLoc> List of Genome Locs that have been parsed from file
      */
-    public static List<GenomeLoc> intervalFileToList(final String file_name, boolean allowEmptyIntervalList) {
+    public List<GenomeLoc> intervalFileToList(final String file_name, boolean allowEmptyIntervalList) {
         // try to open file
         File inputFile = new File(file_name);
 
@@ -344,7 +313,7 @@ public class GenomeLocParser {
 
         // case: BED file
         if (file_name.toUpperCase().endsWith(".BED")) {
-            BedParser parser = new BedParser(inputFile);
+            BedParser parser = new BedParser(this,inputFile);
             return parser.getLocations();
         }
 
@@ -393,22 +362,8 @@ public class GenomeLocParser {
      *
      * @return the string that represents that contig name
      */
-    private static String getSequenceNameFromIndex(int contigIndex) {
-        return GenomeLocParser.contigInfo.getSequence(contigIndex).getSequenceName();
-    }
-
-    /**
-     * create a genome loc, given the contig name, start, and stop
-     *
-     * @param contig the contig name
-     * @param start  the starting position
-     * @param stop   the stop position
-     *
-     * @return a new genome loc
-     */
-    public static GenomeLoc createGenomeLoc(String contig, final long start, final long stop) {
-        checkSetup();
-        return exceptionOnInvalidGenomeLoc(new GenomeLoc(contig, GenomeLocParser.getContigIndex(contig,true), start, stop));
+    private String getSequenceNameFromIndex(int contigIndex) {
+        return contigInfo.getSequence(contigIndex).getSequenceName();
     }
 
     /**
@@ -420,31 +375,21 @@ public class GenomeLocParser {
      *
      * @return a new genome loc - but don't exception out if it is invalid
      */
-    public static GenomeLoc createPotentiallyInvalidGenomeLoc(String contig, final long start, final long stop) {
-        checkSetup();
-        return new GenomeLoc(contig, GenomeLocParser.getContigIndex(contig,false), start, stop);
+    public GenomeLoc createPotentiallyInvalidGenomeLoc(String contig, final int start, final int stop) {
+        return new GenomeLoc(contig, getContigIndex(contig,false), start, stop);
     }
 
     /**
-     * create a genome loc, given the contig index, start, and stop
+     * create a genome loc, given the contig name, start, and stop
      *
-     * @param contigIndex the contig index
-     * @param start       the start position
-     * @param stop        the stop position
+     * @param contig the contig name
+     * @param start  the starting position
+     * @param stop   the stop position
      *
      * @return a new genome loc
      */
-    public static GenomeLoc createGenomeLoc(int contigIndex, final long start, final long stop) {
-        checkSetup();
-        if (start < 0) {
-            throw new ReviewedStingException("Bad start position " + start);
-        }
-        if (stop < -1) {
-            throw new ReviewedStingException("Bad stop position " + stop);
-        }    // a negative -1 indicates it's not a meaningful end position
-
-
-        return new GenomeLoc(getSequenceNameFromIndex(contigIndex), contigIndex, start, stop);
+    public GenomeLoc createGenomeLoc(String contig, final int start, final int stop) {
+        return exceptionOnInvalidGenomeLoc(new GenomeLoc(contig, getContigIndex(contig,true), start, stop));
     }
 
     /**
@@ -454,23 +399,8 @@ public class GenomeLocParser {
      *
      * @return
      */
-    public static GenomeLoc createGenomeLoc(final SAMRecord read) {
-        checkSetup();
+    public GenomeLoc createGenomeLoc(final SAMRecord read) {
         return exceptionOnInvalidGenomeLoc(new GenomeLoc(read.getReferenceName(), read.getReferenceIndex(), read.getAlignmentStart(), read.getAlignmentEnd()));
-    }
-
-
-    /**
-     * create a new genome loc, given the contig position, and a single position
-     *
-     * @param contig the contig name
-     * @param pos    the postion
-     *
-     * @return a genome loc representing a single base at the specified postion on the contig
-     */
-    public static GenomeLoc createGenomeLoc(final int contig, final long pos) {
-        checkSetup();
-        return exceptionOnInvalidGenomeLoc(new GenomeLoc(getSequenceNameFromIndex(contig), contig, pos, pos));
     }
 
     /**
@@ -481,14 +411,8 @@ public class GenomeLocParser {
      *
      * @return a genome loc representing a single base at the specified postion on the contig
      */
-    public static GenomeLoc createGenomeLoc(final String contig, final long pos) {
-        checkSetup();
-        return exceptionOnInvalidGenomeLoc(new GenomeLoc(contig, GenomeLocParser.getContigIndex(contig,true), pos, pos));
-    }
-
-    public static GenomeLoc createGenomeLoc(final GenomeLoc toCopy) {
-        checkSetup();
-        return exceptionOnInvalidGenomeLoc(new GenomeLoc(toCopy.getContig(), toCopy.getContigIndex(), toCopy.getStart(), toCopy.getStop()));
+    public GenomeLoc createGenomeLoc(final String contig, final int pos) {
+        return exceptionOnInvalidGenomeLoc(new GenomeLoc(contig, getContigIndex(contig,true), pos, pos));
     }
 
     /**
@@ -505,7 +429,7 @@ public class GenomeLocParser {
      * @return the genome loc if it's valid, otherwise we throw an exception
      *
      */
-    private static GenomeLoc exceptionOnInvalidGenomeLoc(GenomeLoc toReturn) {
+    private GenomeLoc exceptionOnInvalidGenomeLoc(GenomeLoc toReturn) {
         if (toReturn.getStart() < 0) {
             throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the start position is less than 0");
         }
@@ -534,7 +458,7 @@ public class GenomeLocParser {
      *
      * @param locus Locus to verify.
      */
-    private static void exceptionOnInvalidGenomeLocBounds(GenomeLoc locus) {
+    private void exceptionOnInvalidGenomeLocBounds(GenomeLoc locus) {
         int contigSize = contigInfo.getSequence(locus.getContigIndex()).getSequenceLength();
         if(locus.getStart() > contigSize)
             throw new ReviewedStingException(String.format("GenomeLoc is invalid: locus start %d is after the end of contig %s",locus.getStart(),locus.getContig()));
@@ -554,8 +478,7 @@ public class GenomeLocParser {
      *
      * performs interval-style validation: contig is valid and atart and stop less than the end
      */
-    public static boolean validGenomeLoc(GenomeLoc loc) {
-        checkSetup();
+    public boolean validGenomeLoc(GenomeLoc loc) {
         // quick check before we get the contig size, is the contig number valid
         if ((loc.getContigIndex() < 0) ||                                       // the contig index has to be positive
             (loc.getContigIndex() >= contigInfo.getSequences().size()))         // the contig must be in the integer range of contigs)
@@ -583,9 +506,8 @@ public class GenomeLocParser {
      *
      * performs interval-style validation: contig is valid and atart and stop less than the end
      */
-    public static boolean validGenomeLoc(String contig, long start, long stop) {
-        checkSetup();
-        return validGenomeLoc(new GenomeLoc(contig, GenomeLocParser.getContigIndex(contig, false), start, stop));
+    public boolean validGenomeLoc(String contig, int start, int stop) {
+        return validGenomeLoc(new GenomeLoc(contig, getContigIndex(contig, false), start, stop));
 
     }
 
@@ -600,57 +522,10 @@ public class GenomeLocParser {
      *
      * performs interval-style validation: contig is valid and atart and stop less than the end
      */
-    public static boolean validGenomeLoc(int contigIndex, long start, long stop) {
-        checkSetup();
+    public boolean validGenomeLoc(int contigIndex, int start, int stop) {
         if (contigIndex < 0 || contigIndex >= contigInfo.size()) return false;
         return validGenomeLoc(new GenomeLoc(getSequenceNameFromIndex(contigIndex), contigIndex, start, stop));
     }
-
-    /**
-     * Move this Genome loc to the next contig, with a start
-     * and stop of 1.
-     *
-     * @return true if we are not out of contigs, otherwise false if we're
-     *         at the end of the genome (no more contigs to jump to).
-     */
-    public static GenomeLoc toNextContig(GenomeLoc current) {
-        if (current.getContigIndex() + 1 >= contigInfo.getSequences().size()) {
-            return null;
-        } else
-            return exceptionOnInvalidGenomeLoc(new GenomeLoc(getSequenceNameFromIndex(current.getContigIndex() + 1), current.getContigIndex() + 1, 1, 1));
-    }
-
-    /**
-     * create a new genome loc, given an old location and a new contig
-     *
-     * @param loc    the old location
-     * @param contig the new contig to set
-     *
-     * @return a new genome loc with an updated contig name and index
-     */
-    public static GenomeLoc setContig(GenomeLoc loc, String contig) {
-        checkSetup();
-
-        int index = -1;
-        if ((index = contigInfo.getSequenceIndex(contig)) < 0) {
-            throw new ReviewedStingException("Contig name ( " + contig + " ) not in the set sequence dictionary.");
-        }
-        return exceptionOnInvalidGenomeLoc(new GenomeLoc(contig, index, loc.start, loc.getStop()));
-    }
-
-    /**
-     * Sets contig index. UNSAFE since it 1) does NOT update contig name; 2) does not validate the index
-     *
-     * @param contig
-     */
-    public static GenomeLoc setContigIndex(GenomeLoc loc, int contig) {
-        checkSetup();
-        if ((contig >= GenomeLocParser.contigInfo.getSequences().size()) || (contig < 0)) {
-            throw new ReviewedStingException("Contig index ( " + contig + " ) is not in the sequence dictionary set.");
-        }
-        return exceptionOnInvalidGenomeLoc(new GenomeLoc(GenomeLocParser.contigInfo.getSequence(contig).getSequenceName(), contig, loc.start, loc.getStop()));
-    }
-
 
     /**
      * create a new genome loc from an existing loc, with a new start position
@@ -662,8 +537,7 @@ public class GenomeLocParser {
      *
      * @return the newly created genome loc
      */
-    public static GenomeLoc setStart(GenomeLoc loc, long start) {
-        checkSetup();
+    public GenomeLoc setStart(GenomeLoc loc, int start) {
         return exceptionOnInvalidGenomeLoc(new GenomeLoc(loc.getContig(), loc.getContigIndex(), start, loc.getStop()));
     }
 
@@ -677,8 +551,7 @@ public class GenomeLocParser {
      *
      * @return
      */
-    public static GenomeLoc setStop(GenomeLoc loc, long stop) {
-        checkSetup();
+    public GenomeLoc setStop(GenomeLoc loc, int stop) {
         return exceptionOnInvalidGenomeLoc(new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start, stop));
     }
 
@@ -689,7 +562,7 @@ public class GenomeLocParser {
      *
      * @return a new genome loc
      */
-    public static GenomeLoc incPos(GenomeLoc loc) {
+    public GenomeLoc incPos(GenomeLoc loc) {
         return incPos(loc, 1);
     }
 
@@ -701,41 +574,19 @@ public class GenomeLocParser {
      *
      * @return a new genome loc
      */
-    public static GenomeLoc incPos(GenomeLoc loc, long by) {
+    public GenomeLoc incPos(GenomeLoc loc, int by) {
         return exceptionOnInvalidGenomeLoc(new GenomeLoc(loc.getContig(), loc.getContigIndex(), loc.start + by, loc.stop + by));
     }
 
     /**
-     * create a new genome loc with an incremented position
-     *
-     * @param loc the location
-     *
-     * @return a new genome loc
+     * Creates a GenomeLoc than spans the entire contig.
+     * @param contigName Name of the contig.
+     * @return A locus spanning the entire contig.
      */
-    public static GenomeLoc nextLoc(GenomeLoc loc) {
-        return incPos(loc);
-    }
-
-    /** check to make sure that we've setup the contig information */
-    private static void checkSetup() {
-        if (contigInfo == null) {
-            throw new ReviewedStingException("The GenomeLocParser hasn't been setup with a contig sequence yet");
-        }
-    }
-
-    /**
-     * compare two contig names, in the current context
-     *
-     * @param firstContig
-     * @param secondContig
-     *
-     * @return
-     */
-    public static int compareContigs(String firstContig, String secondContig) {
-        checkSetup();
-        Integer ref1 = GenomeLocParser.getContigIndex(firstContig,true);
-        Integer ref2 = GenomeLocParser.getContigIndex(secondContig,true);
-        return ref1.compareTo(ref2);
-
-    }
+    public GenomeLoc createOverEntireContig(String contigName) {
+        SAMSequenceRecord contig = contigInfo.getSequence(contigName);
+        if(contig == null)
+            throw new ReviewedStingException("Unable to find contig named " + contigName);
+        return exceptionOnInvalidGenomeLoc(new GenomeLoc(contigName,contig.getSequenceIndex(),1,contig.getSequenceLength()));
+    }    
 }

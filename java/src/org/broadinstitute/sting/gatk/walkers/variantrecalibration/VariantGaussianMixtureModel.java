@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
@@ -425,7 +426,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
     }
 
-    public double decodeAnnotation( final String annotationKey, final VariantContext vc, final boolean jitter ) {
+    public double decodeAnnotation(GenomeLocParser genomeLocParser, final String annotationKey, final VariantContext vc, final boolean jitter ) {
         double value;
         if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // HRun values must be jittered a bit to work in this GMM
             value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
@@ -436,18 +437,18 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             try {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
             } catch( Exception e ) {
-                throw new UserException.MalformedFile(vc.getSource(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
+                throw new UserException.MalformedFile(vc.getSource(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(genomeLocParser,vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
             }
         }
         return value;
     }
 
-    public final double evaluateVariant( final VariantContext vc ) {
+    public final double evaluateVariant( GenomeLocParser genomeLocParser, final VariantContext vc ) {
         final double[] pVarInCluster = new double[maxGaussians];
         final double[] annotations = new double[dataManager.numAnnotations];
 
         for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
-            final double value = decodeAnnotation( dataManager.annotationKeys.get(jjj), vc, false );
+            final double value = decodeAnnotation( genomeLocParser, dataManager.annotationKeys.get(jjj), vc, false );
             annotations[jjj] = (value - dataManager.meanVector[jjj]) / dataManager.varianceVector[jjj];
         }
 

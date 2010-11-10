@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import net.sf.samtools.SAMSequenceDictionary;
+import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -92,8 +94,15 @@ public class CountRodWalker extends RodWalker<CountRodWalker.Datum, Pair<Expandi
         GenomeLoc cur = context.getLocation();
 
         if ( verbose && showSkipped ) {
-            for ( int i = 0; i < context.getSkippedBases(); i++ ) {
-                out.printf("%s: skipped%n", GenomeLocParser.incPos(cur, i - context.getSkippedBases()));
+            for(long i = context.getSkippedBases(); i >= 0; i--) {
+                SAMSequenceDictionary dictionary = getToolkit().getReferenceDataSource().getReference().getSequenceDictionary();
+                SAMSequenceRecord contig = dictionary.getSequence(cur.getContig());
+                if(cur.getStop() < contig.getSequenceLength())
+                    cur = getToolkit().getGenomeLocParser().incPos(cur,1);
+                else
+                    cur = getToolkit().getGenomeLocParser().createGenomeLoc(dictionary.getSequence(contig.getSequenceIndex()+1).getSequenceName(),1,1);
+                out.printf("%s: skipped%n", cur);
+
             }
         }
 

@@ -48,7 +48,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
 
-    private GenomeAnalysisEngine engine;
+    protected GenomeAnalysisEngine engine;
 
     /**
      * Gets the named traversal type associated with the given traversal.
@@ -74,7 +74,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     public void printProgress(Shard shard,GenomeLoc loc) {
         // A bypass is inserted here for unit testing.
         // TODO: print metrics outside of the traversal engine to more easily handle cumulative stats.
-        ReadMetrics cumulativeMetrics = engine != null ? engine.getCumulativeMetrics().clone() : new ReadMetrics();
+        ReadMetrics cumulativeMetrics = engine.getCumulativeMetrics() != null ? engine.getCumulativeMetrics().clone() : new ReadMetrics();
         cumulativeMetrics.incrementMetrics(shard.getReadMetrics());
         printProgress(loc, cumulativeMetrics, false);
     }

@@ -33,15 +33,19 @@ public class FlashBackIteratorUnitTest extends BaseTest {
     private static final int STARTING_CHROMOSOME = 1;
     private static final int CHROMOSOME_SIZE = 1000;
 
+    private String firstContig;
+    private GenomeLocParser genomeLocParser;
+
     @BeforeMethod
     public void setup() {
-        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
+        genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
+        firstContig = header.getSequenceDictionary().getSequence(0).getSequenceName();
     }
 
     @Test
     public void testBasicIteration() {
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 0, 0);
-        FlashBackIterator iter = new FlashBackIterator(new FakeSeekableRODIterator(loc));
+        GenomeLoc loc = genomeLocParser.createGenomeLoc(firstContig, 0, 0);
+        FlashBackIterator iter = new FlashBackIterator(new FakeSeekableRODIterator(genomeLocParser,loc));
         GenomeLoc lastLocation = null;
         for (int x = 0; x < 10; x++) {
             iter.next();
@@ -55,8 +59,8 @@ public class FlashBackIteratorUnitTest extends BaseTest {
 
     @Test
     public void testBasicIterationThenFlashBack() {
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 0, 0);
-        FlashBackIterator iter = new FlashBackIterator(new FakeSeekableRODIterator(loc));
+        GenomeLoc loc = genomeLocParser.createGenomeLoc(firstContig, 0, 0);
+        FlashBackIterator iter = new FlashBackIterator(new FakeSeekableRODIterator(genomeLocParser,loc));
         GenomeLoc lastLocation = null;
         for (int x = 0; x < 10; x++) {
             iter.next();
@@ -66,13 +70,13 @@ public class FlashBackIteratorUnitTest extends BaseTest {
             }
             lastLocation = cur;
         }
-        iter.flashBackTo(GenomeLocParser.createGenomeLoc(0, 2));
+        iter.flashBackTo(genomeLocParser.createGenomeLoc(firstContig, 2));
     }
 
     @Test
     public void testBasicIterationThenFlashBackThenIterate() {
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 0, 0);
-        FlashBackIterator iter = new FlashBackIterator(new FakeSeekableRODIterator(loc));
+        GenomeLoc loc = genomeLocParser.createGenomeLoc(firstContig, 0, 0);
+        FlashBackIterator iter = new FlashBackIterator(new FakeSeekableRODIterator(genomeLocParser,loc));
         GenomeLoc lastLocation = null;
         for (int x = 0; x < 10; x++) {
             iter.next();
@@ -82,7 +86,7 @@ public class FlashBackIteratorUnitTest extends BaseTest {
             }
             lastLocation = cur;
         }
-        iter.flashBackTo(GenomeLocParser.createGenomeLoc(0, 1));
+        iter.flashBackTo(genomeLocParser.createGenomeLoc(firstContig, 1));
         int count = 0;
         while (iter.hasNext()) {
             count++;
@@ -94,8 +98,8 @@ public class FlashBackIteratorUnitTest extends BaseTest {
 
     @Test
     public void testFlashBackTruth() {
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 0, 0);
-        LocationAwareSeekableRODIterator backIter = new FakeSeekableRODIterator(loc);
+        GenomeLoc loc = genomeLocParser.createGenomeLoc(firstContig, 0, 0);
+        LocationAwareSeekableRODIterator backIter = new FakeSeekableRODIterator(genomeLocParser,loc);
         // remove the first three records
         backIter.next();
         backIter.next();
@@ -110,16 +114,16 @@ public class FlashBackIteratorUnitTest extends BaseTest {
             }
             lastLocation = cur;
         }
-        Assert.assertTrue(iter.canFlashBackTo(GenomeLocParser.createGenomeLoc(0, 5)));
-        Assert.assertTrue(iter.canFlashBackTo(GenomeLocParser.createGenomeLoc(0, 15)));
-        Assert.assertTrue(!iter.canFlashBackTo(GenomeLocParser.createGenomeLoc(0, 2)));
-        Assert.assertTrue(!iter.canFlashBackTo(GenomeLocParser.createGenomeLoc(0, 1)));
+        Assert.assertTrue(iter.canFlashBackTo(genomeLocParser.createGenomeLoc(firstContig, 5)));
+        Assert.assertTrue(iter.canFlashBackTo(genomeLocParser.createGenomeLoc(firstContig, 15)));
+        Assert.assertTrue(!iter.canFlashBackTo(genomeLocParser.createGenomeLoc(firstContig, 2)));
+        Assert.assertTrue(!iter.canFlashBackTo(genomeLocParser.createGenomeLoc(firstContig, 1)));
     }
 
     @Test
     public void testBasicIterationThenFlashBackHalfWayThenIterate() {
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(0, 0, 0);
-        FlashBackIterator iter = new FlashBackIterator(new FakeSeekableRODIterator(loc));
+        GenomeLoc loc = genomeLocParser.createGenomeLoc(firstContig, 0, 0);
+        FlashBackIterator iter = new FlashBackIterator(new FakeSeekableRODIterator(genomeLocParser,loc));
         GenomeLoc lastLocation = null;
         for (int x = 0; x < 10; x++) {
             iter.next();
@@ -129,7 +133,7 @@ public class FlashBackIteratorUnitTest extends BaseTest {
             }
             lastLocation = cur;
         }
-        iter.flashBackTo(GenomeLocParser.createGenomeLoc(0, 5));
+        iter.flashBackTo(genomeLocParser.createGenomeLoc(firstContig, 5));
         int count = 0;
         while (iter.hasNext()) {
             count++;
@@ -141,15 +145,16 @@ public class FlashBackIteratorUnitTest extends BaseTest {
 
 
 class FakeSeekableRODIterator implements LocationAwareSeekableRODIterator {
+    private GenomeLocParser genomeLocParser;
 
     // current location
     private GenomeLoc location;
     private FakeRODatum curROD;
     private int recordCount = 10;
 
-    public FakeSeekableRODIterator(GenomeLoc startingLoc) {
-        this.location = GenomeLocParser.createGenomeLoc(startingLoc.getContigIndex(), startingLoc.getStart() + 1, startingLoc.getStop() + 1);
-        ;
+    public FakeSeekableRODIterator(GenomeLocParser genomeLocParser,GenomeLoc startingLoc) {
+        this.genomeLocParser = genomeLocParser;
+        this.location = genomeLocParser.createGenomeLoc(startingLoc.getContig(), startingLoc.getStart() + 1, startingLoc.getStop() + 1);
     }
 
     @Override
@@ -178,7 +183,7 @@ class FakeSeekableRODIterator implements LocationAwareSeekableRODIterator {
     public RODRecordList next() {
         RODRecordList list = new FakeRODRecordList();
         curROD = new FakeRODatum("STUPIDNAME", location);
-        location = GenomeLocParser.createGenomeLoc(location.getContigIndex(), location.getStart() + 1, location.getStop() + 1);
+        location = genomeLocParser.createGenomeLoc(location.getContig(), location.getStart() + 1, location.getStop() + 1);
         list.add(curROD);
         recordCount--;
         return list;

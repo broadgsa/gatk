@@ -159,6 +159,12 @@ public abstract class MicroScheduler {
     }
 
     /**
+     * Gets the engine that created this microscheduler.
+     * @return The engine owning this microscheduler.
+     */
+    public GenomeAnalysisEngine getEngine() { return engine; }
+
+    /**
      * Returns data source maintained by this scheduler
      * @return
      */

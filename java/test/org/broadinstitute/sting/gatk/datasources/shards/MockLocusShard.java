@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.List;
 import java.util.Collections;
@@ -38,7 +39,7 @@ import java.util.Collections;
  * @version 0.1
  */
 public class MockLocusShard extends LocusShard {
-    public MockLocusShard(final List<GenomeLoc> intervals) {
-        super(new SAMDataSource(Collections.<SAMReaderID>emptyList()),intervals,null);
+    public MockLocusShard(final GenomeLocParser genomeLocParser,final List<GenomeLoc> intervals) {
+        super(new SAMDataSource(Collections.<SAMReaderID>emptyList(),genomeLocParser),intervals,null);
     }
 }

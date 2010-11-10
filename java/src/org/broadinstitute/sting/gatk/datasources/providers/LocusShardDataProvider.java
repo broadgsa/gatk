@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.ReadProperties;
 import java.util.Collection;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 /**
  * Presents data sharded by locus to the traversal engine.
@@ -21,6 +22,11 @@ public class LocusShardDataProvider extends ShardDataProvider {
      * Information about the source of the read data.
      */
     private final ReadProperties sourceInfo;
+
+    /**
+     * The parser, used to create and build new GenomeLocs.
+     */
+    private final GenomeLocParser genomeLocParser;
 
     /**
      * The particular locus for which data is provided.  Should be contained within shard.getGenomeLocs().
@@ -37,9 +43,10 @@ public class LocusShardDataProvider extends ShardDataProvider {
      * @param shard The chunk of data over which traversals happen.
      * @param reference A getter for a section of the reference.
      */
-    public LocusShardDataProvider(Shard shard, ReadProperties sourceInfo, GenomeLoc locus, LocusIterator locusIterator, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
-        super(shard,reference,rods);
+    public LocusShardDataProvider(Shard shard, ReadProperties sourceInfo, GenomeLocParser genomeLocParser, GenomeLoc locus, LocusIterator locusIterator, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+        super(shard,genomeLocParser,reference,rods);
         this.sourceInfo = sourceInfo;
+        this.genomeLocParser = genomeLocParser;
         this.locus = locus;
         this.locusIterator = locusIterator;
     }

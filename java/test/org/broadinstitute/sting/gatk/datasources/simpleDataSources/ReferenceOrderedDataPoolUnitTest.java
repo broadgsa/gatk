@@ -40,30 +40,34 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     private RMDTrack rod = null;
 
+    private IndexedFastaSequenceFile seq;
+    private GenomeLocParser genomeLocParser;
+
     private GenomeLoc testSite1;
     private GenomeLoc testSite2;
     private GenomeLoc testSite3;
 
     @BeforeClass
     public void init() throws FileNotFoundException {
-        File sequenceFile = new File(hg18Reference);
-        GenomeLocParser.setupRefContigOrdering(new IndexedFastaSequenceFile(sequenceFile));
+        seq = new IndexedFastaSequenceFile(new File(hg18Reference));
+        genomeLocParser = new GenomeLocParser(seq);
 
-        testSite1 = GenomeLocParser.createGenomeLoc("chrM",10);
-        testSite2 = GenomeLocParser.createGenomeLoc("chrM",20);
-        testSite3 = GenomeLocParser.createGenomeLoc("chrM",30);
+        testSite1 = genomeLocParser.createGenomeLoc("chrM",10);
+        testSite2 = genomeLocParser.createGenomeLoc("chrM",20);
+        testSite3 = genomeLocParser.createGenomeLoc("chrM",30);
     }
 
     @BeforeMethod
     public void setUp() {
         File file = new File(testDir + "TabularDataTest.dat");
         RMDTrackBuilder builder = new RMDTrackBuilder();
+        builder.setSequenceDictionary(seq.getSequenceDictionary(),genomeLocParser);        
         rod = builder.createInstanceOfTrack(TableCodec.class, "tableTest", file);
     }
 
     @Test
     public void testCreateSingleIterator() {
-        ResourcePool iteratorPool = new ReferenceOrderedDataPool(rod, false);
+        ResourcePool iteratorPool = new ReferenceOrderedDataPool(seq.getSequenceDictionary(),genomeLocParser,rod, false);
         LocationAwareSeekableRODIterator iterator = (LocationAwareSeekableRODIterator)iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
@@ -84,7 +88,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testCreateMultipleIterators() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod, false);
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(seq.getSequenceDictionary(),genomeLocParser,rod, false);
         LocationAwareSeekableRODIterator iterator1 = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         // Create a new iterator at position 2.
@@ -134,7 +138,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testIteratorConservation() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod, false);
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(seq.getSequenceDictionary(),genomeLocParser,rod, false);
         LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
@@ -169,7 +173,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testIteratorCreation() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod, false);
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(seq.getSequenceDictionary(),genomeLocParser, rod, false);
         LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
 
         Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");

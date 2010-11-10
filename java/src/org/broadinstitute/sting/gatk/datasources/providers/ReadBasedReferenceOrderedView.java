@@ -76,7 +76,7 @@ public class ReadBasedReferenceOrderedView implements View {
 /** stores a window of data, dropping RODs if we've passed the new reads start point. */
 class WindowedData {
     // the queue of possibly in-frame RODs; RODs are removed as soon as they are out of scope
-    private final TreeMap<Long, RODMetaDataContainer> mapping = new TreeMap<Long, RODMetaDataContainer>();
+    private final TreeMap<Integer, RODMetaDataContainer> mapping = new TreeMap<Integer, RODMetaDataContainer>();
 
     // our current location from the last read we processed
     private GenomeLoc currentLoc;
@@ -109,16 +109,16 @@ class WindowedData {
      */
     private void getStates(ShardDataProvider provider, SAMRecord rec) {
 
-        long stop = Integer.MAX_VALUE;
+        int stop = Integer.MAX_VALUE;
         // figure out the appropriate alignment stop
         if (provider.hasReference()) {
             stop = provider.getReference().getSequenceDictionary().getSequence(rec.getReferenceIndex()).getSequenceLength();
         }
-        
+
         // calculate the range of positions we need to look at
-        GenomeLoc range = GenomeLocParser.createGenomeLoc(rec.getReferenceIndex(),
-                                                          rec.getAlignmentStart(),
-                                                          stop);
+        GenomeLoc range = provider.getGenomeLocParser().createGenomeLoc(rec.getReferenceName(),
+                rec.getAlignmentStart(),
+                stop);
         states = new ArrayList<RMDDataState>();
         if (provider != null && provider.getReferenceOrderedData() != null)
             for (ReferenceOrderedDataSource dataSource : provider.getReferenceOrderedData())
@@ -144,7 +144,7 @@ class WindowedData {
      */
     public ReadMetaDataTracker getTracker(SAMRecord rec) {
         updatePosition(rec);
-        return new ReadMetaDataTracker(rec, mapping);
+        return new ReadMetaDataTracker(provider.getGenomeLocParser(), rec, mapping);
     }
 
     /**
@@ -154,7 +154,7 @@ class WindowedData {
      */
     private void updatePosition(SAMRecord rec) {
         if (states == null) getStates(this.provider, rec);
-        currentLoc = GenomeLocParser.createGenomeLoc(rec);
+        currentLoc = provider.getGenomeLocParser().createGenomeLoc(rec);
 
         // flush the queue looking for records we've passed over
         while (mapping.size() > 0 && mapping.firstKey() < currentLoc.getStart())

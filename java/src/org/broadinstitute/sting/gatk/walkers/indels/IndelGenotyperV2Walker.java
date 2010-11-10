@@ -239,7 +239,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
 
             try {
-                refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
+                refseqIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                         getToolkit().getGenomeLocParser(),
+                                                         new FeatureToGATKFeatureIterator(getToolkit().getGenomeLocParser(),refseq.iterator(),"refseq"));
             } catch (IOException e) {
                 throw new UserException.CouldNotReadInputFile(new File(RefseqFileName), "Write failed", e);
             }
@@ -257,7 +259,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
         int nNorm = 0;
         int nTum = 0;
-        for ( SAMReaderID rid : getToolkit().getDataSource().getReaderIDs() ) {
+        for ( SAMReaderID rid : getToolkit().getReadsDataSource().getReaderIDs() ) {
              List<String> tags = rid.getTags() ;
              if ( tags.isEmpty() && call_somatic )
                  throw new UserException.BadInput("In somatic mode all input bam files must be tagged as either 'normal' or 'tumor'. Untagged file: "+
@@ -297,12 +299,12 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
                 if ( ! GENOTYPE_NOT_SORTED && IntervalUtils.isIntervalFile(genotypeIntervalsFile)) {
                     // prepare to read intervals one-by-one, as needed (assuming they are sorted).
-                    genotypeIntervals = new IntervalFileMergingIterator(
+                    genotypeIntervals = new IntervalFileMergingIterator(getToolkit().getGenomeLocParser(),
                         new java.io.File(genotypeIntervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
                 } else {
                     // read in the whole list of intervals for cleaning
-                    GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(
-                        IntervalUtils.parseIntervalArguments(Arrays.asList(genotypeIntervalsFile),true), IntervalMergingRule.OVERLAPPING_ONLY);
+                    GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),
+                        IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(genotypeIntervalsFile),true), IntervalMergingRule.OVERLAPPING_ONLY);
                     genotypeIntervals = locs.iterator();
                 }
                 currentGenotypeInterval = genotypeIntervals.hasNext() ? genotypeIntervals.next() : null;
@@ -310,7 +312,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
         }
 
-		location = GenomeLocParser.createGenomeLoc(0,1);
+		location = getToolkit().getGenomeLocParser().createGenomeLoc(getToolkit().getSAMFileHeader().getSequence(0).getSequenceName(),1);
 
 //		List<Set<String>> readGroupSets = getToolkit().getMergedReadGroupsByReaders();
 //        List<Set<String>> sampleSets = getToolkit().getSamplesByReaders();
@@ -387,8 +389,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 currentPosition = read.getAlignmentStart();
                 refName = new String(read.getReferenceName());
 
-                location = GenomeLocParser.setContig(location,refName);
-                contigLength = GenomeLocParser.getContigInfo(refName).getSequenceLength();
+                location = getToolkit().getGenomeLocParser().createGenomeLoc(refName,location.getStart(),location.getStop());
+                contigLength = getToolkit().getGenomeLocParser().getContigInfo(refName).getSequenceLength();
                 outOfContigUserWarned = false;
 
                 normal_context.clear(); // reset coverage window; this will also set reference position to 0
@@ -543,7 +545,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             }
             long move_to = adjustedPosition;
 
-            for ( long pos = normal_context.getStart() ; pos < Math.min(adjustedPosition,normal_context.getStop()+1) ; pos++ ) {
+            for ( int pos = normal_context.getStart() ; pos < Math.min(adjustedPosition,normal_context.getStop()+1) ; pos++ ) {
 
                 if ( normal_context.indelsAt(pos).size() == 0 ) continue; // no indels
 
@@ -579,8 +581,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 // if indel is too close to the end of the window but we need to emit anyway (force-shift), adjust right:
                 if ( right > normal_context.getStop() ) right = normal_context.getStop();
 
-                location = GenomeLocParser.setStart(location,pos);
-                location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
+                location = getToolkit().getGenomeLocParser().setStart(location,pos);
+                location = getToolkit().getGenomeLocParser().setStop(location,pos); // retrieve annotation data
 
                 if ( normalCall.isCall() ) {
                     normalCallsMade++;
@@ -692,7 +694,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
         if ( DEBUG ) System.out.println("DEBUG>> Emitting in somatic mode up to "+position+" force shift="+force+" current window="+tumor_context.getStart()+"-"+tumor_context.getStop());
 
-        for ( long pos = tumor_context.getStart() ; pos < Math.min(adjustedPosition,tumor_context.getStop()+1) ; pos++ ) {
+        for ( int pos = tumor_context.getStart() ; pos < Math.min(adjustedPosition,tumor_context.getStop()+1) ; pos++ ) {
 
             if ( tumor_context.indelsAt(pos).size() == 0 ) continue; // no indels in tumor
 
@@ -735,8 +737,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
             if ( right > tumor_context.getStop() ) right = tumor_context.getStop(); // if indel is too close to the end of the window but we need to emit anyway (force-shift), adjust right
 
-            location = GenomeLocParser.setStart(location,pos);
-            location = GenomeLocParser.setStop(location,pos); // retrieve annotation data
+            location = getToolkit().getGenomeLocParser().setStart(location,pos);
+            location = getToolkit().getGenomeLocParser().setStop(location,pos); // retrieve annotation data
 
             if ( tumorCall.isCall() ) {
                 tumorCallsMade++;
@@ -1395,13 +1397,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
     class WindowContext implements IndelListener {
             private Set<ExpandedSAMRecord> reads;
-            private long start=0; // where the window starts on the ref, 1-based
+            private int start=0; // where the window starts on the ref, 1-based
             private CircularArray< List< IndelVariant > > indels;
 
             private List<IndelVariant> emptyIndelList = new ArrayList<IndelVariant>();
 
 
-            public WindowContext(long start, int length) {
+            public WindowContext(int start, int length) {
                 this.start = start;
                 indels = new CircularArray< List<IndelVariant> >(length);
 //                reads = new LinkedList<SAMRecord>();
@@ -1412,13 +1414,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
              *
              * @return
              */
-            public long getStart() { return start; }
+            public int getStart() { return start; }
 
             /** Returns 1-based reference stop position (inclusive) of the interval this object keeps context for.
              *
              * @return
              */
-            public long getStop() { return start + indels.length() - 1; }
+            public int getStop() { return start + indels.length() - 1; }
 
             /** Resets reference start position to 0 and clears the context.
              *

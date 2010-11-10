@@ -406,7 +406,10 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
         RMDTrackBuilder builder = new RMDTrackBuilder();
         FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,refSeqGeneList).first;
         try {
-            return new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
+            return new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                           getToolkit().getGenomeLocParser(),
+                                           new FeatureToGATKFeatureIterator(getToolkit().getGenomeLocParser(),
+                                           refseq.iterator(),"refseq"));
         } catch (IOException e) {
             throw new UserException.CouldNotReadInputFile(refSeqGeneList, "Unable to open file", e);
         }

@@ -72,10 +72,6 @@ public class BoundedReadIteratorUnitTest extends BaseTest {
     @BeforeMethod
     public void doForEachTest() throws FileNotFoundException {
         fl = new ArrayList<File>();
-
-        // sequence
-        seq = new IndexedFastaSequenceFile(new File(hg18Reference));
-        GenomeLocParser.setupRefContigOrdering(seq.getSequenceDictionary());
     }
 
 

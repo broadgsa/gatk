@@ -100,10 +100,12 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
     }
 
     public static class CallableBaseState {
+        public GenomeLocParser genomeLocParser;
         public GenomeLoc loc;
         public CalledState state;
 
-        public CallableBaseState(GenomeLoc loc, CalledState state) {
+        public CallableBaseState(GenomeLocParser genomeLocParser,GenomeLoc loc, CalledState state) {
+            this.genomeLocParser = genomeLocParser;
             this.loc = loc;
             this.state = state;
         }
@@ -126,7 +128,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
          * @param newStop
          */
         public void update(GenomeLoc newStop) {
-            loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), newStop.getStop());
+            loc = genomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart(), newStop.getStop());
         }
 
         public String toString() {
@@ -174,7 +176,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
             }
         }
 
-        return new CallableBaseState(context.getLocation(), state);
+        return new CallableBaseState(getToolkit().getGenomeLocParser(),context.getLocation(), state);
     }
 
     public Integrator reduce(CallableBaseState state, Integrator integrator) {

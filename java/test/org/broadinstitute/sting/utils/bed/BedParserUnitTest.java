@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.bed;
 
-import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -18,25 +17,25 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 public class BedParserUnitTest extends BaseTest {
 
     private static IndexedFastaSequenceFile seq;
+    private GenomeLocParser genomeLocParser;
     private File bedFile = new File("testdata/sampleBedFile.bed");
 
     @BeforeClass
     public void beforeTests() {
-        GenomeLocParserTestUtils.clearSequenceDictionary();
         seq = new IndexedFastaSequenceFile(new File(b36KGReference));
-        GenomeLocParser.setupRefContigOrdering(seq);
+        genomeLocParser = new GenomeLocParser(seq);
     }
 
     @Test
     public void testLoadBedFile() {
-        BedParser parser = new BedParser(bedFile);
+        BedParser parser = new BedParser(genomeLocParser,bedFile);
         List<GenomeLoc> location = parser.getLocations();
         Assert.assertEquals(location.size(), 4);
     }
 
     @Test
     public void testBedParsing() {
-        BedParser parser = new BedParser(bedFile);
+        BedParser parser = new BedParser(genomeLocParser,bedFile);
         List<GenomeLoc> location = parser.getLocations();
         Assert.assertEquals(location.size(), 4);
         Assert.assertTrue(location.get(0).getContig().equals("20"));

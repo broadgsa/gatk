@@ -131,7 +131,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         // update if necessary and write
         if ( !newCigar.equals(originalCigar) && newCigar.numCigarElements() > 1 ) {
             int difference = originalIndex - newCigar.getCigarElement(0).getLength();
-            GenomeLoc newLoc = GenomeLocParser.createPotentiallyInvalidGenomeLoc(vc.getChr(), vc.getStart()-difference, vc.getEnd()-difference);
+            GenomeLoc newLoc = getToolkit().getGenomeLocParser().createPotentiallyInvalidGenomeLoc(vc.getChr(), vc.getStart()-difference, vc.getEnd()-difference);
             //System.out.println("Moving record from " + vc.getChr()+":"+vc.getStart() + " to " + newLoc);
             VariantContext newVC = VariantContextUtils.modifyLocation(vc, newLoc);
 

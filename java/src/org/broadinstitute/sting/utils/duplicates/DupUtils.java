@@ -45,7 +45,7 @@ public class DupUtils {
         }
     }
 
-    public static SAMRecord combineDuplicates(List<SAMRecord> duplicates, int maxQScore) {
+    public static SAMRecord combineDuplicates(GenomeLocParser genomeLocParser,List<SAMRecord> duplicates, int maxQScore) {
         if ( duplicates.size() == 0 )
             return null;
 
@@ -63,7 +63,7 @@ public class DupUtils {
             //for ( SAMRecord read : duplicates ) {
             //    System.out.printf("dup base %c %d%n", (char)read.getReadBases()[i], read.getBaseQualities()[i]);
             //}
-            Pair<Byte, Byte> baseAndQual = combineBaseProbs(duplicates, i, maxQScore);
+            Pair<Byte, Byte> baseAndQual = combineBaseProbs(genomeLocParser,duplicates, i, maxQScore);
             bases[i] = baseAndQual.getFirst();
             quals[i] = baseAndQual.getSecond();            
         }
@@ -114,8 +114,8 @@ public class DupUtils {
         System.out.printf("%n");
     }
 
-    private static Pair<Byte, Byte> combineBaseProbs(List<SAMRecord> duplicates, int readOffset, int maxQScore) {
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(duplicates.get(0));
+    private static Pair<Byte, Byte> combineBaseProbs(GenomeLocParser genomeLocParser,List<SAMRecord> duplicates, int readOffset, int maxQScore) {
+        GenomeLoc loc = genomeLocParser.createGenomeLoc(duplicates.get(0));
         ReadBackedPileup pileup = new ReadBackedPileupImpl(loc, duplicates, readOffset);
 
         final boolean debug = false;

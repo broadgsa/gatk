@@ -40,12 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
+import net.sf.samtools.*;
 
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.*;
@@ -95,7 +90,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 	 * where start, stop are 0 based, closed intervals  
 	 * @param f
 	 */
-	public void readArachne(File f) {
+	public void readArachne(SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser,File f) {
 		
 		try {
 			BufferedReader reader = new BufferedReader( new FileReader(f) );
@@ -127,9 +122,10 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 				for ( int i = 0 ; i < coord_parts.length ; i += 3 ) {
 					// Arachne map file contains 0-based, closed intervals, hence +1 below.
 					int index = Integer.parseInt(coord_parts[i]);
-					long start = Long.parseLong(coord_parts[i+1]);
-					long stop = Long.parseLong(coord_parts[i+2]);
-					segments.add(GenomeLocParser.createGenomeLoc(index, start+1, stop+1));
+                    String contig = sequenceDictionary.getSequence(index).getSequenceName();
+					int start = Integer.parseInt(coord_parts[i+1]);
+					int stop = Integer.parseInt(coord_parts[i+2]);
+					segments.add(genomeLocParser.createGenomeLoc(contig, start+1, stop+1));
 				}
 				
 				addCustomContig(name, segments);
@@ -148,7 +144,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 	 * where start, stop are 1 based, closed intervals  
 	 * @param f
 	 */
-	public void read(File f) {
+	public void read(GenomeLocParser genomeLocParser,File f) {
 		
 		try {
 			BufferedReader reader = new BufferedReader( new FileReader(f) );
@@ -171,7 +167,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 				while ( p2 < line.length() && line.charAt(p2) != ',') p2++; // next comma or end-of-line
 
 				while ( p2 != p1 ) {
-					GenomeLoc newSegment = GenomeLocParser.parseGenomeLoc(line.substring(p1, p2));
+					GenomeLoc newSegment = genomeLocParser.parseGenomeLoc(line.substring(p1, p2));
 					if ( segments.size() > 0 &&
 							segments.get(segments.size()-1).getStop()+1 == newSegment.getStart() &&
 							segments.get(segments.size()-1).getContigIndex() == newSegment.getContigIndex())
@@ -408,7 +404,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 
 		
 		SAMRecord r = new SAMRecord(reader.getFileHeader());
-		GenomeLocParser.setupRefContigOrdering(reader.getFileHeader().getSequenceDictionary());
+        GenomeLocParser genomeLocParser = new GenomeLocParser(reader.getFileHeader().getSequenceDictionary());
 
         r.setReferenceName("ENST00000378466");
         r.setAlignmentStart(1235);
@@ -421,9 +417,9 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 
 		GenomicMap m = new GenomicMap(5);
 		
-//		m.readArachne(new File("/humgen/gsa-scr1/asivache/cDNA/Ensembl48.transcriptome.map"));
+//		m.readArachne(genomeLocParser,new File("/humgen/gsa-scr1/asivache/cDNA/Ensembl48.transcriptome.map"));
 //        m.write(new File("/humgen/gsa-scr1/asivache/cDNA/new_pipeline/Ensembl48.new.transcriptome.map"));
-        m.read(new File("W:/berger/cDNA_BAM/refs/Ensembl52.plus.Genome.map"));
+        m.read(genomeLocParser,new File("W:/berger/cDNA_BAM/refs/Ensembl52.plus.Genome.map"));
 
         m.remapToMasterReference(r,reader.getFileHeader(),true);
 

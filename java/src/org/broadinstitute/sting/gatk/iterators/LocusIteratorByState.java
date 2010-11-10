@@ -61,6 +61,11 @@ public class LocusIteratorByState extends LocusIterator {
     // -----------------------------------------------------------------------------------------------------------------
     private boolean hasExtendedEvents = false; // will be set to true if at least one read had an indel right before the current position
 
+    /**
+     * Used to create new GenomeLocs.
+     */
+    private final GenomeLocParser genomeLocParser;
+
     private final Collection<String> sampleNames = new ArrayList<String>();
     private final ReadStateManager readStates;
 
@@ -129,8 +134,8 @@ public class LocusIteratorByState extends LocusIterator {
 
         public int getGenomePosition() { return read.getAlignmentStart() + getGenomeOffset(); }
 
-        public GenomeLoc getLocation() {
-            return GenomeLocParser.createGenomeLoc(read.getReferenceName(), getGenomePosition());
+        public GenomeLoc getLocation(GenomeLocParser genomeLocParser) {
+            return genomeLocParser.createGenomeLoc(read.getReferenceName(), getGenomePosition());
         }
 
         public CigarOperator getCurrentCigarOperator() {
@@ -268,12 +273,13 @@ public class LocusIteratorByState extends LocusIterator {
     // constructors and other basic operations
     //
     // -----------------------------------------------------------------------------------------------------------------
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation ) {
-        this(samIterator, readInformation, NO_FILTERS);
+    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, GenomeLocParser genomeLocParser ) {
+        this(samIterator, readInformation, genomeLocParser, NO_FILTERS);
     }
     
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, List<LocusIteratorFilter> filters ) {
+    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, GenomeLocParser genomeLocParser, List<LocusIteratorFilter> filters ) {
         this.readInfo = readInformation;
+        this.genomeLocParser = genomeLocParser;
         this.filters = filters;
         // Aggregate all sample names.
         sampleNames.addAll(SampleUtils.getSAMFileSamples(readInfo.getHeader()));
@@ -310,7 +316,7 @@ public class LocusIteratorByState extends LocusIterator {
     }
 
     private GenomeLoc getLocation() {
-        return readStates.isEmpty() ? null : readStates.getFirst().getLocation();
+        return readStates.isEmpty() ? null : readStates.getFirst().getLocation(genomeLocParser);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -354,7 +360,7 @@ public class LocusIteratorByState extends LocusIterator {
                 SAMRecordState our1stState = readStates.getFirst();
                 // get current location on the reference and decrement it by 1: the indels we just stepped over
                 // are associated with the *previous* reference base
-                GenomeLoc loc = GenomeLocParser.incPos(our1stState.getLocation(),-1);
+                GenomeLoc loc = genomeLocParser.incPos(our1stState.getLocation(genomeLocParser),-1);
 
                 boolean hasBeenSampled = false;
                 for(String sampleName: sampleNames) {

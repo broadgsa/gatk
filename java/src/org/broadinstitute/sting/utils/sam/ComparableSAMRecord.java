@@ -32,11 +32,9 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 public class ComparableSAMRecord implements Comparable<ComparableSAMRecord> {
 
     private SAMRecord record;
-    private GenomeLoc loc;
 
     public ComparableSAMRecord(SAMRecord record) {
         this.record = record;
-        this.loc = GenomeLocParser.createGenomeLoc(record);
     }
 
     public SAMRecord getRecord() {
@@ -44,8 +42,8 @@ public class ComparableSAMRecord implements Comparable<ComparableSAMRecord> {
     }
 
     public int compareTo(ComparableSAMRecord o) {
-        // first sort by start position
-        int comparison = loc.compareTo(o.loc);
+        // first sort by start position -- with not coverflow because both are guaranteed to be positive.
+        int comparison = record.getAlignmentStart() - o.record.getAlignmentStart();
         // if the reads have the same start position, we must give a non-zero comparison
         // (because java Sets often require "consistency with equals")
         if ( comparison == 0 )
@@ -63,7 +61,7 @@ public class ComparableSAMRecord implements Comparable<ComparableSAMRecord> {
             return true;
 
         ComparableSAMRecord csr = (ComparableSAMRecord)obj;
-        if ( loc.compareTo(csr.loc) != 0 )
+        if(record.getAlignmentStart() != csr.record.getAlignmentStart())
             return false;
         if ( !record.getReadName().equals(csr.getRecord().getReadName()) )
             return false;

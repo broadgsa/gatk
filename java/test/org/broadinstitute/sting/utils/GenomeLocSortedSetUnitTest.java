@@ -48,20 +48,23 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
     private static final int STARTING_CHROMOSOME = 1;
     private static final int CHROMOSOME_SIZE = 1000;
 
+    private GenomeLocParser genomeLocParser;
+    private String contigOneName;
+
     @BeforeClass
     public void setup() {
-        GenomeLocParserTestUtils.clearSequenceDictionary();
-        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
+        genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
+        contigOneName = header.getSequenceDictionary().getSequence(1).getSequenceName();
     }
 
     @BeforeMethod
     public void initializeSortedSet() {
-        mSortedSet = new GenomeLocSortedSet();        
+        mSortedSet = new GenomeLocSortedSet(genomeLocParser);        
     }
 
     @Test
     public void testAdd() {
-        GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 0, 0);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 0, 0);
         assertTrue(mSortedSet.size() == 0);
         mSortedSet.add(g);
         assertTrue(mSortedSet.size() == 1);
@@ -70,7 +73,7 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
     @Test
     public void testRemove() {
         assertTrue(mSortedSet.size() == 0);
-        GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 0, 0);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 0, 0);
         mSortedSet.add(g);
         assertTrue(mSortedSet.size() == 1);
         mSortedSet.remove(g);
@@ -80,9 +83,9 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
     @Test
     public void addRegion() {
         assertTrue(mSortedSet.size() == 0);
-        GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 1, 50);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 1, 50);
         mSortedSet.add(g);
-        GenomeLoc f = GenomeLocParser.createGenomeLoc(1, 30, 80);
+        GenomeLoc f = genomeLocParser.createGenomeLoc(contigOneName, 30, 80);
         mSortedSet.addRegion(f);
         assertTrue(mSortedSet.size() == 1);
         
@@ -92,7 +95,7 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
     @Test(expectedExceptions=ReviewedStingException.class)
     public void testAddDuplicate() {
         assertTrue(mSortedSet.size() == 0);
-        GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 0, 0);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 0, 0);
         mSortedSet.add(g);
         assertTrue(mSortedSet.size() == 1);
         mSortedSet.add(g);
@@ -100,8 +103,8 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
 
     @Test
     public void mergingOverlappingBelow() {
-        GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 0, 50);
-        GenomeLoc e = GenomeLocParser.createGenomeLoc(1, 49, 100);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 0, 50);
+        GenomeLoc e = genomeLocParser.createGenomeLoc(contigOneName, 49, 100);
         assertTrue(mSortedSet.size() == 0);
         mSortedSet.add(g);
         assertTrue(mSortedSet.size() == 1);
@@ -116,8 +119,8 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
 
     @Test
     public void mergingOverlappingAbove() {
-        GenomeLoc e = GenomeLocParser.createGenomeLoc(1, 0, 50);
-        GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 49, 100);
+        GenomeLoc e = genomeLocParser.createGenomeLoc(contigOneName, 0, 50);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 49, 100);
         assertTrue(mSortedSet.size() == 0);
         mSortedSet.add(g);
         assertTrue(mSortedSet.size() == 1);
@@ -132,22 +135,22 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
 
     @Test
     public void deleteAllByRegion() {
-        GenomeLoc e = GenomeLocParser.createGenomeLoc(1, 1, 100);
+        GenomeLoc e = genomeLocParser.createGenomeLoc(contigOneName, 1, 100);
         mSortedSet.add(e);
         for (int x = 1; x < 101; x++) {
-            GenomeLoc del = GenomeLocParser.createGenomeLoc(1,x,x);
-            mSortedSet = mSortedSet.subtractRegions(new GenomeLocSortedSet(del));
+            GenomeLoc del = genomeLocParser.createGenomeLoc(contigOneName,x,x);
+            mSortedSet = mSortedSet.subtractRegions(new GenomeLocSortedSet(genomeLocParser,del));
         }
         assertTrue(mSortedSet.isEmpty());
     }
 
     @Test
     public void deleteSomeByRegion() {
-        GenomeLoc e = GenomeLocParser.createGenomeLoc(1, 1, 100);
+        GenomeLoc e = genomeLocParser.createGenomeLoc(contigOneName, 1, 100);
         mSortedSet.add(e);
         for (int x = 1; x < 50; x++) {
-            GenomeLoc del = GenomeLocParser.createGenomeLoc(1,x,x);
-            mSortedSet = mSortedSet.subtractRegions(new GenomeLocSortedSet(del));
+            GenomeLoc del = genomeLocParser.createGenomeLoc(contigOneName,x,x);
+            mSortedSet = mSortedSet.subtractRegions(new GenomeLocSortedSet(genomeLocParser,del));
         }
         assertTrue(!mSortedSet.isEmpty());
         assertTrue(mSortedSet.size() == 1);
@@ -159,14 +162,14 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
 
     @Test
     public void deleteSuperRegion() {
-        GenomeLoc e = GenomeLocParser.createGenomeLoc(1, 10, 20);
-        GenomeLoc g = GenomeLocParser.createGenomeLoc(1, 70, 100);
+        GenomeLoc e = genomeLocParser.createGenomeLoc(contigOneName, 10, 20);
+        GenomeLoc g = genomeLocParser.createGenomeLoc(contigOneName, 70, 100);
         mSortedSet.add(g);
         mSortedSet.addRegion(e);
         assertTrue(mSortedSet.size() == 2);
         // now delete a region
-        GenomeLoc d = GenomeLocParser.createGenomeLoc(1, 15, 75);
-        mSortedSet = mSortedSet.subtractRegions(new GenomeLocSortedSet(d));
+        GenomeLoc d = genomeLocParser.createGenomeLoc(contigOneName, 15, 75);
+        mSortedSet = mSortedSet.subtractRegions(new GenomeLocSortedSet(genomeLocParser,d));
         Iterator<GenomeLoc> iter = mSortedSet.iterator();
         GenomeLoc loc = iter.next();
         assertTrue(loc.getStart() == 10);
@@ -181,13 +184,13 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
 
     @Test
     public void substractComplexExample() {
-        GenomeLoc e = GenomeLocParser.createGenomeLoc(1, 1, 20);
+        GenomeLoc e = genomeLocParser.createGenomeLoc(contigOneName, 1, 20);
         mSortedSet.add(e);
 
-        GenomeLoc r1 = GenomeLocParser.createGenomeLoc(1, 3, 5);
-        GenomeLoc r2 = GenomeLocParser.createGenomeLoc(1, 10, 12);
-        GenomeLoc r3 = GenomeLocParser.createGenomeLoc(1, 16, 18);
-        GenomeLocSortedSet toExclude = new GenomeLocSortedSet(Arrays.asList(r1, r2, r3));
+        GenomeLoc r1 = genomeLocParser.createGenomeLoc(contigOneName, 3, 5);
+        GenomeLoc r2 = genomeLocParser.createGenomeLoc(contigOneName, 10, 12);
+        GenomeLoc r3 = genomeLocParser.createGenomeLoc(contigOneName, 16, 18);
+        GenomeLocSortedSet toExclude = new GenomeLocSortedSet(genomeLocParser,Arrays.asList(r1, r2, r3));
 
         GenomeLocSortedSet remaining = mSortedSet.subtractRegions(toExclude);
 //        logger.debug("Initial   " + mSortedSet);
@@ -204,10 +207,10 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         GenomeLoc p3 = it.next();
         GenomeLoc p4 = it.next();
 
-        assertEquals(GenomeLocParser.createGenomeLoc(1, 1, 2), p1);
-        assertEquals(GenomeLocParser.createGenomeLoc(1, 6, 9), p2);
-        assertEquals(GenomeLocParser.createGenomeLoc(1, 13, 15), p3);
-        assertEquals(GenomeLocParser.createGenomeLoc(1, 19, 20), p4);
+        assertEquals(genomeLocParser.createGenomeLoc(contigOneName, 1, 2), p1);
+        assertEquals(genomeLocParser.createGenomeLoc(contigOneName, 6, 9), p2);
+        assertEquals(genomeLocParser.createGenomeLoc(contigOneName, 13, 15), p3);
+        assertEquals(genomeLocParser.createGenomeLoc(contigOneName, 19, 20), p4);
     }
 
     

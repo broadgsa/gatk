@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
-import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -59,6 +58,9 @@ public class GLFWriterUnitTest extends BaseTest {
     protected static final String[] genotypes = {"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT"};
     protected final static double SIGNIFICANCE = 5.1;
 
+    private IndexedFastaSequenceFile seq;
+    private GenomeLocParser genomeLocParser;
+
     @BeforeMethod
     public void before() {
 
@@ -66,10 +68,8 @@ public class GLFWriterUnitTest extends BaseTest {
 
     @BeforeClass
     public void beforeTests() {
-        GenomeLocParserTestUtils.clearSequenceDictionary();
-        IndexedFastaSequenceFile seq;
         seq = new IndexedFastaSequenceFile(new File(b36KGReference));
-        GenomeLocParser.setupRefContigOrdering(seq);
+        genomeLocParser = new GenomeLocParser(seq);
 
     }
 
@@ -113,7 +113,7 @@ public class GLFWriterUnitTest extends BaseTest {
         rec = new GLFWriter(writeTo);
         rec.writeHeader(header);
         for (int x = 0; x < 100; x++) {
-            GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, x + 1);
+            GenomeLoc loc = genomeLocParser.createGenomeLoc(seq.getSequenceDictionary().getSequence(1).getSequenceName(), x + 1);
             rec.addCall(new SAMSequenceRecord("test", 0), (int)loc.getStart(), 10, 'A', 9, createLikelihoods(x % 10));
         }
         rec.close();
@@ -131,7 +131,7 @@ public class GLFWriterUnitTest extends BaseTest {
         rec = new GLFWriter(writeTo);
         rec.writeHeader(header);
         for (int x = 0; x < 5; x++) {
-            GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, x + 1);
+            GenomeLoc loc = genomeLocParser.createGenomeLoc(seq.getSequenceDictionary().getSequence(1).getSequenceName(), x + 1);
             rec.addCall(new SAMSequenceRecord("test", 0), (int)loc.getStart(), 10, 'A', 9, createGreaterThan255MinimumGenotype(x % 10));
         }
         rec.close();
@@ -150,7 +150,7 @@ public class GLFWriterUnitTest extends BaseTest {
         rec = new GLFWriter(writeTo);
         rec.writeHeader(header);
         for (int x = 0; x < 100; x++) {
-            GenomeLoc loc = GenomeLocParser.createGenomeLoc(1, x + 1);
+            GenomeLoc loc = genomeLocParser.createGenomeLoc(seq.getSequenceDictionary().getSequence(1).getSequenceName(), x + 1);
             rec.addCall(new SAMSequenceRecord("test", 0), (int)loc.getStart(), 10, 'A', 9, createLikelihoods(x % 10));
         }
         rec.close();

@@ -29,6 +29,11 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
  */
 public class ReferenceView implements View {
     /**
+     * The parser, used to create and parse GenomeLocs.
+     */
+    protected final GenomeLocParser genomeLocParser;
+
+    /**
      * The source of reference data.
      */
     protected IndexedFastaSequenceFile reference = null;
@@ -38,6 +43,7 @@ public class ReferenceView implements View {
      * @param provider
      */
     public ReferenceView( ShardDataProvider provider ) {
+        this.genomeLocParser = provider.getGenomeLocParser();
         this.reference = provider.getReference();
     }
 
@@ -68,7 +74,7 @@ public class ReferenceView implements View {
     }
 
     protected byte[] getReferenceBases( SAMRecord read ) {
-        return getReferenceBases(GenomeLocParser.createGenomeLoc(read));
+        return getReferenceBases(genomeLocParser.createGenomeLoc(read));
 
     }
 

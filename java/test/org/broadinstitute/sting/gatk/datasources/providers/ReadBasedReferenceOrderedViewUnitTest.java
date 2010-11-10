@@ -52,6 +52,7 @@ import java.util.*;
  *         test out the ReadBasedReferenceOrderedView class
  */
 public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
+    private GenomeLocParser genomeLocParser;
 
     private static int startingChr = 1;
     private static int endingChr = 2;
@@ -62,7 +63,7 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
     @BeforeClass
     public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
-        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
+        genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
     }
 
     @BeforeMethod
@@ -76,15 +77,15 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
         for (int x = 1; x < 11; x++) {
             SAMRecord rec = ArtificialSAMUtils.createArtificialRead(header, "name", 0, x, 10);
         }
-        GenomeLoc start = GenomeLocParser.createGenomeLoc(0, 0, 0);
+        GenomeLoc start = genomeLocParser.createGenomeLoc(header.getSequenceDictionary().getSequence(0).getSequenceName(), 0, 0);
         List<RMDDataState> list = new ArrayList<RMDDataState>();
-        list.add(new RMDDataState(null, new FakePeekingRODIterator(start, "fakeName")));
+        list.add(new RMDDataState(null, new FakePeekingRODIterator(genomeLocParser,start, "fakeName")));
         ReadBasedReferenceOrderedView view = new ReadBasedReferenceOrderedView(new WindowedData(list));
 
         for (SAMRecord rec : records) {
             ReadMetaDataTracker tracker = view.getReferenceOrderedDataForRead(rec);
-            Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping();
-            for (Long i : map.keySet()) {
+            Map<Integer, Collection<GATKFeature>> map = tracker.getReadOffsetMapping();
+            for (Integer i : map.keySet()) {
                 Assert.assertEquals(map.get(i).size(), 1);
             }
             Assert.assertEquals(map.keySet().size(), 10);
@@ -96,15 +97,16 @@ public class ReadBasedReferenceOrderedViewUnitTest extends BaseTest {
 
 
 class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
+    private GenomeLocParser genomeLocParser;
 
     // current location
     private GenomeLoc location;
     private GATKFeature curROD;
     private final String name;
 
-    public FakePeekingRODIterator(GenomeLoc startingLoc, String name) {
+    public FakePeekingRODIterator(GenomeLocParser genomeLocParser, GenomeLoc startingLoc, String name) {
         this.name = name;
-        this.location = GenomeLocParser.createGenomeLoc(startingLoc.getContigIndex(), startingLoc.getStart() + 1, startingLoc.getStop() + 1);
+        this.location = genomeLocParser.createGenomeLoc(startingLoc.getContig(), startingLoc.getStart() + 1, startingLoc.getStop() + 1);
     }
 
     @Override
@@ -134,7 +136,7 @@ class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
     public RODRecordList next() {
         System.err.println("Next -> " + location);
         curROD = new ReadMetaDataTrackerUnitTest.FakeRODatum(location, name);
-        location = GenomeLocParser.createGenomeLoc(location.getContigIndex(), location.getStart() + 1, location.getStop() + 1);
+        location = genomeLocParser.createGenomeLoc(location.getContig(), location.getStart() + 1, location.getStop() + 1);
         FakeRODRecordList list = new FakeRODRecordList();
         list.add(curROD);
         return list;

@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.utils.interval;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
@@ -56,17 +57,17 @@ public class IntervalFileMergingIterator implements Iterator<GenomeLoc> {
     private IntervalMergingRule myRule;
     private File myFile;
 
-    public IntervalFileMergingIterator(File f, IntervalMergingRule rule) {
+    public IntervalFileMergingIterator(GenomeLocParser genomeLocParser,File f, IntervalMergingRule rule) {
         myFile = f;
 
         try {
             XReadLines reader = new XReadLines(f);
 
             if (f.getName().toUpperCase().endsWith(".BED")) {
-                it = new PushbackIterator<GenomeLoc>( new StringToGenomeLocIteratorAdapter( reader.iterator(),
+                it = new PushbackIterator<GenomeLoc>( new StringToGenomeLocIteratorAdapter( genomeLocParser,reader.iterator(),
                                                               StringToGenomeLocIteratorAdapter.FORMAT.BED ) ) ;
             } else {
-                it = new PushbackIterator<GenomeLoc>( new StringToGenomeLocIteratorAdapter( reader.iterator(),
+                it = new PushbackIterator<GenomeLoc>( new StringToGenomeLocIteratorAdapter( genomeLocParser,reader.iterator(),
                                                               StringToGenomeLocIteratorAdapter.FORMAT.GATK ) ) ;
             }
         } catch ( FileNotFoundException e ) {

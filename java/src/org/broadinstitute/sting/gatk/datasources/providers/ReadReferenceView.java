@@ -67,10 +67,10 @@ public class ReadReferenceView extends ReferenceView {
     }
 
     public ReferenceContext getReferenceContext( SAMRecord read ) {
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(read);
+        GenomeLoc loc = genomeLocParser.createGenomeLoc(read);
 //        byte[] bases = super.getReferenceBases(loc);
 //        return new ReferenceContext( loc, loc, bases );
-        return new ReferenceContext( loc, loc, getReferenceBasesProvider(loc) );
+        return new ReferenceContext( genomeLocParser, loc, loc, getReferenceBasesProvider(loc) );
     }
 
 }

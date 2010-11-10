@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -27,6 +28,16 @@ import java.util.Map;
  */
 abstract class ResourcePool <T,I extends Iterator> {
     /**
+     * Sequence dictionary.
+     */
+    protected final SAMSequenceDictionary sequenceDictionary;
+
+    /**
+     * Builder/parser for GenomeLocs.
+     */
+    protected final GenomeLocParser genomeLocParser;
+    
+    /**
      * All iterators of this reference-ordered data.
      */
     private List<T> allResources = new ArrayList<T>();
@@ -40,6 +51,11 @@ abstract class ResourcePool <T,I extends Iterator> {
      * Which iterators are assigned to which pools.
      */
     private Map<I,T> resourceAssignments = new HashMap<I,T>();
+
+    protected ResourcePool(SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser) {
+        this.sequenceDictionary = sequenceDictionary;
+        this.genomeLocParser = genomeLocParser;
+    }
 
     /**
      * Get an iterator whose position is before the specified location.  Create a new one if none exists.
@@ -180,36 +196,11 @@ class MappedStreamSegment implements DataStreamSegment {
      * Retrieves the first location covered by a mapped stream segment.
      * @return Location of the first base in this segment.
      */
-    public GenomeLoc getFirstLocation() {
-        return GenomeLocParser.createGenomeLoc(locus.getContigIndex(),locus.getStart());
+    public GenomeLoc getLocation() {
+        return locus;
     }
 
     public MappedStreamSegment(GenomeLoc locus) {
         this.locus = locus;
-    }
-}
-
-/**
- * Models a position within the unmapped reads in a stream of GATK input data.
- */
-class UnmappedStreamSegment implements DataStreamSegment {
-    /**
-     * Where does this region start, given 0 = the position of the first unmapped read.
-     */
-    public final long position;
-
-    /**
-     * How many reads wide is this region?  This size is generally treated as an upper bound.
-     */
-    public final long size;
-
-    /**
-     * Create a new target location in an unmapped read stream.
-     * @param position The 0-based index into the unmapped reads.  Position 0 represents the first unmapped read.
-     * @param size the size of the segment.
-     */
-    public UnmappedStreamSegment( long position, long size ) {
-        this.position = position;
-        this.size = size;
     }
 }

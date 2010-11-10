@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.shards;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
@@ -50,8 +51,8 @@ public class ShardStrategyFactory {
      * @param startingSize the starting size
      * @return a shard strategy capable of dividing input data into shards.
      */
-    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize) {
-        return ShardStrategyFactory.shatter(readsDataSource, referenceDataSource, strat, dic, startingSize, -1L);
+    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocParser genomeLocParser) {
+        return ShardStrategyFactory.shatter(readsDataSource, referenceDataSource, strat, dic, startingSize, genomeLocParser, -1L);
     }
 
     /**
@@ -64,10 +65,10 @@ public class ShardStrategyFactory {
      * @param startingSize        the starting size
      * @return a shard strategy capable of dividing input data into shards.
      */
-    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, long limitByCount) {
+    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocParser genomeLocParser, long limitByCount) {
         switch (strat) {
             case LOCUS_EXPERIMENTAL:
-                return new LocusShardStrategy(readsDataSource,referenceDataSource,null);
+                return new LocusShardStrategy(readsDataSource,referenceDataSource,genomeLocParser,null);
             case READS_EXPERIMENTAL:
                 return new ReadShardStrategy(readsDataSource,null);
             default:
@@ -87,8 +88,8 @@ public class ShardStrategyFactory {
      * @param startingSize the starting size
      * @return a shard strategy capable of dividing input data into shards.
      */
-    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst) {
-        return ShardStrategyFactory.shatter(readsDataSource, referenceDataSource, strat, dic, startingSize, lst, -1l);
+    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocParser genomeLocParser, GenomeLocSortedSet lst) {
+        return ShardStrategyFactory.shatter(readsDataSource, referenceDataSource, strat, dic, startingSize, genomeLocParser, lst, -1l);
 
     }
 
@@ -102,10 +103,10 @@ public class ShardStrategyFactory {
      * @param startingSize the starting size
      * @return A strategy for shattering this data.
      */
-    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocSortedSet lst, long limitDataCount) {
+    static public ShardStrategy shatter(SAMDataSource readsDataSource, IndexedFastaSequenceFile referenceDataSource, SHATTER_STRATEGY strat, SAMSequenceDictionary dic, long startingSize, GenomeLocParser genomeLocParser, GenomeLocSortedSet lst, long limitDataCount) {
         switch (strat) {
             case LOCUS_EXPERIMENTAL:
-                return new LocusShardStrategy(readsDataSource,referenceDataSource,lst);
+                return new LocusShardStrategy(readsDataSource,referenceDataSource,genomeLocParser,lst);
             case READS_EXPERIMENTAL:
                 return new ReadShardStrategy(readsDataSource,lst);
             default:

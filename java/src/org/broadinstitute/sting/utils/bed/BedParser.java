@@ -20,6 +20,8 @@ public class BedParser {
     // the buffered reader input
     private final BufferedReader mIn;
 
+    private GenomeLocParser genomeLocParser;
+
     // our array of locations
     private List<GenomeLoc> mLocations;
 
@@ -28,7 +30,8 @@ public class BedParser {
      *
      * @param fl
      */
-    public BedParser(File fl) {
+    public BedParser(GenomeLocParser genomeLocParser,File fl) {
+        this.genomeLocParser = genomeLocParser;
         try {
             mIn = new BufferedReader(new FileReader(fl));
         } catch (FileNotFoundException e) {
@@ -57,7 +60,7 @@ public class BedParser {
         List<GenomeLoc> locArray = new ArrayList<GenomeLoc>();
         try {
             while ((line = mIn.readLine()) != null) {
-                locArray.add(parseLocation(line));
+                locArray.add(parseLocation(genomeLocParser,line));
             }
         } catch (IOException e) {
             throw new UserException.MalformedFile("Unable to parse line in BED file.");
@@ -71,7 +74,7 @@ public class BedParser {
      * @param line the line, as a string
      * @return a parsed genome loc
      */
-    public static GenomeLoc parseLocation(String line) {
+    public static GenomeLoc parseLocation(GenomeLocParser genomeLocParser,String line) {
         String contig;
         int start;
         int stop;
@@ -85,7 +88,7 @@ public class BedParser {
         }
 
         // we currently drop the rest of the bed record, which can contain names, scores, etc
-        return GenomeLocParser.createGenomeLoc(contig, start, stop);
+        return genomeLocParser.createGenomeLoc(contig, start, stop);
 
     }
 

@@ -30,6 +30,7 @@ import org.broad.tribble.FeatureSource;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
@@ -58,6 +59,11 @@ public class RMDTrack {
 
     // our sequence dictionary, which can be null
     private final SAMSequenceDictionary dictionary;
+
+    /**
+     * Parser to use when creating/parsing GenomeLocs.
+     */
+    private final GenomeLocParser genomeLocParser;
 
     // our codec type
     private final FeatureCodec codec;
@@ -101,13 +107,14 @@ public class RMDTrack {
      * @param dict the sam sequence dictionary
      * @param codec the feature codec we use to decode this type
      */
-    public RMDTrack(Class type, String name, File file, FeatureSource reader, SAMSequenceDictionary dict, FeatureCodec codec) {
+    public RMDTrack(Class type, String name, File file, FeatureSource reader, SAMSequenceDictionary dict, GenomeLocParser genomeLocParser, FeatureCodec codec) {
         this.type = type;
         this.recordType = codec.getFeatureType();
         this.name = name;
         this.file = file;
         this.reader = reader;
         this.dictionary = dict;
+        this.genomeLocParser = genomeLocParser;
         this.codec = codec;
     }
 
@@ -117,7 +124,7 @@ public class RMDTrack {
      */
     public CloseableIterator<GATKFeature> getIterator() {
         try {
-            return new FeatureToGATKFeatureIterator(reader.iterator(),this.getName());
+            return new FeatureToGATKFeatureIterator(genomeLocParser,reader.iterator(),this.getName());
         } catch (IOException e) {
             throw new UserException.CouldNotReadInputFile(getFile(), "Unable to read from file", e);
         }
@@ -133,19 +140,19 @@ public class RMDTrack {
     }
 
     public CloseableIterator<GATKFeature> query(GenomeLoc interval) throws IOException {
-        return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
+        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
     }
 
     public CloseableIterator<GATKFeature> query(GenomeLoc interval, boolean contained) throws IOException {
-        return new FeatureToGATKFeatureIterator(reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
+        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
     }
 
     public CloseableIterator<GATKFeature> query(String contig, int start, int stop) throws IOException {
-        return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop),this.getName());
+        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(contig,start,stop),this.getName());
     }
 
     public CloseableIterator<GATKFeature> query(String contig, int start, int stop, boolean contained) throws IOException {
-        return new FeatureToGATKFeatureIterator(reader.query(contig,start,stop),this.getName());
+        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(contig,start,stop),this.getName());
     }
 
     public void close() {

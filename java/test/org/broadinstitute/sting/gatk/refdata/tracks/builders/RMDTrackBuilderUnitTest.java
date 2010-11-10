@@ -53,12 +53,13 @@ import java.util.Map;
 public class RMDTrackBuilderUnitTest extends BaseTest {
     private RMDTrackBuilder builder;
     private IndexedFastaSequenceFile seq;
+    private GenomeLocParser genomeLocParser;
 
     @BeforeMethod
     public void setup() {
-        builder = new RMDTrackBuilder();
         seq = new IndexedFastaSequenceFile(new File(b36KGReference));
-        GenomeLocParser.setupRefContigOrdering(seq);
+        genomeLocParser = new GenomeLocParser(seq);
+        builder = new RMDTrackBuilder();
     }
 
     @Test

@@ -29,10 +29,12 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
     private static SAMFileHeader header;
     private LocusIteratorByState li;
 
+    private GenomeLocParser genomeLocParser;
+
     @BeforeClass
     public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 1000);
-        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
+        genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
     }
 
     @Test
@@ -61,7 +63,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         List<SAMRecord> reads = Arrays.asList(before,during,after);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes);
+        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser);
 
         boolean foundExtendedEventPileup = false;
         while (li.hasNext()) {
@@ -113,7 +115,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         List<SAMRecord> reads = Arrays.asList(before,during,after);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes);
+        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser);
 
         boolean foundExtendedEventPileup = false;
         while (li.hasNext()) {

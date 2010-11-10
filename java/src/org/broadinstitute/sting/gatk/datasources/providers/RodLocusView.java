@@ -80,7 +80,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
             // the iterator to immediately before it, so that it can be added to the merging iterator primed for
             // next() to return the first real ROD in this shard
             LocationAwareSeekableRODIterator it = dataSource.seek(provider.getShard());
-            it.seekForward(GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart()-1));
+            it.seekForward(genomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart()-1));
 
             states.add(new ReferenceOrderedDataState(dataSource,it));            
 
@@ -128,7 +128,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
         tracker = createTracker(allTracksHere);
 
         GenomeLoc rodSite = datum.getLocation();
-        GenomeLoc site = GenomeLocParser.createGenomeLoc( rodSite.getContigIndex(), rodSite.getStart(), rodSite.getStart());
+        GenomeLoc site = genomeLocParser.createGenomeLoc( rodSite.getContig(), rodSite.getStart(), rodSite.getStart());
 
         if ( DEBUG ) System.out.printf("rodLocusView.next() is at %s%n", site);
 
@@ -167,7 +167,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      */
     private long getSkippedBases( GenomeLoc currentPos ) {
         // the minus - is because if lastLoc == null, you haven't yet seen anything in this interval, so it should also be counted as skipped
-        Long compStop = lastLoc == null ? locus.getStart() - 1 : lastLoc.getStop();
+        Integer compStop = lastLoc == null ? locus.getStart() - 1 : lastLoc.getStop();
         long skippedBases = currentPos.getStart() - compStop  - 1;
 
         if ( skippedBases < -1 ) { // minus 1 value is ok
@@ -182,7 +182,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
      * @return
      */
     public GenomeLoc getLocOneBeyondShard() {
-        return GenomeLocParser.createGenomeLoc(locus.getContigIndex(),locus.getStop()+1);
+        return genomeLocParser.createGenomeLoc(locus.getContig(),locus.getStop()+1);
     }
 
     /**

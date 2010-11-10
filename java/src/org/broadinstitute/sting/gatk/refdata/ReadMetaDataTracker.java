@@ -43,10 +43,15 @@ import java.util.TreeMap;
  *         a read-based meta data tracker
  */
 public class ReadMetaDataTracker {
+    /**
+     * The parser, used to create new GenomeLocs.
+     */
+    private final GenomeLocParser genomeLocParser;
+
     private final SAMRecord record;
 
     // the buffer of positions and RODs we've stored
-    private final TreeMap<Long, RODMetaDataContainer> mapping;
+    private final TreeMap<Integer, RODMetaDataContainer> mapping;
 
     /**
      * create a read meta data tracker, given the read and a queue of RODatum positions
@@ -54,7 +59,8 @@ public class ReadMetaDataTracker {
      * @param record  the read to create offset from
      * @param mapping the mapping of reference ordered datum
      */
-    public ReadMetaDataTracker(SAMRecord record, TreeMap<Long, RODMetaDataContainer> mapping) {
+    public ReadMetaDataTracker(GenomeLocParser genomeLocParser, SAMRecord record, TreeMap<Integer, RODMetaDataContainer> mapping) {
+        this.genomeLocParser = genomeLocParser;
         this.record = record;
         this.mapping = mapping;
     }
@@ -69,13 +75,13 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping from the position in the read to the reference ordered datum
      */
-    private Map<Long, Collection<GATKFeature>> createReadAlignment(SAMRecord record, TreeMap<Long, RODMetaDataContainer> queue, Class cl, String name) {
+    private Map<Integer, Collection<GATKFeature>> createReadAlignment(SAMRecord record, TreeMap<Integer, RODMetaDataContainer> queue, Class cl, String name) {
         if (name != null && cl != null) throw new IllegalStateException("Both a class and name cannot be specified");
-        Map<Long, Collection<GATKFeature>> ret = new LinkedHashMap<Long, Collection<GATKFeature>>();
-        GenomeLoc location = GenomeLocParser.createGenomeLoc(record);
+        Map<Integer, Collection<GATKFeature>> ret = new LinkedHashMap<Integer, Collection<GATKFeature>>();
+        GenomeLoc location = genomeLocParser.createGenomeLoc(record);
         int length = record.getReadLength();
-        for (Long loc : queue.keySet()) {
-            Long position = loc - location.getStart();
+        for (Integer loc : queue.keySet()) {
+            Integer position = loc - location.getStart();
             if (position >= 0 && position < length) {
                 Collection<GATKFeature> set;
                 if (cl != null)
@@ -95,11 +101,11 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping from the position in the read to the reference ordered datum
      */
-    private Map<Long, Collection<GATKFeature>> createGenomeLocAlignment(SAMRecord record, TreeMap<Long, RODMetaDataContainer> mapping, Class cl, String name) {
-        Map<Long, Collection<GATKFeature>> ret = new LinkedHashMap<Long, Collection<GATKFeature>>();
+    private Map<Integer, Collection<GATKFeature>> createGenomeLocAlignment(SAMRecord record, TreeMap<Integer, RODMetaDataContainer> mapping, Class cl, String name) {
+        Map<Integer, Collection<GATKFeature>> ret = new LinkedHashMap<Integer, Collection<GATKFeature>>();
         int start = record.getAlignmentStart();
         int stop = record.getAlignmentEnd();
-        for (Long location : mapping.keySet()) {
+        for (Integer location : mapping.keySet()) {
             if (location >= start && location <= stop)
                 if (cl != null)
                     ret.put(location, mapping.get(location).getSet(cl));
@@ -114,7 +120,7 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping of read offset to ROD(s)
      */
-    public Map<Long, Collection<GATKFeature>> getReadOffsetMapping() {
+    public Map<Integer, Collection<GATKFeature>> getReadOffsetMapping() {
         return createReadAlignment(record, mapping, null, null);
     }
 
@@ -123,7 +129,7 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping of genome loc position to ROD(s)
      */
-    public Map<Long, Collection<GATKFeature>> getContigOffsetMapping() {
+    public Map<Integer, Collection<GATKFeature>> getContigOffsetMapping() {
         return createGenomeLocAlignment(record, mapping, null, null);
     }
 
@@ -132,7 +138,7 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping of read offset to ROD(s)
      */
-    public Map<Long, Collection<GATKFeature>> getReadOffsetMapping(String name) {
+    public Map<Integer, Collection<GATKFeature>> getReadOffsetMapping(String name) {
         return createReadAlignment(record, mapping, null, name);
     }
 
@@ -141,7 +147,7 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping of genome loc position to ROD(s)
      */
-    public Map<Long, Collection<GATKFeature>> getContigOffsetMapping(String name) {
+    public Map<Integer, Collection<GATKFeature>> getContigOffsetMapping(String name) {
         return createGenomeLocAlignment(record, mapping, null, name);
     }
 
@@ -150,7 +156,7 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping of read offset to ROD(s)
      */
-    public Map<Long, Collection<GATKFeature>> getReadOffsetMapping(Class cl) {
+    public Map<Integer, Collection<GATKFeature>> getReadOffsetMapping(Class cl) {
         return createReadAlignment(record, mapping, cl, null);
     }
 
@@ -159,7 +165,7 @@ public class ReadMetaDataTracker {
      *
      * @return a mapping of genome loc position to ROD(s)
      */
-    public Map<Long, Collection<GATKFeature>> getContigOffsetMapping(Class cl) {
+    public Map<Integer, Collection<GATKFeature>> getContigOffsetMapping(Class cl) {
         return createGenomeLocAlignment(record, mapping, cl, null);
     }
 }

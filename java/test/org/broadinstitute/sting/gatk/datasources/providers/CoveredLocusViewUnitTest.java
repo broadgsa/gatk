@@ -47,14 +47,14 @@ public class CoveredLocusViewUnitTest extends LocusViewTemplate {
         // TODO: Should skip over loci not in the given range.
         GenomeLoc firstLoc = range.get(0);
         GenomeLoc lastLoc = range.get(range.size()-1);
-        GenomeLoc bounds = GenomeLocParser.createGenomeLoc(firstLoc.getContigIndex(),firstLoc.getStart(),lastLoc.getStop());
+        GenomeLoc bounds = genomeLocParser.createGenomeLoc(firstLoc.getContig(),firstLoc.getStart(),lastLoc.getStop());
 
-        for( long i = bounds.getStart(); i <= bounds.getStop(); i++ ) {
-            GenomeLoc site = GenomeLocParser.createGenomeLoc("chr1",i);
+        for( int i = bounds.getStart(); i <= bounds.getStop(); i++ ) {
+            GenomeLoc site = genomeLocParser.createGenomeLoc("chr1",i);
 
             int expectedReadsAtSite = 0;
             for( SAMRecord read: reads ) {
-                if( GenomeLocParser.createGenomeLoc(read).containsP(site) )
+                if( genomeLocParser.createGenomeLoc(read).containsP(site) )
                     expectedReadsAtSite++;
             }
 
@@ -68,7 +68,7 @@ public class CoveredLocusViewUnitTest extends LocusViewTemplate {
             Assert.assertEquals(locusContext.getReads().size(), expectedReadsAtSite, "Found wrong number of reads at site");
 
             for( SAMRecord read: reads ) {
-                if(GenomeLocParser.createGenomeLoc(read).containsP(locusContext.getLocation()))
+                if(genomeLocParser.createGenomeLoc(read).containsP(locusContext.getLocation()))
                     Assert.assertTrue(locusContext.getReads().contains(read),"Target locus context does not contain reads");
             }
         }

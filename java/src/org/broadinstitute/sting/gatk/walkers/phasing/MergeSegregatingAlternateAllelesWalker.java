@@ -78,7 +78,7 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
 
     private void initializeVcfWriter() {
         // false <-> don't take control of writer, since didn't create it:
-        vcMergerWriter = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, useSingleSample, emitOnlyMergedRecords, logger, false, !disablePrintAlternateAlleleStatistics);
+        vcMergerWriter = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer,getToolkit().getGenomeLocParser(),getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, useSingleSample, emitOnlyMergedRecords, logger, false, !disablePrintAlternateAlleleStatistics);
         writer = null; // so it can't be accessed directly [i.e., not through vcMergerWriter]
 
         // setup the header fields:

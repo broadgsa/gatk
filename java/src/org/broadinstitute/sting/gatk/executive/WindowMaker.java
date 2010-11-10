@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import java.util.*;
 
 import net.sf.picard.util.PeekableIterator;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 /**
  * Buffer shards of data which may or may not contain multiple loci into
@@ -51,11 +52,11 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      * @param intervals The set of intervals over which to traverse.
      * @param discards a filter at that indicates read position relative to some locus?
      */
-    public WindowMaker(Shard shard, StingSAMIterator iterator, List<GenomeLoc> intervals, List<LocusIteratorFilter> discards ) {
+    public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals, List<LocusIteratorFilter> discards ) {
         this.sourceInfo = shard.getReadProperties();
         this.readIterator = iterator;
 
-        LocusIterator locusIterator = new LocusIteratorByState(iterator,sourceInfo,discards);
+        LocusIterator locusIterator = new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,discards);
 
         this.sourceIterator = new PeekableIterator<AlignmentContext>(locusIterator);
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;

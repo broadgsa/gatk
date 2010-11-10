@@ -21,13 +21,12 @@ import java.util.List;
 public class IntervalUtilsTest extends BaseTest {
     // used to seed the genome loc parser with a sequence dictionary
     private static ReferenceSequenceFile seq;
-
-
+    private GenomeLocParser genomeLocParser;
 
     @BeforeClass
     public void init() throws FileNotFoundException {
         seq = new IndexedFastaSequenceFile(new File(hg18Reference));
-        GenomeLocParser.setupRefContigOrdering(seq);
+        genomeLocParser = new GenomeLocParser(seq);
 
     }
 
@@ -40,9 +39,9 @@ public class IntervalUtilsTest extends BaseTest {
         // create the two lists we'll use
         for (int x = 1; x < 101; x++) {
             if (x % 2 == 0)
-                listEveryTwoFromTwo.add(GenomeLocParser.createGenomeLoc("chr1",x,x));
+                listEveryTwoFromTwo.add(genomeLocParser.createGenomeLoc("chr1",x,x));
             else
-                listEveryTwoFromOne.add(GenomeLocParser.createGenomeLoc("chr1",x,x));
+                listEveryTwoFromOne.add(genomeLocParser.createGenomeLoc("chr1",x,x));
         }
 
         List<GenomeLoc> ret = IntervalUtils.mergeListsBySetOperator(listEveryTwoFromTwo, listEveryTwoFromOne, IntervalSetRule.UNION);
@@ -60,8 +59,8 @@ public class IntervalUtilsTest extends BaseTest {
         // create the two lists we'll use
         for (int x = 1; x < 101; x++) {
             if (x % 2 == 0)
-                listEveryTwoFromTwo.add(GenomeLocParser.createGenomeLoc("chr1",x,x));
-            allSites.add(GenomeLocParser.createGenomeLoc("chr1",x,x));
+                listEveryTwoFromTwo.add(genomeLocParser.createGenomeLoc("chr1",x,x));
+            allSites.add(genomeLocParser.createGenomeLoc("chr1",x,x));
         }
 
         List<GenomeLoc> ret = IntervalUtils.mergeListsBySetOperator(listEveryTwoFromTwo, allSites, IntervalSetRule.UNION);
@@ -79,8 +78,8 @@ public class IntervalUtilsTest extends BaseTest {
         // create the two lists we'll use
         for (int x = 1; x < 101; x++) {
             if (x % 5 == 0) {
-                listEveryTwoFromTwo.add(GenomeLocParser.createGenomeLoc("chr1",x,x));
-                allSites.add(GenomeLocParser.createGenomeLoc("chr1",x,x));
+                listEveryTwoFromTwo.add(genomeLocParser.createGenomeLoc("chr1",x,x));
+                allSites.add(genomeLocParser.createGenomeLoc("chr1",x,x));
             }
         }
 

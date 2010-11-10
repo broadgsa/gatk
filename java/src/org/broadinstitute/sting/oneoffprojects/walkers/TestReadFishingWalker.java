@@ -130,7 +130,7 @@ public class TestReadFishingWalker extends ReadWalker<Integer,Long> {
             else
                 throw new ReviewedStingException("Invalid indel type: " + type);
 
-            aligners.put(GenomeLocParser.createGenomeLoc(contig,start,stop),new BWACAligner(revisedReference,new BWAConfiguration()));
+            aligners.put(getToolkit().getGenomeLocParser().createGenomeLoc(contig,start,stop),new BWACAligner(revisedReference,new BWAConfiguration()));
             if(++numAlignersCreated % 100 == 0)
                 out.printf("Created %d aligners in %dms%n",++numAlignersCreated,System.currentTimeMillis()-startTime);
         }

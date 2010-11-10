@@ -114,11 +114,10 @@ public class Haplotype {
 
 
         // Create location for all haplotypes
-        long startLoc = ref.getWindow().getStart() + startIdxInReference;
-        long stopLoc = startLoc + haplotypeSize-1;
+        int startLoc = ref.getWindow().getStart() + startIdxInReference;
+        int stopLoc = startLoc + haplotypeSize-1;
 
-        GenomeLoc locus = GenomeLocParser.createGenomeLoc(ref.getLocus().getContigIndex(),startLoc,
-                 stopLoc);
+        GenomeLoc locus = ref.getGenomeLocParser().createGenomeLoc(ref.getLocus().getContig(),startLoc,stopLoc);
 
 
         for (Allele a : vc.getAlleles()) {

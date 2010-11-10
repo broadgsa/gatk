@@ -57,11 +57,15 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
 
     @Test
     public void testOverlappingReferenceBases() {
-        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length())));
-        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, sequenceFile, null);
+        Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc(sequenceFile.getSequenceDictionary().getSequence(0).getSequenceName(),
+                                                                                                                   sequenceFile.getSequence("chrM").length() - 10,
+                                                                                                                   sequenceFile.getSequence("chrM").length())));
+        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, genomeLocParser, shard.getGenomeLocs().get(0), null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
-        byte[] results = view.getReferenceBases(GenomeLocParser.createGenomeLoc(0, sequenceFile.getSequence("chrM").length() - 10, sequenceFile.getSequence("chrM").length() + 9));
+        byte[] results = view.getReferenceBases(genomeLocParser.createGenomeLoc(sequenceFile.getSequenceDictionary().getSequence(0).getSequenceName(),
+                                                                                sequenceFile.getSequence("chrM").length() - 10,
+                                                                                sequenceFile.getSequence("chrM").length() + 9));
         System.out.printf("results are %s%n", new String(results));
         Assert.assertEquals(results.length, 20);
         for (int x = 0; x < results.length; x++) {
@@ -74,16 +78,16 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
     /** Queries outside the bounds of the shard should result in reference context window trimmed at the shard boundary. */
     @Test
     public void testBoundsFailure() {
-        Shard shard = new MockLocusShard(Collections.singletonList(GenomeLocParser.createGenomeLoc(0, 1, 50)));
+        Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc(sequenceFile.getSequenceDictionary().getSequence(0).getSequenceName(), 1, 50)));
 
-        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, shard.getGenomeLocs().get(0), null, sequenceFile, null);
+        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, genomeLocParser, shard.getGenomeLocs().get(0), null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
-        GenomeLoc locus = GenomeLocParser.createGenomeLoc(0, 50, 51);
+        GenomeLoc locus = genomeLocParser.createGenomeLoc(sequenceFile.getSequenceDictionary().getSequence(0).getSequenceName(), 50, 51);
 
         ReferenceContext rc = view.getReferenceContext(locus);
         Assert.assertTrue(rc.getLocus().equals(locus));
-        Assert.assertTrue(rc.getWindow().equals(GenomeLocParser.createGenomeLoc(0,50)));
+        Assert.assertTrue(rc.getWindow().equals(genomeLocParser.createGenomeLoc(sequenceFile.getSequenceDictionary().getSequence(0).getSequenceName(),50)));
         Assert.assertTrue(rc.getBases().length == 1);
     }
 
@@ -94,10 +98,10 @@ public class LocusReferenceViewUnitTest extends ReferenceViewTemplate {
      * @param loc
      */
     protected void validateLocation( GenomeLoc loc ) {
-        Shard shard = new MockLocusShard(Collections.singletonList(loc));
-        GenomeLocusIterator shardIterator = new GenomeLocusIterator(loc);
+        Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(loc));
+        GenomeLocusIterator shardIterator = new GenomeLocusIterator(genomeLocParser,loc);
 
-        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, loc, null, sequenceFile, null);
+        LocusShardDataProvider dataProvider = new LocusShardDataProvider(shard, null, genomeLocParser, loc, null, sequenceFile, null);
         LocusReferenceView view = new LocusReferenceView(dataProvider);
 
         while (shardIterator.hasNext()) {

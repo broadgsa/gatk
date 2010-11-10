@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
@@ -38,21 +39,26 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
+    /**
+     * The parser, used to construct new genome locs.
+     */
+    private final GenomeLocParser parser;
+
     private PushbackIterator<GATKFeature> it;
     List<GATKFeature> records = null;  // here we will keep a pile of records overlaping with current position; when we iterate
                                // and step out of record's scope, we purge it from the list
     String name = null; // name of the ROD track wrapped by this iterator. Will be pulled from underlying iterator.
 
-    long curr_position = 0; // where the iterator is currently positioned on the genome
-    long max_position = 0;  // the rightmost stop position of currently loaded records
-    int curr_contig = -1;   // what contig the iterator is currently on
+    int curr_position = 0; // where the iterator is currently positioned on the genome
+    int max_position = 0;  // the rightmost stop position of currently loaded records
+    String curr_contig = null;   // what contig the iterator is currently on
     boolean next_is_allowed = true; // see discussion below. next() is illegal after seek-forward queries of length > 1
 
     // the stop position of the last query. We can query only in forward direction ("seek forward");
     // it is not only the start position of every successive query that can not be before the start
     // of the previous one (curr_start), but it is also illegal for a query interval to *end* before
     // the end of previous query, otherwise we can end up in an inconsistent state
-    long curr_query_end = -1;
+    int curr_query_end = -1;
 
     // EXAMPLE of inconsistency curr_query_end guards against:
     //              record 1      record 2
@@ -80,7 +86,8 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
     // This implementation tracks the query history and makes next() illegal after a seekforward query of length > 1,
     // but re-enables next() again after a length-1 query.
 
-    public SeekableRODIterator(CloseableIterator<GATKFeature> it) {
+    public SeekableRODIterator(SAMSequenceDictionary dictionary,GenomeLocParser parser,CloseableIterator<GATKFeature> it) {
+        this.parser = parser;
         this.it = new PushbackIterator<GATKFeature>(it);
         records = new LinkedList<GATKFeature>();
         // the following is a trick: we would like the iterator to know the actual name assigned to
@@ -91,6 +98,8 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
         GATKFeature r = null;
         if (this.it.hasNext()) r = this.it.element();
         name = (r==null?null:r.getName());
+
+        curr_contig = dictionary.getSequence(0).getSequenceName();
     }
 
     /**
@@ -111,14 +120,14 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
     // Returns point location (i.e. genome loc of length 1) on the reference, to which this iterator will advance
     // upon next call to next().
     public GenomeLoc peekNextLocation() {
-        if ( curr_position + 1 <= max_position ) return GenomeLocParser.createGenomeLoc(curr_contig,curr_position+1);
+        if ( curr_position + 1 <= max_position ) return parser.createGenomeLoc(curr_contig,curr_position+1);
 
         // sorry, next reference position is not covered by the RODs we are currently holding. In this case,
         // the location we will jump to upon next call to next() is the start of the next ROD record that we did
         // not read yet:
         if ( it.hasNext() ) {
             GATKFeature r = it.element(); // peek, do not load!
-            return GenomeLocParser.createGenomeLoc(r.getLocation().getContigIndex(),r.getLocation().getStart());
+            return parser.createGenomeLoc(r.getLocation().getContig(),r.getLocation().getStart());
         }
         return null; // underlying iterator has no more records, there is no next location!
     }
@@ -147,7 +156,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
              records.clear();
              GATKFeature r = it.next(); // if hasNext() previously returned true, we are guaranteed that this call to reader.next() is safe
              records.add( r );
-             curr_contig = r.getLocation().getContigIndex();
+             curr_contig = r.getLocation().getContig();
              curr_position = r.getLocation().getStart();
              max_position = r.getLocation().getStop();
          }
@@ -163,11 +172,14 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
                  it.next();
                  continue;
              }
-             int that_contig = r.getLocation().getContigIndex();
-             if ( curr_contig > that_contig )
+
+             GenomeLoc currentContig = parser.createOverEntireContig(curr_contig);
+             GenomeLoc thatContig = r.getLocation();
+
+             if ( currentContig.isPast(thatContig) )
                  throw new UserException("LocationAwareSeekableRODIterator: contig " +r.getLocation().getContig() +
                          " occurs out of order in track " + r.getName() );
-             if ( curr_contig < that_contig ) break; // next record is on a higher contig, we do not need it yet...
+             if ( currentContig.isBefore(thatContig) ) break; // next record is on a higher contig, we do not need it yet...
 
              if ( r.getLocation().getStart() < curr_position )
                  throw new UserException("LocationAwareSeekableRODIterator: track "+r.getName() +
@@ -177,7 +189,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
 
              r = it.next(); // we got here only if we do need next record, time to load it for real
 
-             long stop = r.getLocation().getStop();
+             int stop = r.getLocation().getStop();
              if ( stop < curr_position ) throw new ReviewedStingException("DEBUG: encountered contig that should have been loaded earlier"); // this should never happen
              if ( stop > max_position ) max_position = stop; // max_position keeps the rightmost stop position across all loaded records
              records.add(r);
@@ -186,7 +198,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
          // 'records' and current position are fully updated. Last, we need to set the location of the whole track
         // (collection of ROD records) to the genomic site we are currently looking at, and return the list
 
-         return new RODRecordListImpl(name,records, GenomeLocParser.createGenomeLoc(curr_contig,curr_position));
+         return new RODRecordListImpl(name,records, parser.createGenomeLoc(curr_contig,curr_position));
      }
 
     /**
@@ -218,13 +230,13 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
      * @return Current ending position of the iterator, or null if no position exists.
      */
     public GenomeLoc position() {
-        if ( curr_contig < 0 ) return null;
+        if ( curr_contig == null ) return null;
         if ( curr_query_end > curr_position )  {
             // do not attempt to reuse this iterator if the position we need it for lies before the end of last query performed
-            return GenomeLocParser.createGenomeLoc(curr_contig,curr_query_end,curr_query_end);
+            return parser.createGenomeLoc(curr_contig,curr_query_end,curr_query_end);
         }
         else {
-            return GenomeLocParser.createGenomeLoc(curr_contig,curr_position);
+            return parser.createGenomeLoc(curr_contig,curr_position);
         }
     }
 
@@ -256,10 +268,11 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
      */
     public RODRecordList seekForward(GenomeLoc interval) {
 
-        if ( interval.getContigIndex() < curr_contig )
+        if ( interval.isBefore(parser.createOverEntireContig(curr_contig)) &&
+             !(interval.getStart() == 0 && interval.getStop() == 0 && interval.getContig().equals(curr_contig)) ) // This criteria is syntactic sugar for 'seek to right before curr_contig'
             throw new ReviewedStingException("Out of order query: query contig "+interval.getContig()+" is located before "+
                                      "the iterator's current contig");
-        if ( interval.getContigIndex() == curr_contig ) {
+        if ( interval.getContig().equals(curr_contig) ) {
             if ( interval.getStart() < curr_position )
                 throw new ReviewedStingException("Out of order query: query position "+interval +" is located before "+
                         "the iterator's current position "+curr_contig + ":" + curr_position);
@@ -273,7 +286,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
 
         next_is_allowed = ( curr_position == curr_query_end ); // we can call next() later only if interval length is 1
 
-        if (  interval.getContigIndex() == curr_contig &&  curr_position <= max_position ) {
+        if (  interval.getContig().equals(curr_contig) &&  curr_position <= max_position ) {
             // some of the intervals we are currently keeping do overlap with the query interval
 
             purgeOutOfScopeRecords();
@@ -281,7 +294,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
             // clean up and get ready for fast-forwarding towards the requested position
             records.clear();
             max_position = -1;
-            curr_contig = interval.getContigIndex();
+            curr_contig = interval.getContig();
         }
 
         // curr_contig and curr_position are set to where we asked to scroll to
@@ -289,10 +302,12 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
         while ( it.hasNext() ) {
             GATKFeature r = it.next();
             if ( r == null ) continue;
-            int that_contig = r.getLocation().getContigIndex();
 
-            if ( curr_contig > that_contig ) continue; // did not reach requested contig yet
-            if ( curr_contig < that_contig ) {
+            GenomeLoc currentContig = parser.createOverEntireContig(curr_contig);
+            GenomeLoc thatContig = r.getLocation();
+
+            if ( currentContig.isPast(thatContig) ) continue; // did not reach requested contig yet
+            if ( currentContig.isBefore(thatContig) ) {
                 it.pushback(r); // next record is on the higher contig, we do not need it yet...
                 break;
             }
@@ -340,4 +355,5 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
     public void close() {
         if (this.it != null) ((CloseableIterator)this.it.getUnderlyingIterator()).close();
     }
+
 }

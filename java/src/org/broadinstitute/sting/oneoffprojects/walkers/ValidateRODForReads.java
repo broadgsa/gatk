@@ -28,9 +28,9 @@ public class ValidateRODForReads extends ReadWalker<Integer, Integer> {
     @Override
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker tracker) {
         if (tracker != null) {
-            Map<Long, Collection<GATKFeature>> mapping = tracker.getContigOffsetMapping();
-            for (Map.Entry<Long, Collection<GATKFeature>> entry : mapping.entrySet()) {
-                GenomeLoc location = GenomeLocParser.createGenomeLoc(read.getReferenceIndex(),entry.getKey());
+            Map<Integer, Collection<GATKFeature>> mapping = tracker.getContigOffsetMapping();
+            for (Map.Entry<Integer, Collection<GATKFeature>> entry : mapping.entrySet()) {
+                GenomeLoc location = ref.getGenomeLocParser().createGenomeLoc(read.getReferenceName(),entry.getKey());
                 if (!map.containsKey(location)) {
                     map.put(location,0);
                 }

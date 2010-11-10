@@ -165,10 +165,10 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     public void writeBeagleOutput(VariantContext preferredVC, VariantContext otherVC, boolean isValidationSite, double prior) {
-        GenomeLoc currentLoc = VariantContextUtils.getLocation(preferredVC);
+        GenomeLoc currentLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),preferredVC);
         beagleWriter.print(String.format("%s:%d ",currentLoc.getContig(),currentLoc.getStart()));
         if ( beagleGenotypesWriter != null ) {
-            beagleGenotypesWriter.print(String.format("%s ",VariantContextUtils.getLocation(preferredVC).toString()));
+            beagleGenotypesWriter.print(String.format("%s ",VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),preferredVC).toString()));
         }
 
         for ( Allele allele : preferredVC.getAlleles() ) {

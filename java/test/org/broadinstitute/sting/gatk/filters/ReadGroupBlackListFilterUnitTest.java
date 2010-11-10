@@ -43,8 +43,6 @@ public class ReadGroupBlackListFilterUnitTest extends BaseTest {
             groupRecord.setAttribute("PL", PLATFORM_PREFIX + (((i-1)%2)+1));
             groupRecord.setAttribute("PU", PLATFORM_UNIT_PREFIX + (((i-1)%3)+1));
         }
-
-        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
     }
 
     @Test(expectedExceptions=ReviewedStingException.class)

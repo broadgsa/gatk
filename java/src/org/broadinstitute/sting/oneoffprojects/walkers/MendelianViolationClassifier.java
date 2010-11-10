@@ -237,7 +237,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         }
 
         public GenomeLoc getLocus() {
-            return VariantContextUtils.getLocation(trio);
+            return VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),trio);
         }
 
         public byte getRefBase() {
@@ -623,7 +623,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                 logger.info(String.format("%s,%s,%s,%d,%d",entryRegion.getKey(),entryRegion.getValue().regionStart,entryRegion.getValue().lastSeen,
                         entryRegion.getValue().deNovoSNPsInRegion,entryRegion.getValue().oppositeHomsInRegion));
                 int chr_end = getToolkit().getSAMFileHeader().getSequenceDictionary().getSequence(entryRegion.getValue().getContigStr()).getSequenceLength();
-                entryRegion.getValue().endedBy = GenomeLocParser.createGenomeLoc(entryRegion.getValue().getContigStr(),chr_end,chr_end);
+                entryRegion.getValue().endedBy = getToolkit().getGenomeLocParser().createGenomeLoc(entryRegion.getValue().getContigStr(),chr_end,chr_end);
                 to_print.add(entryRegion.getValue());
             }
         }

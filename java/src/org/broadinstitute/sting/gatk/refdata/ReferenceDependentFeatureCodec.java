@@ -22,18 +22,21 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.refdata;
+
+import org.broad.tribble.FeatureCodec;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 /**
- * A suite of utilities for working with the GenomeLocParser
- * in the context of the sequence dictionary.
+ * An interface marking that a given Tribble feature/codec is actually dependent on context within the
+ * reference, rather than having a dependency only on the contig, start, and stop of the given feature.
+ * A HACK.  Tribble should contain all the information in needs to decode the unqualified position of
+ * a feature.
  */
-public class GenomeLocParserTestUtils {
+public interface ReferenceDependentFeatureCodec<T extends org.broad.tribble.Feature> extends FeatureCodec<T> {
     /**
-     * Clear out the sequence dictionary associated with
-     * the genomeloc creator.
+     * Sets the appropriate GenomeLocParser, providing additional context when decoding larger and more variable features.
+     * @param genomeLocParser The parser to supply. 
      */
-    public static void clearSequenceDictionary() {
-        GenomeLocParser.clearRefContigOrdering();    
-    }
+    public void setGenomeLocParser(GenomeLocParser genomeLocParser);
 }

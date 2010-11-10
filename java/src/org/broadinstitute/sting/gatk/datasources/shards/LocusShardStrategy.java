@@ -58,14 +58,14 @@ public class LocusShardStrategy implements ShardStrategy {
      * @param reads Data source from which to load index data.
      * @param locations List of locations for which to load data.
      */
-    LocusShardStrategy(SAMDataSource reads, IndexedFastaSequenceFile reference, GenomeLocSortedSet locations) {
+    LocusShardStrategy(SAMDataSource reads, IndexedFastaSequenceFile reference, GenomeLocParser genomeLocParser, GenomeLocSortedSet locations) {
         this.reads = reads;
         if(!reads.isEmpty()) {
-            List<GenomeLoc> intervals;
+            GenomeLocSortedSet intervals;
             if(locations == null) {
                 // If no locations were passed in, shard the entire BAM file.
                 SAMFileHeader header = reads.getHeader();
-                intervals = new ArrayList<GenomeLoc>();
+                intervals = new GenomeLocSortedSet(genomeLocParser);
 
                 for(SAMSequenceRecord readsSequenceRecord: header.getSequenceDictionary().getSequences()) {
                     // Check this sequence against the reference sequence dictionary.
@@ -73,12 +73,12 @@ public class LocusShardStrategy implements ShardStrategy {
                     SAMSequenceRecord refSequenceRecord = reference.getSequenceDictionary().getSequence(readsSequenceRecord.getSequenceName());
                     if(refSequenceRecord != null) {
                         final int length = Math.min(readsSequenceRecord.getSequenceLength(),refSequenceRecord.getSequenceLength());
-                        intervals.add(GenomeLocParser.createGenomeLoc(readsSequenceRecord.getSequenceName(),1,length));
+                        intervals.add(genomeLocParser.createGenomeLoc(readsSequenceRecord.getSequenceName(),1,length));
                     }
                 }
             }
             else
-                intervals = locations.toList();
+                intervals = locations;
 
             this.filePointerIterator = IntervalSharder.shardIntervals(this.reads,intervals);
         }
@@ -89,15 +89,15 @@ public class LocusShardStrategy implements ShardStrategy {
                 for(SAMSequenceRecord refSequenceRecord: reference.getSequenceDictionary().getSequences()) {
                     for(int shardStart = 1; shardStart <= refSequenceRecord.getSequenceLength(); shardStart += maxShardSize) {
                         final int shardStop = Math.min(shardStart+maxShardSize-1, refSequenceRecord.getSequenceLength());
-                        filePointers.add(new FilePointer(GenomeLocParser.createGenomeLoc(refSequenceRecord.getSequenceName(),shardStart,shardStop)));
+                        filePointers.add(new FilePointer(genomeLocParser.createGenomeLoc(refSequenceRecord.getSequenceName(),shardStart,shardStop)));
                     }
                 }
             }
             else {
                 for(GenomeLoc interval: locations) {
                     while(interval.size() > maxShardSize) {
-                        filePointers.add(new FilePointer(GenomeLocParser.createGenomeLoc(interval.getContig(),interval.getStart(),interval.getStart()+maxShardSize-1)));
-                        interval = GenomeLocParser.createGenomeLoc(interval.getContig(),interval.getStart()+maxShardSize,interval.getStop());
+                        filePointers.add(new FilePointer(locations.getGenomeLocParser().createGenomeLoc(interval.getContig(),interval.getStart(),interval.getStart()+maxShardSize-1)));
+                        interval = locations.getGenomeLocParser().createGenomeLoc(interval.getContig(),interval.getStart()+maxShardSize,interval.getStop());
                     }
                     filePointers.add(new FilePointer(interval));
                 }

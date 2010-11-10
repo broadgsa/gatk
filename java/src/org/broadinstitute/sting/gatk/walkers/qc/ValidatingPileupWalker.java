@@ -87,11 +87,11 @@ public class ValidatingPileupWalker extends LocusWalker<Integer, ValidationStats
             return x;
     }
 
-    public static String pileupDiff(final ReadBackedPileup a, final SAMPileupFeature b, boolean orderDependent)
+    public String pileupDiff(final ReadBackedPileup a, final SAMPileupFeature b, boolean orderDependent)
     {
         if ( a.size() != b.size() )
             return "Sizes not equal";
-        GenomeLoc featureLocation = GenomeLocParser.createGenomeLoc(b.getChr(),b.getStart(),b.getEnd());
+        GenomeLoc featureLocation = getToolkit().getGenomeLocParser().createGenomeLoc(b.getChr(),b.getStart(),b.getEnd());
         if ( a.getLocation().compareTo(featureLocation) != 0 )
             return "Locations not equal";
 

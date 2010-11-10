@@ -33,21 +33,34 @@ import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
+import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 
-public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTableFeature> {
+public class AnnotatorInputTableCodec implements ReferenceDependentFeatureCodec<AnnotatorInputTableFeature> {
 
     private static Logger logger = Logger.getLogger(AnnotatorInputTableCodec.class);
 
     public static final String DELIMITER = "\t";
 
     private ArrayList<String> header;
+
+    /**
+     * The parser to use when resolving genome-wide locations.
+     */
+    private GenomeLocParser genomeLocParser;
+
+    /**
+     * Set the parser to use when resolving genetic data.
+     * @param genomeLocParser The supplied parser.
+     */
+    public void setGenomeLocParser(GenomeLocParser genomeLocParser) {
+        this.genomeLocParser =  genomeLocParser;
+    }
 
     /**
      * Parses the header.
@@ -80,9 +93,9 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
         GenomeLoc loc;
         String chr = st.nextToken();
         if ( chr.indexOf(":") != -1 )
-            loc = GenomeLocParser.parseGenomeInterval(chr);
+            loc = genomeLocParser.parseGenomeInterval(chr);
         else
-            loc = GenomeLocParser.createGenomeLoc(chr, Integer.valueOf(st.nextToken()), Integer.valueOf(st.nextToken()));
+            loc = genomeLocParser.createGenomeLoc(chr, Integer.valueOf(st.nextToken()), Integer.valueOf(st.nextToken()));
         return new AnnotatorInputTableFeature(loc.getContig(), (int)loc.getStart(), (int)loc.getStop());
     }
 
@@ -107,9 +120,9 @@ public class AnnotatorInputTableCodec implements FeatureCodec<AnnotatorInputTabl
 
         GenomeLoc loc;
         if ( values.get(0).indexOf(":") != -1 )
-            loc = GenomeLocParser.parseGenomeInterval(values.get(0));
+            loc = genomeLocParser.parseGenomeInterval(values.get(0));
         else
-            loc = GenomeLocParser.createGenomeLoc(values.get(0), Integer.valueOf(values.get(1)), Integer.valueOf(values.get(2)));
+            loc = genomeLocParser.createGenomeLoc(values.get(0), Integer.valueOf(values.get(1)), Integer.valueOf(values.get(2)));
 
         //parse the location
         feature.setChr(loc.getContig());

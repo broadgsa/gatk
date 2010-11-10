@@ -56,10 +56,12 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
     private static SAMFileHeader header;
     private Set<String> nameSet;
 
+    private GenomeLocParser genomeLocParser;
+
     @BeforeClass
     public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader((endingChr - startingChr) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
-        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
+        genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
     }
 
     @BeforeMethod
@@ -75,7 +77,7 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        for (Long x : tracker.getReadOffsetMapping().keySet()) {
+        for (Integer x : tracker.getReadOffsetMapping().keySet()) {
             count++;
             Assert.assertEquals(tracker.getReadOffsetMapping().get(x).size(), 2);
         }
@@ -89,7 +91,7 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        for (Long x : tracker.getReadOffsetMapping().keySet()) {
+        for (Integer x : tracker.getReadOffsetMapping().keySet()) {
             count++;
             Assert.assertEquals(tracker.getReadOffsetMapping().get(x).size(), 1);
         }
@@ -103,8 +105,8 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping("default");
-        for (Long x : map.keySet()) {
+        Map<Integer, Collection<GATKFeature>> map = tracker.getReadOffsetMapping("default");
+        for (Integer x : map.keySet()) {
             count++;
             Assert.assertEquals(map.get(x).size(), 1);
         }
@@ -117,8 +119,8 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
         ReadMetaDataTracker tracker = getRMDT(1, nameSet, false);  // create both RODs of the same type
         // count the positions
         int count = 0;
-        Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
-        for (Long x : map.keySet()) {
+        Map<Integer, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
+        for (Integer x : map.keySet()) {
             count++;
             Assert.assertEquals(map.get(x).size(), 2);
         }
@@ -136,8 +138,8 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
                 ReadMetaDataTracker tracker = getRMDT(1, nameSet, false);  // create both RODs of the same type
                 // count the positions
                 int count = 0;
-                Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
-                for (Long x : map.keySet()) {
+                Map<Integer, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(FakeRODatum.class);
+                for (Integer x : map.keySet()) {
                     count++;
                     Assert.assertEquals(map.get(x).size(), y + 2);
                 }
@@ -155,8 +157,8 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        Map<Long, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(Fake2RODatum.class);
-        for (long x : map.keySet()) {
+        Map<Integer, Collection<GATKFeature>> map = tracker.getReadOffsetMapping(Fake2RODatum.class);
+        for (int x : map.keySet()) {
             count++;
             Assert.assertEquals(map.get(x).size(), 1);
         }
@@ -169,7 +171,7 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        for (Long x : tracker.getReadOffsetMapping().keySet()) {
+        for (Integer x : tracker.getReadOffsetMapping().keySet()) {
             count++;
             Assert.assertEquals(tracker.getReadOffsetMapping().get(x).size(), 1);
         }
@@ -182,7 +184,7 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
 
         // count the positions
         int count = 0;
-        for (Long x : tracker.getContigOffsetMapping().keySet()) {
+        for (Integer x : tracker.getContigOffsetMapping().keySet()) {
             count++;
             Assert.assertEquals(tracker.getContigOffsetMapping().get(x).size(), 1);
         }
@@ -200,9 +202,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
      */
     private ReadMetaDataTracker getRMDT(int incr, Set<String> names, boolean alternateTypes) {
         SAMRecord record = ArtificialSAMUtils.createArtificialRead(header, "name", 0, 1, 10);
-        TreeMap<Long, RODMetaDataContainer> data = new TreeMap<Long, RODMetaDataContainer>();
+        TreeMap<Integer, RODMetaDataContainer> data = new TreeMap<Integer, RODMetaDataContainer>();
         for (int x = 0; x < record.getAlignmentEnd(); x += incr) {
-            GenomeLoc loc = GenomeLocParser.createGenomeLoc(record.getReferenceIndex(), record.getAlignmentStart() + x, record.getAlignmentStart() + x);
+            GenomeLoc loc = genomeLocParser.createGenomeLoc(record.getReferenceName(), record.getAlignmentStart() + x, record.getAlignmentStart() + x);
             RODMetaDataContainer set = new RODMetaDataContainer();
 
             int cnt = 0;
@@ -213,9 +215,9 @@ public class ReadMetaDataTrackerUnitTest extends BaseTest {
                     set.addEntry(new FakeRODatum(loc, name));
                 cnt++;
             }
-            data.put((long) record.getAlignmentStart() + x, set);
+            data.put(record.getAlignmentStart() + x, set);
         }
-        ReadMetaDataTracker tracker = new ReadMetaDataTracker(record, data);
+        ReadMetaDataTracker tracker = new ReadMetaDataTracker(genomeLocParser, record, data);
         return tracker;
     }
 

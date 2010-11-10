@@ -13,8 +13,8 @@ class PipelineUtils {
 object PipelineUtils{
 
   def smartSplitContigs(reference: File, intervals: File, sets: Int) : List[List[String]] = {
-    GenomeLocParser.setupRefContigOrdering(ReferenceSequenceFileFactory.getReferenceSequenceFile(reference))
-    val targets = IntervalUtils.parseIntervalArguments(List(intervals.getAbsolutePath), false)
+    var genomeLocParser: GenomeLocParser = new GenomeLocParser(ReferenceSequenceFileFactory.getReferenceSequenceFile(reference))
+    val targets = IntervalUtils.parseIntervalArguments(genomeLocParser,List(intervals.getAbsolutePath), false)
 
     // Build up a map of contigs with sizes.
     var contigSizes = Map.empty[String, Long]

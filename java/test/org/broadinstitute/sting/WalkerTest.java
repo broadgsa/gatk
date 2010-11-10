@@ -30,7 +30,6 @@ import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
-import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
@@ -311,8 +310,6 @@ public class WalkerTest extends BaseTest {
      * @return a pair of file and string lists
      */
     private Pair<List<File>, List<String>> executeTest(String name, List<String> md5s, List<File> tmpFiles, String args, Class expectedException) {
-        GenomeLocParserTestUtils.clearSequenceDictionary();
-
         CommandLineGATK instance = new CommandLineGATK();
         String[] command;
 

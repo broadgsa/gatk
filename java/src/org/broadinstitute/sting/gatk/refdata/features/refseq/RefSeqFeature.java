@@ -25,15 +25,8 @@ public class RefSeqFeature implements Transcript, Feature {
     private List<Integer> exon_frames;
     private String name;
 
-    // store the contig, start, and stop for this record
-    private final String contig;
-    private final int start;
-    private final int stop;
-
-    public RefSeqFeature(String contig, int start, int stop) {
-        this.contig = contig;
-        this.start = start;
-        this.stop = stop;
+    public RefSeqFeature(GenomeLoc genomeLoc) {
+        this.transcript_interval = genomeLoc;
     }
 
     /** Returns id of the transcript (RefSeq NM_* id) */
@@ -44,8 +37,6 @@ public class RefSeqFeature implements Transcript, Feature {
 
     /** Returns transcript's full genomic interval (includes all exons with UTRs) */
     public GenomeLoc getLocation() {
-        if (transcript_interval == null)
-            transcript_interval = GenomeLocParser.parseGenomeLoc(contig,start,stop);
         return transcript_interval;
     }
 
@@ -270,16 +261,16 @@ public class RefSeqFeature implements Transcript, Feature {
 
     @Override
     public String getChr() {
-        return contig;
+        return transcript_interval.getContig();
     }
 
     @Override
     public int getStart() {
-        return start;
+        return transcript_interval.getStart();
     }
 
     @Override
     public int getEnd() {
-        return stop;
+        return transcript_interval.getStop();
     }
 }

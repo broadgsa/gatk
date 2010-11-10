@@ -61,11 +61,11 @@ public class ShardTraverser implements Callable {
 
             Object accumulator = walker.reduceInit();
             LocusWalker lWalker = (LocusWalker)walker;
-            WindowMaker windowMaker = new WindowMaker(shard,microScheduler.getReadIterator(shard),shard.getGenomeLocs(),lWalker.getDiscards());
+            WindowMaker windowMaker = new WindowMaker(shard,microScheduler.getEngine().getGenomeLocParser(),microScheduler.getReadIterator(shard),shard.getGenomeLocs(),lWalker.getDiscards());
             ShardDataProvider dataProvider = null;
 
             for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
-                dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
+                dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),microScheduler.getEngine().getGenomeLocParser(),iterator.getLocus(),iterator,microScheduler.reference,microScheduler.rods);
                 accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
                 dataProvider.close();
             }

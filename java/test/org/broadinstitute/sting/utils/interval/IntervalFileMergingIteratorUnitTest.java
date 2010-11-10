@@ -55,23 +55,25 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
         private static List<GenomeLoc> results1 = null;
         private static List<GenomeLoc> results2 = null;
 
+    private GenomeLocParser genomeLocParser;
+
         @BeforeClass
         public void init() {
-            GenomeLocParser.setupRefContigOrdering(ReferenceSequenceFileFactory.getReferenceSequenceFile(refFile));
+            genomeLocParser = new GenomeLocParser(ReferenceSequenceFileFactory.getReferenceSequenceFile(refFile));
 
             results1 = new ArrayList<GenomeLoc>();
             results2 = new ArrayList<GenomeLoc>();
 
-            results1.add(GenomeLocParser.createGenomeLoc("chr1",1554));
-            results1.add(GenomeLocParser.createGenomeLoc("chr1",2538,2568));
-            results1.add(GenomeLocParser.createGenomeLoc("chr1",18932,19000));
-            results1.add(GenomeLocParser.createGenomeLoc("chr1",19001,25000));
-            results1.add(GenomeLocParser.createGenomeLoc("chr5",7415,7600));
+            results1.add(genomeLocParser.createGenomeLoc("chr1",1554));
+            results1.add(genomeLocParser.createGenomeLoc("chr1",2538,2568));
+            results1.add(genomeLocParser.createGenomeLoc("chr1",18932,19000));
+            results1.add(genomeLocParser.createGenomeLoc("chr1",19001,25000));
+            results1.add(genomeLocParser.createGenomeLoc("chr5",7415,7600));
 
-            results2.add(GenomeLocParser.createGenomeLoc("chr1",1554));
-            results2.add(GenomeLocParser.createGenomeLoc("chr1",2538,2568));
-            results2.add(GenomeLocParser.createGenomeLoc("chr1",18932,25000));
-            results2.add(GenomeLocParser.createGenomeLoc("chr5",7415,7600));
+            results2.add(genomeLocParser.createGenomeLoc("chr1",1554));
+            results2.add(genomeLocParser.createGenomeLoc("chr1",2538,2568));
+            results2.add(genomeLocParser.createGenomeLoc("chr1",18932,25000));
+            results2.add(genomeLocParser.createGenomeLoc("chr5",7415,7600));
 
         }
 
@@ -79,7 +81,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
         public void testGATKIntervalFileIterator_Overlap() {
             logger.warn("Executing testGATKIntervalFileIterator_Overlap");
 
-            Iterator<GenomeLoc> it = new IntervalFileMergingIterator(new File(intervalFileNameGATK),IntervalMergingRule.OVERLAPPING_ONLY);
+            Iterator<GenomeLoc> it = new IntervalFileMergingIterator(genomeLocParser,new File(intervalFileNameGATK),IntervalMergingRule.OVERLAPPING_ONLY);
             Iterator<GenomeLoc> check_it = results1.iterator();
             while(it.hasNext()) {
                     GenomeLoc l = it.next();
@@ -93,7 +95,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
       public void testGATKIntervalFileIterator_OverlapWithException() {
             logger.warn("Executing testGATKIntervalFileIterator_OverlapWithException");
 
-            Iterator<GenomeLoc> it = new IntervalFileMergingIterator(new File(intervalFileNameGATK),IntervalMergingRule.OVERLAPPING_ONLY);
+            Iterator<GenomeLoc> it = new IntervalFileMergingIterator(genomeLocParser,new File(intervalFileNameGATK),IntervalMergingRule.OVERLAPPING_ONLY);
             Iterator<GenomeLoc> check_it = results1.iterator();
             try {
                 while(it.hasNext()) {
@@ -110,7 +112,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
      public void testGATKIntervalFileIterator_All() {
         logger.warn("Executing testGATKIntervalFileIterator_All");
 
-        Iterator<GenomeLoc> it = new IntervalFileMergingIterator(new File(intervalFileNameGATK),IntervalMergingRule.ALL);
+        Iterator<GenomeLoc> it = new IntervalFileMergingIterator(genomeLocParser,new File(intervalFileNameGATK),IntervalMergingRule.ALL);
         Iterator<GenomeLoc> check_it = results2.iterator();
         while(it.hasNext()) {
                 GenomeLoc l = it.next();
@@ -124,7 +126,7 @@ public class IntervalFileMergingIteratorUnitTest extends BaseTest {
     public void testBEDIntervalFileIterator_Overlap() {
         logger.warn("Executing testBEDIntervalFileIterator_Overlap");
 
-        Iterator<GenomeLoc> it = new IntervalFileMergingIterator(new File(intervalFileNameBED),IntervalMergingRule.OVERLAPPING_ONLY);
+        Iterator<GenomeLoc> it = new IntervalFileMergingIterator(genomeLocParser,new File(intervalFileNameBED),IntervalMergingRule.OVERLAPPING_ONLY);
         Iterator<GenomeLoc> check_it = results1.iterator();
         while(it.hasNext()) {
                 GenomeLoc l = it.next();

@@ -15,6 +15,7 @@ import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -71,7 +72,7 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
 
     private void finalUpdate(OverlapTabulator tab) {
         while ( ! evalContexts.isEmpty() ) {
-            tab.update(emptyOverlapTable());
+            tab.update(emptyOverlapTable(getToolkit().getGenomeLocParser()));
         }
     }
 
@@ -119,25 +120,25 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
 
     public OverlapTable getOverlapTable(ReferenceContext ref) {
         // step 1: check that the eval queue is non-empty and that we are outside the window
-        if ( evalContexts.isEmpty() || VariantContextUtils.getLocation(evalContexts.get(0)).distance(ref.getLocus()) <= indelWindow ) {
+        if ( evalContexts.isEmpty() || VariantContextUtils.getLocation(ref.getGenomeLocParser(),evalContexts.get(0)).distance(ref.getLocus()) <= indelWindow ) {
             return null;
         }
         // step 2: discard all comp variations which come before the window
-        while ( ! compContexts.isEmpty() && VariantContextUtils.getLocation(compContexts.get(0)).isBefore(ref.getLocus()) &&
-                VariantContextUtils.getLocation(compContexts.get(0)).distance(ref.getLocus()) > indelWindow) {
+        while ( ! compContexts.isEmpty() && VariantContextUtils.getLocation(ref.getGenomeLocParser(),compContexts.get(0)).isBefore(ref.getLocus()) &&
+                VariantContextUtils.getLocation(ref.getGenomeLocParser(),compContexts.get(0)).distance(ref.getLocus()) > indelWindow) {
             compContexts.remove(0);
         }
         // step 3: see if there are any contexts left; if so then they must be within the window
         if ( ! compContexts.isEmpty() ) {
             return nonEmptyOverlapTable(ref);
         } else {
-            return emptyOverlapTable();
+            return emptyOverlapTable(ref.getGenomeLocParser());
         }
     }
 
-    public OverlapTable emptyOverlapTable() {
+    public OverlapTable emptyOverlapTable(GenomeLocParser genomeLocParser) {
         // only eval, no comp
-        OverlapTable ot = new OverlapTable();
+        OverlapTable ot = new OverlapTable(genomeLocParser);
         ot.setEvalSizeAndType(evalContexts.get(0));
         return ot;
     }
@@ -145,17 +146,17 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
     public OverlapTable nonEmptyOverlapTable(ReferenceContext ref) {
         if ( vcfWriter != null ) {
             int i = 0;
-            while ( i < compContexts.size() && VariantContextUtils.getLocation(compContexts.get(i)).isBefore(VariantContextUtils.getLocation(evalContexts.get(0)))) {
+            while ( i < compContexts.size() && VariantContextUtils.getLocation(ref.getGenomeLocParser(),compContexts.get(i)).isBefore(VariantContextUtils.getLocation(ref.getGenomeLocParser(),evalContexts.get(0)))) {
                 vcfWriter.add(compContexts.get(i),compContexts.get(i).getReference().getBases()[0]);
                 i++;
             }
             vcfWriter.add(evalContexts.get(0), ref.getBase());
-            while ( i < compContexts.size() && VariantContextUtils.getLocation(compContexts.get(i)).distance(VariantContextUtils.getLocation(evalContexts.get(0))) <= indelWindow) {
+            while ( i < compContexts.size() && VariantContextUtils.getLocation(ref.getGenomeLocParser(),compContexts.get(i)).distance(VariantContextUtils.getLocation(ref.getGenomeLocParser(),evalContexts.get(0))) <= indelWindow) {
                 vcfWriter.add(compContexts.get(i), compContexts.get(i).getReference().getBases()[0]);
                 i++;
             }
         }
-        OverlapTable ot = new OverlapTable();
+        OverlapTable ot = new OverlapTable(ref.getGenomeLocParser());
         ot.setCompOverlaps(compContexts.size());
         ot.setDistances(compContexts,evalContexts.get(0), indelWindow);
         return ot;
@@ -164,13 +165,15 @@ public class IndelDBRateWalker extends RodWalker<OverlapTable,OverlapTabulator> 
 
 }
 class OverlapTable {
+    private GenomeLocParser genomeLocParser;
 
     private int numOverlaps;
     private ExpandingArrayList<Integer> distances; // currently unused
     private int evalSize;
     private boolean isDeletion;
 
-    public OverlapTable() {
+    public OverlapTable(GenomeLocParser genomeLocParser) {
+        this.genomeLocParser = genomeLocParser;
         numOverlaps = 0;
     }
 
@@ -187,8 +190,8 @@ class OverlapTable {
     public void setDistances(List<VariantContext> comps, VariantContext eval, int winsize) {
         distances = new ExpandingArrayList<Integer>();
         for ( VariantContext comp : comps ) {
-            if ( VariantContextUtils.getLocation(comp).distance(VariantContextUtils.getLocation(eval)) <= winsize ) {
-                distances.add(VariantContextUtils.getLocation(comp).distance(VariantContextUtils.getLocation(eval)));
+            if ( VariantContextUtils.getLocation(genomeLocParser,comp).distance(VariantContextUtils.getLocation(genomeLocParser,eval)) <= winsize ) {
+                distances.add(VariantContextUtils.getLocation(genomeLocParser,comp).distance(VariantContextUtils.getLocation(genomeLocParser,eval)));
             }
         }
     }

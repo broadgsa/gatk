@@ -283,7 +283,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                             priorCache.put( priorLodFactor, false, priorKey );
                         }
 
-                        final double pVar = theModel.evaluateVariant( vc );
+                        final double pVar = theModel.evaluateVariant( ref.getGenomeLocParser(),vc );
                         final double lod = priorLodFactor + Math.log10(pVar);
                         variantDatum.qual = Math.abs( QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod) );
                         if( variantDatum.qual > maxQualObserved ) {

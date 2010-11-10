@@ -1,9 +1,6 @@
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMRecordIterator;
-import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.*;
 
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
@@ -32,16 +29,22 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 
 public class ArtificialSAMFileReader extends SAMFileReader {
     /**
+     * The parser, for GenomeLocs.
+     */
+    private final GenomeLocParser genomeLocParser;
+
+    /**
      * Backing data store of reads.
      */
-    private List<SAMRecord> reads = null;
+    private final List<SAMRecord> reads;
 
     /**
      * Construct an artificial SAM file reader.
      * @param reads Reads to use as backing data source.
      */
-    public ArtificialSAMFileReader(SAMRecord... reads) {
+    public ArtificialSAMFileReader(SAMSequenceDictionary sequenceDictionary,SAMRecord... reads) {
         super( createEmptyInputStream(),true );
+        this.genomeLocParser = new GenomeLocParser(sequenceDictionary);
         this.reads = Arrays.asList(reads);
     }
 
@@ -50,11 +53,11 @@ public class ArtificialSAMFileReader extends SAMFileReader {
      */
     @Override
     public SAMRecordIterator query(final String sequence, final int start, final int end, final boolean contained) {
-        GenomeLoc region = GenomeLocParser.createGenomeLoc(sequence, start, end);
+        GenomeLoc region = genomeLocParser.createGenomeLoc(sequence, start, end);
         List<SAMRecord> coveredSubset = new ArrayList<SAMRecord>();
 
         for( SAMRecord read: reads ) {
-            GenomeLoc readPosition = GenomeLocParser.createGenomeLoc(read);
+            GenomeLoc readPosition = genomeLocParser.createGenomeLoc(read);
             if( contained && region.containsP(readPosition) ) coveredSubset.add(read);
             else if( !contained && readPosition.overlapsP(region) ) coveredSubset.add(read);
         }

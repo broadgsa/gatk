@@ -69,16 +69,18 @@ public class VariantJEXLContextUnitTest extends BaseTest {
     private static int DEFAULT_READ_LENGTH = ArtificialSAMUtils.DEFAULT_READ_LENGTH;
     static SAMFileHeader header;
 
+    private static GenomeLocParser genomeLocParser;
+
     @BeforeClass
     public void beforeClass() {
         header = ArtificialSAMUtils.createArtificialSamHeader(( endingChr - startingChr ) + 1, startingChr, readCount + DEFAULT_READ_LENGTH);
-        GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary());
+        genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
         try {
             exp = new VariantContextUtils.JexlVCMatchExp("name", VariantContextUtils.engine.createExpression(expression));
         } catch (Exception e) {
             Assert.fail("Unable to create expression" + e.getMessage());
         }
-        snpLoc = GenomeLocParser.createGenomeLoc("chr1", 10, 10);
+        snpLoc = genomeLocParser.createGenomeLoc("chr1", 10, 10);
     }
 
     @BeforeMethod
@@ -144,7 +146,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
         List<Allele> alleles = Arrays.asList(Aref, T);
 
         VariantContext vc = new VariantContext("test", snpLoc.getContig(), snpLoc.getStart(), snpLoc.getStop(), alleles);
-        return new JEXLMap(Arrays.asList(exp),vc);
+        return new JEXLMap(genomeLocParser,Arrays.asList(exp),vc);
     }
 
 

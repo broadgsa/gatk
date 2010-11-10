@@ -138,7 +138,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         VCFWriter origWriter = writer;
 
         if (enableMergePhasedSegregatingPolymorphismsToMNP) // null <-> use ALL samples, false <-> emit all records, false <-> don't track the statistics of alternate alleles being merged:
-            writer = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, null, false, logger, writer != origWriter, false);
+            writer = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer,getToolkit().getGenomeLocParser(),getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, null, false, logger, writer != origWriter, false);
 
         /* Due to discardIrrelevantPhasedSites(), the startDistance spanned by [partiallyPhasedSites.peek(), unphasedSiteQueue.peek()] is <= cacheWindow
            Due to processQueue(), the startDistance spanned by [unphasedSiteQueue.peek(), mostDownstreamLocusReached] is <= cacheWindow
@@ -197,7 +197,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             if (ReadBackedPhasingWalker.processVariantInPhasing(vc)) {
                 VariantAndReads vr = new VariantAndReads(vc, context);
                 unphasedSiteQueue.add(vr);
-                logger.debug("Added variant to queue = " + VariantContextUtils.getLocation(vr.variant));
+                logger.debug("Added variant to queue = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vr.variant));
             }
             else {
                 unprocessedList.add(vc); // Finished with the unprocessed variant, and writer can enforce sorting on-the-fly
@@ -226,7 +226,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         while (!unphasedSiteQueue.isEmpty()) {
             if (!processAll) { // otherwise, phase until the end of unphasedSiteQueue
                 VariantContext nextToPhaseVc = unphasedSiteQueue.peek().variant;
-                if (startDistancesAreInWindowRange(mostDownstreamLocusReached, VariantContextUtils.getLocation(nextToPhaseVc))) {
+                if (startDistancesAreInWindowRange(mostDownstreamLocusReached, VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),nextToPhaseVc))) {
                     /* mostDownstreamLocusReached is still not far enough ahead of nextToPhaseVc to have all phasing information for nextToPhaseVc
                      (note that we ASSUME that the VCF is ordered by <contig,locus>).
                       Note that this will always leave at least one entry (the last one), since mostDownstreamLocusReached is in range of itself.
@@ -240,7 +240,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             logger.debug("oldPhasedList(1st) = " + toStringVCL(oldPhasedList));
 
             VariantAndReads vr = unphasedSiteQueue.remove();
-            logger.debug("Performing phasing for " + VariantContextUtils.getLocation(vr.variant));
+            logger.debug("Performing phasing for " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vr.variant));
             phaseSite(vr, phaseStats);
         }
 
@@ -259,7 +259,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         GenomeLoc nextToPhaseLoc = null;
         if (!unphasedSiteQueue.isEmpty())
-            nextToPhaseLoc = VariantContextUtils.getLocation(unphasedSiteQueue.peek().variant);
+            nextToPhaseLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),unphasedSiteQueue.peek().variant);
 
         while (!partiallyPhasedSites.isEmpty()) {
             if (nextToPhaseLoc != null) { // otherwise, unphasedSiteQueue.isEmpty(), and therefore no need to keep any of the "past"
@@ -284,7 +284,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private void phaseSite(VariantAndReads vr, PhasingStats phaseStats) {
         VariantContext vc = vr.variant;
-        logger.debug("Will phase vc = " + VariantContextUtils.getLocation(vc));
+        logger.debug("Will phase vc = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc));
 
         UnfinishedVariantAndReads uvr = new UnfinishedVariantAndReads(vr);
         UnfinishedVariantContext uvc = uvr.unfinishedVariant;
@@ -321,7 +321,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                         boolean genotypesArePhased = passesPhasingThreshold(pr.phaseQuality);
 
                         if (pr.phasingContainsInconsistencies) {
-                            logger.debug("MORE than " + (MAX_FRACTION_OF_INCONSISTENT_READS * 100) + "% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(vc));
+                            logger.debug("MORE than " + (MAX_FRACTION_OF_INCONSISTENT_READS * 100) + "% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc));
                             uvc.setPhasingInconsistent();
                         }
 
@@ -360,7 +360,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                         }
 
                         if (statsWriter != null)
-                            statsWriter.addStat(samp, VariantContextUtils.getLocation(vc), startDistance(prevUvc, vc), pr.phaseQuality, phaseWindow.readsAtHetSites.size(), phaseWindow.hetGenotypes.length);
+                            statsWriter.addStat(samp, VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc), startDistance(prevUvc, vc), pr.phaseQuality, phaseWindow.readsAtHetSites.size(), phaseWindow.hetGenotypes.length);
 
                         PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
                         if (sampPhaseCounts == null) {
@@ -442,7 +442,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             prevHetAndInteriorIt.previous(); // so that it points to the previous het site [and NOT one after it, due to the last call to next()]
 
             // Add the (het) position to be phased:
-            GenomeLoc phaseLocus = VariantContextUtils.getLocation(vr.variant);
+            GenomeLoc phaseLocus = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vr.variant);
             GenotypeAndReadBases grbPhase = new GenotypeAndReadBases(vr.variant.getGenotype(sample), vr.sampleReadBases.get(sample), phaseLocus);
             listHetGenotypes.add(grbPhase);
             logger.debug("PHASING het site = " + grbPhase.loc + " [phasingSiteIndex = " + phasingSiteIndex + "]");
@@ -456,7 +456,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     break;
                 }
                 else if (gt.isHet()) {
-                    GenotypeAndReadBases grb = new GenotypeAndReadBases(gt, nextVr.sampleReadBases.get(sample), VariantContextUtils.getLocation(nextVr.variant));
+                    GenotypeAndReadBases grb = new GenotypeAndReadBases(gt, nextVr.sampleReadBases.get(sample), VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),nextVr.variant));
                     listHetGenotypes.add(grb);
                     logger.debug("Using DOWNSTREAM het site = " + grb.loc);
                 }
@@ -922,15 +922,15 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private boolean startDistancesAreInWindowRange(VariantContext vc1, VariantContext vc2) {
-        return startDistancesAreInWindowRange(VariantContextUtils.getLocation(vc1), VariantContextUtils.getLocation(vc2));
+        return startDistancesAreInWindowRange(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc1), VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc2));
     }
 
     private boolean startDistancesAreInWindowRange(GenomeLoc loc1, GenomeLoc loc2) {
         return loc1.distance(loc2) <= cacheWindow; // distance() checks: loc1.onSameContig(loc2)
     }
 
-    private static int startDistance(UnfinishedVariantContext uvc1, VariantContext vc2) {
-        return uvc1.getLocation().distance(VariantContextUtils.getLocation(vc2));
+    private int startDistance(UnfinishedVariantContext uvc1, VariantContext vc2) {
+        return uvc1.getLocation().distance(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc2));
     }
 
     public PhasingStats reduce(PhasingStatsAndOutput statsAndList, PhasingStats stats) {
@@ -1040,7 +1040,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
     }
 
-    private static class UnfinishedVariantAndReads {
+    private class UnfinishedVariantAndReads {
         public UnfinishedVariantContext unfinishedVariant;
         public HashMap<String, ReadBasesAtPosition> sampleReadBases;
 
@@ -1052,11 +1052,11 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     // COULD replace with MutableVariantContext if it worked [didn't throw exceptions when trying to call its set() methods]...
 
-    private static class UnfinishedVariantContext {
+    private class UnfinishedVariantContext {
         private String name;
         private String contig;
-        private long start;
-        private long stop;
+        private int start;
+        private int stop;
         private Collection<Allele> alleles;
         private Map<String, Genotype> genotypes;
         private double negLog10PError;
@@ -1080,7 +1080,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         public GenomeLoc getLocation() {
-            return GenomeLocParser.createGenomeLoc(contig, start, stop);
+            return getToolkit().getGenomeLocParser().createGenomeLoc(contig, start, stop);
         }
 
         public Genotype getGenotype(String sample) {
@@ -1110,7 +1110,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         return sb.toString();
     }
 
-    private static String toStringVCL(List<VariantContext> vcList) {
+    private String toStringVCL(List<VariantContext> vcList) {
         boolean first = true;
         StringBuilder sb = new StringBuilder();
         for (VariantContext vc : vcList) {
@@ -1119,7 +1119,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             else
                 sb.append(" -- ");
 
-            sb.append(VariantContextUtils.getLocation(vc));
+            sb.append(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc));
         }
         return sb.toString();
     }
@@ -1411,7 +1411,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         public void outputMultipleBaseCounts() {
             GenomeLoc nextToPhaseLoc = null;
             if (!unphasedSiteQueue.isEmpty())
-                nextToPhaseLoc = VariantContextUtils.getLocation(unphasedSiteQueue.peek().variant);
+                nextToPhaseLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),unphasedSiteQueue.peek().variant);
 
             outputMultipleBaseCounts(nextToPhaseLoc);
         }

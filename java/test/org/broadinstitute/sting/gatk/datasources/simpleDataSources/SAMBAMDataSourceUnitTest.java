@@ -52,6 +52,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
     private List<SAMReaderID> readers;
     private IndexedFastaSequenceFile seq;
+    private GenomeLocParser genomeLocParser;
 
     /**
      * This function does the setup of our parser, before each method call.
@@ -64,7 +65,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
         // sequence
         seq = new IndexedFastaSequenceFile(new File(hg18Reference));
-        GenomeLocParser.setupRefContigOrdering(seq.getSequenceDictionary());
+        genomeLocParser = new GenomeLocParser(seq.getSequenceDictionary());
     }
 
     /**
@@ -88,8 +89,8 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         readers.add(new SAMReaderID(new File(validationDataLocation+"/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
 
         // the sharding strat.
-        SAMDataSource data = new SAMDataSource(readers);
-        ShardStrategy strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000);
+        SAMDataSource data = new SAMDataSource(readers,genomeLocParser);
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000,genomeLocParser);
         int count = 0;
 
         try {
@@ -132,8 +133,8 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
 
         // the sharding strat.
-        SAMDataSource data = new SAMDataSource(readers);
-        ShardStrategy strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000);
+        SAMDataSource data = new SAMDataSource(readers,genomeLocParser);
+        ShardStrategy strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000,genomeLocParser);
 
         ArrayList<Integer> readcountPerShard = new ArrayList<Integer>();
         ArrayList<Integer> readcountPerShard2 = new ArrayList<Integer>();
@@ -174,8 +175,8 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
         count = 0;
         // the sharding strat.
-        data = new SAMDataSource(readers);
-        strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000);
+        data = new SAMDataSource(readers,genomeLocParser);
+        strat = ShardStrategyFactory.shatter(data,seq,ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL, seq.getSequenceDictionary(), 100000, genomeLocParser);
 
         logger.debug("Pile two:");
         try {

@@ -56,7 +56,7 @@ public class CreateTiTvTrack extends RodWalker<VariantContext,TiTvWindow> {
         
         window.update(VariantContextUtils.isTransition(vc));
         if ( window.getTiTv() != null ) {
-            writer.writeData(VariantContextUtils.getLocation(vc),window.getTiTv());
+            writer.writeData(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc),window.getTiTv());
         }
 
         return window;

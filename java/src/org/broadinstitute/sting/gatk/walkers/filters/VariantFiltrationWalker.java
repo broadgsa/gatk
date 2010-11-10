@@ -117,7 +117,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
     public void initialize() {
         if ( clusterWindow > 0 )
-            clusteredSNPs = new ClusteredSnps(clusterSize, clusterWindow);
+            clusteredSNPs = new ClusteredSnps(getToolkit().getGenomeLocParser(),clusterSize, clusterWindow);
 
         filterExps = VariantContextUtils.initializeMatchExps(FILTER_NAMES, FILTER_EXPS);
         genotypeFilterExps = VariantContextUtils.initializeMatchExps(GENOTYPE_FILTER_NAMES, GENOTYPE_FILTER_EXPS);
@@ -188,7 +188,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                     Set<String> filters = new LinkedHashSet<String>(g.getFilters());
 
                     for ( VariantContextUtils.JexlVCMatchExp exp : genotypeFilterExps ) {
-                        if ( VariantContextUtils.match(vc, g, exp) )
+                        if ( VariantContextUtils.match(getToolkit().getGenomeLocParser(),vc, g, exp) )
                             filters.add(exp.name);
                     }
                     genotypes.put(genotype.getKey(), new Genotype(genotype.getKey(), g.getAlleles(), g.getNegLog10PError(), filters, g.getAttributes(), g.genotypesArePhased()));
@@ -211,7 +211,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             filters.add(CLUSTERED_SNP_FILTER_NAME);
 
         for ( VariantContextUtils.JexlVCMatchExp exp : filterExps ) {
-            if ( VariantContextUtils.match(vc, exp) )
+            if ( VariantContextUtils.match(getToolkit().getGenomeLocParser(),vc, exp) )
                 filters.add(exp.name);
         }
 

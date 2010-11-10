@@ -70,7 +70,7 @@ public class ReadReferenceViewUnitTest extends ReferenceViewTemplate {
         final long contigStart = selectedContig.getSequenceLength() - (readLength - overlap - 1);
         final long contigStop = selectedContig.getSequenceLength() + overlap;
 
-        ReadShardDataProvider dataProvider = new ReadShardDataProvider(null,null,sequenceFile,null);
+        ReadShardDataProvider dataProvider = new ReadShardDataProvider(null,genomeLocParser,null,sequenceFile,null);
         ReadReferenceView view = new ReadReferenceView(dataProvider);
 
         SAMRecord rec = buildSAMRecord(selectedContig.getSequenceName(),(int)contigStart,(int)contigStop);
@@ -98,7 +98,7 @@ public class ReadReferenceViewUnitTest extends ReferenceViewTemplate {
     protected void validateLocation( GenomeLoc loc ) {
         SAMRecord read = buildSAMRecord( loc.getContig(), (int)loc.getStart(), (int)loc.getStop() );
 
-        ReadShardDataProvider dataProvider = new ReadShardDataProvider(null,null,sequenceFile,null);
+        ReadShardDataProvider dataProvider = new ReadShardDataProvider(null,genomeLocParser,null,sequenceFile,null);
         ReadReferenceView view = new ReadReferenceView(dataProvider);
 
         ReferenceSequence expectedAsSeq = sequenceFile.getSubsequenceAt(loc.getContig(),loc.getStart(),loc.getStop());

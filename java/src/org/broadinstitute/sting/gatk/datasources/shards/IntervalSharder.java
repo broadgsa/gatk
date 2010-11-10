@@ -46,7 +46,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 public class IntervalSharder {
     private static Logger logger = Logger.getLogger(IntervalSharder.class);
 
-    public static Iterator<FilePointer> shardIntervals(final SAMDataSource dataSource, final List<GenomeLoc> loci) {
+    public static Iterator<FilePointer> shardIntervals(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
         return new FilePointerIterator(dataSource,loci);
     }
 
@@ -55,11 +55,13 @@ public class IntervalSharder {
      */
     private static class FilePointerIterator implements Iterator<FilePointer> {
         final SAMDataSource dataSource;
+        final GenomeLocSortedSet loci;
         final PeekableIterator<GenomeLoc> locusIterator;
         final Queue<FilePointer> cachedFilePointers = new LinkedList<FilePointer>();
 
-        public FilePointerIterator(final SAMDataSource dataSource, final List<GenomeLoc> loci) {
+        public FilePointerIterator(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
             this.dataSource = dataSource;
+            this.loci = loci;
             locusIterator = new PeekableIterator<GenomeLoc>(loci.iterator());
             advance();
         }
@@ -82,7 +84,7 @@ public class IntervalSharder {
         }
 
         private void advance() {
-            List<GenomeLoc> nextBatch = new ArrayList<GenomeLoc>();
+            GenomeLocSortedSet nextBatch = new GenomeLocSortedSet(loci.getGenomeLocParser());
             String contig = null;
 
             while(locusIterator.hasNext() && nextBatch.isEmpty()) {
@@ -99,7 +101,7 @@ public class IntervalSharder {
         }
     }
     
-    private static List<FilePointer> shardIntervalsOnContig(final SAMDataSource dataSource, final String contig, final List<GenomeLoc> loci) {
+    private static List<FilePointer> shardIntervalsOnContig(final SAMDataSource dataSource, final String contig, final GenomeLocSortedSet loci) {
         // Gather bins for the given loci, splitting loci as necessary so that each falls into exactly one lowest-level bin.
         List<FilePointer> filePointers = new ArrayList<FilePointer>();
         FilePointer lastFilePointer = null;
@@ -171,7 +173,7 @@ public class IntervalSharder {
 
                     final int regionStop = Math.min(locationStop,binStart-1);
 
-                    GenomeLoc subset = GenomeLocParser.createGenomeLoc(location.getContig(),locationStart,regionStop);
+                    GenomeLoc subset = loci.getGenomeLocParser().createGenomeLoc(location.getContig(),locationStart,regionStop);
                     lastFilePointer = new FilePointer(subset);
 
                     locationStart = regionStop + 1;
@@ -184,7 +186,7 @@ public class IntervalSharder {
                         lastBAMOverlap = null;
                     }
 
-                    GenomeLoc subset = GenomeLocParser.createGenomeLoc(location.getContig(),locationStart,locationStop);
+                    GenomeLoc subset = loci.getGenomeLocParser().createGenomeLoc(location.getContig(),locationStart,locationStop);
                     filePointers.add(new FilePointer(subset));
 
                     locationStart = locationStop + 1;
@@ -195,7 +197,7 @@ public class IntervalSharder {
 
                     // The start of the region overlaps the bin.  Add the overlapping subset.
                     final int regionStop = Math.min(locationStop,binStop);
-                    lastFilePointer.addLocation(GenomeLocParser.createGenomeLoc(location.getContig(),locationStart,regionStop));
+                    lastFilePointer.addLocation(loci.getGenomeLocParser().createGenomeLoc(location.getContig(),locationStart,regionStop));
                     locationStart = regionStop + 1;
                 }
             }

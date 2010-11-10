@@ -287,7 +287,7 @@ public class DSBWalkerV3 extends ReadWalker<Integer,Integer> {
 
     }
 
-    private void shiftWindows(long pos) {
+    private void shiftWindows(int pos) {
         // we shift windows when there is a read that does not fit into the current window.
         // the position, to which the shift is performed, is the first position such that the new read
         // can be accomodated. Hence we can safely slide up to pos, only discarding reads that go out of scope -
@@ -332,7 +332,7 @@ public class DSBWalkerV3 extends ReadWalker<Integer,Integer> {
         purgeSignal(pos);
         purgeControl(pos);
 
-        currentWindow = GenomeLocParser.createGenomeLoc(currentWindow.getContigIndex(),pos,pos+WINDOW_SIZE-1);
+        currentWindow = getToolkit().getGenomeLocParser().createGenomeLoc(currentWindow.getContig(),pos,pos+WINDOW_SIZE-1);
     }
 
     @Override
@@ -349,7 +349,8 @@ public class DSBWalkerV3 extends ReadWalker<Integer,Integer> {
         controlReadGroups = readGroupSets.get(1);
 //        System.out.println(controlReadGroups.size()+" read groups in control");
 
-        currentWindow = GenomeLocParser.createGenomeLoc(0,1,WINDOW_SIZE);
+        String sequenceName = getToolkit().getReferenceDataSource().getReference().getSequenceDictionary().getSequence(0).getSequenceName();
+        currentWindow = getToolkit().getGenomeLocParser().createGenomeLoc(sequenceName,1,WINDOW_SIZE);
         readsInSignalWindow = new LinkedList<SAMRecord>();
         readsInControlWindow = new LinkedList<SAMRecord>();
 
@@ -366,7 +367,7 @@ public class DSBWalkerV3 extends ReadWalker<Integer,Integer> {
         if ( read.getReferenceIndex() > currentWindow.getContigIndex() ) {
             printRegion(); // print all we had on the previous contig
 
-            currentWindow = GenomeLocParser.createGenomeLoc(read.getReferenceIndex(),
+            currentWindow = ref.getGenomeLocParser().createGenomeLoc(read.getReferenceName(),
                     read.getAlignmentStart(),
                     read.getAlignmentStart()+WINDOW_SIZE-1);
             currentContig = read.getReferenceName();

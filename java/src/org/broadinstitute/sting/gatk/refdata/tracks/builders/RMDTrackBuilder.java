@@ -35,11 +35,13 @@ import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.source.CachingFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.AbstractGenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -80,18 +82,34 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     // private sequence dictionary we use to set our tracks with
     private SAMSequenceDictionary dict = null;
 
+    /**
+     * Private genome loc parser to use when building out new locs.
+     */
+    private GenomeLocParser genomeLocParser;
+
     /** Create a new plugin manager. */
     public RMDTrackBuilder() {
         super(FeatureCodec.class, "Codecs", "Codec");
     }
 
     /**
+     * Create a new RMDTrackBuilder, with dictionary and genomeLocParser predefined.
+     * @param dict
+     * @param genomeLocParser
+     */
+    public RMDTrackBuilder(SAMSequenceDictionary dict,GenomeLocParser genomeLocParser) {
+        super(FeatureCodec.class, "Codecs", "Codec");
+        setSequenceDictionary(dict,genomeLocParser);
+    }
+
+    /**
      *
      * @param dict the sequence dictionary to use as a reference for Tribble track contig length lookups
      */
-    public void setSequenceDictionary(SAMSequenceDictionary dict) {
+    public void setSequenceDictionary(SAMSequenceDictionary dict,GenomeLocParser genomeLocParser) {
         this.dict = dict;
-    }
+        this.genomeLocParser = genomeLocParser;
+    }    
 
     /** @return a list of all available track types we currently have access to create */
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
@@ -115,6 +133,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     /**
      * create a RMDTrack of the specified type
      *
+     * @param genomeLocParser GenomeLocParser to use, if case track needs additional reference context.
      * @param targetClass the target class of track
      * @param name        what to call the track
      * @param inputFile   the input file
@@ -127,7 +146,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         // return a feature reader track
         Pair<FeatureSource, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
         if (pair == null) throw new UserException.CouldNotReadInputFile(inputFile, "Unable to make the feature reader for input file");
-        return new RMDTrack(targetClass, name, inputFile, pair.first, pair.second, createCodec(targetClass, name));
+        return new RMDTrack(targetClass, name, inputFile, pair.first, pair.second, genomeLocParser, createCodec(targetClass,name));
     }
 
     /**
@@ -186,6 +205,8 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         FeatureCodec codex = this.createByType(targetClass);
         if ( codex instanceof NameAwareCodec )
             ((NameAwareCodec)codex).setName(name);
+        if(codex instanceof ReferenceDependentFeatureCodec)
+            ((ReferenceDependentFeatureCodec)codex).setGenomeLocParser(genomeLocParser);        
         return codex;
     }
 

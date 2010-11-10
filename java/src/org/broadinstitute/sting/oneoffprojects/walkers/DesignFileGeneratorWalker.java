@@ -95,7 +95,7 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
             }
 
             for ( Map.Entry<String,BEDFeature> additionalGenes : currentBedFeatures.entrySet() ) {
-                GenomeLoc entryLoc = GenomeLocParser.createGenomeLoc(additionalGenes.getValue().getChr(),additionalGenes.getValue().getStart(),additionalGenes.getValue().getEnd());
+                GenomeLoc entryLoc = getToolkit().getGenomeLocParser().createGenomeLoc(additionalGenes.getValue().getChr(),additionalGenes.getValue().getStart(),additionalGenes.getValue().getEnd());
                 if ( interval.overlapsP(entryLoc) &&
                         ! additionalGenes.getValue().getName().equals("") &&
                         ! intervalBuffer.get(interval).geneNames.contains(additionalGenes.getKey()+"_"+additionalGenes.getValue().getName())) {
@@ -142,7 +142,7 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
         }
 
         for ( Map.Entry<String,BEDFeature> entry : currentBedFeatures.entrySet() ) {
-            GenomeLoc entryLoc = GenomeLocParser.createGenomeLoc(entry.getValue().getChr(),entry.getValue().getStart(),entry.getValue().getEnd());
+            GenomeLoc entryLoc = getToolkit().getGenomeLocParser().createGenomeLoc(entry.getValue().getChr(),entry.getValue().getStart(),entry.getValue().getEnd());
             if ( entryLoc.isBefore(ref.getLocus()) ) {
                 currentBedFeatures.remove(entry.getKey());
             }

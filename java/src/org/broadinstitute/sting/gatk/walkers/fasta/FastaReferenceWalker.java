@@ -81,7 +81,7 @@ public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, Gen
         }
         // otherwise, merge them
         else {
-            sum = GenomeLocParser.setStop(sum, value.first.getStop());
+            sum = getToolkit().getGenomeLocParser().setStop(sum, value.first.getStop());
             fasta.append(value.second);
         }
 		return sum;

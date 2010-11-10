@@ -98,9 +98,9 @@ public class CompareCallableLociWalker extends RodWalker<List<CallableLociWalker
         }
 
         FullBEDFeature bed = (FullBEDFeature)bindings.get(0);
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc(bed.getChr(), bed.getStart(), bed.getEnd());
+        GenomeLoc loc = getToolkit().getGenomeLocParser().createGenomeLoc(bed.getChr(), bed.getStart(), bed.getEnd());
         CallableLociWalker.CalledState state = CallableLociWalker.CalledState.valueOf(bed.getName());
-        return new CallableLociWalker.CallableBaseState(loc, state);
+        return new CallableLociWalker.CallableBaseState(getToolkit().getGenomeLocParser(),loc, state);
     }
 
     // --------------------------------------------------------------------------------------------------------------

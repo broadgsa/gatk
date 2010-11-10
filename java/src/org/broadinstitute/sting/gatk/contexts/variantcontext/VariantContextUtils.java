@@ -219,8 +219,8 @@ public class VariantContextUtils {
      * @param exp   expression
      * @return true if there is a match
      */
-    public static boolean match(VariantContext vc, JexlVCMatchExp exp) {
-        return match(vc,Arrays.asList(exp)).get(exp);
+    public static boolean match(GenomeLocParser genomeLocParser,VariantContext vc, JexlVCMatchExp exp) {
+        return match(genomeLocParser,vc,Arrays.asList(exp)).get(exp);
     }
 
     /**
@@ -233,8 +233,8 @@ public class VariantContextUtils {
      * @param exps expressions
      * @return true if there is a match
      */
-    public static Map<JexlVCMatchExp, Boolean> match(VariantContext vc, Collection<JexlVCMatchExp> exps) {
-        return new JEXLMap(exps,vc);
+    public static Map<JexlVCMatchExp, Boolean> match(GenomeLocParser genomeLocParser,VariantContext vc, Collection<JexlVCMatchExp> exps) {
+        return new JEXLMap(genomeLocParser,exps,vc);
 
     }
 
@@ -245,8 +245,8 @@ public class VariantContextUtils {
      * @param exp   expression
      * @return true if there is a match
      */
-    public static boolean match(VariantContext vc, Genotype g, JexlVCMatchExp exp) {
-        return match(vc,g,Arrays.asList(exp)).get(exp);
+    public static boolean match(GenomeLocParser genomeLocParser,VariantContext vc, Genotype g, JexlVCMatchExp exp) {
+        return match(genomeLocParser,vc,g,Arrays.asList(exp)).get(exp);
     }
 
     /**
@@ -260,8 +260,8 @@ public class VariantContextUtils {
      * @param exps expressions
      * @return true if there is a match
      */
-    public static Map<JexlVCMatchExp, Boolean> match(VariantContext vc, Genotype g, Collection<JexlVCMatchExp> exps) {
-        return new JEXLMap(exps,vc,g);
+    public static Map<JexlVCMatchExp, Boolean> match(GenomeLocParser genomeLocParser,VariantContext vc, Genotype g, Collection<JexlVCMatchExp> exps) {
+        return new JEXLMap(genomeLocParser,exps,vc,g);
 
     }
 
@@ -306,8 +306,8 @@ public class VariantContextUtils {
         UNION, INTERSECT
     }
 
-    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, byte refBase) {
-        return simpleMerge(unsortedVCs, null, VariantMergeType.INTERSECT, GenotypeMergeType.UNSORTED, false, false, refBase);
+    public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, byte refBase) {
+        return simpleMerge(genomeLocParser, unsortedVCs, null, VariantMergeType.INTERSECT, GenotypeMergeType.UNSORTED, false, false, refBase);
     }
 
 
@@ -322,14 +322,14 @@ public class VariantContextUtils {
      * @param genotypeMergeOptions
      * @return
      */
-    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
+    public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
                                              VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
                                              boolean annotateOrigin, boolean printMessages, byte inputRefBase ) {
 
-        return simpleMerge(unsortedVCs, priorityListOfVCs, variantMergeOptions, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBase, "set", false);
+        return simpleMerge(genomeLocParser, unsortedVCs, priorityListOfVCs, variantMergeOptions, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBase, "set", false);
     }
 
-    public static VariantContext simpleMerge(Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
+    public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
                                              VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
                                              boolean annotateOrigin, boolean printMessages, byte inputRefBase, String setKey,
                                              boolean filteredAreUncalled ) {
@@ -357,7 +357,7 @@ public class VariantContextUtils {
         // establish the baseline info from the first VC
         VariantContext first = VCs.get(0);
         String name = first.getSource();
-        GenomeLoc loc = getLocation(first);
+        GenomeLoc loc = getLocation(genomeLocParser,first);
 
         Set<Allele> alleles = new TreeSet<Allele>();
         Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
@@ -380,8 +380,8 @@ public class VariantContextUtils {
             if ( loc.getStart() != vc.getStart() ) // || !first.getReference().equals(vc.getReference()) )
                 throw new ReviewedStingException("BUG: attempting to merge VariantContexts with different start sites: first="+ first.toString() + " second=" + vc.toString());
 
-            if ( getLocation(vc).size() > loc.size() )
-                loc = getLocation(vc); // get the longest location
+            if ( getLocation(genomeLocParser,vc).size() > loc.size() )
+                loc = getLocation(genomeLocParser,vc); // get the longest location
 
             nFiltered += vc.isFiltered() ? 1 : 0;
             nVariant += vc.isVariant() ? 1 : 0;
@@ -753,13 +753,13 @@ public class VariantContextUtils {
      * @param vc the variant context
      * @return the genomeLoc
      */
-    public static final GenomeLoc getLocation(VariantContext vc) {
-        return GenomeLocParser.createGenomeLoc(vc.getChr(),(int)vc.getStart(),(int)vc.getEnd());
+    public static final GenomeLoc getLocation(GenomeLocParser genomeLocParser,VariantContext vc) {
+        return genomeLocParser.createGenomeLoc(vc.getChr(),(int)vc.getStart(),(int)vc.getEnd());
     }
 
     // NOTE: returns null if vc1 and vc2 are not mergeable into a single MNP record
-    public static VariantContext mergeIntoMNP(VariantContext vc1, VariantContext vc2, ReferenceSequenceFile referenceFile) {
-        if (!mergeIntoMNPvalidationCheck(vc1, vc2))
+    public static VariantContext mergeIntoMNP(GenomeLocParser genomeLocParser,VariantContext vc1, VariantContext vc2, ReferenceSequenceFile referenceFile) {
+        if (!mergeIntoMNPvalidationCheck(genomeLocParser, vc1, vc2))
             return null;
 
         // Check that it's logically possible to merge the VCs, and that there's a point in doing so (e.g., annotations could be changed):
@@ -974,9 +974,9 @@ public class VariantContextUtils {
         }
     }
 
-    private static boolean mergeIntoMNPvalidationCheck(VariantContext vc1, VariantContext vc2) {
-        GenomeLoc loc1 = VariantContextUtils.getLocation(vc1);
-        GenomeLoc loc2 = VariantContextUtils.getLocation(vc2);
+    private static boolean mergeIntoMNPvalidationCheck(GenomeLocParser genomeLocParser,VariantContext vc1, VariantContext vc2) {
+        GenomeLoc loc1 = VariantContextUtils.getLocation(genomeLocParser,vc1);
+        GenomeLoc loc2 = VariantContextUtils.getLocation(genomeLocParser,vc2);
 
         if (!loc1.onSameContig(loc2))
             throw new ReviewedStingException("Can only merge vc1, vc2 if on the same chromosome");

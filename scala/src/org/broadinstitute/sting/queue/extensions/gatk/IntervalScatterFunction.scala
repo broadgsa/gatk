@@ -60,13 +60,13 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
 
 object IntervalScatterFunction {
   private def parseLocs(referenceSource: ReferenceDataSource, intervals: List[String]) = {
-    GenomeLocParser.setupRefContigOrdering(referenceSource.getReference)
+    var genomeLocParser: GenomeLocParser = new GenomeLocParser(referenceSource.getReference)
     val locs = {
       // TODO: Abstract genome analysis engine has richer logic for parsing.  We need to use it!
       if (intervals.size == 0) {
         GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSource.getReference.getSequenceDictionary)
       } else {
-        new GenomeLocSortedSet(IntervalUtils.parseIntervalArguments(intervals, false))
+        new GenomeLocSortedSet(genomeLocParser,IntervalUtils.parseIntervalArguments(genomeLocParser, intervals, false))
       }
     }
     if (locs == null || locs.size == 0)

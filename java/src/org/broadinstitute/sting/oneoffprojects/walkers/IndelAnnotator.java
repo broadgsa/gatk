@@ -39,7 +39,9 @@ public class IndelAnnotator extends RodWalker<Integer,Long> {
             FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
 
             try {
-                refseqIterator = new SeekableRODIterator(new FeatureToGATKFeatureIterator(refseq.iterator(),"refseq"));
+                refseqIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                         getToolkit().getGenomeLocParser(),
+                                                         new FeatureToGATKFeatureIterator(getToolkit().getGenomeLocParser(),refseq.iterator(),"refseq"));
             } catch (IOException e) {
                 throw new UserException.CouldNotReadInputFile(RefseqFileName, e);
             }
@@ -128,14 +130,14 @@ public class IndelAnnotator extends RodWalker<Integer,Long> {
                 } else {
                     if ( RefSeqFeature.isCoding(ann) ) {
                         //b.append(annIntron); // not in exon, but within the coding region = intron
-                        GenomeLoc ig = GenomeLocParser.createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd());
+                        GenomeLoc ig = getToolkit().getGenomeLocParser().createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd());
                         GenomeLoc cl = t.getCodingLocation();
                         GenomeLoc g = t.getLocation();
 
                         boolean spliceSiteDisruption = false;
 
                         for (GenomeLoc exon : t.getExons()) {
-                            GenomeLoc expandedExon = GenomeLocParser.createGenomeLoc(exon.getContig(), exon.getStart() - 6, exon.getStop() + 6);
+                            GenomeLoc expandedExon = getToolkit().getGenomeLocParser().createGenomeLoc(exon.getContig(), exon.getStart() - 6, exon.getStop() + 6);
 
                             if (ig.overlapsP(expandedExon)) {
                                 spliceSiteDisruption = true;

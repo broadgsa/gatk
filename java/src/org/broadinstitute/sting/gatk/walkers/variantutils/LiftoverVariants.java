@@ -96,7 +96,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
                 vc = VariantContextUtils.reverseComplement(vc);
             }
 
-            vc = VariantContextUtils.modifyLocation(vc, GenomeLocParser.createPotentiallyInvalidGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length));
+            vc = VariantContextUtils.modifyLocation(vc, getToolkit().getGenomeLocParser().createPotentiallyInvalidGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length));
             VariantContext newVC = VariantContext.createVariantContextWithPaddedAlleles(vc, ref.getBase(), false);
 
             if ( originalVC.isSNP() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(newVC) ) {

@@ -86,9 +86,9 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             logger.info("Loading SNP mask...  ");
             ReferenceOrderedData snp_mask;
             if ( SNP_MASK.contains(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME)) {
-                RMDTrackBuilder builder = new RMDTrackBuilder();
+                RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser());
                 CloseableIterator<GATKFeature> iter = builder.createInstanceOfTrack(DbSNPCodec.class,"snp_mask",new java.io.File(SNP_MASK)).getIterator();
-                snpMaskIterator = new SeekableRODIterator(iter);
+                snpMaskIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser(),iter);
                 
             } else {
                 // TODO: fix me when Plink is back
@@ -142,8 +142,8 @@ public class PickSequenomProbes extends RodWalker<String, String> {
 
             if ( ! haveMaskForWindow ) {
     		    String contig = context.getLocation().getContig();
-	    	    long   offset = context.getLocation().getStart();
-                long true_offset = offset - 200;
+	    	    int   offset = context.getLocation().getStart();
+                int true_offset = offset - 200;
 
                 // we have variant; let's load all the snps falling into the current window and prepare the mask array.
                 // we need to do it only once per window, regardless of how many vcs we may have at this location!
@@ -152,7 +152,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
                     for ( int i = 0 ; i < 401; i++ )
                     maskFlags[i] = 0;
 
-                    RODRecordList snpList =  snpMaskIterator.seekForward(GenomeLocParser.createGenomeLoc(contig,offset-200,offset+200));
+                    RODRecordList snpList =  snpMaskIterator.seekForward(getToolkit().getGenomeLocParser().createGenomeLoc(contig,offset-200,offset+200));
                     if ( snpList != null && snpList.size() != 0 ) {
                         Iterator<GATKFeature>  snpsInWindow = snpList.iterator();
                         int i = 0;

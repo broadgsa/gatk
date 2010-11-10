@@ -5,7 +5,6 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -32,7 +31,8 @@ public abstract class ReferenceViewTemplate extends BaseTest {
     /**
      * The fasta, for comparison.
      */
-    protected static IndexedFastaSequenceFile sequenceFile = null;
+    protected IndexedFastaSequenceFile sequenceFile = null;
+    protected GenomeLocParser genomeLocParser = null;
 
     //
     // The bulk of sequence retrieval is tested by IndexedFastaSequenceFile, but we'll run a few spot
@@ -43,9 +43,8 @@ public abstract class ReferenceViewTemplate extends BaseTest {
      */
     @BeforeClass
     public void initialize() throws FileNotFoundException {
-        GenomeLocParserTestUtils.clearSequenceDictionary();
         sequenceFile = new IndexedFastaSequenceFile( new File(hg18Reference) );
-        GenomeLocParser.setupRefContigOrdering(sequenceFile);
+        genomeLocParser = new GenomeLocParser(sequenceFile);
     }
 
     /**
@@ -53,7 +52,7 @@ public abstract class ReferenceViewTemplate extends BaseTest {
      */
     @Test
     public void testReferenceStart() {
-        validateLocation( GenomeLocParser.createGenomeLoc(0,1,25) );
+        validateLocation( genomeLocParser.createGenomeLoc(sequenceFile.getSequenceDictionary().getSequence(0).getSequenceName(),1,25) );
     }
 
     /**
@@ -63,9 +62,9 @@ public abstract class ReferenceViewTemplate extends BaseTest {
     public void testReferenceEnd() {
         // Test the last 25 bases of the first contig.
         SAMSequenceRecord selectedContig = sequenceFile.getSequenceDictionary().getSequences().get(sequenceFile.getSequenceDictionary().getSequences().size()-1);
-        final long contigStart = selectedContig.getSequenceLength() - 24;
-        final long contigStop = selectedContig.getSequenceLength();
-        validateLocation( GenomeLocParser.createGenomeLoc(selectedContig.getSequenceIndex(),contigStart,contigStop) );
+        final int contigStart = selectedContig.getSequenceLength() - 24;
+        final int contigStop = selectedContig.getSequenceLength();
+        validateLocation( genomeLocParser.createGenomeLoc(selectedContig.getSequenceName(),contigStart,contigStop) );
     }
 
     /**
@@ -76,7 +75,7 @@ public abstract class ReferenceViewTemplate extends BaseTest {
         // Test the last 25 bases of the first contig.
         int contigPosition = sequenceFile.getSequenceDictionary().getSequences().size()/2;
         SAMSequenceRecord selectedContig = sequenceFile.getSequenceDictionary().getSequences().get(contigPosition);
-        validateLocation( GenomeLocParser.createGenomeLoc(selectedContig.getSequenceIndex(),1,25) );
+        validateLocation( genomeLocParser.createGenomeLoc(selectedContig.getSequenceName(),1,25) );
     }
 
 
@@ -88,9 +87,9 @@ public abstract class ReferenceViewTemplate extends BaseTest {
         // Test the last 25 bases of the first contig.
         int contigPosition = sequenceFile.getSequenceDictionary().getSequences().size()/2;
         SAMSequenceRecord selectedContig = sequenceFile.getSequenceDictionary().getSequences().get(contigPosition);
-        final long contigStart = selectedContig.getSequenceLength() - 24;
-        final long contigStop = selectedContig.getSequenceLength();
-        validateLocation( GenomeLocParser.createGenomeLoc(selectedContig.getSequenceIndex(),contigStart,contigStop) );
+        final int contigStart = selectedContig.getSequenceLength() - 24;
+        final int contigStop = selectedContig.getSequenceLength();
+        validateLocation( genomeLocParser.createGenomeLoc(selectedContig.getSequenceName(),contigStart,contigStop) );
     }
 
     protected abstract void validateLocation( GenomeLoc loc );

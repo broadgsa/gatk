@@ -16,11 +16,13 @@ import java.util.Iterator;
  * To change this template use File | Settings | File Templates.
  */
 public class VerifyingSamIterator implements StingSAMIterator {
+    private GenomeLocParser genomeLocParser;
     StingSAMIterator it;
     SAMRecord last = null;
     boolean checkOrderP = true;
 
-    public VerifyingSamIterator(StingSAMIterator it) {
+    public VerifyingSamIterator(GenomeLocParser genomeLocParser,StingSAMIterator it) {
+        this.genomeLocParser = genomeLocParser;
         this.it = it;
     }
 
@@ -35,27 +37,19 @@ public class VerifyingSamIterator implements StingSAMIterator {
         return cur;
     }
 
-    /**
-     * If true, enables ordered checking of the reads in the file.  By default this is enabled.
-     * @param checkP If true, sam records will be checked to insure they come in order
-     */
-    public void setCheckOrderP( boolean checkP ) {
-        checkOrderP = checkP;
-    }
-
-    public void verifyRecord( final SAMRecord last, final SAMRecord cur ) {
+    private void verifyRecord( final SAMRecord last, final SAMRecord cur ) {
         if ( checkOrderP && isOutOfOrder(last, cur) ) {
             this.last = null;
             throw new RuntimeIOException(String.format("Reads are out of order:%nlast:%n%s%ncurrent:%n%s%n", last.format(), cur.format()) );
         }
     }
 
-    public static boolean isOutOfOrder( final SAMRecord last, final SAMRecord cur ) {
+    private boolean isOutOfOrder( final SAMRecord last, final SAMRecord cur ) {
         if ( last == null || cur.getReadUnmappedFlag() )
             return false;
         else {
-            GenomeLoc lastLoc = GenomeLocParser.createGenomeLoc( last );
-            GenomeLoc curLoc = GenomeLocParser.createGenomeLoc( cur );
+            GenomeLoc lastLoc = genomeLocParser.createGenomeLoc( last );
+            GenomeLoc curLoc = genomeLocParser.createGenomeLoc( cur );
             return curLoc.compareTo(lastLoc) == -1;
         }
     }

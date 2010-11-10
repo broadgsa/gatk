@@ -53,9 +53,9 @@ public class LinearMicroScheduler extends MicroScheduler {
             // New experimental code for managing locus intervals.
             if(shard.getShardType() == Shard.ShardType.LOCUS) {
                 LocusWalker lWalker = (LocusWalker)walker;
-                WindowMaker windowMaker = new WindowMaker(shard, getReadIterator(shard), shard.getGenomeLocs(), lWalker.getDiscards());
+                WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(), getReadIterator(shard), shard.getGenomeLocs(), lWalker.getDiscards());
                 for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
-                    ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),iterator.getLocus(),iterator,reference,rods);
+                    ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),iterator.getLocus(),iterator,reference,rods);
                     Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
                     accumulator.accumulate(dataProvider,result);
                     dataProvider.close();
@@ -63,7 +63,7 @@ public class LinearMicroScheduler extends MicroScheduler {
                 windowMaker.close();
             }
             else {
-                ShardDataProvider dataProvider = new ReadShardDataProvider(shard,getReadIterator(shard),reference,rods);
+                ShardDataProvider dataProvider = new ReadShardDataProvider(shard,engine.getGenomeLocParser(),getReadIterator(shard),reference,rods);
                 Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
                 accumulator.accumulate(dataProvider,result);
                 dataProvider.close();

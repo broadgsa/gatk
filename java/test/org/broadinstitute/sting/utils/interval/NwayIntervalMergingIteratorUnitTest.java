@@ -47,6 +47,7 @@ import java.io.File;
 public class NwayIntervalMergingIteratorUnitTest extends BaseTest {
 
     private static File refFile =  new File(validationDataLocation + "Homo_sapiens_assembly17.fasta");
+    private GenomeLocParser genomeLocParser;
 
     private static List<GenomeLoc> stream1 = null;
     private static List<GenomeLoc> stream2 = null;
@@ -54,32 +55,32 @@ public class NwayIntervalMergingIteratorUnitTest extends BaseTest {
 
     @BeforeClass
     public static void init() {
-        GenomeLocParser.setupRefContigOrdering(ReferenceSequenceFileFactory.getReferenceSequenceFile(refFile));
+        GenomeLocParser genomeLocParser = new GenomeLocParser(ReferenceSequenceFileFactory.getReferenceSequenceFile(refFile));
 
         stream1 = new ArrayList<GenomeLoc>();
         stream2 = new ArrayList<GenomeLoc>();
         expected = new ArrayList<GenomeLoc>();
 
-        stream1.add(GenomeLocParser.createGenomeLoc("chr1",1554,1560)); // 1
-        stream1.add(GenomeLocParser.createGenomeLoc("chr1",2538,2568)); // 3
-        stream1.add(GenomeLocParser.createGenomeLoc("chr1",2600,2610));    // 4
-        stream1.add(GenomeLocParser.createGenomeLoc("chr1",2609,2625));    // 4
-        stream1.add(GenomeLocParser.createGenomeLoc("chr1",18932,19000));  // 6
-        stream1.add(GenomeLocParser.createGenomeLoc("chr1",19001,25000));  //6
+        stream1.add(genomeLocParser.createGenomeLoc("chr1",1554,1560)); // 1
+        stream1.add(genomeLocParser.createGenomeLoc("chr1",2538,2568)); // 3
+        stream1.add(genomeLocParser.createGenomeLoc("chr1",2600,2610));    // 4
+        stream1.add(genomeLocParser.createGenomeLoc("chr1",2609,2625));    // 4
+        stream1.add(genomeLocParser.createGenomeLoc("chr1",18932,19000));  // 6
+        stream1.add(genomeLocParser.createGenomeLoc("chr1",19001,25000));  //6
 
-        stream2.add(GenomeLocParser.createGenomeLoc("chr1",1565,1570));    //2
-        stream2.add(GenomeLocParser.createGenomeLoc("chr1",2598,2604));    // 4
-        stream2.add(GenomeLocParser.createGenomeLoc("chr1",7415,7600));    // 5
-        stream2.add(GenomeLocParser.createGenomeLoc("chr1",18932,25000));  // 6
-        stream2.add(GenomeLocParser.createGenomeLoc("chr1",30000,35000));  // 7
+        stream2.add(genomeLocParser.createGenomeLoc("chr1",1565,1570));    //2
+        stream2.add(genomeLocParser.createGenomeLoc("chr1",2598,2604));    // 4
+        stream2.add(genomeLocParser.createGenomeLoc("chr1",7415,7600));    // 5
+        stream2.add(genomeLocParser.createGenomeLoc("chr1",18932,25000));  // 6
+        stream2.add(genomeLocParser.createGenomeLoc("chr1",30000,35000));  // 7
 
-        expected.add(GenomeLocParser.createGenomeLoc("chr1",1554,1560)); // 1
-        expected.add(GenomeLocParser.createGenomeLoc("chr1",1565,1570));    //2
-        expected.add(GenomeLocParser.createGenomeLoc("chr1",2538,2568)); // 3
-        expected.add(GenomeLocParser.createGenomeLoc("chr1",2598,2625));    // 4
-        expected.add(GenomeLocParser.createGenomeLoc("chr1",7415,7600));    // 5
-        expected.add(GenomeLocParser.createGenomeLoc("chr1",18932,25000));  // 6
-        expected.add(GenomeLocParser.createGenomeLoc("chr1",30000,35000));  // 7
+        expected.add(genomeLocParser.createGenomeLoc("chr1",1554,1560)); // 1
+        expected.add(genomeLocParser.createGenomeLoc("chr1",1565,1570));    //2
+        expected.add(genomeLocParser.createGenomeLoc("chr1",2538,2568)); // 3
+        expected.add(genomeLocParser.createGenomeLoc("chr1",2598,2625));    // 4
+        expected.add(genomeLocParser.createGenomeLoc("chr1",7415,7600));    // 5
+        expected.add(genomeLocParser.createGenomeLoc("chr1",18932,25000));  // 6
+        expected.add(genomeLocParser.createGenomeLoc("chr1",30000,35000));  // 7
 
 
     }

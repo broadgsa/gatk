@@ -178,7 +178,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     int iii = 0;
                     for( final String key : annotationKeys ) {
-                        annotationValues[iii++] = theModel.decodeAnnotation( key, vc, true );
+                        annotationValues[iii++] = theModel.decodeAnnotation( getToolkit().getGenomeLocParser(), key, vc, true );
                     }
 
                     final VariantDatum variantDatum = new VariantDatum();

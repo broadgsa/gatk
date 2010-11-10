@@ -62,15 +62,17 @@ public abstract class GATKFeature implements Feature {
      * wrapping a Tribble feature in a GATK friendly interface
      */
     public static class TribbleGATKFeature extends GATKFeature {
+        private final GenomeLocParser genomeLocParser;
         private final Feature feature;
         private GenomeLoc position = null;
         
-        public TribbleGATKFeature(Feature f, String name) {
+        public TribbleGATKFeature(GenomeLocParser genomeLocParser,Feature f, String name) {
             super(name);
+            this.genomeLocParser = genomeLocParser;
             feature = f;
         }
         public GenomeLoc getLocation() {
-            if (position == null) position = GenomeLocParser.createGenomeLoc(feature.getChr(), feature.getStart(), feature.getEnd());
+            if (position == null) position = genomeLocParser.createGenomeLoc(feature.getChr(), feature.getStart(), feature.getEnd());
             return position;
         }
 

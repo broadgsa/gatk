@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
@@ -38,6 +39,11 @@ public abstract class ShardDataProvider {
     private final Shard shard;
 
     /**
+     * The parser, used to create and build new GenomeLocs.
+     */
+    private final GenomeLocParser genomeLocParser;
+
+    /**
      * Provider of reference data for this particular shard.
      */
     private final IndexedFastaSequenceFile reference;
@@ -46,6 +52,14 @@ public abstract class ShardDataProvider {
      * Sources of reference-ordered data.
      */
     private final Collection<ReferenceOrderedDataSource> referenceOrderedData;
+
+    /**
+     * Returns the GenomeLocParser associated with this traversal.
+     * @return The associated parser.
+     */
+    public GenomeLocParser getGenomeLocParser() {
+        return genomeLocParser;
+    }
 
     /**
      * Retrieves the shard associated with this data provider.
@@ -86,8 +100,9 @@ public abstract class ShardDataProvider {
      * @param shard The chunk of data over which traversals happen.
      * @param reference A getter for a section of the reference.
      */
-    public ShardDataProvider(Shard shard,IndexedFastaSequenceFile reference,Collection<ReferenceOrderedDataSource> rods) {
+    public ShardDataProvider(Shard shard,GenomeLocParser genomeLocParser,IndexedFastaSequenceFile reference,Collection<ReferenceOrderedDataSource> rods) {
         this.shard = shard;
+        this.genomeLocParser = genomeLocParser;
         this.reference = reference;
         this.referenceOrderedData = rods;
     }
@@ -96,8 +111,8 @@ public abstract class ShardDataProvider {
      * Skeletal, package protected constructor for unit tests which require a ShardDataProvider.
      * @param shard the shard
      */
-    ShardDataProvider(Shard shard) {
-        this(shard,null,null);
+    ShardDataProvider(Shard shard,GenomeLocParser genomeLocParser) {
+        this(shard,genomeLocParser,null,null);
     }
 
     /**

@@ -26,7 +26,6 @@ package org.broadinstitute.sting.gatk.refdata.features.beagle;
 
 
 import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
 import java.io.File;
@@ -37,10 +36,11 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.broad.tribble.exception.CodecLineParsingException;
+import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-public class BeagleCodec implements FeatureCodec<BeagleFeature> {
+public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature> {
     private String[] header;
     public enum BeagleReaderType {PROBLIKELIHOOD, GENOTYPES, R2};
     private BeagleReaderType readerType;
@@ -51,6 +51,19 @@ public class BeagleCodec implements FeatureCodec<BeagleFeature> {
     private int expectedTokensPerLine;
 
     private static final String delimiterRegex = "\\s+";
+
+    /**
+     * The parser to use when resolving genome-wide locations.
+     */
+    private GenomeLocParser genomeLocParser;
+
+    /**
+     * Set the parser to use when resolving genetic data.
+     * @param genomeLocParser The supplied parser.
+     */
+    public void setGenomeLocParser(GenomeLocParser genomeLocParser) {
+        this.genomeLocParser =  genomeLocParser;
+    }    
 
     public Feature decodeLoc(String line) {
         return decode(line);
@@ -147,17 +160,6 @@ public class BeagleCodec implements FeatureCodec<BeagleFeature> {
 
     private static Pattern MARKER_PATTERN = Pattern.compile("(.+):([0-9]+)");
 
-    private static GenomeLoc parseMarkerName(String markerName) {
-        Matcher m = MARKER_PATTERN.matcher(markerName);
-        if ( m.matches() ) {
-            String contig = m.group(1);
-            long start = Long.valueOf(m.group(2));
-            return GenomeLocParser.createGenomeLoc(contig, start, start);
-        } else {
-            throw new IllegalArgumentException("Malformatted marker string: " + markerName + " required format is chrN:position");
-        }
-    }
-
     @Override
     public Class<BeagleFeature> getFeatureType() {
         return BeagleFeature.class;
@@ -175,7 +177,7 @@ public class BeagleCodec implements FeatureCodec<BeagleFeature> {
 
         BeagleFeature bglFeature = new BeagleFeature();
 
-        final GenomeLoc loc = GenomeLocParser.parseGenomeLoc(tokens[markerPosition]); //GenomeLocParser.parseGenomeInterval(values.get(0)); - TODO switch to this
+        final GenomeLoc loc = genomeLocParser.parseGenomeLoc(tokens[markerPosition]); //GenomeLocParser.parseGenomeInterval(values.get(0)); - TODO switch to this
 
         //parse the location: common to all readers
         bglFeature.setChr(loc.getContig());

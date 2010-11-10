@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import java.util.Collection;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 /**
  * Present data sharded by read to a traversal engine.
@@ -26,8 +27,8 @@ public class ReadShardDataProvider extends ShardDataProvider {
      * @param shard The chunk of data over which traversals happen.
      * @param reference A getter for a section of the reference.
      */
-    public ReadShardDataProvider(Shard shard, StingSAMIterator reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
-        super(shard,reference,rods);
+    public ReadShardDataProvider(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods) {
+        super(shard,genomeLocParser,reference,rods);
         this.reads = reads;
     }
 

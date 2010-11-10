@@ -92,7 +92,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         boolean hasInsertion = false;
         boolean hasPointEvent = false;
 
-        long furthestStopPos = -1;
+        int furthestStopPos = -1;
 
         // look for insertions in the extended context (we'll get deletions from the normal context)
         if ( context.hasExtendedEventPileup() ) {
@@ -175,9 +175,9 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
 
         GenomeLoc eventLoc = context.getLocation();
         if ( hasInsertion )
-            eventLoc =  GenomeLocParser.createGenomeLoc(eventLoc.getContigIndex(), eventLoc.getStart(), eventLoc.getStart()+1);
+            eventLoc =  getToolkit().getGenomeLocParser().createGenomeLoc(eventLoc.getContig(), eventLoc.getStart(), eventLoc.getStart()+1);
         else if ( hasIndel && !context.hasBasePileup() )
-            eventLoc =  GenomeLocParser.createGenomeLoc(eventLoc.getContigIndex(), eventLoc.getStart(), furthestStopPos);        
+            eventLoc =  getToolkit().getGenomeLocParser().createGenomeLoc(eventLoc.getContig(), eventLoc.getStart(), furthestStopPos);        
 
         EVENT_TYPE eventType = (hasIndel ? (hasPointEvent ? EVENT_TYPE.BOTH : EVENT_TYPE.INDEL_EVENT) : EVENT_TYPE.POINT_EVENT);
 
@@ -217,15 +217,15 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
     private enum EVENT_TYPE { POINT_EVENT, INDEL_EVENT, BOTH }
 
     class Event {
-        public long furthestStopPos;
+        public int furthestStopPos;
 
         public GenomeLoc loc;
-        public long eventStartPos;
-        private long eventStopPos;
+        public int eventStartPos;
+        private int eventStopPos;
         private EVENT_TYPE type;
-        private ArrayList<Long> pointEvents = new ArrayList<Long>();
+        private ArrayList<Integer> pointEvents = new ArrayList<Integer>();
 
-        public Event(GenomeLoc loc, long furthestStopPos, EVENT_TYPE type) {
+        public Event(GenomeLoc loc, int furthestStopPos, EVENT_TYPE type) {
             this.loc = loc;
             this.furthestStopPos = furthestStopPos;
             this.type = type;
@@ -254,9 +254,9 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
             }
 
             if ( e.type == EVENT_TYPE.POINT_EVENT || e.type == EVENT_TYPE.BOTH ) {
-                long newPosition = e.pointEvents.get(0);
+                int newPosition = e.pointEvents.get(0);
                 if ( pointEvents.size() > 0 ) {
-                    long lastPosition = pointEvents.get(pointEvents.size()-1);
+                    int lastPosition = pointEvents.get(pointEvents.size()-1);
                     if ( newPosition - lastPosition < windowSize ) {
                         eventStopPos = Math.max(eventStopPos, newPosition);
                         furthestStopPos = e.furthestStopPos;
@@ -272,7 +272,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         }
 
         public boolean isReportableEvent() {
-            return GenomeLocParser.validGenomeLoc(loc.getContig(), eventStartPos, eventStopPos) && eventStopPos >= 0 && eventStopPos - eventStartPos < maxIntervalSize;
+            return getToolkit().getGenomeLocParser().validGenomeLoc(loc.getContig(), eventStartPos, eventStopPos) && eventStopPos >= 0 && eventStopPos - eventStartPos < maxIntervalSize;
         }
 
         public String toString() {

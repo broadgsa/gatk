@@ -143,7 +143,7 @@ public class IndelErrorRateWalker extends LocusWalker<Integer,Integer> {
       //                      System.out.println("Non countable indel event at "+pileup.getLocation());
                 countableIndelBuffer.clear();
                 coverageBuffer.clear(); // we do not want to count observations (read bases) around non-countable indel as well
-                skipToLoc = GenomeLocParser.createGenomeLoc(pileup.getLocation().getContigIndex(),pileup.getLocation().getStop()+pileup.getMaxDeletionLength()+MIN_DISTANCE+1);
+                skipToLoc = ref.getGenomeLocParser().createGenomeLoc(pileup.getLocation().getContig(),pileup.getLocation().getStop()+pileup.getMaxDeletionLength()+MIN_DISTANCE+1);
  //                       System.out.println("Skip to "+skipToLoc);
             } else {
                 // pileup does not contain too many indels, we need to store them in the buffer and count them later,

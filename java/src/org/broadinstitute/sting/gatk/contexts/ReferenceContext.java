@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -40,6 +41,11 @@ import net.sf.samtools.util.StringUtil;
 
 public class ReferenceContext {
     final public static boolean UPPERCASE_REFERENCE = true;
+
+    /**
+     * Facilitates creation of new GenomeLocs.
+     */
+    private GenomeLocParser genomeLocParser;
 
     /**
      * The locus.
@@ -101,18 +107,18 @@ public class ReferenceContext {
      * @param locus locus of interest.
      * @param base reference base at that locus.
      */
-    public ReferenceContext( GenomeLoc locus, byte base ) {
-        this( locus, locus, new ForwardingProvider(base) );
+    public ReferenceContext( GenomeLocParser genomeLocParser, GenomeLoc locus, byte base ) {
+        this( genomeLocParser, locus, locus, new ForwardingProvider(base) );
     }
 
-    public ReferenceContext( GenomeLoc locus, GenomeLoc window, byte[] bases ) {
-        this( locus, window, new ForwardingProvider(bases) );
+    public ReferenceContext( GenomeLocParser genomeLocParser, GenomeLoc locus, GenomeLoc window, byte[] bases ) {
+        this( genomeLocParser, locus, window, new ForwardingProvider(bases) );
     }
 
-    public ReferenceContext( GenomeLoc locus, GenomeLoc window, ReferenceContextRefProvider basesProvider ) {
+    public ReferenceContext( GenomeLocParser genomeLocParser, GenomeLoc locus, GenomeLoc window, ReferenceContextRefProvider basesProvider ) {
   //      if( !window.containsP(locus) )
   //          throw new StingException("Invalid locus or window; window does not contain locus");
-
+        this.genomeLocParser = genomeLocParser;
         this.locus = locus;
         this.window = window;
         this.basesProvider = basesProvider;
@@ -123,6 +129,10 @@ public class ReferenceContext {
             basesCache = basesProvider.getBases();
             if (UPPERCASE_REFERENCE) StringUtil.toUpperCase(basesCache);
         }
+    }
+
+    public GenomeLocParser getGenomeLocParser() {
+        return genomeLocParser;
     }
 
     /**

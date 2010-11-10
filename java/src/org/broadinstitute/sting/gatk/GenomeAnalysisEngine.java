@@ -165,7 +165,7 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
             throw new UserException.CommandLineException("Read-based traversals require a reference file but none was given");
         }
 
-        return MicroScheduler.create(this,my_walker,this.getDataSource(),this.getReferenceDataSource().getReference(),this.getRodDataSources(),this.getArguments().numberOfThreads);
+        return MicroScheduler.create(this,my_walker,this.getReadsDataSource(),this.getReferenceDataSource().getReference(),this.getRodDataSources(),this.getArguments().numberOfThreads);
     }
 
     @Override
@@ -258,7 +258,7 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
      */
     protected ShardStrategy getShardStrategy(ReferenceSequenceFile drivingDataSource) {
         GenomeLocSortedSet intervals = this.getIntervals();
-        SAMDataSource readsDataSource = this.getDataSource();
+        SAMDataSource readsDataSource = this.getReadsDataSource();
         ValidationExclusion exclusions = (readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
         ReferenceDataSource referenceDataSource = this.getReferenceDataSource();
         // Use monolithic sharding if no index is present.  Monolithic sharding is always required for the original
@@ -286,7 +286,7 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
             else {
                 region = new ArrayList<GenomeLoc>();
                 for(SAMSequenceRecord sequenceRecord: drivingDataSource.getSequenceDictionary().getSequences())
-                    region.add(GenomeLocParser.createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));
+                    region.add(getGenomeLocParser().createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));
             }
 
             return new MonolithicShardStrategy(readsDataSource,shardType,region);
@@ -309,13 +309,14 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
                         ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
+                        getGenomeLocParser(),
                         intervals);
             } else
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource.getReference(),
                         ShardStrategyFactory.SHATTER_STRATEGY.LOCUS_EXPERIMENTAL,
                         drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE);
+                        SHARD_SIZE,getGenomeLocParser());
         } else if (walker instanceof ReadWalker ||
                 walker instanceof DuplicateWalker) {
             shardType = ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL;
@@ -326,13 +327,15 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
                         shardType,
                         drivingDataSource.getSequenceDictionary(),
                         SHARD_SIZE,
+                        getGenomeLocParser(),
                         intervals);
             } else {
                 shardStrategy = ShardStrategyFactory.shatter(readsDataSource,
                         referenceDataSource.getReference(),
                         shardType,
                         drivingDataSource.getSequenceDictionary(),
-                        SHARD_SIZE);
+                        SHARD_SIZE,
+                        getGenomeLocParser());
             }
         } else if (walker instanceof ReadPairWalker) {
             if(readsDataSource != null && readsDataSource.getSortOrder() != SAMFileHeader.SortOrder.queryname)
@@ -344,7 +347,8 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
                     referenceDataSource.getReference(),
                     ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                     drivingDataSource.getSequenceDictionary(),
-                    SHARD_SIZE);
+                    SHARD_SIZE,
+                    getGenomeLocParser());
         } else
             throw new ReviewedStingException("Unable to support walker of type" + walker.getClass().getName());
 

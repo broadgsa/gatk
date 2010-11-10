@@ -36,7 +36,7 @@ public class ShardDataProviderUnitTest extends BaseTest {
 
     @BeforeMethod
     public void createProvider() {
-        provider = new LocusShardDataProvider( null,null,null,null,null,null );
+        provider = new LocusShardDataProvider( null,null,null,null,null,null,null );
     }
 
     /**

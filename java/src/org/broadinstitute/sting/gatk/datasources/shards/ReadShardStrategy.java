@@ -90,7 +90,7 @@ public class ReadShardStrategy implements ShardStrategy {
         this.locations = locations;
 
         if(locations != null)
-            filePointerIterator = IntervalSharder.shardIntervals(this.dataSource,locations.toList());
+            filePointerIterator = IntervalSharder.shardIntervals(this.dataSource,locations);
         else
             filePointerIterator = filePointers.iterator();
 

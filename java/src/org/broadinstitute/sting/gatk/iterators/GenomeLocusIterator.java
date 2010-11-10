@@ -23,6 +23,11 @@ import java.util.Iterator;
  */
 public class GenomeLocusIterator implements Iterator<GenomeLoc> {
     /**
+     * Builds individual loci.
+     */
+    private GenomeLocParser parser;
+
+    /**
      * The entire region over which we're iterating.
      */
     private GenomeLoc completeLocus;
@@ -38,9 +43,10 @@ public class GenomeLocusIterator implements Iterator<GenomeLoc> {
      * @param completeLocus Data provider to use as a backing source.
      *                 Provider must have a reference (hasReference() == true).
      */
-    public GenomeLocusIterator( GenomeLoc completeLocus ) {
+    public GenomeLocusIterator( GenomeLocParser parser, GenomeLoc completeLocus ) {
+        this.parser = parser;
         this.completeLocus = completeLocus;
-        this.currentLocus = GenomeLocParser.createGenomeLoc(completeLocus.getContig(),completeLocus.getStart());
+        this.currentLocus = parser.createGenomeLoc(completeLocus.getContig(),completeLocus.getStart());
     }
 
     /**
@@ -59,7 +65,7 @@ public class GenomeLocusIterator implements Iterator<GenomeLoc> {
         if( !hasNext() )
             throw new NoSuchElementException("No elements remaining in bounded reference region.");
         GenomeLoc toReturn = (GenomeLoc)currentLocus.clone();
-        currentLocus = GenomeLocParser.incPos(currentLocus);
+        currentLocus = parser.incPos(currentLocus);
         return toReturn;
     }
 

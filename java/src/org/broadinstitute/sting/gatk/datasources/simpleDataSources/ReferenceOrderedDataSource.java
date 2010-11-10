@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.FeatureSource;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
@@ -10,6 +11,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -47,12 +49,12 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * Create a new reference-ordered data source.
      * @param rod the reference ordered data
      */
-    public ReferenceOrderedDataSource( RMDTrack rod, boolean flashbackData ) {
+    public ReferenceOrderedDataSource(SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser, RMDTrack rod, boolean flashbackData ) {
         this.rod = rod;
         if (rod.supportsQuery())
-            iteratorPool = new ReferenceOrderedQueryDataPool(new RMDTrackBuilder(),rod);
+            iteratorPool = new ReferenceOrderedQueryDataPool(sequenceDictionary,genomeLocParser,new RMDTrackBuilder(),rod);
         else
-            iteratorPool = new ReferenceOrderedDataPool( rod, flashbackData );
+            iteratorPool = new ReferenceOrderedDataPool(sequenceDictionary,genomeLocParser,rod, flashbackData );
     }
 
     /**
@@ -110,7 +112,8 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
 class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIterator, LocationAwareSeekableRODIterator> {
     private final RMDTrack rod;
     boolean flashbackData = false;
-    public ReferenceOrderedDataPool( RMDTrack rod, boolean flashbackData ) {
+    public ReferenceOrderedDataPool( SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser, RMDTrack rod, boolean flashbackData ) {
+        super(sequenceDictionary,genomeLocParser);
         this.flashbackData = flashbackData;
         this.rod = rod;
     }
@@ -121,7 +124,7 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
      * @return The newly created resource.
      */
     public LocationAwareSeekableRODIterator createNewResource() {
-        LocationAwareSeekableRODIterator iter = new SeekableRODIterator(rod.getIterator());
+        LocationAwareSeekableRODIterator iter = new SeekableRODIterator(sequenceDictionary,genomeLocParser,rod.getIterator());
         return (flashbackData) ? new FlashBackIterator(iter) : iter;
     }
 
@@ -134,7 +137,7 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
      */
     public LocationAwareSeekableRODIterator selectBestExistingResource( DataStreamSegment segment, List<LocationAwareSeekableRODIterator> resources ) {
         if(segment instanceof MappedStreamSegment) {
-            GenomeLoc position = ((MappedStreamSegment)segment).getFirstLocation();
+            GenomeLoc position = ((MappedStreamSegment)segment).getLocation();
 
             for( LocationAwareSeekableRODIterator RODIterator : resources ) {
 
@@ -178,14 +181,14 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
  * a data pool for the new query based RODs
  */
 class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureSource, LocationAwareSeekableRODIterator> {
-
     // the reference-ordered data itself.
     private final RMDTrack rod;
 
     // our tribble track builder
     private final RMDTrackBuilder builder;
 
-    public ReferenceOrderedQueryDataPool( RMDTrackBuilder builder, RMDTrack rod ) {
+    public ReferenceOrderedQueryDataPool( SAMSequenceDictionary sequenceDictionary, GenomeLocParser genomeLocParser, RMDTrackBuilder builder, RMDTrack rod ) {
+        super(sequenceDictionary,genomeLocParser);
         this.rod = rod;
         this.builder = builder;
         // a little bit of a hack, but it saves us from re-reading the index from the file
@@ -209,9 +212,9 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureSource, Location
         try {
             if (position instanceof MappedStreamSegment) {
                 GenomeLoc pos = ((MappedStreamSegment) position).locus;
-                return new SeekableRODIterator(new FeatureToGATKFeatureIterator(resource.query(pos.getContig(),(int) pos.getStart(), (int) pos.getStop()),rod.getName()));
+                return new SeekableRODIterator(sequenceDictionary,genomeLocParser,new FeatureToGATKFeatureIterator(genomeLocParser,resource.query(pos.getContig(),(int) pos.getStart(), (int) pos.getStop()),rod.getName()));
             } else {
-                return new SeekableRODIterator(new FeatureToGATKFeatureIterator(resource.iterator(),rod.getName()));
+                return new SeekableRODIterator(sequenceDictionary,genomeLocParser,new FeatureToGATKFeatureIterator(genomeLocParser,resource.iterator(),rod.getName()));
             }
         } catch (IOException e) {
             throw new ReviewedStingException("Unable to create iterator for rod named " + rod.getName(),e);

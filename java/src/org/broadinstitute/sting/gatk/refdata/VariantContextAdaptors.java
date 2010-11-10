@@ -181,7 +181,7 @@ public class VariantContextAdaptors {
                 // add the call to the genotype list, and then use this list to create a VariantContext
                 genotypes.add(call);
                 alleles.add(refAllele);
-                VariantContext vc = VariantContextUtils.toVC(name, GenomeLocParser.createGenomeLoc(geli.getChr(),geli.getStart()), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
+                VariantContext vc = VariantContextUtils.toVC(name, ref.getGenomeLocParser().createGenomeLoc(geli.getChr(),geli.getStart()), alleles, genotypes, geli.getLODBestToReference(), null, attributes);
                 return vc;
             } else
                 return null; // can't handle anything else

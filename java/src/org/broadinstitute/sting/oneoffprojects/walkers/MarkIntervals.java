@@ -83,7 +83,7 @@ public class MarkIntervals extends RodWalker<Long, Long> {
         try {
             for ( String line : new XReadLines(locs, true) ) {
                 String parts[] = line.split(":");
-                badSites.add(GenomeLocParser.createGenomeLoc(parts[0], Long.valueOf(parts[1])));
+                badSites.add(getToolkit().getGenomeLocParser().createGenomeLoc(parts[0], Integer.valueOf(parts[1])));
             }
         } catch ( FileNotFoundException e ) {
             throw new UserException.CouldNotReadInputFile(locs, e);

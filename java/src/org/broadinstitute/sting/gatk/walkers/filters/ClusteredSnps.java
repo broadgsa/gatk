@@ -2,13 +2,16 @@ package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 public class ClusteredSnps {
+    private GenomeLocParser genomeLocParser;
     private int window = 10;
     private int snpThreshold = 3;
 
-    public ClusteredSnps(int snpThreshold, int window) {
+    public ClusteredSnps(GenomeLocParser genomeLocParser,int snpThreshold, int window) {
+        this.genomeLocParser = genomeLocParser;
         this.window = window;
         this.snpThreshold = snpThreshold;
         if ( window < 1 || snpThreshold < 1 )
@@ -29,7 +32,7 @@ public class ClusteredSnps {
                 throw new UserException.BadInput("The clustered SNPs filter does not work in the presence of non-variant records; see the documentation for more details");
 
             // find the nth variant
-            GenomeLoc left = VariantContextUtils.getLocation(variants[i].getVariantContext());
+            GenomeLoc left = VariantContextUtils.getLocation(genomeLocParser,variants[i].getVariantContext());
             GenomeLoc right = null;
             int snpsSeen = 1;
 
@@ -37,7 +40,7 @@ public class ClusteredSnps {
             while ( ++currentIndex < variants.length ) {
                 if ( variants[currentIndex] != null && variants[currentIndex].getVariantContext() != null && variants[currentIndex].getVariantContext().isVariant() ) {
                     if ( ++snpsSeen == snpThreshold ) {
-                        right = VariantContextUtils.getLocation(variants[currentIndex].getVariantContext());
+                        right = VariantContextUtils.getLocation(genomeLocParser,variants[currentIndex].getVariantContext());
                         break;
                     }
                 }

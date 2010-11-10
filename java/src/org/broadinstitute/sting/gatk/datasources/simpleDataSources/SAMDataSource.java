@@ -43,6 +43,7 @@ import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -63,17 +64,22 @@ public class SAMDataSource implements SimpleDataSource {
     /**
      * Runtime metrics of reads filtered, etc.
      */
-    protected final ReadMetrics readMetrics;
+    private final ReadMetrics readMetrics;
+
+    /**
+     * Tools for parsing GenomeLocs, for verifying BAM ordering against general ordering.
+     */
+    private final GenomeLocParser genomeLocParser;
 
     /**
      * Identifiers for the readers driving this data source.
      */
-    protected final List<SAMReaderID> readerIDs;
+    private final List<SAMReaderID> readerIDs;
 
     /**
      * How strict are the readers driving this data source.
      */
-    protected final SAMFileReader.ValidationStringency validationStringency;
+    private final SAMFileReader.ValidationStringency validationStringency;
 
     /**
      * How far along is each reader?
@@ -113,9 +119,10 @@ public class SAMDataSource implements SimpleDataSource {
      * Create a new SAM data source given the supplied read metadata.
      * @param samFiles list of reads files.
      */
-    public SAMDataSource(List<SAMReaderID> samFiles) {
+    public SAMDataSource(List<SAMReaderID> samFiles,GenomeLocParser genomeLocParser) {
         this(
                 samFiles,
+                genomeLocParser,
                 false,
                 SAMFileReader.ValidationStringency.STRICT,
                 null,
@@ -145,6 +152,7 @@ public class SAMDataSource implements SimpleDataSource {
      */
     public SAMDataSource(
             List<SAMReaderID> samFiles,
+            GenomeLocParser genomeLocParser,
             boolean useOriginalBaseQualities,
             SAMFileReader.ValidationStringency strictness,
             Integer readBufferSize,
@@ -155,6 +163,7 @@ public class SAMDataSource implements SimpleDataSource {
             boolean generateExtendedEvents
     ) {
         this.readMetrics = new ReadMetrics();
+        this.genomeLocParser = genomeLocParser;
 
         readerIDs = samFiles;
         validationStringency = strictness;
@@ -520,7 +529,7 @@ public class SAMDataSource implements SimpleDataSource {
         // unless they've said not to validate read ordering (!noValidationOfReadOrder) and we've enabled verification,
         // verify the read ordering by applying a sort order iterator
         if (!noValidationOfReadOrder && enableVerification)
-            wrappedIterator = new VerifyingSamIterator(wrappedIterator);
+            wrappedIterator = new VerifyingSamIterator(genomeLocParser,wrappedIterator);
 
         wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 

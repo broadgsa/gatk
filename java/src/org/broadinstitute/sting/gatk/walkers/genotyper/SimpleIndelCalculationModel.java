@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.contexts.*;
 import java.util.*;
 
 public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
+    private final GenomeLocParser genomeLocParser;
 
     private int MIN_COVERAGE = 6;
     private double MIN_FRACTION = 0.3;
@@ -20,7 +21,9 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
     // the previous normal event context
 //    private Map<String, StratifiedAlignmentContext> cachedContext;
 
-    protected SimpleIndelCalculationModel() {}
+    protected SimpleIndelCalculationModel(GenomeLocParser genomeLocParser) {
+        this.genomeLocParser = genomeLocParser;
+    }
 
     private int totalIndels = 0;
     private int totalCoverage = 0;
@@ -70,7 +73,7 @@ public class SimpleIndelCalculationModel extends GenotypeCalculationModel {
             if ( bestEvent.charAt(0) == '-' ) {
                 alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
                 alleles.add( Allele.create(bestEvent.substring(1), true ));
-                loc = GenomeLocParser.setStop(loc, loc.getStop() + bestEvent.length()-1);
+                loc = genomeLocParser.setStop(loc, loc.getStop() + bestEvent.length()-1);
             } else
                 throw new ReviewedStingException("Internal error (probably a bug): event does not conform to expected format: "+ bestEvent);
         }

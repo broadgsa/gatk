@@ -8,6 +8,7 @@ import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 /**
  * User: hanna
@@ -47,7 +48,7 @@ public class AllLocusView extends LocusView {
     public AllLocusView(LocusShardDataProvider provider) {                
         super( provider );
         // Seed the state tracking members with the first possible seek position and the first possible locus context.
-        locusIterator = new GenomeLocusIterator(provider.getLocus());
+        locusIterator = new GenomeLocusIterator(genomeLocParser,provider.getLocus());
         if( locusIterator.hasNext() ) {
             // cache next position and next alignment context
             nextPosition = locusIterator.next();

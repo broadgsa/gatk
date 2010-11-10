@@ -6,7 +6,6 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
-import org.broadinstitute.sting.utils.GenomeLocParserTestUtils;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -36,12 +35,12 @@ public class VCFWriterUnitTest extends BaseTest {
     private Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
     private Set<String> additionalColumns = new HashSet<String>();
     private File fakeVCFFile = new File("FAKEVCFFILEFORTESTING.vcf");
+    private GenomeLocParser genomeLocParser;
 
     @BeforeClass
     public void beforeTests() {
-        GenomeLocParserTestUtils.clearSequenceDictionary();
         IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(hg18Reference));
-        GenomeLocParser.setupRefContigOrdering(seq);
+        genomeLocParser = new GenomeLocParser(seq);
     }
 
     /** test, using the writer and reader, that we can output and input a VCF file without problems */
@@ -110,7 +109,7 @@ public class VCFWriterUnitTest extends BaseTest {
      */
     private VariantContext createVC(VCFHeader header) {
 
-        GenomeLoc loc = GenomeLocParser.createGenomeLoc("chr1",1);
+        GenomeLoc loc = genomeLocParser.createGenomeLoc("chr1",1);
         List<Allele> alleles = new ArrayList<Allele>();
         Set<String> filters = null;
         Map<String, String> attributes = new HashMap<String,String>();

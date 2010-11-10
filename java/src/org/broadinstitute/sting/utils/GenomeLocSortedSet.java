@@ -38,23 +38,34 @@ import java.util.*;
 public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     private static Logger logger = Logger.getLogger(GenomeLocSortedSet.class);
 
+    private GenomeLocParser genomeLocParser;
+
     // our private storage for the GenomeLoc's
     private List<GenomeLoc> mArray = new ArrayList<GenomeLoc>();
 
     /** default constructor */
-    public GenomeLocSortedSet() {
+    public GenomeLocSortedSet(GenomeLocParser parser) {
+        this.genomeLocParser = parser;
     }
 
-    public GenomeLocSortedSet(GenomeLoc e) {
-        this();
+    public GenomeLocSortedSet(GenomeLocParser parser,GenomeLoc e) {
+        this(parser);
         add(e);
     }
 
-    public GenomeLocSortedSet(Collection<GenomeLoc> l) {
-        this();
+    public GenomeLocSortedSet(GenomeLocParser parser,Collection<GenomeLoc> l) {
+        this(parser);
 
         for ( GenomeLoc e : l )
             add(e);
+    }
+
+    /**
+     * Gets the GenomeLocParser used to create this sorted set.
+     * @return The parser.  Will never be null.
+     */
+    public GenomeLocParser getGenomeLocParser() {
+        return genomeLocParser;
     }
 
     /**
@@ -201,7 +212,7 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
                 logger.debug("removeRegions operation: i = " + i);
         }
 
-        return GenomeLocSortedSet.createSetFromList(good);
+        return createSetFromList(genomeLocParser,good);
     }
 
     private static final List<GenomeLoc> EMPTY_LIST = new ArrayList<GenomeLoc>();
@@ -221,8 +232,8 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
              * |------|  + |--------|
              *
              */
-            GenomeLoc before = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
-            GenomeLoc after = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
+            GenomeLoc before = genomeLocParser.createGenomeLoc(g.getContig(), g.getStart(), e.getStart() - 1);
+            GenomeLoc after = genomeLocParser.createGenomeLoc(g.getContig(), e.getStop() + 1, g.getStop());
             if (after.getStop() - after.getStart() >= 0) {
                 l.add(after);
             }
@@ -255,9 +266,9 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
 
             GenomeLoc n;
             if (e.getStart() < g.getStart()) {
-                n = GenomeLocParser.createGenomeLoc(g.getContigIndex(), e.getStop() + 1, g.getStop());
+                n = genomeLocParser.createGenomeLoc(g.getContig(), e.getStop() + 1, g.getStop());
             } else {
-                n = GenomeLocParser.createGenomeLoc(g.getContigIndex(), g.getStart(), e.getStart() - 1);
+                n = genomeLocParser.createGenomeLoc(g.getContig(), g.getStart(), e.getStart() - 1);
             }
 
             // replace g with the new region
@@ -283,9 +294,10 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      * @return the GenomeLocSet of all references sequences as GenomeLoc's
      */
     public static GenomeLocSortedSet createSetFromSequenceDictionary(SAMSequenceDictionary dict) {
-        GenomeLocSortedSet returnSortedSet = new GenomeLocSortedSet();
+        GenomeLocParser parser = new GenomeLocParser(dict);
+        GenomeLocSortedSet returnSortedSet = new GenomeLocSortedSet(parser);
         for (SAMSequenceRecord record : dict.getSequences()) {
-            returnSortedSet.add(GenomeLocParser.createGenomeLoc(record.getSequenceIndex(), 1, record.getSequenceLength()));
+            returnSortedSet.add(parser.createGenomeLoc(record.getSequenceName(), 1, record.getSequenceLength()));
         }
         return returnSortedSet;
     }
@@ -297,8 +309,8 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
      *
      * @return the sorted genome loc list
      */
-    public static GenomeLocSortedSet createSetFromList(List<GenomeLoc> locs) {
-        GenomeLocSortedSet set = new GenomeLocSortedSet();
+    public static GenomeLocSortedSet createSetFromList(GenomeLocParser parser,List<GenomeLoc> locs) {
+        GenomeLocSortedSet set = new GenomeLocSortedSet(parser);
         set.addAll(locs);
         return set;
     }
@@ -307,13 +319,13 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     /**
      * return a deep copy of this collection.
      *
-     * @return a new GenomeLocSortedSet, indentical to the current GenomeLocSortedSet.
+     * @return a new GenomeLocSortedSet, identical to the current GenomeLocSortedSet.
      */
     public GenomeLocSortedSet clone() {
-        GenomeLocSortedSet ret = new GenomeLocSortedSet();
+        GenomeLocSortedSet ret = new GenomeLocSortedSet(genomeLocParser);
         for (GenomeLoc loc : this.mArray) {
             // ensure a deep copy
-            ret.mArray.add(GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), loc.getStop()));
+            ret.mArray.add(genomeLocParser.createGenomeLoc(loc.getContig(), loc.getStart(), loc.getStop()));
         }
         return ret;
     }

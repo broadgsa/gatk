@@ -129,7 +129,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
-        VariantContext mergedVC = VariantContextUtils.simpleMerge(vcs, priority, variantMergeOption,
+        VariantContext mergedVC = VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(),vcs, priority, variantMergeOption,
                 genotypeMergeOption, true, printComplexMerges, ref.getBase(), SET_KEY, filteredAreUncalled);
 
 

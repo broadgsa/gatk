@@ -211,9 +211,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             for (String fileOrInterval : intervalsFile.split(";")) {
                 // if it's a file, add items to raw interval list
                 if (IntervalUtils.isIntervalFile(fileOrInterval)) {
-                    merger.add(new IntervalFileMergingIterator( new java.io.File(fileOrInterval), IntervalMergingRule.OVERLAPPING_ONLY ) );
+                    merger.add(new IntervalFileMergingIterator( getToolkit().getGenomeLocParser(), new java.io.File(fileOrInterval), IntervalMergingRule.OVERLAPPING_ONLY ) );
                 } else {
-                    rawIntervals.add(GenomeLocParser.parseGenomeInterval(fileOrInterval));
+                    rawIntervals.add(getToolkit().getGenomeLocParser().parseGenomeInterval(fileOrInterval));
                 }
             }
             if ( ! rawIntervals.isEmpty() ) merger.add(rawIntervals.iterator());
@@ -221,7 +221,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             intervals = merger; 
         } else {
             // read in the whole list of intervals for cleaning
-            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(IntervalUtils.parseIntervalArguments(Arrays.asList(intervalsFile),this.getToolkit().getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST), IntervalMergingRule.OVERLAPPING_ONLY);
+            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(intervalsFile),this.getToolkit().getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST), IntervalMergingRule.OVERLAPPING_ONLY);
             intervals = locs.iterator();
         }
         currentInterval = intervals.hasNext() ? intervals.next() : null;
@@ -239,9 +239,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
             nwayWriters = new HashMap<SAMReaderID,SAMFileWriter>();
 
-            for ( SAMReaderID rid : getToolkit().getDataSource().getReaderIDs() ) {
+            for ( SAMReaderID rid : getToolkit().getReadsDataSource().getReaderIDs() ) {
 
-                String fName = getToolkit().getDataSource().getSAMFile(rid).getName();
+                String fName = getToolkit().getReadsDataSource().getSAMFile(rid).getName();
 
                 int pos ;
                 if ( fName.toUpperCase().endsWith(".BAM") ) pos = fName.toUpperCase().lastIndexOf(".BAM");
@@ -383,10 +383,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             return 0;
         }
 
-        GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
+        GenomeLoc readLoc = getToolkit().getGenomeLocParser().createGenomeLoc(read);
         // hack to get around unmapped reads having screwy locations
         if ( readLoc.getStop() == 0 )
-            readLoc = GenomeLocParser.createGenomeLoc(readLoc.getContigIndex(), readLoc.getStart(), readLoc.getStart());
+            readLoc = getToolkit().getGenomeLocParser().createGenomeLoc(readLoc.getContig(), readLoc.getStart(), readLoc.getStart());
 
         if ( readLoc.isBefore(currentInterval) || ReadUtils.is454Read(read) ) {
             // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
@@ -1414,7 +1414,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private static class ReadBin {
+    private class ReadBin {
 
         private final ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
         private byte[] reference = null;
@@ -1426,11 +1426,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // This can happen if e.g. there's a large known indel with no overlapping reads.
         public void add(SAMRecord read) {
 
-            GenomeLoc locForRead = GenomeLocParser.createGenomeLoc(read);
+            GenomeLoc locForRead = getToolkit().getGenomeLocParser().createGenomeLoc(read);
             if ( loc == null )
                 loc = locForRead;
             else if ( locForRead.getStop() > loc.getStop() )
-                loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), loc.getStart(), locForRead.getStop());
+                loc = getToolkit().getGenomeLocParser().createGenomeLoc(loc.getContig(), loc.getStart(), locForRead.getStop());
 
             reads.add(read);
         }
@@ -1441,9 +1441,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             // set up the reference if we haven't done so yet
             if ( reference == null ) {
                 // first, pad the reference to handle deletions in narrow windows (e.g. those with only 1 read)
-                long padLeft = Math.max(loc.getStart()-REFERENCE_PADDING, 1);
-                long padRight = Math.min(loc.getStop()+REFERENCE_PADDING, referenceReader.getSequenceDictionary().getSequence(loc.getContig()).getSequenceLength());
-                loc = GenomeLocParser.createGenomeLoc(loc.getContigIndex(), padLeft, padRight);
+                int padLeft = Math.max(loc.getStart()-REFERENCE_PADDING, 1);
+                int padRight = Math.min(loc.getStop()+REFERENCE_PADDING, referenceReader.getSequenceDictionary().getSequence(loc.getContig()).getSequenceLength());
+                loc = getToolkit().getGenomeLocParser().createGenomeLoc(loc.getContig(), padLeft, padRight);
                 reference = referenceReader.getSubsequenceAt(loc.getContig(), loc.getStart(), loc.getStop()).getBases();
                 StringUtil.toUpperCase(reference);
             }

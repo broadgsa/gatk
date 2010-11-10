@@ -639,7 +639,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         else if ( group.requiresNovel() && vcKnown )
             return false;
 
-        if ( group.selectExp != null && ! VariantContextUtils.match(vc, group.selectExp) )
+        if ( group.selectExp != null && ! VariantContextUtils.match(getToolkit().getGenomeLocParser(),vc, group.selectExp) )
             return false;
 
         // nothing invalidated our membership in this set

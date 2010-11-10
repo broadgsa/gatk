@@ -136,10 +136,10 @@ public class RemapAlignments extends CommandLineProgram {
         }
 		
 		h.setSequenceDictionary(reference.getSequenceDictionary());
-		GenomeLocParser.setupRefContigOrdering(reference.getSequenceDictionary());
-		
+        GenomeLocParser genomeLocParser = new GenomeLocParser(reference.getSequenceDictionary());
+
 		map = new GenomicMap(10000);
-		map.read(MAP_FILE);
+		map.read(genomeLocParser,MAP_FILE);
 		System.out.println("Map loaded successfully: "+map.size()+" contigs");
 				
 		

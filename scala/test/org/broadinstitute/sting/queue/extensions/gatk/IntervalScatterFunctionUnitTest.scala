@@ -8,17 +8,17 @@ import org.broadinstitute.sting.utils.interval.IntervalUtils
 import org.broadinstitute.sting.queue.QException
 import net.sf.picard.reference.IndexedFastaSequenceFile
 import org.testng.annotations.{Test, BeforeMethod}
-import org.broadinstitute.sting.utils.{GenomeLocParserTestUtils, GenomeLocParser}
+import org.broadinstitute.sting.utils.GenomeLocParser
 
 class IntervalScatterFunctionUnitTest extends BaseTest {
   private def reference = new File(BaseTest.b36KGReference)
   private var header: IndexedFastaSequenceFile = _
+  private var genomeLocParser: GenomeLocParser = _
 
   @BeforeMethod
   def setup() {
-    GenomeLocParserTestUtils.clearSequenceDictionary()
     header = new IndexedFastaSequenceFile(reference)
-    GenomeLocParser.setupRefContigOrdering(header.getSequenceDictionary())
+    genomeLocParser = new GenomeLocParser(header.getSequenceDictionary())
   }
 
   @Test
@@ -30,17 +30,17 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
   @Test
   def testBasicScatter = {
-    val chr1 = GenomeLocParser.parseGenomeInterval("1")
-    val chr2 = GenomeLocParser.parseGenomeInterval("2")
-    val chr3 = GenomeLocParser.parseGenomeInterval("3")
+    val chr1 = genomeLocParser.parseGenomeInterval("1")
+    val chr2 = genomeLocParser.parseGenomeInterval("2")
+    val chr3 = genomeLocParser.parseGenomeInterval("3")
 
     val files = (1 to 3).toList.map(index => new File(testDir + "basic." + index + ".intervals"))
 
     IntervalScatterFunction.scatter(reference, List("1", "2", "3"), files, false)
 
-    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
-    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
-    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+    val locs1 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(2).toString), false)
 
     Assert.assertEquals(1, locs1.size)
     Assert.assertEquals(1, locs2.size)
@@ -53,18 +53,18 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
   @Test
   def testScatterLessFiles = {
-    val chr1 = GenomeLocParser.parseGenomeInterval("1")
-    val chr2 = GenomeLocParser.parseGenomeInterval("2")
-    val chr3 = GenomeLocParser.parseGenomeInterval("3")
-    val chr4 = GenomeLocParser.parseGenomeInterval("4")
+    val chr1 = genomeLocParser.parseGenomeInterval("1")
+    val chr2 = genomeLocParser.parseGenomeInterval("2")
+    val chr3 = genomeLocParser.parseGenomeInterval("3")
+    val chr4 = genomeLocParser.parseGenomeInterval("4")
 
     val files = (1 to 3).toList.map(index => new File(testDir + "less." + index + ".intervals"))
 
     IntervalScatterFunction.scatter(reference, List("1", "2", "3", "4"), files, false)
 
-    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
-    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
-    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+    val locs1 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(2).toString), false)
 
     Assert.assertEquals(2, locs1.size)
     Assert.assertEquals(1, locs2.size)
@@ -85,18 +85,18 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
   @Test
   def testScatterIntervals = {
     val intervals = List("1:1-2", "1:4-5", "2:1-1", "3:2-2")
-    val chr1a = GenomeLocParser.parseGenomeInterval("1:1-2")
-    val chr1b = GenomeLocParser.parseGenomeInterval("1:4-5")
-    val chr2 = GenomeLocParser.parseGenomeInterval("2:1-1")
-    val chr3 = GenomeLocParser.parseGenomeInterval("3:2-2")
+    val chr1a = genomeLocParser.parseGenomeInterval("1:1-2")
+    val chr1b = genomeLocParser.parseGenomeInterval("1:4-5")
+    val chr2 = genomeLocParser.parseGenomeInterval("2:1-1")
+    val chr3 = genomeLocParser.parseGenomeInterval("3:2-2")
 
     val files = (1 to 3).toList.map(index => new File(testDir + "split." + index + ".intervals"))
 
     IntervalScatterFunction.scatter(reference, intervals, files, true)
 
-    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
-    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
-    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+    val locs1 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(2).toString), false)
 
     Assert.assertEquals(2, locs1.size)
     Assert.assertEquals(1, locs2.size)
@@ -111,17 +111,17 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
   @Test
   def testScatterOrder = {
     val intervals = List("2:1-1", "1:1-1", "3:2-2")
-    val chr1 = GenomeLocParser.parseGenomeInterval("1:1-1")
-    val chr2 = GenomeLocParser.parseGenomeInterval("2:1-1")
-    val chr3 = GenomeLocParser.parseGenomeInterval("3:2-2")
+    val chr1 = genomeLocParser.parseGenomeInterval("1:1-1")
+    val chr2 = genomeLocParser.parseGenomeInterval("2:1-1")
+    val chr3 = genomeLocParser.parseGenomeInterval("3:2-2")
 
     val files = (1 to 3).toList.map(index => new File(testDir + "split." + index + ".intervals"))
 
     IntervalScatterFunction.scatter(reference, intervals, files, true)
 
-    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
-    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
-    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+    val locs1 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(2).toString), false)
 
     Assert.assertEquals(1, locs1.size)
     Assert.assertEquals(1, locs2.size)
@@ -134,17 +134,17 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
   @Test
   def testBasicScatterByContig = {
-    val chr1 = GenomeLocParser.parseGenomeInterval("1")
-    val chr2 = GenomeLocParser.parseGenomeInterval("2")
-    val chr3 = GenomeLocParser.parseGenomeInterval("3")
+    val chr1 = genomeLocParser.parseGenomeInterval("1")
+    val chr2 = genomeLocParser.parseGenomeInterval("2")
+    val chr3 = genomeLocParser.parseGenomeInterval("3")
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_basic." + index + ".intervals"))
 
     IntervalScatterFunction.scatter(reference, List("1", "2", "3"), files, true)
 
-    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
-    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
-    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+    val locs1 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(2).toString), false)
 
     Assert.assertEquals(1, locs1.size)
     Assert.assertEquals(1, locs2.size)
@@ -157,18 +157,18 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
 
   @Test
   def testScatterByContigLessFiles = {
-    val chr1 = GenomeLocParser.parseGenomeInterval("1")
-    val chr2 = GenomeLocParser.parseGenomeInterval("2")
-    val chr3 = GenomeLocParser.parseGenomeInterval("3")
-    val chr4 = GenomeLocParser.parseGenomeInterval("4")
+    val chr1 = genomeLocParser.parseGenomeInterval("1")
+    val chr2 = genomeLocParser.parseGenomeInterval("2")
+    val chr3 = genomeLocParser.parseGenomeInterval("3")
+    val chr4 = genomeLocParser.parseGenomeInterval("4")
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_less." + index + ".intervals"))
 
     IntervalScatterFunction.scatter(reference, List("1", "2", "3", "4"), files, true)
 
-    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
-    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
-    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+    val locs1 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(2).toString), false)
 
     Assert.assertEquals(1, locs1.size)
     Assert.assertEquals(1, locs2.size)
@@ -189,18 +189,18 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
   @Test
   def testScatterByContigIntervalsStart = {
     val intervals = List("1:1-2", "1:4-5", "2:1-1", "3:2-2")
-    val chr1a = GenomeLocParser.parseGenomeInterval("1:1-2")
-    val chr1b = GenomeLocParser.parseGenomeInterval("1:4-5")
-    val chr2 = GenomeLocParser.parseGenomeInterval("2:1-1")
-    val chr3 = GenomeLocParser.parseGenomeInterval("3:2-2")
+    val chr1a = genomeLocParser.parseGenomeInterval("1:1-2")
+    val chr1b = genomeLocParser.parseGenomeInterval("1:4-5")
+    val chr2 = genomeLocParser.parseGenomeInterval("2:1-1")
+    val chr3 = genomeLocParser.parseGenomeInterval("3:2-2")
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_split_start." + index + ".intervals"))
 
     IntervalScatterFunction.scatter(reference, intervals, files, true)
 
-    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
-    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
-    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+    val locs1 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(2).toString), false)
 
     Assert.assertEquals(2, locs1.size)
     Assert.assertEquals(1, locs2.size)
@@ -215,18 +215,18 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
   @Test
   def testScatterByContigIntervalsMiddle = {
     val intervals = List("1:1-1", "2:1-2", "2:4-5", "3:2-2")
-    val chr1 = GenomeLocParser.parseGenomeInterval("1:1-1")
-    val chr2a = GenomeLocParser.parseGenomeInterval("2:1-2")
-    val chr2b = GenomeLocParser.parseGenomeInterval("2:4-5")
-    val chr3 = GenomeLocParser.parseGenomeInterval("3:2-2")
+    val chr1 = genomeLocParser.parseGenomeInterval("1:1-1")
+    val chr2a = genomeLocParser.parseGenomeInterval("2:1-2")
+    val chr2b = genomeLocParser.parseGenomeInterval("2:4-5")
+    val chr3 = genomeLocParser.parseGenomeInterval("3:2-2")
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_split_middle." + index + ".intervals"))
 
     IntervalScatterFunction.scatter(reference, intervals, files, true)
 
-    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
-    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
-    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+    val locs1 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(2).toString), false)
 
     Assert.assertEquals(1, locs1.size)
     Assert.assertEquals(2, locs2.size)
@@ -241,18 +241,18 @@ class IntervalScatterFunctionUnitTest extends BaseTest {
   @Test
   def testScatterByContigIntervalsEnd = {
     val intervals = List("1:1-1", "2:2-2", "3:1-2", "3:4-5")
-    val chr1 = GenomeLocParser.parseGenomeInterval("1:1-1")
-    val chr2 = GenomeLocParser.parseGenomeInterval("2:2-2")
-    val chr3a = GenomeLocParser.parseGenomeInterval("3:1-2")
-    val chr3b = GenomeLocParser.parseGenomeInterval("3:4-5")
+    val chr1 = genomeLocParser.parseGenomeInterval("1:1-1")
+    val chr2 = genomeLocParser.parseGenomeInterval("2:2-2")
+    val chr3a = genomeLocParser.parseGenomeInterval("3:1-2")
+    val chr3b = genomeLocParser.parseGenomeInterval("3:4-5")
 
     val files = (1 to 3).toList.map(index => new File(testDir + "contig_split_end." + index + ".intervals"))
 
     IntervalScatterFunction.scatter(reference, intervals, files, true)
 
-    val locs1 = IntervalUtils.parseIntervalArguments(List(files(0).toString), false)
-    val locs2 = IntervalUtils.parseIntervalArguments(List(files(1).toString), false)
-    val locs3 = IntervalUtils.parseIntervalArguments(List(files(2).toString), false)
+    val locs1 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(0).toString), false)
+    val locs2 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(1).toString), false)
+    val locs3 = IntervalUtils.parseIntervalArguments(genomeLocParser,List(files(2).toString), false)
 
     Assert.assertEquals(1, locs1.size)
     Assert.assertEquals(1, locs2.size)

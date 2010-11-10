@@ -60,7 +60,7 @@ public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
 
     public void initialize() {
         // prepare to read intervals one-by-one, as needed (assuming they are sorted).
-        intervals = new IntervalFileMergingIterator( new File(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
+        intervals = new IntervalFileMergingIterator( getToolkit().getGenomeLocParser(), new File(intervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
         currentInterval = intervals.hasNext() ? intervals.next() : null;
     }
 
@@ -69,10 +69,10 @@ public class RealignedReadCounter extends ReadWalker<Integer, Integer> {
             return 0;
         }
 
-        GenomeLoc readLoc = GenomeLocParser.createGenomeLoc(read);
+        GenomeLoc readLoc = ref.getGenomeLocParser().createGenomeLoc(read);
         // hack to get around unmapped reads having screwy locations
         if ( readLoc.getStop() == 0 )
-            readLoc = GenomeLocParser.createGenomeLoc(readLoc.getContigIndex(), readLoc.getStart(), readLoc.getStart());
+            readLoc = ref.getGenomeLocParser().createGenomeLoc(readLoc.getContig(), readLoc.getStart(), readLoc.getStart());
 
         if ( readLoc.isBefore(currentInterval) || ReadUtils.is454Read(read) )
             return 0;

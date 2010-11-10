@@ -29,7 +29,7 @@ public class IntervalUtils {
      * @param allowEmptyIntervalList If false instead of an empty interval list will return null.
      * @return an unsorted, unmerged representation of the given intervals.  Null is used to indicate that all intervals should be used. 
      */
-    public static List<GenomeLoc> parseIntervalArguments(List<String> argList, boolean allowEmptyIntervalList) {
+    public static List<GenomeLoc> parseIntervalArguments(GenomeLocParser parser, List<String> argList, boolean allowEmptyIntervalList) {
         List<GenomeLoc> rawIntervals = new ArrayList<GenomeLoc>();    // running list of raw GenomeLocs
 
         if (argList != null) { // now that we can be in this function if only the ROD-to-Intervals was provided, we need to
@@ -51,7 +51,7 @@ public class IntervalUtils {
                     // if it's a file, add items to raw interval list
                     if (isIntervalFile(fileOrInterval)) {
                         try {
-                            rawIntervals.addAll(GenomeLocParser.intervalFileToList(fileOrInterval, allowEmptyIntervalList));
+                            rawIntervals.addAll(parser.intervalFileToList(fileOrInterval, allowEmptyIntervalList));
                         }
                         catch (Exception e) {
                             throw new UserException.MalformedFile(fileOrInterval, "Interval file could not be parsed in either format.", e);
@@ -60,7 +60,7 @@ public class IntervalUtils {
 
                         // otherwise treat as an interval -> parse and add to raw interval list
                     else {
-                        rawIntervals.add(GenomeLocParser.parseGenomeInterval(fileOrInterval));
+                        rawIntervals.add(parser.parseGenomeInterval(fileOrInterval));
                     }
                 }
             }
@@ -121,13 +121,13 @@ public class IntervalUtils {
      * @param mergingRule A descriptor for the type of merging to perform.
      * @return A sorted, merged version of the intervals passed in.
      */
-    public static GenomeLocSortedSet sortAndMergeIntervals(List<GenomeLoc> intervals, IntervalMergingRule mergingRule) {
+    public static GenomeLocSortedSet sortAndMergeIntervals(GenomeLocParser parser, List<GenomeLoc> intervals, IntervalMergingRule mergingRule) {
         // sort raw interval list
         Collections.sort(intervals);
         // now merge raw interval list
-        intervals = GenomeLocParser.mergeIntervalLocations(intervals, mergingRule);
+        intervals = parser.mergeIntervalLocations(intervals, mergingRule);
 
-        return GenomeLocSortedSet.createSetFromList(intervals);
+        return GenomeLocSortedSet.createSetFromList(parser,intervals);
     }
 
     /**

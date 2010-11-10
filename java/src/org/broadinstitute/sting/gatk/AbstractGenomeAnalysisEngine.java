@@ -48,7 +48,6 @@ import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
@@ -70,6 +69,11 @@ public abstract class AbstractGenomeAnalysisEngine {
     private ParsingEngine parsingEngine;
 
     /**
+     * The genomeLocParser can create and parse GenomeLocs.
+     */
+    private GenomeLocParser genomeLocParser;
+
+    /**
      * Accessor for sharded read data.
      */
     private SAMDataSource readsDataSource = null;
@@ -80,6 +84,10 @@ public abstract class AbstractGenomeAnalysisEngine {
      */
     public ReferenceDataSource getReferenceDataSource() {
         return referenceDataSource;
+    }
+
+    public GenomeLocParser getGenomeLocParser() {
+        return genomeLocParser;
     }
 
     /**
@@ -137,6 +145,14 @@ public abstract class AbstractGenomeAnalysisEngine {
     }
 
     /**
+     * Explicitly set the GenomeLocParser, for unit testing.
+     * @param genomeLocParser GenomeLocParser to use.
+     */
+    public void setGenomeLocParser(GenomeLocParser genomeLocParser) {
+        this.genomeLocParser = genomeLocParser;
+    }
+
+    /**
      * Actually run the engine.
      * @return the value of this traversal.
      */
@@ -188,7 +204,7 @@ public abstract class AbstractGenomeAnalysisEngine {
                 GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
                 loadIntervals(argCollection.intervals,
                         argCollection.intervalMerging,
-                        GenomeLocParser.mergeIntervalLocations(checkRODToIntervalArgument(),argCollection.intervalMerging)));
+                        genomeLocParser.mergeIntervalLocations(checkRODToIntervalArgument(),argCollection.intervalMerging)));
 
         // if no exclude arguments, can return parseIntervalArguments directly
         if (argCollection.excludeIntervals == null)
@@ -221,11 +237,11 @@ public abstract class AbstractGenomeAnalysisEngine {
                                              IntervalMergingRule mergingRule,
                                              List<GenomeLoc> additionalIntervals) {
 
-        return IntervalUtils.sortAndMergeIntervals(IntervalUtils.mergeListsBySetOperator(additionalIntervals,
-                                                                                         IntervalUtils.parseIntervalArguments(argList,
-                                                                                                 this.getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST),
-                                                                                         argCollection.BTIMergeRule),
-                                                   mergingRule);
+        return IntervalUtils.sortAndMergeIntervals(genomeLocParser,IntervalUtils.mergeListsBySetOperator(additionalIntervals,
+                IntervalUtils.parseIntervalArguments(genomeLocParser,argList,
+                        this.getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST),
+                argCollection.BTIMergeRule),
+                mergingRule);
     }
 
     /**
@@ -298,22 +314,22 @@ public abstract class AbstractGenomeAnalysisEngine {
     protected void initializeDataSources() {
         logger.info("Strictness is " + argCollection.strictnessLevel);
 
+        validateSuppliedReference();
+        referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
+
         validateSuppliedReads();
-        readsDataSource = createReadsDataSource();
+        readsDataSource = createReadsDataSource(genomeLocParser);
 
         for (SamRecordFilter filter : filters)
             if (filter instanceof SamRecordHeaderFilter)
                 ((SamRecordHeaderFilter)filter).setHeader(this.getSAMFileHeader());
         
-        validateSuppliedReference();
-        referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
-
         sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
 
         RMDTrackBuilder manager = new RMDTrackBuilder();
 
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
-        manager.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary());
+        manager.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser);
 
         List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection);
         validateSuppliedReferenceOrderedData(tracks);
@@ -330,7 +346,7 @@ public abstract class AbstractGenomeAnalysisEngine {
      * @return A unique identifier for the source file of this read.  Exception if not found.
      */
     public SAMReaderID getReaderIDForRead(final SAMRecord read) {
-        return getDataSource().getReaderID(read);
+        return getReadsDataSource().getReaderID(read);
     }
 
     /**
@@ -339,7 +355,7 @@ public abstract class AbstractGenomeAnalysisEngine {
      * @return The source filename for this read.
      */
     public File getSourceFileForReaderID(final SAMReaderID id) {
-        return getDataSource().getSAMFile(id);
+        return getReadsDataSource().getSAMFile(id);
     }
 
     /**
@@ -351,7 +367,7 @@ public abstract class AbstractGenomeAnalysisEngine {
      * @return Sets of samples in the merged input SAM stream, grouped by readers
      */
     public List<Set<String>> getSamplesByReaders() {
-        List<SAMReaderID> readers = getDataSource().getReaderIDs();
+        List<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
 
         List<Set<String>> sample_sets = new ArrayList<Set<String>>(readers.size());
 
@@ -360,7 +376,7 @@ public abstract class AbstractGenomeAnalysisEngine {
             Set<String> samples = new HashSet<String>(1);
             sample_sets.add(samples);
 
-            for (SAMReadGroupRecord g : getDataSource().getHeader(r).getReadGroups()) {
+            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
                 samples.add(g.getSample());
             }
         }
@@ -380,7 +396,7 @@ public abstract class AbstractGenomeAnalysisEngine {
     public List<Set<String>> getLibrariesByReaders() {
 
 
-        List<SAMReaderID> readers = getDataSource().getReaderIDs();
+        List<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
 
         List<Set<String>> lib_sets = new ArrayList<Set<String>>(readers.size());
 
@@ -389,7 +405,7 @@ public abstract class AbstractGenomeAnalysisEngine {
             Set<String> libs = new HashSet<String>(2);
             lib_sets.add(libs);
 
-            for (SAMReadGroupRecord g : getDataSource().getHeader(r).getReadGroups()) {
+            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
                 libs.add(g.getLibrary());
             }
         }
@@ -406,22 +422,22 @@ public abstract class AbstractGenomeAnalysisEngine {
     public Map<File, Set<String>> getFileToReadGroupIdMapping() {
         // populate the file -> read group mapping
         Map<File, Set<String>> fileToReadGroupIdMap = new HashMap<File, Set<String>>();
-        for (SAMReaderID id: getDataSource().getReaderIDs()) {
+        for (SAMReaderID id: getReadsDataSource().getReaderIDs()) {
             Set<String> readGroups = new HashSet<String>(5);
 
-            for (SAMReadGroupRecord g : getDataSource().getHeader(id).getReadGroups()) {
-                if (getDataSource().hasReadGroupCollisions()) {
+            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(id).getReadGroups()) {
+                if (getReadsDataSource().hasReadGroupCollisions()) {
                     // Check if there were read group clashes.
                     // If there were, use the SamFileHeaderMerger to translate from the
                     // original read group id to the read group id in the merged stream
-                    readGroups.add(getDataSource().getReadGroupId(id,g.getReadGroupId()));
+                    readGroups.add(getReadsDataSource().getReadGroupId(id,g.getReadGroupId()));
                 } else {
                     // otherwise, pass through the unmapped read groups since this is what Picard does as well
                     readGroups.add(g.getReadGroupId());
                 }
             }
 
-            fileToReadGroupIdMap.put(getDataSource().getSAMFile(id),readGroups);
+            fileToReadGroupIdMap.put(getReadsDataSource().getSAMFile(id),readGroups);
         }
 
         return fileToReadGroupIdMap;
@@ -440,7 +456,7 @@ public abstract class AbstractGenomeAnalysisEngine {
     public List<Set<String>> getMergedReadGroupsByReaders() {
 
 
-        List<SAMReaderID> readers = getDataSource().getReaderIDs();
+        List<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
 
         List<Set<String>> rg_sets = new ArrayList<Set<String>>(readers.size());
 
@@ -449,11 +465,11 @@ public abstract class AbstractGenomeAnalysisEngine {
             Set<String> groups = new HashSet<String>(5);
             rg_sets.add(groups);
 
-            for (SAMReadGroupRecord g : getDataSource().getHeader(r).getReadGroups()) {
-                if (getDataSource().hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
+            for (SAMReadGroupRecord g : getReadsDataSource().getHeader(r).getReadGroups()) {
+                if (getReadsDataSource().hasReadGroupCollisions()) { // Check if there were read group clashes with hasGroupIdDuplicates and if so:
                     // use HeaderMerger to translate original read group id from the reader into the read group id in the
                     // merged stream, and save that remapped read group id to associate it with specific reader
-                    groups.add(getDataSource().getReadGroupId(r, g.getReadGroupId()));
+                    groups.add(getReadsDataSource().getReadGroupId(r, g.getReadGroupId()));
                 } else {
                     // otherwise, pass through the unmapped read groups since this is what Picard does as well
                     groups.add(g.getReadGroupId());
@@ -533,29 +549,17 @@ public abstract class AbstractGenomeAnalysisEngine {
 
     }
 
-
-    /**
-     * Convenience function that binds RODs using the old-style command line parser to the new style list for
-     * a uniform processing.
-     *
-     * @param name the name of the rod
-     * @param type its type
-     * @param file the file to load the rod from
-     */
-    private void bindConvenienceRods(final String name, final String type, final String file) {
-        argCollection.RODBindings.add(Utils.join(",", new String[]{name, type, file}));
-    }
-
     /**
      * Gets a data source for the given set of reads.
      *
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource createReadsDataSource() {
+    private SAMDataSource createReadsDataSource(GenomeLocParser genomeLocParser) {
         DownsamplingMethod method = getDownsamplingMethod();
 
         return new SAMDataSource(
                 unpackBAMFileList(argCollection.samFiles),
+                genomeLocParser,
                 argCollection.useOriginalBaseQualities,
                 argCollection.strictnessLevel,
                 argCollection.readBufferSize,
@@ -574,7 +578,7 @@ public abstract class AbstractGenomeAnalysisEngine {
      */
     private ReferenceDataSource openReferenceSequenceFile(File refFile) {
         ReferenceDataSource ref = new ReferenceDataSource(refFile);
-        GenomeLocParser.setupRefContigOrdering(ref.getReference());
+        genomeLocParser = new GenomeLocParser(ref.getReference());
         return ref;
     }
 
@@ -587,7 +591,7 @@ public abstract class AbstractGenomeAnalysisEngine {
     private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(List<RMDTrack> rods) {
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTrack rod : rods)
-            dataSources.add(new ReferenceOrderedDataSource(rod, flashbackData()));
+            dataSources.add(new ReferenceOrderedDataSource(referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,rod,flashbackData()));
         return dataSources;
     }
 
@@ -614,9 +618,11 @@ public abstract class AbstractGenomeAnalysisEngine {
      *
      * @return the reads data source
      */
-    public SAMDataSource getDataSource() {
+    public SAMDataSource getReadsDataSource() {
         return this.readsDataSource;
     }
+
+
 
     /**
      * Sets the collection of GATK main application arguments.

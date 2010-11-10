@@ -48,19 +48,22 @@ import java.util.Iterator;
  * to parse a string.
  */
 public class StringToGenomeLocIteratorAdapter implements Iterator<GenomeLoc> {
+    private GenomeLocParser genomeLocParser;
+
     private PushbackIterator<String> it = null;
 
     public enum FORMAT { BED, GATK };
 
     FORMAT myFormat = FORMAT.GATK;
 
-    public StringToGenomeLocIteratorAdapter(Iterator<String> it, FORMAT format) {
+    public StringToGenomeLocIteratorAdapter(GenomeLocParser genomeLocParser,Iterator<String> it, FORMAT format) {
+        this.genomeLocParser = genomeLocParser;
         this.it = new PushbackIterator<String>(it);
         myFormat = format;
     }
 
-    public StringToGenomeLocIteratorAdapter(Iterator<String> it ) {
-        this(it,FORMAT.GATK);
+    public StringToGenomeLocIteratorAdapter(GenomeLocParser genomeLocParser,Iterator<String> it ) {
+        this(genomeLocParser,it,FORMAT.GATK);
     }
 
     public boolean hasNext() {
@@ -81,8 +84,8 @@ public class StringToGenomeLocIteratorAdapter implements Iterator<GenomeLoc> {
 
     public GenomeLoc next() {
 
-        if ( myFormat == FORMAT.GATK ) return GenomeLocParser.parseGenomeInterval( it.next() );
-        return BedParser.parseLocation( it.next() );
+        if ( myFormat == FORMAT.GATK ) return genomeLocParser.parseGenomeInterval( it.next() );
+        return BedParser.parseLocation( genomeLocParser,it.next() );
     }
 
     public void remove() {

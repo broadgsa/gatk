@@ -97,9 +97,9 @@ public class LocusReferenceView extends ReferenceView {
         }
 
         if(bounds != null) {
-            long expandedStart = getWindowStart( bounds );
-            long expandedStop  = getWindowStop( bounds );
-            initializeReferenceSequence(GenomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
+            int expandedStart = getWindowStart( bounds );
+            int expandedStop  = getWindowStop( bounds );
+            initializeReferenceSequence(genomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
         }
     }
 
@@ -123,12 +123,12 @@ public class LocusReferenceView extends ReferenceView {
         if ( loc.getContigIndex() != bounds.getContigIndex() )
             throw new ReviewedStingException("Illegal attempt to expand reference view bounds to accommodate location on a different contig.");
 
-        bounds = GenomeLocParser.createGenomeLoc(bounds.getContigIndex(),
+        bounds = genomeLocParser.createGenomeLoc(bounds.getContig(),
                                                  Math.min(bounds.getStart(),loc.getStart()),
                                                  Math.max(bounds.getStop(),loc.getStop()));
-        long expandedStart = getWindowStart( bounds );
-        long expandedStop  = getWindowStop( bounds );
-        initializeReferenceSequence(GenomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
+        int expandedStart = getWindowStart( bounds );
+        int expandedStop  = getWindowStop( bounds );
+        initializeReferenceSequence(genomeLocParser.createGenomeLoc(bounds.getContig(), expandedStart, expandedStop));
     }
 
     /**
@@ -137,8 +137,8 @@ public class LocusReferenceView extends ReferenceView {
      */
     private void initializeBounds(LocusShardDataProvider provider) {
         if(provider.getLocus() != null) {
-            long sequenceLength = reference.getSequenceDictionary().getSequence(provider.getLocus().getContig()).getSequenceLength();
-            bounds = GenomeLocParser.createGenomeLoc(provider.getLocus().getContig(),
+            int sequenceLength = reference.getSequenceDictionary().getSequence(provider.getLocus().getContig()).getSequenceLength();
+            bounds = genomeLocParser.createGenomeLoc(provider.getLocus().getContig(),
                     Math.max(provider.getLocus().getStart(),1),
                     Math.min(provider.getLocus().getStop(),sequenceLength));
         }
@@ -155,10 +155,10 @@ public class LocusReferenceView extends ReferenceView {
     }
 
     protected GenomeLoc trimToBounds(GenomeLoc l) {
-        long expandedStart = getWindowStart( bounds );
-        long expandedStop  = getWindowStop( bounds );
-        if ( l.getStart() < expandedStart ) l = GenomeLocParser.setStart(l, expandedStart);
-        if ( l.getStop() > expandedStop  ) l = GenomeLocParser.setStop(l, expandedStop);
+        int expandedStart = getWindowStart( bounds );
+        int expandedStop  = getWindowStop( bounds );
+        if ( l.getStart() < expandedStart ) l = genomeLocParser.setStart(l, expandedStart);
+        if ( l.getStop() > expandedStop  ) l = genomeLocParser.setStop(l, expandedStop);
         return l;
     }
 
@@ -186,7 +186,7 @@ public class LocusReferenceView extends ReferenceView {
     public ReferenceContext getReferenceContext( GenomeLoc genomeLoc ) {
         //validateLocation( genomeLoc );
 
-        GenomeLoc window = GenomeLocParser.createGenomeLoc( genomeLoc.getContig(), getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
+        GenomeLoc window = genomeLocParser.createGenomeLoc( genomeLoc.getContig(), getWindowStart(genomeLoc), getWindowStop(genomeLoc) );
 
         int refStart = -1;
         if (bounds != null) {
@@ -200,7 +200,7 @@ public class LocusReferenceView extends ReferenceView {
         }
 
         int len = (int)window.size();
-        return new ReferenceContext( genomeLoc, window, new Provider(refStart, len));
+        return new ReferenceContext( genomeLocParser, genomeLoc, window, new Provider(refStart, len));
     }
 
     /**
@@ -228,7 +228,7 @@ public class LocusReferenceView extends ReferenceView {
      * @param locus The locus to expand.
      * @return The expanded window.
      */
-    private long getWindowStart( GenomeLoc locus ) {
+    private int getWindowStart( GenomeLoc locus ) {
         // If the locus is not within the bounds of the contig it allegedly maps to, expand only as much as we can.
         if(locus.getStart() < 1) return 1;
 //        if(locus.getStart() < 1) return locus.getStart();
@@ -240,9 +240,9 @@ public class LocusReferenceView extends ReferenceView {
      * @param locus The locus to expand.
      * @return The expanded window.
      */    
-    private long getWindowStop( GenomeLoc locus ) {
+    private int getWindowStop( GenomeLoc locus ) {
         // If the locus is not within the bounds of the contig it allegedly maps to, expand only as much as we can.
-        long sequenceLength = reference.getSequenceDictionary().getSequence(locus.getContig()).getSequenceLength();
+        int sequenceLength = reference.getSequenceDictionary().getSequence(locus.getContig()).getSequenceLength();
         if(locus.getStop() > sequenceLength) return sequenceLength;
         return Math.min( locus.getStop() + windowStop, sequenceLength );
     }
