@@ -7,7 +7,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException
 /**
  * A collection of utilities for modifying java.io.
  */
-object IOUtils {
+object IOUtils extends Logging {
   /** The current directory "." */
   val CURRENT_DIR = new File(".")
 
@@ -89,7 +89,7 @@ object IOUtils {
 
   def writeContents(file: File, content: String) =  FileUtils.writeStringToFile(file, content)
 
-  def   writeTempFile(content: String, prefix: String, suffix: String = "", directory: File = null) = {
+  def writeTempFile(content: String, prefix: String, suffix: String = "", directory: File = null) = {
     val tempFile = absolute(File.createTempFile(prefix, suffix, directory))
     writeContents(tempFile, content)
     tempFile
@@ -180,5 +180,19 @@ object IOUtils {
       org.apache.commons.io.IOUtils.closeQuietly(reader)
     }
     tailLines
+  }
+
+  /**
+   * Tries to delete a file.  Emits a warning if the file was unable to be deleted.
+   * @param file File to delete.
+   * @return true if the file was deleted.
+   */
+  def tryDelete(file: File) = {
+    val deleted = FileUtils.deleteQuietly(file)
+    if (deleted)
+      logger.debug("Deleted " + file)
+    else if (file.exists)
+      logger.warn("Unable to delete " + file)
+    deleted
   }
 }

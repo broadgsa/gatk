@@ -71,7 +71,7 @@ class IOUtilsUnitTest extends BaseTest {
     Assert.assertTrue(tempDir.exists)
     Assert.assertFalse(tempDir.isFile)
     Assert.assertTrue(tempDir.isDirectory)
-    val deleted = tempDir.delete
+    val deleted = IOUtils.tryDelete(tempDir)
     Assert.assertTrue(deleted)
     Assert.assertFalse(tempDir.exists)
   }

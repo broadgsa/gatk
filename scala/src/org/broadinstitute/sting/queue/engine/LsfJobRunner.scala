@@ -139,11 +139,11 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    * Removes all temporary files used for this LSF job.
    */
   def removeTemporaryFiles() = {
-    FileUtils.deleteQuietly(exec)
-    FileUtils.deleteQuietly(preExec)
-    FileUtils.deleteQuietly(postExec)
-    FileUtils.deleteQuietly(jobDoneFile)
-    FileUtils.deleteQuietly(jobFailFile)
+    IOUtils.tryDelete(exec)
+    IOUtils.tryDelete(preExec)
+    IOUtils.tryDelete(postExec)
+    IOUtils.tryDelete(jobDoneFile)
+    IOUtils.tryDelete(jobFailFile)
   }
 
   /**

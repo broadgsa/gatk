@@ -7,7 +7,6 @@ import org.broadinstitute.sting.queue.{QException, QSettings}
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.function.scattergather.{Gather, SimpleTextGatherFunction}
 import org.broadinstitute.sting.queue.util.{Logging, CollectionUtils, IOUtils, ReflectionUtils}
-import org.apache.commons.io.FileUtils
 
 /**
  * The base interface for all functions in Queue.
@@ -157,23 +156,18 @@ trait QFunction extends Logging {
    * Deletes the log files for this function.
    */
   def deleteLogs() = {
-    deleteOutput(jobOutputFile)
+    IOUtils.tryDelete(jobOutputFile)
     if (jobErrorFile != null)
-      deleteOutput(jobErrorFile)
+      IOUtils.tryDelete(jobErrorFile)
   }
 
   /**
    * Deletes the output files and all the status files for this function.
    */
   def deleteOutputs() = {
-    outputs.foreach(file => deleteOutput(file))
-    doneOutputs.foreach(file => deleteOutput(file))
-    failOutputs.foreach(file => deleteOutput(file))
-  }
-
-  private def deleteOutput(file: File) = {
-    if (FileUtils.deleteQuietly(file))
-      logger.debug("Deleted " + file)
+    outputs.foreach(file => IOUtils.tryDelete(file))
+    doneOutputs.foreach(file => IOUtils.tryDelete(file))
+    failOutputs.foreach(file => IOUtils.tryDelete(file))
   }
 
   /**
