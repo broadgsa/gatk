@@ -48,6 +48,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.OverlappingIntervalIterator;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -178,14 +179,23 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 	private static String annCoding = "CODING";
 	private static String annUnknown = "UNKNOWN";
 
+    enum CallType {
+        NOCOVERAGE,
+        BADCOVERAGE,
+        NOEVIDENCE,
+        GERMLINE,
+        SOMATIC
+    };
+
 	private SAMRecord lastRead;
     private byte[] refBases;
     private ReferenceDataSource refData;
-    private Iterator<GenomeLoc> genotypeIntervals = null;
-    private GenomeLocSortedSet traverseIntervals = null; // these are the traversal intervals passed with -L option (if any)
+    private Iterator<GenomeLoc> genotypeIntervalIterator = null;
 
     // the current interval in the list of intervals, for which we want to do full genotyping
     private GenomeLoc currentGenotypeInterval = null;
+    private long lastGenotypedPosition = -1; // last position on the currentGenotypeInterval, for which a call was already printed;
+                                     // can be 1 base before lastGenotyped start
 
     // "/humgen/gsa-scr1/GATK_Data/refGene.sorted.txt"
 
@@ -295,49 +305,33 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             }
             if ( genotypeIntervalsFile != null ) {
 
-                traverseIntervals = getToolkit().getIntervals();
-
                 if ( ! GENOTYPE_NOT_SORTED && IntervalUtils.isIntervalFile(genotypeIntervalsFile)) {
                     // prepare to read intervals one-by-one, as needed (assuming they are sorted).
-                    genotypeIntervals = new IntervalFileMergingIterator(getToolkit().getGenomeLocParser(),
+                    genotypeIntervalIterator = new IntervalFileMergingIterator(getToolkit().getGenomeLocParser(),
                         new java.io.File(genotypeIntervalsFile), IntervalMergingRule.OVERLAPPING_ONLY );
                 } else {
                     // read in the whole list of intervals for cleaning
                     GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),
                         IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(genotypeIntervalsFile),true), IntervalMergingRule.OVERLAPPING_ONLY);
-                    genotypeIntervals = locs.iterator();
+                    genotypeIntervalIterator = locs.iterator();
                 }
-                currentGenotypeInterval = genotypeIntervals.hasNext() ? genotypeIntervals.next() : null;
+
+                // wrap intervals requested for genotyping inside overlapping iterator, so that we actually
+                // genotype only on the intersections of the requested intervals with the -L intervals
+                genotypeIntervalIterator = new OverlappingIntervalIterator(genotypeIntervalIterator, getToolkit().getIntervals().iterator() );
+
+                currentGenotypeInterval = genotypeIntervalIterator.hasNext() ? genotypeIntervalIterator.next() : null;
+
+                if ( DEBUG) System.out.println("DEBUG>> first genotyping interval="+currentGenotypeInterval);
+
+                if ( currentGenotypeInterval != null ) lastGenotypedPosition = currentGenotypeInterval.getStart()-1;
             }
 
         }
 
 		location = getToolkit().getGenomeLocParser().createGenomeLoc(getToolkit().getSAMFileHeader().getSequence(0).getSequenceName(),1);
 
-//		List<Set<String>> readGroupSets = getToolkit().getMergedReadGroupsByReaders();
-//        List<Set<String>> sampleSets = getToolkit().getSamplesByReaders();
-
         normalSamples = getToolkit().getSamplesByReaders().get(0);
-
-//		if ( call_somatic ) {
-//			if ( nSams != 2 ) {
-//				System.out.println("In --somatic mode two input bam files must be specified (normal/tumor)");
-//				System.exit(1);
-//			}
-
-//			normalReadGroups = readGroupSets.get(0); // first -I option must specify normal.bam
-//                        System.out.println(normalReadGroups.size() + " normal read groups");
-//                        for ( String rg : normalReadGroups ) System.out.println("Normal RG: "+rg);
-
-//			tumorReadGroups = readGroupSets.get(1); // second -I option must specify tumor.bam
-//                        System.out.println(tumorReadGroups.size() + " tumor read groups");
-//                        for ( String rg : tumorReadGroups ) System.out.println("Tumor RG: "+rg);
-
-//            tumorSamples = sampleSets.get(1);
-//		} else {
-//			if ( nSams != 1 ) System.out.println("WARNING: multiple input files specified. \n"+
-//					"WARNING: Without --somatic option they will be merged and processed as a single sample");
-//		}
 
         try {
             // we already checked that bedOutput and output_file are not set simultaneously
@@ -392,6 +386,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 location = getToolkit().getGenomeLocParser().createGenomeLoc(refName,location.getStart(),location.getStop());
                 contigLength = getToolkit().getGenomeLocParser().getContigInfo(refName).getSequenceLength();
                 outOfContigUserWarned = false;
+
+                lastGenotypedPosition = -1;
 
                 normal_context.clear(); // reset coverage window; this will also set reference position to 0
                 if ( call_somatic) tumor_context.clear();
@@ -527,7 +523,45 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             return 1;
 	}
 
+    /** An auxiliary shortcut: returns true if position(location.getContig(), p) is past l  */
+    private boolean pastInterval(long p, GenomeLoc l) {
+        return ( location.getContigIndex() > l.getContigIndex() ||
+                 location.getContigIndex() == l.getContigIndex() && p > l.getStop() );
+    }
 
+    /** Emit calls of the specified type across genotyping intervals, from position lastGenotypedPosition+1 to
+     * pos-1, inclusive.
+     * @param contigIndex
+     * @param pos
+     * @param call
+     */
+    /*
+    private void emitNoCallsUpTo(int contigIndex, long pos, CallType call) {
+
+        if ( contigIndex < currentGenotypeInterval.getContigIndex() ||
+             contigIndex == currentGenotypeInterval.getContigIndex() && pos <= currentGenotypeInterval.getStart() ) return;
+
+        if ( contigIndex == currentGenotypeInterval.getContigIndex() && pos >= currentGenotypeInterval.getStart() ) {
+            for ( long p = lastGenotypedPosition+1; p < pos; p++ ) {
+
+            }
+        }
+        while( currentGenotypeInterval != null ) {
+
+            while ( )
+        if ( genotypeIntervalIterator.hasNext() ) {
+            currentGenotypeInterval = genotypeIntervalIterator.next() ;
+            if ( pastInterval(p,currentGenotypeInterval) ) {
+                // if we are about to jump over the whole next interval, we need to emit NO_COVERAGE calls there!
+                emitNoCoverageCalls(currentGenotypeInterval);
+            }
+        } else {
+            currentGenotypeInterval = null;
+        }
+        }
+    }
+*/
+    
    /** Output indel calls up to the specified position and shift the window: after this method is executed, the
     * first element of the window maps onto 'position', if possible, or at worst a few bases to the left of 'position' if we may need more
     * reads to get full NQS-style statistics for an indel in the close proximity of 'position'.
@@ -547,21 +581,47 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
             for ( int pos = normal_context.getStart() ; pos < Math.min(adjustedPosition,normal_context.getStop()+1) ; pos++ ) {
 
-                if ( normal_context.indelsAt(pos).size() == 0 ) continue; // no indels
+                boolean genotype = false;
+                // first let's see if we need to genotype current position:
+
+                final long p = pos - 1; // our internally used positions (pos) are +1 compared to external format spec (e.g. vcf)
+
+                if ( pos <= lastGenotypedPosition ) continue;
+
+                while ( currentGenotypeInterval != null ) {
+
+                    // if we did not even reach next interval yet, no genotyping at current position:
+                    if ( location.getContigIndex() < currentGenotypeInterval.getContigIndex() ||
+                         location.getContigIndex() == currentGenotypeInterval.getContigIndex() &&
+                                 p < currentGenotypeInterval.getStart() ) break;
+                    if ( pastInterval(p, currentGenotypeInterval) ) {
+                        // we are past current genotyping interval, so we are done with it; let's load next interval:
+                        currentGenotypeInterval = genotypeIntervalIterator.hasNext() ? genotypeIntervalIterator.next() : null;
+                        continue; // re-enter the loop to check against the interval we just loaded
+                    }
+
+                    // we reach tjis point only if p is inside current genotyping interval; set the flag and bail out:
+                    genotype = true;
+                    break;
+                }
+
+//                if ( DEBUG ) System.out.println("DEBUG>> pos="+pos +"; genotyping interval="+currentGenotypeInterval+"; genotype="+genotype);
+
+                if ( normal_context.indelsAt(pos).size() == 0 && ! genotype ) continue;
 
                 IndelPrecall normalCall = new IndelPrecall(normal_context,pos,NQS_WIDTH);
 
-                if ( normalCall.getCoverage() < minCoverage ) {
+                if ( normalCall.getCoverage() < minCoverage && ! genotype ) {
                     if ( DEBUG ) {
                         System.out.println("DEBUG>> Indel at "+pos+"; coverare in normal="+normalCall.getCoverage()+" (SKIPPED)");
                     }
                     continue; // low coverage
                 }
 
-                if ( DEBUG ) System.out.println("DEBUG>> Indel at "+pos);
+                if ( DEBUG ) System.out.println("DEBUG>> "+(normalCall.getAllVariantCount() == 0?"No Indel":"Indel")+" at "+pos);
 
                 long left = Math.max( pos-NQS_WIDTH, normal_context.getStart() );
-                long right = pos+normalCall.getVariant().lengthOnRef()+NQS_WIDTH-1;
+                long right = pos+( normalCall.getVariant() == null ? 0 : normalCall.getVariant().lengthOnRef())+NQS_WIDTH-1;
 
                 if ( right >= adjustedPosition && ! force) {
                     // we are not asked to force-shift, and there is more coverage around the current indel that we still need to collect
@@ -584,26 +644,14 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 location = getToolkit().getGenomeLocParser().setStart(location,pos);
                 location = getToolkit().getGenomeLocParser().setStop(location,pos); // retrieve annotation data
 
-                if ( normalCall.isCall() ) {
-                    normalCallsMade++;
+                boolean haveCall = normalCall.isCall(); // cache the value
+
+                if ( haveCall || genotype) {
+                    if ( haveCall ) normalCallsMade++;
                     printVCFLine(vcf_writer,normalCall);
                     if ( bedWriter != null ) normalCall.printBedLine(bedWriter);
-
-                    if ( verboseWriter != null ) {
-
-                        RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
-                        String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
-
-                        StringBuilder fullRecord = new StringBuilder();
-                        fullRecord.append(makeFullRecord(normalCall));
-                        fullRecord.append(annotationString);
-                        try {
-                            verboseWriter.write(fullRecord.toString());
-                            verboseWriter.write('\n');
-                        } catch (IOException e) {
-                            throw new UserException.CouldNotCreateOutputFile(verboseOutput, "Write failed", e);
-                        }
-                    }
+                    if ( verboseWriter != null ) printVerboseLine(verboseWriter, normalCall);
+                    lastGenotypedPosition = pos;
                 }
 
                 normal_context.indelsAt(pos).clear();
@@ -696,28 +744,58 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
         for ( int pos = tumor_context.getStart() ; pos < Math.min(adjustedPosition,tumor_context.getStop()+1) ; pos++ ) {
 
-            if ( tumor_context.indelsAt(pos).size() == 0 ) continue; // no indels in tumor
+            boolean genotype = false;
+             // first let's see if we need to genotype current position:
+
+             final long p = pos - 1; // our internally used positions (pos) are +1 compared to external format spec (e.g. vcf)
+
+             if ( pos <= lastGenotypedPosition ) continue;
+
+             while ( currentGenotypeInterval != null ) {
+
+                 // if we did not even reach next interval yet, no genotyping at current position:
+                 if ( location.getContigIndex() < currentGenotypeInterval.getContigIndex() ||
+                      location.getContigIndex() == currentGenotypeInterval.getContigIndex() &&
+                              p < currentGenotypeInterval.getStart() ) break;
+                 if ( pastInterval(p, currentGenotypeInterval) ) {
+                     // we are past current genotyping interval, so we are done with it; let's load next interval:
+                     currentGenotypeInterval = genotypeIntervalIterator.hasNext() ? genotypeIntervalIterator.next() : null;
+                     continue; // re-enter the loop to check against the interval we just loaded
+                 }
+
+                 // we reach tjis point only if p is inside current genotyping interval; set the flag and bail out:
+                 genotype = true;
+                 break;
+             }
+//            if ( DEBUG) System.out.println("DEBUG>> pos="+pos +"; genotyping interval="+currentGenotypeInterval+"; genotype="+genotype);
+
+            if ( tumor_context.indelsAt(pos).size() == 0 && ! genotype ) continue; // no indels in tumor
+
+            if ( DEBUG && genotype ) System.out.println("DEBUG>> Genotyping requested at "+pos);
 
             IndelPrecall tumorCall = new IndelPrecall(tumor_context,pos,NQS_WIDTH);
             IndelPrecall normalCall = new IndelPrecall(normal_context,pos,NQS_WIDTH);
 
-            if ( tumorCall.getCoverage() < minCoverage ) {
+            if ( tumorCall.getCoverage() < minCoverage && ! genotype ) {
                 if ( DEBUG ) {
                     System.out.println("DEBUG>> Indel in tumor at "+pos+"; coverare in tumor="+tumorCall.getCoverage()+" (SKIPPED)");
                 }
                 continue; // low coverage
             }
-            if ( normalCall.getCoverage() < minNormalCoverage ) {
+            if ( normalCall.getCoverage() < minNormalCoverage && ! genotype ) {
                 if ( DEBUG ) {
                     System.out.println("DEBUG>> Indel in tumor at "+pos+"; coverare in normal="+normalCall.getCoverage()+" (SKIPPED)");
                 }
                 continue; // low coverage
             }
 
-            if ( DEBUG ) System.out.println("DEBUG>> Indel in tumor at "+pos);
+            if ( DEBUG ) {
+                System.out.print("DEBUG>> "+(tumorCall.getAllVariantCount() == 0?"No Indel":"Indel")+" in tumor, ");
+                System.out.print("DEBUG>> "+(normalCall.getAllVariantCount() == 0?"No Indel":"Indel")+" in normal at "+pos);
+            }
 
             long left = Math.max( pos-NQS_WIDTH, tumor_context.getStart() );
-            long right = pos+tumorCall.getVariant().lengthOnRef()+NQS_WIDTH-1;
+            long right = pos+ ( tumorCall.getVariant() == null ? 0 : tumorCall.getVariant().lengthOnRef() )+NQS_WIDTH-1;
 
             if ( right >= adjustedPosition && ! force) {
                 // we are not asked to force-shift, and there is more coverage around the current indel that we still need to collect
@@ -740,32 +818,17 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             location = getToolkit().getGenomeLocParser().setStart(location,pos);
             location = getToolkit().getGenomeLocParser().setStop(location,pos); // retrieve annotation data
 
-            if ( tumorCall.isCall() ) {
-                tumorCallsMade++;
+            boolean haveCall = tumorCall.isCall(); // cache the value
+
+            if ( haveCall || genotype ) {
+                if ( haveCall ) tumorCallsMade++;
 
                 printVCFLine(vcf_writer,normalCall,tumorCall);
 
                 if ( bedWriter != null ) tumorCall.printBedLine(bedWriter);
 
-                if ( verboseWriter != null ) {
-                    RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
-                    String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
-
-                    StringBuilder fullRecord = new StringBuilder();
-                    fullRecord.append(makeFullRecord(normalCall,tumorCall));
-
-                    if ( normalCall.getVariant() == null ) {
-                        fullRecord.append("SOMATIC");
-                    } else {
-                        fullRecord.append("GERMLINE");
-                    }
-                    try {
-                        verboseWriter.write(fullRecord + "\t"+ annotationString);
-                        verboseWriter.write('\n');
-                    } catch (IOException e) {
-                        throw new UserException.CouldNotCreateOutputFile(verboseOutput, "Write failed", e);
-                    }
-                }
+                if ( verboseWriter != null ) printVerboseLine(verboseWriter, normalCall, tumorCall );
+                lastGenotypedPosition = pos;
             }
             tumor_context.indelsAt(pos).clear();
             normal_context.indelsAt(pos).clear();
@@ -785,7 +848,11 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
     private String makeFullRecord(IndelPrecall normalCall, IndelPrecall tumorCall) {
         StringBuilder fullRecord = new StringBuilder();
-        fullRecord.append(tumorCall.makeEventString());
+        if ( tumorCall.getVariant() != null || normalCall.getVariant() == null) {
+            fullRecord.append(tumorCall.makeEventString());
+        } else {
+            fullRecord.append(normalCall.makeEventString());            
+        }
         fullRecord.append('\t');
         fullRecord.append(normalCall.makeStatsString("N_"));
         fullRecord.append('\t');
@@ -825,9 +892,83 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
     }
 
+    public void printVerboseLine(Writer verboseWriter, IndelPrecall normalCall) {
+        RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+        String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
+
+        StringBuilder fullRecord = new StringBuilder();
+        fullRecord.append(makeFullRecord(normalCall));
+        fullRecord.append(annotationString);
+        if ( ! normalCall.isCall() && normalCall.getVariant() != null ) fullRecord.append("\tFILTERED_NOCALL");
+        try {
+            verboseWriter.write(fullRecord.toString());
+            verboseWriter.write('\n');
+        } catch (IOException e) {
+            throw new UserException.CouldNotCreateOutputFile(verboseOutput, "Write failed", e);
+        }
+
+    }
+
+
+    public void printVerboseLine(Writer verboseWriter, IndelPrecall normalCall, IndelPrecall tumorCall) {
+        RODRecordList annotationList = (refseqIterator == null ? null : refseqIterator.seekForward(location));
+        String annotationString = (refseqIterator == null ? "" : getAnnotationString(annotationList));
+
+        StringBuilder fullRecord = new StringBuilder();
+        fullRecord.append(makeFullRecord(normalCall,tumorCall));
+
+        if ( normalCall.getVariant() == null && tumorCall.getVariant() == null ) {
+            // did not observe anything
+            if ( normalCall.getCoverage() >= minNormalCoverage && tumorCall.getCoverage() >= minCoverage ) fullRecord.append("REFERENCE");
+            else {
+                if ( tumorCall.getCoverage() >= minCoverage ) fullRecord.append("REFERENCE"); // no coverage in normal but nothing in tumor
+                else {
+                    // no coverage in tumor; if we have no coverage in normal, it can be anything; if we do have coverage in normal,
+                    // this still could be a somatic event. so either way it is 'unknown'
+                    fullRecord.append("UNKNOWN");
+                }
+            }
+
+        }
+
+        if ( normalCall.getVariant() == null && tumorCall.getVariant() != null ) {
+            // looks like somatic call
+            if ( normalCall.getCoverage() >= minNormalCoverage ) fullRecord.append("SOMATIC"); // we confirm there is nothing in normal
+            else {
+                // low coverage in normal
+                fullRecord.append("EVENT_T"); // no coverage in normal, no idea whether it is germline or somatic
+            }
+        }
+
+        if ( normalCall.getVariant() != null && tumorCall.getVariant() == null ) {
+            // it's likely germline (with missing observation in tumor - maybe loh?
+            if ( tumorCall.getCoverage() >= minCoverage ) fullRecord.append("GERMLINE_LOH"); // we confirm there is nothing in tumor
+            else {
+                // low coverage in tumor, maybe we missed the event
+                fullRecord.append("GERMLINE"); // no coverage in tumor but we already saw it in normal...
+            }
+        }
+
+        if ( normalCall.getVariant() != null && tumorCall.getVariant() != null ) {
+            // events in both T/N, got to be germline!
+            fullRecord.append("GERMLINE"); 
+        }
+
+
+        fullRecord.append('\t');
+        fullRecord.append(annotationString);
+
+        if ( ! tumorCall.isCall() && tumorCall.getVariant() != null ) fullRecord.append("\tFILTERED_NOCALL");
+
+        try {
+            verboseWriter.write(fullRecord.toString());
+            verboseWriter.write('\n');
+        } catch (IOException e) {
+            throw new UserException.CouldNotCreateOutputFile(verboseOutput, "Write failed", e);
+        }
+    }
+
     public void printVCFLine(VCFWriter vcf, IndelPrecall call) {
-        int event_length = call.getVariant().lengthOnRef();
-        if ( event_length < 0 ) event_length = 0;
 
         long start = call.getPosition()-1;
         // If the beginning of the chromosome is deleted (possible, however unlikely), it's unclear how to proceed.
@@ -838,84 +979,146 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
         long stop = start;
 
-        List<Allele> alleles = new ArrayList<Allele>(2);
+        List<Allele> alleles = new ArrayList<Allele>(2); // actual observed (distinct!) alleles at the site
+        List<Allele> homref_alleles = null; // when needed, will contain two identical copies of ref allele - needed to generate hom-ref genotype
 
-        if ( event_length == 0 ) { // insertion
-             alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
-             alleles.add( Allele.create(call.getVariant().getBases(), false ));
-        } else { //deletion:
-             alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
-             alleles.add( Allele.create(call.getVariant().getBases(), true ));
-             stop += event_length;
+
+        if ( call.getVariant() == null ) {
+            // we will need to cteate genotype with two (hom) ref alleles (below).
+            // we can not use 'alleles' list here, since that list is supposed to contain
+            // only *distinct* alleles observed at the site or VCFContext will frown upon us...
+            alleles.add( Allele.create(refBases[(int)start-1],true) );
+            homref_alleles = new ArrayList<Allele>(2);
+            homref_alleles.add( alleles.get(0));
+            homref_alleles.add( alleles.get(0));
+        } else {
+            // we always create alt allele when we observe anything but the ref, even if it is not a call!
+            // (Genotype will tell us whether it is an actual call or not!)
+            int event_length = call.getVariant().lengthOnRef();
+            if ( event_length < 0 ) event_length = 0;
+            fillAlleleList(alleles,call);
+            stop += event_length;
         }
 
         Map<String,Genotype> genotypes = new HashMap<String,Genotype>();
 
         for ( String sample : normalSamples ) {
-            genotypes.put(sample,new Genotype(sample, alleles));
+            if ( call.isCall() ) // we made a call - put actual het genotype here:
+                genotypes.put(sample,new Genotype(sample, alleles));
+            else // no call: genotype is ref/ref (but alleles still contain the alt if we observed anything at all) 
+                genotypes.put(sample,new Genotype(sample, homref_alleles));
+
         }
-               
+        Set<String> filters = null;
+        if ( call.getVariant() != null && ! call.isCall() ) {
+            filters = new HashSet<String>();
+            filters.add("NOCALL");
+        }
         VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
-            -1.0 /* log error */, null /* filters */, call.makeStatsAttributes("",null));
+            -1.0 /* log error */,  filters, call.makeStatsAttributes("",null));
         vcf.add(vc,refBases[(int)start-1]);
     }
 
+    /** Fills l with appropriate alleles depending on whether call is insertion or deletion
+     * (l MUST have a variant or this method will crash). It is guaranteed that the *first* allele added
+     * to the list is ref, and the next one is alt.
+     * @param l
+     * @param call
+     */
+    private void fillAlleleList(List<Allele> l, IndelPrecall call) {
+        int event_length = call.getVariant().lengthOnRef();
+        if ( event_length == 0 ) { // insertion
+
+            l.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
+            l.add( Allele.create(call.getVariant().getBases(), false ));
+
+        } else { //deletion:
+            l.add( Allele.create(call.getVariant().getBases(), true ));
+            l.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
+        }
+    }
+
     public void printVCFLine(VCFWriter vcf, IndelPrecall nCall, IndelPrecall tCall) {
-        int event_length = tCall.getVariant().lengthOnRef();
-        if ( event_length < 0 ) event_length = 0;
 
         long start = tCall.getPosition()-1;
         long stop = start;
+
+        // If the beginning of the chromosome is deleted (possible, however unlikely), it's unclear how to proceed.
+        // The suggestion is instead of putting the base before the indel, to put the base after the indel.
+        // For now, just don't print out that site.
+        if ( start == 0 )
+            return;
 
         Map<String,Object> attrs = nCall.makeStatsAttributes("N_",null);
         attrs = tCall.makeStatsAttributes("T_",attrs);
 
         boolean isSomatic = false;
-        if ( nCall.getVariant() == null ) {
+        if ( nCall.getCoverage() >= minNormalCoverage && nCall.getVariant() == null && tCall.getVariant() != null ) {
             isSomatic = true;
             attrs.put(VCFConstants.SOMATIC_KEY,true);
         }
+        List<Allele> alleles = new ArrayList<Allele>(2); // all alleles at the site
+ //       List<Allele> normal_alleles = null; // all alleles at the site
+        List<Allele> homRefAlleles = null;
 
-        List<Allele> alleles = new ArrayList<Allele>(2);
-        List<Allele> homRefAlleles = isSomatic ? new ArrayList<Allele>(2) : null ; // we need this only for somatic calls
-
-        if ( event_length == 0 ) { // insertion
-             alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
-             alleles.add( Allele.create(tCall.getVariant().getBases(), false ));
-             if ( isSomatic ) {
-                 // create alleles of hom-ref genotype for normal sample
-                 homRefAlleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
-                 homRefAlleles.add( Allele.create(Allele.NULL_ALLELE_STRING,true) );
-             }
-        } else { //deletion:
-             alleles.add( Allele.create(Allele.NULL_ALLELE_STRING,false) );
-             alleles.add( Allele.create(tCall.getVariant().getBases(), true ));
-             stop += event_length;
-            if ( isSomatic ) {
-                // create alleles of hom-ref genotype for normal sample
-                homRefAlleles.add( Allele.create(tCall.getVariant().getBases(), true ));
-                homRefAlleles.add( Allele.create(tCall.getVariant().getBases(), true ));
+//        if ( nCall.getVariant() == null || tCall.getVariant() == null ) {
+        homRefAlleles = new ArrayList<Allele>(2) ; // we need this for somatic calls (since normal is ref-ref), and also for no-calls
+//        }
+        boolean homRefT = ( tCall.getVariant() == null );
+        boolean homRefN = ( nCall.getVariant() == null );
+        if ( tCall.getVariant() == null && nCall.getVariant() == null) {
+            // no indel at all  ; create base-representation ref/ref alleles for genotype construction
+            alleles.add( Allele.create(refBases[(int)start-1],true) );
+        } else {
+            // we got indel(s)
+            int event_length = 0;
+            if ( tCall.getVariant() != null ) {
+                // indel in tumor
+                event_length = tCall.getVariant().lengthOnRef();
+                fillAlleleList(alleles, tCall);
+            } else {
+                event_length = nCall.getVariant().lengthOnRef();
+                fillAlleleList(alleles, nCall);
             }
+            if ( event_length > 0 ) stop += event_length;
         }
-
+        homRefAlleles.add( alleles.get(0));
+        homRefAlleles.add( alleles.get(0));
 
         Map<String,Genotype> genotypes = new HashMap<String,Genotype>();
 
         for ( String sample : normalSamples ) {
-            genotypes.put(sample,new Genotype(sample, isSomatic ? homRefAlleles : alleles,0));
+            genotypes.put(sample,new Genotype(sample, homRefN ? homRefAlleles : alleles,0));
         }
 
         for ( String sample : tumorSamples ) {
-            genotypes.put(sample,new Genotype(sample, alleles,0) );
+            genotypes.put(sample,new Genotype(sample, homRefT ? homRefAlleles : alleles,0) );
+        }
+
+        Set<String> filters = null;
+        if ( tCall.getVariant() != null && ! tCall.isCall() ) {
+            filters = new HashSet<String>();
+            filters.add("NOCALL");
+        }
+        if ( nCall.getCoverage() < minNormalCoverage ) {
+            if ( filters == null ) filters = new HashSet<String>();
+            filters.add("NCOV");
+        }
+        if ( tCall.getCoverage() < minCoverage ) {
+            if ( filters == null ) filters = new HashSet<String>();
+            filters.add("TCOV");
         }
 
         VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
-            -1.0 /* log error */, null /* filters */, attrs);
+            -1.0 /* log error */, filters, attrs);
         vcf.add(vc,refBases[(int)start-1]);
     }
 
     @Override
     public void onTraversalDone(Integer result) {
+        if ( DEBUG ) {
+            System.out.println("DEBUG>> Emitting last window at "+normal_context.getStart()+"-"+normal_context.getStop());
+        }
         if ( call_somatic ) emit_somatic(1000000000, true);
         else emit(1000000000,true); // emit everything we might have left
 
@@ -1077,6 +1280,14 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         private PrimitivePair.Int consensus_indel_read_orientation_cnt = new PrimitivePair.Int();
         private PrimitivePair.Int all_indel_read_orientation_cnt = new PrimitivePair.Int();
         private PrimitivePair.Int all_read_orientation_cnt = new PrimitivePair.Int();
+
+        /** Makes an empty call (no-call) with all stats set to 0
+         *
+         * @param position
+         */
+        public IndelPrecall(long position) {
+            this.pos = position;
+        }
 
         public IndelPrecall(WindowContext context, long position, int nqs_width) {
             this.pos = position;
@@ -1281,7 +1492,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         public boolean isCall() {
             boolean ret =  ( consensus_indel_count >= minIndelCount &&
                     (double)consensus_indel_count > minFraction * total_coverage &&
-                    (double) consensus_indel_count > minConsensusFraction*all_indel_count );
+                    (double) consensus_indel_count > minConsensusFraction*all_indel_count && total_coverage >= minCoverage);
             if ( DEBUG && ! ret ) System.out.println("DEBUG>>  NOT a call: count="+consensus_indel_count+
                         " total_count="+all_indel_count+" cov="+total_coverage+
                 " minConsensusF="+((double)consensus_indel_count)/all_indel_count+
@@ -1312,23 +1523,36 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 
         public void printBedLine(Writer bed) {
-            int event_length = consensus_indel.lengthOnRef();
-            if ( event_length < 0 ) event_length = 0;
+            int event_length;
+            if ( consensus_indel == null ) event_length = 0;
+            else {
+                event_length = consensus_indel.lengthOnRef();
+                if ( event_length < 0 ) event_length = 0;
+            }
 
             StringBuffer message = new StringBuffer();
             message.append(refName+"\t"+(pos-1)+"\t");
-            message.append((pos-1+event_length)+"\t"+(event_length>0? "-":"+")+consensus_indel.getBases() +":"+all_indel_count+"/"+total_coverage);
-
-           try {
+            message.append((pos-1+event_length)+"\t");
+            if ( consensus_indel != null ) {
+                message.append((event_length>0? "-":"+")+consensus_indel.getBases());
+            } else {
+                message.append('.');
+            }
+            message.append(":"+all_indel_count+"/"+total_coverage);
+            try {
                 bed.write(message.toString()+"\n");
-           } catch (IOException e) {
+            } catch (IOException e) {
                throw new UserException.CouldNotCreateOutputFile(bedOutput, "Error encountered while writing into output BED file", e);
-           }
+            }
         }
 
         public String makeEventString() {
-            int event_length = consensus_indel.lengthOnRef();
-            if ( event_length < 0 ) event_length = 0;
+            int event_length;
+            if ( consensus_indel == null ) event_length = 0;
+            else {
+                event_length = consensus_indel.lengthOnRef();
+                if ( event_length < 0 ) event_length = 0;
+            }
             StringBuffer message = new StringBuffer();
             message.append(refName);
             message.append('\t');
@@ -1336,8 +1560,12 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             message.append('\t');
             message.append(pos-1+event_length);
             message.append('\t');
-            message.append((event_length>0?'-':'+'));
-            message.append(consensus_indel.getBases());
+            if ( consensus_indel != null ) {
+                message.append((event_length>0?'-':'+'));
+                message.append(consensus_indel.getBases());
+            } else {
+                message.append('.');
+            }
             return message.toString();
         }
 
