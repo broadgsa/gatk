@@ -57,6 +57,7 @@ import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.commandline.Hidden;
 
 import java.io.*;
 import java.util.*;
@@ -88,10 +89,12 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 //    @Argument(fullName="vcf_format", shortName="vcf", doc="generate output file in VCF format", required=false)
 //    boolean FORMAT_VCF = false;
 
+    @Hidden
     @Argument(fullName = "genotype_intervals", shortName = "genotype",
             doc = "Calls will be made at each position within the specified interval(s), whether there is an indel or it's the ref", required = false)
     public String genotypeIntervalsFile = null;
 
+    @Hidden
     @Argument(fullName="genotypeIntervalsAreNotSorted", shortName="giNotSorted", required=false,
             doc="This tool assumes that the genotyping interval list (--genotype_intervals) is sorted; "+
                 "if the list turns out to be unsorted, it will throw an exception.  "+
