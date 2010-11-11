@@ -117,7 +117,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
             Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
             for ( VariantContext vc : vcs) {
-                if ( ! ignoreMultiAllelic || vc.isBiallelic() || ( !showFiltered || !vc.isFiltered() ) ) {
+                if ( ! ignoreMultiAllelic || vc.isBiallelic() || ( showFiltered || ! vc.isNotFiltered() ) ) {
                     List<String> vals = extractFields(vc, fieldsToTake);
 
                     out.println(Utils.join("\t", vals));
