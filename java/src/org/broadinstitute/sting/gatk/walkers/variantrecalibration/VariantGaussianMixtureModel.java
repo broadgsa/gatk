@@ -40,7 +40,7 @@ import Jama.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.Random;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -460,6 +460,91 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
 
         return sum;
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Code to determine FDR tranches for VariantDatum[]
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
+    public final static List<Tranche> findTranches( final VariantDatum[] data, final double[] FDRtranches, double targetTiTv ) {
+        List<VariantDatum> tranchesData = sortVariantsbyQual(data);
+        double[] runningTiTv = calculateRunningTiTv(tranchesData);
+        List<Tranche> tranches = new ArrayList<Tranche>();
+        for ( double fdr : FDRtranches ) {
+            Tranche t = findTranche(tranchesData, runningTiTv, fdr, targetTiTv);
+
+            if ( t == null ) {
+                if ( tranches.size() == 0 )
+                    throw new UserException("Couldn't find any tranche containing variants with a TiTv > target of " + targetTiTv);
+                break;
+            }
+
+            tranches.add(t);
+        }
+
+        return tranches;
+    }
+
+    private final static List<VariantDatum> sortVariantsbyQual(final VariantDatum[] data) {
+        List<VariantDatum> sorted = new ArrayList<VariantDatum>(Arrays.asList(data));
+        Collections.sort(sorted);
+        return sorted;
+    }
+
+    private static double[] calculateRunningTiTv(List<VariantDatum> data) {
+        int ti = 0, tv = 0;
+        double[] run = new double[data.size()];
+
+        for ( int i = data.size() - 1; i >= 0; i-- ) {
+            VariantDatum datum = data.get(i);
+            if ( ! datum.isKnown ) {
+                if ( datum.isTransition ) { ti++; } else { tv++; }
+                run[i] = ti / Math.max(1.0 * tv, 1.0);
+            }
+        }
+
+        return run;
+    }
+
+    public final static Tranche findTranche( final List<VariantDatum> data, double[] runningTiTv, final double desiredFDR, double targetTiTv ) {
+        final double titvThreshold = fdrToTiTv(desiredFDR, targetTiTv); // compute the desired TiTv
+
+        for ( int i = 0; i < runningTiTv.length; i++ ) {
+            if ( runningTiTv[i] >= titvThreshold ) {
+                // we've found the largest group of variants with Ti/Tv >= our target titv
+                return trancheOfVariants(data, i, desiredFDR);
+            }
+        }
+
+        // we get here when there's no subset of variants with Ti/Tv >= threshold, in which case we should return null
+        return null;
+    }
+
+    public final static Tranche trancheOfVariants( final List<VariantDatum> data,  int minI, double fdr ) {
+        int numKnown = 0, numNovel = 0, knownTi = 0, knownTv = 0, novelTi = 0, novelTv = 0;
+
+        for ( int i = minI; i < data.size(); i++ ) {
+            VariantDatum datum = data.get(i);
+            if ( datum.isKnown ) {
+                numKnown++;
+                if ( datum.isTransition ) { knownTi++; } else { knownTv++; }
+            } else {
+                numNovel++;
+                if ( datum.isTransition ) { novelTi++; } else { novelTv++; }
+
+            }
+        }
+
+        double knownTiTv = knownTi / Math.max(1.0 * knownTv, 1.0);
+        double novelTiTv = novelTi / Math.max(1.0 * novelTv, 1.0);
+
+        return new Tranche(fdr, data.get(minI).qual, numKnown, knownTiTv, numNovel, novelTiTv);
+    }
+
+    public final static double fdrToTiTv(double desiredFDR, double targetTiTv) {
+            return (1.0 - desiredFDR / 100.0) * (targetTiTv - 0.5) + 0.5;
     }
 
     public final void outputOptimizationCurve( final VariantDatum[] data, final PrintStream outputReportDatFile, final PrintStream tranchesOutputFile,

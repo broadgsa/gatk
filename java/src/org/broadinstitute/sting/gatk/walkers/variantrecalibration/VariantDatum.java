@@ -31,10 +31,14 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
  * Date: Feb 24, 2010
  */
 
-public class VariantDatum {
+public class VariantDatum implements Comparable<VariantDatum> {
     public double[] annotations;
     public boolean isTransition;
     public boolean isKnown;
     public double qual;
     public double weight;
+
+    public int compareTo(VariantDatum other) {
+        return Double.compare(this.qual, other.qual);
+    }
 }
