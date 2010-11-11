@@ -5,6 +5,7 @@
     <resource-bundle file="StingText.properties" />
     <dependencies>
       <package name="org.broad.tribble.*" />
+      <package name="org.broadinstitute.sting.gatk.refdata.features.*" />
       <!-- the class itself -->
       <class name="org.broadinstitute.sting.gatk.refdata.indexer.RMDIndexer" />
     </dependencies>
