@@ -107,7 +107,7 @@ public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedG
 
         double percentCallableOfAll()    { return (100.0 * nBasesCallable) / (nBasesVisited-nExtendedEvents); }
         double percentCalledOfAll()      { return (100.0 * nBasesCalledConfidently) / (nBasesVisited-nExtendedEvents); }
-        double percentCalledOfCallable() { return (100.0 * nBasesCalledConfidently) / (nBasesVisited-nExtendedEvents); }
+        double percentCalledOfCallable() { return (100.0 * nBasesCalledConfidently) / (nBasesCallable); }
     }
 
     /**
