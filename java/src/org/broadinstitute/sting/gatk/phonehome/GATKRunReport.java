@@ -232,13 +232,14 @@ public class GATKRunReport {
      * @return
      */
     private String resolveHostname() {
-        try {
-            return InetAddress.getLocalHost().getCanonicalHostName();
-        }
-        catch (java.net.UnknownHostException uhe) { // [beware typo in code sample -dmw]
-            return "unresolvable";
-            // handle exception
-        }
+        return "unknown";
+//        try {
+//            return InetAddress.getLocalHost().getCanonicalHostName();
+//        }
+//        catch (java.net.UnknownHostException uhe) { // [beware typo in code sample -dmw]
+//            return "unresolvable";
+//            // handle exception
+//        }
     }
 
     /**
