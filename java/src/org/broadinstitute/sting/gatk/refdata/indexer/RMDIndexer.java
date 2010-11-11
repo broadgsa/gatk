@@ -10,7 +10,10 @@ import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.io.File;
@@ -28,7 +31,7 @@ public class RMDIndexer extends CommandLineProgram {
     @Argument(shortName="t", fullName="type", doc="The reference meta data file format (e.g. vcf, bed)", required = true)
     String inputFileType = null;
 
-    @Input(fullName = "referenceSequence", shortName = "R", doc = "The reference to use when indexing; this sequence will be set in the index", required = false)
+    @Input(fullName = "referenceSequence", shortName = "R", doc = "The reference to use when indexing; this sequence will be set in the index", required = true)
     public File referenceFile = null;
 
     @Input(shortName = "i", fullName = "indexFile", doc = "Where to write the index to (as a file), if not supplied we write to <inputFile>.idx", required = false)
@@ -38,9 +41,12 @@ public class RMDIndexer extends CommandLineProgram {
     IndexFactory.IndexBalanceApproach approach = IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME;
 
     private static Logger logger = Logger.getLogger(RMDIndexer.class);
+    private IndexedFastaSequenceFile ref = null;
+    private GenomeLocParser genomeLocParser = null;
 
     @Override
     protected int execute() throws Exception {
+
 
         // check parameters
         // ---------------------------------------------------------------------------------
@@ -68,6 +74,10 @@ public class RMDIndexer extends CommandLineProgram {
         // try to index the file
         // ---------------------------------------------------------------------------------
 
+        // setup the reference
+        ref = new IndexedFastaSequenceFile(referenceFile);
+        genomeLocParser = new GenomeLocParser(ref);
+
         // get a track builder
         RMDTrackBuilder builder = new RMDTrackBuilder();
 
@@ -81,6 +91,10 @@ public class RMDIndexer extends CommandLineProgram {
         // create the codec
         FeatureCodec codec = builder.createByType(typeMapping.get(inputFileType));
 
+        // check if it's a reference dependent feature codec
+        if (codec instanceof ReferenceDependentFeatureCodec)
+            ((ReferenceDependentFeatureCodec)codec).setGenomeLocParser(genomeLocParser);
+        
         // get some timing info
         long currentTime = System.currentTimeMillis();
 
