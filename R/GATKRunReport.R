@@ -154,7 +154,7 @@ generateOneReport <- function(d, header, includeByWeek = T) {
 
     reportCountingPlot(d$java, head("Java version"))
     reportCountingPlot(d$machine, head("Machine"))
-    reportCountingPlot(d$working.directory, head("Working directory"))
+    #reportCountingPlot(d$working.directory, head("Working directory"))
 }
 
 RUNME = T
