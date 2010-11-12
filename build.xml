@@ -492,6 +492,7 @@
                     verbose="2"
                     workingDir="${basedir}" 
 		    useDefaultListeners="false" listeners="org.testng.reporters.XMLReporter,org.testng.reporters.JUnitXMLReporter">
+                <jvmarg value="-Djava.awt.headless=true"/>
 <!--
             <jvmarg value="-Xdebug"/>
             <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
