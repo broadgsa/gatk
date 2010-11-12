@@ -34,13 +34,9 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 
 /**
@@ -76,35 +72,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
-    final ExpandingArrayList<Double> qCuts = new ExpandingArrayList<Double>();
-    final ExpandingArrayList<String> filterName = new ExpandingArrayList<String>();
-
-    public static class Tranche {
-        public double fdr, pCut, novelTiTv;
-        public int numNovel;
-        public String name;
-
-        public Tranche(double fdr, double pCut, double novelTiTv, int numNovel, String name) {
-            this.fdr = fdr;
-            this.pCut = pCut;
-            this.novelTiTv = novelTiTv;
-            this.numNovel = numNovel;
-            this.name = name;
-        }
-
-        public Tranche(final String line) {
-            final String[] vals = line.split(",");
-            this.fdr = Double.parseDouble(vals[0]);
-            this.novelTiTv = Double.parseDouble(vals[1]);
-            this.pCut = Double.parseDouble(vals[2]);
-            this.numNovel = Integer.parseInt(vals[3]);
-            this.name = vals[4];
-        }
-
-        public String toString() {
-            return String.format("[Tranche %s cut = %.3f with %d novels @ %.2f]", name, pCut, numNovel, novelTiTv);
-        }
-    }
+    final List<Tranche> tranches = new ArrayList<Tranche>();
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -112,49 +80,14 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     //
     //---------------------------------------------------------------------------------------------------------------
 
-    public static List<Tranche> readTraches(File f) {
-        boolean firstLine = true;
-        List<Tranche> tranches = new ArrayList<Tranche>();
-
-        try {
-            for( final String line : new XReadLines(f) ) {
-                if( ! firstLine ) {
-                    tranches.add(new Tranche(line));
-                }
-                firstLine = false;
-            }
-
-            return tranches;
-        } catch( FileNotFoundException e ) {
-            throw new UserException.CouldNotCreateOutputFile(f, e);
-        }
-    }
-
     public void initialize() {
-
-        // todo -- ryan, it's always best to use a data structure, I need to read these in too.
-        boolean firstLine = true;
-        try {
-            for( final String line : new XReadLines( TRANCHES_FILE ) ) {
-                if( !firstLine ) {
-                    final String[] vals = line.split(",");
-                    double FDR = Double.parseDouble(vals[0]);
-                    double TsTv = Double.parseDouble(vals[1]);
-                    double pCut = Double.parseDouble(vals[2]);
-                    String name = vals[4];
-                    //String statusMsg = "Excluding, below FDR level";
-                    if (FDR >= FDR_FILTER_LEVEL) {
-                        qCuts.add(pCut);
-                        filterName.add(name);
-                        //statusMsg = "Keeping, above FDR threshold";
-                    }
-                    logger.info(String.format("Tranche %s with %.2f FDR, TsTv %.2f and pCut %.2f, threshold %.2f",
-                            name, FDR, TsTv, pCut, FDR_FILTER_LEVEL));
-                }
-                firstLine = false;
+        for ( Tranche t : Tranche.readTraches(TRANCHES_FILE) ) {
+            if ( t.fdr >= FDR_FILTER_LEVEL) {
+                tranches.add(t);
+                //statusMsg = "Keeping, above FDR threshold";
             }
-        } catch( FileNotFoundException e ) {
-            throw new UserException.CouldNotCreateOutputFile(TRANCHES_FILE, e);
+            logger.info(String.format("Tranche %s with %.2f FDR, TsTv %.2f and pCut %.2f, threshold %.2f",
+                    t.name, t.fdr, t.novelTiTv, t.pCut, FDR_FILTER_LEVEL));
         }
 
         // setup the header fields
@@ -163,13 +96,14 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
 
-        if( filterName.size() >= 2 ) {
-            for( int iii = 0; iii < filterName.size() - 1; iii++ ) {
-                hInfo.add(new VCFFilterHeaderLine(filterName.get(iii), String.format("FDR tranche level at qual: " + qCuts.get(iii) + " <= x < " + qCuts.get(iii+1))));
+        if( tranches.size() >= 2 ) {
+            for( int iii = 0; iii < tranches.size() - 1; iii++ ) {
+                Tranche t = tranches.get(iii);
+                hInfo.add(new VCFFilterHeaderLine(t.name, String.format("FDR tranche level at qual: " + t.pCut + " <= x < " + tranches.get(iii+1).pCut)));
             }
         }
-        if( filterName.size() >= 1 ) {
-            hInfo.add(new VCFFilterHeaderLine(filterName.get(0)+"+", String.format("FDR tranche level at qual < " + qCuts.get(0))));
+        if( tranches.size() >= 1 ) {
+            hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("FDR tranche level at qual < " + tranches.get(0).pCut)));
         }
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
@@ -193,18 +127,21 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                 String filterString = null;
                 if( !vc.isFiltered() ) {
                     final double qual = vc.getPhredScaledQual();
-                    for( int tranche = qCuts.size() - 1; tranche >= 0; tranche-- ) {
-                        if( qual >= qCuts.get(tranche) ) {
-                            if(tranche == qCuts.size() - 1) {
+
+                    for( int i = tranches.size() - 1; i >= 0; i-- ) {
+                        Tranche tranche = tranches.get(i);
+                        if( qual >= tranche.pCut ) {
+                            if (i == tranches.size() - 1) {
                                 filterString = VCFConstants.PASSES_FILTERS_v4;
                             } else {
-                                filterString = filterName.get(tranche);
+                                filterString = tranche.name;
                             }
                             break;
                         }
                     }
+
                     if( filterString == null ) {
-                        filterString = filterName.get(0)+"+";
+                        filterString = tranches.get(0).name+"+";
                     }
 
                     if ( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
@@ -213,6 +150,7 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                         vc = VariantContext.modifyFilters(vc, filters);
                     }
                 }
+
                 vcfWriter.add( vc, ref.getBase() );
             }
 

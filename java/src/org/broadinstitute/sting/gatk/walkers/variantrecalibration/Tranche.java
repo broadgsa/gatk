@@ -48,18 +48,20 @@ import java.util.*;
 public class Tranche {
     public double fdr, pCut, knownTiTv, novelTiTv;
     public int numKnown,numNovel;
-
-    public Tranche(double fdr, double pCut, double novelTiTv, int numNovel) {
-        this(fdr,pCut,-1, -1, numNovel, novelTiTv);
-    }
+    public String name;
 
     public Tranche(double fdr, double pCut, int numKnown, double knownTiTv, int numNovel, double novelTiTv) {
+        this(fdr, pCut, numKnown, knownTiTv, numNovel, novelTiTv, "anonymous");
+    }
+
+    public Tranche(double fdr, double pCut, int numKnown, double knownTiTv, int numNovel, double novelTiTv, String name) {
         this.fdr = fdr;
         this.pCut = pCut;
         this.novelTiTv = novelTiTv;
         this.numNovel = numNovel;
         this.knownTiTv = knownTiTv;
         this.numKnown = numKnown;
+        this.name = name;
     }
 
     public String toString() {
@@ -108,7 +110,8 @@ public class Tranche {
                             getInteger(bindings,"numKnown"),
                             getDouble(bindings,"knownTiTv"),
                             getInteger(bindings,"numNovel"),
-                            getDouble(bindings,"novelTiTv")));
+                            Math.max(getDouble(bindings,"novelTiTv"), getDouble(bindings,"novelTITV")),
+                            bindings.get("filterName")));
                 }
             }
 

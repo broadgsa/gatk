@@ -12,7 +12,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     static HashMap<String, String> tranchesFiles = new HashMap<String, String>();
     static HashMap<String, String> inputVCFFiles = new HashMap<String, String>();
 
-    @Test
+    @Test(enabled = true)
     public void testGenerateVariantClusters() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "ab2629d67e378fd3aceb8318f0fbfe04" );
@@ -42,7 +42,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test
+    @Test(enabled = true)
     public void testVariantRecalibrator() {
         HashMap<String, List<String>> e = new HashMap<String, List<String>>();
         e.put( validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
