@@ -25,7 +25,7 @@ public class
     public void testMultiSamplePilot1Joint() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("9870dd089d0f76c8dd3e74bc9f2ba0f0"));
+                Arrays.asList("1dde074afe990fd38941de18bd35e188"));
         executeTest("testMultiSamplePilot1 - Joint Estimate", spec);
     }
 

@@ -79,7 +79,7 @@ public class UnifiedArgumentCollection {
 
     // control the various parameters to be used
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
-    public int MIN_BASE_QUALTY_SCORE = 20;
+    public int MIN_BASE_QUALTY_SCORE = 17;
 
     @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
     public int MIN_MAPPING_QUALTY_SCORE = 20;

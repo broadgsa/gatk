@@ -112,29 +112,34 @@ public class VariantContextUtils {
 
         // if there are alternate alleles, record the relevant tags
         if ( vc.getAlternateAlleles().size() > 0 ) {
-            ArrayList<Double> alleleFreqs = new ArrayList<Double>();
+            ArrayList<String> alleleFreqs = new ArrayList<String>();
             ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
+            double totalChromosomes = (double)vc.getChromosomeCount();
             for ( Allele allele : vc.getAlternateAlleles() ) {
-                alleleCounts.add(vc.getChromosomeCount(allele));
-                alleleFreqs.add((double)vc.getChromosomeCount(allele) / (double)vc.getChromosomeCount());
+                int altChromosomes = vc.getChromosomeCount(allele);
+                alleleCounts.add(altChromosomes);
+                String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
+                alleleFreqs.add(freq);
             }
 
             attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts);
             attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs);
         }
-
-//        // otherwise, remove them if present and requested
-//        else if ( removeStaleValues ) {
-//            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
-//                attributes.remove(VCFConstants.ALLELE_COUNT_KEY);
-//            if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
-//                attributes.remove(VCFConstants.ALLELE_FREQUENCY_KEY);
-//        }
-        // otherwise, set them to 0
         else {
             attributes.put(VCFConstants.ALLELE_COUNT_KEY, 0);
             attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
         }
+    }
+
+    private static String makePrecisionFormatStringFromDenominatorValue(double maxValue) {
+        int precision = 1;
+
+        while ( maxValue > 1 ) {
+            precision++;
+            maxValue /= 10.0;
+        }
+
+        return "%." + precision + "f";
     }
 
     /**
