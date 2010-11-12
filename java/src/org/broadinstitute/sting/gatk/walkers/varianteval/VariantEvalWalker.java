@@ -42,7 +42,7 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.variantrecalibration.ApplyVariantCuts;
+import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.utils.report.VE2ReportFactory;
@@ -71,17 +71,9 @@ import java.util.*;
 // todo -- clustered SNP counter
 // todo -- HWEs
 // todo -- indel metrics [count of sizes in/del should be in CountVariants]
-// todo -- synonymous / non-synonmous ratio, or really just comparison of observed vs. expected biological annotation values
-
-// todo -- Performance:
-// todo -- deal with performance issues with variant contexts
 
 // todo -- port over SNP density walker:
 // todo -- see walker for WG calc but will need to make it work with intervals correctly
-
-// todo -- counts of snps per target [target name, gene, etc]
-
-// todo -- add subgroup of known variants as to those at hapmap sites [it's in the dbSNP record]
 
 // Todo -- should really include argument parsing @annotations from subclass in this walker.  Very
 // todo -- useful general capability.  Right now you need to add arguments to VariantEval2 to handle new
@@ -100,8 +92,6 @@ import java.util.*;
 // todo -- 1000 Genomes. This should be implemented as another standard comp_1kg binding, pointing to only variants
 // todo -- discovered and released by 1KG.  Might need to make this data set ourselves and keep it in GATK/data like
 // todo -- dbsnp rod
-//
-// todo -- aux. plotting routines for VE2
 //
 // todo -- implement as select statment, but it's hard for multi-sample calls.
 // todo -- Provide separate dbsnp rates for het only calls and any call where there is at least one hom-var genotype,
@@ -126,15 +116,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     @Argument(shortName="select", doc="One or more stratifications to use when evaluating the data", required=false)
     protected ArrayList<String> SELECT_EXPS = new ArrayList<String>();
-    //protected String[] SELECT_EXPS = {"set == \"Intersection\"",
-    //        "set == \"HiSeq.WGS.cleaned.ug.vcf\"",
-    //        "set == \"HiSeq.WGS.cleaned.ug.vcf\" || set == \"Intersection\"",
-    //        "set == \"HiSeq.WGS.raw.OQ.ug.vcf\"",
-    //        "set == \"HiSeq.WGS.raw.OQ.ug.vcf\" || set == \"Intersection\""};
 
     @Argument(shortName="selectName", doc="Names to use for the list of stratifications (must be a 1-to-1 mapping)", required=false)
     protected ArrayList<String> SELECT_NAMES = new ArrayList<String>();
-    //protected String[] SELECT_NAMES = {"Intersection", "x1", "x2", "x3", "x4"};
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected String[] KNOWN_NAMES = {DbSNPHelper.STANDARD_DBSNP_TRACK_NAME};
@@ -321,15 +305,17 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         if ( TRANCHE_FILENAME != null ) {
             // we are going to build a few select names automatically from the tranches file
-            for ( ApplyVariantCuts.Tranche t : ApplyVariantCuts.readTraches(new File(TRANCHE_FILENAME)) ) {
+            for ( Tranche t : Tranche.readTraches(new File(TRANCHE_FILENAME)) ) {
                 logger.info("Adding select for all variant above the pCut of : " + t);
                 SELECT_EXPS.add(String.format("QUAL >= %.2f", t.pCut));
                 SELECT_NAMES.add(String.format("FDR-%.2f", t.fdr));
             }
         }
 
-        logger.info("Selects: " + SELECT_NAMES);
-        logger.info("Selects: " + SELECT_EXPS);
+        if ( SELECT_NAMES.size() > 0 ) {
+            logger.info("Selects: " + SELECT_NAMES);
+            logger.info("Selects: " + SELECT_EXPS);
+        }
         List<VariantContextUtils.JexlVCMatchExp> selectExps = VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS);
 
         for ( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
