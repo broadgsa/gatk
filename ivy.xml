@@ -41,8 +41,8 @@
     <dependency org="commons-lang" name="commons-lang" rev="2.5"/>
 
     <!-- Scala dependancies -->
-    <dependency org="org.scala-lang" name="scala-compiler" rev="2.8.0" conf="scala->default"/>
-    <dependency org="org.scala-lang" name="scala-library" rev="2.8.0" conf="scala->default"/>
+    <dependency org="org.scala-lang" name="scala-compiler" rev="2.8.1" conf="scala->default"/>
+    <dependency org="org.scala-lang" name="scala-library" rev="2.8.1" conf="scala->default"/>
     <dependency org="org.apache.commons" name="commons-email" rev="1.2"/>
 
     <!-- findbug dependencies -->

@@ -45,7 +45,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
       job.project = function.jobProject
       job.queue = function.jobQueue
 
-      if (!IOUtils.CURRENT_DIR_ABS.equals(function.commandDirectory))
+      if (function.commandDirectory != new File(".").getAbsoluteFile)
         job.workingDir = function.commandDirectory
 
       job.extraBsubArgs ++= function.extraArgs
@@ -166,7 +166,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    * @return the file path to the pre-exec.
    */
   private def writeExec() = {
-    IOUtils.writeTempFile(function.commandLine, ".exec", "")
+    IOUtils.writeTempFile(function.commandLine, ".exec", "", function.jobTempDir)
   }
 
   /**
@@ -185,7 +185,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
     mountCommand(function).foreach(command =>
       preExec.append("%s%n".format(command)))
 
-    IOUtils.writeTempFile(preExec.toString, ".preExec", "")
+    IOUtils.writeTempFile(preExec.toString, ".preExec", "", function.jobTempDir)
   }
 
   /**
@@ -211,6 +211,6 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
   |fi
   |""".stripMargin.format(function.commandDirectory, touchDone, touchFail))
 
-    IOUtils.writeTempFile(postExec.toString, ".postExec", "")
+    IOUtils.writeTempFile(postExec.toString, ".postExec", "", function.jobTempDir)
   }
 }

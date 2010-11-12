@@ -312,6 +312,44 @@ public class Utils {
         return new Pair<Double, Integer>(max, index);
     }
 
+    /**
+     * Splits expressions in command args by spaces and returns the array of expressions.
+     * Expressions may use single or double quotes to group any individual expression, but not both.
+     * @param args Arguments to parse.
+     * @return Parsed expressions.
+     */
+    public static String[] escapeExpressions(String args) {
+        // special case for ' and " so we can allow expressions
+        if (args.indexOf('\'') != -1)
+            return escapeExpressions(args, "'");
+        else if (args.indexOf('\"') != -1)
+            return escapeExpressions(args, "\"");
+        else
+            return args.split(" ");
+    }
+
+    /**
+     * Splits expressions in command args by spaces and the supplied delimiter and returns the array of expressions.
+     * @param args Arguments to parse.
+     * @param delimiter Delimiter for grouping expressions.
+     * @return Parsed expressions.
+     */
+    private static String[] escapeExpressions(String args, String delimiter) {
+        String[] command = {};
+        String[] split = args.split(delimiter);
+        for (int i = 0; i < split.length - 1; i += 2) {
+            command = Utils.concatArrays(command, split[i].trim().split(" "));
+            command = Utils.concatArrays(command, new String[]{split[i + 1]});
+        }
+        return Utils.concatArrays(command, split[split.length - 1].trim().split(" "));
+    }
+
+    /**
+     * Concatenates two String arrays.
+     * @param A First array.
+     * @param B Second array.
+     * @return Concatenation of A then B.
+     */
     public static String[] concatArrays(String[] A, String[] B) {
        String[] C = new String[A.length + B.length];
        System.arraycopy(A, 0, C, 0, A.length);
@@ -319,8 +357,22 @@ public class Utils {
        return C;
     }
 
+    /**
+     * Appends String(s) B to array A.
+     * @param A First array.
+     * @param B Strings to append.
+     * @return A with B(s) appended.
+     */
+    public static String[] appendArray(String[] A, String... B) {
+        return concatArrays(A, B);
+    }
 
-    /** Returns indices of all occurrences of the specified symbol in the string */
+    /**
+     * Returns indices of all occurrences of the specified symbol in the string
+     * @param s Search string
+     * @param ch Character to search for
+     * @return Indices of all occurrences of the specified symbol
+     */
     public static int[] indexOfAll(String s, int ch) {
         int[] pos = new int[64];
         int z = 0;
@@ -339,10 +391,10 @@ public class Utils {
      * with zeros up to the new size. Finally, if new size is the same as original size, no memory reallocation
      * will be performed and the original array will be returned instead.
      *
-     * @param orig
-     * @param newSize
+     * @param orig Original size.
+     * @param newSize New Size.
      *
-     * @return
+     * @return New array with length equal to newSize.
      */
     public static int[] reallocate(int[] orig, int newSize) {
         if (orig.length == newSize) return orig;
@@ -360,7 +412,8 @@ public class Utils {
      * array a.
      * @param a original array
      * @param n number of (v-filled) elements to append to a on the right (n>0) or on the left (n<0)
-     * @return
+     * @param v element value
+     * @return the extended copy of array a with additional n elements
      */
     public static byte [] extend(final byte[] a, int n, byte v) {
 
@@ -396,7 +449,8 @@ public class Utils {
      * array a.
      * @param a original array
      * @param n number of (v-filled) elements to append to a on the right (n>0) or on the left (n<0)
-     * @return
+     * @param v element value
+     * @return the extended copy of array a with additional n elements
      */
     public static short [] extend(final short[] a, int n, short v) {
 

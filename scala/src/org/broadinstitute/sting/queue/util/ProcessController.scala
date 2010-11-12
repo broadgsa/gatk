@@ -2,7 +2,6 @@ package org.broadinstitute.sting.queue.util
 
 import java.io._
 import scala.collection.mutable.{HashSet, ListMap}
-import scala.collection.JavaConversions
 
 /**
  * Facade to Runtime.exec() and java.lang.Process.  Handles
@@ -258,7 +257,11 @@ object ProcessController extends Logging {
   def shutdown() = {
     for (process <- running.clone) {
       logger.warn("Killing: " + process)
-      process.destroy
+      try {
+        process.destroy
+      } catch {
+        case _ => /* ignore */
+      }
     }
   }
 
@@ -349,8 +352,10 @@ object ProcessController extends Logging {
      * @param len Number of characters in the buffer.
      */
     private def writeFile(chars: Array[Char], len: Int) = {
-      if (fileWriter != null)
+      if (fileWriter != null) {
         fileWriter.write(chars, 0, len)
+        fileWriter.flush()
+      }
     }
 
     /** Closes the fileWriter if it is not null. */

@@ -9,65 +9,53 @@ import org.testng.annotations.Test
 class IOUtilsUnitTest extends BaseTest {
   @Test
   def testGoodTempDir = {
-    val tmpDir = System.getProperty("java.io.tmpdir")
-    try {
-      System.setProperty("java.io.tmpdir", "/tmp/queue")
-      IOUtils.checkTempDir
-    } finally {
-      System.setProperty("java.io.tmpdir", tmpDir)
-    }
+    IOUtils.checkTempDir(new File("/tmp/queue"))
   }
 
   @Test(expectedExceptions=Array(classOf[UserException.BadTmpDir]))
   def testBadTempDir = {
-    val tmpDir = System.getProperty("java.io.tmpdir")
-    try {
-      System.setProperty("java.io.tmpdir", "/tmp")
-      IOUtils.checkTempDir
-    } finally {
-      System.setProperty("java.io.tmpdir", tmpDir)
-    }
+    IOUtils.checkTempDir(new File("/tmp"))
   }
 
   @Test
   def testAbsoluteSubDir = {
-    var subDir = IOUtils.subDir(IOUtils.CURRENT_DIR, new File("/path/to/file"))
-    Assert.assertEquals(new File("/path/to/file"), subDir)
+    var subDir = IOUtils.absolute(new File("."), new File("/path/to/file"))
+    Assert.assertEquals(subDir, new File("/path/to/file"))
 
-    subDir = IOUtils.subDir(new File("/different/path"), new File("/path/to/file"))
-    Assert.assertEquals(new File("/path/to/file"), subDir)
+    subDir = IOUtils.absolute(new File("/different/path"), new File("/path/to/file"))
+    Assert.assertEquals(subDir, new File("/path/to/file"))
 
-    subDir = IOUtils.subDir(new File("/different/path"), IOUtils.CURRENT_DIR)
-    Assert.assertEquals(new File("/different/path"), subDir)
+    subDir = IOUtils.absolute(new File("/different/path"), new File("."))
+    Assert.assertEquals(subDir, new File("/different/path"))
   }
 
   @Test
   def testRelativeSubDir = {
-    var subDir = IOUtils.subDir(IOUtils.CURRENT_DIR, new File("path/to/file"))
-    Assert.assertEquals(new File("path/to/file").getCanonicalFile, subDir.getCanonicalFile)
+    var subDir = IOUtils.absolute(new File("."), new File("path/to/file"))
+    Assert.assertEquals(subDir.getCanonicalFile, new File("path/to/file").getCanonicalFile)
 
-    subDir = IOUtils.subDir(new File("/different/path"), new File("path/to/file"))
-    Assert.assertEquals(new File("/different/path/path/to/file"), subDir)
+    subDir = IOUtils.absolute(new File("/different/path"), new File("path/to/file"))
+    Assert.assertEquals(subDir, new File("/different/path/path/to/file"))
   }
 
   @Test
   def testDottedSubDir = {
-    var subDir = IOUtils.subDir(IOUtils.CURRENT_DIR, new File("path/../to/file"))
-    Assert.assertEquals(new File("path/../to/./file").getCanonicalFile, subDir.getCanonicalFile)
+    var subDir = IOUtils.absolute(new File("."), new File("path/../to/file"))
+    Assert.assertEquals(subDir.getCanonicalFile, new File("path/../to/./file").getCanonicalFile)
 
-    subDir = IOUtils.subDir(IOUtils.CURRENT_DIR, new File("/path/../to/file"))
-    Assert.assertEquals(new File("/path/../to/file"), subDir)
+    subDir = IOUtils.absolute(new File("."), new File("/path/../to/file"))
+    Assert.assertEquals(subDir, new File("/path/../to/file"))
 
-    subDir = IOUtils.subDir(new File("/different/../path"), new File("path/to/file"))
-    Assert.assertEquals(new File("/different/../path/path/to/file"), subDir)
+    subDir = IOUtils.absolute(new File("/different/../path"), new File("path/to/file"))
+    Assert.assertEquals(subDir, new File("/different/../path/path/to/file"))
 
-    subDir = IOUtils.subDir(new File("/different/./path"), new File("/path/../to/file"))
-    Assert.assertEquals(new File("/path/../to/file"), subDir)
+    subDir = IOUtils.absolute(new File("/different/./path"), new File("/path/../to/file"))
+    Assert.assertEquals(subDir, new File("/path/../to/file"))
   }
 
   @Test
   def testTempDir = {
-    val tempDir = IOUtils.tempDir("Q-Unit-Test")
+    val tempDir = IOUtils.tempDir("Q-Unit-Test", "", new File("queueTempDirToDelete"))
     Assert.assertTrue(tempDir.exists)
     Assert.assertFalse(tempDir.isFile)
     Assert.assertTrue(tempDir.isDirectory)
@@ -79,43 +67,43 @@ class IOUtilsUnitTest extends BaseTest {
   @Test
   def testDirLevel = {
     var dir = IOUtils.dirLevel(new File("/path/to/directory"), 1)
-    Assert.assertEquals(new File("/path"), dir)
+    Assert.assertEquals(dir, new File("/path"))
 
     dir = IOUtils.dirLevel(new File("/path/to/directory"), 2)
-    Assert.assertEquals(new File("/path/to"), dir)
+    Assert.assertEquals(dir, new File("/path/to"))
 
     dir = IOUtils.dirLevel(new File("/path/to/directory"), 3)
-    Assert.assertEquals(new File("/path/to/directory"), dir)
+    Assert.assertEquals(dir, new File("/path/to/directory"))
 
     dir = IOUtils.dirLevel(new File("/path/to/directory"), 4)
-    Assert.assertEquals(new File("/path/to/directory"), dir)
+    Assert.assertEquals(dir, new File("/path/to/directory"))
   }
 
   @Test
   def testAbsolute = {
     var dir = IOUtils.absolute(new File("/path/./to/./directory/."))
-    Assert.assertEquals(new File("/path/to/directory"), dir)
+    Assert.assertEquals(dir, new File("/path/to/directory"))
 
     dir = IOUtils.absolute(new File("/"))
-    Assert.assertEquals(new File("/"), dir)
+    Assert.assertEquals(dir, new File("/"))
 
     dir = IOUtils.absolute(new File("/."))
-    Assert.assertEquals(new File("/"), dir)
+    Assert.assertEquals(dir, new File("/"))
 
     dir = IOUtils.absolute(new File("/././."))
-    Assert.assertEquals(new File("/"), dir)
+    Assert.assertEquals(dir, new File("/"))
 
     dir = IOUtils.absolute(new File("/./directory/."))
-    Assert.assertEquals(new File("/directory"), dir)
+    Assert.assertEquals(dir, new File("/directory"))
 
     dir = IOUtils.absolute(new File("/./directory/./"))
-    Assert.assertEquals(new File("/directory"), dir)
+    Assert.assertEquals(dir, new File("/directory"))
 
     dir = IOUtils.absolute(new File("/./directory./"))
-    Assert.assertEquals(new File("/directory."), dir)
+    Assert.assertEquals(dir, new File("/directory."))
 
     dir = IOUtils.absolute(new File("/./.directory/"))
-    Assert.assertEquals(new File("/.directory"), dir)
+    Assert.assertEquals(dir, new File("/.directory"))
   }
 
   @Test
@@ -127,8 +115,8 @@ class IOUtilsUnitTest extends BaseTest {
       "chr22_random	257318	3156435963	50	51",
       "chrX_random	1719168	3156698441	50	51")
     val tail = IOUtils.tail(new File(BaseTest.hg18Reference + ".fai"), 5)
-    Assert.assertEquals(5, tail.size)
+    Assert.assertEquals(tail.size, 5)
     for (i <- 0 until 5)
-      Assert.assertEquals(lines(i), tail(i))
+      Assert.assertEquals(tail(i), lines(i))
   }
 }

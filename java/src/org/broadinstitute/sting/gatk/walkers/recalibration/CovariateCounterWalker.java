@@ -37,7 +37,7 @@ import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.classloader.PackageUtils;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
@@ -167,9 +167,9 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
         if( RAC.FORCE_PLATFORM != null ) { RAC.DEFAULT_PLATFORM = RAC.FORCE_PLATFORM; }
 
         // Get a list of all available covariates
-        final List<Class<? extends Covariate>> covariateClasses = PackageUtils.getClassesImplementingInterface( Covariate.class );
-        final List<Class<? extends RequiredCovariate>> requiredClasses = PackageUtils.getClassesImplementingInterface( RequiredCovariate.class );
-        final List<Class<? extends StandardCovariate>> standardClasses = PackageUtils.getClassesImplementingInterface( StandardCovariate.class );
+        final List<Class<? extends Covariate>> covariateClasses = new PluginManager<Covariate>( Covariate.class ).getPlugins();
+        final List<Class<? extends RequiredCovariate>> requiredClasses = new PluginManager<RequiredCovariate>( RequiredCovariate.class ).getPlugins();
+        final List<Class<? extends StandardCovariate>> standardClasses = new PluginManager<StandardCovariate>( StandardCovariate.class ).getPlugins();
 
         // Print and exit if that's what was requested
         if ( LIST_ONLY ) {

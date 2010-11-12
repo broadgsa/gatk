@@ -31,13 +31,11 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationType;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.AnnotationInterfaceManager;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 
@@ -63,8 +61,8 @@ public class AnnotationByAlleleFrequencyWalker  extends RodWalker<Integer, Integ
     @Argument(fullName="group", shortName="G", doc="One or more classes/groups of annotations to apply to variant calls", required=false)
     protected String[] annotationClassesToUse = { };
 
-    private ArrayList<InfoFieldAnnotation> requestedInfoAnnotations;
-    private ArrayList<GenotypeAnnotation> requestedGenotypeAnnotations;
+    private List<InfoFieldAnnotation> requestedInfoAnnotations;
+    private List<GenotypeAnnotation> requestedGenotypeAnnotations;
 
 
     //---------------------------------------------------------------------------------------------------------------
@@ -74,49 +72,11 @@ public class AnnotationByAlleleFrequencyWalker  extends RodWalker<Integer, Integ
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
-
-        // create a map for all annotation classes which implement our top-level interfaces
-        HashMap<String, Class> classMap = new HashMap<String, Class>();
-        for ( Class c : PackageUtils.getClassesImplementingInterface(InfoFieldAnnotation.class) )
-            classMap.put(c.getSimpleName(), c);
-        for ( Class c : PackageUtils.getClassesImplementingInterface(GenotypeAnnotation.class) )
-            classMap.put(c.getSimpleName(), c);
-        for ( Class c : PackageUtils.getInterfacesExtendingInterface(AnnotationType.class) )
-            classMap.put(c.getSimpleName(), c);
-
-        HashSet<Class> classes = new HashSet<Class>();
-        // get the classes from the provided groups (interfaces)
-        for ( String group : annotationClassesToUse ) {
-            Class interfaceClass = classMap.get(group);
-            if ( interfaceClass == null )
-                interfaceClass = classMap.get(group + "Annotation");
-            if ( interfaceClass == null )
-                throw new UserException.BadArgumentValue("group", "Class " + group + " is not found; please check that you have specified the class name correctly");
-            classes.addAll(PackageUtils.getClassesImplementingInterface(interfaceClass));
-        }
-
-        // get the specific classes provided
-        for ( String annotation : annotationsToUse ) {
-            Class annotationClass = classMap.get(annotation);
-            if ( annotationClass == null )
-                annotationClass = classMap.get(annotation + "Annotation");
-            if ( annotationClass == null )
-                throw new UserException.BadArgumentValue("annotation", "Class " + annotation + " is not found; please check that you have specified the class name correctly");
-            classes.add(annotationClass);
-        }
-
-        // get the instances
-        requestedInfoAnnotations = new ArrayList<InfoFieldAnnotation>();
-        requestedGenotypeAnnotations = new ArrayList<GenotypeAnnotation>();
-
-        for ( Class c : classes ) {
-            // note that technically an annotation can work on both the INFO and FORMAT fields
-            if ( InfoFieldAnnotation.class.isAssignableFrom(c) )
-                requestedInfoAnnotations.add((InfoFieldAnnotation)getInstance(c));
-            if ( GenotypeAnnotation.class.isAssignableFrom(c) )
-                requestedGenotypeAnnotations.add((GenotypeAnnotation)getInstance(c));
-        }
-
+        List<String> annotationClasses = Arrays.asList(annotationClassesToUse);
+        List<String> annotations = Arrays.asList(annotationsToUse);
+        AnnotationInterfaceManager.validateAnnotations(annotationClasses, annotations);
+        requestedInfoAnnotations = AnnotationInterfaceManager.createInfoFieldAnnotations(annotationClasses, annotations);
+        requestedGenotypeAnnotations = AnnotationInterfaceManager.createGenotypeAnnotations(annotationClasses, annotations);
     }
 
     private static <T> ArrayList<T> getInstances(List<Class<? extends T>> classes) {

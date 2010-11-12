@@ -9,6 +9,7 @@ import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, Cl
 import org.broadinstitute.sting.queue.util.IOUtils
 import org.broadinstitute.sting.queue.QScript
 import collection.JavaConversions._
+import org.broadinstitute.sting.utils.interval.IntervalUtils
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
 
@@ -91,9 +92,9 @@ class fullCallingPipeline extends QScript {
       //val expKind = qscript.protocol
 
       // get contigs (needed for indel cleaning parallelism)
-      val contigs = IntervalScatterFunction.distinctContigs(
+      val contigs = IntervalUtils.distinctContigs(
         qscript.pipeline.getProject.getReferenceFile,
-        List(qscript.pipeline.getProject.getIntervalList.getAbsolutePath))
+        List(qscript.pipeline.getProject.getIntervalList.getAbsolutePath)).toList
 
       for ( sample <- recalibratedSamples ) {
         val sampleId = sample.getId
@@ -135,24 +136,24 @@ class fullCallingPipeline extends QScript {
           realigner.setupScatterFunction = {
             case scatter: ScatterFunction =>
               scatter.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather".format(sampleId))
-              scatter.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Scatter.out".format(sampleId))
+              scatter.jobOutputFile = new File(".queue/logs/Cleaning/%s/Scatter.out".format(sampleId))
           }
           realigner.setupCloneFunction = {
             case (clone: CloneFunction, index: Int) =>
               clone.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Scatter_%s".format(sampleId, index))
-              clone.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Scatter_%s.out".format(sampleId, index))
+              clone.jobOutputFile = new File(".queue/logs/Cleaning/%s/Scatter_%s.out".format(sampleId, index))
           }
           realigner.setupGatherFunction = {
             case (gather: BamGatherFunction, source: ArgumentSource) =>
               gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
-              gather.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
+              gather.jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
               gather.memoryLimit = Some(6)
               gather.jarFile = qscript.picardFixMatesJar
               // Don't pass this AS=true to fix mates!
               gather.assumeSorted = None
             case (gather: GatherFunction, source: ArgumentSource) =>
               gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
-              gather.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/Cleaning/%s/Gather_%s.out".format(sampleId, source.field.getName))
+              gather.jobOutputFile = new File(".queue/logs/Cleaning/%s/Gather_%s.out".format(sampleId, source.field.getName))
           }
 
           add(targetCreator,realigner)
@@ -229,17 +230,17 @@ class fullCallingPipeline extends QScript {
     snps.setupScatterFunction = {
       case scatter: ScatterFunction =>
         scatter.commandDirectory = new File("SnpCalls/ScatterGather")
-        scatter.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/SNPCalling/ScatterGather/Scatter.out")
+        scatter.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Scatter.out")
     }
     snps.setupCloneFunction = {
       case (clone: CloneFunction, index: Int) =>
         clone.commandDirectory = new File("SnpCalls/ScatterGather/Scatter_%s".format(index))
-        clone.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/SNPCalling/ScatterGather/Scatter_%s.out".format(index))
+        clone.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Scatter_%s.out".format(index))
     }
     snps.setupGatherFunction = {
       case (gather: GatherFunction, source: ArgumentSource) =>
         gather.commandDirectory = new File("SnpCalls/ScatterGather/Gather_%s".format(source.field.getName))
-        gather.jobOutputFile = new File(IOUtils.CURRENT_DIR_ABS, ".queue/logs/SNPCalling/ScatterGather/Gather_%s.out".format(source.field.getName))
+        gather.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Gather_%s.out".format(source.field.getName))
     }
 
     // indel genotyper does one sample at a time

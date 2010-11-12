@@ -49,7 +49,7 @@ import org.broadinstitute.sting.utils.report.VE2ReportFactory;
 import org.broadinstitute.sting.utils.report.templates.ReportFormat;
 import org.broadinstitute.sting.utils.report.utils.Node;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.classloader.PackageUtils;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -351,7 +351,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     }
 
     private void listModulesAndExit() {
-        List<Class<? extends VariantEvaluator>> veClasses = PackageUtils.getClassesImplementingInterface(VariantEvaluator.class);
+        List<Class<? extends VariantEvaluator>> veClasses = new PluginManager<VariantEvaluator>( VariantEvaluator.class ).getPlugins();
         out.println("\nAvailable eval modules:");
         out.println("(Standard modules are starred)");
         for (Class<? extends VariantEvaluator> veClass : veClasses)
@@ -399,14 +399,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     private void determineEvalations() {
         // create a map for all eval modules for easy lookup
         HashMap<String, Class<? extends VariantEvaluator>> classMap = new HashMap<String, Class<? extends VariantEvaluator>>();
-        for ( Class<? extends VariantEvaluator> c : PackageUtils.getClassesImplementingInterface(VariantEvaluator.class) )
+        for ( Class<? extends VariantEvaluator> c : new PluginManager<VariantEvaluator>( VariantEvaluator.class ).getPlugins() )
             classMap.put(c.getSimpleName(), c);
 
         evaluationClasses = new HashSet<Class<? extends VariantEvaluator>>();
 
         // by default, use standard eval modules
         if ( !NO_STANDARD ) {
-            for ( Class<? extends StandardEval> myClass : PackageUtils.getClassesImplementingInterface(StandardEval.class) ) {
+            for ( Class<? extends StandardEval> myClass : new PluginManager<StandardEval>( StandardEval.class ).getPlugins() ) {
                 if ( classMap.containsKey(myClass.getSimpleName()) )
                     evaluationClasses.add(classMap.get(myClass.getSimpleName()));
             }

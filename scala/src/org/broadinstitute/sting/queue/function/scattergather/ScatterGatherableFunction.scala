@@ -124,7 +124,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       // Get absolute paths to the files and bind the sg functions to the clone function via the absolute paths.
       scatterFunction.bindCloneInputs(cloneFunction, i)
       for (gatherField <- outputFieldsWithValues) {
-        val gatherPart = IOUtils.subDir(cloneFunction.commandDirectory, cloneFunction.getFieldFile(gatherField))
+        val gatherPart = IOUtils.absolute(cloneFunction.commandDirectory, cloneFunction.getFieldFile(gatherField))
         cloneFunction.setFieldValue(gatherField, gatherPart)
         gatherFunctions(gatherField).gatherParts :+= gatherPart
       }
@@ -244,5 +244,5 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @param Sub directory under the scatter gather directory.
    * @return temporary directory under this scatter gather directory.
    */
-  private def scatterGatherTempDir(subDir: String) = IOUtils.subDir(this.scatterGatherDirectory, this.jobName + "-sg/" + subDir)
+  private def scatterGatherTempDir(subDir: String) = IOUtils.absolute(this.scatterGatherDirectory, this.jobName + "-sg/" + subDir)
 }

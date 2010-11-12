@@ -6,6 +6,8 @@ import java.util.Arrays
 import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.queue.engine.{QGraphSettings, QGraph}
+import collection.JavaConversions._
+import org.broadinstitute.sting.utils.classloader.PluginManager
 
 /**
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
@@ -18,21 +20,28 @@ class QCommandLine extends CommandLineProgram with Logging {
   @ArgumentCollection
   private val settings = new QGraphSettings
 
-  QFunction.parsingEngine = new ParsingEngine(this)    
+  private val qScriptManager = new QScriptManager
+  private val qGraph = new QGraph
+  private var qScriptClasses: File = _
+
+  private lazy val pluginManager = {
+    qScriptClasses = IOUtils.tempDir("Q-Classes", "", settings.qSettings.tempDirectory)
+    qScriptManager.loadScripts(scripts, qScriptClasses)
+    new PluginManager[QScript](classOf[QScript], List(qScriptClasses.toURI.toURL))
+  }
+
+  QFunction.parsingEngine = new ParsingEngine(this)
 
   /**
    * Takes the QScripts passed in, runs their script() methods, retrieves their generated
    * functions, and then builds and runs a QGraph based on the dependencies.
    */
   def execute = {
-
-    val qGraph = QCommandLine.qGraph
     qGraph.settings = settings
     qGraph.debugMode = debugMode == true
 
-    val scripts = qScriptManager.createScripts()
-    for (script <- scripts) {
-      logger.info("Scripting " + qScriptManager.getName(script.getClass.asSubclass(classOf[QScript])))
+    for (script <- pluginManager.createAllTypes()) {
+      logger.info("Scripting " + pluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
       loadArgumentsIntoObject(script)
       script.script
       script.functions.foreach(qGraph.add(_))
@@ -63,14 +72,14 @@ class QCommandLine extends CommandLineProgram with Logging {
    * @return Array of QScripts passed in.
    */
   override def getArgumentSources =
-    qScriptManager.getValues.asInstanceOf[Array[Class[_]]]
+    pluginManager.getPlugins.toIterable.toArray.asInstanceOf[Array[Class[_]]]
 
   /**
    * Returns the name of a QScript
    * @return The name of a QScript
    */
   override def getArgumentSourceName(source: Class[_]) =
-    qScriptManager.getName(source.asSubclass(classOf[QScript]))
+    pluginManager.getName(source.asSubclass(classOf[QScript]))
 
   /**
    * Returns a ScalaCompoundArgumentTypeDescriptor that can parse argument sources into scala collections.
@@ -79,12 +88,9 @@ class QCommandLine extends CommandLineProgram with Logging {
   override def getArgumentTypeDescriptors =
     Arrays.asList(new ScalaCompoundArgumentTypeDescriptor)
 
-  /**
-   * Loads the QScripts passed in and returns a new QScriptManager than can be used to create them.
-   */
-  private lazy val qScriptManager = {
-    QScriptManager.loadScripts(scripts)
-    new QScriptManager
+  def shutdown() = {
+    qGraph.shutdown()
+    if (qScriptClasses != null) IOUtils.tryDelete(qScriptClasses)
   }
 }
 
@@ -92,29 +98,29 @@ class QCommandLine extends CommandLineProgram with Logging {
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
  */
 object QCommandLine {
-  private val qGraph = new QGraph
-
-
   /**
    * Main.
    * @param argv Arguments.
    */
   def main(argv: Array[String]) {
+    val qCommandLine = new QCommandLine
+
     Runtime.getRuntime.addShutdownHook(new Thread {
       /** Cleanup as the JVM shuts down. */
       override def run = {
-        qGraph.shutdown()
         ProcessController.shutdown()
-        QScriptManager.deleteOutdir()
+        qCommandLine.shutdown()
       }
     })
 
     try {
-      CommandLineProgram.start(new QCommandLine, argv);
+      CommandLineProgram.start(qCommandLine, argv);
       if (CommandLineProgram.result != 0)
         System.exit(CommandLineProgram.result);
     } catch {
       case e: Exception => CommandLineProgram.exitSystemWithError(e)
+    } finally {
+
     }
   }
 }

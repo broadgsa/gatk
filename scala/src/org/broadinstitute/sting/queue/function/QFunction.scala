@@ -29,10 +29,10 @@ trait QFunction extends Logging {
   var qSettings: QSettings = _
 
   /** Directory to run the command in. */
-  var commandDirectory: File = IOUtils.CURRENT_DIR
+  var commandDirectory: File = new File(".")
 
   /** Temporary directory to write any files */
-  var jobTempDir: File = IOUtils.javaTempDir
+  var jobTempDir: File = null
 
   /** Order the function was added to the graph. */
   var addOrder: List[Int] = Nil
@@ -279,7 +279,11 @@ trait QFunction extends Logging {
     if (jobOutputFile == null)
       jobOutputFile = new File(jobName + ".out")
 
-    commandDirectory = IOUtils.subDir(IOUtils.CURRENT_DIR, commandDirectory)
+    if (jobTempDir == null)
+      jobTempDir = qSettings.tempDirectory
+
+    // If the command directory is relative, insert the run directory ahead of it.
+    commandDirectory = new File(qSettings.runDirectory, commandDirectory.getPath)
   }
 
   /**
@@ -315,11 +319,11 @@ trait QFunction extends Logging {
   }
 
   /**
-   * Returns the absolute path to the file relative to the job command directory.
+   * Returns the absolute path to the file relative to the run directory and the job command directory.
    * @param file File to root relative to the command directory if it is not already absolute.
    * @return The absolute path to file.
    */
-  private def absolute(file: File) = IOUtils.subDir(commandDirectory, file)
+  private def absolute(file: File) = IOUtils.absolute(commandDirectory, file)
 
 
   /**

@@ -3,62 +3,33 @@ package org.broadinstitute.sting.queue
 import scala.tools.nsc.{Global, Settings}
 import scala.tools.nsc.io.PlainFile
 import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
-import collection.JavaConversions
+import collection.JavaConversions._
 import java.io.File
 import scala.tools.nsc.reporters.AbstractReporter
 import java.lang.String
 import org.apache.log4j.Level
 import scala.tools.nsc.util.{FakePos, NoPosition, Position}
-import org.broadinstitute.sting.utils.classloader.{PackageUtils, PluginManager}
 import org.broadinstitute.sting.queue.util.TextFormatUtils._
-import org.apache.commons.io.FileUtils
+import org.broadinstitute.sting.utils.classloader.JVMUtils
 
 /**
  * Plugin manager for QScripts which loads QScripts into the current class loader.
  */
-class QScriptManager extends PluginManager[QScript](classOf[QScript], "QScript", "Script") with Logging {
-
-  /**
-   * Returns the list of QScripts classes found in the classpath.
-   * @return QScripts classes found in the classpath.
-   */
-  def getValues = {
-    if (logger.isDebugEnabled) {
-      JavaConversions.asMap(this.pluginsByName)
-              .foreach{case (name, clazz) => logger.debug("Found QScript %s: %s".format(name, clazz))}
-    }
-    JavaConversions.asIterable(this.pluginsByName.values).toArray
-  }
-
-  /**
-   * Creates the QScripts for all values found in the classpath.
-   * @return QScripts found in the classpath.
-   */
-  def createScripts() = getValues.map(_.newInstance.asInstanceOf[QScript])
-}
-
-/**
- * Plugin manager for QScripts which loads QScripts into the current classloader.
- */
-object QScriptManager extends Logging {
-  private val outdir = IOUtils.tempDir("Q-classes")
-
+class QScriptManager() extends Logging {
   /**
    * Compiles and loads the scripts in the files into the current classloader.
    * Heavily based on scala/src/compiler/scala/tools/ant/Scalac.scala
-   * @param scripts Scala classes to compile.
    */
-  def loadScripts(scripts: List[File]) {
+  def loadScripts(scripts: List[File], tempDir: File) = {
     if (scripts.size > 0) {
-
       val settings = new Settings((error: String) => logger.error(error))
       settings.deprecation.value = true
-      settings.outdir.value = outdir.getPath
+      settings.outdir.value = tempDir.getPath
 
       // Set the classpath to the current class path.
-      JavaConversions.asSet(PackageUtils.getClassPathURLs).foreach(url => settings.classpath.append(url.getPath))
+      JVMUtils.getClasspathURLs.foreach(url => settings.classpath.append(url.getPath))
 
-      val reporter = new Log4JReporter(settings)
+      val reporter = new QScriptManager.Log4JReporter(settings)
 
       val compiler = new Global(settings, reporter)
       val run = new compiler.Run
@@ -78,19 +49,14 @@ object QScriptManager extends Logging {
           reporter.WARNING.count, plural(reporter.WARNING.count)))
       else
         logger.info("Compilation complete")
-
-      // Add the new compilation output directory to the classpath.
-      PackageUtils.addClasspath(outdir.toURI.toURL)
     }
   }
+}
 
-  /**
-   * Removes the outdir cleaning up the temporary classes.
-   */
-  def deleteOutdir() = {
-    if (FileUtils.deleteQuietly(outdir))
-      logger.debug("Deleted " + outdir)
-  }
+/**
+ * Plugin manager for QScripts which loads QScripts into the current classloader.
+ */
+object QScriptManager extends Logging {
 
   /**
    * NSC (New Scala Compiler) reporter which logs to Log4J.

@@ -55,6 +55,6 @@ public class FilterManager extends PluginManager<SamRecordFilter> {
     }
 
     public Collection<Class<? extends SamRecordFilter>> getValues() {
-        return this.pluginsByName.values();
+        return this.getPlugins();
     }
 }

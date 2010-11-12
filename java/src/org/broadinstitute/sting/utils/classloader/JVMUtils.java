@@ -26,15 +26,14 @@
 package org.broadinstitute.sting.utils.classloader;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.reflections.util.ClasspathHelper;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Field;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.net.URL;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -178,4 +177,11 @@ public class JVMUtils {
         return selectedObjects;
     }
 
+    /**
+     * Returns the list of class path urls.
+     * @return the list of class path urls.
+     */
+    public static Set<URL> getClasspathURLs() {
+        return ClasspathHelper.getUrlsForManifestsCurrentClasspath();
+    }
 }

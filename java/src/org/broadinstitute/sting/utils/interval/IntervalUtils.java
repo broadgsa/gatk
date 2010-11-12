@@ -1,8 +1,12 @@
 package org.broadinstitute.sting.utils.interval;
 
+import net.sf.picard.util.IntervalList;
+import net.sf.samtools.SAMFileHeader;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.LinkedList;
@@ -25,6 +29,7 @@ public class IntervalUtils {
      * 'all' can be supplied to indicate all possible intervals, but 'all' must be exclusive of all other interval
      * specifications.
      *
+     * @param parser Genome loc parser.
      * @param argList A list of strings containing interval data.
      * @param allowEmptyIntervalList If false instead of an empty interval list will return null.
      * @return an unsorted, unmerged representation of the given intervals.  Null is used to indicate that all intervals should be used. 
@@ -107,7 +112,7 @@ public class IntervalUtils {
                 if (setOne.get(iOne).getStop() < setTwo.get(iTwo).getStop()) iOne++;
                 else iTwo++;
             }
-        
+
         // we don't need to add the rest of remaining locations, since we know they don't overlap. return what we have
         return retList;
     }
@@ -117,6 +122,7 @@ public class IntervalUtils {
      * all overlapping and abutting intervals into an interval that spans the union of all covered bases, and
      * OVERLAPPING_ONLY, which unions overlapping intervals but keeps abutting intervals separate.
      *
+     * @param parser Genome loc parser for the intervals.
      * @param intervals A collection of intervals to merge.
      * @param mergingRule A descriptor for the type of merging to perform.
      * @return A sorted, merged version of the intervals passed in.
@@ -158,6 +164,131 @@ public class IntervalUtils {
         else return false;
     }
 
+    /**
+     * Returns the list of GenomeLocs from the list of intervals.
+     * @param referenceSource The reference for the intervals.
+     * @param intervals The interval as strings or file paths.
+     * @return The list of GenomeLocs.
+     */
+    private static List<GenomeLoc> parseIntervalArguments(ReferenceDataSource referenceSource, List<String> intervals) {
+        GenomeLocParser parser = new GenomeLocParser(referenceSource.getReference());
+        GenomeLocSortedSet locs;
+        // TODO: Abstract genome analysis engine has richer logic for parsing.  We need to use it!
+        if (intervals.size() == 0) {
+            locs = GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSource.getReference().getSequenceDictionary());
+        } else {
+            locs = new GenomeLocSortedSet(parser, IntervalUtils.parseIntervalArguments(parser, intervals, false));
+        }
+        if (locs == null || locs.size() == 0)
+            throw new UserException.MalformedFile("Intervals are empty: " + Utils.join(", ", intervals));
+        return locs.toList();
+    }
+
+    /**
+     * Returns the list of contigs from the list of intervals.
+     * @param reference The reference for the intervals.
+     * @return The list of contig names.
+     */
+    public static List<String> distinctContigs(File reference) {
+        return distinctContigs(reference, Collections.<String>emptyList());
+    }
+
+    /**
+     * Returns the list of contigs from the list of intervals.
+     * @param reference The reference for the intervals.
+     * @param intervals The interval as strings or file paths.
+     * @return The list of contig names.
+     */
+    public static List<String> distinctContigs(File reference, List<String> intervals) {
+        ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
+        List<GenomeLoc> locs = parseIntervalArguments(referenceSource, intervals);
+        String contig = null;
+        List<String> contigs = new ArrayList<String>();
+        for (GenomeLoc loc: locs) {
+            if (contig == null || !contig.equals(loc.getContig())) {
+                contig = loc.getContig();
+                contigs.add(contig);
+            }
+        }
+        return contigs;
+    }
+
+    /**
+     * Splits an interval list into multiple files.
+     * @param reference The reference for the intervals.
+     * @param intervals The interval as strings or file paths.
+     * @param scatterParts The output interval lists to write to.
+     * @param splitByContig If true then one contig will not be written to multiple files.
+     */
+    public static void scatterIntervalArguments(File reference, List<String> intervals, List<File> scatterParts, boolean splitByContig) {
+        ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
+        List<GenomeLoc> locs = parseIntervalArguments(referenceSource, intervals);
+        SAMFileHeader fileHeader = new SAMFileHeader();
+        fileHeader.setSequenceDictionary(referenceSource.getReference().getSequenceDictionary());
+
+        IntervalList intervalList = null;
+        int fileIndex = -1;
+        int locIndex = 0;
+
+        if (splitByContig) {
+            String contig = null;
+            for (GenomeLoc loc: locs) {
+                // If there are still more files to write and the contig doesn't match...
+                if ((fileIndex+1 < scatterParts.size()) && (contig == null || !contig.equals(loc.getContig()))) {
+                    // Then close the current file and start a new one.
+                    if (intervalList != null) {
+                        intervalList.write(scatterParts.get(fileIndex));
+                        intervalList = null;
+                    }
+                    fileIndex++;
+                    contig = loc.getContig();
+                }
+                if (intervalList == null)
+                    intervalList = new IntervalList(fileHeader);
+                intervalList.add(toInterval(loc, ++locIndex));
+            }
+            if (intervalList != null)
+                intervalList.write(scatterParts.get(fileIndex));
+        } else {
+            int locsPerFile = locs.size() / scatterParts.size();
+            int locRemainder = locs.size() % scatterParts.size();
+
+            // At the start, put an extra loc per file
+            locsPerFile++;
+            int locsLeftFile = 0;
+
+            for (GenomeLoc loc: locs) {
+                if (locsLeftFile == 0) {
+                    if (intervalList != null)
+                        intervalList.write(scatterParts.get(fileIndex));
+
+                    fileIndex++;
+                    intervalList = new IntervalList(fileHeader);
+
+                    // When we have put enough locs into each file,
+                    // reduce the number of locs per file back
+                    // to the original calculated value.
+                    if (fileIndex == locRemainder)
+                        locsPerFile -= 1;
+                    locsLeftFile = locsPerFile;
+                }
+                locsLeftFile -= 1;
+                intervalList.add(toInterval(loc, ++locIndex));
+            }
+            if (intervalList != null)
+                intervalList.write(scatterParts.get(fileIndex));
+        }
+        if ((fileIndex + 1) != scatterParts.size())
+            throw new UserException.BadArgumentValue("scatterParts", String.format("Only able to write contigs into %d of %d files.", fileIndex + 1, scatterParts.size()));
+    }
+
+    /**
+     * Converts a GenomeLoc to a picard interval.
+     * @param loc The GenomeLoc.
+     * @param locIndex The loc index for use in the file.
+     * @return The picard interval.
+     */
+    private static net.sf.picard.util.Interval toInterval(GenomeLoc loc, int locIndex) {
+        return new net.sf.picard.util.Interval(loc.getContig(), loc.getStart(), loc.getStop(), false, "interval_" + locIndex);
+    }
 }
-
-

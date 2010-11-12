@@ -27,13 +27,14 @@ package org.broadinstitute.sting.analyzecovariates;
 
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.walkers.recalibration.*;
-import org.broadinstitute.sting.utils.classloader.PackageUtils;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Argument;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -114,7 +115,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
     private void initializeData() {
 
         // Get a list of all available covariates
-        List<Class<? extends Covariate>> classes = PackageUtils.getClassesImplementingInterface(Covariate.class);
+        Collection<Class<? extends Covariate>> classes = new PluginManager<Covariate>(Covariate.class).getPlugins();
 
         int lineNumber = 0;
         boolean foundAllCovariates = false;

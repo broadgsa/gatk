@@ -40,6 +40,7 @@ import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescripto
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
@@ -62,7 +63,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     @Output(fullName="output_directory", shortName="outDir", doc="Directory to output the generated scala", required=true)
     public File outputDirectory;
 
-    CommandLineProgramManager clpManager = new CommandLineProgramManager();
+    PluginManager<CommandLineProgram> clpManager = new PluginManager<CommandLineProgram>(CommandLineProgram.class, "CommandLineProgram", "CLP");
     GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
     WalkerManager walkerManager = new WalkerManager();
     FilterManager filterManager = new FilterManager();
@@ -97,7 +98,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
             if (!outputDirectory.isDirectory() && !outputDirectory.mkdirs())
                 throw new ReviewedStingException("Unable to create output directory: " + outputDirectory);
 
-            for (Class<? extends CommandLineProgram> clp: clpManager.getValues()) {
+            for (Class<? extends CommandLineProgram> clp: clpManager.getPlugins()) {
 
                 if (!isGatkProgram(clp))
                     continue;

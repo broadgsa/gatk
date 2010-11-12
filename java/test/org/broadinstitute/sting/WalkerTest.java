@@ -311,35 +311,19 @@ public class WalkerTest extends BaseTest {
      */
     private Pair<List<File>, List<String>> executeTest(String name, List<String> md5s, List<File> tmpFiles, String args, Class expectedException) {
         CommandLineGATK instance = new CommandLineGATK();
-        String[] command;
+        String[] command = Utils.escapeExpressions(args);
 
-        // special case for ' and " so we can allow expressions
-        if (args.indexOf('\'') != -1)
-            command = escapeExpressions(args, "'");
-        else if (args.indexOf('\"') != -1)
-            command = escapeExpressions(args, "\"");
-        else
-            command = args.split(" ");
-
-        if (outputFileLocation != null) {
-            String[] cmd2 = Arrays.copyOf(command, command.length + 2);
-            cmd2[command.length] = "-o";
-            cmd2[command.length + 1] = this.outputFileLocation.getAbsolutePath();
-            command = cmd2;
-        }
+        if (outputFileLocation != null)
+            command = Utils.appendArray(command, "-o", this.outputFileLocation.getAbsolutePath());
 
         // add the logging level to each of the integration test commands
-        String[] cmd2 = Arrays.copyOf(command, command.length + 4);
-        cmd2[command.length] = "-l";
-        cmd2[command.length+1] = "WARN";
-        cmd2[command.length+2] = "-et";
-        cmd2[command.length+3] = ENABLE_REPORTING ? "STANDARD" : "NO_ET";
+        command = Utils.appendArray(command, "-l", "WARN", "-et", ENABLE_REPORTING ? "STANDARD" : "NO_ET");
 
         // run the executable
         boolean gotAnException = false;
         try {
-            System.out.println(String.format("Executing test %s with GATK arguments: %s", name, Utils.join(" ",cmd2)));
-            CommandLineExecutable.start(instance, cmd2);
+            System.out.println(String.format("Executing test %s with GATK arguments: %s", name, Utils.join(" ",command)));
+            CommandLineExecutable.start(instance, command);
         } catch (Exception e) {
             gotAnException = true;
             if ( expectedException != null ) {
@@ -370,23 +354,9 @@ public class WalkerTest extends BaseTest {
                 throw new RuntimeException("Error running the GATK with arguments: " + args);
             }
 
-            // clean up some memory
-            instance = null;
-            cmd2 = null;
-
             // we need to check MD5s
             return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, md5s));
         }
-    }
-
-    private static String[] escapeExpressions(String args, String delimiter) {
-        String[] command = {};
-        String[] split = args.split(delimiter);
-        for (int i = 0; i < split.length - 1; i += 2) {
-            command = Utils.concatArrays(command, split[i].trim().split(" "));
-            command = Utils.concatArrays(command, new String[]{split[i + 1]});
-        }
-        return Utils.concatArrays(command, split[split.length - 1].trim().split(" "));
     }
 
     @Test

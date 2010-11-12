@@ -50,7 +50,6 @@ import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.classloader.PackageUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 
@@ -94,8 +93,8 @@ public class VariantAnnotatorEngine {
 
     // use this constructor if you want all possible annotations
     public VariantAnnotatorEngine(GenomeAnalysisEngine engine) {
-        requestedInfoAnnotations = PackageUtils.getInstancesOfClassesImplementingInterface(InfoFieldAnnotation.class);
-        requestedGenotypeAnnotations = PackageUtils.getInstancesOfClassesImplementingInterface(GenotypeAnnotation.class);
+        requestedInfoAnnotations = AnnotationInterfaceManager.createAllInfoFieldAnnotations();
+        requestedGenotypeAnnotations = AnnotationInterfaceManager.createAllGenotypeAnnotations();
         initializeDBs(engine);
     }
 
@@ -116,49 +115,9 @@ public class VariantAnnotatorEngine {
     }
 
     private void initializeAnnotations(List<String> annotationGroupsToUse, List<String> annotationsToUse) {
-        // create a map for all annotation classes which implement our top-level interfaces
-        HashMap<String, Class> classMap = new HashMap<String, Class>();
-        for ( Class c : PackageUtils.getClassesImplementingInterface(InfoFieldAnnotation.class) )
-            classMap.put(c.getSimpleName(), c);
-        for ( Class c : PackageUtils.getClassesImplementingInterface(GenotypeAnnotation.class) )
-            classMap.put(c.getSimpleName(), c);
-        for ( Class c : PackageUtils.getInterfacesExtendingInterface(AnnotationType.class) )
-            classMap.put(c.getSimpleName(), c);
-
-        HashSet<Class> classes = new HashSet<Class>();
-        // get the classes from the provided groups (interfaces)
-        if ( annotationGroupsToUse.size() != 1 || ! annotationGroupsToUse.get(0).toLowerCase().equals("none") ) {
-            for ( String group : annotationGroupsToUse ) {
-                Class interfaceClass = classMap.get(group);
-                if ( interfaceClass == null )
-                    interfaceClass = classMap.get(group + "Annotation");
-                if ( interfaceClass == null )
-                    throw new UserException.BadArgumentValue("group", "Class " + group + " is not found; please check that you have specified the class name correctly");
-                classes.addAll(PackageUtils.getClassesImplementingInterface(interfaceClass));
-            }
-        }
-
-        // get the specific classes provided
-        for ( String annotation : annotationsToUse ) {
-            Class annotationClass = classMap.get(annotation);
-            if ( annotationClass == null )
-                annotationClass = classMap.get(annotation + "Annotation");
-            if ( annotationClass == null )
-                throw new UserException.BadArgumentValue("annotation", "Class " + annotation + " is not found; please check that you have specified the class name correctly");
-            classes.add(annotationClass);
-        }
-
-        // get the instances
-        requestedInfoAnnotations = new ArrayList<InfoFieldAnnotation>();
-        requestedGenotypeAnnotations = new ArrayList<GenotypeAnnotation>();
-
-        for ( Class c : classes ) {
-            // note that technically an annotation can work on both the INFO and FORMAT fields
-            if ( InfoFieldAnnotation.class.isAssignableFrom(c) )
-                requestedInfoAnnotations.add((InfoFieldAnnotation)PackageUtils.getSimpleInstance(c));
-            if ( GenotypeAnnotation.class.isAssignableFrom(c) )
-                requestedGenotypeAnnotations.add((GenotypeAnnotation)PackageUtils.getSimpleInstance(c));
-        }
+        AnnotationInterfaceManager.validateAnnotations(annotationGroupsToUse, annotationsToUse);
+        requestedInfoAnnotations = AnnotationInterfaceManager.createInfoFieldAnnotations(annotationGroupsToUse, annotationsToUse);
+        requestedGenotypeAnnotations = AnnotationInterfaceManager.createGenotypeAnnotations(annotationGroupsToUse, annotationsToUse);
     }
 
     private void initializeDBs(GenomeAnalysisEngine engine) {

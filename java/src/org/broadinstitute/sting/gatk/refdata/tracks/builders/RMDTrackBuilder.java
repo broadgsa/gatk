@@ -32,7 +32,6 @@ import org.broad.tribble.*;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.source.BasicFeatureSource;
-import org.broad.tribble.source.CachingFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
@@ -42,7 +41,6 @@ import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.AbstractGenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -114,8 +112,8 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     /** @return a list of all available track types we currently have access to create */
     public Map<String, Class> getAvailableTrackNamesAndTypes() {
         classes = new HashMap<String, Class>();
-        for (String name: this.pluginsByName.keySet()) {
-            classes.put(name.toUpperCase(), pluginsByName.get(name));
+        for (String name: this.getPluginsByName().keySet()) {
+            classes.put(name.toUpperCase(), getPluginsByName().get(name));
         }
         return classes;
     }
@@ -123,7 +121,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     /** @return a list of all available track record types we currently have access to create */
     public Map<String, Class> getAvailableTrackNamesAndRecordTypes() {
         HashMap classToRecord = new HashMap<String, Class>();
-        for (String name: this.pluginsByName.keySet()) {
+        for (String name: this.getPluginsByName().keySet()) {
             FeatureCodec codec = this.createByName(name);
             classToRecord.put(name, codec.getFeatureType());
         }
@@ -133,7 +131,6 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     /**
      * create a RMDTrack of the specified type
      *
-     * @param genomeLocParser GenomeLocParser to use, if case track needs additional reference context.
      * @param targetClass the target class of track
      * @param name        what to call the track
      * @param inputFile   the input file

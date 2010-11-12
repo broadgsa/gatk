@@ -62,7 +62,7 @@ public class WalkerManager extends PluginManager<Walker> {
      */
     public Map<String,Collection<Class<? extends Walker>>> getWalkerNamesByPackage(boolean visibleWalkersOnly) {
         Map<String,Collection<Class<? extends Walker>>> walkersByPackage = new HashMap<String,Collection<Class<? extends Walker>>>();
-        for(Class<? extends Walker> walker: pluginsByName.values()) {
+        for(Class<? extends Walker> walker: getPlugins()) {
             if(visibleWalkersOnly && isHidden(walker))
                 continue;
 
@@ -157,7 +157,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return Class representing the walker.
      */
     public Class<? extends Walker> getWalkerClassByName(String walkerName) {
-        return pluginsByName.get(walkerName);
+        return getPluginsByName().get(walkerName);
     }
 
     /**

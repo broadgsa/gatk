@@ -23,6 +23,12 @@ class QSettings {
   @Argument(fullName="default_memory_limit", shortName="memLimit", doc="Default memory limit for jobs, in gigabytes.", required=false)
   var memoryLimit: Option[Int] = None
 
+  @Argument(fullName="run_directory", shortName="runDir", doc="Root directory to run functions from.", required=false)
+  var runDirectory = new File(".")
+
+  @Argument(fullName="temp_directory", shortName="tempDir", doc="Temp directory to pass to functions.", required=false)
+  var tempDirectory = new File(System.getProperty("java.io.tmpdir"))
+
   @ArgumentCollection
   val emailSettings = new EmailSettings
 }

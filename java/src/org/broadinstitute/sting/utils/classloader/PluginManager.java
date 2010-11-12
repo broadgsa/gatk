@@ -25,20 +25,42 @@
 
 package org.broadinstitute.sting.utils.classloader;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.util.ConfigurationBuilder;
+import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.*;
 
 /**
  * Manage plugins and plugin configuration.
  * @author mhanna
  * @version 0.1
  */
-public abstract class PluginManager<PluginType> {
+public class PluginManager<PluginType> {
+    /**
+     * A reference into our introspection utility.
+     */
+    private static final Reflections defaultReflections;
+
+    static {
+        // turn off logging in the reflections library - they talk too much (to the wrong logger factory as well, logback)
+        Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Reflections.class);
+        logger.setLevel(Level.OFF);
+
+        defaultReflections = new Reflections( new ConfigurationBuilder()
+            .setUrls(JVMUtils.getClasspathURLs())
+            .setScanners(new SubTypesScanner()));
+    }
+
     /**
      * Defines the category of plugin defined by the subclass.
      */
@@ -48,11 +70,31 @@ public abstract class PluginManager<PluginType> {
      * Define common strings to trim off the end of the name.
      */
     protected final String pluginSuffix;
-
+    
     /**
      * Plugins stored based on their name.
      */
-    protected final Map<String, Class<? extends PluginType>> pluginsByName;
+    private SortedMap<String, Class<? extends PluginType>> pluginsByName = null;
+
+    private List<Class<? extends PluginType>> plugins;
+    private List<Class<? extends PluginType>> interfaces;
+
+    /**
+     * Create a new plugin manager.
+     * @param pluginType Core type for a plugin.
+     */
+    public PluginManager(Class<PluginType> pluginType) {
+        this(pluginType, pluginType.getSimpleName().toLowerCase(), pluginType.getSimpleName(), null);
+    }
+
+    /**
+     * Create a new plugin manager.
+     * @param pluginType Core type for a plugin.
+     * @param classpath Custom class path to search for classes.
+     */
+    public PluginManager(Class<PluginType> pluginType, List<URL> classpath) {
+        this(pluginType, pluginType.getSimpleName().toLowerCase(), pluginType.getSimpleName(), classpath);
+    }
 
     /**
      * Create a new plugin manager.
@@ -60,11 +102,75 @@ public abstract class PluginManager<PluginType> {
      * @param pluginCategory Provides a category name to the plugin.  Must not be null.
      * @param pluginSuffix Provides a suffix that will be trimmed off when converting to a plugin name.  Can be null.
      */
-    protected PluginManager(Class<PluginType> pluginType, String pluginCategory, String pluginSuffix) {
+    public PluginManager(Class<PluginType> pluginType, String pluginCategory, String pluginSuffix) {
+        this(pluginType, pluginCategory, pluginSuffix, null);
+    }
+
+    /**
+     * Create a new plugin manager.
+     * @param pluginType Core type for a plugin.
+     * @param pluginCategory Provides a category name to the plugin.  Must not be null.
+     * @param pluginSuffix Provides a suffix that will be trimmed off when converting to a plugin name.  Can be null.
+     * @param classpath Custom class path to search for classes.
+     */
+    public PluginManager(Class<PluginType> pluginType, String pluginCategory, String pluginSuffix, List<URL> classpath) {
         this.pluginCategory = pluginCategory;
         this.pluginSuffix = pluginSuffix;
-        List<Class<? extends PluginType>> plugins = PackageUtils.getClassesImplementingInterface(pluginType);
-        pluginsByName = createPluginDatabase(plugins);
+
+        this.plugins = new ArrayList<Class<? extends PluginType>>();
+        this.interfaces = new ArrayList<Class<? extends PluginType>>();
+
+        Reflections reflections;
+        if (classpath == null) {
+            reflections = defaultReflections;
+        } else {
+            addClasspath(classpath);
+            reflections = new Reflections( new ConfigurationBuilder()
+                .setUrls(classpath)
+                .setScanners(new SubTypesScanner()));
+        }
+
+        // Load all classes types filtering them by concrete.
+        Set<Class<? extends PluginType>> allTypes = reflections.getSubTypesOf(pluginType);
+        for( Class<? extends PluginType> type: allTypes ) {
+            if( JVMUtils.isConcrete(type) )
+                plugins.add(type);
+            else
+                interfaces.add(type);
+        }
+    }
+
+    /**
+     * Adds the URL to the system class loader classpath using reflection.
+     * HACK: Uses reflection to modify the class path, and assumes loader is a URLClassLoader.
+     * @param urls URLs to add to the system class loader classpath.
+     */
+    private static void addClasspath(List<URL> urls) {
+      Set<URL> existing = JVMUtils.getClasspathURLs();
+      for (URL url : urls) {
+          if (existing.contains(url))
+            continue;
+          try {
+              Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+              if (!method.isAccessible())
+                  method.setAccessible(true);
+              method.invoke(ClassLoader.getSystemClassLoader(), url);
+          } catch (Exception e) {
+              throw new ReviewedStingException("Error adding url to the current classloader.", e);
+          }
+      }
+    }
+    
+    protected SortedMap<String, Class<? extends PluginType>> getPluginsByName() {
+        if (pluginsByName == null) {
+            SortedMap<String, Class<? extends PluginType>> newPlugins = new TreeMap<String, Class<? extends PluginType>>();
+            for (Class<? extends PluginType> pluginClass : plugins) {
+                String pluginName = getName(pluginClass);
+                newPlugins.put(pluginName, pluginClass);
+            }
+            pluginsByName = newPlugins;
+        }
+        return pluginsByName;
     }
 
     /**
@@ -74,8 +180,48 @@ public abstract class PluginManager<PluginType> {
      * @return True if the plugin exists, false otherwise.
      */
     public boolean exists(String pluginName) {
-        return pluginsByName.containsKey(pluginName);
+        return getPluginsByName().containsKey(pluginName);
     }
+
+    /**
+     * Does a plugin with the given name exist?
+     *
+     * @param plugin Name of the plugin for which to search.
+     * @return True if the plugin exists, false otherwise.
+     */
+    public boolean exists(Class<?> plugin) {
+        return getPluginsByName().containsValue(plugin);
+    }
+
+    /**
+     * Returns the plugin classes
+     * @return the plugin classes
+     */
+    public List<Class<? extends PluginType>> getPlugins() {
+        return plugins;
+    }
+
+    /**
+     * Returns the interface classes
+     * @return the interface classes
+     */
+    public List<Class<? extends PluginType>> getInterfaces() {
+        return interfaces;
+    }
+
+    /**
+     * Returns the plugin classes implementing interface or base clase
+     * @param type type of interface or base class
+     * @return the plugin classes implementing interface or base class
+     */
+    public List<Class<? extends PluginType>> getPluginsImplementing(Class<?> type) {
+        List<Class<? extends PluginType>> implementing = new ArrayList<Class<? extends PluginType>>();
+        for (Class<? extends PluginType> plugin: getPlugins())
+            if (type.isAssignableFrom(plugin))
+                implementing.add(plugin);
+        return implementing;
+    }
+
 
 
     /**
@@ -85,7 +231,7 @@ public abstract class PluginManager<PluginType> {
      * @return The plugin object if found; null otherwise.
      */
     public PluginType createByName(String pluginName) {
-        Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
+        Class<? extends PluginType> plugin = getPluginsByName().get(pluginName);
         if( plugin == null )
             throw new UserException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
         try {
@@ -101,6 +247,7 @@ public abstract class PluginManager<PluginType> {
      * @param pluginType type of the plugin to create.
      * @return The plugin object if created; null otherwise.
      */
+    @SuppressWarnings("unchecked")
     public PluginType createByType(Class pluginType) {
         try {
             return ((Class<? extends PluginType>) pluginType).newInstance();
@@ -110,20 +257,19 @@ public abstract class PluginManager<PluginType> {
     }
 
     /**
-     * Create the list of available plugins and add them to the database.
-     *
-     * @param pluginClasses Classes to record.
-     * @return map of plugin name -> plugin.
+     * Returns concrete instances of the plugins
+     * @return concrete instances of the plugins
      */
-    private Map<String, Class<? extends PluginType>> createPluginDatabase(List<Class<? extends PluginType>> pluginClasses) {
-        Map<String, Class<? extends PluginType>> plugins = new HashMap<String, Class<? extends PluginType>>();
-
-        for (Class<? extends PluginType> pluginClass : pluginClasses) {
-            String pluginName = getName(pluginClass);
-            plugins.put(pluginName, pluginClass);
+    public List<PluginType> createAllTypes() {
+        List<PluginType> instances = new ArrayList<PluginType>();
+        for ( Class<? extends PluginType> c : getPlugins() ) {
+            try {
+                instances.add(c.newInstance());
+            } catch (Exception e) {
+                throw new DynamicClassResolutionException(c, e);
+            }
         }
-
-        return plugins;
+        return instances;
     }
 
     /**

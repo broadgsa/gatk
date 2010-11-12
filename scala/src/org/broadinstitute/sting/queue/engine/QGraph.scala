@@ -2,7 +2,6 @@ package org.broadinstitute.sting.queue.engine
 
 import org.jgrapht.traverse.TopologicalOrderIterator
 import org.jgrapht.graph.SimpleDirectedGraph
-import scala.collection.JavaConversions
 import scala.collection.JavaConversions._
 import org.jgrapht.alg.CycleDetector
 import org.jgrapht.EdgeFactory
@@ -46,7 +45,7 @@ class QGraph extends Logging {
    * Checks the functions for missing values and the graph for cyclic dependencies and then runs the functions in the graph.
    */
   def run = {
-    IOUtils.checkTempDir
+    IOUtils.checkTempDir(settings.qSettings.tempDirectory)
     val numMissingValues = fillGraph
     val isReady = numMissingValues == 0
 
@@ -158,7 +157,7 @@ class QGraph extends Logging {
    */
   private def fillIn = {
     // clone since edgeSet is backed by the graph
-    JavaConversions.asSet(jobGraph.edgeSet).clone.foreach {
+    asScalaSet(jobGraph.edgeSet).clone.foreach {
       case cmd: FunctionEdge => {
         addCollectionOutputs(cmd.outputs)
         addCollectionInputs(cmd.inputs)
@@ -205,7 +204,7 @@ class QGraph extends Logging {
    */
   private def validate = {
     var numMissingValues = 0
-    JavaConversions.asSet(jobGraph.edgeSet).foreach {
+    asScalaSet(jobGraph.edgeSet).foreach {
       case cmd: FunctionEdge =>
         val missingFieldValues = cmd.function.missingFields
         if (missingFieldValues.size > 0) {

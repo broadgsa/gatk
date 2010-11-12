@@ -3,7 +3,7 @@ package org.broadinstitute.sting.queue.util
 import org.apache.commons.mail.{MultiPartEmail, EmailAttachment}
 import java.io.{FileReader, File}
 import javax.mail.internet.InternetAddress
-import scala.collection.JavaConversions
+import scala.collection.JavaConversions._
 
 /**
  * Encapsulates a message to be sent over email.
@@ -91,7 +91,7 @@ class EmailMessage extends Logging {
    * @return java.util.List of InternetAddress'es
    */
   private def convert(addresses: List[String]) = {
-    JavaConversions.asList(addresses.map(address => new InternetAddress(address, false)))
+    asJavaList(addresses.map(address => new InternetAddress(address, false)))
   }
 
   override def toString = {
