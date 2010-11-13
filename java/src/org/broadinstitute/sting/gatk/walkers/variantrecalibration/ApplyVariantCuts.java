@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.File;
@@ -86,9 +87,9 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
                 tranches.add(t);
                 //statusMsg = "Keeping, above FDR threshold";
             }
-            logger.info(String.format("Tranche %s with %.2f FDR, TsTv %.2f and pCut %.2f, threshold %.2f",
-                    t.name, t.fdr, t.novelTiTv, t.pCut, FDR_FILTER_LEVEL));
+            logger.info(String.format("Read tranche " + t));
         }
+        Collections.reverse(tranches); // this algorithm wants the tranches ordered from worst to best
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -104,7 +105,11 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         }
         if( tranches.size() >= 1 ) {
             hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("FDR tranche level at qual < " + tranches.get(0).pCut)));
+        } else {
+            throw new UserException("No tranches were found in the file or were above the FDR Filter level " + FDR_FILTER_LEVEL);
         }
+
+        logger.info("Keeping all variants in tranche " + tranches.get(tranches.size()-1));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);

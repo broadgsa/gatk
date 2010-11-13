@@ -68,9 +68,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     // Outputs
     /////////////////////////////
     @Output(fullName="tranches_file", shortName="tranchesFile", doc="The output tranches file used by ApplyVariantCuts", required=true)
-    private PrintStream TRANCHES_FILE;
-    @Output(fullName="report_dat_file", shortName="reportDatFile", doc="The output report .dat file used with Rscript to create the optimization curve PDF file", required=true)
-    private File REPORT_DAT_FILE;
+    private File TRANCHES_FILE;
     @Output(doc="File to which recalibrated variants should be written", required=true)
     private VCFWriter vcfWriter = null;
 
@@ -96,7 +94,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName="prior1KG", shortName="prior1KG", doc="A prior on the quality of 1000 Genomes Project variants, a phred scaled probability of being true.", required=false)
     private double PRIOR_1KG = 12.0;
     @Argument(fullName="FDRtranche", shortName="tranche", doc="The levels of novel false discovery rate (FDR, implied by ti/tv) at which to slice the data. (in percent, that is 1.0 for 1 percent)", required=false)
-    private Double[] FDR_TRANCHES = null;
+    private double[] FDR_TRANCHES = new double[]{0.1, 1.0, 5.0, 10.0};
     @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required=false)
     private String PATH_TO_RSCRIPT = "Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required=false)
@@ -132,6 +130,14 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private NestedHashMap priorCache = new NestedHashMap();
     private boolean trustACField = false;
     private double maxQualObserved = 0.0;
+    private PrintStream tranchesStream = null;
+
+    private static double round2(double num) {
+        double result = num * 100.0;
+        result = Math.round(result);
+        result = result / 100.0;
+        return result;
+    }
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -195,13 +201,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
         vcfWriter.writeHeader(vcfHeader);
 
-        // Set up default values for the FDR tranches if necessary
-        if( FDR_TRANCHES == null ) {
-            FDR_TRANCHES = new Double[4];
-            FDR_TRANCHES[0] = 0.1;
-            FDR_TRANCHES[1] = 1.0;
-            FDR_TRANCHES[2] = 5.0;
-            FDR_TRANCHES[3] = 10.0;
+        try {
+            tranchesStream = new PrintStream(TRANCHES_FILE);
+        } catch (FileNotFoundException e) {
+            throw new UserException.CouldNotCreateOutputFile(TRANCHES_FILE, e);
         }
     }
 
@@ -285,7 +288,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
                         final double pVar = theModel.evaluateVariant( ref.getGenomeLocParser(),vc );
                         final double lod = priorLodFactor + Math.log10(pVar);
-                        variantDatum.qual = Math.abs( QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod) );
+                        variantDatum.pos = vc.getStart();
+                        variantDatum.qual = round2(Math.abs( QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod)));
                         if( variantDatum.qual > maxQualObserved ) {
                             maxQualObserved = variantDatum.qual;
                         }
@@ -329,25 +333,17 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, theModel.dataManager.annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
-        try {
-            PrintStream reportDatFilePrintStream = new PrintStream(REPORT_DAT_FILE);
-            theModel.outputOptimizationCurve( dataManager.data, reportDatFilePrintStream, TRANCHES_FILE, DESIRED_NUM_VARIANTS, FDR_TRANCHES, maxQualObserved );
-        } catch ( FileNotFoundException e ) {
-            throw new UserException.CouldNotCreateOutputFile(REPORT_DAT_FILE, e);
-        }
+        List<Tranche> tranches = VariantGaussianMixtureModel.findTranches( dataManager.data, FDR_TRANCHES, TARGET_TITV );
+        tranchesStream.print(Tranche.tranchesString(tranches));
 
         // Execute Rscript command to plot the optimization curve
         // Print out the command line to make it clear to the user what is being executed and how one might modify it
-        final String rScriptOptimizationCurveCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_OptimizationCurve.R" + " " + REPORT_DAT_FILE.getName() + " " + TARGET_TITV;
-        final String rScriptTranchesCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Tranches.R" + " " + REPORT_DAT_FILE.getName() + " " + TARGET_TITV;
-        logger.info( rScriptOptimizationCurveCommandLine );
+        final String rScriptTranchesCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Tranches.R" + " " + TRANCHES_FILE.getAbsolutePath() + " " + TARGET_TITV;
         logger.info( rScriptTranchesCommandLine );
 
         // Execute the RScript command to plot the table of truth values
         try {
             Process p;
-            p = Runtime.getRuntime().exec( rScriptOptimizationCurveCommandLine );
-            p.waitFor();
             p = Runtime.getRuntime().exec( rScriptTranchesCommandLine );
             p.waitFor();
         } catch ( Exception e ) {

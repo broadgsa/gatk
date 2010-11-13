@@ -71,7 +71,7 @@ public class WalkerTest extends BaseTest {
         }
     }
 
-    private static File getFileForMD5(final String md5) {
+    protected static File getFileForMD5(final String md5) {
         final String basename = String.format("%s.integrationtest", md5);
         return new File(MD5_FILE_DB_SUBDIR + "/" + basename);
     }
@@ -208,15 +208,23 @@ public class WalkerTest extends BaseTest {
 
         protected Map<String, File> auxillaryFiles = new HashMap<String, File>();
 
+        public WalkerTestSpec(String args, List<String> md5s) {
+            this(args, -1, md5s);
+        }
+
         public WalkerTestSpec(String args, int nOutputFiles, List<String> md5s) {
             this.args = args;
-            this.nOutputFiles = nOutputFiles;
+            this.nOutputFiles = md5s.size();
             this.md5s = md5s;
+        }
+
+        public WalkerTestSpec(String args, List<String> exts, List<String> md5s) {
+            this(args, -1, exts, md5s);
         }
 
         public WalkerTestSpec(String args, int nOutputFiles, List<String> exts, List<String> md5s) {
             this.args = args;
-            this.nOutputFiles = nOutputFiles;
+            this.nOutputFiles = md5s.size();
             this.md5s = md5s;
             this.exts = exts;
         }

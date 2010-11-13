@@ -7,8 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-public class
-        VariantEvalIntegrationTest extends WalkerTest {
+public class VariantEvalIntegrationTest extends WalkerTest {
     private static String cmdRoot = "-T VariantEval" +
             " -R " + b36KGReference;
 

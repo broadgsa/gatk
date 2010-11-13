@@ -474,6 +474,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         List<Tranche> tranches = new ArrayList<Tranche>();
         for ( double fdr : FDRtranches ) {
             Tranche t = findTranche(tranchesData, runningTiTv, fdr, targetTiTv);
+            // todo -- should abort early when t's qual is 0 -- that's the lowest we'll get to
 
             if ( t == null ) {
                 if ( tranches.size() == 0 )
@@ -514,7 +515,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         for ( int i = 0; i < runningTiTv.length; i++ ) {
             if ( runningTiTv[i] >= titvThreshold ) {
                 // we've found the largest group of variants with Ti/Tv >= our target titv
-                return trancheOfVariants(data, i, desiredFDR);
+                return trancheOfVariants(data, i, desiredFDR, targetTiTv);
             }
         }
 
@@ -522,171 +523,34 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         return null;
     }
 
-    public final static Tranche trancheOfVariants( final List<VariantDatum> data,  int minI, double fdr ) {
+    public final static Tranche trancheOfVariants( final List<VariantDatum> data, int minI, double fdr, double targetTiTv ) {
         int numKnown = 0, numNovel = 0, knownTi = 0, knownTv = 0, novelTi = 0, novelTv = 0;
 
-        for ( int i = minI; i < data.size(); i++ ) {
-            VariantDatum datum = data.get(i);
-            if ( datum.isKnown ) {
-                numKnown++;
-                if ( datum.isTransition ) { knownTi++; } else { knownTv++; }
-            } else {
-                numNovel++;
-                if ( datum.isTransition ) { novelTi++; } else { novelTv++; }
+        double qualThreshold = data.get(minI).qual;
+        VariantDatum last = null;
+        for ( VariantDatum datum : data ) {
+            if ( datum.qual >= qualThreshold ) {
+                //if( ! datum.isKnown ) System.out.println(datum.pos);
+                if ( datum.isKnown ) {
+                    numKnown++;
+                    if ( datum.isTransition ) { knownTi++; } else { knownTv++; }
+                } else {
+                    numNovel++;
+                    if ( datum.isTransition ) { novelTi++; } else { novelTv++; }
 
+                }
             }
+            last = datum;
         }
 
         double knownTiTv = knownTi / Math.max(1.0 * knownTv, 1.0);
         double novelTiTv = novelTi / Math.max(1.0 * novelTv, 1.0);
 
-        return new Tranche(fdr, data.get(minI).qual, numKnown, knownTiTv, numNovel, novelTiTv);
+        return new Tranche(fdr, targetTiTv, qualThreshold, numKnown, knownTiTv, numNovel, novelTiTv);
     }
 
     public final static double fdrToTiTv(double desiredFDR, double targetTiTv) {
             return (1.0 - desiredFDR / 100.0) * (targetTiTv - 0.5) + 0.5;
-    }
-
-    public final void outputOptimizationCurve( final VariantDatum[] data, final PrintStream outputReportDatFile, final PrintStream tranchesOutputFile,
-                                               final int desiredNumVariants, final Double[] FDRtranches, final double MAX_QUAL ) {
-        final int numVariants = data.length;
-        final boolean[] markedVariant = new boolean[numVariants];
-
-        int NUM_BINS = 400 * 2;
-        double QUAL_STEP1 = (MAX_QUAL * 9.0 / 10.0 ) / ((double) NUM_BINS / 2.0);
-        if( QUAL_STEP1 < 0.01 ) { QUAL_STEP1 = 0.01; } // QUAL field in VCF file is rounded to two decimal places
-        double QUAL_STEP2 = (MAX_QUAL * 1.0 / 10.0) / ((double) NUM_BINS / 2.0);
-        if( QUAL_STEP2 < 0.01 ) { QUAL_STEP2 = 0.01; } // QUAL field in VCF file is rounded to two decimal places
-
-        final int numKnownAtCut[] = new int[NUM_BINS+2];
-        final int numNovelAtCut[] = new int[NUM_BINS+2];
-        final double knownTiTvAtCut[] = new double[NUM_BINS+2];
-        final double novelTiTvAtCut[] = new double[NUM_BINS+2];
-        final double theCut[] = new double[NUM_BINS+2];
-
-        final double fdrCutAsTiTv[] = new double[FDRtranches.length];
-        for( int iii = 0; iii < FDRtranches.length; iii++ ) {
-            fdrCutAsTiTv[iii] = (1.0 - FDRtranches[iii] / 100.0) * (targetTITV - 0.5) + 0.5;
-        }
-
-        for( int iii = 0; iii < numVariants; iii++ ) {
-            markedVariant[iii] = false;
-        }
-
-        tranchesOutputFile.println("FDRtranche,novelTITV,pCut,numNovel,filterName");
-
-        int numKnown = 0;
-        int numNovel = 0;
-        int numKnownTi = 0;
-        int numKnownTv = 0;
-        int numNovelTi = 0;
-        int numNovelTv = 0;
-        boolean foundDesiredNumVariants = false;
-        int jjj = 0;
-        outputReportDatFile.println("pCut,numKnown,numNovel,knownTITV,novelTITV");
-        double qCut = MAX_QUAL;
-
-        while( qCut >= 0.0 - 1E-2 + 1E-8 ) {
-            if( qCut < 1E-2 ) { qCut = 0.0; }
-
-            for( int iii = 0; iii < numVariants; iii++ ) {
-                if( !markedVariant[iii] ) {
-                    if( data[iii].qual >= qCut ) {
-                        markedVariant[iii] = true;
-                        if( data[iii].isKnown ) { // known
-                            numKnown++;
-                            if( data[iii].isTransition ) { // transition
-                                numKnownTi++;
-                            } else { // transversion
-                                numKnownTv++;
-                            }
-                        } else { // novel
-                            numNovel++;
-                            if( data[iii].isTransition ) { // transition
-                                numNovelTi++;
-                            } else { // transversion
-                                numNovelTv++;
-                            }
-                        }
-                    }
-                }
-            }
-            if( desiredNumVariants != 0 && !foundDesiredNumVariants && (numKnown + numNovel) >= desiredNumVariants ) {
-                logger.info( "Keeping variants with QUAL >= " + String.format("%.2f",qCut) + " results in a filtered set with: " );
-                logger.info("\t" + numKnown + " known variants");
-                logger.info("\t" + numNovel + " novel variants, (dbSNP rate = " + String.format("%.2f",((double) numKnown * 100.0) / ((double) numKnown + numNovel) ) + "%)");
-                logger.info("\t" + String.format("%.4f known Ti/Tv ratio", ((double)numKnownTi) / ((double)numKnownTv)));
-                logger.info("\t" + String.format("%.4f novel Ti/Tv ratio", ((double)numNovelTi) / ((double)numNovelTv)));
-                foundDesiredNumVariants = true;
-            }
-            outputReportDatFile.println( String.format("%.2f,%d,%d,%.4f,%.4f", qCut, numKnown, numNovel,
-                    ( numKnownTv == 0 ? 0.0 : ( ((double)numKnownTi) / ((double)numKnownTv) ) ),
-                    ( numNovelTv == 0 ? 0.0 : ( ((double)numNovelTi) / ((double)numNovelTv) ) )));
-
-            numKnownAtCut[jjj] = numKnown;
-            numNovelAtCut[jjj] = numNovel;
-            knownTiTvAtCut[jjj] = ( numKnownTi == 0 || numKnownTv == 0 ? 0.0 : ( ((double)numKnownTi) / ((double)numKnownTv) ) );
-            novelTiTvAtCut[jjj] = ( numNovelTi == 0 || numNovelTv == 0 ? 0.0 : ( ((double)numNovelTi) / ((double)numNovelTv) ) );
-            theCut[jjj] = qCut;
-            jjj++;            
-
-            if( qCut >= (MAX_QUAL / 10.0) ) {
-                qCut -= QUAL_STEP1;
-            } else {
-                qCut -= QUAL_STEP2;
-            }
-        }
-
-        // loop back through the data points looking for appropriate places to cut the data to get the target novel titv ratio
-        int checkQuantile = 0;
-        int tranche = FDRtranches.length - 1;
-        for( ; jjj >= 0; jjj-- ) {
-
-            if( tranche >= 0 && novelTiTvAtCut[jjj] >= fdrCutAsTiTv[tranche] ) {
-                tranchesOutputFile.println(String.format("%.2f,%.4f,%.4f,%d,FDRtranche%.2fto%.2f",
-                        FDRtranches[tranche],novelTiTvAtCut[jjj],theCut[jjj],numNovelAtCut[jjj],
-                        (tranche == 0 ? 0.0 : FDRtranches[tranche-1]) ,FDRtranches[tranche]));
-                tranche--;
-            }
-
-            boolean foundCut = false;
-            if( checkQuantile == 0 ) {
-                if( novelTiTvAtCut[jjj] >= 0.9 * targetTITV ) {
-                    foundCut = true;
-                    checkQuantile++;
-                }
-            } else if( checkQuantile == 1 ) {
-                if( novelTiTvAtCut[jjj] >= 0.95 * targetTITV ) {
-                    foundCut = true;
-                    checkQuantile++;
-                }
-            } else if( checkQuantile == 2 ) {
-                if( novelTiTvAtCut[jjj] >= 0.98 * targetTITV ) {
-                    foundCut = true;
-                    checkQuantile++;
-                }
-            } else if( checkQuantile == 3 ) {
-                if( novelTiTvAtCut[jjj] >= targetTITV ) {
-                    foundCut = true;
-                    checkQuantile++;
-                }
-            } else if( checkQuantile == 4 ) {
-                break; // break out
-            }
-
-            if( foundCut ) {
-                logger.info( "Keeping variants with QUAL >= " + String.format("%.2f",theCut[jjj]) + " results in a filtered set with: " );
-                logger.info("\t" + numKnownAtCut[jjj] + " known variants");
-                logger.info("\t" + numNovelAtCut[jjj] + " novel variants, (dbSNP rate = " +
-                                    String.format("%.2f",((double) numKnownAtCut[jjj] * 100.0) / ((double) numKnownAtCut[jjj] + numNovelAtCut[jjj]) ) + "%)");
-                logger.info("\t" + String.format("%.4f known Ti/Tv ratio", knownTiTvAtCut[jjj]));
-                logger.info("\t" + String.format("%.4f novel Ti/Tv ratio", novelTiTvAtCut[jjj]));
-                logger.info("\t" + String.format("--> with an implied novel FDR of %.2f percent", Math.abs(100.0 * (1.0-((novelTiTvAtCut[jjj] - 0.5) / (targetTITV - 0.5))))));
-            }
-        }
-        if( tranche >= 0 ) { // Didn't find all the tranches
-            throw new UserException.BadInput("Couldn't find appropriate cuts for all the requested tranches. Please ask for fewer tranches with higher false discovery rates using the --FDRtranche argument");
-        }
     }
 
     private double evaluateGaussians( final VariantDatum[] data, final double[][] pVarInCluster, final int startCluster, final int stopCluster ) {

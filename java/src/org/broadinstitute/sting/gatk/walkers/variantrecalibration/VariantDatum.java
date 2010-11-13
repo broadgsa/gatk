@@ -32,6 +32,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
  */
 
 public class VariantDatum implements Comparable<VariantDatum> {
+    public int pos;
     public double[] annotations;
     public boolean isTransition;
     public boolean isKnown;

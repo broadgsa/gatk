@@ -3,7 +3,7 @@
 args <- commandArgs(TRUE)
 verbose = TRUE
 
-input = args[1]
+tranchesFile = args[1]
 targetTITV = as.numeric(args[2])
 suppressLegend = ! is.na(args[3])
 
@@ -37,12 +37,15 @@ leftShift <- function(x, leftValue = 0) {
 # -----------------------------------------------------------------------------------------------
 # Tranches plot
 # -----------------------------------------------------------------------------------------------
-data2 = read.table(paste(input,".tranches",sep=""),sep=",",head=T)
+data2 = read.table(tranchesFile,sep=",",head=T)
+data2 = data2[order(data2$FDRtranche, decreasing=T),]
 cols = c("cornflowerblue", "cornflowerblue", "darkorange", "darkorange")
 density=c(20, -1, -1, 20)
-outfile = paste(input, ".FDRtranches.pdf", sep="")
+outfile = paste(tranchesFile, ".pdf", sep="")
 pdf(outfile, height=5, width=8)
-alpha = 1 - titvFPEstV(targetTITV, data2$novelTITV)
+par(mar = c(5, 5, 4, 2) + 0.1)
+novelTiTv = c(data2$novelTITV,data2$novelTiTv)
+alpha = 1 - titvFPEstV(targetTITV, novelTiTv)
 #print(alpha)
 
 numGood = round(alpha * data2$numNovel);
@@ -61,26 +64,10 @@ barplot(d/1000,horiz=TRUE,col=cols,space=0.2,xlab="Number of Novel Variants (100
 #abline(v= d[2,dim(d)[2]], lty=2)
 #abline(v= d[1,3], lty=2)
 if ( ! suppressLegend ) 
-    legend(5, 2.25, c('Cumulative TPs','Tranch-specific TPs', 'Tranch-specific FPs', 'Cumulative FPs' ), fill=cols, density=density, bg='white', cex=1.25)
+    legend("topright", c('Cumulative TPs','Tranch-specific TPs', 'Tranch-specific FPs', 'Cumulative FPs' ), fill=cols, density=density, bg='white', cex=1.25)
 
 mtext("Ti/Tv",2,line=2.25,at=length(data2$FDRtranche)*1.2,las=1, cex=1)
 mtext("FDR",2,line=0,at=length(data2$FDRtranche)*1.2,las=1, cex=1)
-axis(2,line=-1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$FDRtranche, las=1, cex.axis=1.25)
-axis(2,line=1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$novelTITV, las=1, cex.axis=1.25)
+axis(2,line=-1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$FDRtranche, las=1, cex.axis=1.0)
+axis(2,line=1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=round(novelTiTv,3), las=1, cex.axis=1.0)
 dev.off()
-
-
-#
-#data2 = read.table(paste(input,".tranches",sep=""),sep=",",head=T)
-#cols = c("steelblue","orange")
-#outfile = paste(input, ".FDRtranches.pdf", sep="")
-#pdf(outfile, height=7, width=8)
-#alpha = (data2$novelTITV - 0.5) / (targetTITV - 0.5);
-#numGood = round(alpha * data2$numNovel);
-#numBad = data2$numNovel - numGood;
-#d=matrix(c(numGood,numBad),2,byrow=TRUE)
-#barplot(d,horiz=TRUE,col=cols,space=0.2,xlab="Number of Novel Variants",ylab="Novel Ti/Tv   -->   FDR (%)")
-#legend('topright',c('implied TP','implied FP'),col=cols,lty=1,lwd=16)
-#axis(2,line=-1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$FDRtranche)
-#axis(2,line=0.4,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$novelTITV)
-#dev.off()

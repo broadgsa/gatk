@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
@@ -45,39 +46,69 @@ import java.util.*;
 /**
  */
 
-public class Tranche {
-    public double fdr, pCut, knownTiTv, novelTiTv;
+public class Tranche implements Comparable<Tranche> {
+    private static final int CURRENT_VERSION = 2;
+
+    public double fdr, pCut, targetTiTv, knownTiTv, novelTiTv;
     public int numKnown,numNovel;
     public String name;
 
-    public Tranche(double fdr, double pCut, int numKnown, double knownTiTv, int numNovel, double novelTiTv) {
-        this(fdr, pCut, numKnown, knownTiTv, numNovel, novelTiTv, "anonymous");
+    public Tranche(double fdr, double targetTiTv, double pCut, int numKnown, double knownTiTv, int numNovel, double novelTiTv) {
+        this(fdr, targetTiTv, pCut, numKnown, knownTiTv, numNovel, novelTiTv, "anonymous");
     }
 
-    public Tranche(double fdr, double pCut, int numKnown, double knownTiTv, int numNovel, double novelTiTv, String name) {
+    public Tranche(double fdr, double targetTiTv, double pCut, int numKnown, double knownTiTv, int numNovel, double novelTiTv, String name) {
         this.fdr = fdr;
+        this.targetTiTv = targetTiTv;
         this.pCut = pCut;
         this.novelTiTv = novelTiTv;
         this.numNovel = numNovel;
         this.knownTiTv = knownTiTv;
         this.numKnown = numKnown;
         this.name = name;
+
+//        if ( targetTiTv < 0.5 || targetTiTv > 10 )
+//            throw new UserException("Target Ti/Tv ratio is unreasonable " + targetTiTv);
+//
+//        if ( numKnown < 0 || numNovel < 0)
+//            throw new ReviewedStingException("Invalid tranch - no. variants is < 0 : known " + numKnown + " novel " + numNovel);
+
+        if ( name == null )
+            throw new ReviewedStingException("BUG -- name cannot be null");
+
+    }
+
+    public int compareTo(Tranche other) {
+        return Double.compare(this.fdr,  other.fdr);
     }
 
     public String toString() {
-        return String.format("[Tranche cut = %.3f with %d novels @ %.2f]", pCut, numNovel, novelTiTv);
+        return String.format("Tranche fdr=%.2f minQual=%.2f known=(%d @ %.2f) novel=(%d @ %.2f) name=%s]",
+                fdr, pCut, numKnown, knownTiTv, numNovel, novelTiTv, name);
     }
 
-    public static String tranchesString(List<Tranche> tranches) {
+    /**
+     * Returns an appropriately formated string representing the raw tranches file on disk.
+     *
+     * @param rawTranches
+     * @return
+     */
+    public static String tranchesString(List<Tranche> rawTranches) {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         PrintStream stream = new PrintStream(bytes);
 
-        stream.println("FDRtranche,numKnown,numNovel,knownTiTv,novelTiTv,pCut,filterName");
+        List<Tranche> tranches = new ArrayList<Tranche>();
+        tranches.addAll(rawTranches);
+        Collections.sort(tranches);
+
+        stream.println("# Variant quality score tranches file");
+        stream.println("# Version number " + CURRENT_VERSION);
+        stream.println("FDRtranche,targetTiTv,numKnown,numNovel,knownTiTv,novelTiTv,pCut,filterName");
 
         Tranche prev = null;
         for ( Tranche t : tranches ) {
-            stream.printf("%.2f,%d,%d,%.4f,%.4f,%.4f,FDRtranche%.2fto%.2f%n",
-                    t.fdr,t.numKnown,t.numNovel,t.knownTiTv,t.novelTiTv, t.pCut,
+            stream.printf("%.2f,%.2f,%d,%d,%.4f,%.4f,%.2f,FDRtranche%.2fto%.2f%n",
+                    t.fdr,t.targetTiTv,t.numKnown,t.numNovel,t.knownTiTv,t.novelTiTv, t.pCut,
                     (prev == null ? 0.0 : prev.fdr), t.fdr);
             prev = t;
         }
@@ -85,39 +116,65 @@ public class Tranche {
         return bytes.toString();
     }
 
-    private static double getDouble(Map<String,String> bindings, String key) {
-        return bindings.containsKey(key) ? Double.valueOf(bindings.get(key)) : -1.0;
+    private static double getDouble(Map<String,String> bindings, String key, boolean required) {
+        if ( bindings.containsKey(key) )
+            return Double.valueOf(bindings.get(key));
+        else if ( required ) {
+            throw new UserException("Malformed tranches file.  Missing required key " + key);
+        }
+        else
+            return -1;
     }
 
-    private static int getInteger(Map<String,String> bindings, String key) {
-        return bindings.containsKey(key) ? Integer.valueOf(bindings.get(key)) : -1;
+    private static int getInteger(Map<String,String> bindings, String key, boolean required) {
+        if ( bindings.containsKey(key) )
+            return Integer.valueOf(bindings.get(key));
+        else if ( required ) {
+            throw new UserException("Malformed tranches file.  Missing required key " + key);
+        }
+        else
+            return -1;
     }
 
+    /**
+     * Returns a list of tranches, sorted from most to least specific, read in from file f
+     * 
+     * @param f
+     * @return
+     */
     public static List<Tranche> readTraches(File f) {
         String[] header = null;
         List<Tranche> tranches = new ArrayList<Tranche>();
 
         try {
             for( final String line : new XReadLines(f) ) {
+                if ( line.startsWith("#") )
+                    continue;
+
                 final String[] vals = line.split(",");
                 if( header == null ) {
                     header = vals;
                 } else {
+                    if ( header.length != vals.length )
+                        throw new UserException.MalformedFile(f, "Line had too few/many fields.  Header = " + header.length + " vals " + vals.length + " line " + line);
+
                     Map<String,String> bindings = new HashMap<String, String>();
                     for ( int i = 0; i < vals.length; i++ ) bindings.put(header[i], vals[i]);
-                    tranches.add(new Tranche(getDouble(bindings,"FDRtranche"),
-                            getDouble(bindings,"pCut"),
-                            getInteger(bindings,"numKnown"),
-                            getDouble(bindings,"knownTiTv"),
-                            getInteger(bindings,"numNovel"),
-                            Math.max(getDouble(bindings,"novelTiTv"), getDouble(bindings,"novelTITV")),
+                    tranches.add(new Tranche(getDouble(bindings,"FDRtranche", true),
+                            getDouble(bindings,"targetTiTv", false),
+                            getDouble(bindings,"pCut", true),
+                            getInteger(bindings,"numKnown", false),
+                            getDouble(bindings,"knownTiTv", false),
+                            getInteger(bindings,"numNovel", true),
+                            Math.max(getDouble(bindings,"novelTiTv", false), getDouble(bindings,"novelTITV", false)),
                             bindings.get("filterName")));
                 }
             }
 
+            Collections.sort(tranches);   // sort this in the standard order
             return tranches;
         } catch( FileNotFoundException e ) {
-            throw new UserException.CouldNotCreateOutputFile(f, e);
+            throw new UserException.CouldNotReadInputFile(f, e);
         }
     }
 }
