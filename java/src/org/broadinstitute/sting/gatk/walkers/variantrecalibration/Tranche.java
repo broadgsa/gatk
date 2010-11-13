@@ -120,7 +120,7 @@ public class Tranche implements Comparable<Tranche> {
         if ( bindings.containsKey(key) )
             return Double.valueOf(bindings.get(key));
         else if ( required ) {
-            throw new UserException("Malformed tranches file.  Missing required key " + key);
+            throw new UserException.MalformedFile("Malformed tranches file.  Missing required key " + key);
         }
         else
             return -1;
@@ -130,7 +130,7 @@ public class Tranche implements Comparable<Tranche> {
         if ( bindings.containsKey(key) )
             return Integer.valueOf(bindings.get(key));
         else if ( required ) {
-            throw new UserException("Malformed tranches file.  Missing required key " + key);
+            throw new UserException.MalformedFile("Malformed tranches file.  Missing required key " + key);
         }
         else
             return -1;
