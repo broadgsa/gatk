@@ -336,7 +336,6 @@ class fullCallingPipeline extends QScript {
     recalibrate.rodBind :+= RodBind("input", "VCF", masker.out)
     recalibrate.out = swapExt("SnpCalls",masker.out,".vcf",".recalibrated.vcf")
     recalibrate.target_titv = qscript.target_titv
-    recalibrate.report_dat_file = swapExt("SnpCalls/IntermediateFiles", masker.out,".vcf",".recalibrate.dat")
     recalibrate.tranches_file = swapExt("SnpCalls/IntermediateFiles", masker.out,".vcf",".recalibrate.tranches")
     recalibrate.analysisName = base+"_VariantRecalibrator"
 

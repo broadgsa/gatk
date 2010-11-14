@@ -158,7 +158,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
   }
 
   def StandardVariantRecalibrator ( raw_vcf: File, cluster: File, target_titv: scala.Double, out_vcf: File,
-                                              out_tranches: File, out_dat: File) : VariantRecalibrator = {
+                                              out_tranches: File) : VariantRecalibrator = {
     var vr = new VariantRecalibrator with StandardCommandLineGATK
     vr.analysisName = "VariantQualityRecalibration"
     vr.rodBind :+= new RodBind("input","VCF",raw_vcf)
@@ -166,7 +166,6 @@ class VariantCalling(yaml: File,gatkJar: File) {
     vr.target_titv = target_titv
     vr.out = out_vcf
     vr.tranches_file = out_tranches
-    vr.report_dat_file = out_dat
     vr.tranche :+= "0.1"
     vr.tranche :+= "1"
     vr.tranche :+= "5"
@@ -190,7 +189,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
   def StandardRecalibrateVariants( snps: File, targetTiTv: scala.Double, recalVcf: File) : List[CommandLineGATK] = {
     var clust = StandardVariantCluster(snps, swapExt(snps,".vcf",".cluster"))
     var recal = StandardVariantRecalibrator(snps,clust.clusterFile,targetTiTv,swapExt(snps,".vcf",".recal.vcf"),
-                swapExt(snps,".vcf",".recal.tranch"),swapExt(snps,".vcf",".recal.dat"))
+                swapExt(snps,".vcf",".recal.tranch"))
     var cut = StandardApplyVariantCuts(recal.out,recal.tranches_file,recal.out)
 
     var cmds: List[CommandLineGATK] = Nil
