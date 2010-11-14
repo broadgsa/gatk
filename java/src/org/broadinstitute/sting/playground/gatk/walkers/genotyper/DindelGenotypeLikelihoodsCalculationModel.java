@@ -74,8 +74,14 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         if ( tracker == null )
             return null;
 
+        VariantContext vc = null;
 
-        VariantContext vc = tracker.getVariantContext(ref, "indels", null, ref.getLocus(), true);
+        for( final VariantContext vc_input : tracker.getVariantContexts(ref, "indels", null, ref.getLocus(), false, false) ) {
+            if( vc_input != null && vc_input.isIndel() ) {
+                vc = vc_input;
+                break;
+            }
+        }
         // ignore places where we don't have a variant
         if ( vc == null )
             return null;
@@ -143,6 +149,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
                 GLs.put(sample.getKey(), new BiallelicGenotypeLikelihoods(sample.getKey(),vc.getReference(),
                         vc.getAlternateAllele(0),
                         genotypeLikelihoods[0],genotypeLikelihoods[1], genotypeLikelihoods[2]));
+                //System.out.format("%4.2f %4.2f %4.2f\n",genotypeLikelihoods[0],genotypeLikelihoods[1], genotypeLikelihoods[2]);
 
             }
         }
