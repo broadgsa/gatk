@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.*;
@@ -337,22 +338,12 @@ public class UnifiedGenotyperEngine {
             if ( !BaseUtils.isRegularBase(ref) )
                 return null;
 
-            ReadBackedPileup pileup = rawContext.getBasePileup();
-
-            // don't call when there is no coverage
-            if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
-                return null;
-
-            // are there too many deletions in the pileup?
-            if ( isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
-                 (double)pileup.getNumberOfDeletions() / (double)pileup.size() > UAC.MAX_DELETION_FRACTION )
-                return null;
-
             // stratify the AlignmentContext and cut by sample
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
 
-            // filter the reads
-            filterPileup(stratifiedContexts, badBaseFilter);
+            // filter the reads (and test for bad pileups)
+            if ( !filterPileup(stratifiedContexts, badBaseFilter) )
+                return null;
         }
 
         return stratifiedContexts;
@@ -427,15 +418,46 @@ public class UnifiedGenotyperEngine {
         verboseWriter.println();
     }
 
-    private void filterPileup(Map<String, StratifiedAlignmentContext> stratifiedContexts, BadBaseFilter badBaseFilter) {
+    private boolean filterPileup(Map<String, StratifiedAlignmentContext> stratifiedContexts, BadBaseFilter badBaseFilter) {
+        int numDeletions = 0, pileupSize = 0;
+
         for ( StratifiedAlignmentContext context : stratifiedContexts.values() ) {
             ReadBackedPileup pileup = context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
             for ( PileupElement p : pileup ) {
-               final SAMRecord read = p.getRead();
-                if ( read instanceof GATKSAMRecord )
-                    ((GATKSAMRecord)read).setGoodBases(badBaseFilter, true);
+                final SAMRecord read = p.getRead();
+
+                if ( p.isDeletion() ) {
+                    // if it's a good read, count it
+                    if ( read.getMappingQuality() >= UAC.MIN_MAPPING_QUALTY_SCORE &&
+                         (UAC.USE_BADLY_MATED_READS || !BadMateFilter.hasBadMate(read)) )
+                        numDeletions++;
+                } else {
+                    if ( !(read instanceof GATKSAMRecord) )
+                        throw new ReviewedStingException("The UnifiedGenotyper currently expects GATKSAMRecords, but instead saw a " + read.getClass());
+                    GATKSAMRecord GATKrecord = (GATKSAMRecord)read;
+                    GATKrecord.setGoodBases(badBaseFilter, true);
+                    if ( GATKrecord.isGoodBase(p.getOffset()) )
+                        pileupSize++;
+                }
             }
         }
+
+        // now, test for bad pileups
+
+        // in all_bases mode, it doesn't matter
+        if ( UAC.ALL_BASES_MODE )
+            return true;
+
+        // is there no coverage?
+        if ( pileupSize == 0 )
+            return false;
+
+        // are there too many deletions in the pileup?
+        if ( isValidDeletionFraction(UAC.MAX_DELETION_FRACTION) &&
+                (double)numDeletions / (double)(pileupSize + numDeletions) > UAC.MAX_DELETION_FRACTION )
+            return false;
+
+        return true;
     }
 
     /**
