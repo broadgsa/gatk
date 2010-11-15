@@ -49,33 +49,35 @@ import java.util.*;
 public class Tranche implements Comparable<Tranche> {
     private static final int CURRENT_VERSION = 2;
 
-    public double fdr, pCut, targetTiTv, knownTiTv, novelTiTv;
+    public double fdr, minVQSLod, targetTiTv, knownTiTv, novelTiTv;
     public int numKnown,numNovel;
     public String name;
 
-    public Tranche(double fdr, double targetTiTv, double pCut, int numKnown, double knownTiTv, int numNovel, double novelTiTv) {
-        this(fdr, targetTiTv, pCut, numKnown, knownTiTv, numNovel, novelTiTv, "anonymous");
+    public Tranche(double fdr, double targetTiTv, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv) {
+        this(fdr, targetTiTv, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, "anonymous");
     }
 
-    public Tranche(double fdr, double targetTiTv, double pCut, int numKnown, double knownTiTv, int numNovel, double novelTiTv, String name) {
+    public Tranche(double fdr, double targetTiTv, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, String name) {
         this.fdr = fdr;
         this.targetTiTv = targetTiTv;
-        this.pCut = pCut;
+        this.minVQSLod = minVQSLod;
         this.novelTiTv = novelTiTv;
         this.numNovel = numNovel;
         this.knownTiTv = knownTiTv;
         this.numKnown = numKnown;
         this.name = name;
 
-//        if ( targetTiTv < 0.5 || targetTiTv > 10 )
-//            throw new UserException("Target Ti/Tv ratio is unreasonable " + targetTiTv);
-//
-//        if ( numKnown < 0 || numNovel < 0)
-//            throw new ReviewedStingException("Invalid tranch - no. variants is < 0 : known " + numKnown + " novel " + numNovel);
+        if ( fdr <= 0.0 )
+            throw new UserException("Target FDR is unreasonable " + fdr);
+
+        if ( targetTiTv < 0.5 || targetTiTv > 10 )
+            throw new UserException("Target Ti/Tv ratio is unreasonable " + targetTiTv);
+
+        if ( numKnown < 0 || numNovel < 0)
+            throw new ReviewedStingException("Invalid tranch - no. variants is < 0 : known " + numKnown + " novel " + numNovel);
 
         if ( name == null )
             throw new ReviewedStingException("BUG -- name cannot be null");
-
     }
 
     public int compareTo(Tranche other) {
@@ -83,8 +85,8 @@ public class Tranche implements Comparable<Tranche> {
     }
 
     public String toString() {
-        return String.format("Tranche fdr=%.2f minQual=%.2f known=(%d @ %.2f) novel=(%d @ %.2f) name=%s]",
-                fdr, pCut, numKnown, knownTiTv, numNovel, novelTiTv, name);
+        return String.format("Tranche fdr=%.2f minVQSLod=%.4f known=(%d @ %.2f) novel=(%d @ %.2f) name=%s]",
+                fdr, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, name);
     }
 
     /**
@@ -103,12 +105,12 @@ public class Tranche implements Comparable<Tranche> {
 
         stream.println("# Variant quality score tranches file");
         stream.println("# Version number " + CURRENT_VERSION);
-        stream.println("FDRtranche,targetTiTv,numKnown,numNovel,knownTiTv,novelTiTv,pCut,filterName");
+        stream.println("FDRtranche,targetTiTv,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName");
 
         Tranche prev = null;
         for ( Tranche t : tranches ) {
-            stream.printf("%.2f,%.2f,%d,%d,%.4f,%.4f,%.2f,FDRtranche%.2fto%.2f%n",
-                    t.fdr,t.targetTiTv,t.numKnown,t.numNovel,t.knownTiTv,t.novelTiTv, t.pCut,
+            stream.printf("%.2f,%.2f,%d,%d,%.4f,%.4f,%.4f,FDRtranche%.2fto%.2f%n",
+                    t.fdr,t.targetTiTv,t.numKnown,t.numNovel,t.knownTiTv,t.novelTiTv, t.minVQSLod,
                     (prev == null ? 0.0 : prev.fdr), t.fdr);
             prev = t;
         }
@@ -117,8 +119,10 @@ public class Tranche implements Comparable<Tranche> {
     }
 
     private static double getDouble(Map<String,String> bindings, String key, boolean required) {
-        if ( bindings.containsKey(key) )
-            return Double.valueOf(bindings.get(key));
+        if ( bindings.containsKey(key) ) {
+            String val = bindings.get(key);
+            return Double.valueOf(val);
+        }
         else if ( required ) {
             throw new UserException.MalformedFile("Malformed tranches file.  Missing required key " + key);
         }
@@ -154,6 +158,11 @@ public class Tranche implements Comparable<Tranche> {
                 final String[] vals = line.split(",");
                 if( header == null ) {
                     header = vals;
+                    if ( header.length == 5 )
+                        // old style tranches file, throw an error
+                        throw new UserException.MalformedFile(f, "Unfortuanately, your tranches file is from a previous version of this tool and cannot be used with the latest code.  Please rerun VariantRecalibrator");
+                    if ( header.length != 8 )
+                        throw new UserException.MalformedFile(f, "Expected 8 elements in header line " + line);
                 } else {
                     if ( header.length != vals.length )
                         throw new UserException.MalformedFile(f, "Line had too few/many fields.  Header = " + header.length + " vals " + vals.length + " line " + line);
@@ -162,11 +171,11 @@ public class Tranche implements Comparable<Tranche> {
                     for ( int i = 0; i < vals.length; i++ ) bindings.put(header[i], vals[i]);
                     tranches.add(new Tranche(getDouble(bindings,"FDRtranche", true),
                             getDouble(bindings,"targetTiTv", false),
-                            getDouble(bindings,"pCut", true),
+                            getDouble(bindings,"minVQSLod", true),
                             getInteger(bindings,"numKnown", false),
                             getDouble(bindings,"knownTiTv", false),
                             getInteger(bindings,"numNovel", true),
-                            Math.max(getDouble(bindings,"novelTiTv", false), getDouble(bindings,"novelTITV", false)),
+                            getDouble(bindings,"novelTiTv", true),
                             bindings.get("filterName")));
                 }
             }

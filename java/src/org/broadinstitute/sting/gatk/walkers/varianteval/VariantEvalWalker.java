@@ -43,6 +43,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
+import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.report.ReportMarshaller;
 import org.broadinstitute.sting.utils.report.VE2ReportFactory;
@@ -307,7 +308,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             // we are going to build a few select names automatically from the tranches file
             for ( Tranche t : Tranche.readTraches(new File(TRANCHE_FILENAME)) ) {
                 logger.info("Adding select for all variant above the pCut of : " + t);
-                SELECT_EXPS.add(String.format("QUAL >= %.2f", t.pCut));
+                SELECT_EXPS.add(String.format(VariantRecalibrator.VQS_LOD_KEY + " >= %.2f", t.minVQSLod));
                 SELECT_NAMES.add(String.format("FDR-%.2f", t.fdr));
             }
         }

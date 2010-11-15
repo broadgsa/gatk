@@ -36,10 +36,10 @@ public class VariantDatum implements Comparable<VariantDatum> {
     public double[] annotations;
     public boolean isTransition;
     public boolean isKnown;
-    public double qual;
+    public double lod;
     public double weight;
 
     public int compareTo(VariantDatum other) {
-        return Double.compare(this.qual, other.qual);
+        return Double.compare(this.lod, other.lod);
     }
 }

@@ -58,7 +58,7 @@ public class MathUtils {
         return s;
     }
 
-    public static double log10sum(double[] log10p, int start) {
+    public static double log10sumLog10(double[] log10p, int start) {
         double sum = 0.0;
 
         double maxValue = Utils.findMaxEntry(log10p);
@@ -76,9 +76,14 @@ public class MathUtils {
     }
 
     public static double sumLog10(double[] log10values) {
-        double s = 0.0;
-        for ( double v : log10values) s += Math.pow(10.0, v);
-        return s;
+        return Math.pow(10.0, log10sumLog10(log10values));
+//        double s = 0.0;
+//        for ( double v : log10values) s += Math.pow(10.0, v);
+//        return s;
+    }
+
+    public static double log10sumLog10(double[] log10values) {
+        return log10sumLog10(log10values, 0);
     }
 
     public static boolean wellFormedDouble(double val) {

@@ -1,7 +1,7 @@
-# comment 1
-# comment 2
-FDRtranche,targetTiTv,numKnown,numNovel,knownTiTv,novelTiTv,pCut,filterName
-0.10,2.8000,15791,893,3.3086,2.8000,1.1800,FDRtranche0.00to0.10
-1.00,2.8000,15824,903,3.3047,2.7782,1.0600,FDRtranche0.10to1.00
-10.00,2.8000,16037,984,3.2937,2.5269,0.3800,FDRtranche1.00to10.00
-100.00,2.8000,16578,1602,3.2291,1.6091,0.0000,FDRtranche10.00to100.00
+# Variant quality score tranches file
+# Version number 2
+FDRtranche,targetTiTv,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName
+0.10,2.80,15839,897,3.3052,2.8008,-3.8485,FDRtranche0.00to0.10
+1.00,2.80,15844,900,3.3043,2.7815,-3.8652,FDRtranche0.10to1.00
+2.00,2.80,15847,902,3.3051,2.7583,-3.8826,FDRtranche1.00to2.00
+10.00,2.80,16153,1039,3.2744,2.5704,-5.1058,FDRtranche2.00to10.00

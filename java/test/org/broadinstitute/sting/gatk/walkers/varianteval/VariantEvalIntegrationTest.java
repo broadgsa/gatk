@@ -143,8 +143,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testTranches() {
-        String extraArgs = "-T VariantEval -R "+ hg18Reference +" -B:eval,vcf " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -E TiTvVariantEvaluator -L chr1 -noStandard -reportType CSV -tf " + testDir + "tranches.4.txt";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("85b6621c64cc8f9a3b68cea644edf216"));
+        String extraArgs = "-T VariantEval -R "+ hg18Reference +" -B:eval,vcf " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -E TiTvVariantEvaluator -L chr1 -noStandard -reportType CSV -tf " + testDir + "tranches.6.txt";
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("1002c7a71e6c14f87398d924ac1d92af"));
         executeTestParallel("testTranches",spec);
         //executeTest("testACDiscordanceAtAC1EvalAC2Comp",spec);
     }

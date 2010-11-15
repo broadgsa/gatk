@@ -100,11 +100,11 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         if( tranches.size() >= 2 ) {
             for( int iii = 0; iii < tranches.size() - 1; iii++ ) {
                 Tranche t = tranches.get(iii);
-                hInfo.add(new VCFFilterHeaderLine(t.name, String.format("FDR tranche level at qual: " + t.pCut + " <= x < " + tranches.get(iii+1).pCut)));
+                hInfo.add(new VCFFilterHeaderLine(t.name, String.format("FDR tranche level at VSQ Lod: " + t.minVQSLod + " <= x < " + tranches.get(iii+1).minVQSLod)));
             }
         }
         if( tranches.size() >= 1 ) {
-            hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("FDR tranche level at qual < " + tranches.get(0).pCut)));
+            hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("FDR tranche level at VQS Lod < " + tranches.get(0).minVQSLod)));
         } else {
             throw new UserException("No tranches were found in the file or were above the FDR Filter level " + FDR_FILTER_LEVEL);
         }
@@ -131,28 +131,31 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
             if( vc != null && !vc.getSource().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
                 String filterString = null;
                 if( !vc.isFiltered() ) {
-                    final double qual = vc.getPhredScaledQual();
-
-                    for( int i = tranches.size() - 1; i >= 0; i-- ) {
-                        Tranche tranche = tranches.get(i);
-                        if( qual >= tranche.pCut ) {
-                            if (i == tranches.size() - 1) {
-                                filterString = VCFConstants.PASSES_FILTERS_v4;
-                            } else {
-                                filterString = tranche.name;
+                    try {
+                        final double lod = vc.getAttributeAsDouble(VariantRecalibrator.VQS_LOD_KEY);
+                        for( int i = tranches.size() - 1; i >= 0; i-- ) {
+                            Tranche tranche = tranches.get(i);
+                            if( lod >= tranche.minVQSLod ) {
+                                if (i == tranches.size() - 1) {
+                                    filterString = VCFConstants.PASSES_FILTERS_v4;
+                                } else {
+                                    filterString = tranche.name;
+                                }
+                                break;
                             }
-                            break;
                         }
-                    }
 
-                    if( filterString == null ) {
-                        filterString = tranches.get(0).name+"+";
-                    }
+                        if( filterString == null ) {
+                            filterString = tranches.get(0).name+"+";
+                        }
 
-                    if ( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
-                        Set<String> filters = new HashSet<String>();
-                        filters.add(filterString);
-                        vc = VariantContext.modifyFilters(vc, filters);
+                        if ( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                            Set<String> filters = new HashSet<String>();
+                            filters.add(filterString);
+                            vc = VariantContext.modifyFilters(vc, filters);
+                        }
+                    } catch ( ClassCastException e ) {
+                        throw new UserException.MalformedFile(vc.getSource(), "Invalid value for VQS key " + VariantRecalibrator.VQS_LOD_KEY + " at variant " + vc, e);
                     }
                 }
 

@@ -30,15 +30,15 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
 
     VRTest yriTrio = new VRTest("yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
             "ab2629d67e378fd3aceb8318f0fbfe04",  // in vcf
-            "4dd95e9d8e5d21a6ab73de67d9663492",  // tranches
-            "4e893672230fca625f70b0491f3b36cb",  // recalVCF
-            "371b0e2796982485ae050e46892f6660"); // cut VCF
+            "d8f0a92aa42989d332d3c65f61352978",  // tranches
+            "3370e51f6e5035f2472c66762d13c821",  // recalVCF
+            "4801e6cfaeadc81c5c1f9bf5948e2a1c"); // cut VCF
 
     VRTest lowPass = new VRTest("lowpass.N3.chr1.raw.vcf",
             "725489156426e4ddd8d623ab3d4b1023",  // in vcf
-            "dfc07132f592a811d0d6c25a4cb67a09",  // tranches
-            "d52e4f511c9c00f8c21dffea81c47103",  // recalVCF
-            "39716b2f03b50e88855d7975dd1b9b3e"); // cut VCF
+            "3a7067247146f4a77bb4fd7bc36f94c4",  // tranches
+            "9a525c6838bff695321fc7ac0e458f9c",  // recalVCF
+            "41e0a16af150244454ee68948ced00fb"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -64,7 +64,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         executeTest("testGenerateVariantClusters-"+params.inVCF, spec).getFirst();
     }
 
-    @Test(dataProvider = "VRTest", dependsOnMethods = {"testGenerateVariantClusters"}, enabled = true)
+    @Test(dataProvider = "VRTest", enabled = true)
     public void testVariantRecalibrator(VRTest params) {
         //System.out.printf("PARAMS FOR %s is %s%n", vcf, clusterFile);
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -85,7 +85,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         executeTest("testVariantRecalibrator-"+params.inVCF, spec).getFirst();
     }
 
-    @Test(dataProvider = "VRTest", dependsOnMethods = {"testVariantRecalibrator"}, enabled = true)
+    @Test(dataProvider = "VRTest", enabled = true)
     public void testApplyVariantCuts(VRTest params) {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +

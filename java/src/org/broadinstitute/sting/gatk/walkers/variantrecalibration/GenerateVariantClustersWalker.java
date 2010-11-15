@@ -183,7 +183,6 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.annotations = annotationValues;
-                    variantDatum.qual = vc.getPhredScaledQual();
 
                     final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                     final Collection<VariantContext> vcsHapMap = tracker.getVariantContexts(ref, "hapmap", null, context.getLocation(), false, true);
@@ -201,7 +200,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                         variantDatum.weight = WEIGHT_DBSNP;
                     }
 
-                    if( variantDatum.weight > 0.0 && variantDatum.qual > QUAL_THRESHOLD ) {
+                    if( variantDatum.weight > 0.0 && vc.getPhredScaledQual() > QUAL_THRESHOLD ) {
                         mapList.add( variantDatum );
                     }
                 }

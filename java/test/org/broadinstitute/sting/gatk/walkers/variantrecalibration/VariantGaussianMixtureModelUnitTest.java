@@ -59,7 +59,7 @@ public final class VariantGaussianMixtureModelUnitTest extends BaseTest {
     VariantDatum[] variantData1 = new VariantDatum[N_VARIANTS];
 
     private final File QUAL_DATA = new File(testDir + "tranches.raw.dat");
-    private final double[] FDRS = new double[]{0.1, 1, 10, 100};
+    private final double[] FDRS = new double[]{0.1, 1, 2, 10};
     private final double TARGET_TITV = 2.8;
     private final File EXPECTED_TRANCHES_NEW = new File(testDir + "tranches.6.txt");
     private final File EXPECTED_TRANCHES_OLD = new File(testDir + "tranches.4.txt");
@@ -68,12 +68,13 @@ public final class VariantGaussianMixtureModelUnitTest extends BaseTest {
         List<VariantDatum> vd = new ArrayList<VariantDatum>();
         try {
             for ( String line : new XReadLines(QUAL_DATA, true) ) {
-                String[] parts = line.split(" ");
+                String[] parts = line.split("\t");
+                // QUAL,TRANSITION,ID,LOD,FILTER
                 if ( ! parts[0].equals("QUAL") ) {
                     VariantDatum datum = new VariantDatum();
-                    datum.qual = Double.valueOf(parts[0]);
+                    datum.lod = Double.valueOf(parts[3]);
                     datum.isTransition = parts[1].equals("1");
-                    datum.isKnown = parts[2].equals("1");
+                    datum.isKnown = ! parts[2].equals(".");
                     vd.add(datum);
                 }
             }
@@ -94,20 +95,13 @@ public final class VariantGaussianMixtureModelUnitTest extends BaseTest {
         read(EXPECTED_TRANCHES_NEW);
     }
 
-    @Test
+    @Test(expectedExceptions = {UserException.MalformedFile.class})
     public final void readOldFormat() {
         read(EXPECTED_TRANCHES_OLD);
     }
 
     public final List<Tranche> read(File f) {
         return Tranche.readTraches(f);
-    }
-
-    @Test
-    public final void testNewAndOldAretheSame() {
-        List<Tranche> newFormat = read(EXPECTED_TRANCHES_NEW);
-        List<Tranche> oldFormat = read(EXPECTED_TRANCHES_OLD);
-        assertTranchesAreTheSame(newFormat, oldFormat, false, true);
     }
 
     private static void assertTranchesAreTheSame(List<Tranche> newFormat, List<Tranche> oldFormat, boolean completeP, boolean includeName) {
@@ -136,15 +130,15 @@ public final class VariantGaussianMixtureModelUnitTest extends BaseTest {
         assertTranchesAreTheSame(read(EXPECTED_TRANCHES_NEW), tranches, true, false);
     }
 
-//    @Test(expectedExceptions = {UserException.class})
-//    public final void testBadFDR() {
-//        List<VariantDatum> vd = readData();
-//        VariantGaussianMixtureModel.findTranches(vd.toArray(new VariantDatum[0]), new double[]{-1}, TARGET_TITV);
-//    }
-//
-//    @Test(expectedExceptions = {UserException.class})
-//    public final void testBadTargetTiTv() {
-//        List<VariantDatum> vd = readData();
-//        VariantGaussianMixtureModel.findTranches(vd.toArray(new VariantDatum[0]), FDRS, 0.1);
-//    }
+    @Test(expectedExceptions = {UserException.class})
+    public final void testBadFDR() {
+        List<VariantDatum> vd = readData();
+        VariantGaussianMixtureModel.findTranches(vd.toArray(new VariantDatum[0]), new double[]{-1}, TARGET_TITV);
+    }
+
+    @Test(expectedExceptions = {UserException.class})
+    public final void testBadTargetTiTv() {
+        List<VariantDatum> vd = readData();
+        VariantGaussianMixtureModel.findTranches(vd.toArray(new VariantDatum[0]), FDRS, 0.1);
+    }
 }

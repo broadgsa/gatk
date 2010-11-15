@@ -444,7 +444,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     }
 
     public final double evaluateVariant( GenomeLocParser genomeLocParser, final VariantContext vc ) {
-        final double[] pVarInCluster = new double[maxGaussians];
+        final double[] log10pVarInCluster = new double[maxGaussians];
         final double[] annotations = new double[dataManager.numAnnotations];
 
         for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
@@ -452,14 +452,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             annotations[jjj] = (value - dataManager.meanVector[jjj]) / dataManager.varianceVector[jjj];
         }
 
-        evaluateGaussiansForSingleVariant( annotations, pVarInCluster );
-
-        double sum = 0.0;
-        for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
-            sum += pVarInCluster[kkk];
-        }
-
-        return sum;
+        return evaluateGaussiansForSingleVariant( annotations, log10pVarInCluster );
     }
 
     // ---------------------------------------------------------------------------------------------------------
@@ -474,7 +467,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     public final static List<Tranche> findTranches( final VariantDatum[] data, final double[] FDRtranches, double targetTiTv, File debugFile ) {
         logger.info(String.format("Finding tranches for %d variants with %d FDRs and a target TiTv of %.2f", data.length, FDRtranches.length, targetTiTv));
 
-        List<VariantDatum> tranchesData = sortVariantsbyQual(data);
+        List<VariantDatum> tranchesData = sortVariantsbyLod(data);
         double[] runningTiTv = calculateRunningTiTv(tranchesData);
 
         if ( debugFile != null) { writeTranchesDebuggingInfo(debugFile, tranchesData, runningTiTv); }
@@ -502,14 +495,14 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             out.println("Qual isTransition runningTiTv");
             for ( int i = 0; i < runningTiTv.length; i++ ) {
                 VariantDatum  d = tranchesData.get(i);
-                out.printf("%.4f %d %.4f%n", d.qual, d.isTransition ? 1 : 0, runningTiTv[i]);
+                out.printf("%.4f %d %.4f%n", d.lod, d.isTransition ? 1 : 0, runningTiTv[i]);
             }
         } catch (FileNotFoundException e) {
             throw new UserException.CouldNotCreateOutputFile(f, e);
         }
     }
 
-    private final static List<VariantDatum> sortVariantsbyQual(final VariantDatum[] data) {
+    private final static List<VariantDatum> sortVariantsbyLod(final VariantDatum[] data) {
         List<VariantDatum> sorted = new ArrayList<VariantDatum>(Arrays.asList(data));
         Collections.sort(sorted);
         return sorted;
@@ -555,10 +548,10 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     public final static Tranche trancheOfVariants( final List<VariantDatum> data, int minI, double fdr, double targetTiTv ) {
         int numKnown = 0, numNovel = 0, knownTi = 0, knownTv = 0, novelTi = 0, novelTv = 0;
 
-        double qualThreshold = data.get(minI).qual;
+        double minLod = data.get(minI).lod;
         VariantDatum last = null;
         for ( VariantDatum datum : data ) {
-            if ( datum.qual >= qualThreshold ) {
+            if ( datum.lod >= minLod ) {
                 //if( ! datum.isKnown ) System.out.println(datum.pos);
                 if ( datum.isKnown ) {
                     numKnown++;
@@ -575,7 +568,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         double knownTiTv = knownTi / Math.max(1.0 * knownTv, 1.0);
         double novelTiTv = novelTi / Math.max(1.0 * novelTv, 1.0);
 
-        return new Tranche(fdr, targetTiTv, qualThreshold, numKnown, knownTiTv, numNovel, novelTiTv);
+        return new Tranche(fdr, targetTiTv, minLod, numKnown, knownTiTv, numNovel, novelTiTv);
     }
 
     public final static double fdrToTiTv(double desiredFDR, double targetTiTv) {
@@ -666,8 +659,7 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         return likelihood / sumWeight;
     }
 
-
-    private void evaluateGaussiansForSingleVariant( final double[] annotations, final double[] pVarInCluster ) {
+    private double evaluateGaussiansForSingleVariant( final double[] annotations, final double[] log10pVarInCluster ) {
 
         final int numAnnotations = annotations.length;
 
@@ -689,10 +681,12 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
 
             final double denomLog10 = CONSTANT_GAUSSIAN_DENOM_LOG10 + sqrtDeterminantLog10[kkk];
             final double evalGaussianPDFLog10 = (( -0.5 * sum ) / Math.log(10.0)) - denomLog10;
-            final double pVar1 = Math.pow(10.0, pClusterLog10[kkk] + evalGaussianPDFLog10);
-            pVarInCluster[kkk] = pVar1;
+            //final double pVar1 = Math.pow(10.0, pClusterLog10[kkk] + evalGaussianPDFLog10);
+            final double pVar1 = pClusterLog10[kkk] + evalGaussianPDFLog10;
+            log10pVarInCluster[kkk] = pVar1;
         }
 
+        return MathUtils.log10sumLog10(log10pVarInCluster);
     }
 
 

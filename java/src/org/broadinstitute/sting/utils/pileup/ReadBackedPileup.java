@@ -141,9 +141,6 @@ public interface ReadBackedPileup extends Iterable<PileupElement> {
      */
     public ReadBackedPileup getPileupForSample(String sampleName);
     
-    // todo -- delete or make private
-    public IterableIterator<ExtendedPileupElement> extendedForeachIterator();    
-
     /**
      * Simple useful routine to count the number of deletion bases in this pileup
      *

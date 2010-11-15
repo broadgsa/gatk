@@ -40,12 +40,18 @@ import org.broadinstitute.sting.utils.pileup.*;
 import java.util.*;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
     private final static int MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER = 20;
     private final static char REGEXP_WILDCARD = '.';
+
+    public boolean useRead(PileupElement p) {
+        return ! ReadUtils.is454Read(p.getRead());
+        //return ! (p.getRead() instanceof GATKSAMRecord && ! ((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) && ! ReadUtils.is454Read(p.getRead());
+    }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( !vc.isBiallelic() || !vc.isSNP() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
@@ -88,15 +94,11 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         ArrayList<Haplotype> haplotypeList = new ArrayList<Haplotype>();
         PriorityQueue<Haplotype> haplotypeQueue = new PriorityQueue<Haplotype>(100, new HaplotypeComparator());
 
-
-        for ( ExtendedPileupElement p : pileup.extendedForeachIterator() ) {
-            if (ReadUtils.is454Read(p.getRead()))
-                continue;
-            Haplotype haplotypeFromRead = getHaplotypeFromRead(p, contextSize);
-
-
-            haplotypeQueue.add(haplotypeFromRead);
-            //haplotypeList.add(haplotypeFromRead);
+        for ( PileupElement p : pileup ) {
+            if ( useRead(p) ) {
+                Haplotype haplotypeFromRead = getHaplotypeFromRead(p, contextSize);
+                haplotypeQueue.add(haplotypeFromRead);
+            }
         }
 
         // Now that priority queue has been built with all reads at context, we need to merge and find possible segregating haplotypes
@@ -161,7 +163,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             return null;
     }
 
-    private Haplotype getHaplotypeFromRead(ExtendedPileupElement p, int contextSize) {
+    private Haplotype getHaplotypeFromRead(PileupElement p, int contextSize) {
         SAMRecord read = p.getRead();
         int readOffsetFromPileup = p.getOffset();
         int baseOffsetStart = readOffsetFromPileup - (contextSize - 1)/2;
@@ -239,24 +241,28 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
 //        if ( DEBUG ) System.out.printf("HAP1: %s%n", haplotypes.get(1));
 
         double[][] haplotypeScores = new double[pileup.size()][haplotypes.size()];
-        for ( ExtendedPileupElement p : pileup.extendedForeachIterator() ) {
-            SAMRecord read = p.getRead();
-            int readOffsetFromPileup = p.getOffset();
+        int pileupOffset = 0;
+        for ( PileupElement p : pileup ) {
+            if ( useRead(p) ) {
+                SAMRecord read = p.getRead();
+                int readOffsetFromPileup = p.getOffset();
 
-            if (ReadUtils.is454Read(read))
-                continue;
+                if (ReadUtils.is454Read(read))
+                    continue;
 
-            if ( DEBUG ) System.out.printf("--------------------------------------------- Read %s%n", read.getReadName());
-            double m = 10000000;
-            for ( int i = 0; i < haplotypes.size(); i++ ) {
-                Haplotype haplotype = haplotypes.get(i);
-                int start = readOffsetFromPileup - (contextSize - 1)/2;
-                double score = scoreReadAgainstHaplotype(read, start, contextSize, haplotype);
-                haplotypeScores[p.getPileupOffset()][i] = score;
-                if ( DEBUG ) System.out.printf("  vs. haplotype %d = %f%n", i, score);
-                m = Math.min(score, m);
+                if ( DEBUG ) System.out.printf("--------------------------------------------- Read %s%n", read.getReadName());
+                double m = 10000000;
+                for ( int i = 0; i < haplotypes.size(); i++ ) {
+                    Haplotype haplotype = haplotypes.get(i);
+                    int start = readOffsetFromPileup - (contextSize - 1)/2;
+                    double score = scoreReadAgainstHaplotype(read, start, contextSize, haplotype);
+                    haplotypeScores[pileupOffset][i] = score;
+                    if ( DEBUG ) System.out.printf("  vs. haplotype %d = %f%n", i, score);
+                    m = Math.min(score, m);
+                }
+                if ( DEBUG ) System.out.printf("  => best score was %f%n", m);
             }
-            if ( DEBUG ) System.out.printf("  => best score was %f%n", m);
+            pileupOffset++; // todo -- remove me
         }
 
         double overallScore = 0.0;

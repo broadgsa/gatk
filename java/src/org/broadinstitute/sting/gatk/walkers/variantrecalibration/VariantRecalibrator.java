@@ -40,6 +40,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.File;
@@ -57,6 +58,8 @@ import java.util.*;
  */
 
 public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> {
+    public static final String VQS_LOD_KEY = "VQSLOD";
+    public static final double SMALLEST_LOG10_PVAR = -1e6;
 
     /////////////////////////////
     // Inputs
@@ -115,12 +118,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Hidden
     @Argument(fullName = "qual", shortName = "qual", doc = "Don't use sites with original quality scores below the qual threshold. FOR DEBUGGING PURPOSES ONLY.", required=false)
     private double QUAL_THRESHOLD = 0.0;
-    @Hidden
-    @Argument(fullName="quality_scale_factor", shortName="qScaleFactor", doc="Multiply all final quality scores by this value. FOR DEBUGGING PURPOSES ONLY.", required=false)
-    private double QUALITY_SCALE_FACTOR = 1.0;
     @Argument(fullName = "debugFile", shortName = "debugFile", doc = "Print debugging information here", required=false)
     private File DEBUG_FILE = null;
-
 
     /////////////////////////////
     // Private Member Variables
@@ -131,13 +130,12 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private Set<String> inputNames = new HashSet<String>();
     private NestedHashMap priorCache = new NestedHashMap();
     private boolean trustACField = false;
-    private double maxQualObserved = 0.0;
     private PrintStream tranchesStream = null;
 
-    private static double round2(double num) {
-        double result = num * 100.0;
+    private static double round4(double num) {
+        double result = num * 10000.0;
         result = Math.round(result);
-        result = result / 100.0;
+        result = result / 10000.0;
         return result;
     }
 
@@ -196,8 +194,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         final TreeSet<String> samples = new TreeSet<String>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
-        hInfo.add(new VCFInfoHeaderLine("OQ", 1, VCFHeaderLineType.Float, "The original variant quality score"));
-        hInfo.add(new VCFInfoHeaderLine("LOD", 1, VCFHeaderLineType.Float, "The log odds ratio calculated by the VR algorithm which was turned into the phred scaled recalibrated quality score"));
+        hInfo.add(new VCFInfoHeaderLine(VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "log10-scaled probability of variant being true under the trained gaussian mixture model"));
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
         final VCFHeader vcfHeader = new VCFHeader(hInfo, samples);
@@ -288,19 +285,20 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                             priorCache.put( priorLodFactor, false, priorKey );
                         }
 
-                        final double pVar = theModel.evaluateVariant( ref.getGenomeLocParser(),vc );
-                        final double lod = priorLodFactor + Math.log10(pVar);
-                        variantDatum.pos = vc.getStart();
-                        variantDatum.qual = round2(Math.abs( QUALITY_SCALE_FACTOR * QualityUtils.lodToPhredScaleErrorRate(lod)));
-                        if( variantDatum.qual > maxQualObserved ) {
-                            maxQualObserved = variantDatum.qual;
+                        final double log10pVar = theModel.evaluateVariant( ref.getGenomeLocParser(),vc );
+                        final double lod = priorLodFactor + log10pVar;
+
+                        if ( lod == Double.NEGATIVE_INFINITY ) {
+                            throw new ReviewedStingException("Negative infinity detected during summation at " + vc);
                         }
+
+                        variantDatum.pos = vc.getStart();
+                        variantDatum.lod = round4(lod);
 
                         mapList.add( variantDatum );
                         final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                        attrs.put("OQ", String.format("%.2f", vc.getPhredScaledQual()));
-                        attrs.put("LOD", String.format("%.4f", lod));
-                        VariantContext newVC = VariantContext.modifyPErrorFiltersAndAttributes(vc, variantDatum.qual / 10.0, new HashSet<String>(), attrs);
+                        attrs.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
+                        VariantContext newVC = VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), new HashSet<String>(), attrs);
 
                         vcfWriter.add( newVC, ref.getBase() );
                     }

@@ -92,13 +92,10 @@ public class AnnotatorInputTableCodec implements ReferenceDependentFeatureCodec<
 
         GenomeLoc loc;
         String chr = st.nextToken();
-        if ( chr.indexOf(":") != -1 ) {
+        if ( chr.indexOf(":") != -1 )
             loc = genomeLocParser.parseGenomeInterval(chr);
-        } else {
-            if ( st.countTokens() < 3 )
-                throw new CodecLineParsingException("Couldn't parse GenomeLoc out of the following line because there aren't enough tokens.\nLine: " + line);
+        else
             loc = genomeLocParser.createGenomeLoc(chr, Integer.valueOf(st.nextToken()), Integer.valueOf(st.nextToken()));
-        }
         return new AnnotatorInputTableFeature(loc.getContig(), (int)loc.getStart(), (int)loc.getStop());
     }
 

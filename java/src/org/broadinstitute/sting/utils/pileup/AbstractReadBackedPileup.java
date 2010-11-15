@@ -652,19 +652,6 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
      * @return
      */
 
-    // todo -- reimplement efficiently
-    // todo -- why is this public?
-    @Override
-    public IterableIterator<ExtendedPileupElement> extendedForeachIterator() {
-        ArrayList<ExtendedPileupElement> x = new ArrayList<ExtendedPileupElement>(size());
-        int i = 0;
-        for ( PileupElement pile : this ) {
-            x.add(new ExtendedPileupElement(pile.getRead(), pile.getOffset(), i++, this));
-        }
-
-        return new IterableIterator<ExtendedPileupElement>(x.iterator());
-    }
-
     /**
      * Simple useful routine to count the number of deletion bases in this pileup
      *
