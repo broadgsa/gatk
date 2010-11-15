@@ -61,7 +61,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
     public void setUp() {
         File file = new File(testDir + "TabularDataTest.dat");
         RMDTrackBuilder builder = new RMDTrackBuilder();
-        builder.setSequenceDictionary(seq.getSequenceDictionary(),genomeLocParser);        
+        builder.setSequenceDictionary(seq.getSequenceDictionary(),genomeLocParser,null);        
         rod = builder.createInstanceOfTrack(TableCodec.class, "tableTest", file);
     }
 

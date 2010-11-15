@@ -105,7 +105,7 @@ public class RMDIndexer extends CommandLineProgram {
             IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(referenceFile);
 
             // add writing of the sequence dictionary, if supplied
-            RMDTrackBuilder.setIndexSequenceDictionary(index, seq.getSequenceDictionary(), indexFile, false);
+            builder.setIndexSequenceDictionary(inputFileSource, index, seq.getSequenceDictionary(), indexFile, false);
         }
 
         // create the output stream, and write the index

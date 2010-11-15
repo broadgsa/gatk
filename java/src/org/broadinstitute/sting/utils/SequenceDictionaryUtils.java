@@ -27,7 +27,6 @@ package org.broadinstitute.sting.utils;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -66,7 +65,7 @@ public class SequenceDictionaryUtils {
     private static SAMSequenceRecord CHR2_HG19 = new SAMSequenceRecord("chr2", 243199373);
     private static SAMSequenceRecord CHR10_HG19 = new SAMSequenceRecord("chr10", 135534747);
 
-    public enum SequenceDictionaryCompatability {
+    public enum SequenceDictionaryCompatibility {
         IDENTICAL,                      // the dictionaries are identical
         COMMON_SUBSET,                  // there exists a common subset of equivalent contigs
         NO_COMMON_CONTIGS,              // no overlap between dictionaries
@@ -96,7 +95,7 @@ public class SequenceDictionaryUtils {
      * @param dict2 the sequence dictionary dict2
      */
     public static void validateDictionaries(Logger logger, ValidationExclusion.TYPE validationExclusion, String name1, SAMSequenceDictionary dict1, String name2, SAMSequenceDictionary dict2) {
-        SequenceDictionaryCompatability type = compareDictionaries(dict1, dict2);
+        SequenceDictionaryCompatibility type = compareDictionaries(dict1, dict2);
         switch ( type ) {
             case IDENTICAL:
                 return;
@@ -155,23 +154,23 @@ public class SequenceDictionaryUtils {
      * @param dict2
      * @return
      */
-    public static SequenceDictionaryCompatability compareDictionaries(SAMSequenceDictionary dict1, SAMSequenceDictionary dict2) {
+    public static SequenceDictionaryCompatibility compareDictionaries(SAMSequenceDictionary dict1, SAMSequenceDictionary dict2) {
         // If there's no overlap between reads and reference, data will be bogus.  Throw an exception.
         if ( nonCanonicalHumanContigOrder( dict1 ) || nonCanonicalHumanContigOrder(dict2) )
-            return SequenceDictionaryCompatability.NON_CANONICAL_HUMAN_ORDER;
+            return SequenceDictionaryCompatibility.NON_CANONICAL_HUMAN_ORDER;
 
         Set<String> commonContigs = getCommonContigsByName(dict1, dict2);
 
         if (commonContigs.size() == 0)
-            return SequenceDictionaryCompatability.NO_COMMON_CONTIGS;
+            return SequenceDictionaryCompatibility.NO_COMMON_CONTIGS;
         else if ( ! commonContigsAreEquivalent( commonContigs, dict1, dict2 ) )
-            return SequenceDictionaryCompatability.UNEQUAL_COMMON_CONTIGS;
+            return SequenceDictionaryCompatibility.UNEQUAL_COMMON_CONTIGS;
         else if ( ! commonContigsAreInOrder( commonContigs, dict1, dict2 ) )
-            return SequenceDictionaryCompatability.OUT_OF_ORDER;
+            return SequenceDictionaryCompatibility.OUT_OF_ORDER;
         else if ( commonContigs.size() == dict1.size() && commonContigs.size() == dict2.size() )
-            return SequenceDictionaryCompatability.IDENTICAL;
+            return SequenceDictionaryCompatibility.IDENTICAL;
         else {
-            return SequenceDictionaryCompatability.COMMON_SUBSET;
+            return SequenceDictionaryCompatibility.COMMON_SUBSET;
         }
     }
 

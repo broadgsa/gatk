@@ -34,6 +34,7 @@ import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
@@ -41,6 +42,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.AbstractGenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -85,6 +87,11 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      */
     private GenomeLocParser genomeLocParser;
 
+    /**
+     * Validation exclusions, for validating the sequence dictionary.
+     */
+    private ValidationExclusion.TYPE validationExclusionType;
+
     /** Create a new plugin manager. */
     public RMDTrackBuilder() {
         super(FeatureCodec.class, "Codecs", "Codec");
@@ -92,21 +99,25 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
 
     /**
      * Create a new RMDTrackBuilder, with dictionary and genomeLocParser predefined.
-     * @param dict
-     * @param genomeLocParser
+     * @param dict Sequence dictionary to use.
+     * @param genomeLocParser Location parser to use.
+     * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
      */
-    public RMDTrackBuilder(SAMSequenceDictionary dict,GenomeLocParser genomeLocParser) {
+    public RMDTrackBuilder(SAMSequenceDictionary dict,GenomeLocParser genomeLocParser, ValidationExclusion.TYPE validationExclusionType) {
         super(FeatureCodec.class, "Codecs", "Codec");
-        setSequenceDictionary(dict,genomeLocParser);
+        setSequenceDictionary(dict,genomeLocParser,validationExclusionType);
     }
 
     /**
-     *
-     * @param dict the sequence dictionary to use as a reference for Tribble track contig length lookups
+     * Establish location-aware parsing and services for relevant reference metadata.
+     * @param dict Sequence dictionary to use.
+     * @param genomeLocParser Location parser to use.
+     * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
      */
-    public void setSequenceDictionary(SAMSequenceDictionary dict,GenomeLocParser genomeLocParser) {
+    public void setSequenceDictionary(SAMSequenceDictionary dict,GenomeLocParser genomeLocParser,ValidationExclusion.TYPE validationExclusionType) {
         this.dict = dict;
         this.genomeLocParser = genomeLocParser;
+        this.validationExclusionType = validationExclusionType;
     }    
 
     /** @return a list of all available track types we currently have access to create */
@@ -226,7 +237,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
             // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
             if (dictFromIndex.size() == 0 && dict != null) {
                 File indexFile = Tribble.indexFile(inputFile);
-                setIndexSequenceDictionary(index,dict,indexFile,true);
+                setIndexSequenceDictionary(inputFile,index,dict,indexFile,true);
                 dictFromIndex = getSequenceDictionaryFromProperties(index);
             }
 
@@ -366,7 +377,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         // this can take a while, let them know what we're doing
         logger.info("Creating Tribble index in memory for file " + inputFile);
         Index idx = IndexFactory.createIndex(inputFile, codec, IndexFactory.IndexBalanceApproach.FOR_SEEK_TIME);
-        setIndexSequenceDictionary(idx, dict, null, false);
+        setIndexSequenceDictionary(inputFile, idx, dict, null, false);
         return idx;
     }
 
@@ -493,25 +504,23 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     /**
      * set the sequence dictionary of the track.  This function checks that the contig listing of the underlying file is compatible.
      * (that each contig in the index is in the sequence dictionary).
+     * @param inputFile for proper error message formatting.
      * @param dict the sequence dictionary
      * @param index the index file
      * @param indexFile the index file
      * @param rewriteIndex should we rewrite the index when we're done?
      *
      */
-    public static void setIndexSequenceDictionary(Index index, SAMSequenceDictionary dict, File indexFile, boolean rewriteIndex) {
+    public void setIndexSequenceDictionary(File inputFile, Index index, SAMSequenceDictionary dict, File indexFile, boolean rewriteIndex) {
         if (dict == null) return;
 
         SAMSequenceDictionary currentDict = createSequenceDictionaryFromContigList(index, new SAMSequenceDictionary());
+        SequenceDictionaryUtils.validateDictionaries(logger,validationExclusionType,"GATK",dict,inputFile.getAbsolutePath(),currentDict);
+
         // check that every contig in the RMD contig list is at least in the sequence dictionary we're being asked to set
         for (SAMSequenceRecord seq : currentDict.getSequences()) {
             if (dict.getSequence(seq.getSequenceName()) == null)
-                throw new UserException.IncompatibleSequenceDictionaries("The sequence dictionary from the reference the GATK is running with is not compatible with the sequence " +
-                                                      "dictionary in the Tribble file " + indexFile + ".  It doesn't contain the contig: " + seq.getSequenceName(),
-                                                      "RMD Sequence Dictionary",
-                                                      currentDict,
-                                                      "Reference Sequence Dictionary",
-                                                      dict);
+                continue;
             index.addProperty(SequenceDictionaryPropertyPredicate + dict.getSequence(seq.getSequenceName()).getSequenceName(), String.valueOf(dict.getSequence(seq.getSequenceName()).getSequenceLength()));
         }
         // re-write the index

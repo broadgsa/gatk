@@ -329,7 +329,7 @@ public abstract class AbstractGenomeAnalysisEngine {
         RMDTrackBuilder manager = new RMDTrackBuilder();
 
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
-        manager.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser);
+        manager.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
 
         List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection);
         validateSuppliedReferenceOrderedData(tracks);

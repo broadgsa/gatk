@@ -29,6 +29,7 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.vcf.VCFCodec;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -152,8 +153,8 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
         File vcfFile = createCorrectDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
         Long indexTimeStamp = Tribble.indexFile(vcfFile).lastModified();
         try {
+            builder.setSequenceDictionary(seq.getSequenceDictionary(),genomeLocParser,null);
             Index idx = builder.loadIndex(vcfFile, new VCFCodec());
-            RMDTrackBuilder.setIndexSequenceDictionary(idx,seq.getSequenceDictionary(),vcfFile,false);
             // catch any exception; this call should pass correctly
             SAMSequenceDictionary dict =  RMDTrackBuilder.getSequenceDictionaryFromProperties(idx);
         } catch (IOException e) {

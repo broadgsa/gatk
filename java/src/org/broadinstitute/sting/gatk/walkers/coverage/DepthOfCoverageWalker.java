@@ -403,7 +403,9 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     }
 
     private LocationAwareSeekableRODIterator initializeRefSeq() {
-        RMDTrackBuilder builder = new RMDTrackBuilder();
+        RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                      getToolkit().getGenomeLocParser(),
+                                                      getToolkit().getArguments().unsafe);
         FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,refSeqGeneList).first;
         try {
             return new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
