@@ -490,17 +490,18 @@
             <testng outputDir="${report}/@{testtype}"
                     haltOnFailure="false" failureProperty="test.failure"
                     verbose="2"
-                    workingDir="${basedir}" 
-		    useDefaultListeners="false" listeners="org.testng.reporters.XMLReporter,org.testng.reporters.JUnitXMLReporter">
+                    workingDir="${basedir}"
+                    useDefaultListeners="false"
+                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.StingTextReporter">
                 <jvmarg value="-Djava.awt.headless=true"/>
 <!--
-            <jvmarg value="-Xdebug"/>
-            <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
+                <jvmarg value="-Xdebug"/>
+                <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
 -->
                 <classpath>
                     <path refid="external.dependencies" />
-		    <pathelement location="${java.classes}" />
-		    <pathelement location="${queue.classes}" />
+                    <pathelement location="${java.classes}" />
+                    <pathelement location="${queue.classes}" />
                     <pathelement location="${java.test.classes}" />
                     <pathelement location="${queue.test.classes}" />
                 </classpath>
