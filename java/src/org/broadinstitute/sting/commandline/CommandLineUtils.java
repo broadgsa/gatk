@@ -133,7 +133,11 @@ public class CommandLineUtils {
         }
     }
 
-    // TODO -- is there a better way to do this?
+    // The problem here is that some of the fields being output are Objects - and those
+    //  Objects don't overload toString() so that the output is just the memory pointer
+    //  to the Object.  Because those values are non-deterministic, they don't merge well
+    //  into BAM/VCF headers (plus, it's just damn ugly).  Perhaps there's a better way to
+    //  do this, but at least this one works for the moment.
     private static final String pointerRegexp = ".+@[0-9a-fA-F]+$";
     private static boolean isObjectPointer(String s) {
         return s != null && s.matches(pointerRegexp);
