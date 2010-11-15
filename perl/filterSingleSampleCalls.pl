@@ -90,7 +90,7 @@ while( <$input_stream> ) {
     my $indel_cnt = $2;
     my $cov = $3;
 
-    if ( $_ =~ /\sOBS_COUNTS\[C\/A\/R\]:(\d+)\/(\d+)\/(\d+)\s/ ) {
+    if ( $_ =~ /\sOBS_COUNTS\[C\/A\/[RT]\]:(\d+)\/(\d+)\/(\d+)\s/ ) {
         $cons_cnt = $1;
         $indel_cnt = $2;
         $cov = $3;
