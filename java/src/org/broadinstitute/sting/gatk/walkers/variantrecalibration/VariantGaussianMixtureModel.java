@@ -467,10 +467,18 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     // Code to determine FDR tranches for VariantDatum[]
     //
     // ---------------------------------------------------------------------------------------------------------
-
     public final static List<Tranche> findTranches( final VariantDatum[] data, final double[] FDRtranches, double targetTiTv ) {
+        return findTranches( data, FDRtranches, targetTiTv, null );
+    }
+
+    public final static List<Tranche> findTranches( final VariantDatum[] data, final double[] FDRtranches, double targetTiTv, File debugFile ) {
+        logger.info(String.format("Finding tranches for %d variants with %d FDRs and a target TiTv of %.2f", data.length, FDRtranches.length, targetTiTv));
+
         List<VariantDatum> tranchesData = sortVariantsbyQual(data);
         double[] runningTiTv = calculateRunningTiTv(tranchesData);
+
+        if ( debugFile != null) { writeTranchesDebuggingInfo(debugFile, tranchesData, runningTiTv); }
+
         List<Tranche> tranches = new ArrayList<Tranche>();
         for ( double fdr : FDRtranches ) {
             Tranche t = findTranche(tranchesData, runningTiTv, fdr, targetTiTv);
@@ -486,6 +494,19 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         }
 
         return tranches;
+    }
+
+    private static void writeTranchesDebuggingInfo(File f, List<VariantDatum> tranchesData, double[] runningTiTv ) {
+        try {
+            PrintStream out = new PrintStream(f);
+            out.println("Qual isTransition runningTiTv");
+            for ( int i = 0; i < runningTiTv.length; i++ ) {
+                VariantDatum  d = tranchesData.get(i);
+                out.printf("%.4f %d %.4f%n", d.qual, d.isTransition ? 1 : 0, runningTiTv[i]);
+            }
+        } catch (FileNotFoundException e) {
+            throw new UserException.CouldNotCreateOutputFile(f, e);
+        }
     }
 
     private final static List<VariantDatum> sortVariantsbyQual(final VariantDatum[] data) {
@@ -510,16 +531,24 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     }
 
     public final static Tranche findTranche( final List<VariantDatum> data, double[] runningTiTv, final double desiredFDR, double targetTiTv ) {
+        if ( data.size() != runningTiTv.length ) throw new ReviewedStingException("BUG: data and running titv are of different sizes");
+
         final double titvThreshold = fdrToTiTv(desiredFDR, targetTiTv); // compute the desired TiTv
 
         for ( int i = 0; i < runningTiTv.length; i++ ) {
             if ( runningTiTv[i] >= titvThreshold ) {
                 // we've found the largest group of variants with Ti/Tv >= our target titv
-                return trancheOfVariants(data, i, desiredFDR, targetTiTv);
+                Tranche t = trancheOfVariants(data, i, desiredFDR, targetTiTv);
+                logger.info(String.format("  Found tranche for %.3f FDR = %.3f TiTv threshold starting with variant %d; running TiTv is %.2f ",
+                        desiredFDR, titvThreshold, i, runningTiTv[i]));
+                logger.info(String.format("  Trance is %s", t));
+                return t;
             }
         }
 
         // we get here when there's no subset of variants with Ti/Tv >= threshold, in which case we should return null
+        logger.info(String.format("  **Couldn't find tranche for %.3f FDR = %.3f TiTv threshold; last running TiTv was %.2f ",
+                desiredFDR, titvThreshold, runningTiTv[runningTiTv.length-1]));
         return null;
     }
 

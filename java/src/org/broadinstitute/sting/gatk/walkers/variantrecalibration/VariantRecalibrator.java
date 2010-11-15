@@ -118,6 +118,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Hidden
     @Argument(fullName="quality_scale_factor", shortName="qScaleFactor", doc="Multiply all final quality scores by this value. FOR DEBUGGING PURPOSES ONLY.", required=false)
     private double QUALITY_SCALE_FACTOR = 1.0;
+    @Argument(fullName = "debugFile", shortName = "debugFile", doc = "Print debugging information here", required=false)
+    private File DEBUG_FILE = null;
 
 
     /////////////////////////////
@@ -333,7 +335,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, theModel.dataManager.annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
-        List<Tranche> tranches = VariantGaussianMixtureModel.findTranches( dataManager.data, FDR_TRANCHES, TARGET_TITV );
+        List<Tranche> tranches = VariantGaussianMixtureModel.findTranches( dataManager.data, FDR_TRANCHES, TARGET_TITV, DEBUG_FILE );
         tranchesStream.print(Tranche.tranchesString(tranches));
 
         // Execute Rscript command to plot the optimization curve
