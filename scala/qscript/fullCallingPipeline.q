@@ -213,13 +213,14 @@ class fullCallingPipeline extends QScript {
     snps.min_base_quality_score = Some(20)
     snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
     //snps.annotation :+= "QualByDepthV2"
+    snps.dbsnp =qscript.pipeline.getProject.getDbsnpFile
 
-    if (qscript.trigger != null) {
-      snps.trigger_min_confidence_threshold_for_calling = Some(30)
-      snps.rodBind :+= RodBind("trigger", "VCF", qscript.trigger)
-      // TODO: triggers need to get a name for comp-ing them if not dbSNP?
-      snps.rodBind :+= RodBind( "compTrigger", "VCF", qscript.trigger )
-    }
+    //if (qscript.trigger != null) {
+    //  snps.trigger_min_confidence_threshold_for_calling = Some(30)
+    //  snps.rodBind :+= RodBind("trigger", "VCF", qscript.trigger)
+    //  // TODO: triggers need to get a name for comp-ing them if not dbSNP?
+    //  snps.rodBind :+= RodBind( "compTrigger", "VCF", qscript.trigger )
+    //}
 
     // todo -- add generalize comp inputs
     //if ( qscript.comp1KGCEU != null ) {
