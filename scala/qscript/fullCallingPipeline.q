@@ -213,7 +213,7 @@ class fullCallingPipeline extends QScript {
     snps.min_base_quality_score = Some(20)
     snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
     //snps.annotation :+= "QualByDepthV2"
-    snps.dbsnp =qscript.pipeline.getProject.getDbsnpFile
+    snps.DBSNP = qscript.pipeline.getProject.getDbsnpFile
 
     //if (qscript.trigger != null) {
     //  snps.trigger_min_confidence_threshold_for_calling = Some(30)
@@ -323,7 +323,7 @@ class fullCallingPipeline extends QScript {
     clusters.DBSNP = qscript.pipeline.getProject.getDbsnpFile
     val clusters_clusterFile = swapExt("SnpCalls/IntermediateFiles",snps.out,".vcf",".cluster")
     clusters.clusterFile = clusters_clusterFile
-    clusters.memoryLimit = Some(6)
+    clusters.memoryLimit = Some(4)
     clusters.jobQueue = qscript.big_mem_queue
 
     clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
