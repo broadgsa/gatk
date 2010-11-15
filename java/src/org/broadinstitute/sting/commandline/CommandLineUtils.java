@@ -26,8 +26,6 @@
 package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.walkers.Walker;
 
 import java.util.*;
 import java.lang.annotation.Annotation;
@@ -39,23 +37,43 @@ import java.lang.annotation.Annotation;
  * @version 0.1
  */
 public class CommandLineUtils {
+
+    /**
+     * Returns a key-value mapping of the command-line arguments passed into the GATK.
+     * Will be approximate; this class doesn't have all the required data to completely
+     * reconstruct the list of command-line arguments from the given objects.
+     *
+     * @param parsingEngine      The parsing engine
+     * @param argumentProviders  The providers of command-line arguments.
+     * @return A key-value mapping of argument full names to argument values.  Produces best string representation
+     *         possible given the information available.
+     */
+    public static Map<String,String> getApproximateCommandLineArguments(ParsingEngine parsingEngine, Object... argumentProviders) {
+        return getApproximateCommandLineArguments(parsingEngine, false, argumentProviders);
+    }
+
     /**
      * Returns a key-value mapping of the command-line arguments passed into the GATK.
      * Will be approximate; this class doesn't have all the required data to completely
      * reconstruct the list of command-line arguments from the given objects.
      * 
-     * @param argumentProviders The providers of command-line arguments.
+     * @param parsingEngine      The parsing engine
+     * @param skipObjectPointers Should we skip arguments whose values are pointers (and don't print nicely)?
+     * @param argumentProviders  The providers of command-line arguments.
      * @return A key-value mapping of argument full names to argument values.  Produces best string representation
      *         possible given the information available.
      */
-    public static Map<String,String> getApproximateCommandLineArguments(ParsingEngine parsingEngine, Object... argumentProviders) {
+    public static Map<String,String> getApproximateCommandLineArguments(ParsingEngine parsingEngine, boolean skipObjectPointers, Object... argumentProviders) {
         Map<String,String> commandLineArguments = new LinkedHashMap<String,String>();
 
         for(Object argumentProvider: argumentProviders) {
             Map<ArgumentSource, Object> argBindings = parsingEngine.extractArgumentBindings(argumentProvider);
             for(Map.Entry<ArgumentSource, Object> elt: argBindings.entrySet()) {
                 Object argumentValue = elt.getValue();
+
                 String argumentValueString = argumentValue != null ? argumentValue.toString() : null;
+                if ( skipObjectPointers && isObjectPointer(argumentValueString) )
+                    continue;
 
                 for(ArgumentDefinition definition: elt.getKey().createArgumentDefinitions()) {
                     String argumentName = definition.fullName;
@@ -69,16 +87,28 @@ public class CommandLineUtils {
 
     /**
      * Create an approximate list of command-line arguments based on the given argument providers.
-     * @param argumentProviders Argument providers to inspect.
+     * @param parsingEngine      The parsing engine
+     * @param argumentProviders  Argument providers to inspect.
      * @return A string representing the given command-line arguments.
      */
     public static String createApproximateCommandLineArgumentString(ParsingEngine parsingEngine, Object... argumentProviders) {
-        Map<String,String> commandLineArgs = getApproximateCommandLineArguments(parsingEngine,argumentProviders);
+        return createApproximateCommandLineArgumentString(parsingEngine, true, argumentProviders);
+    }
+
+    /**
+     * Create an approximate list of command-line arguments based on the given argument providers.
+     * @param parsingEngine      The parsing engine
+     * @param skipObjectPointers Should we skip arguments whose values are pointers (and don't print nicely)?
+     * @param argumentProviders  Argument providers to inspect.
+     * @return A string representing the given command-line arguments.
+     */
+    public static String createApproximateCommandLineArgumentString(ParsingEngine parsingEngine, boolean skipObjectPointers, Object... argumentProviders) {
+        Map<String,String> commandLineArgs = getApproximateCommandLineArguments(parsingEngine, skipObjectPointers, argumentProviders);
         StringBuffer sb = new StringBuffer();
 
         boolean first = true;
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() ) {
-            if(!first)
+            if ( !first )
                 sb.append(" ");
             sb.append(commandLineArg.getKey());
             sb.append("=");
@@ -101,5 +131,11 @@ public class CommandLineUtils {
         } catch (Exception e) {
             throw new ReviewedStingException("Unable to access method " + method + " on annotation " + annotation.getClass(), e);
         }
+    }
+
+    // TODO -- is there a better way to do this?
+    private static final String pointerRegexp = ".+@[0-9a-fA-F]+$";
+    private static boolean isObjectPointer(String s) {
+        return s != null && s.matches(pointerRegexp);
     }
 }
