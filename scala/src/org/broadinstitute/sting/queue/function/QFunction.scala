@@ -283,7 +283,7 @@ trait QFunction extends Logging {
       jobTempDir = qSettings.tempDirectory
 
     // If the command directory is relative, insert the run directory ahead of it.
-    commandDirectory = new File(qSettings.runDirectory, commandDirectory.getPath)
+    commandDirectory = IOUtils.absolute(new File(qSettings.runDirectory, commandDirectory.getPath))
   }
 
   /**

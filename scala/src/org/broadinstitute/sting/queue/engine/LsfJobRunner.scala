@@ -13,6 +13,9 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
 
   var job: LsfJob = new LsfJob
 
+  /** Which directory to use for the job status files. */
+  private def jobStatusDir = function.jobTempDir
+
   /** A file to look for to validate that the function ran to completion. */
   private var jobStatusPath: String = _
 
@@ -45,7 +48,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
       job.project = function.jobProject
       job.queue = function.jobQueue
 
-      if (function.commandDirectory != new File(".").getAbsoluteFile)
+      if (IOUtils.absolute(new File(".")) != function.commandDirectory)
         job.workingDir = function.commandDirectory
 
       job.extraBsubArgs ++= function.extraArgs
@@ -78,7 +81,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
 
       runStatus = RunnerStatus.RUNNING
       Retry.attempt(() => job.run(), 1, 5, 10)
-      jobStatusPath = IOUtils.absolute(new File(function.commandDirectory, "." + job.bsubJobId)).toString
+      jobStatusPath = IOUtils.absolute(new File(jobStatusDir, "." + job.bsubJobId)).toString
       logger.info("Submitted LSF job id: " + job.bsubJobId)
     } catch {
       case e =>
@@ -166,7 +169,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    * @return the file path to the pre-exec.
    */
   private def writeExec() = {
-    IOUtils.writeTempFile(function.commandLine, ".exec", "", function.jobTempDir)
+    IOUtils.writeTempFile(function.commandLine, ".exec", "", jobStatusDir)
   }
 
   /**
@@ -177,15 +180,15 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
   private def writePreExec() = {
     val preExec = new StringBuilder
 
-    preExec.append("rm -f '%s/'.$LSB_JOBID.done%n".format(function.commandDirectory))
+    preExec.append("rm -f '%s/'.$LSB_JOBID.done%n".format(jobStatusDir))
     function.doneOutputs.foreach(file => preExec.append("rm -f '%s'%n".format(file)))
-    preExec.append("rm -f '%s/'.$LSB_JOBID.fail%n".format(function.commandDirectory))
+    preExec.append("rm -f '%s/'.$LSB_JOBID.fail%n".format(jobStatusDir))
     function.failOutputs.foreach(file => preExec.append("rm -f '%s'%n".format(file)))
 
     mountCommand(function).foreach(command =>
       preExec.append("%s%n".format(command)))
 
-    IOUtils.writeTempFile(preExec.toString, ".preExec", "", function.jobTempDir)
+    IOUtils.writeTempFile(preExec.toString, ".preExec", "", jobStatusDir)
   }
 
   /**
@@ -209,8 +212,8 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
   |else
   |%stouch "$JOB_STAT_ROOT".fail
   |fi
-  |""".stripMargin.format(function.commandDirectory, touchDone, touchFail))
+  |""".stripMargin.format(jobStatusDir, touchDone, touchFail))
 
-    IOUtils.writeTempFile(postExec.toString, ".postExec", "", function.jobTempDir)
+    IOUtils.writeTempFile(postExec.toString, ".postExec", "", jobStatusDir)
   }
 }
