@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -149,4 +150,27 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         //executeTest("testACDiscordanceAtAC1EvalAC2Comp",spec);
     }
 
+    @Test
+    public void testVEValidatePass() {
+        String extraArgs = "-L 1:1-10,000,000";
+        for (String tests : testsEnumerations) {
+            WalkerTestSpec spec = new WalkerTestSpec(withValidateTiTv(withSelect(tests, "DP < 50", "DP50"), 1.0, 4.0) + " " + extraArgs + " -o %s",
+                    1, Arrays.asList("8a0203f0533b628ad7f1f230a43f105f"));
+            executeTestParallel("testVEValidatePass", spec);
+        }
+    }
+
+    @Test
+    public void testVEValidateFail() {
+        String extraArgs = "-L 1:1-10,000,000";
+        for (String tests : testsEnumerations) {
+            WalkerTestSpec spec = new WalkerTestSpec(withValidateTiTv(withSelect(tests, "DP < 50", "DP50"), 1.0, 1.2) + " " + extraArgs + " -o %s",
+                    1, UserException.class);
+            executeTestParallel("testVEValidateFail", spec);
+        }
+    }
+
+    private static String withValidateTiTv(String cmd, double min, double max) {
+        return String.format("%s -validate 'eval.comp_genotypes.all.called.all.titv.tiTvRatio >= %2$s' -validate 'eval.comp_genotypes.all.called.all.titv.tiTvRatio <= %3$s'", cmd, min, max);
+    }
 }

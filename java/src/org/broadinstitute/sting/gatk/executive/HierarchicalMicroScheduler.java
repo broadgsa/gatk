@@ -157,6 +157,9 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             result = reduceTree.getResult().get();
             notifyTraversalDone(walker,result);
         }
+        catch (ReviewedStingException ex) {
+            throw ex;
+        }
         catch (Exception ex) {
             throw new ReviewedStingException("Unable to retrieve result", ex);
         }

@@ -25,6 +25,9 @@
 
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import org.apache.commons.jexl2.*;
+import org.apache.commons.jexl2.introspection.*;
+import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -32,6 +35,7 @@ import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -63,6 +67,7 @@ import java.io.FileNotFoundException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.*;
 
 // todo -- evalations should support comment lines
@@ -120,6 +125,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     @Argument(shortName="selectName", doc="Names to use for the list of stratifications (must be a 1-to-1 mapping)", required=false)
     protected ArrayList<String> SELECT_NAMES = new ArrayList<String>();
+
+    @Hidden
+    @Argument(shortName="validate", doc="One or more JEXL validations to use after evaluating the data", required=false)
+    protected ArrayList<String> VALIDATE_EXPS = new ArrayList<String>();
 
     @Argument(shortName="known", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
     protected String[] KNOWN_NAMES = {DbSNPHelper.STANDARD_DBSNP_TRACK_NAME};
@@ -231,7 +240,15 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         public boolean isSelected() { return selectExp == null; }
 
         public String getDisplayName() {
-            return Utils.join(CONTEXT_SEPARATOR, Arrays.asList(evalTrackName, compTrackName, selectExp == null ? "all" : selectExp.name, filtered, novelty));
+            return getName(CONTEXT_SEPARATOR);
+        }
+
+        public String getJexlName() {
+            return getName(".");
+        }
+
+        private String getName(String separator) {
+            return Utils.join(separator, Arrays.asList(evalTrackName, compTrackName, selectExp == null ? "all" : selectExp.name, filtered, novelty));
         }
 
         public String toString() { return getDisplayName(); }
@@ -740,6 +757,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     }
 
     public void onTraversalDone(Integer result) {
+        writeReport();
+        validateContext();
+    }
+
+    /**
+     * Writes the report out to disk.
+     */
+    private void writeReport() {
         // our report mashaller
         ReportMarshaller marshaller;
 
@@ -759,6 +784,64 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             }
         }
         marshaller.close();
+    }
+
+    /**
+     * Validates the JEXL expressions and throws an exception if they do not all return true.
+     */
+    private void validateContext() {
+        if (VALIDATE_EXPS.size() == 0)
+            return;
+
+        JexlContext jc = new MapContext();
+        for (EvaluationContext context : contexts)
+            for (VariantEvaluator eval: context.evaluations)
+                jc.set(context.getJexlName() + "." + eval.getName(), eval);
+
+        Uberspect uberspect = new UberspectImpl(LogFactory.getLog(JexlEngine.class)) {
+            /** Gets the field, even if the field was non-public. */
+            @Override
+            public Field getField(Object obj, String name, JexlInfo info) {
+                Field result = super.getField(obj, name, info);
+                if (result == null && obj != null) {
+                    Class<?> clazz = obj instanceof Class<?> ? (Class<?>)obj : obj.getClass();
+                    try {
+                        // TODO: Default UberspectImpl uses an internal field cache by class type
+                        result = clazz.getDeclaredField(name);
+                        result.setAccessible(true);
+                    } catch (NoSuchFieldException nsfe) {
+                        /* ignore */
+                    }
+                }
+                return result;
+            }
+        };
+
+        JexlEngine jexl = new JexlEngine(uberspect, null, null, null);
+
+        List<String> failedExpressions = new ArrayList<String>();
+        for (String expression: VALIDATE_EXPS) {
+            // ex: evalYRI.compYRI.all.called.novel.titv.tiTvRatio > 1.0
+            Object jexlResult = jexl.createExpression(expression).evaluate(jc);
+            boolean pass = Boolean.TRUE.equals(jexlResult);
+            if (!pass) {
+                logger.error("FAIL: " + expression);
+                failedExpressions.add(expression);
+            } else if (logger.isDebugEnabled()) {
+                logger.debug("PASS: " + expression);
+            }
+        }
+
+        int failed = failedExpressions.size();
+        int total = VALIDATE_EXPS.size();
+
+        logger.info(String.format("Validations: Total %s, Passed %s, Failed %s", total, (total-failed), failed));
+        if (failed > 0) {
+            StringBuilder message = new StringBuilder("The validation expressions below did not return true. Please check the report output for more info.");
+            for (String expression: failedExpressions)
+                message.append(String.format("%n  ")).append(expression);
+            throw new UserException(message.toString());
+        }
     }
 
     /**
