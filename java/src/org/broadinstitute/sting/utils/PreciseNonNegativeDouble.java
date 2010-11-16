@@ -12,8 +12,8 @@ package org.broadinstitute.sting.utils;
    with precision (prevents underflow by representing in log10 space).
  */
 public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDouble> {
-    private static double EQUALS_THRESH = 1e-6;
-    private static double INFINITY = Double.POSITIVE_INFINITY;
+    private static final double EQUALS_THRESH = 1e-6;
+    private static final double INFINITY = Double.POSITIVE_INFINITY;
 
     private double log10Value;
 
@@ -102,7 +102,7 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
     }
 
     // If x = log(a), y = log(b), returns log(a+b)
-    public static double addInLogSpace(double x, double y) {
+    private static double addInLogSpace(double x, double y) {
         if (x == INFINITY || y == INFINITY) return INFINITY; // log(e^INFINITY + e^y) = INFINITY
 
         if (x == -INFINITY) return y;
@@ -123,7 +123,7 @@ public class PreciseNonNegativeDouble implements Comparable<PreciseNonNegativeDo
     }
 
     // If x = log(a), y = log(b), returns log |a-b|
-    double absSubLog(double x, double y) {
+    private double absSubLog(double x, double y) {
       if (x == -INFINITY && y == -INFINITY) {
         // log |e^-INFINITY - e^-INFINITY| = log |0-0| = log(0) = -INFINITY
         return -INFINITY;
