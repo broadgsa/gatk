@@ -64,7 +64,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         executeTest("testGenerateVariantClusters-"+params.inVCF, spec).getFirst();
     }
 
-    @Test(dataProvider = "VRTest", enabled = true)
+    @Test(dataProvider = "VRTest",dependsOnMethods="testGenerateVariantClusters")
     public void testVariantRecalibrator(VRTest params) {
         //System.out.printf("PARAMS FOR %s is %s%n", vcf, clusterFile);
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -85,7 +85,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
         executeTest("testVariantRecalibrator-"+params.inVCF, spec).getFirst();
     }
 
-    @Test(dataProvider = "VRTest", enabled = true)
+    @Test(dataProvider = "VRTest",dependsOnMethods="testVariantRecalibrator")
     public void testApplyVariantCuts(VRTest params) {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
