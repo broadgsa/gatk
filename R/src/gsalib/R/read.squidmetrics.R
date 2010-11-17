@@ -18,5 +18,5 @@ read.squidmetrics = function(project, bylane = FALSE) {
 
     oraCloseDriver(drv);
 
-    d;
+    subset(d, Project == project);
 }
