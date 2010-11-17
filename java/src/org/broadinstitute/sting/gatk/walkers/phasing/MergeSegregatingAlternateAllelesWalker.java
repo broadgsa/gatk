@@ -32,9 +32,12 @@ import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.*;
@@ -67,6 +70,13 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
     @Argument(fullName = "disablePrintAltAlleleStats", shortName = "noAlleleStats", doc = "Should the print-out of alternate allele statistics be disabled?; [default:false]", required = false)
     protected boolean disablePrintAlternateAlleleStatistics = false;
 
+    public final static String IGNORE_CODING = "IGNORE";
+    public final static String UNION_CODING = "UNION";
+    public final static String INTERSECT_CODING = "INTERSECT";
+
+    @Argument(fullName = "mergeBasedOnCodingAnnotation", shortName = "mergeBasedOnCodingAnnotation", doc = "'Should merging be performed if two sites lie on the same coding sequence in the INFO field {" + IGNORE_CODING + ", " + UNION_CODING + ", " + INTERSECT_CODING + "}; [default:"+ IGNORE_CODING + "]", required = false)
+    protected String mergeBasedOnCodingAnnotation = IGNORE_CODING;
+
     private LinkedList<String> rodNames = null;
 
     public void initialize() {
@@ -77,8 +87,16 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
     }
 
     private void initializeVcfWriter() {
+        GenomeLocParser genomeLocParser = getToolkit().getGenomeLocParser();
+
+        MergeRule mergeRule = null;
+        if (mergeBasedOnCodingAnnotation.equals(IGNORE_CODING))
+            mergeRule = new DistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser);
+        else
+            mergeRule = new SameGenePlusWithinDistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser, mergeBasedOnCodingAnnotation);
+
         // false <-> don't take control of writer, since didn't create it:
-        vcMergerWriter = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer,getToolkit().getGenomeLocParser(),getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, useSingleSample, emitOnlyMergedRecords, logger, false, !disablePrintAlternateAlleleStatistics);
+        vcMergerWriter = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer,genomeLocParser, getToolkit().getArguments().referenceFile, mergeRule, useSingleSample, emitOnlyMergedRecords, logger, false, !disablePrintAlternateAlleleStatistics);
         writer = null; // so it can't be accessed directly [i.e., not through vcMergerWriter]
 
         // setup the header fields:
@@ -149,9 +167,84 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
         if (useSingleSample != null)
             System.out.println("Only considered single sample: " + useSingleSample);
 
-        System.out.println("Number of successive pairs of records (any distance): " + vcMergerWriter.getNumRecordsAttemptToMerge());
-        System.out.println("Number of potentially merged records (distance <= " + maxGenomicDistanceForMNP + "): " + vcMergerWriter.getNumRecordsWithinDistance());
+        System.out.println("Number of successive pairs of records: " + vcMergerWriter.getNumRecordsAttemptToMerge());
+        System.out.println("Number of potentially merged records (" + vcMergerWriter.getMergeRule() + "): " + vcMergerWriter.getNumRecordsSatisfyingMergeRule());
         System.out.println("Number of records merged [all samples are mergeable, some sample has a MNP of ALT alleles]: " + vcMergerWriter.getNumMergedRecords());
         System.out.println(vcMergerWriter.getAltAlleleStats());
+    }
+}
+
+
+enum MergeBasedOnCodingAnnotation {
+    UNION_WITH_DIST, INTERSECT_WITH_DIST
+}
+
+interface MergeRule {
+    public boolean shouldMerge(VariantContext vc1, VariantContext vc2);
+}
+
+class DistanceMergeRule implements MergeRule {
+    private int maxGenomicDistanceForMNP;
+    private GenomeLocParser genomeLocParser;
+
+    public DistanceMergeRule(int maxGenomicDistanceForMNP, GenomeLocParser genomeLocParser) {
+        this.maxGenomicDistanceForMNP = maxGenomicDistanceForMNP;
+        this.genomeLocParser = genomeLocParser;
+    }
+
+    public boolean shouldMerge(VariantContext vc1, VariantContext vc2) {
+        return minDistance(vc1, vc2) <= maxGenomicDistanceForMNP;
+    }
+
+    public String toString() {
+        return "Merge distance <= " + maxGenomicDistanceForMNP;
+    }
+
+    public int minDistance(VariantContext vc1, VariantContext vc2) {
+        return VariantContextUtils.getLocation(genomeLocParser,vc1).minDistance(VariantContextUtils.getLocation(genomeLocParser,vc2));
+    }
+}
+
+class SameGenePlusWithinDistanceMergeRule extends DistanceMergeRule {
+    private MergeBasedOnCodingAnnotation mergeBasedOnCodingAnnotation;
+
+    public SameGenePlusWithinDistanceMergeRule(int maxGenomicDistanceForMNP, GenomeLocParser genomeLocParser, String mergeBasedOnCodingAnnotation) {
+        super(maxGenomicDistanceForMNP, genomeLocParser);
+
+        if (mergeBasedOnCodingAnnotation.equals(MergeSegregatingAlternateAllelesWalker.UNION_CODING))
+            this.mergeBasedOnCodingAnnotation = MergeBasedOnCodingAnnotation.UNION_WITH_DIST;
+        else if (mergeBasedOnCodingAnnotation.equals(MergeSegregatingAlternateAllelesWalker.INTERSECT_CODING))
+            this.mergeBasedOnCodingAnnotation = MergeBasedOnCodingAnnotation.INTERSECT_WITH_DIST;
+        else
+            throw new UserException("Must provide " + MergeSegregatingAlternateAllelesWalker.IGNORE_CODING + ", " + MergeSegregatingAlternateAllelesWalker.UNION_CODING + ", or " + MergeSegregatingAlternateAllelesWalker.INTERSECT_CODING + " as argument to mergeBasedOnCodingAnnotation!");
+    }
+
+    public boolean shouldMerge(VariantContext vc1, VariantContext vc2) {
+        boolean withinDistance = super.shouldMerge(vc1, vc2);
+
+        if (mergeBasedOnCodingAnnotation == MergeBasedOnCodingAnnotation.UNION_WITH_DIST)
+            return withinDistance || sameGene(vc1, vc2);
+        else // mergeBasedOnCodingAnnotation == MergeBasedOnCodingAnnotation.INTERSECT_WITH_DIST
+            return withinDistance && sameGene(vc1, vc2);
+    }
+
+    private boolean sameGene(VariantContext vc1, VariantContext vc2) {
+        Set<String> names_vc1 = RefSeqData.getRefSeqNames(vc1);
+        Set<String> names_vc2 = RefSeqData.getRefSeqNames(vc2);
+        names_vc1.retainAll(names_vc2);
+
+        if (!names_vc1.isEmpty())
+            return true;
+
+        // Check refseq.name2:
+        Set<String> names2_vc1 = RefSeqData.getRefSeqNames(vc1, true);
+        Set<String> names2_vc2 = RefSeqData.getRefSeqNames(vc2, true);
+        names2_vc1.retainAll(names2_vc2);
+
+        return !names2_vc1.isEmpty();
+    }
+
+    public String toString() {
+        return super.toString() + " " + (mergeBasedOnCodingAnnotation == MergeBasedOnCodingAnnotation.UNION_WITH_DIST ? "OR" : "AND") + " on the same gene";
     }
 }

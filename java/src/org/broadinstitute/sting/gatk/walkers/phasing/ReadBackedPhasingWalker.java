@@ -138,7 +138,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         VCFWriter origWriter = writer;
 
         if (enableMergePhasedSegregatingPolymorphismsToMNP) // null <-> use ALL samples, false <-> emit all records, false <-> don't track the statistics of alternate alleles being merged:
-            writer = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer,getToolkit().getGenomeLocParser(),getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, null, false, logger, writer != origWriter, false);
+            writer = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getGenomeLocParser(), getToolkit().getArguments().referenceFile, new DistanceMergeRule(maxGenomicDistanceForMNP, getToolkit().getGenomeLocParser()), null, false, logger, writer != origWriter, false);
 
         /* Due to discardIrrelevantPhasedSites(), the startDistance spanned by [partiallyPhasedSites.peek(), unphasedSiteQueue.peek()] is <= cacheWindow
            Due to processQueue(), the startDistance spanned by [unphasedSiteQueue.peek(), mostDownstreamLocusReached] is <= cacheWindow

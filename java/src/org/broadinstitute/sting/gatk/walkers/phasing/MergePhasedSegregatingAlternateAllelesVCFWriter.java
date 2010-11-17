@@ -48,7 +48,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     private GenomeLocParser genomeLocParser;
 
     private ReferenceSequenceFile referenceFileForMNPmerging;
-    private int maxGenomicDistanceForMNP;
+    private MergeRule mergeRule;
 
     private String useSingleSample = null;
 
@@ -58,7 +58,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     private List<VCFRecord> filteredVcfrList;
 
     private int numRecordsAttemptToMerge;
-    private int numRecordsWithinDistance;
+    private int numRecordsSatisfyingMergeRule;
     private int numMergedRecords;
     private AltAlleleStatsForSamples altAlleleStats = null;
 
@@ -67,28 +67,28 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     // Should we call innerWriter.close() in close()
     private boolean takeOwnershipOfInner;
 
-    public MergePhasedSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, int maxGenomicDistanceForMNP, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
+    public MergePhasedSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, MergeRule mergeRule, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
         this.innerWriter = innerWriter;
         this.genomeLocParser = genomeLocParser;
         this.referenceFileForMNPmerging = new IndexedFastaSequenceFile(referenceFile);
-        this.maxGenomicDistanceForMNP = maxGenomicDistanceForMNP;
+        this.mergeRule = mergeRule;
         this.useSingleSample = singleSample;
         this.emitOnlyMergedRecords = emitOnlyMergedRecords;
 
         this.vcfrWaitingToMerge = null;
         this.filteredVcfrList = new LinkedList<VCFRecord>();
-        this.numRecordsWithinDistance = 0;
+        this.numRecordsSatisfyingMergeRule = 0;
         this.numMergedRecords = 0;
 
         if (trackAltAlleleStats)
-            this.altAlleleStats = new AltAlleleStatsForSamples(maxGenomicDistanceForMNP);
+            this.altAlleleStats = new AltAlleleStatsForSamples();
 
         this.logger = logger;
         this.takeOwnershipOfInner = takeOwnershipOfInner;
     }
 
     public MergePhasedSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, int maxGenomicDistanceForMNP, Logger logger) {
-        this(innerWriter, genomeLocParser, referenceFile, maxGenomicDistanceForMNP, null, false, logger, false, false); // by default: consider all samples, emit all records, don't own inner, don't keep track of alt allele statistics
+        this(innerWriter, genomeLocParser, referenceFile, new DistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser), null, false, logger, false, false); // by default: consider all samples, emit all records, don't own inner, don't keep track of alt allele statistics
     }
 
     public void writeHeader(VCFHeader header) {
@@ -117,7 +117,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
                 return;
         }
 
-        logger.debug("Next VC input = " + VariantContextUtils.getLocation(genomeLocParser,vc));
+        logger.debug("Next VC input = " + VariantContextUtils.getLocation(genomeLocParser, vc));
         boolean curVcIsNotFiltered = vc.isNotFiltered();
 
         if (vcfrWaitingToMerge == null) {
@@ -127,26 +127,26 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
                 throw new ReviewedStingException("filteredVcfrList should be empty if not waiting to merge a vc!");
 
             if (curVcIsNotFiltered) { // still need to wait before can release vc
-                logger.debug("Waiting for new variant " + VariantContextUtils.getLocation(genomeLocParser,vc));
+                logger.debug("Waiting for new variant " + VariantContextUtils.getLocation(genomeLocParser, vc));
                 vcfrWaitingToMerge = new VCFRecord(vc, refBase, false);
             }
             else if (!emitOnlyMergedRecords) { // filtered records are never merged
-                logger.debug("DIRECTLY output " + VariantContextUtils.getLocation(genomeLocParser,vc));
+                logger.debug("DIRECTLY output " + VariantContextUtils.getLocation(genomeLocParser, vc));
                 innerWriter.add(vc, refBase);
             }
         }
         else { // waiting to merge vcfrWaitingToMerge
-            logger.debug("Waiting to merge " + VariantContextUtils.getLocation(genomeLocParser,vcfrWaitingToMerge.vc));
+            logger.debug("Waiting to merge " + VariantContextUtils.getLocation(genomeLocParser, vcfrWaitingToMerge.vc));
 
             if (!curVcIsNotFiltered) {
                 if (!emitOnlyMergedRecords) { // filtered records are never merged
-                    logger.debug("Caching unprocessed output " + VariantContextUtils.getLocation(genomeLocParser,vc));
+                    logger.debug("Caching unprocessed output " + VariantContextUtils.getLocation(genomeLocParser, vc));
                     filteredVcfrList.add(new VCFRecord(vc, refBase, false));
                 }
             }
             else { // waiting to merge vcfrWaitingToMerge, and curVcIsNotFiltered. So, attempt to merge them:
                 numRecordsAttemptToMerge++;
-                boolean mergeDistanceInRange = (minDistance(vcfrWaitingToMerge.vc, vc) <= maxGenomicDistanceForMNP);
+                boolean shouldMerge = mergeRule.shouldMerge(vcfrWaitingToMerge.vc, vc);
 
                 /*
                 TODO: -- CONSIDER THE FOLLOWING EXAMPLE: WHAT DO WE WANT HERE??? --
@@ -163,14 +163,20 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
                 But, since we merged sites 1 and 2, we get that sites 1-2 and 3 are counted as two haplotypes of: ALT-REF and ALT-ALT
                  */
                 if (altAlleleStats != null)
-                    altAlleleStats.updateSampleStats(vcfrWaitingToMerge.vc, vc, mergeDistanceInRange);
+                    altAlleleStats.updateSampleStats(vcfrWaitingToMerge.vc, vc, shouldMerge);
 
                 boolean mergedRecords = false;
-                if (mergeDistanceInRange) {
-                    numRecordsWithinDistance++;
-                    VariantContext mergedVc = VariantContextUtils.mergeIntoMNP(genomeLocParser,vcfrWaitingToMerge.vc, vc, referenceFileForMNPmerging);
+                if (shouldMerge) {
+                    numRecordsSatisfyingMergeRule++;
+                    VariantContext mergedVc = VariantContextUtils.mergeIntoMNP(genomeLocParser, vcfrWaitingToMerge.vc, vc, referenceFileForMNPmerging);
+
                     if (mergedVc != null) {
                         mergedRecords = true;
+
+                        Map<String, Object> updatedAttribs = RefSeqData.getMergedRefSeqAttributes(vcfrWaitingToMerge.vc, vc);
+                        updatedAttribs.putAll(mergedVc.getAttributes());
+                        mergedVc = VariantContext.modifyAttributes(mergedVc, updatedAttribs);
+
                         vcfrWaitingToMerge = new VCFRecord(mergedVc, vcfrWaitingToMerge.refBase, true);
                         numMergedRecords++;
                     }
@@ -205,16 +211,16 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
         return numRecordsAttemptToMerge;
     }
 
-    public int getNumRecordsWithinDistance() {
-        return numRecordsWithinDistance;
+    public int getNumRecordsSatisfyingMergeRule() {
+        return numRecordsSatisfyingMergeRule;
     }
 
     public int getNumMergedRecords() {
         return numMergedRecords;
     }
 
-    public int minDistance(VariantContext vc1, VariantContext vc2) {
-        return VariantContextUtils.getLocation(genomeLocParser,vc1).minDistance(VariantContextUtils.getLocation(genomeLocParser,vc2));
+    public MergeRule getMergeRule() {
+        return mergeRule;
     }
 
     /**
@@ -248,7 +254,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
 
     private class AltAlleleStats {
         public int numSuccessiveGenotypes;
-        public int numSuccessiveGenotypesWithinDistance;
+        public int numSuccessiveGenotypesThatCouldBeMerged;
 
         public int oneSampleMissing;
         public int atLeastOneSampleNotCalledOrFiltered;
@@ -267,7 +273,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
 
         public AltAlleleStats() {
             this.numSuccessiveGenotypes = 0;
-            this.numSuccessiveGenotypesWithinDistance = 0;
+            this.numSuccessiveGenotypesThatCouldBeMerged = 0;
 
             this.oneSampleMissing = 0;
             this.atLeastOneSampleNotCalledOrFiltered = 0;
@@ -292,11 +298,11 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
             sb.append("Not called or filtered:\t" + atLeastOneSampleNotCalledOrFiltered + "\n");
 
             sb.append("* Number of successive pairs of genotypes:\t" + numSuccessiveGenotypes + "\n");
-            sb.append("Number of successive pairs of genotypes within distance:\t" + numSuccessiveGenotypesWithinDistance + "\n");
+            sb.append("Number of successive pairs of genotypes with " + mergeRule + ":\t" + numSuccessiveGenotypesThatCouldBeMerged + "\n");
 
-            sb.append("Unknown segregation, within distance:\t" + segregationUnknown + "\n");
-            sb.append("Not variant at least one of pair, segregation known, within distance:\t" + eitherNotVariant + "\n");
-            sb.append("* Variant at both, segregation known, within distance:\t" + percentageString(bothInPairHaveVariant, numSuccessiveGenotypes) + "\n");
+            sb.append("Unknown segregation, " + mergeRule + ":\t" + segregationUnknown + "\n");
+            sb.append("Not variant at least one of pair, segregation known, " + mergeRule + ":\t" + eitherNotVariant + "\n");
+            sb.append("* Variant at both, segregation known, " + mergeRule + ":\t" + percentageString(bothInPairHaveVariant, numSuccessiveGenotypes) + "\n");
 
             sb.append("[Total haplotypes at pairs:\t" + (ref_ref_pair + ref_alt_pair + alt_ref_pair + alt_alt_pair) + "\n");
             sb.append("REF-REF:\t" + ref_ref_pair + "\n");
@@ -321,14 +327,12 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
 
     private class AltAlleleStatsForSamples {
         private Map<String, AltAlleleStats> sampleStats;
-        private int distance;
 
-        public AltAlleleStatsForSamples(int distance) {
+        public AltAlleleStatsForSamples() {
             this.sampleStats = new HashMap<String, AltAlleleStats>();
-            this.distance = distance;
         }
 
-        public void updateSampleStats(VariantContext vc1, VariantContext vc2, boolean mergeDistanceInRange) {
+        public void updateSampleStats(VariantContext vc1, VariantContext vc2, boolean shouldMerge) {
             if (vc1.isFiltered() || vc2.isFiltered())
                 return;
 
@@ -353,15 +357,15 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
                 else {
                     aas.numSuccessiveGenotypes++;
 
-                    if (mergeDistanceInRange) {
-                        aas.numSuccessiveGenotypesWithinDistance++;
+                    if (shouldMerge) {
+                        aas.numSuccessiveGenotypesThatCouldBeMerged++;
 
                         if (!VariantContextUtils.alleleSegregationIsKnown(gt1, gt2)) {
                             aas.segregationUnknown++;
-                            logger.debug("Unknown segregation of alleles [not phased] for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser,vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser,vc2));
+                            logger.debug("Unknown segregation of alleles [not phased] for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser, vc2));
                         }
                         else if (gt1.isHomRef() || gt2.isHomRef()) {
-                            logger.debug("gt1.isHomRef() || gt2.isHomRef() for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser,vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser,vc2));
+                            logger.debug("gt1.isHomRef() || gt2.isHomRef() for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser, vc2));
                             aas.eitherNotVariant++;
                         }
                         else { // BOTH gt1 and gt2 have at least one variant allele (so either hets, or homozygous variant):
@@ -390,7 +394,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
 
                             // Check MNPs vs. CHets:
                             if (containsRefAllele(site1Alleles) && containsRefAllele(site2Alleles)) {
-                                logger.debug("HET-HET for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser,vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser,vc2));
+                                logger.debug("HET-HET for " + samp + " at " + VariantContextUtils.getLocation(genomeLocParser, vc1) + ", " + VariantContextUtils.getLocation(genomeLocParser, vc2));
                                 if (logger.isDebugEnabled() && !(gt1.isHet() && gt2.isHet()))
                                     throw new ReviewedStingException("Since !gt1.isHomRef() && !gt2.isHomRef(), yet both have ref alleles, they BOTH must be hets!");
 
@@ -430,7 +434,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append("-------------------------------------------------------------------------\n");
-            sb.append("Per-sample alternate allele statistics [Merge distance <= " + distance + "]\n");
+            sb.append("Per-sample alternate allele statistics [" + mergeRule + "]\n");
             sb.append("-------------------------------------------------------------------------");
 
             for (Map.Entry<String, AltAlleleStats> sampAltAllStatsEntry : sampleStats.entrySet()) {
@@ -440,6 +444,135 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
             }
 
             return sb.toString();
+        }
+    }
+}
+
+
+/* Some methods for extracting and merging RefSeq-related data from annotated VCF INFO fields:
+ */
+
+class RefSeqData {
+    private static String REFSEQ_PREFIX = "refseq.";
+
+    private static String NUM_RECORDS_KEY = REFSEQ_PREFIX + "numMatchingRecords";
+    private static String NAME_KEY = REFSEQ_PREFIX + "name";
+    private static String NAME2_KEY = REFSEQ_PREFIX + "name2";
+
+    private static String CODON_KEY = REFSEQ_PREFIX + "codonCoord";
+
+    private static Map<String, String> getRefSeqEntriesToNames(VariantContext vc, boolean getName2) {
+        Map<String, Object> vcAttribs = vc.getAttributes();
+        Map<String, String> entriesToNames = new HashMap<String, String>();
+
+        Integer numRecords = VariantContextUtils.getIntegerAttribute(vcAttribs, NUM_RECORDS_KEY);
+        if (numRecords != null) {
+            for (int i = 1; i <= numRecords; i++) {
+                String key = NAME_KEY + "_" + i;
+                String name = VariantContextUtils.getStringAttribute(vcAttribs, key);
+                if (name != null)
+                    entriesToNames.put(key, name);
+            }
+        }
+        else {
+            String name = VariantContextUtils.getStringAttribute(vcAttribs, NAME_KEY);
+            if (name != null) {
+                entriesToNames.put(NAME_KEY, name);
+            }
+            else { // Check all INFO fields for a match:
+                for (Map.Entry<String, Object> entry : vcAttribs.entrySet()) {
+                    String key = entry.getKey();
+                    if (getName2 && key.startsWith(NAME2_KEY))
+                        entriesToNames.put(key, entry.getValue().toString());
+                    else if (key.startsWith(NAME_KEY) && !key.startsWith(NAME2_KEY))
+                        entriesToNames.put(key, entry.getValue().toString());
+                }
+            }
+        }
+
+        return entriesToNames;
+    }
+
+    private static Map<String, String> getRefSeqEntriesToNames(VariantContext vc) {
+        return getRefSeqEntriesToNames(vc, false);
+    }
+
+    public static Set<String> getRefSeqNames(VariantContext vc, boolean getName2) {
+        return new TreeSet<String>(getRefSeqEntriesToNames(vc, getName2).values());
+    }
+
+    public static Set<String> getRefSeqNames(VariantContext vc) {
+        return getRefSeqNames(vc, false);
+    }
+
+    public static Map<String, Object> getMergedRefSeqAttributes(VariantContext vc1, VariantContext vc2) {
+        Map<String, Object> refSeqAttribs = new HashMap<String, Object>();
+
+        List<RefSeqEntry> list1 = getAllRefSeqEntries(vc1);
+        List<RefSeqEntry> list2 = getAllRefSeqEntries(vc2);
+        boolean addSuffix = list1.size() > 1 || list2.size() > 1;
+        int count = 1;
+
+        for (RefSeqEntry refseq1 : list1) {
+            for (RefSeqEntry refseq2 : list2) {
+                Set<String> keys = new HashSet<String>();
+                keys.addAll(refseq1.info.keySet());
+                keys.addAll(refseq2.info.keySet());
+
+                String keySuffix = "";
+                if (addSuffix)
+                    keySuffix = "_" + count++;
+
+                Object name1 = refseq1.info.get(NAME_KEY);
+                Object name2 = refseq2.info.get(NAME_KEY);
+                boolean sameGene = name1 != null && name2 != null && name1.equals(name2);
+
+                for (String key : keys) {
+                    Object obj1 = refseq1.info.get(key);
+                    Object obj2 = refseq2.info.get(key);
+                    if (obj1 == null)
+                        obj1 = "";
+                    if (obj2 == null)
+                        obj2 = "";
+
+                    if (sameGene && key.equals(CODON_KEY) && obj1.equals(obj2)) // vc1 and vc2 have variants in the same codon in the same gene
+                        System.out.println(vc1.getChr() + ":" + vc1.getStart() + " --> CODON: obj1 = " + obj1);
+
+                    String useKey = key + keySuffix;
+                    String mergedVal = obj1 + "\\" + obj2;
+                    refSeqAttribs.put(useKey, mergedVal);
+                }
+            }
+        }
+
+        return refSeqAttribs;
+    }
+
+    private static List<RefSeqEntry> getAllRefSeqEntries(VariantContext vc) {
+        List<RefSeqEntry> allRefSeq = new LinkedList<RefSeqEntry>();
+
+        for (Map.Entry<String, String> entryToName : getRefSeqEntriesToNames(vc).entrySet()) {
+            String entry = entryToName.getKey();
+            String entrySuffix = entry.replaceFirst(NAME_KEY, "");
+            allRefSeq.add(new RefSeqEntry(vc, entrySuffix));
+        }
+
+        return allRefSeq;
+    }
+
+    private static class RefSeqEntry {
+        public Map<String, Object> info;
+
+        public RefSeqEntry(VariantContext vc, String entrySuffix) {
+            this.info = new HashMap<String, Object>();
+
+            for (Map.Entry<String, Object> attribEntry : vc.getAttributes().entrySet()) {
+                String key = attribEntry.getKey();
+                if (key.startsWith(REFSEQ_PREFIX) && key.endsWith(entrySuffix)) {
+                    String genericKey = key.replaceAll(entrySuffix, "");
+                    this.info.put(genericKey, attribEntry.getValue());
+                }
+            }
         }
     }
 }
