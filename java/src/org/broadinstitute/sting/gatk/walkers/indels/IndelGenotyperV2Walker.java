@@ -248,7 +248,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 		if ( RefseqFileName != null ) {
             logger.info("Using RefSeq annotations from "+RefseqFileName);
 
-			RMDTrackBuilder builder = new RMDTrackBuilder();
+			RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                          getToolkit().getGenomeLocParser(),
+                                                          getToolkit().getArguments().unsafe);
             FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
 
             try {

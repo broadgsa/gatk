@@ -11,6 +11,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -79,7 +80,7 @@ public class RMDIndexer extends CommandLineProgram {
         genomeLocParser = new GenomeLocParser(ref);
 
         // get a track builder
-        RMDTrackBuilder builder = new RMDTrackBuilder();
+        RMDTrackBuilder builder = new RMDTrackBuilder(ref.getSequenceDictionary(),genomeLocParser, ValidationExclusion.TYPE.ALL);
 
         // find the types available to the track builders
         Map<String,Class> typeMapping = builder.getAvailableTrackNamesAndTypes();
@@ -100,13 +101,8 @@ public class RMDIndexer extends CommandLineProgram {
 
         Index index = IndexFactory.createIndex(inputFileSource, codec, approach);
 
-        if (referenceFile != null) {
-            // create a reference file reader
-            IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(referenceFile);
-
-            // add writing of the sequence dictionary, if supplied
-            builder.setIndexSequenceDictionary(inputFileSource, index, seq.getSequenceDictionary(), indexFile, false);
-        }
+        // add writing of the sequence dictionary, if supplied
+        builder.setIndexSequenceDictionary(inputFileSource, index, ref.getSequenceDictionary(), indexFile, false);
 
         // create the output stream, and write the index
         LittleEndianOutputStream stream = new LittleEndianOutputStream(new FileOutputStream(indexFile));

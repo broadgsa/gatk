@@ -326,11 +326,8 @@ public abstract class AbstractGenomeAnalysisEngine {
         
         sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
 
-        RMDTrackBuilder manager = new RMDTrackBuilder();
-
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
-        manager.setSequenceDictionary(referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
-
+        RMDTrackBuilder manager = new RMDTrackBuilder(referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
         List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection);
         validateSuppliedReferenceOrderedData(tracks);
 
@@ -591,7 +588,11 @@ public abstract class AbstractGenomeAnalysisEngine {
     private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(List<RMDTrack> rods) {
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTrack rod : rods)
-            dataSources.add(new ReferenceOrderedDataSource(referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,rod,flashbackData()));
+            dataSources.add(new ReferenceOrderedDataSource(referenceDataSource.getReference().getSequenceDictionary(),
+                                                           genomeLocParser,
+                                                           argCollection.unsafe,
+                                                           rod,
+                                                           flashbackData()));
         return dataSources;
     }
 

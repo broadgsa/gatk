@@ -60,7 +60,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     public void setup() {
         seq = new IndexedFastaSequenceFile(new File(b36KGReference));
         genomeLocParser = new GenomeLocParser(seq);
-        builder = new RMDTrackBuilder();
+        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
     }
 
     @Test
@@ -153,7 +153,6 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
         File vcfFile = createCorrectDateIndexFile(new File(validationDataLocation + "/ROD_validation/newerTribbleTrack.vcf"));
         Long indexTimeStamp = Tribble.indexFile(vcfFile).lastModified();
         try {
-            builder.setSequenceDictionary(seq.getSequenceDictionary(),genomeLocParser,null);
             Index idx = builder.loadIndex(vcfFile, new VCFCodec());
             // catch any exception; this call should pass correctly
             SAMSequenceDictionary dict =  RMDTrackBuilder.getSequenceDictionaryFromProperties(idx);

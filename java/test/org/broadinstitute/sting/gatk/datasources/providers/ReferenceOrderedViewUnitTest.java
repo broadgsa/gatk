@@ -55,8 +55,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         // sequence
         seq = new IndexedFastaSequenceFile(new File(hg18Reference));
         genomeLocParser = new GenomeLocParser(seq);
-        builder = new RMDTrackBuilder();
-        builder.setSequenceDictionary(seq.getSequenceDictionary(),genomeLocParser,null);
+        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
     }
 
     /**
@@ -79,7 +78,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     public void testSingleBinding() {
         File file = new File(testDir + "TabularDataTest.dat");
         RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest",file);
-        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,track,false);
+        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,null,track,false);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));
 
@@ -103,9 +102,9 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
 
 
         RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest1",file);
-        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,track,false);
+        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,null,track,false);
         RMDTrack track2 = builder.createInstanceOfTrack(TableCodec.class,"tableTest2",file);
-        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,track2,false);
+        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,null,track2,false);
 
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));

@@ -32,6 +32,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
@@ -67,7 +68,10 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     GenomeAnalysisEngine GATKEngine = new GenomeAnalysisEngine();
     WalkerManager walkerManager = new WalkerManager();
     FilterManager filterManager = new FilterManager();
-    RMDTrackBuilder trackBuilder = new RMDTrackBuilder();
+    // HACK: We're currently relying on the fact that RMDTrackBuilder is used only from RMD type lookups, not
+    //       RMD track location.  Therefore, no sequence dictionary is required.  In the future, we should separate
+    //       RMD track lookups from track creation.
+    RMDTrackBuilder trackBuilder = new RMDTrackBuilder(null,null,ValidationExclusion.TYPE.ALL);
 
     /**
      * Required main method implementation.

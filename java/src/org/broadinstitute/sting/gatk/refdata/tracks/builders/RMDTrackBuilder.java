@@ -92,11 +92,6 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      */
     private ValidationExclusion.TYPE validationExclusionType;
 
-    /** Create a new plugin manager. */
-    public RMDTrackBuilder() {
-        super(FeatureCodec.class, "Codecs", "Codec");
-    }
-
     /**
      * Create a new RMDTrackBuilder, with dictionary and genomeLocParser predefined.
      * @param dict Sequence dictionary to use.
@@ -105,20 +100,10 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      */
     public RMDTrackBuilder(SAMSequenceDictionary dict,GenomeLocParser genomeLocParser, ValidationExclusion.TYPE validationExclusionType) {
         super(FeatureCodec.class, "Codecs", "Codec");
-        setSequenceDictionary(dict,genomeLocParser,validationExclusionType);
-    }
-
-    /**
-     * Establish location-aware parsing and services for relevant reference metadata.
-     * @param dict Sequence dictionary to use.
-     * @param genomeLocParser Location parser to use.
-     * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
-     */
-    public void setSequenceDictionary(SAMSequenceDictionary dict,GenomeLocParser genomeLocParser,ValidationExclusion.TYPE validationExclusionType) {
         this.dict = dict;
         this.genomeLocParser = genomeLocParser;
         this.validationExclusionType = validationExclusionType;
-    }    
+    }
 
     /** @return a list of all available track types we currently have access to create */
     public Map<String, Class> getAvailableTrackNamesAndTypes() {

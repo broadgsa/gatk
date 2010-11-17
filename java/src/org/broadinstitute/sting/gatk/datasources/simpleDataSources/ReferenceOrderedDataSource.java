@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.FeatureSource;
+import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -49,10 +50,16 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * Create a new reference-ordered data source.
      * @param rod the reference ordered data
      */
-    public ReferenceOrderedDataSource(SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser, RMDTrack rod, boolean flashbackData ) {
+    public ReferenceOrderedDataSource(SAMSequenceDictionary sequenceDictionary,
+                                      GenomeLocParser genomeLocParser,
+                                      ValidationExclusion.TYPE validationExclusionType,
+                                      RMDTrack rod, boolean flashbackData ) {
         this.rod = rod;
         if (rod.supportsQuery())
-            iteratorPool = new ReferenceOrderedQueryDataPool(sequenceDictionary,genomeLocParser,new RMDTrackBuilder(),rod);
+            iteratorPool = new ReferenceOrderedQueryDataPool(sequenceDictionary,
+                                                             genomeLocParser,
+                                                             new RMDTrackBuilder(sequenceDictionary,genomeLocParser,validationExclusionType),
+                                                             rod);
         else
             iteratorPool = new ReferenceOrderedDataPool(sequenceDictionary,genomeLocParser,rod, flashbackData );
     }

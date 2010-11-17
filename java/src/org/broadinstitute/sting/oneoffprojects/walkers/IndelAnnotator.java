@@ -35,7 +35,9 @@ public class IndelAnnotator extends RodWalker<Integer,Long> {
 
     public void initialize() {
         if ( RefseqFileName != null ) {
-            RMDTrackBuilder builder = new RMDTrackBuilder();
+            RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                          getToolkit().getGenomeLocParser(),
+                                                          getToolkit().getArguments().unsafe);
             FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
 
             try {

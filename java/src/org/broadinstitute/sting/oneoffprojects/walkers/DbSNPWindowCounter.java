@@ -47,7 +47,9 @@ public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
 
 
     public void initialize() {
-        RMDTrackBuilder builder = new RMDTrackBuilder();
+        RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                      getToolkit().getGenomeLocParser(),
+                                                      getToolkit().getArguments().unsafe);
         reader = builder.createFeatureReader(DbSNPCodec.class,myDbSNPFile).first;
     }
 
