@@ -982,6 +982,19 @@ public class VariantContextUtils {
         }
     }
 
+    public static Integer getIntegerAttribute(Map<String, Object> attribs, String attribName) {
+        Object val = attribs.get(attribName);
+        if (val == null || val.equals(VCFConstants.MISSING_VALUE_v4))
+            return null;
+
+        try {
+            return new Integer(val.toString());
+        }
+        catch (Exception e) {// IGNORE unparseable data
+            return null;
+        }
+    }
+
     private static boolean mergeIntoMNPvalidationCheck(GenomeLocParser genomeLocParser,VariantContext vc1, VariantContext vc2) {
         GenomeLoc loc1 = VariantContextUtils.getLocation(genomeLocParser,vc1);
         GenomeLoc loc2 = VariantContextUtils.getLocation(genomeLocParser,vc2);
