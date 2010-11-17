@@ -180,6 +180,20 @@
       <!-- Create the build directory structure used by compile -->
       <mkdir dir="${build.dir}"/>
       <mkdir dir="${java.classes}"/>
+
+      <pathconvert property="external.build.dir">
+        <path path="${java.classes}"/>
+      </pathconvert>
+
+      <pathconvert property="external.dist.dir">
+        <path path="${dist.dir}" />
+      </pathconvert>
+
+      <!-- GATK dependencies consist of 3rd party plugins plus compiled GATK classes -->
+      <pathconvert property="external.gatk.classpath">
+        <path path="${java.classes}"/>
+        <path refid="external.dependencies" />
+      </pathconvert>
     </target>
 
     <target name="init.scalatasks" depends="resolve" if="scala.include"
@@ -204,18 +218,9 @@
             <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
         </javac>
 
-        <pathconvert property="external.build.dir">
-            <path path="${java.classes}"/>
-        </pathconvert>
-
-        <!-- GATK dependencies consist of 3rd party plugins plus compiled GATK classes -->
-        <pathconvert property="external.gatk.classpath">
-            <path path="${java.classes}"/>
-            <path refid="external.dependencies" />
-        </pathconvert>
-
         <subant target="compile" genericantfile="build.xml">
             <property name="build.dir" value="${external.build.dir}" />
+            <property name="dist.dir" value="${external.dist.dir}" />
             <property name="gatk.classpath" value="${external.gatk.classpath}" />
             <fileset dir="${basedir}" includes="external/*/build.xml" />
         </subant>
@@ -299,9 +304,9 @@
             </manifest>
         </jar>
 
-	<jar jarfile="${dist.dir}/Aligner.jar">
-	  <fileset dir="${java.classes}" includes="**/alignment/**/*.class" />
-	</jar>
+        <jar jarfile="${dist.dir}/Aligner.jar">
+            <fileset dir="${java.classes}" includes="**/alignment/**/*.class" />
+        </jar>
 
         <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" whenmanifestonly="skip">
           <fileset dir="${java.classes}">
@@ -313,6 +318,12 @@
           </manifest>
         </jar>
 
+        <subant target="dist" genericantfile="build.xml">
+            <property name="build.dir" value="${external.build.dir}" />
+            <property name="dist.dir" value="${external.dist.dir}" />
+            <property name="gatk.classpath" value="${external.gatk.classpath}" />
+            <fileset dir="${basedir}" includes="external/*/build.xml" />
+        </subant>
     </target>
 
     <target name="queue.jar" depends="queue.compile, init.jar" if="queue.include">
