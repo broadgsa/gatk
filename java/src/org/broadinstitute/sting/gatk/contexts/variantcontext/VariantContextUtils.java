@@ -824,9 +824,7 @@ public class VariantContextUtils {
         String mergedName = VariantContextUtils.mergeVariantContextNames(vc1.getSource(), vc2.getSource());
         double mergedNegLog10PError = Math.max(vc1.getNegLog10PError(), vc2.getNegLog10PError());
         Set<String> mergedFilters = new HashSet<String>(); // Since vc1 and vc2 were unfiltered, the merged record remains unfiltered
-        Map<String, Object> mergedAttribs = VariantContextUtils.mergeVariantContextAttributes(vc1.getAttributes(), vc2.getAttributes());
-        if (mergedAttribs == null)
-            return null;
+        Map<String, Object> mergedAttribs = VariantContextUtils.mergeVariantContextAttributes(vc1, vc2);
 
         VariantContext mergedVc = new VariantContext(mergedName, vc1.getChr(), vc1.getStart(), vc2.getEnd(), mergeData.getAllMergedAlleles(), mergedGenotypes, mergedNegLog10PError, mergedFilters, mergedAttribs);
 
@@ -906,18 +904,18 @@ public class VariantContextUtils {
         return name1 + "_" + name2;
     }
 
-    private static Map<String, Object> mergeVariantContextAttributes(Map<String, Object> attribs1, Map<String, Object> attribs2) {
+    private static Map<String, Object> mergeVariantContextAttributes(VariantContext vc1, VariantContext vc2) {
         Map<String, Object> mergedAttribs = new HashMap<String, Object>();
 
-        List<Map<String, Object>> attribsList = new LinkedList<Map<String, Object>>();
-        attribsList.add(attribs1);
-        attribsList.add(attribs2);
+        List<VariantContext> vcList = new LinkedList<VariantContext>();
+        vcList.add(vc1);
+        vcList.add(vc2);
 
         String[] MERGE_OR_ATTRIBS = {VCFConstants.DBSNP_KEY};
         for (String orAttrib : MERGE_OR_ATTRIBS) {
             boolean attribVal = false;
-            for (Map<String, Object> attribs : attribsList) {
-                Boolean val = getBooleanAttribute(attribs, orAttrib);
+            for (VariantContext vc : vcList) {
+                Boolean val = vc.getAttributeAsBooleanNoException(orAttrib);
                 if (val != null)
                     attribVal = (attribVal || val);
                 if (attribVal) // already true, so no reason to continue:
@@ -928,8 +926,8 @@ public class VariantContextUtils {
 
         // Merge ID fields:
         String iDVal = null;
-        for (Map<String, Object> attribs : attribsList) {
-            String val = getStringAttribute(attribs, VariantContext.ID_KEY);
+        for (VariantContext vc : vcList) {
+            String val = vc.getAttributeAsStringNoException(VariantContext.ID_KEY);
             if (val != null && !val.equals(VCFConstants.EMPTY_ID_FIELD)) {
                 if (iDVal == null)
                     iDVal = val;
@@ -941,58 +939,6 @@ public class VariantContextUtils {
             mergedAttribs.put(VariantContext.ID_KEY, iDVal);
 
         return mergedAttribs;
-    }
-
-    public static Boolean getBooleanAttribute(Map<String, Object> attribs, String attribName) {
-        Object val = attribs.get(attribName);
-        if (val == null || val.equals(VCFConstants.MISSING_VALUE_v4))
-            return null;
-
-        try {
-            return new Boolean(val.toString());
-        }
-        catch (Exception e) {// IGNORE unparseable data
-            return null;
-        }
-    }
-
-    public static String getStringAttribute(Map<String, Object> attribs, String attribName) {
-        Object val = attribs.get(attribName);
-        if (val == null || val.equals(VCFConstants.MISSING_VALUE_v4))
-            return null;
-
-        try {
-            return val.toString();
-        }
-        catch (Exception e) {// IGNORE unparseable data
-            return null;
-        }
-    }
-
-    public static Double getDoubleAttribute(Map<String, Object> attribs, String attribName) {
-        Object val = attribs.get(attribName);
-        if (val == null || val.equals(VCFConstants.MISSING_VALUE_v4))
-            return null;
-
-        try {
-            return new Double(val.toString());
-        }
-        catch (Exception e) {// IGNORE unparseable data
-            return null;
-        }
-    }
-
-    public static Integer getIntegerAttribute(Map<String, Object> attribs, String attribName) {
-        Object val = attribs.get(attribName);
-        if (val == null || val.equals(VCFConstants.MISSING_VALUE_v4))
-            return null;
-
-        try {
-            return new Integer(val.toString());
-        }
-        catch (Exception e) {// IGNORE unparseable data
-            return null;
-        }
     }
 
     private static boolean mergeIntoMNPvalidationCheck(GenomeLocParser genomeLocParser,VariantContext vc1, VariantContext vc2) {
@@ -1061,7 +1007,7 @@ public class VariantContextUtils {
         public PhaseAndQuality(Genotype gt) {
             this.isPhased = gt.genotypesArePhased();
             if (this.isPhased)
-                this.PQ = VariantContextUtils.getDoubleAttribute(gt.getAttributes(), ReadBackedPhasingWalker.PQ_KEY);
+                this.PQ = gt.getAttributeAsDoubleNoException(ReadBackedPhasingWalker.PQ_KEY);
         }
     }
 

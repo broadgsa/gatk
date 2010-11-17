@@ -462,25 +462,24 @@ class RefSeqData {
     private static String CODON_KEY = REFSEQ_PREFIX + "codonCoord";
 
     private static Map<String, String> getRefSeqEntriesToNames(VariantContext vc, boolean getName2) {
-        Map<String, Object> vcAttribs = vc.getAttributes();
         Map<String, String> entriesToNames = new HashMap<String, String>();
 
-        Integer numRecords = VariantContextUtils.getIntegerAttribute(vcAttribs, NUM_RECORDS_KEY);
+        Integer numRecords = vc.getAttributeAsIntegerNoException(NUM_RECORDS_KEY);
         if (numRecords != null) {
             for (int i = 1; i <= numRecords; i++) {
                 String key = NAME_KEY + "_" + i;
-                String name = VariantContextUtils.getStringAttribute(vcAttribs, key);
+                String name = vc.getAttributeAsStringNoException(key);
                 if (name != null)
                     entriesToNames.put(key, name);
             }
         }
         else {
-            String name = VariantContextUtils.getStringAttribute(vcAttribs, NAME_KEY);
+            String name = vc.getAttributeAsStringNoException(NAME_KEY);
             if (name != null) {
                 entriesToNames.put(NAME_KEY, name);
             }
             else { // Check all INFO fields for a match:
-                for (Map.Entry<String, Object> entry : vcAttribs.entrySet()) {
+                for (Map.Entry<String, Object> entry : vc.getAttributes().entrySet()) {
                     String key = entry.getKey();
                     if (getName2 && key.startsWith(NAME2_KEY))
                         entriesToNames.put(key, entry.getValue().toString());
