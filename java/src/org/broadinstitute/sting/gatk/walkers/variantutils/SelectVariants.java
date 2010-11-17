@@ -169,27 +169,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         jexls = VariantContextUtils.initializeMatchExps(selectNames, SELECT_EXPRESSIONS);
     }
 
-//    This is commented out rather than just deleted in case I want to enable JEXL matching *before* sample subsetting.
-//    /**
-//     * If JEXL expressions are supplied, include only records that satisfy the expression
-//     *
-//     * @param  tracker   the ROD tracker
-//     * @param  ref       reference information
-//     * @param  context   alignment info
-//     * @return true if no JEXL expressions are supplied or if a record satisfies all JEXL criteria, false if otherwise
-//     */
-//    public boolean filter(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-//        VariantContext vc = tracker.getVariantContext(ref, "variant", null, context.getLocation(), true);
-//
-//        for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
-//            if ( !VariantContextUtils.match(vc, jexl) ) {
-//                return false;
-//            }
-//        }
-//
-//        return true;
-//    }
-
     /**
      * Subset VC record if necessary and emit the modified record (provided it satisfies criteria for printing)
      *
@@ -214,7 +193,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
                     //System.out.printf("%s%n",sub.toString());
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
-                    if ( !VariantContextUtils.match(getToolkit().getGenomeLocParser(),sub, jexl) ) {
+                    if ( !VariantContextUtils.match(sub, jexl) ) {
                         return 0;
                     }
                 }

@@ -39,6 +39,10 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 
 public class VariantContextUtils {
     final public static JexlEngine engine = new JexlEngine();
+    static {
+        engine.setSilent(false); // will throw errors now for selects that don't evaluate properly
+        engine.setLenient(false);
+    }
 
     /**
      * Create a new VariantContext
@@ -211,7 +215,7 @@ public class VariantContextUtils {
                 Expression exp = engine.createExpression(expStr);
                 exps.add(new JexlVCMatchExp(name, exp));
             } catch (Exception e) {
-		throw new UserException.BadArgumentValue(name, "Invalid expression used (" + expStr + "). Please see the JEXL docs for correct syntax.") ;
+                throw new UserException.BadArgumentValue(name, "Invalid expression used (" + expStr + "). Please see the JEXL docs for correct syntax.") ;
             }
         }
 
@@ -224,8 +228,8 @@ public class VariantContextUtils {
      * @param exp   expression
      * @return true if there is a match
      */
-    public static boolean match(GenomeLocParser genomeLocParser,VariantContext vc, JexlVCMatchExp exp) {
-        return match(genomeLocParser,vc,Arrays.asList(exp)).get(exp);
+    public static boolean match(VariantContext vc, JexlVCMatchExp exp) {
+        return match(vc,Arrays.asList(exp)).get(exp);
     }
 
     /**
@@ -238,8 +242,8 @@ public class VariantContextUtils {
      * @param exps expressions
      * @return true if there is a match
      */
-    public static Map<JexlVCMatchExp, Boolean> match(GenomeLocParser genomeLocParser,VariantContext vc, Collection<JexlVCMatchExp> exps) {
-        return new JEXLMap(genomeLocParser,exps,vc);
+    public static Map<JexlVCMatchExp, Boolean> match(VariantContext vc, Collection<JexlVCMatchExp> exps) {
+        return new JEXLMap(exps,vc);
 
     }
 
@@ -250,8 +254,8 @@ public class VariantContextUtils {
      * @param exp   expression
      * @return true if there is a match
      */
-    public static boolean match(GenomeLocParser genomeLocParser,VariantContext vc, Genotype g, JexlVCMatchExp exp) {
-        return match(genomeLocParser,vc,g,Arrays.asList(exp)).get(exp);
+    public static boolean match(VariantContext vc, Genotype g, JexlVCMatchExp exp) {
+        return match(vc,g,Arrays.asList(exp)).get(exp);
     }
 
     /**
@@ -265,9 +269,8 @@ public class VariantContextUtils {
      * @param exps expressions
      * @return true if there is a match
      */
-    public static Map<JexlVCMatchExp, Boolean> match(GenomeLocParser genomeLocParser,VariantContext vc, Genotype g, Collection<JexlVCMatchExp> exps) {
-        return new JEXLMap(genomeLocParser,exps,vc,g);
-
+    public static Map<JexlVCMatchExp, Boolean> match(VariantContext vc, Genotype g, Collection<JexlVCMatchExp> exps) {
+        return new JEXLMap(exps,vc,g);
     }
 
     public static double computeHardyWeinbergPvalue(VariantContext vc) {
@@ -354,7 +357,7 @@ public class VariantContextUtils {
         for (VariantContext vc : prepaddedVCs) {
             // also a reasonable place to remove filtered calls, if needed
             if ( ! filteredAreUncalled || vc.isNotFiltered() )
-                VCs.add(VariantContext.createVariantContextWithPaddedAlleles(vc,inputRefBase,false));            
+                VCs.add(VariantContext.createVariantContextWithPaddedAlleles(vc,inputRefBase,false));
         }
         if ( VCs.size() == 0 ) // everything is filtered out and we're filteredareUncalled
             return null;
@@ -454,7 +457,7 @@ public class VariantContextUtils {
                         s.add( vc.isFiltered() ? "filterIn" + vc.getSource() : vc.getSource() );
                 setValue = Utils.join("-", s);
             }
-            
+
             if ( setKey != null ) attributes.put(setKey, setValue);
         }
 

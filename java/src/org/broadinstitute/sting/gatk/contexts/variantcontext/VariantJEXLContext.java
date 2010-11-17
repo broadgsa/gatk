@@ -27,7 +27,6 @@ import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -50,7 +49,6 @@ import java.util.*;
  */
 
 class VariantJEXLContext implements JexlContext {
-    private GenomeLocParser genomeLocParser;
     // our stored variant context
     private VariantContext vc;
 
@@ -75,15 +73,9 @@ class VariantJEXLContext implements JexlContext {
         x.put("homVarCount",  new AttributeGetter() { public Object get(VariantContext vc) { return vc.getHomVarCount(); }});
     }
 
-    public VariantJEXLContext(GenomeLocParser genomeLocParser,VariantContext vc) {
-        this.genomeLocParser = genomeLocParser;
+    public VariantJEXLContext(VariantContext vc) {
         this.vc = vc;
     }
-
-//    public VariantJEXLContext(VariantContext vc, Genotype g) {
-//        this.vc = vc;
-//        //throw new UnsupportedOperationException("Cannot instantiate VariantJEXLContext");
-//    }
 
     public Object get(String name) {
         Object result = null;
@@ -122,7 +114,6 @@ class VariantJEXLContext implements JexlContext {
  */
 
 class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
-    private final GenomeLocParser genomeLocParser;
     // our variant context and/or Genotype
     private final VariantContext vc;
     private final Genotype g;
@@ -134,19 +125,18 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
     private Map<VariantContextUtils.JexlVCMatchExp,Boolean> jexl;
 
 
-    public JEXLMap(GenomeLocParser genomeLocParser,Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, VariantContext vc, Genotype g) {
-        this.genomeLocParser = genomeLocParser;
+    public JEXLMap(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, VariantContext vc, Genotype g) {
         this.vc = vc;
         this.g = g;
         initialize(jexlCollection);
     }
 
-    public JEXLMap(GenomeLocParser genomeLocParser,Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, VariantContext vc) {
-        this(genomeLocParser,jexlCollection, vc, null);
+    public JEXLMap(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, VariantContext vc) {
+        this(jexlCollection, vc, null);
     }
 
-    public JEXLMap(GenomeLocParser genomeLocParser,Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, Genotype g) {
-        this(genomeLocParser,jexlCollection, null, g);
+    public JEXLMap(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, Genotype g) {
+        this(jexlCollection, null, g);
     }
 
     private void initialize(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection) {
@@ -164,14 +154,17 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
     private void createContext() {
         if ( g == null ) {
             // todo -- remove dependancy on g to the entire system
-            jContext = new VariantJEXLContext(genomeLocParser,vc);
+            jContext = new VariantJEXLContext(vc);
         } else {
+            //
+            // this whole branch is here just to support G jexl operations
+            //
             Map<String, Object> infoMap = new HashMap<String, Object>();
 
             if ( vc != null ) {
                 // create a mapping of what we know about the variant context, its Chromosome, positions, etc.
-                infoMap.put("CHROM", VariantContextUtils.getLocation(genomeLocParser,vc).getContig());
-                infoMap.put("POS", String.valueOf(VariantContextUtils.getLocation(genomeLocParser,vc).getStart()));
+                infoMap.put("CHROM", vc.getChr());
+                infoMap.put("POS", vc.getStart());
                 infoMap.put("TYPE", vc.getType().toString());
                 infoMap.put("QUAL", String.valueOf(vc.getPhredScaledQual()));
 
@@ -195,10 +188,8 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
                 //        addAttributesToMap(infoMap, g.getAttributes(), prefix);
                 //        infoMap.put(prefix + "GT", g.getGenotypeString());
                 //    }
-            }
 
-            // add specific genotype if one is provided
-            if ( g != null ) {
+                // add specific genotype if one is provided
                 infoMap.put(VCFConstants.GENOTYPE_KEY, g.getGenotypeString());
                 infoMap.put("isHomRef", g.isHomRef() ? "1" : "0");
                 infoMap.put("isHet", g.isHet() ? "1" : "0");
@@ -206,7 +197,7 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
                 infoMap.put(VCFConstants.GENOTYPE_QUALITY_KEY, new Double(g.getPhredScaledQual()));
                 for ( Map.Entry<String, Object> e : g.getAttributes().entrySet() ) {
                     if ( e.getValue() != null && !e.getValue().equals(VCFConstants.MISSING_VALUE_v4) )
-                    infoMap.put(e.getKey(), e.getValue());
+                        infoMap.put(e.getKey(), e.getValue());
                 }
             }
 

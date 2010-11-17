@@ -620,6 +620,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
     }
 
+    private static Set<String> seenJEXLExceptions = new HashSet<String>();
     private boolean applyVCtoEvaluation(VariantContext vc, Map<String, VariantContext> vcs, EvaluationContext group) {
         if ( vc == null )
             return true;
@@ -643,8 +644,21 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         else if ( group.requiresNovel() && vcKnown )
             return false;
 
-        if ( group.selectExp != null && ! VariantContextUtils.match(getToolkit().getGenomeLocParser(),vc, group.selectExp) )
-            return false;
+        if ( group.selectExp != null ) {
+            try {
+                if ( ! VariantContextUtils.match(vc, group.selectExp) )
+                    return false;
+            } catch ( RuntimeException e ) {
+                if ( ! seenJEXLExceptions.contains(group.selectExp.name) ) {
+                    seenJEXLExceptions.add(group.selectExp.name);
+                    logger.warn("JEXL evaluation error for SELECT " + group.selectExp.name + ": " + e.getMessage() +
+                            "; this may be an error or may simply result from some variants not having INFO fields keys " +
+                            "referenced in the JEXL expressions.  Variants generating exceptions will *NOT* be matched " +
+                            "by the expression.  Occurred with variant " + vc);
+                }
+                return false;
+            }
+        }
 
         // nothing invalidated our membership in this set
         return true;
