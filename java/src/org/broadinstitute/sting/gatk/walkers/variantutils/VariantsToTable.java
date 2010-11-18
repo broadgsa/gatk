@@ -119,7 +119,6 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             for ( VariantContext vc : vcs) {
                 if ( (! ignoreMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
                     List<String> vals = extractFields(vc, fieldsToTake);
-
                     out.println(Utils.join("\t", vals));
                 }
             }
@@ -134,6 +133,10 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         }
     }
 
+    private static final boolean isWildCard(String s) {
+        return s.endsWith("*");
+    }
+
     public static List<String> extractFields(VariantContext vc, List<String> fields) {
         List<String> vals = new ArrayList<String>();
 
@@ -144,6 +147,19 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 val = getters.get(field).get(vc);
             } else if ( vc.hasAttribute(field) ) {
                 val = vc.getAttributeAsString(field);
+            } else if ( isWildCard(field) ) {
+                Set<String> wildVals = new HashSet<String>();
+                for ( Map.Entry<String,Object> elt : vc.getAttributes().entrySet()) {
+                    if ( elt.getKey().startsWith(field.substring(0, field.length() - 1)) ) {
+                        wildVals.add(elt.getValue().toString());
+                    }
+                }
+
+                if ( wildVals.size() > 0 ) {
+                    List<String> toVal = new ArrayList<String>(wildVals);
+                    Collections.sort(toVal);
+                    val = Utils.join(",", toVal);
+                }
             }
 
             vals.add(val);
