@@ -19,11 +19,11 @@ $command = "$command_prefix -T DepthOfCoverage -I /humgen/gsa-hpprojects/GATK/da
 run($command, $dry);
 
 print "Executing CountCovariatesWholeExome...";
-$command = "$command_prefix -T CountCovariates -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.bam -L /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/whole_exome_agilent_designed_120.targets.chr1.interval_list -standard -OQ -recalFile /dev/null -XL chr1:1,000,000-247179187";
+$command = "$command_prefix -T CountCovariates -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.ESP.WEx.chr1.bam -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod -L /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/whole_exome_agilent_designed_120.targets.chr1.interval_list -standard -OQ -recalFile /dev/null -XL chr1:1,000,000-247179187";
 run($command, $dry);
 
 print "Executing CountCovariatesWholeGenome...";
-$command = "$command_prefix -T CountCovariates -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.bam -L chr1:1,900,000-2,000,000 -standard -OQ -recalFile /dev/null";
+$command = "$command_prefix -T CountCovariates -I /humgen/gsa-hpprojects/GATK/data/Evaluation_Data/NA12878.GAII.chr1.50MB.bam -D /humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod -L chr1:1,900,000-2,000,000 -standard -OQ -recalFile /dev/null";
 run($command, $dry);
 
 print "Executing TableRecalibratorWholeExome...";

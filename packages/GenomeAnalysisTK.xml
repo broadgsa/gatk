@@ -4,33 +4,15 @@
   <executable name="GenomeAnalysisTK">
     <main-class name="org.broadinstitute.sting.gatk.CommandLineGATK" />
     <resource-bundle file="StingText.properties" />
-    <modules>
-      <module file="QualityScoresRecalibration.xml" />
-      <module file="VariantRecalibration.xml" />
-      <module file="LocalRealignmentAroundIndels.xml" />
-      <module file="UnifiedGenotyper.xml" />
-      <module file="VariantEval.xml" />
-      <module file="VariantFiltration.xml" />
-      <module file="VariantAnnotator.xml" />
-      <module file="IndelGenotyper.xml" />
-    </modules>
     <dependencies>
+      <!-- Core walkers -->
+      <package name="org.broadinstitute.sting.gatk.walkers.**" />
       <!-- Filters -->
       <package name="org.broadinstitute.sting.gatk.filters" />
       <!-- Tribble codecs -->
       <package name="org.broad.tribble.*" />
-      <!-- Basic qc walkers -->
-      <class name="org.broadinstitute.sting.gatk.walkers.coverage.DepthOfCoverageWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.coverage.DoCOutputMultiplexer" />
-
-      <class name="org.broadinstitute.sting.gatk.walkers.PileupWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.PrintReadsWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.qc.CountLociWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker" />
-      <class name="org.broadinstitute.sting.gatk.walkers.qc.ValidatingPileupWalker" />
-      <!-- Other misc walkers -->
-      <class name="org.broadinstitute.sting.gatk.walkers.variantutils.CombineVariants" />
-      <class name="org.broadinstitute.sting.gatk.walkers.VariantsToVCF" />
+      <!-- Workaround - depend on the logger impl required by JEXL -->
+      <package name="org.apache.commons.logging.impl" />
     </dependencies>
   </executable>
   <modules>
