@@ -309,8 +309,8 @@ class fullCallingPipeline extends QScript {
     handFilter.jobOutputFile = new File(".queue/logs/SNPCalling/HandFilter.out")
     handFilter.variantVCF = masker.out
     handFilter.rodBind :+= RodBind("mask", "VCF", mergeIndels.out)
-    handFilter.filterName ++= List("StrandBias","AlleleBalance","QualByDepth","HomopolymerRun")
-    handFilter.filterExpression ++= List("\"SB>=0.10\"","\"AB>=0.75\"","\"QD<5.0\"","\"HRun>=4\"")
+    handFilter.filterName ++= List("StrandBias","QualByDepth","HomopolymerRun")
+    handFilter.filterExpression ++= List("\"SB>=0.10\"","\"QD<5.0\"","\"HRun>=4\"")
     handFilter.out = swapExt("SnpCalls",annotated.out,".vcf",".handfiltered.vcf")
     handFilter.analysisName = base+"_HandFilter"
 
