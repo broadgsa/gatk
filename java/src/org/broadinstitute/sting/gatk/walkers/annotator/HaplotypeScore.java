@@ -50,7 +50,15 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
 
     public boolean useRead(PileupElement p) {
         return ! ReadUtils.is454Read(p.getRead());
-        //return ! (p.getRead() instanceof GATKSAMRecord && ! ((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) && ! ReadUtils.is454Read(p.getRead());
+	// TODO -- warning, min. mapping quality fixed to constant 1 here for indels.  How can I determine the min. mapping quality?
+        // if ( ReadUtils.is454Read(p.getRead()) ) // we're not a 454 read
+	//     return false;
+	// else if ( p.getOffset() == -1 ) // indel
+	//     return p.getRead().getMappingQuality() > 0;
+	// else if ( ! (p.getRead() instanceof GATKSAMRecord) ) // we're not a GATKSamRecord, so we can't filter
+	//     return true;
+	// else 
+	//     return ((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset()); // we used the base to call the variant
     }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
