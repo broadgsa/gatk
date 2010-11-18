@@ -85,7 +85,7 @@
 
     <target name="init.resolve" unless="init.resolve.done">
         <!-- ivy properties -->
-        <property name="ivy.install.version" value="2.2.0-rc1"/>
+        <property name="ivy.install.version" value="2.2.0"/>
         <property name="ivy.home" value="${user.home}/.ant"/>
         <property name="ivy.jar.dir" value="${ivy.home}/lib"/>
         <property name="ivy.jar.file" value="ivy-${ivy.install.version}.jar"/>
@@ -93,8 +93,6 @@
         <property file="${ivy.settings.dir}/ivysettings.properties"/>
   
       <mkdir dir="${ivy.jar.dir}"/>
-      <!-- Remove old versions of ivy. -->
-      <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
       <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
            dest="${ivy.jar.dir}/${ivy.jar.file}"
            usetimestamp="true"/>
@@ -114,6 +112,9 @@
         </condition>
         <property name="ivy.conf" value="default, ${gatk.ivy.conf}, ${scala.ivy.conf}, ${queue.ivy.conf}"/>
       <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
+      <!-- Remove old versions of ivy jars AFTER the ivy:retrieve has been class loaded. -->
+      <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
+      <delete file="${ivy.jar.dir}/ivy-2.2.0-rc1.jar"/>
     </target>
 
     <target name="init.buildall">

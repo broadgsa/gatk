@@ -47,7 +47,7 @@ import java.text.SimpleDateFormat;
 
 public class HelpFormatter {
     /** our log, which we want to capture anything from org.broadinstitute.sting */
-    private static Logger logger = Logger.getRootLogger();    
+    private static Logger logger = Logger.getLogger(HelpFormatter.class);
 
     public static final int FIELD_SEPARATION_WIDTH = 3;
 

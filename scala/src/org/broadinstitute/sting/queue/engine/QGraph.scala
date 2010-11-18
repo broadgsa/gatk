@@ -45,11 +45,14 @@ class QGraph extends Logging {
    * Checks the functions for missing values and the graph for cyclic dependencies and then runs the functions in the graph.
    */
   def run = {
+
     IOUtils.checkTempDir(settings.qSettings.tempDirectory)
     val numMissingValues = fillGraph
     val isReady = numMissingValues == 0
 
-    if (settings.getStatus) {
+    if (this.jobGraph.edgeSet.isEmpty) {
+      logger.warn("Nothing to run! Were any Functions added?");
+    } else if (settings.getStatus) {
       logger.info("Checking pipeline status.")
       logStatus()
     } else if (this.dryRun) {

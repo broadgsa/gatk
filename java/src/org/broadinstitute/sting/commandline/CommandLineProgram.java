@@ -39,9 +39,6 @@ public abstract class CommandLineProgram {
     /** The command-line program and the arguments it returned. */
     protected ParsingEngine parser = null;
 
-    /** our log, which we want to capture anything from org.broadinstitute.sting */
-    private static Logger logger = Logger.getRootLogger();
-
     /** the default log level */
     @Argument(fullName = "logging_level",
               shortName = "l",
@@ -79,13 +76,16 @@ public abstract class CommandLineProgram {
     private static String patternString = "%-5p %d{HH:mm:ss,SSS} %C{1} - %m %n";
     private static String debugPatternString = "%n[level] %p%n[date]\t\t %d{dd MMM yyyy HH:mm:ss,SSS} %n[class]\t\t %C %n[location]\t %l %n[line number]\t %L %n[message]\t %m %n";
 
-    /**
-     * The very first thing that any Sting application does is forces the JVM locale into US English, so that we don't have
-     * to think about number formatting issues.
-     */
-    {
+    static {
+        /**
+         * The very first thing that any Sting application does is forces the JVM locale into US English, so that we don't have
+         * to think about number formatting issues.
+         */
         forceJVMLocaleToUSEnglish();
-    }    
+        // setup a basic log configuration
+        CommandLineUtils.configureConsoleLogging();
+    }
+
 
     /**
      * Allows a given application to return a brief description of itself.
@@ -139,13 +139,9 @@ public abstract class CommandLineProgram {
      * when all the argument processing is done
      *
      * @return the return code to exit the program with
+     * @throws Exception when an exception occurs
      */
     protected abstract int execute() throws Exception;
-
-    static {
-        // setup a basic log configuration
-        BasicConfigurator.configure();
-    }
 
     public static int result = -1;
 
@@ -155,6 +151,7 @@ public abstract class CommandLineProgram {
      *
      * @param clp  the command line program to execute
      * @param args the command line arguments passed in
+     * @throws Exception when an exception occurs
      */
     @SuppressWarnings("unchecked")
     public static void start(CommandLineProgram clp, String[] args) throws Exception {
@@ -163,12 +160,10 @@ public abstract class CommandLineProgram {
             // setup our log layout
             PatternLayout layout = new PatternLayout();
 
+            Logger logger = CommandLineUtils.getStingLogger();
+
             // now set the layout of all the loggers to our layout
-            Enumeration<Appender> en = logger.getAllAppenders();
-            for (; en.hasMoreElements();) {
-                Appender app = en.nextElement();
-                app.setLayout(layout);
-            }
+            CommandLineUtils.setLayout(logger, layout);
 
             // Initialize the logger using the defaults.
             clp.setupLoggerLevel(layout);
@@ -269,10 +264,8 @@ public abstract class CommandLineProgram {
     private void setupLoggerLevel(PatternLayout layout) {
         // if we're in debug mode, set the mode up
         if (debugMode) {
-            //logger.info("Setting debug");
             layout.setConversionPattern(debugPatternString);
         } else {
-            //logger.info("not Setting debug");
             layout.setConversionPattern(patternString);
         }
 
@@ -295,7 +288,7 @@ public abstract class CommandLineProgram {
             throw new ArgumentException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (INFO, DEBUG, ERROR, FATAL, OFF)");
         }
 
-        logger.setLevel(par);
+        CommandLineUtils.getStingLogger().setLevel(par);
     }
 
     /**

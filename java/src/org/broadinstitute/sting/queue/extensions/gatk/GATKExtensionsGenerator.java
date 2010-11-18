@@ -55,7 +55,7 @@ import java.util.Map.Entry;
  * ArgumentCollections are flattened into a single module.
  */
 public class GATKExtensionsGenerator extends CommandLineProgram {
-    private static final Logger logger = Logger.getRootLogger();
+    private static final Logger logger = Logger.getLogger(GATKExtensionsGenerator.class);
     public static final String GATK_EXTENSIONS_PACKAGE_NAME = "org.broadinstitute.sting.queue.extensions.gatk";
     private static final String COMMANDLINE_PACKAGE_NAME = GATK_EXTENSIONS_PACKAGE_NAME;
     private static final String FILTER_PACKAGE_NAME = GATK_EXTENSIONS_PACKAGE_NAME;

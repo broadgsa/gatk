@@ -2,14 +2,13 @@ package org.broadinstitute.sting;
 
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
+import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.testng.annotations.BeforeClass;
 
 import java.io.*;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Enumeration;
 
 /**
  *
@@ -38,48 +37,41 @@ import java.util.Enumeration;
  * This is the base test class for all of our test cases.  All test cases should extend from this
  * class; it sets up the logger, and resolves the location of directories that we rely on.
  */
+@SuppressWarnings("unchecked")
 public abstract class BaseTest {
     /** our log, which we want to capture anything from org.broadinstitute.sting */
-    public static Logger logger = Logger.getRootLogger();
+    public static final Logger logger = CommandLineUtils.getStingLogger();
 
-    public static String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
-    public static String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.fasta";
-    public static String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
-    public static String b37KGReference = "/humgen/1kg/reference/human_g1k_v37.fasta";
-    public static String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
-    public static String validationDataLocation = GATKDataLocation + "Validation_Data/";
-    public static String evaluationDataLocation = GATKDataLocation + "Evaluation_Data/";
-    public static String comparisonDataLocation = GATKDataLocation + "Comparisons/";
+    public static final String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
+    public static final String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.fasta";
+    public static final String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
+    public static final String b37KGReference = "/humgen/1kg/reference/human_g1k_v37.fasta";
+    public static final String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
+    public static final String validationDataLocation = GATKDataLocation + "Validation_Data/";
+    public static final String evaluationDataLocation = GATKDataLocation + "Evaluation_Data/";
+    public static final String comparisonDataLocation = GATKDataLocation + "Comparisons/";
 
-    public String testDir = "testdata/";
-    protected static boolean alreadySetup = false;
-    
+    public final String testDir = "testdata/";
 
     /** before the class starts up */
-    public BaseTest() {
-        if (!alreadySetup) {
+    static {
+        // setup a basic log configuration
+        CommandLineUtils.configureConsoleLogging();
 
-            alreadySetup = true;
-            // setup a basic log configuration
-            BasicConfigurator.configure();
+        // setup our log layout
+        PatternLayout layout = new PatternLayout();
+        layout.setConversionPattern("TEST %C{1}.%M - %d{HH:mm:ss,SSS} - %m%n");
 
-            // setup our log layout
-            PatternLayout layout = new PatternLayout();
-            layout.setConversionPattern("TEST %C{1}.%M - %d{HH:mm:ss,SSS} - %m%n");
+        // now set the layout of all the loggers to our layout
+        CommandLineUtils.setLayout(logger, layout);
 
-            // now set the layout of all the loggers to our layout
-            Enumeration<Appender> en = logger.getAllAppenders();
-            for (; en.hasMoreElements();) {
-                Appender app = en.nextElement();
-                app.setLayout(layout);
-            }
-            logger.setLevel(Level.WARN);
+        // Set the Root logger to only output warnings.
+        logger.setLevel(Level.WARN);
 
-            // find our file sources
-            if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
-                logger.fatal("We can't locate the reference directories.  Aborting!");
-                throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
-            }
+        // find our file sources
+        if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
+            logger.fatal("We can't locate the reference directories.  Aborting!");
+            throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
         }
     }
 

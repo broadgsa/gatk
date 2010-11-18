@@ -85,8 +85,13 @@ trait QFunction extends Logging {
    * Returns true if the file should be used for status output.
    * @return true if the file should be used for status output.
    */
-  def useStatusOutput(file: File) =
-    file != jobOutputFile && file != jobErrorFile
+  def useStatusOutput(file: File) = !isLogFile(file)
+
+  /**
+   * Returns true if the file is a log file for this function.
+   */
+  protected def isLogFile(file: File) =
+    file == jobOutputFile || file == jobErrorFile
 
   /**
    * Returns the output files for this function.
@@ -165,7 +170,7 @@ trait QFunction extends Logging {
    * Deletes the output files and all the status files for this function.
    */
   def deleteOutputs() = {
-    outputs.foreach(file => IOUtils.tryDelete(file))
+    outputs.filterNot(file => isLogFile(file)).foreach(file => IOUtils.tryDelete(file))
     doneOutputs.foreach(file => IOUtils.tryDelete(file))
     failOutputs.foreach(file => IOUtils.tryDelete(file))
   }

@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.commandline;
 
+import org.apache.log4j.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
@@ -141,5 +142,43 @@ public class CommandLineUtils {
     private static final String pointerRegexp = ".+@[0-9a-fA-F]+$";
     private static boolean isObjectPointer(String s) {
         return s != null && s.matches(pointerRegexp);
+    }
+
+    /**
+     * Returns the root logger for all Sting code.
+     * @return the root logger for all Sting code.
+     */
+    public static Logger getStingLogger() {
+        return Logger.getLogger("org.broadinstitute.sting");
+    }
+
+    /**
+     * Enables console logging.
+     */
+    @SuppressWarnings("unchecked")
+    public static void configureConsoleLogging() {
+        // Check to see if a console logger has already been enabled.
+        for (Logger logger = getStingLogger(); logger != null; logger = (Logger)logger.getParent()) {
+            Enumeration<Appender> e = (Enumeration<Appender>) logger.getAllAppenders();
+            for (Appender appender: Collections.list(e)) {
+                if (appender instanceof ConsoleAppender)
+                    return;
+            }
+        }
+        // Extracted from BasicConfigurator.configure(), but only applied to the Sting logger.
+        getStingLogger().addAppender(new ConsoleAppender(
+                new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN)));
+    }
+
+    /**
+     * Sets the layout of the logger.
+     * @param logger The logger.
+     * @param layout The layout.
+     */
+    @SuppressWarnings("unchecked")
+    public static void setLayout(Logger logger, PatternLayout layout) {
+        Enumeration<Appender> e = (Enumeration<Appender>) logger.getAllAppenders();
+        for (Appender appender: Collections.list(e))
+            appender.setLayout(layout);
     }
 }

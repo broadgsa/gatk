@@ -5,5 +5,5 @@ package org.broadinstitute.sting.queue.function
  */
 trait InProcessFunction extends QFunction {
   def run()
-  def description = (List(this.getClass.getSimpleName) ++ this.outputs.filter(file => useStatusOutput(file)).map(_.getAbsolutePath)).mkString(" ")
+  def description = (List(this.getClass.getSimpleName) ++ this.outputs.filterNot(file => isLogFile(file)).map(_.getAbsolutePath)).mkString(" ")
 }
