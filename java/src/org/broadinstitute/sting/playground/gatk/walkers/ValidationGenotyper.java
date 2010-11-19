@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.gatk.walkers.validationgenotyper;
+package org.broadinstitute.sting.playground.gatk.walkers;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Output;

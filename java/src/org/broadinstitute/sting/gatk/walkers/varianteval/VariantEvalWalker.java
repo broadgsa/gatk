@@ -127,6 +127,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     protected ArrayList<String> SELECT_NAMES = new ArrayList<String>();
 
     @Hidden
+    @Argument(shortName="summary", doc="One or more JEXL staments to log after evaluating the data", required=false)
+    protected ArrayList<String> SUMMARY_EXPS = new ArrayList<String>();
+
+    @Hidden
     @Argument(shortName="validate", doc="One or more JEXL validations to use after evaluating the data", required=false)
     protected ArrayList<String> VALIDATE_EXPS = new ArrayList<String>();
 
@@ -483,12 +487,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     private Set<VariantEvaluator> instantiateEvalationsSet() {
         Set<VariantEvaluator> evals = new HashSet<VariantEvaluator>();
         Object[] args = new Object[]{this};
-        Class[] argTypes = new Class[]{this.getClass()};
+        Class<?>[] argTypes = new Class<?>[]{VariantEvalWalker.class};
 
-        for ( Class c : evaluationClasses ) {
+        for ( Class<? extends VariantEvaluator> c : evaluationClasses ) {
             try {
-                Constructor constructor = c.getConstructor(argTypes);
-                VariantEvaluator eval = (VariantEvaluator)constructor.newInstance(args);
+                Constructor<? extends VariantEvaluator> constructor = c.getConstructor(argTypes);
+                VariantEvaluator eval = constructor.newInstance(args);
                 evals.add(eval);
             } catch (Exception e) {
                 throw new DynamicClassResolutionException(c, e);
@@ -804,7 +808,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      * Validates the JEXL expressions and throws an exception if they do not all return true.
      */
     private void validateContext() {
-        if (VALIDATE_EXPS.size() == 0)
+        if (SUMMARY_EXPS.size() + VALIDATE_EXPS.size() == 0)
             return;
 
         JexlContext jc = new MapContext();
@@ -832,6 +836,11 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         };
 
         JexlEngine jexl = new JexlEngine(uberspect, null, null, null);
+
+        for (String expression: SUMMARY_EXPS) {
+            Object jexlResult = jexl.createExpression(expression).evaluate(jc);
+            logger.info("Summary: " + expression + " = " + jexlResult);
+        }
 
         List<String> failedExpressions = new ArrayList<String>();
         for (String expression: VALIDATE_EXPS) {
