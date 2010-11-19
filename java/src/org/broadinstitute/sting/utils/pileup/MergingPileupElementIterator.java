@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import net.sf.picard.util.PeekableIterator;
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 
 import java.util.PriorityQueue;
 import java.util.Comparator;
@@ -41,8 +42,8 @@ class MergingPileupElementIterator<PE extends PileupElement> implements Iterator
 
     public MergingPileupElementIterator(PerSamplePileupElementTracker<PE> tracker) {
         perSampleIterators = new PriorityQueue<PeekableIterator<PE>>(tracker.getSamples().size(),new PileupElementIteratorComparator());
-        for(String sampleName: tracker.getSamples()) {
-            PileupElementTracker<PE> trackerPerSample = tracker.getElements(sampleName);
+        for(Sample sample: tracker.getSamples()) {
+            PileupElementTracker<PE> trackerPerSample = tracker.getElements(sample);
             if(trackerPerSample.size() != 0)
                 perSampleIterators.add(new PeekableIterator<PE>(trackerPerSample.iterator()));
         }

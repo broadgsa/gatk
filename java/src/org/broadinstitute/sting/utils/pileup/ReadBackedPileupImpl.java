@@ -23,6 +23,7 @@
  */
 package org.broadinstitute.sting.utils.pileup;
 
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import net.sf.samtools.SAMRecord;
 
@@ -47,7 +48,7 @@ public class ReadBackedPileupImpl extends AbstractReadBackedPileup<ReadBackedPil
         super(loc,pileupElements);
     }
 
-    public ReadBackedPileupImpl(GenomeLoc loc, Map<String,ReadBackedPileupImpl> pileupElementsBySample) {
+    public ReadBackedPileupImpl(GenomeLoc loc, Map<Sample,ReadBackedPileupImpl> pileupElementsBySample) {
         super(loc,pileupElementsBySample);
     }
 

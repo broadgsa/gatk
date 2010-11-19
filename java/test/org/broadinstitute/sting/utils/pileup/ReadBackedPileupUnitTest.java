@@ -28,6 +28,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.testng.Assert;
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
 import org.testng.annotations.Test;
@@ -143,9 +144,9 @@ public class ReadBackedPileupUnitTest {
         ReadBackedPileupImpl sample2Pileup = new ReadBackedPileupImpl(null,
                                                                       Arrays.asList(read2,read4),
                                                                       Arrays.asList(1,1));
-        Map<String,ReadBackedPileupImpl> sampleToPileupMap = new HashMap<String,ReadBackedPileupImpl>();
-        sampleToPileupMap.put(readGroupOne.getSample(),sample1Pileup);
-        sampleToPileupMap.put(readGroupTwo.getSample(),sample2Pileup);
+        Map<Sample,ReadBackedPileupImpl> sampleToPileupMap = new HashMap<Sample,ReadBackedPileupImpl>();
+        sampleToPileupMap.put(new Sample(readGroupOne.getSample()),sample1Pileup);
+        sampleToPileupMap.put(new Sample(readGroupTwo.getSample()),sample2Pileup);
 
         ReadBackedPileup compositePileup = new ReadBackedPileupImpl(null,sampleToPileupMap);
 

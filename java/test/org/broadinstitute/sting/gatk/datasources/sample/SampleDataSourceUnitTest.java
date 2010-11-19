@@ -39,7 +39,7 @@ public class SampleDataSourceUnitTest extends BaseTest {
     public void basicLoadSampleFileTest() {
         File sampleFile = new File(sampleFilesDir + "basicSampleFile.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
-        Assert.assertTrue(s.sampleCount() == 4);
+        Assert.assertTrue(s.sampleCount() == 5);
         Sample sampleA = s.getSampleById("sampleA");
         Sample sampleB = s.getSampleById("sampleB");
         Assert.assertTrue(sampleB.getMother() == sampleA);
@@ -78,7 +78,7 @@ public class SampleDataSourceUnitTest extends BaseTest {
         File sampleFile = new File(sampleFilesDir + "basicSampleFileWithAlias.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
         // this file has two samples, but one has an alias. let's make sure that checks out...
-        Assert.assertTrue(s.sampleCount() == 2);
+        Assert.assertTrue(s.sampleCount() == 3);
         Assert.assertTrue(s.getSampleById("sampleA") == s.getSampleById("sampleC"));
     }
 
@@ -129,20 +129,21 @@ public class SampleDataSourceUnitTest extends BaseTest {
         files.add(new File(sampleFilesDir + "basicSampleFileExt.yaml"));
         files.add(new File(sampleFilesDir + "basicSampleFileExt2.yaml"));
         SampleDataSource s = new SampleDataSource(header, files);
-        Assert.assertTrue(s.sampleCount() == 5);
+        Assert.assertTrue(s.sampleCount() == 6);
         Assert.assertTrue(s.getSampleById("sampleE").getProperty("propC").equals("valC"));
         Assert.assertTrue(s.getSampleById("sampleA").getProperty("propA").equals("valA"));
     }
 
     /**
      * testing getSamplesWithProperty
-     * in this file there are 4 samples - 2 with population "CEU", 1 with population "ABC", 1 with no population
+     * in this file there are 5 samples - 2 with population "CEU", 1 with population "ABC", 1 with no population,
+     * and then the default null sample
      */
     @Test()
     public void getSamplesWithPropertyTest() {
         File sampleFile = new File(sampleFilesDir + "sampleFileWithProperties.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
-        Assert.assertTrue(s.sampleCount() == 4);
+        Assert.assertTrue(s.sampleCount() == 5);
         Set<Sample> ceuSamples = s.getSamplesWithProperty("population", "CEU");
         Assert.assertTrue(ceuSamples.size() == 2);
 
@@ -209,7 +210,7 @@ public class SampleDataSourceUnitTest extends BaseTest {
 
         File sampleFile = new File(sampleFilesDir + "sampleFileWithProperties.yaml");
         SampleDataSource s = new SampleDataSource(header, makeFileList(sampleFile));
-        Assert.assertTrue(s.sampleCount() == 4);
+        Assert.assertTrue(s.sampleCount() == 5);
 
         List<Allele> alleleCollection = new ArrayList<Allele>();
         Allele a1 = Allele.create("A", true);

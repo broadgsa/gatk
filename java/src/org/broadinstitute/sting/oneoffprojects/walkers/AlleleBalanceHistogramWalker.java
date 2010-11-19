@@ -70,7 +70,7 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
     }
 
     private HashMap<String,Double> getAlleleBalanceBySample(VariantContext vc, ReferenceContext ref, AlignmentContext context) {
-        Map<String, StratifiedAlignmentContext> sampleContext = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup(),null);
+        Map<String, StratifiedAlignmentContext> sampleContext = StratifiedAlignmentContext.splitContextBySampleName(context.getBasePileup(),null);
         HashMap<String,Double> balances = new HashMap<String,Double>();
         System.out.println("----- "+ref.getLocus()+" -----");
         int returnedBalances = 0;

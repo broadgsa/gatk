@@ -194,6 +194,6 @@ public class Sample implements java.io.Serializable {
 
     @Override
     public int hashCode() {
-        return id.hashCode();
+        return id != null ? id.hashCode() : "".hashCode();
     }
 }

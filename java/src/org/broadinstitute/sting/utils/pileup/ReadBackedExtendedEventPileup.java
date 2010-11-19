@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 
@@ -122,14 +123,20 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
      * Gets a list of all the samples stored in this pileup.
      * @return List of samples in this pileup.
      */
-    public Collection<String> getSamples();
+    public Collection<String> getSampleNames();
+
+        /**
+     * Gets a list of all the samples stored in this pileup.
+     * @return List of samples in this pileup.
+     */
+    public Collection<Sample> getSamples();
 
     /**
      * Gets the particular subset of this pileup with the given sample name.
-     * @param sampleName Name of the sample to use.
+     * @param sample Name of the sample to use.
      * @return A subset of this pileup containing only reads with the given sample.
      */
-    public ReadBackedExtendedEventPileup getPileupForSample(String sampleName);
+    public ReadBackedExtendedEventPileup getPileupForSample(Sample sample);
 
     public Iterable<ExtendedEventPileupElement> toExtendedIterable();
 
@@ -212,5 +219,5 @@ public interface ReadBackedExtendedEventPileup extends ReadBackedPileup {
      * Get an array of the mapping qualities
      * @return
      */
-    public byte[] getMappingQuals();    
+    public byte[] getMappingQuals();
 }

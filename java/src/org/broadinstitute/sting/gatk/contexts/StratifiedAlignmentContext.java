@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -84,7 +86,7 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
      * @return a Map of sample name to StratifiedAlignmentContext
      *
      **/
-    public static <RBP extends ReadBackedPileup,PE extends PileupElement> Map<String, StratifiedAlignmentContext> splitContextBySample(RBP pileup) {
+    public static <RBP extends ReadBackedPileup,PE extends PileupElement> Map<Sample, StratifiedAlignmentContext> splitContextBySample(RBP pileup) {
         return splitContextBySample(pileup, null);
     }
 
@@ -97,20 +99,20 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
      * @return a Map of sample name to StratifiedAlignmentContext
      *
      **/
-    public static <RBP extends ReadBackedPileup> Map<String, StratifiedAlignmentContext> splitContextBySample(RBP pileup, String assumedSingleSample) {
+    public static <RBP extends ReadBackedPileup> Map<Sample, StratifiedAlignmentContext> splitContextBySample(RBP pileup, Sample assumedSingleSample) {
 
         GenomeLoc loc = pileup.getLocation();
-        HashMap<String, StratifiedAlignmentContext> contexts = new HashMap<String, StratifiedAlignmentContext>();
+        HashMap<Sample, StratifiedAlignmentContext> contexts = new HashMap<Sample, StratifiedAlignmentContext>();
 
-        for(String sampleName: pileup.getSamples()) {
-            RBP pileupBySample = (RBP)pileup.getPileupForSample(sampleName);
+        for(Sample sample: pileup.getSamples()) {
+            RBP pileupBySample = (RBP)pileup.getPileupForSample(sample);
 
             // Don't add empty pileups to the split context.
             if(pileupBySample.size() == 0)
                 continue;
 
-            if(sampleName != null)
-                contexts.put(sampleName,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
+            if(sample != null)
+                contexts.put(sample,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
             else {
                 if(assumedSingleSample == null) {
                     throw new UserException.ReadMissingReadGroup(pileupBySample.iterator().next().getRead());
@@ -122,7 +124,48 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
         return contexts;
     }
 
-     /**
+
+
+    public static <RBP extends ReadBackedPileup,PE extends PileupElement> Map<String, StratifiedAlignmentContext> splitContextBySampleName(RBP pileup) {
+        return splitContextBySampleName(pileup, null);
+    }
+
+    /**
+     * Splits the given AlignmentContext into a StratifiedAlignmentContext per sample, but referencd by sample name instead
+     * of sample object.
+     *
+     * @param pileup                the original pileup
+     *
+     * @return a Map of sample name to StratifiedAlignmentContext
+     *
+     **/
+    public static <RBP extends ReadBackedPileup> Map<String, StratifiedAlignmentContext> splitContextBySampleName(RBP pileup, String assumedSingleSample) {
+
+        GenomeLoc loc = pileup.getLocation();
+        HashMap<String, StratifiedAlignmentContext> contexts = new HashMap<String, StratifiedAlignmentContext>();
+
+        for(String sample: pileup.getSampleNames()) {
+            RBP pileupBySample = (RBP)pileup.getPileupForSampleName(sample);
+
+            // Don't add empty pileups to the split context.
+            if(pileupBySample.size() == 0)
+                continue;
+
+            if(sample != null)
+                contexts.put(sample,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
+            else {
+                if(assumedSingleSample == null) {
+                    throw new UserException.ReadMissingReadGroup(pileupBySample.iterator().next().getRead());
+                }
+                contexts.put(assumedSingleSample,new StratifiedAlignmentContext<RBP>(loc,pileupBySample));
+            }
+        }
+
+        return contexts;
+    }
+
+
+    /**
      * Splits the given AlignmentContext into a StratifiedAlignmentContext per read group.
      *
      * @param pileup                the original pileup
@@ -131,14 +174,14 @@ public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
      *
      **/
     public static <RBP extends ReadBackedPileup> Map<String,StratifiedAlignmentContext<RBP>> splitContextByReadGroup(RBP pileup) {
-         HashMap<String,StratifiedAlignmentContext<RBP>> contexts = new HashMap<String,StratifiedAlignmentContext<RBP>>();
-         for(String readGroupId: pileup.getReadGroups())
-             contexts.put(readGroupId,new StratifiedAlignmentContext<RBP>(pileup.getLocation(),(RBP)pileup.getPileupForReadGroup(readGroupId)));
-         return contexts;
+        HashMap<String,StratifiedAlignmentContext<RBP>> contexts = new HashMap<String,StratifiedAlignmentContext<RBP>>();
+        for(String readGroupId: pileup.getReadGroups())
+            contexts.put(readGroupId,new StratifiedAlignmentContext<RBP>(pileup.getLocation(),(RBP)pileup.getPileupForReadGroup(readGroupId)));
+        return contexts;
     }
 
     public static AlignmentContext joinContexts(Collection<StratifiedAlignmentContext> contexts) {
-         
+
         // validation
         GenomeLoc loc = contexts.iterator().next().getLocation();
         boolean isExtended = contexts.iterator().next().basePileup instanceof ReadBackedExtendedEventPileup;

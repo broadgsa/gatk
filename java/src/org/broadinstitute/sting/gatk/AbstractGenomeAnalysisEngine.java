@@ -320,6 +320,8 @@ public abstract class AbstractGenomeAnalysisEngine {
         validateSuppliedReads();
         readsDataSource = createReadsDataSource(genomeLocParser);
 
+        sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
+
         for (SamRecordFilter filter : filters)
             if (filter instanceof SamRecordHeaderFilter)
                 ((SamRecordHeaderFilter)filter).setHeader(this.getSAMFileHeader());
@@ -744,6 +746,10 @@ public abstract class AbstractGenomeAnalysisEngine {
         return unpackedReads;
     }
 
+    public SampleDataSource getSampleMetadata() {
+        return this.sampleDataSource;
+    }
+
     /**
      * Get a sample by its ID
      * If an alias is passed in, return the main sample object
@@ -800,6 +806,14 @@ public abstract class AbstractGenomeAnalysisEngine {
      */
     public Set<Sample> getChildren(Sample sample) {
         return sampleDataSource.getChildren(sample);
+    }
+
+    /**
+     * Gets all the samples
+     * @return
+     */
+    public Collection<Sample> getSamples() {
+        return sampleDataSource.getSamples();
     }
 
     /**

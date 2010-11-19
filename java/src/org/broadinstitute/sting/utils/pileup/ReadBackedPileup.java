@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.iterators.IterableIterator;
 import net.sf.samtools.SAMRecord;
@@ -128,18 +129,31 @@ public interface ReadBackedPileup extends Iterable<PileupElement> {
      */
     public ReadBackedPileup getPileupForReadGroup(String readGroupId);
 
-    /**
+     /**
      * Gets a collection of all the samples stored in this pileup.
      * @return Collection of samples in this pileup.
      */
-    public Collection<String> getSamples();
+    public Collection<Sample> getSamples();
+
+    /**
+     * Gets a collection of *names* of all the samples stored in this pileup.
+     * @return Collection of names
+     */
+    public Collection<String> getSampleNames();
 
     /**
      * Gets the particular subset of this pileup with the given sample name.
      * @param sampleName Name of the sample to use.
      * @return A subset of this pileup containing only reads with the given sample.
      */
-    public ReadBackedPileup getPileupForSample(String sampleName);
+    public ReadBackedPileup getPileupForSampleName(String sampleName);
+
+    /**
+     * Gets the particular subset of this pileup with the given sample.
+     * @param sample Sample to use.
+     * @return A subset of this pileup containing only reads with the given sample.
+     */
+    public ReadBackedPileup getPileupForSample(Sample sample);
     
     /**
      * Simple useful routine to count the number of deletion bases in this pileup

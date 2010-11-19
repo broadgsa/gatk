@@ -150,7 +150,7 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // stratify the AlignmentContext and cut by sample
-            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
             if ( stratifiedContexts == null )
                 return null;
 
@@ -177,7 +177,7 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // stratify the AlignmentContext and cut by sample
-            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
             if ( stratifiedContexts == null )
                 return null;
 
@@ -187,7 +187,7 @@ public class UnifiedGenotyperEngine {
             // annotate the call, if possible
             if ( call != null && call.vc != null && annotationEngine != null ) {
                 // first off, we want to use the *unfiltered* context for the annotations
-                stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
+                stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
 
                 Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, call.vc);
                 call.vc = variantContexts.iterator().next(); //We know the collection will always have exactly 1 element.

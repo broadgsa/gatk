@@ -467,7 +467,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                 throw new ReviewedStingException("Parental bases have length zero at "+trio.toString());
             }
 
-            Map<String,StratifiedAlignmentContext> splitContext = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+            Map<String,StratifiedAlignmentContext> splitContext = StratifiedAlignmentContext.splitContextBySampleName(context.getBasePileup());
             Double proportion = getAlleleProportion(parental,splitContext.get(trioStructure.child));
             if ( proportion != null ) {
                 violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(), proportion);
@@ -501,7 +501,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         // look for tri-allelic sites mis-called as hom -- as a speedup we do this only at non-filtered, non genotype error sites
 
         if ( ! trio.isFiltered()  ) {
-            Map<String,StratifiedAlignmentContext> splitCon = StratifiedAlignmentContext.splitContextBySample(context.getBasePileup());
+            Map<String,StratifiedAlignmentContext> splitCon = StratifiedAlignmentContext.splitContextBySampleName(context.getBasePileup());
             Pair<Allele,Integer> triAl = getTriAllelicQuality(tracker, ref, trio, splitCon);
             if ( triAl != null ) {
                 violation.addAttribute(MendelianInfoKey.TriAllelicBase.getKey(),triAl.first.toString());

@@ -9,6 +9,7 @@ import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -63,7 +64,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         List<SAMRecord> reads = Arrays.asList(before,during,after);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser);
+        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser, new SampleDataSource());
 
         boolean foundExtendedEventPileup = false;
         while (li.hasNext()) {
@@ -115,7 +116,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         List<SAMRecord> reads = Arrays.asList(before,during,after);
 
         // create the iterator by state with the fake reads and fake records
-        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser);
+        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser, new SampleDataSource());
 
         boolean foundExtendedEventPileup = false;
         while (li.hasNext()) {

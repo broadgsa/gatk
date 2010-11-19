@@ -300,7 +300,7 @@ public class UnifiedGenotyperEngine {
             else if (rawContext.hasBasePileup())
                 pileup = rawContext.getBasePileup();
 
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
             Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vc);
             vc = variantContexts.iterator().next(); //We know the collection will always have exactly 1 element.
@@ -330,7 +330,7 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // stratify the AlignmentContext and cut by sample
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
         } else if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.SNP && !rawContext.hasExtendedEventPileup() ) {
 
@@ -339,7 +339,7 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // stratify the AlignmentContext and cut by sample
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySample(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
 
             // filter the reads (and test for bad pileups)
             if ( !filterPileup(stratifiedContexts, badBaseFilter) )

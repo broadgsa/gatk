@@ -1,5 +1,8 @@
 package org.broadinstitute.sting.gatk.executive;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
+import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.ReadProperties;
@@ -50,13 +53,16 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      * the given intervals.
      * @param iterator The data source for this window.
      * @param intervals The set of intervals over which to traverse.
+     * @param sampleData SampleDataSource that we can reference reads with
      * @param discards a filter at that indicates read position relative to some locus?
      */
-    public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals, List<LocusIteratorFilter> discards ) {
+
+    public WindowMaker(Shard shard, GenomeLocParser genomeLocParser, StingSAMIterator iterator, List<GenomeLoc> intervals, List<LocusIteratorFilter> discards, SampleDataSource sampleData ) {
         this.sourceInfo = shard.getReadProperties();
         this.readIterator = iterator;
 
-        LocusIterator locusIterator = new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,discards);
+        LocusIterator locusIterator = new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleData,discards);
+
 
         this.sourceIterator = new PeekableIterator<AlignmentContext>(locusIterator);
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;

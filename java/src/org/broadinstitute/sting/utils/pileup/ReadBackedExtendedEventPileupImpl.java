@@ -23,6 +23,7 @@
  */
 package org.broadinstitute.sting.utils.pileup;
 
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -55,7 +56,8 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
         this.nInsertions = nInsertions;
     }
 
-    public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, Map<String,? extends ReadBackedExtendedEventPileupImpl> pileupElementsBySample) {
+    // this is the good new one
+    public ReadBackedExtendedEventPileupImpl(GenomeLoc loc, Map<Sample,? extends ReadBackedExtendedEventPileupImpl> pileupElementsBySample) {
         super(loc,pileupElementsBySample);
     }
 
@@ -221,5 +223,5 @@ public class ReadBackedExtendedEventPileupImpl extends AbstractReadBackedPileup<
         } else {
             return "-"+new String(refBases,1,length).toUpperCase();
         }
-    }    
+    }
 }

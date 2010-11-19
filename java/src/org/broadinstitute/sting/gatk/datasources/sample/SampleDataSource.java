@@ -37,13 +37,13 @@ public class SampleDataSource {
     /**
      * SAMFileHeader that has been created for this analysis.
      */
-    private final SAMFileHeader header;
+    private SAMFileHeader header;
 
     /**
      * This is where Sample objects are stored. Samples are usually accessed by their ID, which is unique, so
      * this is stored as a HashMap.
      */
-    private HashMap<String, Sample> samples = new HashMap<String, Sample>();
+    private final HashMap<String, Sample> samples = new HashMap<String, Sample>();
 
     /**
      * Samples can have "aliases", because sometimes the same sample is referenced by different IDs in different
@@ -65,6 +65,7 @@ public class SampleDataSource {
      * @param sampleFiles Sample files that were included on the command line
      */
     public SampleDataSource(SAMFileHeader header, List<File> sampleFiles) {
+        this();
         this.header = header;
         // create empty sample object for each sample referenced in the SAM header
         for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
@@ -83,10 +84,14 @@ public class SampleDataSource {
         }
     }
 
+    public SampleDataSource() {
+        samples.put(null, new Sample(null));
+    }
+
     /**
      * Hallucinates sample objects for all the samples in the SAM file and stores them
      */
-    private void getSamplesFromSAMFile() {
+    public void addSamplesFromSAMHeader(SAMFileHeader header) {
         for (String sampleName : SampleUtils.getSAMFileSamples(header)) {
             if (!hasSample(sampleName)) {
                 Sample newSample = new Sample(sampleName);
@@ -100,7 +105,7 @@ public class SampleDataSource {
      * Parse one sample file and integrate it with samples that are already there
      * Fail quickly if we find any errors in the file
      */
-    private void addFile(File sampleFile) {
+    public void addFile(File sampleFile) {
 
         BufferedReader reader;
         try {
@@ -466,6 +471,12 @@ public class SampleDataSource {
         return children;
     }
 
+    public Set<Sample> getSamples() {
+        HashSet<Sample> set = new HashSet<Sample>();
+        set.addAll(samples.values());
+        return set;
+    }
+
     /**
      * Takes a collection of sample names and returns their corresponding sample objects
      * Note that, since a set is returned, if you pass in a list with duplicates names there will not be any duplicates in the returned set
@@ -570,6 +581,11 @@ public class SampleDataSource {
         }
         Map<String, Genotype> genotypes = context.getGenotypes(samplesWithProperty);
         return context.subContextFromGenotypes(genotypes.values());
+    }
+
+    public static SampleDataSource createEmptyDataSource() {
+        SAMFileHeader header = new SAMFileHeader();
+        return new SampleDataSource(header, null);
     }
 
 }
