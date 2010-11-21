@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers.varianteval;
+package org.broadinstitute.sting.oneoffprojects.walkers.varianteval;
 
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -6,10 +6,8 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.SampleDataPoint;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluatorBySample;
+import org.broadinstitute.sting.gatk.walkers.varianteval.*;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
-import org.broadinstitute.sting.utils.report.tags.DataPoint;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +24,7 @@ public class SimpleMetricsBySample extends VariantEvaluatorBySample {
         List<SampleDataPoint> points = new ArrayList(3);
         points.add(new CountSNPsSample());
         points.add(new TiTvRatioSample());
+        points.add(new HetHomRatioSample());
         points.add(new CompOverlapSample());
 
         return points;
@@ -89,6 +88,32 @@ class TiTvRatioSample extends SampleDataPoint {
 
     public String toString() {
         return String.format("%.2f", ( ((double) nTi )/ nTv));
+    }
+}
+
+class HetHomRatioSample extends SampleDataPoint {
+    int nHet = 0;
+    int nHomVar = 0;
+
+    public HetHomRatioSample() {
+        super("HetHomRatio");
+    }
+
+    public void update2(VariantContext vc, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if ( vc != null ) {
+            Genotype g = vc.getGenotype(sampleName);
+            if ( g != null ) {
+                if ( g.isHet() ) {
+                    nHet++;
+                } else if (g.isHomVar()) {
+                    nHomVar++;
+                }
+            }
+        }
+    }
+
+    public String toString() {
+        return String.format("%.2f", ( ((double) nHet )/ nHomVar));
     }
 }
 

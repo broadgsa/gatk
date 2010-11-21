@@ -1,16 +1,12 @@
-package org.broadinstitute.sting.gatk.walkers.varianteval;
+package org.broadinstitute.sting.oneoffprojects.walkers.varianteval;
 
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluatorBySample;
+import org.broadinstitute.sting.gatk.walkers.varianteval.*;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
-import org.broadinstitute.sting.gatk.walkers.varianteval.SampleDataPoint;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluatorBySample;
-import org.broadinstitute.sting.utils.report.tags.Analysis;
-import org.broadinstitute.sting.utils.report.tags.DataPoint;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,15 +14,13 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
  * This software is supplied without any warranty or guaranteed support whatsoever. Neither
  * the Broad Institute nor MIT can be responsible for its use, misuse, or functionality.
  */
-abstract class VariantEvaluator {
+public abstract class VariantEvaluator {
 //    protected boolean accumulateInterestingSites = false, printInterestingSites = false;
 //    protected String interestingSitePrefix = null;
-    protected boolean processedASite = false;
+//    protected boolean processedASite = false;
 //    protected List<VariantContext> interestingSites = new ArrayList<VariantContext>();
 
-    public abstract String getName();
-
-    // do we want to keep track of things that are interesting
+// do we want to keep track of things that are interesting
 //    public void accumulateInterestingSites(boolean enable)              { accumulateInterestingSites = enable; }
 //    public void printInterestingSites(String prefix)                    { printInterestingSites = true; interestingSitePrefix = prefix; }
 //    public boolean isAccumulatingInterestingSites()                     { return accumulateInterestingSites; }
@@ -34,6 +32,8 @@ abstract class VariantEvaluator {
 //        if ( printInterestingSites )
 //            System.out.printf("%40s %s%n", interestingSitePrefix, why);
 //    }
+
+    public abstract String getName();
 
     protected VariantEvalWalker veWalker = null;
     public VariantEvaluator(VariantEvalWalker parent) {
