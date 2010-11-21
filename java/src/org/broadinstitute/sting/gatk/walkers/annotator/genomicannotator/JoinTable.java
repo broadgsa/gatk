@@ -119,7 +119,7 @@ public class JoinTable
             while((line = br.readLine()) != null) {
                 final ArrayList<String> columnValues = parser.parseLine(line);
                 if ( columnValues.size() < columnNames.size() )
-                    throw new IllegalStateException("The file: " + filename + " is malformed as there are not a sufficient number of columns for this line: " + line);
+                    throw new UserException.BadInput("the file: " + filename + " is malformed as there are not a sufficient number of columns for this line: " + line);
                 final String joinColumnValue = columnValues.get(localColumnNameIdx);
                 put(joinColumnValue, columnValues, filename);
             }
@@ -218,9 +218,9 @@ public class JoinTable
      */
     protected void put(String joinColumnValue, ArrayList<String> record, String filename) {
         if ( joinColumnValueToRecords.containsKey(joinColumnValue) )
-            throw new IllegalStateException("The file " + filename + " contains non-unique entries for the requested column, which isn't allowed.");
+            throw new UserException.BadInput("the file " + filename + " contains non-unique entries for the requested column, which isn't allowed.");
         joinColumnValueToRecords.put(joinColumnValue, record);
         if ( joinColumnValueToRecords.size() > maxSize )
-            throw new IllegalStateException("The file " + filename + " contains more than the maximum number (" + maxSize + ") of allowed rows (see the --maxJoinTableSize argument).");
+            throw new UserException.BadInput("the file " + filename + " contains more than the maximum number (" + maxSize + ") of allowed rows (see the --maxJoinTableSize argument).");
     }
 }
