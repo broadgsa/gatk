@@ -3,12 +3,12 @@ package org.broadinstitute.sting.queue
 import org.broadinstitute.sting.utils.Utils
 import org.testng.Assert
 import org.broadinstitute.sting.commandline.CommandLineProgram
-import org.broadinstitute.sting.BaseTest
 import org.broadinstitute.sting.queue.util.ProcessController
 
-class QScriptTest extends BaseTest {
+object PipelineTest {
+  private var runningCommandLines = Set.empty[QCommandLine]
 
-  protected val stingDir = "./"
+  val run = System.getProperty("pipeline.run") == "run"
 
   /**
    * execute the test
@@ -21,13 +21,15 @@ class QScriptTest extends BaseTest {
 
     // add the logging level to each of the integration test commands
 
-    command = Utils.appendArray(command, "-l", "WARN", "-startFromScratch", "-tempDir", "integrationtests")
+    command = Utils.appendArray(command, "-l", "WARN", "-startFromScratch", "-tempDir", tempDir(name), "-runDir", runDir(name))
+    if (run)
+      command = Utils.appendArray(command, "-run", "-bsub")
 
     // run the executable
     var gotAnException = false
 
     val instance = new QCommandLine
-    QScriptTest.runningCommandLines += instance
+    runningCommandLines += instance
     try {
       println("Executing test %s with Queue arguments: %s".format(name, Utils.join(" ",command)))
       CommandLineProgram.start(instance, command)
@@ -51,7 +53,7 @@ class QScriptTest extends BaseTest {
         }
     } finally {
       instance.shutdown()
-      QScriptTest.runningCommandLines -= instance
+      runningCommandLines -= instance
     }
 
     // catch failures from the integration test
@@ -64,10 +66,10 @@ class QScriptTest extends BaseTest {
         throw new RuntimeException("Error running the GATK with arguments: " + args)
     }
   }
-}
 
-object QScriptTest {
-  private var runningCommandLines = Set.empty[QCommandLine]
+  def testDir(testName: String) = "pipelinetests/%s/".format(testName)
+  def runDir(testName: String) = testDir(testName) + "run/"
+  def tempDir(testName: String) = testDir(testName) + "temp/"
 
   Runtime.getRuntime.addShutdownHook(new Thread {
     /** Cleanup as the JVM shuts down. */

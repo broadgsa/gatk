@@ -50,6 +50,18 @@ public abstract class BaseTest {
     public static final String validationDataLocation = GATKDataLocation + "Validation_Data/";
     public static final String evaluationDataLocation = GATKDataLocation + "Evaluation_Data/";
     public static final String comparisonDataLocation = GATKDataLocation + "Comparisons/";
+    public static final String annotationDataLocation = GATKDataLocation + "Annotations/";
+
+    public static final String refseqAnnotationLocation = annotationDataLocation + "refseq/";
+    public static final String hg18Refseq = refseqAnnotationLocation + "refGene-big-table-hg18.txt";
+    public static final String hg19Refseq = refseqAnnotationLocation + "refGene-big-table-hg19.txt";
+    public static final String b36Refseq = refseqAnnotationLocation + "refGene-big-table-b36.txt";
+    public static final String b37Refseq = refseqAnnotationLocation + "refGene-big-table-b37.txt";
+
+    public static final String dbsnpDataLocation = GATKDataLocation;
+    public static final String hg18dbSNP129 = dbsnpDataLocation + "dbsnp_129_hg18.rod";
+    public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.rod";
+    public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.rod";
 
     public final String testDir = "testdata/";
 

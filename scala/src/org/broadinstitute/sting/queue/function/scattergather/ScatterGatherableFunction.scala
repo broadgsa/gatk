@@ -121,6 +121,10 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       // Allow the script writer to change the paths to the files.
       initCloneFunction(cloneFunction, i)
 
+
+      // If the command directory is relative, insert the run directory ahead of it.
+      cloneFunction.absoluteCommandDirectory()
+
       // Get absolute paths to the files and bind the sg functions to the clone function via the absolute paths.
       scatterFunction.bindCloneInputs(cloneFunction, i)
       for (gatherField <- outputFieldsWithValues) {

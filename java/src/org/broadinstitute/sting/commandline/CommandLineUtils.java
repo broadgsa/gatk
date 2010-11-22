@@ -166,8 +166,8 @@ public class CommandLineUtils {
             }
         }
         // Extracted from BasicConfigurator.configure(), but only applied to the Sting logger.
-        getStingLogger().addAppender(new ConsoleAppender(
-                new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN)));
+        Logger.getRootLogger().addAppender(new ConsoleAppender(
+                    new PatternLayout(PatternLayout.TTCC_CONVERSION_PATTERN)));
     }
 
     /**
@@ -177,8 +177,10 @@ public class CommandLineUtils {
      */
     @SuppressWarnings("unchecked")
     public static void setLayout(Logger logger, PatternLayout layout) {
-        Enumeration<Appender> e = (Enumeration<Appender>) logger.getAllAppenders();
-        for (Appender appender: Collections.list(e))
-            appender.setLayout(layout);
+        for (; logger != null; logger = (Logger)logger.getParent()) {
+            Enumeration<Appender> e = (Enumeration<Appender>) logger.getAllAppenders();
+            for (Appender appender: Collections.list(e))
+                appender.setLayout(layout);
+        }
     }
 }

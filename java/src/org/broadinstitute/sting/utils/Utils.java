@@ -337,11 +337,18 @@ public class Utils {
     private static String[] escapeExpressions(String args, String delimiter) {
         String[] command = {};
         String[] split = args.split(delimiter);
+        String arg;
         for (int i = 0; i < split.length - 1; i += 2) {
-            command = Utils.concatArrays(command, split[i].trim().split(" "));
+            arg = split[i].trim();
+            if (arg.length() > 0) // if the unescaped arg has a size
+                command = Utils.concatArrays(command, arg.split(" "));
             command = Utils.concatArrays(command, new String[]{split[i + 1]});
         }
-        return Utils.concatArrays(command, split[split.length - 1].trim().split(" "));
+        arg = split[split.length - 1].trim();
+        if (split.length % 2 == 1) // if the command ends with a delimiter
+            if (arg.length() > 0) // if the last unescaped arg has a size
+                command = Utils.concatArrays(command, arg.split(" "));
+        return command;
     }
 
     /**

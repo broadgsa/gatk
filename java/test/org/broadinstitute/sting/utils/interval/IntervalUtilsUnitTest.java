@@ -12,6 +12,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -191,6 +192,12 @@ public class IntervalUtilsUnitTest extends BaseTest {
         Assert.assertEquals(locs3.get(0), chr3);
     }
 
+    @Test(enabled=false) // disabled, GenomeLoc.compareTo() returns 0 for two locs with the same start, causing an exception in GLSS.add().
+    public void testScatterIntervalsWithTheSameStart() {
+        List<File> files = testFiles("sg.", 20, ".intervals");
+        IntervalUtils.scatterIntervalArguments(new File(hg18Reference), Arrays.asList(BaseTest.GATKDataLocation + "whole_exome_agilent_designed_120.targets.hg18.chr20.interval_list"), files, false);
+    }
+
     @Test
     public void testScatterOrder() {
         List<String> intervals = Arrays.asList("chr2:1-1", "chr1:1-1", "chr3:2-2");
@@ -348,9 +355,16 @@ public class IntervalUtilsUnitTest extends BaseTest {
     }
 
     private List<File> testFiles(String prefix, int count, String suffix) {
-        ArrayList<File> files = new ArrayList<File>();
-        for (int i = 1; i <= count; i++)
-            files.add(new File(testDir + prefix + i + suffix));
-        return files;
+        try {
+            ArrayList<File> files = new ArrayList<File>();
+            for (int i = 1; i <= count; i++) {
+                File tmpFile = File.createTempFile(prefix + i, suffix);
+                tmpFile.deleteOnExit();
+                files.add(tmpFile);
+            }
+            return files;
+        } catch (IOException e) {
+            throw new UserException.BadTmpDir("Unable to create temp file: " + e);
+        }
     }
 }

@@ -41,12 +41,65 @@ object IOUtils extends Logging {
     absolute(temp)
   }
 
+  /**
+   * Writes content into a file.
+   * @param file File to write to.
+   * @param content Content to write.
+   */
   def writeContents(file: File, content: String) =  FileUtils.writeStringToFile(file, content)
 
-  def writeTempFile(content: String, prefix: String, suffix: String = "", directory: File) = {
+  /**
+   * Writes content to a temp file and returns the path to the temporary file.
+   * @param content to write.
+   * @param prefix Prefix for the temp file.
+   * @parm suffix Suffix for the temp file.
+   * @param directory Directory for the temp file.
+   * @return the path to the temp file.
+   */
+  def writeTempFile(content: String, prefix: String, suffix: String, directory: File) = {
     val tempFile = absolute(File.createTempFile(prefix, suffix, directory))
     writeContents(tempFile, content)
     tempFile
+  }
+
+  /**
+   * Waits for NFS to propagate a file creation, imposing a timeout.
+   *
+   * Based on Apache Commons IO FileUtils.waitFor()
+   *
+   * @param file The file to wait for.
+   * @param seconds The maximum time in seconds to wait.
+   * @return true if the file exists
+   */
+  def waitFor(file: File, seconds: Int): Boolean = waitFor(List(file), seconds).isEmpty
+
+  /**
+   * Waits for NFS to propagate a file creation, imposing a timeout.
+   *
+   * Based on Apache Commons IO FileUtils.waitFor()
+   *
+   * @param files The list of files to wait for.
+   * @param seconds The maximum time in seconds to wait.
+   * @return Files that still do not exists at the end of the timeout, or a empty list if all files exists.
+   */
+  def waitFor[T <: Traversable[File]](files: T, seconds: Int): Traversable[File] = {
+      var timeout = 0;
+      var tick = 0;
+      var missingFiles = files.filterNot(_.exists)
+      while (!missingFiles.isEmpty && timeout <= seconds) {
+        if (tick >= 10) {
+          tick = 0;
+          timeout += 1
+        }
+        tick += 1
+        try {
+            Thread.sleep(100)
+        } catch {
+          case ignore: InterruptedException =>
+        }
+        missingFiles = missingFiles.filterNot(_.exists)
+      }
+      missingFiles
   }
 
   /**

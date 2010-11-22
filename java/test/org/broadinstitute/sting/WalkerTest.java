@@ -315,14 +315,31 @@ public class WalkerTest extends BaseTest {
      * @param md5s     the list of md5s
      * @param tmpFiles the temp file corresponding to the md5 list
      * @param args     the argument list
+     * @param expectedException the expected exception or null
      * @return a pair of file and string lists
      */
     private Pair<List<File>, List<String>> executeTest(String name, List<String> md5s, List<File> tmpFiles, String args, Class expectedException) {
+        if (outputFileLocation != null)
+            args += " -o " + this.outputFileLocation.getAbsolutePath();
+        executeTest(name, args, expectedException);
+
+        if ( expectedException != null ) {
+            return null;
+        } else {
+            // we need to check MD5s
+            return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, md5s));
+        }
+    }
+    
+    /**
+     * execute the test, given the following:
+     * @param name     the name of the test
+     * @param args     the argument list
+     * @param expectedException the expected exception or null
+     */
+    public static void executeTest(String name, String args, Class expectedException) {
         CommandLineGATK instance = new CommandLineGATK();
         String[] command = Utils.escapeExpressions(args);
-
-        if (outputFileLocation != null)
-            command = Utils.appendArray(command, "-o", this.outputFileLocation.getAbsolutePath());
 
         // add the logging level to each of the integration test commands
         command = Utils.appendArray(command, "-l", "WARN", "-et", ENABLE_REPORTING ? "STANDARD" : "NO_ET");
@@ -356,14 +373,10 @@ public class WalkerTest extends BaseTest {
             if ( ! gotAnException )
                 // we expected an exception but didn't see it
                 Assert.fail(String.format("Test %s expected exception %s but none was thrown", name, expectedException.toString()));
-            return null;
         } else {
             if ( CommandLineExecutable.result != 0) {
                 throw new RuntimeException("Error running the GATK with arguments: " + args);
             }
-
-            // we need to check MD5s
-            return new Pair<List<File>, List<String>>(tmpFiles, assertMatchingMD5s(name, tmpFiles, md5s));
         }
     }
 

@@ -11,6 +11,7 @@ import org.apache.commons.io.{LineIterator, IOUtils, FileUtils}
  */
 class VcfGatherFunction extends GatherFunction with InProcessFunction {
   def run() = {
+    waitForGatherParts
     if (gatherParts.size < 1) {
       throw new QException("No files to gather to output: " + originalOutput)
     } else {

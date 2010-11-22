@@ -3,7 +3,6 @@ package org.broadinstitute.sting.queue.engine
 import java.io.File
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.queue.util._
-import org.apache.commons.io.FileUtils
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -154,7 +153,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    */
   private def tailError() = {
     val errorFile = if (job.errorFile != null) job.errorFile else job.outputFile
-    if (FileUtils.waitFor(errorFile, 120)) {
+    if (IOUtils.waitFor(errorFile, 120)) {
       val tailLines = IOUtils.tail(errorFile, 100)
       val nl = "%n".format()
       logger.error("Last %d lines of %s:%n%s".format(tailLines.size, errorFile, tailLines.mkString(nl)))

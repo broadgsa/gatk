@@ -151,8 +151,7 @@ trait QFunction extends Logging {
   def outputDirectories = {
     var dirs = Set.empty[File]
     dirs += commandDirectory
-    if (jobTempDir != null)
-      dirs += jobTempDir
+    dirs += jobTempDir
     dirs ++= outputs.map(_.getParentFile)
     dirs
   }
@@ -287,9 +286,17 @@ trait QFunction extends Logging {
     if (jobTempDir == null)
       jobTempDir = qSettings.tempDirectory
 
-    // If the command directory is relative, insert the run directory ahead of it.
-    commandDirectory = IOUtils.absolute(new File(qSettings.runDirectory, commandDirectory.getPath))
+    // Do not set the temp dir relative to the command directory
+    jobTempDir = IOUtils.absolute(jobTempDir)
+
+    absoluteCommandDirectory()
   }
+
+  /**
+   * If the command directory is relative, insert the run directory ahead of it.
+   */
+  def absoluteCommandDirectory() =
+    commandDirectory = IOUtils.absolute(qSettings.runDirectory, commandDirectory)
 
   /**
    * Makes all field values canonical so that the graph can match the
@@ -329,7 +336,6 @@ trait QFunction extends Logging {
    * @return The absolute path to file.
    */
   private def absolute(file: File) = IOUtils.absolute(commandDirectory, file)
-
 
   /**
    * Scala sugar type for checking annotation required and exclusiveOf.

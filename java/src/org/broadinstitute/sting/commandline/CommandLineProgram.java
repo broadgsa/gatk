@@ -288,7 +288,7 @@ public abstract class CommandLineProgram {
             throw new ArgumentException("Unable to match: " + logging_level + " to a logging level, make sure it's a valid level (INFO, DEBUG, ERROR, FATAL, OFF)");
         }
 
-        CommandLineUtils.getStingLogger().setLevel(par);
+        Logger.getRootLogger().setLevel(par);
     }
 
     /**
