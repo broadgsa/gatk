@@ -12,7 +12,7 @@ import string
 from madPipelineUtils import *
 
 EXCLUDE_CHRS = ['chrM', 'chrY']
-EXTRA_GATK_ARGS = ' -XL chrM -XL chrY -L chr1 ' # -XL chrX -XL chrY '
+EXTRA_GATK_ARGS = ' -XL chrM -XL chrY ' # -XL chrX -XL chrY '
 #EXTRA_GATK_ARGS = ' -XL chrM -XL chrY ' # -XL chrX -XL chrY '
 VALIDATION_DIR = '/humgen/gsa-hpprojects/GATK/data/Comparisons'
 BAM_ROOT = '/humgen/1kg/analysis/bamsForDataProcessingPapers/'
@@ -20,10 +20,10 @@ WE_LIST = '/seq/references/HybSelOligos/whole_exome_agilent_designed_120/whole_e
 WGS_FILTER = [['ABFilter', 'AB > 0.75 && DP > 40'], ['DPFilter', 'DP > 120 || SB > -0.10']] # , ['QDFilter', 'QD < 5.0 && DP > 40']]
 WE_FILTER = [['ESPStandard', 'AB > 0.75 || QD < 5.0 || HRun > 3 || SB > -0.10']]
 
-UG_ARGS = "-mbq 20 -mmq 20 -stand_call_conf 30 -stand_emit_conf 10 -hets 0.78e-3 -mrl 10000"
+UG_ARGS = "-mbq 20 -mmq 20 -stand_call_conf 50 -stand_emit_conf 10 -hets 0.78e-3 -dcov 10000 -pnrm GRID_SEARCH"
 
 class CallTarget:
-    def __init__(self, name, bam, interval = '', callArgs = "", b36 = False, optimize = True, filters = [], targetTiTv = 2.07, maxClusters = 16, minQual = 300, tranchToTake = 0.1):
+    def __init__(self, name, bam, interval = '', callArgs = "", b36 = False, optimize = True, filters = [], targetTiTv = 2.07, maxClusters = 16, minQual = 300, tranchToTake = 1):
         self.name = name
         self.bam = bam
         self.interval = interval
@@ -68,7 +68,8 @@ TECH_COMP = '/humgen/gsa-hphome1/kiran/one_off_projects/multiTechComparisons/res
 #WGS_INTERVAL = '-L chr1:1-50,000,000'
 
 def weTarget(name, bam, ignore = '', args = '', filters = None):
-    return CallTarget(name, bam, interval = WE_LIST, callArgs = args, filters = WE_FILTER, targetTiTv = 3.0, maxClusters = 8, minQual = 2800, tranchToTake = 10) 
+    # 3.0 was old target, new is 2.8
+    return CallTarget(name, bam, interval = WE_LIST, callArgs = args, filters = WE_FILTER, targetTiTv = 2.8, maxClusters = 12, minQual = 2800, tranchToTake = 10) 
 
 #TARGETS_BY_STRATEGY = [['', ''], ['.OQ', '-OQ'], ['.OQ.noCM', '-OQ -bm THREE_STATE'], ['.noCM', '-bm THREE_STATE']]
 TARGETS_BY_STRATEGY = [['', ''], ['.OQ', '-OQ']]
@@ -144,16 +145,15 @@ def main():
 
     # HiSeq
     targets += targetsByStrategy(CallTarget, 'HiSeq.WGS.raw', '/seq/dirseq/pem/seq/picard_aggregation/G2946/NA12878/v1/NA12878.bam', WGS_INTERVAL, filters = WGS_FILTER)
-    targets += targetsByStrategy(CallTarget, 'HiSeq.WGS.cleaned', '/humgen/1kg/analysis/bamsForDataProcessingPapers/scriptsToMakeBams/tmp.list', WGS_INTERVAL, filters = WGS_FILTER)
-    #targets += targetsByStrategy(CallTarget, 'HiSeq.WGS.cleaned', '/humgen/1kg/analysis/bamsForDataProcessingPapers/highpass_v3/NA12878.HiSeq.WGS.bwa.cleaned.bam', WGS_INTERVAL, filters = WGS_FILTER)
-    # targets += targetsByStrategy(CallTarget, 'HiSeq.WGS.cleaned', BAM_ROOT + '/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam', WGS_INTERVAL, filters = WGS_FILTER)
+    #targets += targetsByStrategy(CallTarget, 'HiSeq.WGS.cleaned', '/humgen/1kg/analysis/bamsForDataProcessingPapers/scriptsToMakeBams/tmp.list', WGS_INTERVAL, filters = WGS_FILTER)
+    targets += targetsByStrategy(CallTarget, 'HiSeq.WGS.cleaned', BAM_ROOT + '/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam', WGS_INTERVAL, filters = WGS_FILTER)
     
     # WE
     targets += targetsByStrategy(weTarget, 'GA2.WEx.cleaned', BAM_ROOT + '/NA12878.WEx.cleaned.recal.bam')
     targets += targetsByStrategy(weTarget, 'GA2.WEx.raw', '/seq/picard_aggregation/C308/NA12878/v3/NA12878.bam')
     #targets.append(weTarget('GA2.WEx.raw', '/seq/picard_aggregation/C308/NA12878/v3/NA12878.bam'))
 
-    targets += targetsByStrategy(CallTarget, 'CG.WGS.raw', '/seq/complete_genomics/GS00106-DNA_E01-180_NA12878/SAM0/merge/NA12878.bam', WGS_INTERVAL, filters = WGS_FILTER)
+    #targets += targetsByStrategy(CallTarget, 'CG.WGS.raw', '/seq/complete_genomics/GS00106-DNA_E01-180_NA12878/SAM0/merge/NA12878.bam', WGS_INTERVAL, filters = WGS_FILTER)
 
     # CG
     # todo -- fixme -- needs genome-wide bams on hg18
@@ -260,8 +260,8 @@ def callSNPs( myPipelineArgs, callTarget, ignore, lastJobs ):
     if callTarget.b36:
         outputVCF = appendExtension(outputVCF, "b36")
     print 'outputVCF', outputVCF
-    ugArgs = '-T UnifiedGenotyper -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s %s -varout %s %s' % (callTarget.getBam(), UG_ARGS, outputVCF, callTarget.getCallArgs())
-    farmCmds = simpleGATKCommand( myPipelineArgs, 'UG', ugArgs, lastJobs )
+    ugArgs = '-T UnifiedGenotyperV2 -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -I %s %s -o %s %s' % (callTarget.getBam(), UG_ARGS, outputVCF, callTarget.getCallArgs())
+    farmCmds = simpleGATKCommand( myPipelineArgs, 'call.UG', ugArgs, lastJobs )
     if OPTIONS.splitByChr and not callTarget.hasInterval():
         farmCmds = splitGATKCommandByChr( myPipelineArgs, farmCmds[0], [outputVCF], [mergeVCFs] )
     return farmCmds, outputVCF
@@ -270,19 +270,20 @@ INDEL_MASK_SIZE = 10
 def getIndelCallFiles(callTarget):
     outputBed = appendExtension(callTarget.getVcf(), "indels.bed", False)
     outputVerbose = appendExtension(callTarget.getVcf(), "indels.verbose.txt", False)
+    outputVCF = appendExtension(callTarget.getVcf(), "indels.vcf", False)
     outputMask = appendExtension(callTarget.getVcf(), "indels.%d.mask" % INDEL_MASK_SIZE, False)
-    return outputBed, outputVerbose, outputMask
+    return outputBed, outputVerbose, outputVCF, outputMask
 
 def callIndels( myPipelineArgs, callTarget, ignore, lastJobs ):
-    outputBed, outputVerbose, outputMask = getIndelCallFiles(callTarget)
-    IGV2_ARGS = '-T IndelGenotyperV2 -ws 500 -I %s -O %s -o %s --verbose -rf Platform454' % (callTarget.getBam(), outputBed, outputVerbose)
-    farmCmds = simpleGATKCommand( myPipelineArgs, 'CallIndels', IGV2_ARGS, lastJobs )
+    outputBed, outputVerbose, indelsVCF, outputMask = getIndelCallFiles(callTarget)
+    IGV2_ARGS = '-T IndelGenotyperV2 -ws 500 -I %s -bed %s -verbose %s -o %s -rf Platform454' % (callTarget.getBam(), outputBed, outputVerbose, indelsVCF)
+    farmCmds = simpleGATKCommand( myPipelineArgs, 'call.CallIndels', IGV2_ARGS, lastJobs )
     if OPTIONS.splitByChr and not callTarget.hasInterval():
         farmCmds = splitGATKCommandByChr( myPipelineArgs, farmCmds[0], [outputBed, outputVerbose], [mergeByCat, mergeByCat] )
     return farmCmds, None
 
 def createIndelMask( myPipelineArgs, callTarget, vcf, lastJobs ):
-    outputBed, outputVerbose, outputMask = getIndelCallFiles(callTarget)
+    outputBed, outputVerbose, outputVCF, outputMask = getIndelCallFiles(callTarget)
     cmd = 'python /humgen/gsa-scr1/depristo/dev/GenomeAnalysisTK/trunk/python/makeIndelMask.py %s %d %s' % (outputBed, INDEL_MASK_SIZE, outputMask)  
     jobs = [FarmJob(cmd, jobName = callTarget.name + '.' + 'makeIndelMask', dependencies = lastJobs)]
     return jobs, None
@@ -290,16 +291,17 @@ def createIndelMask( myPipelineArgs, callTarget, vcf, lastJobs ):
 def filterSNPs(myPipelineArgs, callTarget, vcf, lastJobs ):
     out = appendExtension(vcf, 'snpfiltered')
     filterString = ' '.join(map(lambda x: '--filterName %s --filterExpression "%s"' % (x[0], x[1]), callTarget.filters))
-    return simpleGATKCommand( myPipelineArgs, 'filterSNPs', '-T VariantFiltration -B variant,VCF,%s -o %s --filterName LowQual --filterExpression "QUAL < 50.0" --clusterWindowSize 10 --filterName HARD_TO_VALIDATE --filterExpression "MQ0 >= 4 && ((MQ0 / (1.0 * DP)) > 0.1)" %s' % ( vcf, out, filterString ), lastJobs ), out
+    return simpleGATKCommand( myPipelineArgs, 'call.filterSNPs', '-T VariantFiltration -B:variant,VCF %s -o %s --filterName LowQual --filterExpression "QUAL < 50.0" --clusterWindowSize 10 --filterName HARD_TO_VALIDATE --filterExpression "MQ0 >= 4 && ((MQ0 / (1.0 * DP)) > 0.1)" %s' % ( vcf, out, filterString ), lastJobs ), out
 
 def filterIndels(myPipelineArgs, callTarget, vcf, lastJobs ):
     out = appendExtension(vcf, 'indelfiltered')
-    outputBed, outputVerbose, outputMask = getIndelCallFiles(callTarget)
-    return simpleGATKCommand( myPipelineArgs, 'filterIndels', '-T VariantFiltration -B variant,VCF,%s -o %s --maskName Indel -B mask,Bed,%s' % ( vcf, out, outputMask ), lastJobs ), out
+    outputBed, outputVerbose, outputVCF, outputMask = getIndelCallFiles(callTarget)
+    return simpleGATKCommand( myPipelineArgs, 'call.filterIndels', '-T VariantFiltration -B:variant,VCF %s -o %s --maskName Indel -B:mask,Bed %s' % ( vcf, out, outputMask ), lastJobs ), out
 
 def VariantOptimizer( myPipelineArgs, callTarget, vcf, lastJobs ):
     if callTarget.optimize:
-        clusterFile = appendExtension(vcf, 'optimized', False)
+        clusterFile = appendExtension(vcf, 'optimized.clusters', False)
+        tranchesFile = appendExtension(vcf, 'optimized.tranches', False)
         optOutVCF = appendExtension(vcf, 'optimized')
         out = appendExtension(vcf, 'optimized.cut')
         table = appendExtension(vcf, 'optimized.table', False)
@@ -314,24 +316,27 @@ def VariantOptimizer( myPipelineArgs, callTarget, vcf, lastJobs ):
         annotationsToOptimize = ['SB', 'HaplotypeScore', "QD", 'HRun']
         annotationsToOptimizeArg = ' '.join(map(lambda x: '-an ' + x, annotationsToOptimize)) # '' ['DP', 'SB', 'HaplotypeScore', 'MQ', "QD", 'HRun']
         #tranches = ' '.join(map( lambda x: '-tranche ' + str(x), [1, 5, 10]))
-        tranches = ' '.join(map( lambda x: '-tranche ' + str(x), [0.1, 1, 2, 10]))
+        tranches = ' '.join(map( lambda x: '-tranche ' + str(x), [0.1, 1, 10]))
         maxVariantsToShow = 2500
         #singletonFPRate = 0.2
+        #hapmapVCF = '/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/genotypes_r27_nr.hg18_fwd.vcf'
+        hapmapVCF = 'hapmap_analysis/sitesr27_nr.hg18_fwd.vcf'
 
         REGENERATE_VARIANT_CLUSTERS = True
         if ( REGENERATE_VARIANT_CLUSTERS ):
-            jobs1 = simpleGATKCommand( myPipelineArgs, 'GenerateVariantClusters', '-T GenerateVariantClusters -qual %d -std 3.5 -mG %d -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -B input,VCF,%s -clusterFile %s %s %s' % ( callTarget.minQual, callTarget.maxClusters, vcf, clusterFile, annotationsToOptimizeArg, IGNORE_FILTERS_CLUSTERING ), lastJobs )
+            jobs1 = simpleGATKCommand( myPipelineArgs, 'call.GenerateVariantClusters', '-T GenerateVariantClusters -qual %d -std 3.5 -mG %d -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -B:hapmap,vcf %s -B:input,VCF %s -clusterFile %s %s %s --NoByHapMapValidationStatus' % ( callTarget.minQual, callTarget.maxClusters, hapmapVCF, vcf, clusterFile, annotationsToOptimizeArg, IGNORE_FILTERS_CLUSTERING ), lastJobs )
+            #jobs1 = simpleGATKCommand( myPipelineArgs, 'call.GenerateVariantClusters', '-T GenerateVariantClusters -qual %d -std 3.5 -mG %d -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -B:input,VCF %s -clusterFile %s %s %s' % ( callTarget.minQual, callTarget.maxClusters, vcf, clusterFile, annotationsToOptimizeArg, IGNORE_FILTERS_CLUSTERING ), lastJobs )
         else:
             jobs1 = lastJobs
-        jobs2 = simpleGATKCommand( myPipelineArgs, 'VariantRecalibrator', '-T VariantRecalibrator -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -qStep 0.01 -B input,VCF,%s -clusterFile %s -output %s --target_titv %f %s -resources ~/dev/GenomeAnalysisTK/trunk/R/ %s --known_prior %.2f' % ( vcf, clusterFile, os.path.splitext(optOutVCF)[0], callTarget.targetTiTv, IGNORE_FILTERS_SCORING, tranches, DBSNP_PRIOR ), jobs1 )
+        jobs2 = simpleGATKCommand( myPipelineArgs, 'call.VariantRecalibrator', '-T VariantRecalibrator -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -B:input,VCF %s -clusterFile %s -o %s --target_titv %f %s -resources ~/dev/GenomeAnalysisTK/trunk/R/ %s -priorDBSNP %.2f -tranchesFile %s' % ( vcf, clusterFile, optOutVCF, callTarget.targetTiTv, IGNORE_FILTERS_SCORING, tranches, DBSNP_PRIOR, tranchesFile ), jobs1 )
 
         cmd21 = 'python /humgen/gsa-scr1/depristo/dev/GenomeAnalysisTK/trunk/python/vcf2table.py -f CHROM,POS,ID,AC,AF,AN,DB,' + ','.join(annotationsToOptimize) + ' ' + vcf + ' -o ' + table
-        jobs21 = [FarmJob(cmd21, jobName = callTarget.name + '.' + 'VariantRecalibrationReport.vcf2table', dependencies = jobs2)]
+        jobs21 = [FarmJob(cmd21, jobName = callTarget.name + '.call.' + 'VariantRecalibrationReport.vcf2table', dependencies = jobs2)]
 
         cmd22 = 'Rscript /humgen/gsa-scr1/depristo/dev/GenomeAnalysisTK/trunk/R/VariantRecalibratorReport/VariantRecalibratorReport.R %s %s %s NA %d' % (clusterFile, clusterFile, table, maxVariantsToShow)
-        jobs22 = [FarmJob(cmd22, jobName = callTarget.name + '.' + 'VariantRecalibrationReport.RScript', dependencies = jobs21)]
+        jobs22 = [FarmJob(cmd22, jobName = callTarget.name + '.call.' + 'VariantRecalibrationReport.RScript', dependencies = jobs21)]
 
-        jobs3 = simpleGATKCommand( myPipelineArgs, 'ApplyVariantCuts', '-T ApplyVariantCuts -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -B input,VCF,%s -outputVCF %s --tranchesFile %s.dat.tranches --fdr_filter_level %f' % ( optOutVCF, out, clusterFile, callTarget.tranchToTake ), jobs2 )
+        jobs3 = simpleGATKCommand( myPipelineArgs, 'call.ApplyVariantCuts', '-T ApplyVariantCuts -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -B:input,VCF %s -o %s -tranchesFile %s --fdr_filter_level %f' % ( optOutVCF, out, tranchesFile, callTarget.tranchToTake ), jobs2 )
         return jobs1 + jobs2 + jobs21 + jobs22 + jobs3, out
     else:
         return [], vcf
@@ -346,25 +351,22 @@ def evalSNPs(myPipelineArgs, callTarget, vcf, lastJobs):
     evalRoot = OPTIONS.dir
  
     oldMemory = myPipelineArgs.memory
-    myPipelineArgs.memory = '2g'
+    myPipelineArgs.memory = '3g'
     def eval1(vcf, namePostfix = "", args = ""):
         out = os.path.join(OPTIONS.dir, os.path.basename(vcf) + namePostfix + ".ve2")
-        #validation_bindings = "-B comp_p2_val,VCF," + VALIDATION_DIR + "/Validated/1kg_snp_validation/batch1-2.HG18.vcf -B comp_CG,VCF," + VALIDATION_DIR + "CG.vcf"
         maybeHiSeqBindings = ""
         hiSeqComp = os.path.join(OPTIONS.dir,"HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.optimized.cut.vcf")
-        omni = " -B compOmni,VCF,omni.na12878.hg18.vcf"
+        omni = " -B:compOmni,VCF Omni.NA12878.hg18.vcf"
         if os.path.exists(hiSeqComp):
-            maybeHiSeqBindings = "-B comp_HiSeq,VCF," + hiSeqComp + " "
-        validation_bindings = maybeHiSeqBindings + "-B comp_p2_val,VCF,1kg_pilot2_snps.hg18.vcf -B comp_CG,VCF,/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/NA12878/CG.hg18.vcf -B compTrio,VCF,CEU.trio.2010_03.genotypes.vcf -B compTrioNovel,VCF,CEU.trio.novels.2010_03.genotypes.vcf -B comp_hm3,VCF,/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/by_population/genotypes_CEU_phase3.2_consensus.hg18_fwd.vcf -B compDeNovo,VCF,/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/1kg_denovos/ceu_merged_validation_data_240610.annotated.hg18.vcf -B comp1KGCEU,VCF,YRI.low_coverage.2010_07.sites.vcf" + omni # not in hg18 space :-(
+            maybeHiSeqBindings = "-B:comp_HiSeq,VCF " + hiSeqComp + " "
+        validation_bindings = maybeHiSeqBindings + "-B:comp_p2_val,VCF 1kg_pilot2_snps.hg18.vcf -B:comp_CG,VCF /humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/NA12878/CG.hg18.vcf -B:compTrio,VCF CEU.trio.2010_03.genotypes.vcf -B:compTrioNovel,VCF CEU.trio.novels.2010_03.genotypes.vcf -B:comp_hm3,VCF /humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/by_population/genotypes_CEU_phase3.2_consensus.hg18_fwd.vcf " + omni # not in hg18 space :-(
         tranches = ""
         if vcf.find("optimized") != -1:
-            args += " -tf " + appendExtension(vcf.replace(".cut", ""), 'dat.tranches', False)
+            args += " -tf " + appendExtension(vcf.replace(".cut", ""), 'tranches', False)
             vcf = appendExtension(vcf.replace(".cut", ""), 'vcf', False)
-        gatk_args = ("-T VariantEval -reportType Grep -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -B eval,VCF,%s " + validation_bindings + " -sample NA12878 -o %s -E CompOverlap -E GenotypeConcordance -E TiTvVariantEvaluator -E CountVariants %s") % ( vcf, out, args )
-        #gatk_args = ("-T VariantEval -reportType Grep -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -select \"hetCount == 1\" -selectName HET -select \"homVarCount == 1\" -selectName HOMVAR -B eval,VCF,%s " + validation_bindings + " -sample NA12878 -select \"QUAL <= 30.0\" -selectName LowQual -o %s -E CompOverlap -E GenotypeConcordance -E TiTvVariantEvaluator -E CountVariants %s") % ( vcf, out, args )
+        gatk_args = ("-T VariantEval -reportType Grep -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_hg18.rod -B:eval,VCF %s " + validation_bindings + " -sample NA12878 -o %s -E CompOverlap -E GenotypeConcordance -E TiTvVariantEvaluator -E CountVariants %s") % ( vcf, out, args )
 
         name = "EVAL_%s_%s" % (callTarget.name, namePostfix)
-        # return FarmJob(cmd, jobName = "EVAL_%s_%s" % (callTarget.name, namePostfix), dependencies = lastJobs)
         return simpleGATKCommand( myPipelineArgs, name, gatk_args, lastJobs )[0]
  
     jobs = []
