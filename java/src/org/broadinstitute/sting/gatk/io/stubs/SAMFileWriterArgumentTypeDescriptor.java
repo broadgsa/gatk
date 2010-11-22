@@ -29,6 +29,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import net.sf.samtools.SAMFileWriter;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.lang.annotation.Annotation;
@@ -83,11 +84,13 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
     @Override
     public boolean createsTypeDefault(ArgumentSource source) {
-        return true;
+        return source.isRequired();
     }
 
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) {
+        if(!source.isRequired())
+            throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
         SAMFileWriterStub stub = new SAMFileWriterStub(engine,defaultOutputStream);
         engine.addOutput(stub);
         return stub;
@@ -95,9 +98,13 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
     @Override
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
-        String writerFileName = getArgumentValue( createBAMArgumentDefinition(source), matches );
-        if( writerFileName == null )
-            throw new UserException.CommandLineException("SAM file compression was supplied, but no associated writer was supplied with it.");
+        ArgumentDefinition bamArgumentDefinition = createBAMArgumentDefinition(source);
+        String writerFileName = getArgumentValue( bamArgumentDefinition, matches );
+
+        // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
+        // therefore, the user must have failed to specify a type default
+        if(writerFileName == null && !source.isRequired())
+            throw new MissingArgumentValueException(bamArgumentDefinition);
 
         SAMFileWriterStub stub = new SAMFileWriterStub(engine, new File(writerFileName));
 

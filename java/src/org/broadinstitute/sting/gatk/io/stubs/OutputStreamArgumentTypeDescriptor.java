@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.io.stubs;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.OutputStream;
 import java.io.File;
@@ -64,11 +65,13 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
     @Override
     public boolean createsTypeDefault(ArgumentSource source) {
-        return true;
+        return source.isRequired();
     }
 
     @Override
     public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) {
+        if(!source.isRequired())
+            throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");
         OutputStreamStub stub = new OutputStreamStub(defaultOutputStream);
         engine.addOutput(stub);
         return createInstanceOfClass(source.field.getType(),stub);        
@@ -78,6 +81,11 @@ public class OutputStreamArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
         ArgumentDefinition definition = createDefaultArgumentDefinition(source);
         String fileName = getArgumentValue( definition, matches );
+
+        // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
+        // therefore, the user must have failed to specify a type default
+        if(fileName == null && !source.isRequired())
+            throw new MissingArgumentValueException(definition);
 
         OutputStreamStub stub = new OutputStreamStub(new File(fileName));
 

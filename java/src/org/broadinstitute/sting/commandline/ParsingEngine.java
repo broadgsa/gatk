@@ -490,25 +490,6 @@ class MissingArgumentException extends ArgumentException {
     }
 }
 
-class MissingArgumentValueException extends ArgumentException {
-    public MissingArgumentValueException( Collection<ArgumentDefinition> missingArguments ) {
-        super( formatArguments(missingArguments) );
-    }
-
-    private static String formatArguments( Collection<ArgumentDefinition> missingArguments ) {
-        StringBuilder sb = new StringBuilder();
-        for( ArgumentDefinition missingArgument: missingArguments ) {
-            if( missingArgument.shortName != null )
-                sb.append( String.format("%nValue for argument with name '--%s' (-%s) is missing.", missingArgument.fullName, missingArgument.shortName) );
-            else
-                sb.append( String.format("%nValue for argument with name '--%s' is missing.", missingArgument.fullName) );
-            if(missingArgument.validOptions != null)
-                sb.append( String.format("  Valid options are (%s).", Utils.join(",",missingArgument.validOptions)));
-        }
-        return sb.toString();
-    }
-}
-
 /**
  * An exception for undefined arguments.
  */

@@ -322,7 +322,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                     // if their argument has no value and there's no default, throw a missing argument value exception.
                     // TODO: Clean this up so that null values never make it to this point.  To fix this, we'll have to clean up the implementation of -U.
                 else if (value == null)
-                    throw new MissingArgumentValueException(Collections.singleton(createDefaultArgumentDefinition(source)));
+                    throw new MissingArgumentValueException(createDefaultArgumentDefinition(source));
                 else
                     throw new UnknownEnumeratedValueException(createDefaultArgumentDefinition(source),value);
             } else {
