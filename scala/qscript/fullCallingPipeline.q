@@ -276,7 +276,7 @@ class fullCallingPipeline extends QScript {
     val mergeIndels = new CombineVariants with CommandLineGATKArgs
     mergeIndels.jobOutputFile = new File(".queue/logs/IndelCalling/CombineVariants.out")
     mergeIndels.out = new TaggedFile("IndelCalls/" + qscript.pipeline.getProject.getName+".indels.vcf","vcf")
-    mergeIndels.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNIQUIFY)
+    mergeIndels.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNSORTED)
     mergeIndels.priority = priority
     mergeIndels.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
     mergeIndels.rodBind = indelCallFiles
