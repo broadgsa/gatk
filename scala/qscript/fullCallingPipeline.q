@@ -359,7 +359,7 @@ class fullCallingPipeline extends QScript {
     eval.jobOutputFile = new File(".queue/logs/SNPCalling/VariantEval.out")
     eval.rodBind :+= RodBind("evalOptimized", "VCF", cut.out)
     eval.rodBind :+= RodBind("evalHandFiltered", "VCF", handFilter.out)
-    eval.evalModule ++= List("CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
+    eval.evalModule ++= List("SimpleMetricsBySample", CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
     eval.reportLocation = new File("SnpCalls", base+".eval")
     eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.R)
     eval.analysisName = base+"_VariantEval"
