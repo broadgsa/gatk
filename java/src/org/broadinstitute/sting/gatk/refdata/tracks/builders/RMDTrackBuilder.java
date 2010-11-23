@@ -232,7 +232,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         } catch (TribbleException e) {
             throw new UserException(e.getMessage());
         } catch (IOException e) {
-            throw new UserException("Unable to create the index file for " + inputFile, e);
+            throw new UserException.CouldNotCreateOutputFile(inputFile, "unable to write Tribble index", e);
         }
         return reader;
     }
