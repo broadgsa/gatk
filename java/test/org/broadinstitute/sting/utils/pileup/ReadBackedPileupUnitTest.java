@@ -33,10 +33,7 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Test routines for read-backed pileup.
@@ -163,5 +160,45 @@ public class ReadBackedPileupUnitTest {
         Assert.assertEquals(rg1Reads.size(), 2, "Wrong number of reads in read group rg2");
         Assert.assertEquals(rg2Reads.get(0), read2, "Read " + read2.getReadName() + " should be in rg2 but isn't");
         Assert.assertEquals(rg2Reads.get(1), read4, "Read " + read4.getReadName() + " should be in rg2 but isn't");
+    }
+
+    @Test
+    public void testGetPileupForSample() {
+        Sample sample1 = new Sample("sample1");
+        Sample sample2 = new Sample("sample2");
+
+        SAMReadGroupRecord readGroupOne = new SAMReadGroupRecord("rg1");
+        readGroupOne.setSample(sample1.getId());
+        SAMReadGroupRecord readGroupTwo = new SAMReadGroupRecord("rg2");
+        readGroupTwo.setSample(sample2.getId());        
+
+        SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1,1,1000);
+        header.addReadGroup(readGroupOne);
+        header.addReadGroup(readGroupTwo);
+
+        SAMRecord read1 = ArtificialSAMUtils.createArtificialRead(header,"read1",0,1,10);
+        read1.setAttribute("RG",readGroupOne.getId());
+        SAMRecord read2 = ArtificialSAMUtils.createArtificialRead(header,"read2",0,1,10);
+        read2.setAttribute("RG",readGroupTwo.getId());
+
+        Map<Sample,ReadBackedPileupImpl> sampleToPileupMap = new HashMap<Sample,ReadBackedPileupImpl>();
+        sampleToPileupMap.put(sample1,new ReadBackedPileupImpl(null,Collections.singletonList(read1),0));
+        sampleToPileupMap.put(sample2,new ReadBackedPileupImpl(null,Collections.singletonList(read2),0));
+
+        ReadBackedPileup pileup = new ReadBackedPileupImpl(null,sampleToPileupMap);
+
+        ReadBackedPileup sample1Pileup = pileup.getPileupForSample(sample1);
+        Assert.assertEquals(sample1Pileup.size(),1,"Sample 1 pileup has wrong number of elements");
+        Assert.assertEquals(sample1Pileup.getReads().get(0),read1,"Sample 1 pileup has incorrect read");
+
+        ReadBackedPileup sample2Pileup = pileup.getPileupForSampleName(sample2.getId());
+        Assert.assertEquals(sample2Pileup.size(),1,"Sample 2 pileup has wrong number of elements");
+        Assert.assertEquals(sample2Pileup.getReads().get(0),read2,"Sample 2 pileup has incorrect read");
+
+        ReadBackedPileup missingSamplePileup = pileup.getPileupForSample(new Sample("missing"));
+        Assert.assertNull(missingSamplePileup,"Pileup for sample 'missing' should be null but isn't");
+
+        missingSamplePileup = pileup.getPileupForSampleName("not here");
+        Assert.assertNull(missingSamplePileup,"Pileup for sample 'not here' should be null but isn't");
     }
 }
