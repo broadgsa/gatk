@@ -42,7 +42,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -114,8 +113,13 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         else
             indelLength = vc.getAlternateAllele(0).length();
 
+        if ( indelLength > 200 ) {
+            writer.add(vc, ref.getBase());
+            return 0;
+        }
+
         // create an indel haplotype
-        int originalIndex = (int)(ref.getLocus().getStart() - ref.getWindow().getStart()) + 1;
+        int originalIndex = ref.getLocus().getStart() - ref.getWindow().getStart() + 1;
         final byte[] originalIndel = makeHaplotype(vc, refSeq, originalIndex, indelLength);
 
         // create a CIGAR string to represent the event
