@@ -543,7 +543,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         private class EdgeToReads {
-            private Map<GraphEdge, List<String>> edgeReads;
+            private TreeMap<GraphEdge, List<String>> edgeReads;
 
             public EdgeToReads() {
                 this.edgeReads = new TreeMap<GraphEdge, List<String>>(); // implemented GraphEdge.compareTo()
@@ -1196,7 +1196,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         public static PhasingTable marginalizeAsNewTable(PhasingTable table) {
-            Map<Haplotype, PreciseNonNegativeDouble> hapMap = new TreeMap<Haplotype, PreciseNonNegativeDouble>();
+            TreeMap<Haplotype, PreciseNonNegativeDouble> hapMap = new TreeMap<Haplotype, PreciseNonNegativeDouble>();
             for (PhasingTable.PhasingTableEntry pte : table) {
                 Haplotype rep = pte.getHaplotypeClass().getRepresentative();
                 PreciseNonNegativeDouble score = hapMap.get(rep);
@@ -1383,7 +1383,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private class MultipleBaseCountsWriter {
         private BufferedWriter writer = null;
-        private Map<SampleReadLocus, MultipleBaseCounts> multipleBaseCounts = null;
+        private TreeMap<SampleReadLocus, MultipleBaseCounts> multipleBaseCounts = null;
 
         public MultipleBaseCountsWriter(File outputMultipleBaseCountsFile) {
             FileOutputStream output;

@@ -169,14 +169,8 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
                 if (shouldMerge) {
                     numRecordsSatisfyingMergeRule++;
                     VariantContext mergedVc = VariantContextUtils.mergeIntoMNP(genomeLocParser, vcfrWaitingToMerge.vc, vc, referenceFileForMNPmerging);
-
                     if (mergedVc != null) {
                         mergedRecords = true;
-
-                        Map<String, Object> updatedAttribs = RefSeqData.getMergedRefSeqAttributes(vcfrWaitingToMerge.vc, vc);
-                        updatedAttribs.putAll(mergedVc.getAttributes());
-                        mergedVc = VariantContext.modifyAttributes(mergedVc, updatedAttribs);
-
                         vcfrWaitingToMerge = new VCFRecord(mergedVc, vcfrWaitingToMerge.refBase, true);
                         numMergedRecords++;
                     }
@@ -444,134 +438,6 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
             }
 
             return sb.toString();
-        }
-    }
-}
-
-
-/* Some methods for extracting and merging RefSeq-related data from annotated VCF INFO fields:
- */
-
-class RefSeqData {
-    private static String REFSEQ_PREFIX = "refseq.";
-
-    private static String NUM_RECORDS_KEY = REFSEQ_PREFIX + "numMatchingRecords";
-    private static String NAME_KEY = REFSEQ_PREFIX + "name";
-    private static String NAME2_KEY = REFSEQ_PREFIX + "name2";
-
-    private static String CODON_KEY = REFSEQ_PREFIX + "codonCoord";
-
-    private static Map<String, String> getRefSeqEntriesToNames(VariantContext vc, boolean getName2) {
-        Map<String, String> entriesToNames = new HashMap<String, String>();
-
-        Integer numRecords = vc.getAttributeAsIntegerNoException(NUM_RECORDS_KEY);
-        if (numRecords != null) {
-            for (int i = 1; i <= numRecords; i++) {
-                String key = NAME_KEY + "_" + i;
-                String name = vc.getAttributeAsStringNoException(key);
-                if (name != null)
-                    entriesToNames.put(key, name);
-            }
-        }
-        else {
-            String name = vc.getAttributeAsStringNoException(NAME_KEY);
-            if (name != null) {
-                entriesToNames.put(NAME_KEY, name);
-            }
-            else { // Check all INFO fields for a match:
-                for (Map.Entry<String, Object> entry : vc.getAttributes().entrySet()) {
-                    String key = entry.getKey();
-                    if (getName2 && key.startsWith(NAME2_KEY))
-                        entriesToNames.put(key, entry.getValue().toString());
-                    else if (key.startsWith(NAME_KEY) && !key.startsWith(NAME2_KEY))
-                        entriesToNames.put(key, entry.getValue().toString());
-                }
-            }
-        }
-
-        return entriesToNames;
-    }
-
-    private static Map<String, String> getRefSeqEntriesToNames(VariantContext vc) {
-        return getRefSeqEntriesToNames(vc, false);
-    }
-
-    public static Set<String> getRefSeqNames(VariantContext vc, boolean getName2) {
-        return new TreeSet<String>(getRefSeqEntriesToNames(vc, getName2).values());
-    }
-
-    public static Set<String> getRefSeqNames(VariantContext vc) {
-        return getRefSeqNames(vc, false);
-    }
-
-    public static Map<String, Object> getMergedRefSeqAttributes(VariantContext vc1, VariantContext vc2) {
-        Map<String, Object> refSeqAttribs = new HashMap<String, Object>();
-
-        List<RefSeqEntry> list1 = getAllRefSeqEntries(vc1);
-        List<RefSeqEntry> list2 = getAllRefSeqEntries(vc2);
-        boolean addSuffix = list1.size() > 1 || list2.size() > 1;
-        int count = 1;
-
-        for (RefSeqEntry refseq1 : list1) {
-            for (RefSeqEntry refseq2 : list2) {
-                Set<String> keys = new HashSet<String>();
-                keys.addAll(refseq1.info.keySet());
-                keys.addAll(refseq2.info.keySet());
-
-                String keySuffix = "";
-                if (addSuffix)
-                    keySuffix = "_" + count++;
-
-                Object name1 = refseq1.info.get(NAME_KEY);
-                Object name2 = refseq2.info.get(NAME_KEY);
-                boolean sameGene = name1 != null && name2 != null && name1.equals(name2);
-
-                for (String key : keys) {
-                    Object obj1 = refseq1.info.get(key);
-                    Object obj2 = refseq2.info.get(key);
-                    if (obj1 == null)
-                        obj1 = "";
-                    if (obj2 == null)
-                        obj2 = "";
-
-                    if (sameGene && key.equals(CODON_KEY) && obj1.equals(obj2)) // vc1 and vc2 have variants in the same codon in the same gene
-                        System.out.println(vc1.getChr() + ":" + vc1.getStart() + " --> CODON: obj1 = " + obj1);
-
-                    String useKey = key + keySuffix;
-                    String mergedVal = obj1 + "\\" + obj2;
-                    refSeqAttribs.put(useKey, mergedVal);
-                }
-            }
-        }
-
-        return refSeqAttribs;
-    }
-
-    private static List<RefSeqEntry> getAllRefSeqEntries(VariantContext vc) {
-        List<RefSeqEntry> allRefSeq = new LinkedList<RefSeqEntry>();
-
-        for (Map.Entry<String, String> entryToName : getRefSeqEntriesToNames(vc).entrySet()) {
-            String entry = entryToName.getKey();
-            String entrySuffix = entry.replaceFirst(NAME_KEY, "");
-            allRefSeq.add(new RefSeqEntry(vc, entrySuffix));
-        }
-
-        return allRefSeq;
-    }
-
-    private static class RefSeqEntry {
-        public Map<String, Object> info;
-
-        public RefSeqEntry(VariantContext vc, String entrySuffix) {
-            this.info = new HashMap<String, Object>();
-
-            for (Map.Entry<String, Object> attribEntry : vc.getAttributes().entrySet()) {
-                String key = attribEntry.getKey();
-                if (key.startsWith(REFSEQ_PREFIX) && key.endsWith(entrySuffix)) {
-                    String genericKey = key.replaceAll(entrySuffix, "");
-                    this.info.put(genericKey, attribEntry.getValue());
-                }
-            }
         }
     }
 }

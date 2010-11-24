@@ -70,12 +70,12 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
     @Argument(fullName = "disablePrintAltAlleleStats", shortName = "noAlleleStats", doc = "Should the print-out of alternate allele statistics be disabled?; [default:false]", required = false)
     protected boolean disablePrintAlternateAlleleStatistics = false;
 
-    public final static String IGNORE_CODING = "IGNORE";
-    public final static String UNION_CODING = "UNION";
-    public final static String INTERSECT_CODING = "INTERSECT";
+    public final static String IGNORE_REFSEQ = "IGNORE";
+    public final static String UNION_REFSEQ = "UNION";
+    public final static String INTERSECT_REFSEQ = "INTERSECT";
 
-    @Argument(fullName = "mergeBasedOnCodingAnnotation", shortName = "mergeBasedOnCodingAnnotation", doc = "'Should merging be performed if two sites lie on the same coding sequence in the INFO field {" + IGNORE_CODING + ", " + UNION_CODING + ", " + INTERSECT_CODING + "}; [default:"+ IGNORE_CODING + "]", required = false)
-    protected String mergeBasedOnCodingAnnotation = IGNORE_CODING;
+    @Argument(fullName = "mergeBasedOnRefSeqAnnotation", shortName = "mergeBasedOnRefSeqAnnotation", doc = "'Should merging be performed if two sites lie on the same RefSeq sequence in the INFO field {" + IGNORE_REFSEQ + ", " + UNION_REFSEQ + ", " + INTERSECT_REFSEQ + "}; [default:"+ IGNORE_REFSEQ + "]", required = false)
+    protected String mergeBasedOnRefSeqAnnotation = IGNORE_REFSEQ;
 
     private LinkedList<String> rodNames = null;
 
@@ -90,10 +90,10 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
         GenomeLocParser genomeLocParser = getToolkit().getGenomeLocParser();
 
         MergeRule mergeRule = null;
-        if (mergeBasedOnCodingAnnotation.equals(IGNORE_CODING))
+        if (mergeBasedOnRefSeqAnnotation.equals(IGNORE_REFSEQ))
             mergeRule = new DistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser);
         else
-            mergeRule = new SameGenePlusWithinDistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser, mergeBasedOnCodingAnnotation);
+            mergeRule = new SameGenePlusWithinDistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser, mergeBasedOnRefSeqAnnotation);
 
         // false <-> don't take control of writer, since didn't create it:
         vcMergerWriter = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer,genomeLocParser, getToolkit().getArguments().referenceFile, mergeRule, useSingleSample, emitOnlyMergedRecords, logger, false, !disablePrintAlternateAlleleStatistics);
@@ -175,7 +175,7 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
 }
 
 
-enum MergeBasedOnCodingAnnotation {
+enum MergeBasedOnRefSeqAnnotation {
     UNION_WITH_DIST, INTERSECT_WITH_DIST
 }
 
@@ -206,45 +206,45 @@ class DistanceMergeRule implements MergeRule {
 }
 
 class SameGenePlusWithinDistanceMergeRule extends DistanceMergeRule {
-    private MergeBasedOnCodingAnnotation mergeBasedOnCodingAnnotation;
+    private MergeBasedOnRefSeqAnnotation mergeBasedOnRefSeqAnnotation;
 
-    public SameGenePlusWithinDistanceMergeRule(int maxGenomicDistanceForMNP, GenomeLocParser genomeLocParser, String mergeBasedOnCodingAnnotation) {
+    public SameGenePlusWithinDistanceMergeRule(int maxGenomicDistanceForMNP, GenomeLocParser genomeLocParser, String mergeBasedOnRefSeqAnnotation) {
         super(maxGenomicDistanceForMNP, genomeLocParser);
 
-        if (mergeBasedOnCodingAnnotation.equals(MergeSegregatingAlternateAllelesWalker.UNION_CODING))
-            this.mergeBasedOnCodingAnnotation = MergeBasedOnCodingAnnotation.UNION_WITH_DIST;
-        else if (mergeBasedOnCodingAnnotation.equals(MergeSegregatingAlternateAllelesWalker.INTERSECT_CODING))
-            this.mergeBasedOnCodingAnnotation = MergeBasedOnCodingAnnotation.INTERSECT_WITH_DIST;
+        if (mergeBasedOnRefSeqAnnotation.equals(MergeSegregatingAlternateAllelesWalker.UNION_REFSEQ))
+            this.mergeBasedOnRefSeqAnnotation = MergeBasedOnRefSeqAnnotation.UNION_WITH_DIST;
+        else if (mergeBasedOnRefSeqAnnotation.equals(MergeSegregatingAlternateAllelesWalker.INTERSECT_REFSEQ))
+            this.mergeBasedOnRefSeqAnnotation = MergeBasedOnRefSeqAnnotation.INTERSECT_WITH_DIST;
         else
-            throw new UserException("Must provide " + MergeSegregatingAlternateAllelesWalker.IGNORE_CODING + ", " + MergeSegregatingAlternateAllelesWalker.UNION_CODING + ", or " + MergeSegregatingAlternateAllelesWalker.INTERSECT_CODING + " as argument to mergeBasedOnCodingAnnotation!");
+            throw new UserException("Must provide " + MergeSegregatingAlternateAllelesWalker.IGNORE_REFSEQ + ", " + MergeSegregatingAlternateAllelesWalker.UNION_REFSEQ + ", or " + MergeSegregatingAlternateAllelesWalker.INTERSECT_REFSEQ + " as argument to mergeBasedOnRefSeqAnnotation!");
     }
 
     public boolean shouldMerge(VariantContext vc1, VariantContext vc2) {
         boolean withinDistance = super.shouldMerge(vc1, vc2);
 
-        if (mergeBasedOnCodingAnnotation == MergeBasedOnCodingAnnotation.UNION_WITH_DIST)
+        if (mergeBasedOnRefSeqAnnotation == MergeBasedOnRefSeqAnnotation.UNION_WITH_DIST)
             return withinDistance || sameGene(vc1, vc2);
-        else // mergeBasedOnCodingAnnotation == MergeBasedOnCodingAnnotation.INTERSECT_WITH_DIST
+        else // mergeBasedOnRefSeqAnnotation == MergeBasedOnRefSeqAnnotation.INTERSECT_WITH_DIST
             return withinDistance && sameGene(vc1, vc2);
     }
 
     private boolean sameGene(VariantContext vc1, VariantContext vc2) {
-        Set<String> names_vc1 = RefSeqData.getRefSeqNames(vc1);
-        Set<String> names_vc2 = RefSeqData.getRefSeqNames(vc2);
+        Set<String> names_vc1 = RefSeqDataParser.getRefSeqNames(vc1);
+        Set<String> names_vc2 = RefSeqDataParser.getRefSeqNames(vc2);
         names_vc1.retainAll(names_vc2);
 
         if (!names_vc1.isEmpty())
             return true;
 
         // Check refseq.name2:
-        Set<String> names2_vc1 = RefSeqData.getRefSeqNames(vc1, true);
-        Set<String> names2_vc2 = RefSeqData.getRefSeqNames(vc2, true);
+        Set<String> names2_vc1 = RefSeqDataParser.getRefSeqNames(vc1, true);
+        Set<String> names2_vc2 = RefSeqDataParser.getRefSeqNames(vc2, true);
         names2_vc1.retainAll(names2_vc2);
 
         return !names2_vc1.isEmpty();
     }
 
     public String toString() {
-        return super.toString() + " " + (mergeBasedOnCodingAnnotation == MergeBasedOnCodingAnnotation.UNION_WITH_DIST ? "OR" : "AND") + " on the same gene";
+        return super.toString() + " " + (mergeBasedOnRefSeqAnnotation == MergeBasedOnRefSeqAnnotation.UNION_WITH_DIST ? "OR" : "AND") + " on the same gene";
     }
 }
