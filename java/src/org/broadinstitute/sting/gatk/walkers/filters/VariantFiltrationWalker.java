@@ -211,8 +211,10 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             filters.add(CLUSTERED_SNP_FILTER_NAME);
 
         for ( VariantContextUtils.JexlVCMatchExp exp : filterExps ) {
-            if ( VariantContextUtils.match(vc, exp) )
-                filters.add(exp.name);
+            try {
+                if ( VariantContextUtils.match(vc, exp) )
+                    filters.add(exp.name);
+            } catch (Exception e) {} // do nothing; it just means that the expression isn't defined for this context
         }
 
         VariantContext filteredVC;
