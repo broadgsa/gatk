@@ -569,52 +569,75 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
         private final static String ALLELE_END = "}";
         private final static String CODON_INFO_DELIM = "|";
         private final static String ASSIGNMENT = ":";
+        private final static String MNP_DEPENDENT_AA = "MNPdependentAA";
 
-        private String variantCodon;
-        private String variantAA;
-        private boolean changesAA;
-        private String functionalClass;
+        private CodonFunction codonFunc;
         private String proteinCoordStr;
+        private boolean MNPdependentAA;
 
         public SingleCodonAnnotationsForAllele(String variantCodon, String refCodon, AminoAcid refAA, int codonIndex) {
-            this.variantCodon = variantCodon;
-            AminoAcid variantAA = AminoAcidTable.getEukaryoticAA(this.variantCodon);
-            this.variantAA = variantAA.getCode();
+            this.codonFunc = new CodonFunction(variantCodon, refCodon, refAA);
+            this.proteinCoordStr = "p." + refAA.getLetter() + codonIndex + codonFunc.variantAA.getLetter();
 
-            this.changesAA = !refAA.equals(variantAA);
+            int refCodonLength = refCodon.length();
+            if (codonFunc.variantCodon.length() != refCodonLength)
+                throw new ReviewedStingException("codonFunc.variantCodon.length() != refCodonLength, but ALREADY checked that they're both 3");
 
-            if (!this.variantCodon.equals(refCodon)) {
-                if (changesAA) {
-                    if (variantAA.isStop()) {
-                        functionalClass = "nonsense";
-                    }
-                    else if (refAA.isStop()) {
-                        functionalClass = "readthrough";
-                    }
-                    else {
-                        functionalClass = "missense";
-                    }
-                }
-                else { // the same aa:
-                    functionalClass = "silent";
+            this.MNPdependentAA = true;
+            for (int i = 0; i < refCodonLength; i++) {
+                // Take [0,i-1] and [i+1, end] from refCodon, and i from variantCodon:
+                String singleBaseChangeCodon = refCodon.substring(0, i) + variantCodon.substring(i, i+1) + refCodon.substring(i+1, refCodonLength);
+                CodonFunction singleBaseChangeCodonFunc = new CodonFunction(singleBaseChangeCodon, refCodon, refAA);
+                if (singleBaseChangeCodonFunc.variantAA.equals(codonFunc.variantAA)) {
+                    this.MNPdependentAA = false;
+                    break;
                 }
             }
-            else { // the same codon:
-                functionalClass = "no_change";
-            }
+        }
 
-            this.proteinCoordStr = "p." + refAA.getLetter() + codonIndex + variantAA.getLetter();
+        private static class CodonFunction {
+            private String variantCodon;
+            private AminoAcid variantAA;
+            private boolean changesAA;
+            private String functionalClass;
+
+            public CodonFunction(String variantCodon, String refCodon, AminoAcid refAA) {
+                this.variantCodon = variantCodon;
+                this.variantAA = AminoAcidTable.getEukaryoticAA(this.variantCodon);
+                this.changesAA = !refAA.equals(variantAA);
+
+                if (!this.variantCodon.equals(refCodon)) {
+                    if (changesAA) {
+                        if (variantAA.isStop()) {
+                            functionalClass = "nonsense";
+                        }
+                        else if (refAA.isStop()) {
+                            functionalClass = "readthrough";
+                        }
+                        else {
+                            functionalClass = "missense";
+                        }
+                    }
+                    else { // the same aa:
+                        functionalClass = "silent";
+                    }
+                }
+                else { // the same codon:
+                    functionalClass = "no_change";
+                }
+            }
         }
 
         public String toString() {
             StringBuilder sb = new StringBuilder();
 
             sb.append(ALLELE_START);
-            sb.append(REFSEQ_VARIANT_CODON).append(ASSIGNMENT).append(variantCodon).append(CODON_INFO_DELIM);
-            sb.append(REFSEQ_VARIANT_AA).append(ASSIGNMENT).append(variantAA).append(CODON_INFO_DELIM);
-            sb.append(REFSEQ_CHANGES_AA).append(ASSIGNMENT).append(changesAA).append(CODON_INFO_DELIM);
-            sb.append(REFSEQ_FUNCTIONAL_CLASS).append(ASSIGNMENT).append(functionalClass).append(CODON_INFO_DELIM);
-            sb.append(REFSEQ_PROTEIN_COORD_DESCRIPTION).append(ASSIGNMENT).append(proteinCoordStr);
+            sb.append(REFSEQ_VARIANT_CODON).append(ASSIGNMENT).append(codonFunc.variantCodon).append(CODON_INFO_DELIM);
+            sb.append(REFSEQ_VARIANT_AA).append(ASSIGNMENT).append(codonFunc.variantAA.getCode()).append(CODON_INFO_DELIM);
+            sb.append(REFSEQ_CHANGES_AA).append(ASSIGNMENT).append(codonFunc.changesAA).append(CODON_INFO_DELIM);
+            sb.append(REFSEQ_FUNCTIONAL_CLASS).append(ASSIGNMENT).append(codonFunc.functionalClass).append(CODON_INFO_DELIM);
+            sb.append(REFSEQ_PROTEIN_COORD_DESCRIPTION).append(ASSIGNMENT).append(proteinCoordStr).append(CODON_INFO_DELIM);
+            sb.append(MNP_DEPENDENT_AA).append(ASSIGNMENT).append(MNPdependentAA);
             sb.append(ALLELE_END);
 
             return sb.toString();
