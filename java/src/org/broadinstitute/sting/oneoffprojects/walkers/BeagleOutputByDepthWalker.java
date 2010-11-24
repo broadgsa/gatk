@@ -54,10 +54,8 @@ public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
     public static final String INPUT_COMP_ROD_NAME = "comp";
 
     @Output
-    public PrintStream out;
+    protected PrintStream outputWriter = null;
 
-    @Argument(fullName = "output_file", shortName = "output", doc = "File to output results", required = true)
-    public PrintStream outputWriter = null;
 
     public void initialize() {
 
@@ -211,7 +209,7 @@ public class BeagleOutputByDepthWalker extends RodWalker<Integer, Integer> {
      * @param result  the number of loci seen.
      */
     public void onTraversalDone(Integer result) {
-        out.printf("Processed %d loci.\n", result);
+        System.out.printf("Processed %d loci.\n", result);
 
     }
 
