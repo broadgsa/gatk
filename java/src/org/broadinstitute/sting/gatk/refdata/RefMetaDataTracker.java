@@ -297,6 +297,19 @@ public class RefMetaDataTracker {
             return contexts.iterator().next();
     }
 
+    /**
+     * Very simple accessor that gets the first (and only!) VC associated with name at the current location, or
+     * null if there's no binding here.
+     * 
+     * @param ref
+     * @param name
+     * @param curLocation
+     * @return
+     */
+    public VariantContext getVariantContext(ReferenceContext ref, String name, GenomeLoc curLocation) {
+        return getVariantContext(ref, name, null, curLocation, true);
+    }
+
 
     private void addVariantContexts(Collection<VariantContext> contexts, RODRecordList rodList, ReferenceContext ref, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
         for ( GATKFeature rec : rodList ) {
