@@ -95,17 +95,11 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
         Allele reportedRefAllele = vc.getReference();
         Allele observedRefAllele;
         // insertions
-        if ( reportedRefAllele.isNull() ) {
+        if ( vc.isInsertion() ) {
             observedRefAllele = Allele.create(Allele.NULL_ALLELE_STRING);
         }
-        // SNPs
-        else if ( reportedRefAllele.length() == 1 ) {
-            byte[] refByte = new byte[1];
-            refByte[0] = ref.getBase();
-            observedRefAllele = Allele.create(refByte, true);
-        }
         // deletions
-        else {
+        else if ( vc.isDeletion() || vc.isMixed() || vc.getType() == VariantContext.Type.MNP ) {
             // we can't validate arbitrarily long deletions
             if ( reportedRefAllele.length() > 100 ) {
                 logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", reportedRefAllele.length(), vc.getChr(), vc.getStart()));
@@ -117,6 +111,12 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
             for (int i = 0; i < reportedRefAllele.length(); i++)
                 trueRef[i] = refBytes[i+1];
             observedRefAllele = Allele.create(trueRef, true);
+        }
+        // SNPs, etc.
+        else {
+            byte[] refByte = new byte[1];
+            refByte[0] = ref.getBase();
+            observedRefAllele = Allele.create(refByte, true);
         }
 
         // get the RS IDs
