@@ -90,6 +90,7 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
+        writer.close();
         System.out.println(result + " variants were aligned");
     }
 
