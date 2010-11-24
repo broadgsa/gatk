@@ -97,7 +97,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     @Argument(fullName="smoothing", shortName="sm", required = false, doc="Number of imaginary counts to add to each bin in order to smooth out bins with few data points, default=1")
     private int SMOOTHING = 1;
     @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default=40")
-    private int MAX_QUALITY_SCORE = 40;
+    private int MAX_QUALITY_SCORE = 50;
 
     /////////////////////////////
     // Debugging-only Arguments

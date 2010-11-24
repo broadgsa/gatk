@@ -67,7 +67,7 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
     @Argument(fullName = "numRG", shortName = "numRG", doc = "Only process N read groups. Default value: -1 (process all read groups)", required = false)            
     private int NUM_READ_GROUPS_TO_PROCESS = -1; // -1 means process all read groups
     @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default is 40")
-    private int MAX_QUALITY_SCORE = 40;
+    private int MAX_QUALITY_SCORE = 50;
     @Argument(fullName="max_histogram_value", shortName="maxHist", required = false, doc="If supplied, this value will be the max value of the histogram plots")
     private int MAX_HISTOGRAM_VALUE = 0;
 

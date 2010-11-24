@@ -71,6 +71,8 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     public double bootstrap = 0.0;
     @Argument(fullName = "bootstrap_vcf",shortName = "bvcf", doc = "Output a VCF with the records used for bootstrapping filtered out", required = false)
     VCFWriter bootstrapVCFOutput = null;
+    @Argument(fullName = "checkIsMaleOnChrX", shortName = "checkIsMaleOnChrX", doc = "Set to true when Beagle-ing chrX and want to ensure male samples don't have heterozygous calls.", required = false)
+    public boolean CHECK_IS_MALE_ON_CHR_X = false;
 
     @Hidden
     @Argument(fullName = "variant_genotype_ptrue", shortName = "varp", doc = "Flat probability prior to assign to variant (not validation) genotypes. Does not override GL field.", required = false)
@@ -185,6 +187,10 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         Map<String,Genotype> otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
         boolean isValidation;
         for ( String sample : samples ) {
+            boolean isMaleOnChrX = false;
+            if( CHECK_IS_MALE_ON_CHR_X && getToolkit().getSampleById(sample).isMale() ) {
+                isMaleOnChrX = true;
+            }
             Genotype genotype;
             // use sample as key into genotypes structure
             if ( preferredGenotypes.keySet().contains(sample) ) {
@@ -202,6 +208,9 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
              */
             if ( (isValidation && prior < 0.0) || genotype.isCalled() && genotype.hasLikelihoods()) {
                 double[] likeArray = genotype.getLikelihoods().getAsVector();
+                if( isMaleOnChrX ) {
+                    likeArray[1] = -255;
+                }
                 double[] normalizedLikelihoods = MathUtils.normalizeFromLog10(likeArray);
                 // see if we need to randomly mask out genotype in this position.
                 Double d = generator.nextDouble();
@@ -212,7 +221,11 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 }
                 else {
                     // we are masking out this genotype
-                    beagleWriter.print("0.33 0.33 0.33 ");
+                    if( isMaleOnChrX ) {
+                        beagleWriter.print("0.5 0.0 0.5 ");
+                    } else {
+                        beagleWriter.print("0.33 0.33 0.33 ");
+                    }
                 }
 
                 if (beagleGenotypesWriter != null) {
@@ -236,7 +249,11 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 else if (genotype.isHet()) { AB = prior; }
                 else if (genotype.isHomVar()) { BB = prior; }
 
-                beagleWriter.printf("%.2f %.2f %.2f ", AA, AB, BB);
+                if( isMaleOnChrX ) {
+                    beagleWriter.printf("%.2f %.2f %.2f ", AA, 0.0, BB);
+                } else {
+                    beagleWriter.printf("%.2f %.2f %.2f ", AA, AB, BB);
+                }
 
                 if (beagleGenotypesWriter != null) {
                     char a = genotype.getAllele(0).toString().charAt(0);
@@ -246,7 +263,11 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 }
             }
             else  {
-                beagleWriter.print("0.33 0.33 0.33 "); // write 1/3 likelihoods for uncalled genotypes.
+                if( isMaleOnChrX ) {
+                    beagleWriter.print("0.5 0.0 0.5 ");
+                } else {
+                    beagleWriter.print("0.33 0.33 0.33 ");
+                } // write 1/3 likelihoods for uncalled genotypes.
                 if (beagleGenotypesWriter != null)
                     beagleGenotypesWriter.print(". . ");
             }
