@@ -33,6 +33,7 @@ import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broad.tribble.util.variantcontext.*;
 import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.utils.*;
+import org.broad.tribble.vcf.VCFCodec;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -467,6 +468,9 @@ public class VariantContextUtils {
             attributes.put(VariantContext.ID_KEY, rsID);
 
         VariantContext merged = new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, attributes);
+        // Trim the padded bases of all alleles if necessary
+        merged = VCFCodec.createVariantContextWithTrimmedAlleles(merged);
+
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
     }
@@ -563,70 +567,6 @@ public class VariantContextUtils {
             return new AlleleMapper(map);
         }
     }
-
-
-    public static VariantContext createVariantContextWithTrimmedAlleles(VariantContext inputVC) {
-        // see if we need to trim common reference base from all alleles
-        boolean trimVC = true;
-
-        // We need to trim common reference base from all alleles if a ref base is common to all alleles
-        Allele refAllele = inputVC.getReference();
-        if (!inputVC.isVariant())
-            trimVC = false;
-        else if (refAllele.isNull())
-            trimVC = false;
-        else {
-            for (Allele a : inputVC.getAlternateAlleles()) {
-                if (a.length() < 1 || (a.getBases()[0] != refAllele.getBases()[0]))
-                    trimVC = false;
-            }
-        }
-
-        // nothing to do if we don't need to trim bases
-        if (trimVC) {
-            List<Allele> alleles = new ArrayList<Allele>();
-            Map<String, Genotype> genotypes = new TreeMap<String, Genotype>();
-
-            Map<String, Genotype> inputGenotypes = inputVC.getGenotypes();
-            // set the reference base for indels in the attributes
-            Map<String,Object> attributes = new TreeMap<String,Object>();
-
-            for ( Map.Entry<String, Object> p : inputVC.getAttributes().entrySet() ) {
-                attributes.put(p.getKey(), p.getValue());
-            }
-
-            attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte(inputVC.getReference().getBases()[0]));
-
-
-            for (Allele a : inputVC.getAlleles()) {
-                // get bases for current allele and create a new one with trimmed bases
-                byte[] newBases = Arrays.copyOfRange(a.getBases(),1,a.length());
-                alleles.add(Allele.create(newBases,a.isReference()));
-            }
-
-            // now we can recreate new genotypes with trimmed alleles
-            for (String sample : inputVC.getSampleNames()) {
-                Genotype g = inputGenotypes.get(sample);
-
-                List<Allele> inAlleles = g.getAlleles();
-                List<Allele> newGenotypeAlleles = new ArrayList<Allele>();
-                for (Allele a : inAlleles) {
-                    byte[] newBases = Arrays.copyOfRange(a.getBases(),1,a.length());
-                    newGenotypeAlleles.add(Allele.create(newBases, a.isReference()));
-                }
-                genotypes.put(sample, new Genotype(sample, newGenotypeAlleles, g.getNegLog10PError(),
-                        g.getFilters(),g.getAttributes(),g.genotypesArePhased()));
-
-            }
-            return new VariantContext(inputVC.getSource(), inputVC.getChr(), inputVC.getStart(), inputVC.getEnd(), alleles, genotypes, inputVC.getNegLog10PError(),
-                    inputVC.getFilters(), attributes);
-
-        }
-        else
-            return inputVC;
-
-    }
-
 
     static class CompareByPriority implements Comparator<VariantContext>, Serializable {
         List<String> priorityListOfVCs;

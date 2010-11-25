@@ -27,8 +27,6 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
-import org.broadinstitute.sting.commandline.CommandLineUtils;
-import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -37,7 +35,6 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
-import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -83,17 +80,11 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
     private List<String> priority = null;
 
-    private VariantAnnotatorEngine engine;
-
     public void initialize() {
         validateAnnotateUnionArguments();
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), null);
         Set<String> samples = SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
-
-        ArrayList<String> annotationClassesToUse = new ArrayList<String>();
-        annotationClassesToUse.add("Standard");
-        engine = new VariantAnnotatorEngine(getToolkit(), annotationClassesToUse, new ArrayList<String>());
 
         if ( SET_KEY.toLowerCase().equals("null") )
             SET_KEY = null;
@@ -136,7 +127,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         //out.printf("   merged => %s%nannotated => %s%n", mergedVC, annotatedMergedVC);
 
         if ( mergedVC != null ) { // only operate at the start of events
-            VariantContext annotatedMergedVC = engine.annotateContext(tracker, ref, mergedVC);
+            HashMap<String, Object> attributes = new HashMap<String, Object>(mergedVC.getAttributes());
+            // re-compute chromosome counts
+            VariantContextUtils.calculateChromosomeCounts(mergedVC, attributes, false);
+            VariantContext annotatedMergedVC = VariantContext.modifyAttributes(mergedVC, attributes);
             if ( minimalVCF )
                 annotatedMergedVC = VariantContextUtils.pruneVariantContext(annotatedMergedVC, new HashSet(Arrays.asList(SET_KEY)));
             vcfWriter.add(annotatedMergedVC, ref.getBase());
