@@ -228,7 +228,7 @@ public class UnifiedGenotyperEngine {
             attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
 
 
-        if ( !UAC.NO_SLOD ) {
+        if ( !UAC.NO_SLOD && bestAFguess != 0 ) {
             final boolean DEBUG_SLOD = false;
 
             // the overall lod
