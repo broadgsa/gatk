@@ -620,10 +620,6 @@ public class VariantContextUtils {
         return uniqify ? sampleName + "." + trackName : sampleName;
     }
 
-    public static VariantContext modifyLocation(VariantContext vc, GenomeLoc loc) {
-        return new VariantContext(vc.getSource(), loc.getContig(), loc.getStart(), loc.getStop(), vc.getAlleles(), vc.getGenotypes(), vc.getNegLog10PError(), vc.filtersWereApplied() ? vc.getFilters() : null, vc.getAttributes());
-    }
-
     /**
      * Returns a context identical to this with the REF and ALT alleles reverse complemented.
      *

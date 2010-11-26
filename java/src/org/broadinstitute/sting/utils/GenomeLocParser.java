@@ -373,19 +373,6 @@ public class GenomeLocParser {
      * @param start  the starting position
      * @param stop   the stop position
      *
-     * @return a new genome loc - but don't exception out if it is invalid
-     */
-    public GenomeLoc createPotentiallyInvalidGenomeLoc(String contig, final int start, final int stop) {
-        return new GenomeLoc(contig, getContigIndex(contig,false), start, stop);
-    }
-
-    /**
-     * create a genome loc, given the contig name, start, and stop
-     *
-     * @param contig the contig name
-     * @param start  the starting position
-     * @param stop   the stop position
-     *
      * @return a new genome loc
      */
     public GenomeLoc createGenomeLoc(String contig, final int start, final int stop) {

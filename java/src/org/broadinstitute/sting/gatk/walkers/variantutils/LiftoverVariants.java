@@ -28,9 +28,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -96,7 +94,7 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
                 vc = VariantContextUtils.reverseComplement(vc);
             }
 
-            vc = VariantContextUtils.modifyLocation(vc, getToolkit().getGenomeLocParser().createPotentiallyInvalidGenomeLoc(toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length));
+            vc = VariantContext.modifyLocation(vc, toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length);
             VariantContext newVC = VariantContext.createVariantContextWithPaddedAlleles(vc, ref.getBase(), false);
 
             if ( originalVC.isSNP() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(newVC) ) {

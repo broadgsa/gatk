@@ -38,10 +38,8 @@ import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -136,9 +134,8 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
         // update if necessary and write
         if ( !newCigar.equals(originalCigar) && newCigar.numCigarElements() > 1 ) {
             int difference = originalIndex - newCigar.getCigarElement(0).getLength();
-            GenomeLoc newLoc = getToolkit().getGenomeLocParser().createPotentiallyInvalidGenomeLoc(vc.getChr(), vc.getStart()-difference, vc.getEnd()-difference);
-            //System.out.println("Moving record from " + vc.getChr()+":"+vc.getStart() + " to " + newLoc);
-            VariantContext newVC = VariantContextUtils.modifyLocation(vc, newLoc);
+            VariantContext newVC = VariantContext.modifyLocation(vc, vc.getChr(), vc.getStart()-difference, vc.getEnd()-difference);
+            //System.out.println("Moving record from " + vc.getChr()+":"+vc.getStart() + " to " + vc.getChr()+":"+(vc.getStart()-difference));
 
             int indelIndex = originalIndex-difference;
             byte[] newBases = new byte[indelLength];
