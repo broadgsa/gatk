@@ -11,16 +11,40 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 class FullCallingPipelineTest extends BaseTest {
-  def datasets = List(k1gChr20Dataset)
+  def datasets = List(k1gChr20Dataset, k1gExomeDataset)
 
   private final val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
 
   val k1gChr20Dataset = {
+    val dataset = newK1gDataset
+    dataset.pipeline.getProject.setName("Barcoded_1000G_WEx_chr20")
+    dataset.pipeline.getProject.setIntervalList(new File(BaseTest.GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list"))
+
+    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.counter.nCalledLoci", "1390", "1420")
+    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.titv.tiTvRatio", "3.52", "3.60")
+    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.known.titv.tiTvRatio", "3.71", "3.80")
+    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.novel.titv.tiTvRatio", "2.79", "2.86")
+
+    dataset
+  }
+
+  val k1gExomeDataset = {
+    val dataset = newK1gDataset
+    dataset.pipeline.getProject.setName("Barcoded_1000G_WEx")
+    dataset.pipeline.getProject.setIntervalList(new File(BaseTest.GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list"))
+
+    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.counter.nCalledLoci", "51969", "53019")
+    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.titv.tiTvRatio", "3.18", "3.25")
+    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.known.titv.tiTvRatio", "3.29", "3.36")
+    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.novel.titv.tiTvRatio", "2.80", "2.87")
+
+    dataset
+  }
+
+  def newK1gDataset = {
     val project = new PipelineProject
-    project.setName("Barcoded_1000G_WEx_chr20")
     project.setReferenceFile(new File(BaseTest.hg19Reference))
     project.setDbsnpFile(new File(BaseTest.b37dbSNP129))
-    project.setIntervalList(new File(BaseTest.GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list"))
 
     val squid = "C426"
     val ids = List(
@@ -43,12 +67,6 @@ class FullCallingPipelineTest extends BaseTest {
     dataset.pipeline = pipeline
     dataset.refseq = BaseTest.hg19Refseq
     dataset.targetTiTv = "3.0"
-    dataset.jobQueue = "hour"
-
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.counter.nCalledLoci", "1390", "1420")
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.titv.tiTvRatio", "3.52", "3.60")
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.known.titv.tiTvRatio", "3.71", "3.80")
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.novel.titv.tiTvRatio", "2.79", "2.86")
 
     dataset
   }
@@ -84,7 +102,7 @@ class FullCallingPipelineTest extends BaseTest {
       val optimizedVcf = PipelineTest.runDir(testName) + "SnpCalls/%s.uncleaned.annotated.indel.masked.recalibrated.tranched.vcf".format(projectName)
 
       // eval modules to record in the validation directory
-      val evalModules = List("CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
+      val evalModules = List("CompOverlap", "CountFunctionalClasses", "CountVariants", "SimpleMetricsBySample", "TiTvVariantEvaluator")
 
       // write the report to the shared validation data location
       val formatter = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
