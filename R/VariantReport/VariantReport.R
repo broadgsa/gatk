@@ -118,7 +118,7 @@ plot.callsetConcordance <- function(eval, col=c("#FF6342", "#63C6DE", "#ADDE63")
         all.withfiltered = intersection$all + aonly$all + bonly$all + aonly.filtered$all + bonly.filtered$all
     );
 
-    plot.venn(aonly$all + intersection$all + aonly.filtered$all, bonly$all + intersection$all + bonly.filtered$all, 0, intersection$all, 0, 0, pos=c(0.32, 0.32, 0.68, 0.70), col=col);
+    gsa.plot.venn(aonly$all + intersection$all + aonly.filtered$all, bonly$all + intersection$all + bonly.filtered$all, 0, intersection$all, 0, 0, pos=c(0.32, 0.32, 0.68, 0.70), col=col);
 
     text(0, 0.45, cex=1.2, pos=4, .plot.callsetConcordance.getLabelText(eval$CallsetNames[1], eval$CallsetNames[2], aonly, aonly.filtered, union));
     text(0.5, 0.75, cex=1.2, adj=c(0.5, 0.33), .plot.callsetConcordance.getLabelText("Intersection", NA, intersection, NA, union));
@@ -167,7 +167,11 @@ plot.callsetConcordanceByAC <- function(eval, normalize=TRUE, novelty_name="all"
     } else {
         mat = rbind(aonly$n, aonly.filtered$n, intersection$n, bonly.filtered$n, bonly$n);
 
-        barplot(mat, col=col, xlab="Allele count", ylab="counts", main=title, names.arg=intersection$AC, xlim=c(1, max(intersection$AC)), ylim=c(0, 1), border=NA, cex=1.3, cex.axis=1.3, cex.lab=1.3);
+        #barplot(mat, col=col, xlab="Allele count", ylab="counts", main=title, names.arg=intersection$AC, xlim=c(1, max(intersection$AC)), ylim=c(0, 1), border=NA, cex=1.3, cex.axis=1.3, cex.lab=1.3);
+
+        barplot(mat, col=col, xlab="Allele count", ylab="counts", main=title, names.arg=intersection$AC, xlim=c(1, 1.2*max(intersection$AC)), border=NA, cex=1.3, cex.axis=1.3, cex.lab=1.3);
+        #axis(2, at=seq(from=0, to=1, by=0.2), seq(from=0, to=1, by=0.2), cex=1.3, cex.axis=1.3);
+        #mtext("Fraction", side=2, at=0.5, padj=-3.0, cex=1.3);
     }
 
     legend(
@@ -226,7 +230,7 @@ plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", 
     suppressWarnings(points(intersection$AC, bonly$n + intersection$n, type="l", lwd=2, lty=2, col=col[4]));
     suppressWarnings(points(intersection$AC, bonly$n + bonly.filtered$n + intersection$n, type="l", lwd=2, col=col[5]));
 
-    points(c(1:max(intersection$AC)), 0.9*(1/1000)*loci*(1/c(1:max(intersection$AC))), type="l", lwd=2, lty=2, col="black");
+    #points(c(1:max(intersection$AC)), 0.9*(1/1000)*loci*(1/c(1:max(intersection$AC))), type="l", lwd=2, lty=2, col="black");
 
     legend(
         "bottomleft",
@@ -235,8 +239,8 @@ plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", 
             sprintf("Intersection + called in %s, absent in %s", eval$CallsetOnlyNames[2], eval$CallsetOnlyNames[1]),
             "Intersection",
             sprintf("Intersection + called in %s, absent in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2]),
-            sprintf("Intersection + called in %s, absent or filtered in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2]),
-            sprintf("Neutral expectation ( 0.9*(1/1000)*%d*(1/c(1:max(%d))) )", loci, max(intersection$AC))
+            sprintf("Intersection + called in %s, absent or filtered in %s", eval$CallsetOnlyNames[1], eval$CallsetOnlyNames[2])#,
+            #sprintf("Neutral expectation ( 0.9*(1/1000)*%0.1f*(1/c(1:max(%d))) )", loci, max(intersection$AC))
         ),
         lwd=c(2, 2, 3, 2, 2, 2),
         lty=c(1, 2, 1, 2, 1, 2),
@@ -387,13 +391,13 @@ argspec = list(
     author   = list(value = NA, doc = "The author of the report")
 );
 
-opt = getargs(argspec, doc="Take VariantEval R-output and generate a series of plots summarizing the contents");
+cmdargs = gsa.getargs(argspec, doc="Take VariantEval R-output and generate a series of plots summarizing the contents");
 
-eval = read.eval(opt$evalRoot);
+eval = gsa.read.eval(cmdargs$evalRoot);
 
-pdf(opt$plotOut, width=10, height=10);
+pdf(cmdargs$plotOut, width=10, height=10);
 
-plot.titlePage(opt$title, opt$author);
+plot.titlePage(cmdargs$title, cmdargs$author);
 
 plot.variantTable(eval);
 
@@ -401,10 +405,15 @@ if (length(eval$CallsetNames) > 0) {
     # Venn diagram
     plot.callsetConcordance(eval);
 
-    # Venn by AC
+    # Venn by AC (normalized)
     plot.callsetConcordanceByAC(eval, novelty_name="all");
     plot.callsetConcordanceByAC(eval, novelty_name="known");
     plot.callsetConcordanceByAC(eval, novelty_name="novel");
+
+    # Venn by AC (unnormalized)
+    plot.callsetConcordanceByAC(eval, novelty_name="all", normalize=FALSE);
+    plot.callsetConcordanceByAC(eval, novelty_name="known", normalize=FALSE);
+    plot.callsetConcordanceByAC(eval, novelty_name="novel", normalize=FALSE);
 
     # Allele count spectrum
     plot.alleleCountSpectrum(eval, novelty_name="all");
