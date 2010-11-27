@@ -39,7 +39,7 @@ sub new {
         'hosts'              => "",
 
         'queue'              => undef,
-        'memLimit'           => 2202009,
+        'memLimit'           => 2,
         'outputFile'         => 'distributedmake.log',
         'mailTo'             => 'crd-lsf@broad.mit.edu',
         'wait'               => 1,
@@ -104,14 +104,18 @@ sub addRule {
             push(@prepcmds, $mklogdircmd);
         }
 
+        my $memRequest = $bja{'memLimit'} * 1.5;
+        my $integerMemRequest = int($memRequest);
+        my $memCutoff = $bja{'memLimit'} * 1024 * 1024 * 1.25;
+
         # A quick check to make sure that java commands being dispatched to the farm are instructed to run under a default memory limit
         for (my $i = 0; $i <= $#cmds; $i++) {
             if ($cmds[$i] =~ /^java / && $cmds[$i] =~ / -jar / && $cmds[$i] !~ / -Xmx/) {
-                $cmds[$i] =~ s/^java /java -Xmx2048m /;
+                $cmds[$i] =~ s/^java /java -Xmx$bja{'memLimit'}g /;
             }
         }
 
-        $cmdprefix = "bsub -q $bja{'queue'} -M $bja{'memLimit'} -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} $wait $rerunnable $migrationThreshold $bja{'extra'}    ";
+        $cmdprefix = "bsub -q $bja{'queue'} -M $memCutoff -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} -R \"rusage[mem=$integerMemRequest]\" $wait $rerunnable $migrationThreshold $bja{'extra'}    ";
     }
 
     my $rootdir = dirname($targets[0]);
