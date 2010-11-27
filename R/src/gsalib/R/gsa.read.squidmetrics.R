@@ -1,4 +1,4 @@
-read.squidmetrics = function(project, bylane = FALSE) {
+gsa.read.squidmetrics = function(project, bylane = FALSE) {
     suppressMessages(library(ROracle));
 
     drv = dbDriver("Oracle");

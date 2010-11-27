@@ -1,5 +1,5 @@
 # Load a table into the specified environment.  Make sure that each new table gets a unique name (this allows one to cat a bunch of tables with the same name together and load them into R without each table overwriting the last.
-.assignGATKTableToEnvironment <- function(tableName, tableHeader, tableRows, tableEnv) {
+.gsa.assignGATKTableToEnvironment <- function(tableName, tableHeader, tableRows, tableEnv) {
     d = data.frame(tableRows, row.names=NULL, stringsAsFactors=FALSE);
     colnames(d) = tableHeader;
 
@@ -21,7 +21,7 @@
 }
 
 # Load all GATKReport tables from a file
-read.gatkreport <- function(filename) {
+gsa.read.gatkreport <- function(filename) {
     con = file(filename, "r", blocking = TRUE);
     lines = readLines(con);
     close(con);
@@ -57,7 +57,7 @@ read.gatkreport <- function(filename) {
     }
 
     if (!is.na(tableName)) {
-        .assignGATKTableToEnvironment(tableName, tableHeader, tableRows, tableEnv);
+        .gsa.assignGATKTableToEnvironment(tableName, tableHeader, tableRows, tableEnv);
     }
 
     gatkreport = as.list(tableEnv);

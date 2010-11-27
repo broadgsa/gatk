@@ -1,11 +1,9 @@
-plot.venn <-
+gsa.plot.venn <-
 function(a, b, c=0, a_and_b, a_and_c=0, b_and_c=0,
                      col=c("#FF6342", "#63C6DE", "#ADDE63"),
                      pos=c(0.20, 0.20, 0.80, 0.82),
                      debug=0
                     ) {
-    print("This is the gsalib plot.venn function");    
-
     library(png);
     library(graphics);
 

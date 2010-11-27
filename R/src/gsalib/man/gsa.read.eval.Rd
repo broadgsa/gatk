@@ -1,14 +1,51 @@
-.attemptToLoadFile <- function(filename) {
-    file = NA;
-
-    if (file.exists(filename) & file.info(filename)$size > 500) {
-        file = read.csv(filename, header=TRUE, comment.char="#");
-    }
-
-    file;
+\name{gsa.read.eval}
+\alias{gsa.read.eval}
+\title{
+Read a VariantEval file
+}
+\description{
+Read a VariantEval file that's output in R format.
+}
+\usage{
+gsa.read.eval(evalRoot)
+}
+%- maybe also 'usage' for other objects documented here.
+\arguments{
+  \item{evalRoot}{
+%%     ~~Describe \code{evalRoot} here~~
+}
+}
+\details{
+%%  ~~ If necessary, more details than the description above ~~
+}
+\value{
+%%  ~Describe the value returned
+%%  If it is a LIST, use
+%%  \item{comp1 }{Description of 'comp1'}
+%%  \item{comp2 }{Description of 'comp2'}
+%% ...
+}
+\references{
+%% ~put references to the literature/web site here ~
+}
+\author{
+%%  ~~who you are~~
+}
+\note{
+%%  ~~further notes~~
 }
 
-read.eval <-
+%% ~Make other sections like Warning with \section{Warning }{....} ~
+
+\seealso{
+%% ~~objects to See Also as \code{\link{help}}, ~~~
+}
+\examples{
+##---- Should be DIRECTLY executable !! ----
+##-- ==>  Define data, use random,
+##--	or do  help(data=index)  for the standard data sets.
+
+## The function is currently defined as
 function(evalRoot) {
     fileAlleleCountStats = paste(evalRoot, ".AlleleCountStats.csv", sep="");
     fileCompOverlap = paste(evalRoot, ".Comp_Overlap.csv", sep="");
@@ -64,11 +101,11 @@ function(evalRoot) {
     uniqueJexlExpressions = unique(eval$TiTv$jexl_expression);
     eval$CallsetOnlyNames = as.vector(uniqueJexlExpressions[grep("FilteredIn|Intersection|none", uniqueJexlExpressions, invert=TRUE, ignore.case=TRUE)]);
     eval$CallsetNames = as.vector(gsub("-only", "", eval$CallsetOnlyNames));
-    eval$CallsetFilteredNames = as.vector(c(
-        paste(gsub("^(\\w)", "In\\U\\1", eval$CallsetNames[1], perl=TRUE), "-Filtered", gsub("^(\\w)", "In\\U\\1", eval$CallsetNames[2], perl=TRUE), sep=""),
-        paste(gsub("^(\\w)", "In\\U\\1", eval$CallsetNames[2], perl=TRUE), "-Filtered", gsub("^(\\w)", "In\\U\\1", eval$CallsetNames[1], perl=TRUE), sep=""))
-    );
-
+    eval$CallsetFilteredNames = as.vector(c()); 
     eval;
+  }
 }
-
+% Add one or more standard keywords, see file 'KEYWORDS' in the
+% R documentation directory.
+\keyword{ ~kwd1 }
+\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

@@ -1,5 +1,5 @@
-\name{getargs}
-\alias{getargs}
+\name{gsa.getargs}
+\alias{gsa.getargs}
 \title{
 Get script arguments
 }
@@ -7,7 +7,7 @@ Get script arguments
 Get script arguments given a list object specifying arguments and documentation.  Can be used in command-line or interactive mode.  This is helpful when developing scripts in interactive mode that will eventually become command-line programs.  If no arguments are specified or help is requested in command-line mode, the script will print out a usage statement with available arguments and exit.
 }
 \usage{
-getargs(argspec, doc = NA)
+gsa.getargs(argspec, doc = NA)
 }
 \arguments{
   \item{argspec}{
@@ -18,7 +18,7 @@ A list object.  Each key is an argument name.  The value is another list object 
 );
 }
 
-If the value provided is NA, the argument is considered required and must be specified when the script is invoked.  For command-line mode, this means the argument must be specified on the command-line.  In interactive mode, there are two ways of specifying these arguments.  First, if a properly formatted list argument called 'cmdargs' is present in the current environment (i.e. the object returned by getargs() from a previous invocation), the value is taken from this object.  Otherwise, the argument is prompted for.
+If the value provided is NA, the argument is considered required and must be specified when the script is invoked.  For command-line mode, this means the argument must be specified on the command-line.  In interactive mode, there are two ways of specifying these arguments.  First, if a properly formatted list argument called 'cmdargs' is present in the current environment (i.e. the object returned by gsa.getargs() from a previous invocation), the value is taken from this object.  Otherwise, the argument is prompted for.
 }
 
   \item{doc}{
@@ -50,7 +50,7 @@ argspec = list(
     test2   = list(value=2.3e9,          doc="Another argument that does stuff")
 );
         
-cmdargs = getargs(argspec, doc="My test program");
+cmdargs = gsa.getargs(argspec, doc="My test program");
 
 print(cmdargs$file);  # will print '[1] "/my/test.vcf"'
 }

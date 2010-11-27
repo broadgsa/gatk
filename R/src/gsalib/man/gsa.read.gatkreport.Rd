@@ -1,13 +1,13 @@
-\name{read.gatkreport}
-\alias{read.gatkreport}
+\name{gsa.read.gatkreport}
+\alias{gsa.read.gatkreport}
 \title{
-read.gatkreport
+gsa.read.gatkreport
 }
 \description{
 Reads a GATKReport file - a multi-table document - and loads each table as a separate data.frame object in a list.
 }
 \usage{
-read.gatkreport(filename)
+gsa.read.gatkreport(filename)
 }
 \arguments{
   \item{filename}{
@@ -50,6 +50,6 @@ Kiran Garimella
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-report = read.gatkreport("/path/to/my/output.gatkreport");
+report = gsa.read.gatkreport("/path/to/my/output.gatkreport");
 }
 \keyword{ ~kwd1 }

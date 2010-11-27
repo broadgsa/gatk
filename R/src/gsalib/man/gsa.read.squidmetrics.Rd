@@ -1,13 +1,13 @@
-\name{read.squidmetrics}
-\alias{read.squidmetrics}
+\name{gsa.read.squidmetrics}
+\alias{gsa.read.squidmetrics}
 \title{
-read.squidmetrics
+gsa.read.squidmetrics
 }
 \description{
 Reads metrics for a specified SQUID project into a dataframe.
 }
 \usage{
-read.squidmetrics("C315")
+gsa.read.squidmetrics("C315")
 }
 \arguments{
   \item{project}{
@@ -43,6 +43,6 @@ This method will only work within the Broad Institute internal network.
 }
 \examples{
 ## Obtain metrics for project C315.
-d = read.squidmetrics("C315");
+d = gsa.read.squidmetrics("C315");
 }
 \keyword{ ~kwd1 }

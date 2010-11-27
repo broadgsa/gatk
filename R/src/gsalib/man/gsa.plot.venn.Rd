@@ -1,5 +1,5 @@
-\name{plot.venn}
-\alias{plot.venn}
+\name{gsa.plot.venn}
+\alias{gsa.plot.venn}
 \title{
 Plot a proportional venn diagram
 }
@@ -7,7 +7,7 @@ Plot a proportional venn diagram
 Plot a proportional venn diagram (two or three-way venns allowed)
 }
 \usage{
-plot.venn(a, b, c = 0, a_and_b, a_and_c = 0, b_and_c = 0, col = c("#FF6342", "#63C6DE", "#ADDE63"), pos = c(0.2, 0.2, 0.8, 0.82), debug = 0)
+gsa.plot.venn(a, b, c = 0, a_and_b, a_and_c = 0, b_and_c = 0, col = c("#FF6342", "#63C6DE", "#ADDE63"), pos = c(0.2, 0.2, 0.8, 0.82), debug = 0)
 }
 \arguments{
   \item{a}{
@@ -64,10 +64,10 @@ Kiran Garimella
 }
 \examples{
 ## Plot a two-way Venn diagram
-plot.venn(1000, 750, 0, 400);
+gsa.plot.venn(1000, 750, 0, 400);
 
 ## Plot a three-way Venn diagram
-plot.venn(1000, 750, 900, 400, 650, 500);
+gsa.plot.venn(1000, 750, 900, 400, 650, 500);
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

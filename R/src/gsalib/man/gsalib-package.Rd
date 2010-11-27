@@ -25,7 +25,7 @@ GATK help forum: http://www.getsatisfaction.com/gsa
 }
 \examples{
 ## get script arguments in interactive and non-interactive mode
-cmdargs = getargs( list(
+cmdargs = gsa.getargs( list(
     requiredArg1 = list(
         value = NA,
         doc   = "Documentation for requiredArg1"
@@ -38,10 +38,10 @@ cmdargs = getargs( list(
 ) );
 
 ## plot a proportional Venn diagram
-plot.venn(500, 250, 0, 100);
+gsa.plot.venn(500, 250, 0, 100);
 
 ## read a GATKReport file
-report = gatk.report("/path/to/my/output.gatkreport");
+report = gsa.gatk.report("/path/to/my/output.gatkreport");
 
 ## emit a message
 gsa.message("This is a message");
@@ -51,5 +51,18 @@ gsa.message("This is a warning message");
 
 ## emit an error message
 gsa.message("This is an error message");
+
+## read the SQUID metrics for a given sequencing project (internal to the Broad only)
+s = gsa.read.squidmetrics("C427");
+
+## read command-line arguments
+cmdargs = gsa.getargs(
+    list(
+        file    = list(value="/my/test.vcf", doc="VCF file"),
+        verbose = list(value=0,              doc="If 1, set verbose mode"),
+        test2   = list(value=2.3e9,          doc="Another argument that does stuff")
+    ),
+    doc="My test program"
+);
 }
 \keyword{ package }

@@ -1,4 +1,4 @@
-.getargs.usage <- function(argspec, doc) {
+.gsa.getargs.usage <- function(argspec, doc) {
     cargs = commandArgs();
 
     usage = "Usage:";
@@ -34,7 +34,7 @@
     stop(call. = FALSE);
 }
 
-getargs <- function(argspec, doc = NA) {
+gsa.getargs <- function(argspec, doc = NA) {
     argsenv = new.env();
 
     for (argname in names(argspec)) {
@@ -66,7 +66,7 @@ getargs <- function(argspec, doc = NA) {
         cargs = commandArgs(TRUE);
 
         if (length(cargs) == 0) {
-            .getargs.usage(argspec, doc);
+            .gsa.getargs.usage(argspec, doc);
         }
 
         for (i in 1:length(cargs)) {
@@ -75,7 +75,7 @@ getargs <- function(argspec, doc = NA) {
                 value = cargs[i+1];
 
                 if (key == "h" | key == "help") {
-                    .getargs.usage(argspec, doc);
+                    .gsa.getargs.usage(argspec, doc);
                 }
 
                 if (length(grep("^[\\d\\.e\\+\\-]+$", value, perl=TRUE, ignore.case=TRUE)) > 0) {
