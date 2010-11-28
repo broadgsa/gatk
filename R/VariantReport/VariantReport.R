@@ -249,8 +249,14 @@ plot.alleleCountSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", 
     );
 }
 
-eval.getMetricsByAc <- function(eval, jexl_expression, novelty_name="all") {
-    piece = eval$MetricsByAc[which(eval$MetricsByAc$evaluation_name == "eval" & eval$MetricsByAc$comparison_name == "dbsnp" & as.character(eval$MetricsByAc$jexl_expression) == as.character(jexl_expression) & eval$MetricsByAc$filter_name == "called" & eval$MetricsByAc$novelty_name == novelty_name),]; 
+eval.getMetricsByAc <- function(eval, jexl, novelty="all") {
+    piece = subset(eval$MetricsByAc,
+                   evaluation_name == "eval" &
+                   comparison_name == "dbsnp" &
+                   as.character(jexl_expression) == as.character(jexl) &
+                   filter_name == "called" &
+                   novelty_name == novelty
+    );
 }
 
 plot.titvSpectrum <- function(eval, novelty_name="all", col=c("#FF6342", "#FF9675", "#5C92A4", "#88EEFF", "#55BBFF")) {
