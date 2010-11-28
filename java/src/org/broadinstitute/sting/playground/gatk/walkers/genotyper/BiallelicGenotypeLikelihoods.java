@@ -31,8 +31,8 @@ public class BiallelicGenotypeLikelihoods {
 
     private String sample;
     private double[] GLs;
-    private double[] GPs;
     private Allele A, B;
+    private int depth;
 
     /**
      * Create a new object for sample with given alleles and genotype likelihoods
@@ -43,32 +43,7 @@ public class BiallelicGenotypeLikelihoods {
      * @param log10AALikelihoods  AA likelihoods
      * @param log10ABLikelihoods  AB likelihoods
      * @param log10BBLikelihoods  BB likelihoods
-     */
-    public BiallelicGenotypeLikelihoods(String sample,
-                                        Allele A,
-                                        Allele B,
-                                        double log10AALikelihoods,
-                                        double log10ABLikelihoods,
-                                        double log10BBLikelihoods) {
-        this.sample = sample;
-        this.A = A;
-        this.B = B;
-        this.GLs = new double[]{log10AALikelihoods, log10ABLikelihoods, log10BBLikelihoods};
-        this.GPs = new double[]{log10AALikelihoods, log10ABLikelihoods, log10BBLikelihoods};
-    }
-
-    /**
-     * Create a new object for sample with given alleles and genotype likelihoods & posteriors
-     *
-     * @param sample              sample name
-     * @param A                   allele A
-     * @param B                   allele B
-     * @param log10AALikelihoods  AA likelihoods
-     * @param log10ABLikelihoods  AB likelihoods
-     * @param log10BBLikelihoods  BB likelihoods
-     * @param log10AAPosteriors   AA posteriors
-     * @param log10ABPosteriors   AB posteriors
-     * @param log10BBPosteriors   BB posteriors
+     * @param depth               the read depth used in creating the likelihoods
      */
     public BiallelicGenotypeLikelihoods(String sample,
                                         Allele A,
@@ -76,14 +51,12 @@ public class BiallelicGenotypeLikelihoods {
                                         double log10AALikelihoods,
                                         double log10ABLikelihoods,
                                         double log10BBLikelihoods,
-                                        double log10AAPosteriors,
-                                        double log10ABPosteriors,
-                                        double log10BBPosteriors) {
+                                        int depth) {
         this.sample = sample;
         this.A = A;
         this.B = B;
         this.GLs = new double[]{log10AALikelihoods, log10ABLikelihoods, log10BBLikelihoods};
-        this.GPs = new double[]{log10AAPosteriors, log10ABPosteriors, log10BBPosteriors};
+        this.depth = depth;
     }
 
     public String getSample() {
@@ -106,22 +79,6 @@ public class BiallelicGenotypeLikelihoods {
         return GLs;
     }
 
-    public double getAAPosteriors() {
-        return GPs[0];
-    }
-
-    public double getABPosteriors() {
-        return GPs[1];
-    }
-
-    public double getBBPosteriors() {
-        return GPs[2];
-    }
-
-    public double[] getPosteriors() {
-        return GPs;
-    }
-
     public Allele getAlleleA() {
         return A;
     }
@@ -129,4 +86,9 @@ public class BiallelicGenotypeLikelihoods {
     public Allele getAlleleB() {
         return B;
     }
+
+    public int getDepth() {
+        return depth;
+    }
 }
+

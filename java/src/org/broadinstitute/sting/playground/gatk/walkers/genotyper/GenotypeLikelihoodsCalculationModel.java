@@ -30,6 +30,8 @@ import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.Map;
 
@@ -74,4 +76,14 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
                                           StratifiedAlignmentContext.StratifiedContextType contextType,
                                           GenotypePriors priors,
                                           Map<String, BiallelicGenotypeLikelihoods> GLs);
+
+    protected int getFilteredDepth(ReadBackedPileup pileup) {
+        int count = 0;
+        for ( PileupElement p : pileup ) {
+            if ( DiploidSNPGenotypeLikelihoods.usableBase(p, true) )
+                count++;
+        }
+
+        return count;
+    }
 }

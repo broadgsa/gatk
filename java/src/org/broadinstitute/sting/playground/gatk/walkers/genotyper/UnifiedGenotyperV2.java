@@ -49,7 +49,6 @@ import java.io.PrintStream;
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
 public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedGenotyperV2.UGStatistics> implements TreeReducible<UnifiedGenotyperV2.UGStatistics> {
-    public static final String DEFAULT_GENOTYPE_LIKELIHOODS_KEY = VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY;
 
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
@@ -57,10 +56,6 @@ public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedG
     // control the output
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter writer = null;
-
-    @Argument(fullName="variants_out",shortName="varout",doc="Please use --out instead",required=false)
-    @Deprecated
-    protected String varout;
 
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     protected PrintStream verboseWriter = null;
@@ -158,7 +153,8 @@ public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedG
         }
 
         // FORMAT and INFO fields
-        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(UnifiedGenotyperV2.DEFAULT_GENOTYPE_LIKELIHOODS_KEY));
+        // TODO: if only outputting GLs, change this to the GL version
+        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY));
 
         // FILTER fields
         if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING ||
@@ -177,7 +173,7 @@ public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedG
      * @return the VariantCallContext object
      */
     public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        return UG_engine.runGenotyper(tracker, refContext, rawContext);
+        return UG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext);
     }
 
     public UGStatistics reduceInit() { return new UGStatistics(); }

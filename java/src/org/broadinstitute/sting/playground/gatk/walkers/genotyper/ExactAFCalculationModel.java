@@ -29,12 +29,12 @@ import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 import java.io.PrintStream;
@@ -73,7 +73,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     public void getLog10PNonRef(RefMetaDataTracker tracker,
                                 ReferenceContext ref,
-                                Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                Map<String, Genotype> GLs,
                                 double[] log10AlleleFrequencyPriors,
                                 double[] log10AlleleFrequencyPosteriors) {
 
@@ -108,11 +108,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         }
      */
-        for ( String sample : GLs.keySet() ) {
+        for ( Map.Entry<String, Genotype> sample : GLs.entrySet() ) {
             j++;
 
+            if ( !sample.getValue().hasLikelihoods() )
+                continue;
+
             //double[] genotypeLikelihoods = MathUtils.normalizeFromLog10(GLs.get(sample).getLikelihoods());
-            double[] genotypeLikelihoods = GLs.get(sample).getLikelihoods();
+            double[] genotypeLikelihoods = sample.getValue().getLikelihoods().getAsVector();
             //double logDenominator = Math.log10(2.0*j*(2.0*j-1));
             double logDenominator = log10Cache[2*j] + log10Cache[2*j-1];
 
@@ -120,8 +123,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             //YMatrix[j][0] = YMatrix[j-1][0]*genotypeLikelihoods[GenotypeType.AA.ordinal()];
             logYMatrix[j][0] = logYMatrix[j-1][0] + genotypeLikelihoods[GenotypeType.AA.ordinal()];
 
-            int k = 1;
-            for (k=1; k <= 2*j; k++ ) {
+            for (int k=1; k <= 2*j; k++ ) {
    //             if (k > 3 && isClearRefSite)
    //                 break;
 
@@ -211,20 +213,22 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     /**
      * Can be overridden by concrete subclasses
-     * @param contexts             alignment contexts
-     * @param GLs                  genotype likelihoods
+     * @param vc                   variant context with genotype likelihoods
      * @param log10AlleleFrequencyPosteriors    allele frequency results
      * @param AFofMaxLikelihood    allele frequency of max likelihood
      *
      * @return calls
      */
-    public Map<String, Genotype> assignGenotypes(Map<String, StratifiedAlignmentContext> contexts,
-                                                 Map<String, BiallelicGenotypeLikelihoods> GLs,
+    public Map<String, Genotype> assignGenotypes(VariantContext vc,
                                                  double[] log10AlleleFrequencyPosteriors,
                                                  int AFofMaxLikelihood) {
-        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
+        if ( !vc.isVariant() )
+            throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
 
+        Allele refAllele = vc.getReference();
+        Allele altAllele = vc.getAlternateAllele(0);
 
+        Map<String, Genotype> GLs = vc.getGenotypes();
         double[][] pathMetricArray = new double[GLs.size()+1][AFofMaxLikelihood+1];
         int[][] tracebackArray = new int[GLs.size()+1][AFofMaxLikelihood+1];
 
@@ -244,10 +248,12 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
         else {
 
-            for (String sample: GLs.keySet()) {
-                sampleIndices.add(sample);
+            for ( Map.Entry<String, Genotype> sample : GLs.entrySet() ) {
+                if ( !sample.getValue().hasLikelihoods() )
+                    continue;
 
-                double[] likelihoods = GLs.get(sample).getLikelihoods();
+                double[] likelihoods = sample.getValue().getLikelihoods().getAsVector();
+                sampleIndices.add(sample.getKey());
 
                 for (int k=0; k <= AFofMaxLikelihood; k++) {
 
@@ -277,61 +283,56 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             }
         }
 
+        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
+
         int startIdx = AFofMaxLikelihood;
         for (int k = sampleIdx; k > 0; k--) {
             int bestGTguess;
             String sample = sampleIndices.get(k-1);
-            BiallelicGenotypeLikelihoods GL = GLs.get(sample);
-            Allele alleleA = GL.getAlleleA();
-            Allele alleleB = GL.getAlleleB();
+            Genotype g = GLs.get(sample);
+            if ( !g.hasLikelihoods() )
+                continue;
 
             if (SIMPLE_GREEDY_GENOTYPER)
-                bestGTguess = Utils.findIndexOfMaxEntry(GLs.get(sample).getLikelihoods());
+                bestGTguess = Utils.findIndexOfMaxEntry(g.getLikelihoods().getAsVector());
             else {
                 int newIdx = tracebackArray[k][startIdx];
                 bestGTguess = startIdx - newIdx;
                 startIdx = newIdx;
             }
 
-            HashMap<String, Object> attributes = new HashMap<String, Object>();
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
-            AlignmentContext context = contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
-
-            if (context.hasBasePileup())
-                attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(context.getBasePileup()));
-
-            else if (context.hasExtendedEventPileup())
-                attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(context.getExtendedEventPileup()));
 
             double qual;
-            double[] posteriors = GLs.get(sample).getPosteriors();
+            double[] likelihoods = g.getLikelihoods().getAsVector();
 
             if (bestGTguess == 0) {
-                myAlleles.add(alleleA);
-                myAlleles.add(alleleA);
-                qual = posteriors[0] - Math.max(posteriors[1],posteriors[2]);
+                myAlleles.add(refAllele);
+                myAlleles.add(refAllele);
+                qual = likelihoods[0] - Math.max(likelihoods[1], likelihoods[2]);
             } else if(bestGTguess == 1) {
-                myAlleles.add(alleleA);
-                myAlleles.add(alleleB);
-                qual = posteriors[1] - Math.max(posteriors[0],posteriors[2]);
+                myAlleles.add(refAllele);
+                myAlleles.add(altAllele);
+                qual = likelihoods[1] - Math.max(likelihoods[0], likelihoods[2]);
 
             }  else {
-                myAlleles.add(alleleB);
-                myAlleles.add(alleleB);
-                qual = posteriors[2] - Math.max(posteriors[1],posteriors[0]);
+                myAlleles.add(altAllele);
+                myAlleles.add(altAllele);
+                qual = likelihoods[2] - Math.max(likelihoods[1], likelihoods[0]);
             }
 
 
             if (qual < 0) {
                 // QUAL can be negative if the chosen genotype is not the most likely one individually.
                 // In this case, we compute the actual genotype probability and QUAL is the likelihood of it not being the chosen on
-                double[] normalized = MathUtils.normalizeFromLog10(posteriors);
+                double[] normalized = MathUtils.normalizeFromLog10(likelihoods);
                 double chosenGenotype = normalized[bestGTguess];
                 qual = -1.0 * Math.log10(1.0 - chosenGenotype);
             }
 
-            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods(), UnifiedGenotyperV2.DEFAULT_GENOTYPE_LIKELIHOODS_KEY);
-            attributes.put(likelihoods.getKey(), likelihoods.getAsString());
+            HashMap<String, Object> attributes = new HashMap<String, Object>(g.getAttributes());
+            attributes.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
+            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.GLsToPLs(likelihoods));
 
             calls.put(sample, new Genotype(sample, myAlleles, qual, null, attributes, false));
 

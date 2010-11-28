@@ -29,13 +29,14 @@ import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 import java.io.PrintStream;
@@ -55,7 +56,7 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
 
     protected void getLog10PNonRef(RefMetaDataTracker tracker,
                                    ReferenceContext ref,
-                                   Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                   Map<String, Genotype> GLs,
                                    double[] log10AlleleFrequencyPriors,
                                    double[] log10AlleleFrequencyPosteriors) {
         initializeAFMatrix(GLs);
@@ -86,43 +87,43 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
 
     /**
      * Overrides the super class
-     * @param contexts             alignment contexts
-     * @param GLs                  genotype likelihoods
+     * @param vc                   variant context with genotype likelihoods
      * @param log10AlleleFrequencyPosteriors    allele frequency results
+     * @param AFofMaxLikelihood    allele frequency of max likelihood
      *
      * @return calls
      */
-    protected Map<String, Genotype> assignGenotypes(Map<String, StratifiedAlignmentContext> contexts,
-                                                    Map<String, BiallelicGenotypeLikelihoods> GLs,
+    protected Map<String, Genotype> assignGenotypes(VariantContext vc,
                                                     double[] log10AlleleFrequencyPosteriors,
                                                     int AFofMaxLikelihood) {
+        if ( !vc.isVariant() )
+            throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
+
+        Allele refAllele = vc.getReference();
+        Allele altAllele = vc.getAlternateAllele(0);
         HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
 
         // first, the potential alt calls
         for ( String sample : AFMatrix.getSamples() ) {
-            BiallelicGenotypeLikelihoods GL = GLs.get(sample);
-            Allele alleleA = GL.getAlleleA();
-            Allele alleleB = GL.getAlleleB();
+            Genotype g = vc.getGenotype(sample);
 
             // set the genotype and confidence
             Pair<Integer, Double> AFbasedGenotype = AFMatrix.getGenotype(AFofMaxLikelihood, sample);
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
             if ( AFbasedGenotype.first == GenotypeType.AA.ordinal() ) {
-                myAlleles.add(alleleA);
-                myAlleles.add(alleleA);
+                myAlleles.add(refAllele);
+                myAlleles.add(refAllele);
             } else if ( AFbasedGenotype.first == GenotypeType.AB.ordinal() ) {
-                myAlleles.add(alleleA);
-                myAlleles.add(alleleB);
+                myAlleles.add(refAllele);
+                myAlleles.add(altAllele);
             } else { // ( AFbasedGenotype.first == GenotypeType.BB.ordinal() )
-                myAlleles.add(alleleB);
-                myAlleles.add(alleleB);
+                myAlleles.add(altAllele);
+                myAlleles.add(altAllele);
             }
 
-            HashMap<String, Object> attributes = new HashMap<String, Object>();
-            attributes.put(VCFConstants.DEPTH_KEY, getFilteredDepth(contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup()));
-
-            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods(), UnifiedGenotyperV2.DEFAULT_GENOTYPE_LIKELIHOODS_KEY);
-            attributes.put(likelihoods.getKey(), likelihoods.getAsString());
+            HashMap<String, Object> attributes = new HashMap<String, Object>(g.getAttributes());
+            attributes.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
+            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.GLsToPLs(g.getLikelihoods().getAsVector()));
 
             calls.put(sample, new Genotype(sample, myAlleles, AFbasedGenotype.second, null, attributes, false));
         }
@@ -130,11 +131,13 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
         return calls;
     }
 
-    private void initializeAFMatrix(Map<String, BiallelicGenotypeLikelihoods> GLs) {
+    private void initializeAFMatrix(Map<String, Genotype> GLs) {
         AFMatrix.clear();
 
-        for ( BiallelicGenotypeLikelihoods GL : GLs.values() )
-            AFMatrix.setLikelihoods(GL.getPosteriors(), GL.getSample());
+        for ( Genotype g : GLs.values() ) {
+            if ( g.hasLikelihoods() )
+                AFMatrix.setLikelihoods(g.getLikelihoods().getAsVector(), g.getSampleName());
+        }
     }
 
     protected static class AlleleFrequencyMatrix {
@@ -163,14 +166,6 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
                 indexes[i] = 0;
             samples.clear();
             samplesToGenotypesPerAF.clear();
-        }
-
-        public void setLikelihoods(double AA, double AB, double BB, String sample) {
-            int index = samples.size();
-            samples.add(sample);
-            matrix[index][GenotypeType.AA.ordinal()] = AA;
-            matrix[index][GenotypeType.AB.ordinal()] = AB;
-            matrix[index][GenotypeType.BB.ordinal()] = BB;
         }
 
         public void setLikelihoods(double[] GLs, String sample) {

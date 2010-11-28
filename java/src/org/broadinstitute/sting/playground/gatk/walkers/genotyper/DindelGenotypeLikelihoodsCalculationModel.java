@@ -29,11 +29,9 @@ import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
-import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -146,11 +144,14 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
                     if (Double.isInfinite(genotypeLikelihoods[k]))
                         genotypeLikelihoods[k] = MINUS_LOG_INFINITY;
                 }
-                GLs.put(sample.getKey(), new BiallelicGenotypeLikelihoods(sample.getKey(),vc.getReference(),
+                GLs.put(sample.getKey(), new BiallelicGenotypeLikelihoods(sample.getKey(),
+                        vc.getReference(),
                         vc.getAlternateAllele(0),
-                        genotypeLikelihoods[0],genotypeLikelihoods[1], genotypeLikelihoods[2]));
+                        genotypeLikelihoods[0],
+                        genotypeLikelihoods[1],
+                        genotypeLikelihoods[2],
+                        getFilteredDepth(pileup)));
                 //System.out.format("%4.2f %4.2f %4.2f\n",genotypeLikelihoods[0],genotypeLikelihoods[1], genotypeLikelihoods[2]);
-
             }
         }
 

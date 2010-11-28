@@ -93,9 +93,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
-    @Argument(fullName = "cap_base_quality_by_mapping_quality", shortName = "cap_base_qual", doc = "Cap the base quality of any given base by its read's mapping quality", required = false)
-    public boolean CAP_BASE_QUALITY = false;
-
 
     public UnifiedArgumentCollection clone() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
@@ -117,7 +114,6 @@ public class UnifiedArgumentCollection {
         uac.MAX_MISMATCHES = MAX_MISMATCHES;
         uac.USE_BADLY_MATED_READS = USE_BADLY_MATED_READS;
         uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
-        uac.CAP_BASE_QUALITY = CAP_BASE_QUALITY;
 
         return uac;
     }

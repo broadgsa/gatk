@@ -26,11 +26,9 @@
 package org.broadinstitute.sting.playground.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broad.tribble.util.variantcontext.Genotype;
 
 import java.io.PrintStream;
@@ -57,17 +55,6 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     protected static final double VALUE_NOT_CALCULATED = -1.0 * Double.MAX_VALUE;
 
-    protected class CalculatedAlleleFrequency {
-
-        public double log10PNonRef;
-        public int altAlleles;
-
-        public CalculatedAlleleFrequency(double log10PNonRef, int altAlleles) {
-            this.log10PNonRef = log10PNonRef;
-            this.altAlleles = altAlleles;
-        }
-    }
-
     protected AlleleFrequencyCalculationModel(int N, Logger logger, PrintStream verboseWriter) {
         this.N = N;
         this.logger = logger;
@@ -84,31 +71,19 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      */
     protected abstract void getLog10PNonRef(RefMetaDataTracker tracker,
                                             ReferenceContext ref,
-                                            Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                            Map<String, Genotype> GLs,
                                             double[] log10AlleleFrequencyPriors,
                                             double[] log10AlleleFrequencyPosteriors);
 
     /**
      * Can be overridden by concrete subclasses
-     * @param contexts             alignment contexts
-     * @param GLs                  genotype likelihoods
+     * @param vc                   variant context with genotype likelihoods
      * @param log10AlleleFrequencyPosteriors    allele frequency results
      * @param AFofMaxLikelihood    allele frequency of max likelihood
      *
      * @return calls
      */
-    protected abstract Map<String, Genotype> assignGenotypes(Map<String, StratifiedAlignmentContext> contexts,
-                                                             Map<String, BiallelicGenotypeLikelihoods> GLs,
+    protected abstract Map<String, Genotype> assignGenotypes(VariantContext vc,
                                                              double[] log10AlleleFrequencyPosteriors,
                                                              int AFofMaxLikelihood);
-
-    protected int getFilteredDepth(ReadBackedPileup pileup) {
-        int count = 0;
-        for ( PileupElement p : pileup ) {
-            if ( DiploidSNPGenotypeLikelihoods.usableBase(p, true) )
-                count++;
-        }
-
-        return count;
-    }
 }
