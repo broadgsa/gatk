@@ -399,8 +399,11 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     }
 
     private void initializeConvenienceBindings(AbstractGenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
-        if (argCollection.DBSNPFile != null)
+        if (argCollection.DBSNPFile != null) {
+            if(argCollection.DBSNPFile.toLowerCase().contains("vcf"))
+                throw new UserException("--DBSNP (-D) argument currently does not support VCF.  To use dbSNP in VCF format, please use -B:dbsnp,vcf <filename>.");
             inputs.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile));
+        }
     }
 
     /**
