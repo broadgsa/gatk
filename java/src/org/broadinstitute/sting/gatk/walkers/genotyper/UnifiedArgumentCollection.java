@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2010.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -32,14 +32,17 @@ import org.broadinstitute.sting.commandline.Hidden;
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotype_model", shortName = "gm", doc = "Genotype calculation model to employ -- JOINT_ESTIMATE is currently the default.", required = false)
-    public GenotypeCalculationModel.Model genotypeModel = GenotypeCalculationModel.Model.JOINT_ESTIMATE;
+    @Argument(fullName = "genotype_likelihoods_model", shortName = "glm", doc = "Genotype likelihoods calculation model to employ -- SNP is the default option, while DINDEL is also available for calling indels.", required = false)
+    public GenotypeLikelihoodsCalculationModel.Model GLmodel = GenotypeLikelihoodsCalculationModel.Model.SNP;
 
-    @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ -- EMPIRICAL is the recommended default, but it's possible to select the ONE_STATE and THREE_STATE models for comparison purposes", required = false)
+    @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ -- EXACT is the default option, while GRID_SEARCH is also available.", required = false)
+    public AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
+
+    @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ when using the SNP Genotype Likelihoods model -- EMPIRICAL is the recommended default, but it's possible to select the THREE_STATE model for comparison purposes", required = false)
     public BaseMismatchModel baseModel = BaseMismatchModel.EMPIRICAL;
 
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
-    public Double heterozygosity = DiploidGenotypePriors.HUMAN_HETEROZYGOSITY;
+    public Double heterozygosity = DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY;
 
     // control the output
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
@@ -49,16 +52,16 @@ public class UnifiedArgumentCollection {
     public boolean ALL_BASES_MODE = false;
 
     @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be called", required = false)
-    public double STANDARD_CONFIDENCE_FOR_CALLING = 50.0;
+    public double STANDARD_CONFIDENCE_FOR_CALLING = 30.0;
 
     @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
-    public double STANDARD_CONFIDENCE_FOR_EMITTING = 50.0;
+    public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
 
     @Argument(fullName = "trigger_min_confidence_threshold_for_calling", shortName = "trig_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants at 'trigger' track sites should be called", required = false)
-    public double TRIGGER_CONFIDENCE_FOR_CALLING = 50.0;
+    public double TRIGGER_CONFIDENCE_FOR_CALLING = 30.0;
 
     @Argument(fullName = "trigger_min_confidence_threshold_for_emitting", shortName = "trig_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
-    public double TRIGGER_CONFIDENCE_FOR_EMITTING = 50.0;
+    public double TRIGGER_CONFIDENCE_FOR_EMITTING = 30.0;
 
     @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
     public boolean NO_SLOD = false;
@@ -76,7 +79,7 @@ public class UnifiedArgumentCollection {
 
     // control the various parameters to be used
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
-    public int MIN_BASE_QUALTY_SCORE = 20;
+    public int MIN_BASE_QUALTY_SCORE = 17;
 
     @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
     public int MIN_MAPPING_QUALTY_SCORE = 20;
@@ -90,14 +93,11 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
-    @Argument(fullName = "cap_base_quality_by_mapping_quality", shortName = "cap_base_qual", doc = "Cap the base quality of any given base by its read's mapping quality", required = false)
-    public boolean CAP_BASE_QUALITY = false;
-
 
     public UnifiedArgumentCollection clone() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
 
-        uac.genotypeModel = genotypeModel;
+        uac.GLmodel = GLmodel;
         uac.baseModel = baseModel;
         uac.heterozygosity = heterozygosity;
         uac.GENOTYPE_MODE = GENOTYPE_MODE;

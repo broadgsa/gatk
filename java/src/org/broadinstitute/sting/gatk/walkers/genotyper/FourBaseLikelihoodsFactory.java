@@ -23,9 +23,9 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.playground.gatk.walkers.genotyper;
+package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import static org.broadinstitute.sting.playground.gatk.walkers.genotyper.BaseMismatchModel.*;
+import static org.broadinstitute.sting.gatk.walkers.genotyper.BaseMismatchModel.*;
 
 public class FourBaseLikelihoodsFactory {
     //private FourBaseProbabilitiesFactory() {} // cannot be instantiated
@@ -35,9 +35,7 @@ public class FourBaseLikelihoodsFactory {
     }
 
     public static BaseMismatchModel getBaseMismatchModel(final FourBaseLikelihoods m) {
-        if ( m instanceof OneStateErrorProbabilities)
-            return ONE_STATE;
-        else if ( m instanceof ThreeStateErrorProbabilities)
+        if ( m instanceof ThreeStateErrorProbabilities)
             return THREE_STATE;
         else if ( m instanceof EmpiricalSubstitutionProbabilities)
             return EMPIRICAL;
@@ -55,7 +53,6 @@ public class FourBaseLikelihoodsFactory {
     public static FourBaseLikelihoods makeFourBaseLikelihoods(BaseMismatchModel m,
                                                               EmpiricalSubstitutionProbabilities.SequencerPlatform pl ) {
         switch ( m ) {
-            case ONE_STATE: return new OneStateErrorProbabilities();
             case THREE_STATE: return new ThreeStateErrorProbabilities();
             case EMPIRICAL: return new EmpiricalSubstitutionProbabilities(pl);
             default: throw new RuntimeException("Unexpected BaseMismatchModel " + m);

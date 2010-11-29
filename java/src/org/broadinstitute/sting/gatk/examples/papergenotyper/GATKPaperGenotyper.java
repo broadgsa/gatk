@@ -30,7 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidGenotypePriors;
+import org.broadinstitute.sting.gatk.walkers.genotyper.DiploidSNPGenotypePriors;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -68,9 +68,9 @@ public class GATKPaperGenotyper extends LocusWalker<Integer,Long> implements Tre
         if (ref.getBase() == 'N' || ref.getBase() == 'n') return null; // we don't deal with the N ref base case
 
         ReadBackedPileup pileup = context.getBasePileup().getPileupWithoutMappingQualityZeroReads();
-        double likelihoods[] = DiploidGenotypePriors.getReferencePolarizedPriors(ref.getBase(),
-                                                                                 DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,
-                                                                                 0.01);
+        double likelihoods[] = DiploidSNPGenotypePriors.getReferencePolarizedPriors(ref.getBase(),
+                DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY,
+                0.01);
         // get the bases and qualities from the pileup
         byte bases[] = pileup.getBases();
         byte quals[] = pileup.getQuals();

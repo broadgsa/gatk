@@ -559,7 +559,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         int conf = 0;
         Allele alt = null;
         for ( Map.Entry<String,StratifiedAlignmentContext> sEntry : strat.entrySet() ) {
-            VariantCallContext call = engine.runGenotyper(tracker, ref, sEntry.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE));
+            VariantCallContext call = engine.calculateLikelihoodsAndGenotypes(tracker, ref, sEntry.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE));
             if ( call != null && call.confidentlyCalled && call.vc != null ) {
                 if ( call.vc.isSNP() ) {
                     if ( ! call.vc.getAlternateAllele(0).basesMatch(var.getAlternateAllele(0))) {

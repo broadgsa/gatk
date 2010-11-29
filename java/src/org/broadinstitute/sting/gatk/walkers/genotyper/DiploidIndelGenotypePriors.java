@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.genotyper;
+package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.utils.MathUtils;

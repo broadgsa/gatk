@@ -200,7 +200,7 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
     }
 
     private Genotype getGenotype( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-        VariantCallContext calls = ug.runGenotyper(tracker,ref,context);
+        VariantCallContext calls = ug.calculateLikelihoodsAndGenotypes(tracker,ref,context);
         if ( calls == null || calls.vc == null || calls.vc.getNSamples() == 0 || !calls.vc.isSNP() )
             return null;
         else {

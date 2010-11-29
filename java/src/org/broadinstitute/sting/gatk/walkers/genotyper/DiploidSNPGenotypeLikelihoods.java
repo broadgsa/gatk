@@ -1,7 +1,33 @@
+/*
+ * Copyright (c) 2010.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -40,7 +66,7 @@ import static java.lang.Math.pow;
  * From then on, you can call any of the add() routines to update the likelihoods and posteriors in the above
  * model.
  */
-public class GenotypeLikelihoods implements Cloneable {
+public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     protected final static int FIXED_PLOIDY = 2;
     protected final static int MAX_PLOIDY = FIXED_PLOIDY + 1;
 
@@ -53,17 +79,17 @@ public class GenotypeLikelihoods implements Cloneable {
     protected double[] log10Likelihoods = null;
     protected double[] log10Posteriors = null;
 
-    protected DiploidGenotypePriors priors = null;
+    protected DiploidSNPGenotypePriors priors = null;
 
-    protected FourBaseProbabilities fourBaseLikelihoods = null;
+    protected FourBaseLikelihoods fourBaseLikelihoods = null;
 
     /**
      * Create a new GenotypeLikelhoods object with flat priors for each diploid genotype
      *
      * @param m base model
      */
-    public GenotypeLikelihoods(BaseMismatchModel m) {
-        this.priors = new DiploidGenotypePriors();
+    public DiploidSNPGenotypeLikelihoods(BaseMismatchModel m) {
+        this.priors = new DiploidSNPGenotypePriors();
         initialize(m, null);
     }
 
@@ -73,8 +99,8 @@ public class GenotypeLikelihoods implements Cloneable {
      * @param m base model
      * @param pl default platform
      */
-    public GenotypeLikelihoods(BaseMismatchModel m, EmpiricalSubstitutionProbabilities.SequencerPlatform pl) {
-        this.priors = new DiploidGenotypePriors();
+    public DiploidSNPGenotypeLikelihoods(BaseMismatchModel m, EmpiricalSubstitutionProbabilities.SequencerPlatform pl) {
+        this.priors = new DiploidSNPGenotypePriors();
         initialize(m, pl);
     }
 
@@ -84,7 +110,7 @@ public class GenotypeLikelihoods implements Cloneable {
      * @param m base model
      * @param priors priors
      */
-    public GenotypeLikelihoods(BaseMismatchModel m, DiploidGenotypePriors priors) {
+    public DiploidSNPGenotypeLikelihoods(BaseMismatchModel m, DiploidSNPGenotypePriors priors) {
         this.priors = priors;
         initialize(m, null);
     }
@@ -96,7 +122,7 @@ public class GenotypeLikelihoods implements Cloneable {
      * @param priors priors
      * @param pl default platform
      */
-    public GenotypeLikelihoods(BaseMismatchModel m, DiploidGenotypePriors priors, EmpiricalSubstitutionProbabilities.SequencerPlatform pl) {
+    public DiploidSNPGenotypeLikelihoods(BaseMismatchModel m, DiploidSNPGenotypePriors priors, EmpiricalSubstitutionProbabilities.SequencerPlatform pl) {
         this.priors = priors;
         initialize(m, pl);
     }
@@ -107,16 +133,16 @@ public class GenotypeLikelihoods implements Cloneable {
      * @throws CloneNotSupportedException
      */
     protected Object clone() throws CloneNotSupportedException {
-        GenotypeLikelihoods c = (GenotypeLikelihoods)super.clone();
+        DiploidSNPGenotypeLikelihoods c = (DiploidSNPGenotypeLikelihoods)super.clone();
         c.priors = priors;
         c.log10Likelihoods = log10Likelihoods.clone();
         c.log10Posteriors = log10Posteriors.clone();
-        c.fourBaseLikelihoods = (FourBaseProbabilities)fourBaseLikelihoods.clone();
+        c.fourBaseLikelihoods = (FourBaseLikelihoods)fourBaseLikelihoods.clone();
         return c;
     }
 
     protected void initialize(BaseMismatchModel m, EmpiricalSubstitutionProbabilities.SequencerPlatform pl) {
-        fourBaseLikelihoods = FourBaseProbabilitiesFactory.makeFourBaseLikelihoods(m, pl);
+        fourBaseLikelihoods = FourBaseLikelihoodsFactory.makeFourBaseLikelihoods(m, pl);
         setToZero();
     }
 
@@ -211,7 +237,7 @@ public class GenotypeLikelihoods implements Cloneable {
 
 
 
-    public DiploidGenotypePriors getPriorObject() {
+    public DiploidSNPGenotypePriors getPriorObject() {
         return priors;
     }
 
@@ -228,7 +254,7 @@ public class GenotypeLikelihoods implements Cloneable {
      * Sets the priors
      * @param priors priors
      */
-    public void setPriors(DiploidGenotypePriors priors) {
+    public void setPriors(DiploidSNPGenotypePriors priors) {
         this.priors = priors;
         log10Posteriors = zeros.clone();
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
@@ -280,14 +306,9 @@ public class GenotypeLikelihoods implements Cloneable {
         int n = 0;
 
         for ( PileupElement p : pileup ) {
-            // ignore deletions
-            if ( p.isDeletion() )
-                continue;
-
-            byte base = p.getBase();
-            if ( ! ignoreBadBases || ! badBase(base) ) {
+            if ( usableBase(p, ignoreBadBases) ) {
                 byte qual = capBaseQualsAtMappingQual ? (byte)Math.min((int)p.getQual(), p.getMappingQual()) : p.getQual();
-                n += add(base, qual, p.getRead(), p.getOffset());
+                n += add(p.getBase(), qual, p.getRead(), p.getOffset());
             }
         }
         
@@ -297,7 +318,7 @@ public class GenotypeLikelihoods implements Cloneable {
     public int add(byte observedBase, byte qualityScore, SAMRecord read, int offset) {
 
         // Handle caching if requested.  Just look up the cached result if its available, or compute and store it
-        GenotypeLikelihoods gl;
+        DiploidSNPGenotypeLikelihoods gl;
         if ( cacheIsEnabled() ) {
             if ( ! inCache( observedBase, qualityScore, FIXED_PLOIDY, read) ) {
                  gl = calculateCachedGenotypeLikelihoods(observedBase, qualityScore, FIXED_PLOIDY, read, offset);
@@ -330,30 +351,30 @@ public class GenotypeLikelihoods implements Cloneable {
         return 1;
     }
 
-    static GenotypeLikelihoods[][][][][][] CACHE = new GenotypeLikelihoods[BaseMismatchModel.values().length][EmpiricalSubstitutionProbabilities.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE+1][MAX_PLOIDY][2];
+    static DiploidSNPGenotypeLikelihoods[][][][][][] CACHE = new DiploidSNPGenotypeLikelihoods[BaseMismatchModel.values().length][EmpiricalSubstitutionProbabilities.SequencerPlatform.values().length][BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE+1][MAX_PLOIDY][2];
 
     protected boolean inCache( byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
         return getCache(CACHE, observedBase, qualityScore, ploidy, read) != null;
     }
 
-    protected GenotypeLikelihoods getCachedGenotypeLikelihoods( byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
-        GenotypeLikelihoods gl = getCache(CACHE, observedBase, qualityScore, ploidy, read);
+    protected DiploidSNPGenotypeLikelihoods getCachedGenotypeLikelihoods( byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
+        DiploidSNPGenotypeLikelihoods gl = getCache(CACHE, observedBase, qualityScore, ploidy, read);
         if ( gl == null )
             throw new RuntimeException(String.format("BUG: trying to fetch an unset cached genotype likelihood at base=%c, qual=%d, ploidy=%d, read=%s",
                     observedBase, qualityScore, ploidy, read));
         return gl;
     }
 
-    protected GenotypeLikelihoods calculateCachedGenotypeLikelihoods(byte observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset) {
-        GenotypeLikelihoods gl = calculateGenotypeLikelihoods(observedBase, qualityScore, read, offset);
+    protected DiploidSNPGenotypeLikelihoods calculateCachedGenotypeLikelihoods(byte observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset) {
+        DiploidSNPGenotypeLikelihoods gl = calculateGenotypeLikelihoods(observedBase, qualityScore, read, offset);
         setCache(CACHE, observedBase, qualityScore, ploidy, read, gl);
         return gl;
     }
 
-    protected void setCache( GenotypeLikelihoods[][][][][][] cache,
+    protected void setCache( DiploidSNPGenotypeLikelihoods[][][][][][] cache,
                              byte observedBase, byte qualityScore, int ploidy,
-                             SAMRecord read, GenotypeLikelihoods val ) {
-        int m = FourBaseProbabilitiesFactory.getBaseMismatchModel(fourBaseLikelihoods).ordinal();
+                             SAMRecord read, DiploidSNPGenotypeLikelihoods val ) {
+        int m = FourBaseLikelihoodsFactory.getBaseMismatchModel(fourBaseLikelihoods).ordinal();
         int a = fourBaseLikelihoods.getReadSequencerPlatformIndex(read);
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
         int j = qualityScore;
@@ -363,9 +384,9 @@ public class GenotypeLikelihoods implements Cloneable {
         cache[m][a][i][j][k][x] = val;
     }
 
-    protected GenotypeLikelihoods getCache( GenotypeLikelihoods[][][][][][] cache,
+    protected DiploidSNPGenotypeLikelihoods getCache( DiploidSNPGenotypeLikelihoods[][][][][][] cache,
                                             byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
-        int m = FourBaseProbabilitiesFactory.getBaseMismatchModel(fourBaseLikelihoods).ordinal();
+        int m = FourBaseLikelihoodsFactory.getBaseMismatchModel(fourBaseLikelihoods).ordinal();
         int a = fourBaseLikelihoods.getReadSequencerPlatformIndex(read);
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
         int j = qualityScore;
@@ -374,15 +395,15 @@ public class GenotypeLikelihoods implements Cloneable {
         return cache[m][a][i][j][k][x];
     }
 
-    protected GenotypeLikelihoods calculateGenotypeLikelihoods(byte observedBase, byte qualityScore, SAMRecord read, int offset) {
-        FourBaseProbabilities fbl = fourBaseLikelihoods.computeLog10Likelihoods(observedBase, qualityScore, read, offset);
+    protected DiploidSNPGenotypeLikelihoods calculateGenotypeLikelihoods(byte observedBase, byte qualityScore, SAMRecord read, int offset) {
+        FourBaseLikelihoods fbl = fourBaseLikelihoods.computeLog10Likelihoods(observedBase, qualityScore, read, offset);
         if ( fbl == null )
             return null;
 
         double[] fbLikelihoods = fbl.getLog10Likelihoods();
         try {
 
-            GenotypeLikelihoods gl = (GenotypeLikelihoods)this.clone();
+            DiploidSNPGenotypeLikelihoods gl = (DiploidSNPGenotypeLikelihoods)this.clone();
             gl.setToZero();
 
             // we need to adjust for ploidy.  We take the raw p(obs | chrom) / ploidy, which is -log10(ploidy) in log space
@@ -428,6 +449,22 @@ public class GenotypeLikelihoods implements Cloneable {
     }
 
     /**
+     * Returns true when the observedBase is considered usable.
+     * @param p          pileup element
+     * @param ignoreBadBases should we ignore bad bases?
+     * @return true if the base is a usable base
+     */
+    protected static boolean usableBase(PileupElement p, boolean ignoreBadBases) {
+        // ignore deletions and filtered bases
+        if ( p.isDeletion() ||
+                (p.getRead() instanceof GATKSAMRecord &&
+                 !((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) )
+            return false;
+
+        return ( !ignoreBadBases || !badBase(p.getBase()) );
+    }
+
+    /**
      * Returns true when the observedBase is considered bad and shouldn't be processed by this object.  A base
      * is considered bad if:
      *
@@ -436,7 +473,7 @@ public class GenotypeLikelihoods implements Cloneable {
      * @param observedBase observed base
      * @return true if the base is a bad base
      */
-    protected boolean badBase(byte observedBase) {
+    protected static boolean badBase(byte observedBase) {
         return BaseUtils.simpleBaseToBaseIndex(observedBase) == -1;
     }
 

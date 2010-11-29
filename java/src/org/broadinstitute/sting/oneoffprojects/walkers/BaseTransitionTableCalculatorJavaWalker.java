@@ -389,7 +389,7 @@ public class BaseTransitionTableCalculatorJavaWalker extends LocusWalker<Set<Bas
     public boolean baseIsConfidentRef( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         if ( !BaseUtils.isRegularBase(ref.getBase()) )
             return false;
-        VariantCallContext calls = ug.runGenotyper(tracker,ref,context);
+        VariantCallContext calls = ug.calculateLikelihoodsAndGenotypes(tracker,ref,context);
         if ( calls == null || calls.vc == null)
             return false;
         return  ( calls.vc.getNSamples() > 0 && calls.vc.getGenotype(0).isHomRef() && calls.vc.getGenotype(0).getNegLog10PError() > confidentRefThreshold );

@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -44,20 +45,17 @@ import java.io.PrintStream;
  * A variant caller which unifies the approaches of several disparate callers.  Works for single-sample and
  * multi-sample data.  The user can choose from several different incorporated calculation models.
  */
-@Reference(window=@Window(start=-20,stop=20))
+@Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
 public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics> {
+
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
     // control the output
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter writer = null;
-
-    @Argument(fullName="variants_out",shortName="varout",doc="Please use --out instead",required=false)
-    @Deprecated
-    protected String varout;
 
     @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
     protected PrintStream verboseWriter = null;
@@ -81,7 +79,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     // enable extended events for indels
-    public boolean generateExtendedEvents() { return UAC.genotypeModel == GenotypeCalculationModel.Model.DINDEL; }
+    public boolean generateExtendedEvents() { return UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL; }
 
     /**
      * Inner class for collecting output statistics from the UG
@@ -104,7 +102,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
 
         double percentCallableOfAll()    { return (100.0 * nBasesCallable) / (nBasesVisited-nExtendedEvents); }
         double percentCalledOfAll()      { return (100.0 * nBasesCalledConfidently) / (nBasesVisited-nExtendedEvents); }
-        double percentCalledOfCallable() { return (100.0 * nBasesCalledConfidently) / (nBasesVisited-nExtendedEvents); }
+        double percentCalledOfCallable() { return (100.0 * nBasesCalledConfidently) / (nBasesCallable); }
     }
 
     /**
@@ -112,21 +110,23 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      *
      **/
     public void initialize() {
-        annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, verboseWriter, annotationEngine);
+        // get all of the unique sample names
+        // if we're supposed to assume a single sample, do so
+        Set<String> samples = new TreeSet<String>();
+        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
+            samples.add(UAC.ASSUME_SINGLE_SAMPLE);
+        else
+            samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
 
-        // initialize the writers
-        if ( verboseWriter != null ) {
-            StringBuilder header = new StringBuilder("AFINFO\tLOC\tMAF\tF\tNullAFpriors\t");
-            for ( byte altAllele : BaseUtils.BASES ) {
-                header.append("POfDGivenAFFor" + (char)altAllele + "\t");
-                header.append("PosteriorAFFor" + (char)altAllele + "\t");
-            }
-            verboseWriter.println(header);
-        }
+        // initialize the verbose writer
+        if ( verboseWriter != null )
+            verboseWriter.println("AFINFO\tLOC\tREF\tALT\tMAF\tF\tAFprior\tAFposterior\tNormalizedPosterior");
+
+        annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples);
 
         // initialize the header
-        writer.writeHeader(new VCFHeader(getHeaderInfo(), UG_engine.samples)) ;
+        writer.writeHeader(new VCFHeader(getHeaderInfo(), samples)) ;
     }
 
     private Set<VCFHeaderLine> getHeaderInfo() {
@@ -136,14 +136,24 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         headerInfo.addAll(annotationEngine.getVCFAnnotationDescriptions());
 
         // annotation (INFO) fields from UnifiedGenotyper
-        for ( Map.Entry<String, String> dbSet : UG_engine.dbAnnotations.entrySet() )
-            headerInfo.add(new VCFInfoHeaderLine(dbSet.getValue(), 0, VCFHeaderLineType.Flag, (dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ? "dbSNP" : dbSet.getValue()) + " Membership"));
         if ( !UAC.NO_SLOD )
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.STRAND_BIAS_KEY, 1, VCFHeaderLineType.Float, "Strand Bias"));
         headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DOWNSAMPLED_KEY, 0, VCFHeaderLineType.Flag, "Were any of the samples downsampled?"));
 
+        // also, check to see whether comp rods were included
+        List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
+        for ( ReferenceOrderedDataSource source : dataSources ) {
+            if ( source.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+                headerInfo.add(new VCFInfoHeaderLine(VCFConstants.DBSNP_KEY, 0, VCFHeaderLineType.Flag, "dbSNP Membership"));
+            }
+            else if ( source.getName().startsWith(VariantAnnotatorEngine.dbPrefix) ) {
+                String name = source.getName().substring(VariantAnnotatorEngine.dbPrefix.length());
+                headerInfo.add(new VCFInfoHeaderLine(name, 0, VCFHeaderLineType.Flag, name + " Membership"));
+            }
+        }
+
         // FORMAT and INFO fields
-        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(VCFConstants.GENOTYPE_LIKELIHOODS_KEY));
+        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY));
 
         // FILTER fields
         if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING ||
@@ -162,7 +172,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
      * @return the VariantCallContext object
      */
     public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        return UG_engine.runGenotyper(tracker, refContext, rawContext);
+        return UG_engine.calculateLikelihoodsAndGenotypes(tracker, refContext, rawContext);
     }
 
     public UGStatistics reduceInit() { return new UGStatistics(); }

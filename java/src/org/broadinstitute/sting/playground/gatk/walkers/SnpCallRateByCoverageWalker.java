@@ -118,7 +118,7 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
 
                         AlignmentContext subContext = new AlignmentContext(context.getLocation(), new ReadBackedPileupImpl(context.getLocation(),sub_reads, sub_offsets));
 
-                        VariantCallContext calls = UG.runGenotyper(tracker, ref, subContext);
+                        VariantCallContext calls = UG.calculateLikelihoodsAndGenotypes(tracker, ref, subContext);
 
                         if (calls != null && calls.vc != null && calls.vc.getNSamples() > 0 && calls.confidentlyCalled) {
                             Genotype evCall = calls.vc.getGenotype(0);

@@ -71,7 +71,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     // enable extended events for indels
-    public boolean generateExtendedEvents() { return UAC.genotypeModel == GenotypeCalculationModel.Model.DINDEL; }
+    public boolean generateExtendedEvents() { return UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL; }
 
     public void initialize() {
 
@@ -90,8 +90,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         }
 
         // update the engine
-        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, writer, null, null);
-        UG_engine.samples = samples;        
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples);
 
         // initialize the header
         writer.writeHeader(new VCFHeader(headerLines, samples));
@@ -127,7 +126,7 @@ public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> imp
         // we are missing samples, call them
         if ( missedSamples.size() > 0 ) {
             AlignmentContext prunedContext = filterForSamples(context.getBasePileup(), missedSamples);
-            VariantCallContext vcc = UG_engine.runGenotyper(tracker, ref, prunedContext);
+            VariantCallContext vcc = UG_engine.calculateLikelihoodsAndGenotypes(tracker, ref, prunedContext);
             if ( vcc != null && vcc.vc != null )
                 calls.add(vcc.vc);
         }

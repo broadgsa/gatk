@@ -4,7 +4,6 @@ import java.io.File
 import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
@@ -39,14 +38,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     var ug = new UnifiedGenotyper with StandardCommandLineGATK
     ug.analysisName = "UnifiedGenotyper"
     ug.input_file = bams
-    ug.group :+= "Standard"
     ug.out = output
-    ug.min_base_quality_score = Some(10)
-    ug.min_mapping_quality_score = Some(10)
-    ug.cap_base_quality_by_mapping_quality = true
-    ug.standard_min_confidence_threshold_for_emitting = Some(10)
-    ug.standard_min_confidence_threshold_for_calling = Some(30)
-    ug.trigger_min_confidence_threshold_for_calling = Some(0)
     ug.downsample_to_coverage = Some(300)
     ug.dt = Some(DownsampleType.BY_SAMPLE)
     ug.scatterCount = 50

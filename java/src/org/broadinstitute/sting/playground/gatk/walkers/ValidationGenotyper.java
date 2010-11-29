@@ -177,7 +177,7 @@ public class ValidationGenotyper extends LocusWalker<ValidationGenotyper.Counted
             }
         }
         else if( evalStatus == VARIANT_STATUS.CALLED && compStatus == VARIANT_STATUS.MISSING ) {
-            VariantCallContext call = engine.runGenotyper(tracker, ref, context);
+            VariantCallContext call = engine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
             if( call != null && call.confidentlyCalled && call.vc != null && call.vc.getType() == VariantContext.Type.NO_VARIATION ) {
                 counter.numFP = 1L;
                 if( printStream!= null ) {

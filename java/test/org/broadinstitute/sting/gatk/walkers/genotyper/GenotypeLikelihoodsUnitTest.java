@@ -14,7 +14,7 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
     @Test
     public void testBasic() {
         logger.warn("Executing testIsBetween");
-        Assert.assertEquals(DELTA, DiploidGenotypePriors.HUMAN_HETEROZYGOSITY,1e-3);
+        Assert.assertEquals(DELTA, DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY,1e-3);
     }
 
 
@@ -44,13 +44,13 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
     }
 
     private void testPriorsFromHet(double h, double homRef, double het, double homVar) {
-        double[] vals = DiploidGenotypePriors.heterozygosity2DiploidProbabilities(h);
+        double[] vals = DiploidSNPGenotypePriors.heterozygosity2DiploidProbabilities(h);
         Assert.assertEquals(vals[0], homRef, DELTA);
         Assert.assertEquals(vals[1], het, DELTA);
         Assert.assertEquals(vals[2], homVar, DELTA);
-        Assert.assertEquals(DiploidGenotypePriors.heterozygosity2HomRefProbability(h), homRef, DELTA);
-        Assert.assertEquals(DiploidGenotypePriors.heterozygosity2HetProbability(h), het, DELTA);
-        Assert.assertEquals(DiploidGenotypePriors.heterozygosity2HomVarProbability(h), homVar, DELTA);
+        Assert.assertEquals(DiploidSNPGenotypePriors.heterozygosity2HomRefProbability(h), homRef, DELTA);
+        Assert.assertEquals(DiploidSNPGenotypePriors.heterozygosity2HetProbability(h), het, DELTA);
+        Assert.assertEquals(DiploidSNPGenotypePriors.heterozygosity2HomVarProbability(h), homVar, DELTA);
     }
 
     // 
@@ -71,9 +71,9 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
     private void testGenotypePriors(char ref, double h, double[] array) {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double val = 0.0;
-            if ( g.isHomRef((byte)ref) ) val = DiploidGenotypePriors.heterozygosity2HomRefProbability(h);
-            if ( g.isHet() )       val = DiploidGenotypePriors.heterozygosity2HetProbability(h);
-            if ( g.isHomVar((byte)ref) ) val = DiploidGenotypePriors.heterozygosity2HomVarProbability(h);
+            if ( g.isHomRef((byte)ref) ) val = DiploidSNPGenotypePriors.heterozygosity2HomRefProbability(h);
+            if ( g.isHet() )       val = DiploidSNPGenotypePriors.heterozygosity2HetProbability(h);
+            if ( g.isHomVar((byte)ref) ) val = DiploidSNPGenotypePriors.heterozygosity2HomVarProbability(h);
 
             val = log10(val);
             double e = array[g.ordinal()];
@@ -100,7 +100,7 @@ public class GenotypeLikelihoodsUnitTest extends BaseTest {
     }
 
     private void testPolarizedGenotypePriors(char ref, double h, double pRefError, double[] array) {
-        DiploidGenotypePriors priors = new DiploidGenotypePriors((byte)ref, h, pRefError);
+        DiploidSNPGenotypePriors priors = new DiploidSNPGenotypePriors((byte)ref, h, pRefError);
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double val = Math.pow(10, priors.getPrior(g));
             double e = array[g.ordinal()];

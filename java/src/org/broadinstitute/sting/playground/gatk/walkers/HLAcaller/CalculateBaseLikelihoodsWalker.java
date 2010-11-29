@@ -38,7 +38,6 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 import java.util.List;
 import java.io.PrintStream;
 
@@ -115,7 +114,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
             //}
 
             //Calculate posterior probabilities
-            GenotypeLikelihoods G = new GenotypeLikelihoods(BaseMismatchModel.THREE_STATE);
+            DiploidSNPGenotypeLikelihoods G = new DiploidSNPGenotypeLikelihoods(BaseMismatchModel.THREE_STATE);
             SAMRecord read; int offset; char base; byte qual; int mapquality; String readname;
 
             //Check for bad bases and ensure mapping quality

@@ -1,3 +1,28 @@
+/*
+ * Copyright (c) 2010.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -9,7 +34,7 @@ import java.util.EnumMap;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
 
-public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
+public class EmpiricalSubstitutionProbabilities extends FourBaseLikelihoods {
     // --------------------------------------------------------------------------------------------------------------
     //
     // Static methods to manipulate machine platforms
@@ -38,8 +63,8 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
         bind("454", SequencerPlatform.ROCHE454);
         bind("ILLUMINA", SequencerPlatform.SOLEXA);
         bind("SOLEXA", SequencerPlatform.SOLEXA);
-        bind("solid", SequencerPlatform.SOLID);
-        bind("abi_solid", SequencerPlatform.SOLID);
+        bind("SOLID", SequencerPlatform.SOLID);
+        bind("ABI_SOLID", SequencerPlatform.SOLID);
         bind("CG", SequencerPlatform.CG);
     }
 
@@ -253,7 +278,7 @@ public class EmpiricalSubstitutionProbabilities extends FourBaseProbabilities {
 
         if ( pl == SequencerPlatform.UNKNOWN ) {
             if ( raiseErrorOnUnknownPlatform )
-                throw new RuntimeException("Unknown Sequencer platform for read " + read.format() + "; your BAM file is missing the PL tag for some read groups.  Please specify a default platform.  See your walker's documentation to accomplish this");
+                throw new RuntimeException("Unknown sequencer platform for read " + read.format() + "; your BAM file is either missing the PL tag for some read groups or an unsupported platform is being used.");
             else {
                 pl = defaultPlatform;
                 //System.out.printf("Using default platform %s", pl);
