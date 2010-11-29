@@ -28,9 +28,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.genotyper;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.Allele;
-import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -121,11 +119,7 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
                 myAlleles.add(altAllele);
             }
 
-            HashMap<String, Object> attributes = new HashMap<String, Object>(g.getAttributes());
-            attributes.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
-            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.GLsToPLs(g.getLikelihoods().getAsVector()));
-
-            calls.put(sample, new Genotype(sample, myAlleles, AFbasedGenotype.second, null, attributes, false));
+            calls.put(sample, new Genotype(sample, myAlleles, AFbasedGenotype.second, null, g.getAttributes(), false));
         }
 
         return calls;

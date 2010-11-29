@@ -144,7 +144,12 @@ public class UnifiedGenotyperEngine {
     public VariantCallContext calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
-        return vc == null ? null : calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc);
+        if ( vc == null )
+            return null;
+
+        VariantCallContext vcc = calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc);
+        vcc.vc = GLsToPLs(vcc.vc);
+        return vcc;
     }
 
     /**
@@ -157,7 +162,8 @@ public class UnifiedGenotyperEngine {
      */
     public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
-        return calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+        return GLsToPLs(vc);
     }
 
     private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type) {
@@ -212,6 +218,20 @@ public class UnifiedGenotyperEngine {
                 VariantContext.NO_NEG_LOG_10PERROR,
                 null,
                 null);
+    }
+
+    private static VariantContext GLsToPLs(VariantContext vc) {
+        if ( vc == null )
+            return null;
+
+        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
+        for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
+            HashMap<String, Object> attributes = new HashMap<String, Object>(genotype.getValue().getAttributes());
+            attributes.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
+            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.GLsToPLs(genotype.getValue().getLikelihoods().getAsVector()));
+            calls.put(genotype.getKey(), Genotype.modifyAttributes(genotype.getValue(), attributes));
+        }
+        return VariantContext.modifyGenotypes(vc, calls);
     }
 
     /**

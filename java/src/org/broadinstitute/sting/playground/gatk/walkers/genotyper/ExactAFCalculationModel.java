@@ -28,9 +28,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.genotyper;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
-import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -41,7 +39,6 @@ import java.io.PrintStream;
 
 public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
-    private boolean DEBUGOUT = false;
     private boolean SIMPLE_GREEDY_GENOTYPER = false;
     private static final double[] log10Cache;
     private static final double[] jacobianLogTable;
@@ -330,11 +327,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                 qual = -1.0 * Math.log10(1.0 - chosenGenotype);
             }
 
-            HashMap<String, Object> attributes = new HashMap<String, Object>(g.getAttributes());
-            attributes.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
-            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.GLsToPLs(likelihoods));
-
-            calls.put(sample, new Genotype(sample, myAlleles, qual, null, attributes, false));
+            calls.put(sample, new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
 
         }
 

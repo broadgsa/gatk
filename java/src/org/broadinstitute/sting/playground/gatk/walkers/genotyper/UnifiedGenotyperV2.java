@@ -153,7 +153,6 @@ public class UnifiedGenotyperV2 extends LocusWalker<VariantCallContext, UnifiedG
         }
 
         // FORMAT and INFO fields
-        // TODO: if only outputting GLs, change this to the GL version
         headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY));
 
         // FILTER fields
