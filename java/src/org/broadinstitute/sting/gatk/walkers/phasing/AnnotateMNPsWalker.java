@@ -98,6 +98,8 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
     protected final static String REFSEQ_PROTEIN_COORD_DESCRIPTION = "proteinCoordStr";
 
     protected final static String REFSEQ_CODING_ANNOTATIONS = "codingVariants";
+    protected final static String REFSEQ_NUM_AA_CHANGES = "numAAchanges";
+    protected final static String REFSEQ_HAS_MULT_AA_CHANGES = "alleleHasMultAAchanges";
 
     public void initialize() {
         rodNames = new LinkedList<String>();
@@ -230,7 +232,9 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
             RefSeqFeatureList feature = nameToFeatureEntry.getValue();
             CodonAnnotationsForAltAlleles codonAnnotationsForAlleles = new CodonAnnotationsForAltAlleles(vc, feature);
 
-            annotations.put(kb.getKey(REFSEQ_CODING_ANNOTATIONS), codonAnnotationsForAlleles.toString());
+            annotations.put(kb.getKey(REFSEQ_CODING_ANNOTATIONS), codonAnnotationsForAlleles.getCodonAnnotationsString());
+            annotations.put(kb.getKey(REFSEQ_NUM_AA_CHANGES), codonAnnotationsForAlleles.getNumAAchangesString());
+            annotations.put(kb.getKey(REFSEQ_HAS_MULT_AA_CHANGES), codonAnnotationsForAlleles.hasAlleleWithMultipleAAchanges);
             annotations.put(kb.getKey(REFSEQ_NAME), featureName);
             annotations.put(kb.getKey(REFSEQ_NAME2), feature.name2);
             annotations.put(kb.getKey(REFSEQ_POSITION_TYPE), REFSEQ_CDS);
@@ -438,9 +442,17 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
         private final static String CODON_ANNOTATION_DELIM = ",";
 
         private List<SingleCodonAnnotationsForAlleles> alleleAnnotations;
+        private int[] alleleToNumAAchanges;
+        private boolean hasAlleleWithMultipleAAchanges;
 
         public CodonAnnotationsForAltAlleles(VariantContext vc, RefSeqFeatureList feature) {
             this.alleleAnnotations = new LinkedList<SingleCodonAnnotationsForAlleles>();
+
+            Set<Allele> altAlleles = vc.getAlternateAlleles();
+            int numAltAlleles = altAlleles.size();
+            this.alleleToNumAAchanges = new int[numAltAlleles];
+            for (int i = 0; i < numAltAlleles; i++)
+                this.alleleToNumAAchanges[i] = 0;
 
             int MNPstart = vc.getStart();
             int MNPstop = vc.getEnd();
@@ -462,12 +474,21 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                 CodingRefSeqFeature firstFeatureForCodon = feature.refSeqFeatures[indices.get(0)];
                 String refCodon = firstFeatureForCodon.referenceCodon;
 
-                SingleCodonAnnotationsForAlleles codonAnnotation = new SingleCodonAnnotationsForAlleles(codonIndex, vc.getAlternateAlleles(), MNPlength, refCodon, firstFeatureForCodon, indices, feature);
+                SingleCodonAnnotationsForAlleles codonAnnotation = new SingleCodonAnnotationsForAlleles(codonIndex, altAlleles, MNPlength, refCodon, firstFeatureForCodon, indices, feature);
                 alleleAnnotations.add(codonAnnotation);
+
+                // From a single codon, summarize the data for ALL alleles:
+                for (int i = 0; i < numAltAlleles; i++) {
+                    if (codonAnnotation.annotationsForAlleles[i].codonFunc.changesAA) {
+                        alleleToNumAAchanges[i]++;
+                        if (alleleToNumAAchanges[i] > 1)
+                            this.hasAlleleWithMultipleAAchanges = true;
+                    }
+                }
             }
         }
 
-        public String toString() {
+        public String getCodonAnnotationsString() {
             StringBuilder sb = new StringBuilder();
 
             int index = 0;
@@ -476,6 +497,18 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                 if (index < alleleAnnotations.size() - 1)
                     sb.append(CODON_ANNOTATION_DELIM);
                 index++;
+            }
+
+            return sb.toString();
+        }
+
+        public String getNumAAchangesString() {
+            StringBuilder sb = new StringBuilder();
+
+            for (int index = 0; index < alleleToNumAAchanges.length; index++) {
+                sb.append(alleleToNumAAchanges[index]);
+                if (index < alleleToNumAAchanges.length - 1)
+                    sb.append(SingleCodonAnnotationsForAlleles.ALLELE_ANNOTATION_DELIM);
             }
 
             return sb.toString();
@@ -494,7 +527,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
         private String refCodon;
         private String refAA;
 
-        private List<SingleCodonAnnotationsForAllele> annotationsForAlleles;
+        private SingleCodonAnnotationsForAllele[] annotationsForAlleles;
 
         public SingleCodonAnnotationsForAlleles(int codonIndex, Collection<Allele> altAlleles, int MNPlength, String refCodon, CodingRefSeqFeature firstFeatureForCodon, List<Integer> indices, RefSeqFeatureList feature) {
             if (refCodon.length() != CodonAnnotationsForAltAlleles.NUM_CODON_INDICES)
@@ -507,8 +540,9 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
             this.codonIndex = codonIndex;
             this.refCodon = refCodon;
             this.refAA = refAA.getCode();
-            this.annotationsForAlleles = new LinkedList<SingleCodonAnnotationsForAllele>();
+            this.annotationsForAlleles = new SingleCodonAnnotationsForAllele[altAlleles.size()];
 
+            int altInd = 0;
             for (Allele altAllele : altAlleles) {
                 if (altAllele.length() != MNPlength)
                     throw new ReviewedStingException("length(altAllele) != length(MNP)");
@@ -540,7 +574,8 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                 String variantCodon = new String(ByteArrayToPrimitive(variantCodonArr)).toUpperCase();
 
                 SingleCodonAnnotationsForAllele alleleAnnotation = new SingleCodonAnnotationsForAllele(variantCodon, refCodon, refAA, codonIndex);
-                annotationsForAlleles.add(alleleAnnotation);
+                annotationsForAlleles[altInd] = alleleAnnotation;
+                altInd++;
             }
         }
 
@@ -554,7 +589,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
             int index = 0;
             for (SingleCodonAnnotationsForAllele annotation : annotationsForAlleles) {
                 sb.append(annotation);
-                if (index < annotationsForAlleles.size() - 1)
+                if (index < annotationsForAlleles.length - 1)
                     sb.append(ALLELE_ANNOTATION_DELIM);
                 index++;
             }
