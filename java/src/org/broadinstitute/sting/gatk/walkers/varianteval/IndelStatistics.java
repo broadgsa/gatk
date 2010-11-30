@@ -45,7 +45,7 @@ public class IndelStatistics extends VariantEvaluator {
 
     
     private static final int INDEL_SIZE_LIMIT = 100;
-    private static final int NUM_SCALAR_COLUMNS = 8;
+    private static final int NUM_SCALAR_COLUMNS = 10;
 
     static int len2Index(int ind) {
         return ind+INDEL_SIZE_LIMIT+NUM_SCALAR_COLUMNS;
@@ -67,6 +67,9 @@ public class IndelStatistics extends VariantEvaluator {
             COLUMN_KEYS[5] = "number_het_deletions";
             COLUMN_KEYS[6] = "number_homozygous_deletions";
             COLUMN_KEYS[7] = "number of homozygous reference sites";
+            COLUMN_KEYS[8] = "number of complex events";
+            COLUMN_KEYS[9] = "number of long indels";
+
             for (int k=NUM_SCALAR_COLUMNS; k < NUM_SCALAR_COLUMNS+ 2*INDEL_SIZE_LIMIT+1; k++)
                 COLUMN_KEYS[k] = "indel_size_len"+Integer.valueOf(index2len(k));
         }
@@ -132,7 +135,7 @@ public class IndelStatistics extends VariantEvaluator {
          */
         public void incrValue(VariantContext vc) {
             int eventLength = 0;
-            boolean isInsertion = false;
+            boolean isInsertion = false, isDeletion = false;
 
             if ( vc.isInsertion() ) {
                 eventLength = vc.getAlternateAllele(0).length();
@@ -141,8 +144,18 @@ public class IndelStatistics extends VariantEvaluator {
             } else if ( vc.isDeletion() ) {
                 indelSummary.get(ALL_SAMPLES_KEY)[2]++;
                 eventLength = -vc.getReference().length();
+                isDeletion = true;
             }
-            indelSummary.get(ALL_SAMPLES_KEY)[len2Index(eventLength)]++;
+            else {
+                indelSummary.get(ALL_SAMPLES_KEY)[8]++;
+            }
+
+            // make sure event doesn't overstep array boundaries
+            if (Math.abs(eventLength) < INDEL_SIZE_LIMIT)
+                indelSummary.get(ALL_SAMPLES_KEY)[len2Index(eventLength)]++;
+            else
+                indelSummary.get(ALL_SAMPLES_KEY)[9]++;
+
 
             for( final String sample : vc.getGenotypes().keySet() ) {
                 if ( indelSummary.containsKey(sample) ) {
@@ -153,10 +166,16 @@ public class IndelStatistics extends VariantEvaluator {
                         if (isInsertion) {
                             indelSummary.get(sample)[1]++;
                         }
-                        else
+                        else if (isDeletion)
                             indelSummary.get(sample)[2]++;
+                        else
+                            indelSummary.get(sample)[8]++;
+
                         // update histogram
-                        indelSummary.get(sample)[len2Index(eventLength)]++;
+                        if (Math.abs(eventLength) < INDEL_SIZE_LIMIT)
+                            indelSummary.get(sample)[len2Index(eventLength)]++;
+                        else
+                            indelSummary.get(sample)[9]++;
 
                         if (g.isHet())
                             if (isInsertion)

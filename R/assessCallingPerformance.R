@@ -49,9 +49,10 @@ for ( i in 1:(dim(results)[1]) ) {
     results[i,]$specificity = x$specificity
 }
 
-for ( depth in DEPTHS ) 
+for ( depth in DEPTHS ) {
     boxplot(called.AC ~ sim.AC, data = subset(d, called.DP == depth * NS), main = paste("Depth of coverage ", depth), xlab = "Simulation AC", ylab = "Called AC", outwex=0.5, col = "cornflowerblue")
-
+    abline(a=0,b=1,col="red",lwd=3)
+}
 print(results)
 
 par(mfcol=c(2,1))
