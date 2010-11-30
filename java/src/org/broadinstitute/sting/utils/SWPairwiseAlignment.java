@@ -52,6 +52,9 @@ public class SWPairwiseAlignment {
     private static final int ISTATE = 1;
     private static final int DSTATE = 2;
 
+ //   private static double [][] sw = new double[500][500];
+ //   private static int [][] btrack = new int[500][500];
+
     // ************************************************************************
     // ****                    IMPORTANT NOTE:                             ****
     // ****  This class assumes that all bytes come from UPPERCASED chars! ****
@@ -75,69 +78,93 @@ public class SWPairwiseAlignment {
     public void align(final byte[] a, final byte[] b) {
         final int n = a.length;
         final int m = b.length;
-        double [][] sw = new double[n+1][m+1];
-        int [][] btrack = new int[n+1][m+1];
+        double [] sw = new double[(n+1)*(m+1)];
+        int [] btrack = new int[(n+1)*(m+1)];
         calculateMatrix(a, b, sw, btrack);
         calculateCigar(n, m, sw, btrack); // length of the segment (continuous matches, insertions or deletions)
     }
 
-    private void calculateMatrix(final byte[] a, final byte[] b, double [][] sw, int [][] btrack ) {
-        final int n = a.length;
-        final int m = b.length;
+    private void calculateMatrix(final byte[] a, final byte[] b, double [] sw, int [] btrack ) {
+        final int n = a.length+1;
+        final int m = b.length+1;
 
         // build smith-waterman matrix and keep backtrack info:
-        for ( int i = 1 ; i < n+1 ; i++ ) {
+        for ( int i = 1, row_offset_1 = 0 ; i < n ; i++ ) { // we do NOT update row_offset_1 here, see comment at the end of this outer loop
             byte a_base = a[i-1]; // letter in a at the current pos
-            for ( int j = 1 ; j < m+1 ; j++ ) {
+
+            final int row_offset = row_offset_1 + m;
+
+            // On the entrance into the loop, row_offset_1 is the (linear) offset
+            // of the first element of row (i-1) and row_offset is the linear offset of the
+            // start of row i
+
+            for ( int j = 1, data_offset_1 = row_offset_1 ; j < m ; j++, data_offset_1++ ) {
+
+                // data_offset_1 is linearized offset of element [i-1][j-1]
+
                 final byte b_base = b[j-1]; // letter in b at the current pos
-                double step_diag = sw[i-1][j-1] + wd(a_base,b_base);
+
+                // in other words, step_diag = sw[i-1][j-1] + wd(a_base,b_base);
+                double step_diag = sw[data_offset_1] + wd(a_base,b_base);
                 double step_down = 0.0 ;
                 int kd = 0;
-                for ( int k = 1 ; k < i ; k++ ) {
-                    final double gap_penalty = wk(k);
-                    if ( step_down < sw[i-k][j]+gap_penalty ) {
-                        step_down=sw[i-k][j]+gap_penalty;
+                for ( int k = 1, data_offset_k = data_offset_1+1 ; k < i ; k++, data_offset_k -= m ) {
+                    // data_offset_k is linearized offset of element [i-k][j]
+                    // in other words, trial = sw[i-k][j]+gap_penalty:
+                    final double trial = sw[data_offset_k]+wk(k);
+                    if ( step_down < trial ) {
+                        step_down=trial;
                         kd = k;
                     }
                 }
 
                 double step_right = 0;
                 int ki = 0;
-                for ( int k = 1 ; k < j ; k++ ) {
-                    final double gap_penalty = wk(k);
-                    if ( step_right < sw[i][j-k]+gap_penalty ) {
-                        step_right=sw[i][j-k]+gap_penalty;
+                for ( int k = 1, data_offset = row_offset+j-1 ; k < j ; k++, data_offset-- ) {
+                    // data_offset is linearized offset of element [i][j-k]
+                    // in other words, step_right=sw[i][j-k]+gap_penalty;
+                    final double trial = sw[data_offset]+wk(k);
+                    if ( step_right < trial ) {
+                        step_right=trial;
                         ki = k;
                     }
                 }
 
+                final int data_offset = row_offset + j; // linearized offset of element [i][j]
+
                 if ( step_down > step_right ) {
                     if ( step_down > step_diag ) {
-                        sw[i][j] = Math.max(0,step_down);
-                        btrack[i][j] = kd; // positive=vertical
+                        sw[data_offset] = Math.max(0,step_down);
+                        btrack[data_offset] = kd; // positive=vertical
                     }
                     else {
-                        sw[i][j] = Math.max(0,step_diag);
-                        btrack[i][j] = 0; // 0 = diagonal
+                        sw[data_offset] = Math.max(0,step_diag);
+                        btrack[data_offset] = 0; // 0 = diagonal
                     }
                 } else {
                     // step_down < step_right
                     if ( step_right > step_diag ) {
-                        sw[i][j] = Math.max(0,step_right);
-                        btrack[i][j] = -ki; // negative = horizontal
+                        sw[data_offset] = Math.max(0,step_right);
+                        btrack[data_offset] = -ki; // negative = horizontal
                     } else {
-                        sw[i][j] = Math.max(0,step_diag);
-                        btrack[i][j] = 0; // 0 = diagonal
+                        sw[data_offset] = Math.max(0,step_diag);
+                        btrack[data_offset] = 0; // 0 = diagonal
                     }
                 }
 
-                sw[i][j] = Math.max(0, Math.max(step_diag,Math.max(step_down,step_right)));
+                sw[data_offset] = Math.max(0, Math.max(step_diag,Math.max(step_down,step_right)));
             }
+
+            // IMPORTANT, IMPORTANT, IMPORTANT:
+            // note that we update this (secondary) outer loop variable here,
+            // so that we DO NOT need to update it
+            // in the for() statement itself.
+            row_offset_1 = row_offset;
         }
 //            print(sw,a,b);
     }
 
-    private void calculateCigar(int n, int m, double [][] sw, int [][] btrack) {
+    private void calculateCigar(int n, int m, double [] sw, int [] btrack) {
         // p holds the position we start backtracking from; we will be assembling a cigar in the backwards order
         //PrimitivePair.Int p = new PrimitivePair.Int();
         int p1 = 0, p2 = 0;
@@ -147,17 +174,20 @@ public class SWPairwiseAlignment {
 
         // look for largest score. we use >= combined with the traversal direction
         // to ensure that if two scores are equal, the one closer to diagonal gets picked
-        for ( int i = 1 ; i < n+1 ; i++ ) {
-            if ( sw[i][m] >= maxscore ) {
-                p1 = i; p2 = m ; maxscore = sw[i][m];
+        for ( int i = 1, data_offset = m+1+m ; i < n+1 ; i++, data_offset += (m+1) ) {
+            // data_offset is the offset of [i][m]
+            if ( sw[data_offset] >= maxscore ) {
+                p1 = i; p2 = m ; maxscore = sw[data_offset];
             }
         }
 
-        for ( int j = 1 ; j < m+1 ; j++ ) {
-            if ( sw[n][j] > maxscore || sw[n][j] == maxscore && Math.abs(n-j) < Math.abs(p1 - p2)) {
+        for ( int j = 1, data_offset = n*(m+1)+1 ; j < m+1 ; j++, data_offset++ ) {
+            // data_offset is the offset of [n][j]
+            if ( sw[data_offset] > maxscore || sw[data_offset] == maxscore && Math.abs(n-j) < Math.abs(p1 - p2)) {
                 p1 = n;
                 p2 = j ;
-                maxscore = sw[n][j];
+//                maxscore = sw[n][j];
+                maxscore = sw[data_offset];
                 segment_length = m - j ; // end of sequence 2 is overhanging; we will just record it as 'M' segment
             }
         }
@@ -169,8 +199,11 @@ public class SWPairwiseAlignment {
         int state = MSTATE;
         List<CigarElement> lce = new ArrayList<CigarElement>(5);
 
+        int data_offset = p1*(m+1)+p2;  // offset of element [p1][p2]
+
         do {
-            int btr = btrack[p1][p2];
+//            int btr = btrack[p1][p2];
+            int btr = btrack[data_offset];
             int step_left = ( btr < 0 ? -btr : 1);
             int step_up = ( btr > 0 ? btr : 1 );
 
@@ -183,9 +216,9 @@ public class SWPairwiseAlignment {
 
             // move to next best location in the sw matrix:
             switch( new_state ) {
-                case MSTATE: p1--; p2--; break;
-                case ISTATE: p2-=step_left; step_length = step_left; break;
-                case DSTATE: p1-=step_up; step_length = step_up; break;
+                case MSTATE: data_offset -= (m+2); break; // equivalent to p1--; p2--
+                case ISTATE: data_offset -= step_left; step_length = step_left; break; // equivalent to p2-=step_left;
+                case DSTATE: data_offset -= (m+1)*step_up; step_length = step_up; break; // equivalent to p1 -= step_up
             }
 
             // now let's see if the state actually changed:
@@ -196,11 +229,15 @@ public class SWPairwiseAlignment {
                 segment_length = step_length;
                 state = new_state;
             }
-        } while ( sw[p1][p2] != 0 );
+//      next condition is equivalent to  while ( sw[p1][p2] != 0 ) (with modified p1 and/or p2:
+        } while ( sw[data_offset] != 0 );
 
+        // reinstate last values of p1, p2 we arrived to after matrix traversal:
+        p1 = data_offset / (m+1);
+        p2 = data_offset % (m+1);
         // post-process the last segment we are still keeping
         lce.add(makeElement(state, segment_length + p2));
-        alignment_offset = p1 - p2;
+        alignment_offset = p1 - p2; 
 
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
