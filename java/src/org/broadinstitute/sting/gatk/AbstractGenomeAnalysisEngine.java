@@ -334,7 +334,7 @@ public abstract class AbstractGenomeAnalysisEngine {
         validateSuppliedReferenceOrderedData(tracks);
 
         // validate all the sequence dictionaries against the reference
-        validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), tracks);
+        validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), tracks, manager);
 
         rodDataSources = getReferenceOrderedDataSources(tracks);
     }
@@ -505,7 +505,7 @@ public abstract class AbstractGenomeAnalysisEngine {
      * @param reference Reference data source.
      * @param tracks    a collection of the reference ordered data tracks
      */
-    private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<RMDTrack> tracks) {
+    private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<RMDTrack> tracks, RMDTrackBuilder manager) {
         if ((reads.isEmpty() && (tracks == null || tracks.isEmpty())) || reference == null )
             return;
 
@@ -531,21 +531,8 @@ public abstract class AbstractGenomeAnalysisEngine {
         }
 
         // compare the tracks to the reference, if they have a sequence dictionary
-        for (RMDTrack track : tracks) {
-            SAMSequenceDictionary trackDict = track.getSequenceDictionary();
-
-            // hack: if the sequence dictionary is empty (as well as null which means it doesn't have a dictionary), skip validation
-            if (trackDict == null || trackDict.size() == 0) {
-                logger.info("Track " + track.getName() + " doesn't have a sequence dictionary built in, skipping dictionary validation");
-                continue;
-            }
-
-            Set<String> trackSequences = new TreeSet<String>();
-            for (SAMSequenceRecord dictionaryEntry : trackDict.getSequences())
-                trackSequences.add(dictionaryEntry.getSequenceName());
-            SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, track.getName(), trackDict, "reference", referenceDictionary);
-        }
-
+        for (RMDTrack track : tracks)
+            manager.validateTrackSequenceDictionary(track.getName(),track.getSequenceDictionary(),referenceDictionary);
     }
 
     /**

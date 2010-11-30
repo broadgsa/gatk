@@ -3,10 +3,13 @@ package org.broadinstitute.sting.playground.gatk.walkers.validation;
 import org.broadinstitute.sting.WalkerTest;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
- * The pile-up tests, that test any changes to the underlying ROD system
+ * tests for the ROD system in general; from rod system validation to empty VCF files
  */
 public class RodSystemValidationIntegrationTest extends WalkerTest {
 
@@ -30,6 +33,18 @@ public class RodSystemValidationIntegrationTest extends WalkerTest {
                 Arrays.asList("5d84c75746738833b6c9441d9d614553"));
         executeTest("testSimpleVCFPileup", spec);
     }
+
+    @Test
+    public void testEmptyVCF() {
+        File vcf = new File(validationDataLocation + "justHeader.vcf.idx");
+        if (vcf.exists()) vcf.delete();
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString1KG() + " -B:eval,VCF " + validationDataLocation + "justHeader.vcf", 1,
+                Arrays.asList("b3e80d77f8c05edf2a385b0a87708670"));
+        executeTest("testEmptyVCF", spec);
+    }
+
 
     @Test
     public void testComplexVCFPileup() {

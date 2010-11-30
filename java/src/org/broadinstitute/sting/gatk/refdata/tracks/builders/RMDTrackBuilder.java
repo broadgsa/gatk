@@ -503,7 +503,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         if (dict == null) return;
 
         SAMSequenceDictionary currentDict = createSequenceDictionaryFromContigList(index, new SAMSequenceDictionary());
-        SequenceDictionaryUtils.validateDictionaries(logger,validationExclusionType,"GATK",dict,inputFile.getAbsolutePath(),currentDict);
+        validateTrackSequenceDictionary(inputFile.getAbsolutePath(),currentDict,dict);
 
         // check that every contig in the RMD contig list is at least in the sequence dictionary we're being asked to set
         for (SAMSequenceRecord seq : currentDict.getSequences()) {
@@ -516,6 +516,19 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
             writeIndexToDisk(index,indexFile,new FSLockWithShared(indexFile));
         } catch (IOException e) {
             logger.warn("Unable to update index with the sequence dictionary for file " + indexFile + "; this will not effect your run of the GATK");
+        }
+    }
+
+
+    public void validateTrackSequenceDictionary(String trackName, SAMSequenceDictionary trackDict, SAMSequenceDictionary referenceDict) {
+        // if the sequence dictionary is empty (as well as null which means it doesn't have a dictionary), skip validation
+        if (trackDict == null || trackDict.size() == 0)
+            logger.info("Track " + trackName + " doesn't have a sequence dictionary built in, skipping dictionary validation");
+        else {
+            Set<String> trackSequences = new TreeSet<String>();
+            for (SAMSequenceRecord dictionaryEntry : trackDict.getSequences())
+                trackSequences.add(dictionaryEntry.getSequenceName());
+            SequenceDictionaryUtils.validateDictionaries(logger, validationExclusionType, trackName, trackDict, "reference", referenceDict);
         }
     }
 }
