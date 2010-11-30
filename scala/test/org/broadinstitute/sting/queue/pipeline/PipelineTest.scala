@@ -1,9 +1,10 @@
-package org.broadinstitute.sting.queue
+package org.broadinstitute.sting.queue.pipeline
 
 import org.broadinstitute.sting.utils.Utils
 import org.testng.Assert
 import org.broadinstitute.sting.commandline.CommandLineProgram
 import org.broadinstitute.sting.queue.util.ProcessController
+import org.broadinstitute.sting.queue.QCommandLine
 
 object PipelineTest {
   private var runningCommandLines = Set.empty[QCommandLine]

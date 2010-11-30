@@ -5,7 +5,6 @@ import collection.JavaConversions._
 import java.io.File
 import org.broadinstitute.sting.datasources.pipeline.{PipelineSample, PipelineProject, Pipeline}
 import org.broadinstitute.sting.utils.yaml.YamlUtils
-import org.broadinstitute.sting.queue.PipelineTest
 import org.broadinstitute.sting.{WalkerTest, BaseTest}
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -67,6 +66,7 @@ class FullCallingPipelineTest extends BaseTest {
     dataset.pipeline = pipeline
     dataset.refseq = BaseTest.hg19Refseq
     dataset.targetTiTv = "3.0"
+    dataset.bigMemQueue = "gsa"
 
     dataset
   }
@@ -89,6 +89,9 @@ class FullCallingPipelineTest extends BaseTest {
 
     if (dataset.jobQueue != null)
       pipelineCommand += " -jobQueue " + dataset.jobQueue
+
+    if (dataset.bigMemQueue != null)
+      pipelineCommand += " -bigMemQueue " + dataset.bigMemQueue
 
     // Run the test, at least checking if the command compiles
     PipelineTest.executeTest(testName, pipelineCommand, null)
@@ -131,7 +134,8 @@ class FullCallingPipelineTest extends BaseTest {
           var refseq: String = null,
           var targetTiTv: String = null,
           var validations: List[PipelineValidation] = Nil,
-          var jobQueue: String = null) {
+          var jobQueue: String = null,
+          var bigMemQueue: String = null) {
     override def toString = pipeline.getProject.getName
   }
 

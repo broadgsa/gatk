@@ -48,15 +48,6 @@ public abstract class ArgumentField {
         return imports;
     }
 
-    /**
-     * Returns true if a class is built in and doesn't need to be imported.
-     * @param argType The class to check.
-     * @return true if the class is built in and doesn't need to be imported
-     */
-    private static boolean isBuiltIn(Class<?> argType) {
-        return argType.isPrimitive() || argType == String.class || Number.class.isAssignableFrom(argType);
-    }
-
     /** @return Scala code defining the argument and it's annotation. */
     public final String getArgumentAddition() {
         return String.format("%n" +
@@ -136,6 +127,16 @@ public abstract class ArgumentField {
         return importClasses;
     }
 
+    /** @return Classes that should be imported by BCEL during packaging. */
+    protected Collection<Class<?>> getDependentClasses() {
+        ArrayList<Class<?>> dependentClasses = new ArrayList<Class<?>>();
+        Class<?> innerType = this.getInnerType();
+        if (innerType != null)
+            if (innerType.isEnum()) // Enums are not being implicitly picked up...
+                dependentClasses.add(innerType);
+        return dependentClasses;
+    }
+
     /** @return True if this field uses @Gather. */
     public boolean isGather() { return false; }
 
@@ -144,6 +145,15 @@ public abstract class ArgumentField {
     /** @return The field name checked against reserved words. */
     protected final String getFieldName() {
         return getFieldName(this.getRawFieldName());
+    }
+
+    /**
+     * Returns true if a class is built in and doesn't need to be imported.
+     * @param argType The class to check.
+     * @return true if the class is built in and doesn't need to be imported
+     */
+    public static boolean isBuiltIn(Class<?> argType) {
+        return argType.isPrimitive() || argType == String.class || Number.class.isAssignableFrom(argType);
     }
 
     /**

@@ -26,10 +26,10 @@
 package org.broadinstitute.sting.utils.classloader;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.reflections.util.ClasspathHelper;
 
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Field;
+import java.lang.reflect.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -52,8 +52,9 @@ public class JVMUtils {
 
     /**
      * Determines which location contains the specified class.
-     *
+     * @param clazz The specified class.
      * @return Location (either jar file or directory) of path containing class.
+     * @throws IOException when the URI cannot be found.
      */
     public static File getLocationFor( Class clazz ) throws IOException {
         try {
@@ -148,6 +149,7 @@ public class JVMUtils {
 
     /**
      * Gets a single object in the list matching or type-compatible with the given type.  Exceptions out if multiple objects match. 
+     * @param objectsToFilter objects to filter.
      * @param type The desired type.
      * @param <T> The selected type.
      * @return A collection of the given arguments with the specified type.
@@ -163,11 +165,13 @@ public class JVMUtils {
     }
 
     /**
-     * Gets a collection of all objects in the list matching or type-compatible with the given type. 
+     * Gets a collection of all objects in the list matching or type-compatible with the given type.
+     * @param objectsToFilter objects to filter.
      * @param type The desired type.
      * @param <T> Again, the desired type.  Used so that clients can ignore type safety.
      * @return A collection of the given arguments with the specified type.
      */
+    @SuppressWarnings("unchecked")
     public static <T> Collection<T> getObjectsOfType(Collection<Object> objectsToFilter, Class<T> type) {
         Collection<T> selectedObjects = new ArrayList<T>();
         for(Object object: objectsToFilter) {
@@ -183,5 +187,31 @@ public class JVMUtils {
      */
     public static Set<URL> getClasspathURLs() {
         return ClasspathHelper.getUrlsForManifestsCurrentClasspath();
+    }
+
+    /**
+     * Adds all the generic types from a class definition to the collection.
+     * Does not inspect the methods or fields, only the class.
+     * @param classes Set to collect the classes.
+     * @param type Type to inspect.
+     */
+    public static void addGenericTypes(Set<Class<?>> classes, Type type) {
+        if (type instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType)type;
+            for (Type actualType: parameterizedType.getActualTypeArguments())
+                addGenericTypes(classes, actualType);
+        } else if (type instanceof GenericArrayType) {
+            addGenericTypes(classes, ((GenericArrayType)type).getGenericComponentType());
+        } else if (type instanceof WildcardType) {
+            WildcardType wildcardType = (WildcardType)type;
+            for (Type upperType: wildcardType.getUpperBounds())
+                addGenericTypes(classes, upperType);
+            for (Type lowerType: wildcardType.getLowerBounds())
+                addGenericTypes(classes, lowerType);
+        } else if (type instanceof Class<?>) {
+            classes.add((Class<?>) type);
+        } else {
+            throw new StingException("Unknown type: " + type + " (" + type.getClass().getName() + ")");
+        }
     }
 }

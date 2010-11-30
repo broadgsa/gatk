@@ -14,6 +14,10 @@
             <!-- Queue Extensions -->
             <package name="org.broadinstitute.sting.queue.extensions.*" />
 
+            <!-- Pipeline + Utils -->
+            <package name="org.broadinstitute.sting.datasources.pipeline.**" />
+            <package name="org.broadinstitute.sting.utils.yaml.**" />
+
             <!-- Scala -->
             <package name="scala.**" />
         </dependencies>
