@@ -86,7 +86,11 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
         hInfo.add(new VCFFormatHeaderLine("OG",1, VCFHeaderLineType.String, "Original Genotype input to Beagle"));
         hInfo.add(new VCFInfoHeaderLine("R2", 1, VCFHeaderLineType.Float, "r2 Value reported by Beagle on each site"));
-        hInfo.add(new VCFInfoHeaderLine("NumGenotypesChanged", 1, VCFHeaderLineType.Integer, "r2 Value reported by Beagle on each site"));
+        hInfo.add(new VCFInfoHeaderLine("NumGenotypesChanged", 1, VCFHeaderLineType.Integer, "The number of genotypes changed by Beagle"));
+        hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_A", "This 'A' site was set to monomorphic by Beagle"));
+        hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_C", "This 'C' site was set to monomorphic by Beagle"));
+        hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_G", "This 'G' site was set to monomorphic by Beagle"));
+        hInfo.add(new VCFFilterHeaderLine("BGL_RM_WAS_T", "This 'T' site was set to monomorphic by Beagle"));
 
         // Open output file specified by output VCF ROD
         final List<ReferenceOrderedDataSource> dataSources = this.getToolkit().getRodDataSources();
@@ -307,7 +311,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
             filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
         else {
             Set<String> removedFilters = vc_input.filtersWereApplied() ? new HashSet<String>(vc_input.getFilters()) : new HashSet<String>(1);
-            removedFilters.add(String.format("BGL_RM_WAS_%s/%s",vc_input.getReference().getBaseString(),vc_input.getAlternateAllele(0)));
+            removedFilters.add(String.format("BGL_RM_WAS_%s",vc_input.getAlternateAllele(0)));
             filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), new HashSet<Allele>(Arrays.asList(vc_input.getReference())), genotypes, vc_input.getNegLog10PError(), removedFilters, vc_input.getAttributes());
         }
 
@@ -324,7 +328,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         }
 
         attributes.put("NumGenotypesChanged", numGenotypesChangedByBeagle );
-        attributes.put("R2", beagleR2Feature.getR2value().toString() );
+        if( !beagleR2Feature.getR2value().equals(Double.NaN) ) {
+            attributes.put("R2", beagleR2Feature.getR2value().toString() );
+        }
 
 
         vcfWriter.add(VariantContext.modifyAttributes(filteredVC,attributes), ref.getBase());
