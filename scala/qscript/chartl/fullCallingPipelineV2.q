@@ -1,23 +1,15 @@
-import com.sun.tools.doclets.internal.toolkit.util.DocFinder.Input
-import org.broadinstitute.sting.gatk.{CommandLineGATK, DownsampleType}
-import java.io.File
-import net.sf.picard.reference.FastaSequenceFile
-import org.broadinstitute.sting.commandline.Argument
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
-import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
-import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
-import org.broadinstitute.sting.queue.extensions.samtools._
+import org.broadinstitute.sting.queue.extensions.gatk.CommandLineGATK
 import org.broadinstitute.sting.queue.pipeline.{BamProcessing,VariantCalling}
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
-import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
+
 class fullCallingPipelineV2 extends QScript {
   qscript =>
 
-  @Argument(doc="Number of cleaning jobs", shortName="cleaningJobs")
-  var cleaningJobs: Int = _
+  @Argument(doc="Number of cleaning jobs", shortName="cleaningJobs", required=false)
+  var cleaningJobs: Int = 1
 
   @Argument(doc="the YAML file specifying inputs, interval lists, reference sequence, etc.", shortName="Y")
   var yamlFile: File = _
@@ -31,7 +23,7 @@ class fullCallingPipelineV2 extends QScript {
   @Input(doc="path to Picard FixMateInformation.jar.  See http://picard.sourceforge.net/ .", required=false)
   var picardFixMatesJar: File = new java.io.File("/seq/software/picard/current/bin/FixMateInformation.jar")
 
-  @Input(doc="path to GATK jar")
+  @Input(doc="path to GATK jar", shortName="gatk")
   var gatkJar: File = _
 
   @Input(doc="target Ti/Tv ratio for recalibration", shortName="titv", required=true)
@@ -61,7 +53,7 @@ class fullCallingPipelineV2 extends QScript {
   private var pipeline: Pipeline = _
 
   trait CommandLineGATKArgs extends CommandLineGATK {
-    this.intervals = qscript.pipeline.getProject.getIntervalList
+    this.intervals :+= qscript.pipeline.getProject.getIntervalList
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.pipeline.getProject.getReferenceFile
     this.memoryLimit = Some(4)
@@ -103,17 +95,17 @@ class fullCallingPipelineV2 extends QScript {
     }
 
     if (!qscript.skip_cleaning) {
-      endToEnd(cleanedBase, cleanedBams, lib)
+      endToEnd(cleanedBase, cleanedBams, callingLib)
     } else {
-      endToEnd(uncleanedBase, recalBams, lib)
+      endToEnd(uncleanedBase, recalBams, callingLib)
     }
   }
 
 
   def endToEnd(base: String, bamFiles: List[File], lib: VariantCalling) = {
-    var recal_vcf = base+"_snps.recal.annotated.tranched.vcf"
-    var handfilt_vcf = base+"_snps.handfiltered.annotated.vcf"
-    var indel_vcf = base+"_indel_calls.vcf"
+    var recal_vcf = new File(base+"_snps.recal.annotated.tranched.vcf")
+    var handfilt_vcf = new File(base+"_snps.handfiltered.annotated.vcf")
+    var indel_vcf = new File(base+"_indel_calls.vcf")
 
     for ( c <- lib.StandardCallingPipeline(bamFiles,indel_vcf,recal_vcf,handfilt_vcf,qscript.target_titv,qscript.refseqTable) ) {
       add(c)

@@ -182,7 +182,7 @@ class VariantCalling(yaml: File,gatkJar: File) {
     var clust = StandardVariantCluster(snps, swapExt(snps,".vcf",".cluster"))
     var recal = StandardVariantRecalibrator(snps,clust.clusterFile,targetTiTv,swapExt(snps,".vcf",".recal.vcf"),
                 swapExt(snps,".vcf",".recal.tranch"))
-    var cut = StandardApplyVariantCuts(recal.out,recal.tranches_file,recal.out)
+    var cut = StandardApplyVariantCuts(recal.out,recal.tranches_file,swapExt(recal.out,".vcf",".tranched.vcf"))
 
     var cmds: List[CommandLineGATK] = Nil
     cmds :+= clust
