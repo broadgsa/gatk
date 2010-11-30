@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.refdata.utils.helpers;
 import net.sf.samtools.util.SequenceUtil;
 import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;
@@ -31,6 +32,28 @@ public class DbSNPHelper {
         }
 
         return dbsnp;
+    }
+
+    public static String rsIDOfFirstRealSNP(List<Object> featureList) {
+        if (featureList == null)
+            return null;
+
+        String rsID = null;
+        for ( Object d : featureList ) {
+            if ( d instanceof DbSNPFeature ) {
+                if ( DbSNPHelper.isSNP((DbSNPFeature)d) ) {
+                    rsID = ((DbSNPFeature)d).getRsID();
+                    break;
+                }
+            } else if ( d instanceof VariantContext) {
+                if ( ((VariantContext)d).isSNP() ) {
+                    rsID = ((VariantContext)d).getID();
+                    break;
+                }
+            }
+        }
+
+        return rsID;
     }
 
     /**

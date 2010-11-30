@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
@@ -212,11 +211,11 @@ public class VariantAnnotatorEngine {
     private void annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
         for ( Map.Entry<String, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-                infoAnnotations.put(VCFConstants.DBSNP_KEY, dbsnp == null ? false : true);
+                String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID == null ? false : true);
                 // annotate dbsnp id if available and not already there
-                if ( dbsnp != null && (!vc.hasAttribute(VariantContext.ID_KEY) || vc.getAttribute(VariantContext.ID_KEY).equals(VCFConstants.EMPTY_ID_FIELD)) )
-                    infoAnnotations.put(VariantContext.ID_KEY, dbsnp.getRsID());
+                if ( rsID != null && (!vc.hasID() || vc.getID().equals(VCFConstants.EMPTY_ID_FIELD)) )
+                    infoAnnotations.put(VariantContext.ID_KEY, rsID);
             } else {
                 boolean overlapsComp = false;
                 for ( VariantContext comp : tracker.getVariantContexts(ref, dbSet.getKey(), null, ref.getLocus(), false, false) ) {

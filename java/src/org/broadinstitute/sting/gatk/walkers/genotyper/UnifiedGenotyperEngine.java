@@ -45,7 +45,6 @@ import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecordFilter;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broad.tribble.vcf.VCFConstants;
-import org.broad.tribble.dbsnp.DbSNPFeature;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -312,9 +311,9 @@ public class UnifiedGenotyperEngine {
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         HashMap<String, Object> attributes = new HashMap<String, Object>();
 
-        DbSNPFeature dbsnp = getDbSNP(tracker);
-        if ( dbsnp != null )
-            attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
+        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+        if ( rsID != null )
+            attributes.put(VariantContext.ID_KEY, rsID);
 
         // if the site was downsampled, record that fact
         if ( rawContext.hasPileupBeenDownsampled() )
@@ -596,15 +595,6 @@ public class UnifiedGenotyperEngine {
 
             return bitset;
         }
-    }
-
-    /**
-     * @param tracker   rod data
-     *
-     * @return the dbsnp rod if there is one at this position
-     */
-    protected static DbSNPFeature getDbSNP(RefMetaDataTracker tracker) {
-        return DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
     }
 
     protected boolean passesEmitThreshold(double conf, int bestAFguess, boolean atTriggerTrack) {

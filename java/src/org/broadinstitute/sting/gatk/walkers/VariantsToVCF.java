@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.hapmap.HapMapFeature;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -69,14 +68,14 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
         if ( tracker == null || !BaseUtils.isRegularBase(ref.getBase()) )
             return 0;
 
-        DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
 
         Collection<VariantContext> contexts = tracker.getVariantContexts(ref, INPUT_ROD_NAME, ALLOWED_VARIANT_CONTEXT_TYPES, context.getLocation(), true, false);
 
         for ( VariantContext vc : contexts ) {
             Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-            if ( dbsnp != null )
-                attrs.put(VariantContext.ID_KEY, dbsnp.getRsID());
+            if ( rsID != null )
+                attrs.put(VariantContext.ID_KEY, rsID);
             vc = VariantContext.modifyAttributes(vc, attrs);
 
             // set the appropriate sample name if necessary
