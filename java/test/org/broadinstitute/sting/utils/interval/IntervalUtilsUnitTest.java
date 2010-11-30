@@ -31,7 +31,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
         genomeLocParser = new GenomeLocParser(seq);
     }
 
-    @Test
+    @Test(expectedExceptions=UserException.class)
     public void testMergeListsBySetOperatorNoOverlap() {
         // a couple of lists we'll use for the testing
         List<GenomeLoc> listEveryTwoFromOne = new ArrayList<GenomeLoc>();

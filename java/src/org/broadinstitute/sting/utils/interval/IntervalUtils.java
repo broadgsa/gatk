@@ -113,6 +113,10 @@ public class IntervalUtils {
                 else iTwo++;
             }
 
+        //if we have an empty list, throw an exception.  If they specified intersection and there are no items, this is bad.
+        if (retList == null || retList.size() == 0)
+                throw new UserException.BadInput("The INTERSECTION of your -BTI and -L options produced no intervals.");
+
         // we don't need to add the rest of remaining locations, since we know they don't overlap. return what we have
         return retList;
     }
