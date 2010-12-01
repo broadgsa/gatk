@@ -1,16 +1,13 @@
 package org.broadinstitute.sting.queue.pipeline
-
+import org.broadinstitute.sting.commandline._
+import org.broadinstitute.sting.queue.util._
 import java.io.File
-import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
-import org.broadinstitute.sting.queue.extensions.samtools._
-import org.broadinstitute.sting.queue.{QException, QScript}
-import collection.JavaConversions._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
-import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
+import org.broadinstitute.sting.queue.function.CommandLineFunction
+
 class VariantCalling(yaml: File,gatkJar: File) {
   vc =>
 
@@ -43,8 +40,16 @@ class VariantCalling(yaml: File,gatkJar: File) {
     ug.dt = Some(DownsampleType.BY_SAMPLE)
     ug.scatterCount = 50
 
-    if ( bams.size > 125 ) {
+    if ( bams.size > 40 ) {
       ug.memoryLimit = Some(4)
+    }
+
+    if ( bams.size > 90 ) {
+      ug.memoryLimit = Some(6)
+    }
+
+    if ( bams.size > 140 ) {
+      ug.memoryLimit = Some(8)
     }
 
     return ug
@@ -89,6 +94,10 @@ class VariantCalling(yaml: File,gatkJar: File) {
     //cv.priority = (igList.foldLeft[List[String]](Nil)( (prLs, ig) =>  prLs ::: List(swapExt(ig.out,".vcf","").getAbsolutePath))).mkString(",")
     cv.rodBind = igList.map[RodBind,List[RodBind]](ig => new RodBind(swapExt(ig.out,".vcf","").getName,"VCF",ig.out))
 
+    if ( igList.size > 50 ) {
+      cv.memoryLimit = Some(4)
+    }
+
     return cv
     
   }
@@ -127,8 +136,6 @@ class VariantCalling(yaml: File,gatkJar: File) {
     hFil.variantVCF = snps
     hFil.filterExpression :+= "QD<5"
     hFil.filterName :+= "LowQualByDepth"
-    hFil.filterExpression :+= "AB>0.75"
-    hFil.filterName :+= "HighAlleleBalance"
     hFil.filterExpression :+= "SB>-0.10"
     hFil.filterName :+= "HighStrandBias"
     
@@ -143,7 +150,6 @@ class VariantCalling(yaml: File,gatkJar: File) {
     genC.use_annotation :+= "QD"
     genC.use_annotation :+= "SB"
     genC.use_annotation :+= "HaplotypeScore"
-    genC.use_annotation :+= "AB"
     genC.use_annotation :+= "HRun"
 
     return genC
@@ -283,15 +289,32 @@ class VariantCalling(yaml: File,gatkJar: File) {
     return commands
   }
 
-  def StandardCallingPipeline(bams: List[File], indelOut: File, recalOut: File, handFilteredOut: File, targetTiTv: scala.Double, refGene: File = null ) : List[CommandLineGATK] = {
-    var commands : List[CommandLineGATK] = Nil
+  class VCF2Mask extends CommandLineFunction {
+    @Input(doc="the indel vcf") var indel_vcf : File = _
+    @Argument(doc="the window size") var win_size : Int = 2
+    @Output(doc="the mask bed") var out_mask : File = _
+
+    def commandLine = { "grep PASS %s | awk '{print $1,$2-%d,$2+%d}' > %s".format(indel_vcf.getAbsolutePath,win_size,win_size,out_mask.getAbsolutePath) }
+  }
+
+  def IndelVCF2Mask(vcf: File, size: Int) : VCF2Mask = {
+    var masker: VCF2Mask = new VCF2Mask()
+    masker.indel_vcf = vcf
+    masker.win_size = size
+    masker.out_mask = swapExt(vcf,".vcf",".indel_mask.bed")
+
+    return masker
+  }
+
+  def StandardCallingPipeline(bams: List[File], indelOut: File, recalOut: File, handFilteredOut: File, targetTiTv: scala.Double, refGene: File = null ) : List[CommandLineFunction] = {
+    var commands : List[CommandLineFunction] = Nil
     var dir = ""
 
     if ( recalOut.getParent != null ) {
       dir = recalOut.getParent+"/"
     }
 
-    var raw_snp = new File(dir+vc.attributes.getProject+".raw_snps.vcf")
+    var raw_snp = new File(dir+vc.attributes.getProject.getName+".raw_snps.vcf")
     var ug = StandardUnifiedGenotyper(bams, raw_snp)
 
     commands :+= ug
@@ -299,10 +322,13 @@ class VariantCalling(yaml: File,gatkJar: File) {
     var raw_indel = indelOut
     var ig = StandardIndelCalls(bams,raw_indel)
 
+    var indel_mask : VCF2Mask = IndelVCF2Mask(indelOut,5)
+
     commands ++= ig
+    commands :+= indel_mask
 
     var prefilt_snp = swapExt(raw_snp,".vcf",".indel_filtered.vcf")
-    var iFilt = StandardFilterAtIndels(raw_snp,raw_indel,prefilt_snp)
+    var iFilt = StandardFilterAtIndels(raw_snp,indel_mask.out_mask,prefilt_snp)
 
     commands :+= iFilt
 

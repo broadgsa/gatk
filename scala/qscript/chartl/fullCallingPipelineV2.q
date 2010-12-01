@@ -91,7 +91,7 @@ class fullCallingPipelineV2 extends QScript {
     }
 
     if ( !qscript.skip_cleaning ) {
-      cleaningLib.StandardIndelRealign(bamsToClean,qscript.cleaningJobs)
+      addAll(cleaningLib.StandardIndelRealign(bamsToClean,qscript.cleaningJobs))
     }
 
     if (!qscript.skip_cleaning) {
@@ -107,7 +107,11 @@ class fullCallingPipelineV2 extends QScript {
     var handfilt_vcf = new File(base+"_snps.handfiltered.annotated.vcf")
     var indel_vcf = new File(base+"_indel_calls.vcf")
 
-    for ( c <- lib.StandardCallingPipeline(bamFiles,indel_vcf,recal_vcf,handfilt_vcf,qscript.target_titv,qscript.refseqTable) ) {
+    addAll(lib.StandardCallingPipeline(bamFiles,indel_vcf,recal_vcf,handfilt_vcf,qscript.target_titv,qscript.refseqTable))
+  }
+
+  def addAll(clfs: List[CommandLineFunction]) = {
+    for ( c <- clfs ) {
       add(c)
     }
   }
