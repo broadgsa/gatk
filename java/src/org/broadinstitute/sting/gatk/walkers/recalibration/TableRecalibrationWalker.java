@@ -271,12 +271,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
             }
             sb.setCharAt(sb.length()-2, ']');
             sb.setCharAt(sb.length()-1, ' ');
-            sb.append("pQ=");
-            sb.append(PRESERVE_QSCORES_LESS_THAN);
-            sb.append(" maxQ=");
-            sb.append(MAX_QUALITY_SCORE);
-            sb.append(" smoothing=");
-            sb.append(SMOOTHING);
             programRecord.setCommandLine(sb.toString());
 
             List<SAMProgramRecord> oldRecords = header.getProgramRecords();
