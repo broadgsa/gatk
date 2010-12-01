@@ -88,23 +88,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         logYMatrix[0][0] = 0.0;
         int j=0;
 
-
-        // call clear ref sites separately to speed computation
-/*
-        boolean isClearRefSite = true;
-
-        int bestAFguess = 0;
-        for ( String sample : GLs.keySet() ) {
-
-            double[] genotypeLikelihoods = GLs.get(sample).getLikelihoods();
-            if (!(genotypeLikelihoods[0] > genotypeLikelihoods[1] &&
-                    genotypeLikelihoods[0] > genotypeLikelihoods[2]))
-                isClearRefSite = false;
-   
-            bestAFguess += MathUtils.maxElementIndex(genotypeLikelihoods);
-
-        }
-     */
         for ( Map.Entry<String, Genotype> sample : GLs.entrySet() ) {
             j++;
 
@@ -121,9 +104,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             logYMatrix[j][0] = logYMatrix[j-1][0] + genotypeLikelihoods[GenotypeType.AA.ordinal()];
 
             for (int k=1; k <= 2*j; k++ ) {
-   //             if (k > 3 && isClearRefSite)
-   //                 break;
-
 
                 //double num = (2.0*j-k)*(2.0*j-k-1)*YMatrix[j-1][k] * genotypeLikelihoods[GenotypeType.AA.ordinal()];
                 double logNumerator[];
@@ -164,10 +144,10 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     double softMax(double[] vec) {
         // compute naively log10(10^x[0] + 10^x[1]+...)
-	//        return Math.log10(MathUtils.sumLog10(vec));
+        //        return Math.log10(MathUtils.sumLog10(vec));
 
-	// better approximation: do Jacobian logarithm function on data pairs
-	double a = softMaxPair(vec[0],vec[1]);
+        // better approximation: do Jacobian logarithm function on data pairs
+        double a = softMaxPair(vec[0],vec[1]);
         return softMaxPair(a,vec[2]);
     }
 
@@ -178,32 +158,32 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         if (Double.isInfinite(y))
             return x;
 
-	if (y >= x + MAX_JACOBIAN_TOLERANCE)
-	    return y;
-	if (x >= y + MAX_JACOBIAN_TOLERANCE)
-	    return x;
-	
-	// OK, so |y-x| < tol: we use the following identity then:
-	// we need to compute log10(10^x + 10^y)
-	// By Jacobian logarithm identity, this is equal to
-	// max(x,y) + log10(1+10^-abs(x-y))
-	// we compute the second term as a table lookup
-	// with integer quantization
-	double diff = Math.abs(x-y);
-	double t1 =x;
-	if (y > x)
-	    t1 = y;
-	// t has max(x,y)
-	// we have pre-stored correction for 0,0.1,0.2,... 10.0
-	int ind = (int)Math.round(diff/JACOBIAN_LOG_TABLE_STEP);
-	double t2 = jacobianLogTable[ind];
+        if (y >= x + MAX_JACOBIAN_TOLERANCE)
+            return y;
+        if (x >= y + MAX_JACOBIAN_TOLERANCE)
+            return x;
 
-	// gdebug+
-	//double z =Math.log10(1+Math.pow(10.0,-diff));
-	//System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
-	//gdebug-
-	return t1+t2;
-	// return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
+        // OK, so |y-x| < tol: we use the following identity then:
+        // we need to compute log10(10^x + 10^y)
+        // By Jacobian logarithm identity, this is equal to
+        // max(x,y) + log10(1+10^-abs(x-y))
+        // we compute the second term as a table lookup
+        // with integer quantization
+        double diff = Math.abs(x-y);
+        double t1 =x;
+        if (y > x)
+            t1 = y;
+        // t has max(x,y)
+        // we have pre-stored correction for 0,0.1,0.2,... 10.0
+        int ind = (int)Math.round(diff/JACOBIAN_LOG_TABLE_STEP);
+        double t2 = jacobianLogTable[ind];
+
+        // gdebug+
+        //double z =Math.log10(1+Math.pow(10.0,-diff));
+        //System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
+        //gdebug-
+        return t1+t2;
+        // return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
     }
 
 

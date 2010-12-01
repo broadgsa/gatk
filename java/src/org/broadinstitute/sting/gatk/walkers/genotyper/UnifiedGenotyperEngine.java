@@ -448,6 +448,8 @@ public class UnifiedGenotyperEngine {
     }
 
     private VariantCallContext estimateReferenceConfidence(Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples, double initialPofRef) {
+        if ( contexts == null )
+            return null;
 
         double P_of_ref = initialPofRef;
 

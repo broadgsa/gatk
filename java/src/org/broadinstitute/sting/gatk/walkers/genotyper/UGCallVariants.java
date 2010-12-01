@@ -1,0 +1,152 @@
+/*
+ * Copyright (c) 2010, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package org.broadinstitute.sting.gatk.walkers.genotyper;
+
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+
+import java.util.*;
+
+/**
+ * Uses the UG engine to call variants based off of VCFs annotated with GLs (or PLs).
+ * Absolutely not supported or recommended for public use.
+ */
+public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
+
+    @ArgumentCollection
+    private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
+
+    // control the output
+    @Output(doc="File to which variants should be written",required=true)
+    protected VCFWriter writer = null;
+
+    // the calculation arguments
+    private UnifiedGenotyperEngine UG_engine = null;
+
+    // variant track names
+    private Set<String> trackNames = new HashSet<String>();
+
+    public void initialize() {
+        UAC.NO_SLOD = true;
+
+        for ( ReferenceOrderedDataSource d : getToolkit().getRodDataSources() ) {
+            if ( d.getName().startsWith("variant") )
+                trackNames.add(d.getName());
+        }
+        if ( trackNames.size() == 0 )
+            throw new UserException("At least one track bound to a name beginning with 'variant' must be provided.");
+
+        Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), trackNames);
+
+        UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, null, null, samples);
+
+        Set<VCFHeaderLine> headerInfo = new HashSet<VCFHeaderLine>();
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_FREQUENCY_KEY, -1, VCFHeaderLineType.Float, "Allele Frequency, for each ALT allele, in the same order as listed"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, -1, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"));
+        headerInfo.add(new VCFInfoHeaderLine(VCFConstants.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes"));
+        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
+        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Read Depth (only filtered reads used for calling)"));
+        headerInfo.add(new VCFFormatHeaderLine(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, 3, VCFHeaderLineType.Float, "Normalized, Phred-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; not applicable if site is not biallelic"));
+        if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING ||
+             UAC.TRIGGER_CONFIDENCE_FOR_EMITTING < UAC.TRIGGER_CONFIDENCE_FOR_CALLING )
+            headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
+
+        // initialize the header
+        writer.writeHeader(new VCFHeader(headerInfo, samples));
+    }
+
+    public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if ( tracker == null )
+            return null;
+
+
+        List<VariantContext> VCs = new ArrayList<VariantContext>();
+        for ( String name : trackNames ) {
+            Collection<VariantContext> vc = tracker.getVariantContexts(ref, name, null, context.getLocation(), true, true);
+            VCs.addAll(vc);
+        }
+
+        VariantContext mergedVC = mergeVCsWithGLs(VCs);
+        if ( mergedVC == null )
+            return null;
+
+        return UG_engine.calculateGenotypes(tracker, ref, context, mergedVC);
+    }
+
+    public Integer reduceInit() { return 0; }
+
+    public Integer reduce(VariantCallContext value, Integer sum) {
+        if ( value == null || value.vc == null )
+            return sum;
+
+        try {
+            Map<String, Object> attrs = new HashMap<String, Object>(value.vc.getAttributes());
+            VariantContextUtils.calculateChromosomeCounts(value.vc, attrs, true);
+            writer.add(VariantContext.modifyAttributes(value.vc, attrs), value.refBase);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
+        }
+
+        return sum + 1;
+    }
+
+    public void onTraversalDone(Integer result) {
+        logger.info(String.format("Visited sites: %d", result));
+    }
+
+    private static VariantContext mergeVCsWithGLs(List<VariantContext> VCs) {
+        // we can't use the VCUtils classes because our VCs can all be no-calls
+        if ( VCs.size() == 0 )
+            return null;
+
+        VariantContext vc = VCs.get(0);
+        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(getGenotypesWithGLs(vc.getGenotypes()));
+        for (int i = 1; i < VCs.size(); i++)
+            genotypes.putAll(getGenotypesWithGLs(VCs.get(i).getGenotypes()));
+        return new VariantContext("VCwithGLs", vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null);
+    }
+
+    private static Map<String, Genotype> getGenotypesWithGLs(Map<String, Genotype> genotypes) {
+        Map<String, Genotype> genotypesWithGLs = new HashMap<String, Genotype>();
+        for ( Map.Entry<String, Genotype> g : genotypes.entrySet() ) {
+            if ( g.getValue().hasLikelihoods() && g.getValue().getLikelihoods().getAsVector() != null )
+                genotypesWithGLs.put(g.getKey(), g.getValue());
+        }
+
+        return genotypesWithGLs;
+    }
+}
