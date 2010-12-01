@@ -20,7 +20,8 @@ WE_LIST = '/seq/references/HybSelOligos/whole_exome_agilent_designed_120/whole_e
 WGS_FILTER = [['ABFilter', 'AB > 0.75 && DP > 40'], ['DPFilter', 'DP > 120 || SB > -0.10']] # , ['QDFilter', 'QD < 5.0 && DP > 40']]
 WE_FILTER = [['ESPStandard', 'AB > 0.75 || QD < 5.0 || HRun > 3 || SB > -0.10']]
 
-UG_ARGS = "-mbq 20 -mmq 20 -stand_call_conf 50 -stand_emit_conf 10 -hets 0.78e-3 -dcov 10000 -pnrm GRID_SEARCH"
+#UG_ARGS = "-mbq 20 -mmq 20 -stand_call_conf 50 -stand_emit_conf 10 -hets 0.78e-3 -dcov 10000 -pnrm GRID_SEARCH"
+UG_ARGS = "-stand_call_conf 10 -stand_emit_conf 10 --downsampling_type BY_SAMPLE -dcov 1000 -hets 0.78e-3" # experimental arguments for GdA test
 
 class CallTarget:
     def __init__(self, name, bam, interval = '', callArgs = "", b36 = False, optimize = True, filters = [], targetTiTv = 2.07, maxClusters = 16, minQual = 300, tranchToTake = 1):
@@ -132,6 +133,9 @@ def main():
     parser.add_option("-t", "--target", dest="target",
                         type="string", default=None,
                         help="Only run jobs with names containing this string")
+    parser.add_option("", "--noRaw", dest="noRaw",
+                        action="store_true", default=False,
+                        help="Exclude raw calls from output")
                        
     (OPTIONS, args) = parser.parse_args()
     if len(args) != 1:
@@ -186,6 +190,10 @@ def main():
         return name in stages
 
     for callTarget in targets:
+        if "raw" in callTarget.name and OPTIONS.noRaw:
+            print 'Skipping raw data', callTarget
+            continue
+
         # setup pipeline args
         GATK_JAR = GATK_STABLE_JAR
         if ( OPTIONS.dev ): GATK_JAR = GATK_DEV_JAR
