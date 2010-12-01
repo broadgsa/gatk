@@ -46,11 +46,23 @@ public class RefSeqDataParser {
         Map<String, String> entriesToNames = new HashMap<String, String>();
         Integer numRecords = vc.getAttributeAsIntegerNoException(NUM_RECORDS_KEY);
         if (numRecords != null) {
-            for (int i = 1; i <= numRecords; i++) {
-                String key = nameKeyToUseMultiplePrefix + i;
-                String name = vc.getAttributeAsStringNoException(key);
-                if (name != null)
-                    entriesToNames.put(key, name);
+            boolean done = false;
+
+            if (numRecords == 1) { // Check if perhaps the single record doesn't end with "_1":
+                String name = vc.getAttributeAsStringNoException(nameKeyToUse);
+                if (name != null) {
+                    entriesToNames.put(nameKeyToUse, name);
+                    done = true;
+                }
+            }
+
+            if (!done) {
+                for (int i = 1; i <= numRecords; i++) {
+                    String key = nameKeyToUseMultiplePrefix + i;
+                    String name = vc.getAttributeAsStringNoException(key);
+                    if (name != null)
+                        entriesToNames.put(key, name);
+                }
             }
         }
         else { // no entry with the # of records:
@@ -90,7 +102,7 @@ public class RefSeqDataParser {
         Set<String> commonNames = entriesMap1.keySet();
         commonNames.retainAll(entriesMap2.keySet());
         boolean addSuffix = commonNames.size() > 1;
-        int count = 1;
+        int nextCount = 1;
 
         for (String name : commonNames) {
             RefSeqEntry refseq1 = entriesMap1.get(name);
@@ -98,7 +110,7 @@ public class RefSeqDataParser {
 
             String keySuffix = "";
             if (addSuffix)
-                keySuffix = "_" + count;
+                keySuffix = "_" + nextCount;
 
             boolean added = false;
             for (String key : NAME_KEYS) {
@@ -111,10 +123,11 @@ public class RefSeqDataParser {
                 }
             }
             if (added)
-                count++;
+                nextCount++;
         }
-        if (count > 1)
-            refSeqNameAttribs.put(NUM_RECORDS_KEY, count - 1); // since incremented count one extra time
+        int totalCount = nextCount - 1; // since incremented count one extra time
+        if (totalCount > 1)
+            refSeqNameAttribs.put(NUM_RECORDS_KEY, totalCount);
 
         return refSeqNameAttribs;
     }

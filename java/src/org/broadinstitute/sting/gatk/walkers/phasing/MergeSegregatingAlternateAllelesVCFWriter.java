@@ -150,6 +150,7 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
             else { // waiting to merge vcfrWaitingToMerge, and curVcIsNotFiltered. So, attempt to merge them:
                 numRecordsAttemptToMerge++;
                 boolean shouldAttemptToMerge = vcMergeRule.shouldAttemptToMerge(vcfrWaitingToMerge.vc, vc);
+                logger.debug("shouldAttemptToMerge? = " + shouldAttemptToMerge);
 
                 /*
                 TODO: -- CONSIDER THE FOLLOWING EXAMPLE: WHAT DO WE WANT HERE??? --
