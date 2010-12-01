@@ -41,6 +41,7 @@ import java.util.*;
 /**
  * Uses the UG engine to determine per-sample genotype likelihoods and emits them as a VCF (using PLs).
  * Absolutely not supported or recommended for public use.
+ * Run this as you would the UnifiedGenotyper.
  */
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.READS)

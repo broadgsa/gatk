@@ -43,6 +43,8 @@ import java.util.*;
 /**
  * Uses the UG engine to call variants based off of VCFs annotated with GLs (or PLs).
  * Absolutely not supported or recommended for public use.
+ * Run this as you would the UnifiedGenotyper, except that instead of '-I reads' it expects any number
+ * of GL/PL-annotated VCFs bound to a name starting with 'variant'.
  */
 public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
 
