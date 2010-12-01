@@ -100,7 +100,7 @@ public class GATKArgumentCollection {
     public File referenceFile = null;
 
     @ElementList(required = false)
-    @Input(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form <name>,<type>,<file>", required = false)
+    @Input(fullName = "rodBind", shortName = "B", doc = "Bindings for reference-ordered data, in the form :<name>,<type> <file>", required = false)
     public ArrayList<String> RODBindings = new ArrayList<String>();
 
     @Element(required = false)
