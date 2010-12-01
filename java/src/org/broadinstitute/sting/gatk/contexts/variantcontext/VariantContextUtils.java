@@ -701,13 +701,27 @@ public class VariantContextUtils {
         return genomeLocParser.createGenomeLoc(vc.getChr(),(int)vc.getStart(),(int)vc.getEnd());
     }
 
-    // NOTE: returns null if vc1 and vc2 are not mergeable into a single MNP record
-    public static VariantContext mergeIntoMNP(GenomeLocParser genomeLocParser,VariantContext vc1, VariantContext vc2, ReferenceSequenceFile referenceFile) {
+    public abstract static class AlleleMergeRule {
+        // vc1, vc2 are ONLY passed to allelesShouldBeMerged() if mergeIntoMNPvalidationCheck(genomeLocParser, vc1, vc2) AND allSamplesAreMergeable(vc1, vc2):
+        abstract public boolean allelesShouldBeMerged(VariantContext vc1, VariantContext vc2);
+
+        public String toString() {
+            return "all samples are mergeable";
+        }
+    }
+
+    // NOTE: returns null if vc1 and vc2 are not merged into a single MNP record
+
+    public static VariantContext mergeIntoMNP(GenomeLocParser genomeLocParser, VariantContext vc1, VariantContext vc2, ReferenceSequenceFile referenceFile, AlleleMergeRule alleleMergeRule) {
         if (!mergeIntoMNPvalidationCheck(genomeLocParser, vc1, vc2))
             return null;
 
-        // Check that it's logically possible to merge the VCs, and that there's a point in doing so (e.g., annotations could be changed):
-        if (!allSamplesAreMergeable(vc1, vc2) || !someSampleHasDoubleNonReferenceAllele(vc1, vc2))
+        // Check that it's logically possible to merge the VCs:
+        if (!allSamplesAreMergeable(vc1, vc2))
+            return null;
+
+        // Check if there's a "point" in merging the VCs (e.g., annotations could be changed)
+        if (!alleleMergeRule.allelesShouldBeMerged(vc1, vc2))
             return null;
 
         return reallyMergeIntoMNP(vc1, vc2, referenceFile);
@@ -788,7 +802,7 @@ public class VariantContextUtils {
             if (!(other instanceof AlleleOneAndTwo))
                 return false;
 
-            AlleleOneAndTwo otherAot = (AlleleOneAndTwo)other;
+            AlleleOneAndTwo otherAot = (AlleleOneAndTwo) other;
             return (this.all1.equals(otherAot.all1) && this.all2.equals(otherAot.all2));
         }
     }
@@ -877,9 +891,9 @@ public class VariantContextUtils {
         return mergedAttribs;
     }
 
-    private static boolean mergeIntoMNPvalidationCheck(GenomeLocParser genomeLocParser,VariantContext vc1, VariantContext vc2) {
-        GenomeLoc loc1 = VariantContextUtils.getLocation(genomeLocParser,vc1);
-        GenomeLoc loc2 = VariantContextUtils.getLocation(genomeLocParser,vc2);
+    private static boolean mergeIntoMNPvalidationCheck(GenomeLocParser genomeLocParser, VariantContext vc1, VariantContext vc2) {
+        GenomeLoc loc1 = VariantContextUtils.getLocation(genomeLocParser, vc1);
+        GenomeLoc loc2 = VariantContextUtils.getLocation(genomeLocParser, vc2);
 
         if (!loc1.onSameContig(loc2))
             throw new ReviewedStingException("Can only merge vc1, vc2 if on the same chromosome");
@@ -910,6 +924,7 @@ public class VariantContextUtils {
     }
 
     // Assumes that vc1 and vc2 were already checked to have the same sample names:
+
     private static boolean allSamplesAreMergeable(VariantContext vc1, VariantContext vc2) {
         // Check that each sample's genotype in vc2 is uniquely appendable onto its genotype in vc1:
         for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
@@ -948,6 +963,7 @@ public class VariantContextUtils {
     }
 
     // Assumes that alleleSegregationIsKnown(gt1, gt2):
+
     private static PhaseAndQuality calcPhaseForMergedGenotypes(Genotype gt1, Genotype gt2) {
         if (gt2.genotypesArePhased() || gt2.isHom())
             return new PhaseAndQuality(gt1); // maintain the phase of gt1
@@ -972,7 +988,8 @@ public class VariantContextUtils {
     /* Checks if any sample has a MNP of ALT alleles (segregating together):
      [Assumes that vc1 and vc2 were already checked to have the same sample names && allSamplesAreMergeable(vc1, vc2)]
      */
-    private static boolean someSampleHasDoubleNonReferenceAllele(VariantContext vc1, VariantContext vc2) {
+
+    public static boolean someSampleHasDoubleNonReferenceAllele(VariantContext vc1, VariantContext vc2) {
         for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
             String sample = gt1Entry.getKey();
             Genotype gt1 = gt1Entry.getValue();
@@ -991,5 +1008,48 @@ public class VariantContextUtils {
         }
 
         return false;
+    }
+
+    /* Checks if all samples are consistent in their haplotypes:
+     [Assumes that vc1 and vc2 were already checked to have the same sample names && allSamplesAreMergeable(vc1, vc2)]
+     */
+
+    public static boolean doubleAllelesSegregatePerfectlyAmongSamples(VariantContext vc1, VariantContext vc2) {
+        // Check that Alleles at vc1 and at vc2 always segregate together in all samples (including reference):
+        Map<Allele, Allele> allele1ToAllele2 = new HashMap<Allele, Allele>();
+        Map<Allele, Allele> allele2ToAllele1 = new HashMap<Allele, Allele>();
+
+        // Note the segregation of the alleles for the reference genome:
+        allele1ToAllele2.put(vc1.getReference(), vc2.getReference());
+        allele2ToAllele1.put(vc2.getReference(), vc1.getReference());
+
+        // Note the segregation of the alleles for each sample (and check that it is consistent with the reference and all previous samples).
+        for (Map.Entry<String, Genotype> gt1Entry : vc1.getGenotypes().entrySet()) {
+            String sample = gt1Entry.getKey();
+            Genotype gt1 = gt1Entry.getValue();
+            Genotype gt2 = vc2.getGenotype(sample);
+
+            List<Allele> site1Alleles = gt1.getAlleles();
+            List<Allele> site2Alleles = gt2.getAlleles();
+
+            Iterator<Allele> all2It = site2Alleles.iterator();
+            for (Allele all1 : site1Alleles) {
+                Allele all2 = all2It.next();
+
+                Allele all1To2 = allele1ToAllele2.get(all1);
+                if (all1To2 == null)
+                    allele1ToAllele2.put(all1, all2);
+                else if (!all1To2.equals(all2)) // all1 segregates with two different alleles at site 2
+                    return false;
+
+                Allele all2To1 = allele2ToAllele1.get(all2);
+                if (all2To1 == null)
+                    allele2ToAllele1.put(all2, all1);
+                else if (!all2To1.equals(all1)) // all2 segregates with two different alleles at site 1
+                    return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
+
 import java.util.*;
 
 /* Some methods for extracting RefSeq-related data from annotated VCF INFO fields:
@@ -35,6 +36,8 @@ public class RefSeqDataParser {
     private static String NUM_RECORDS_KEY = REFSEQ_PREFIX + "numMatchingRecords";
     private static String NAME_KEY = REFSEQ_PREFIX + "name";
     private static String NAME2_KEY = REFSEQ_PREFIX + "name2";
+
+    private static String[] NAME_KEYS = {NAME_KEY, NAME2_KEY};
 
     private static Map<String, String> getRefSeqEntriesToNames(VariantContext vc, boolean getName2) {
         String nameKeyToUse = getName2 ? NAME2_KEY : NAME_KEY;
@@ -76,6 +79,57 @@ public class RefSeqDataParser {
 
     public static Set<String> getRefSeqNames(VariantContext vc) {
         return getRefSeqNames(vc, false);
+    }
+
+    public static Map<String, Object> getMergedRefSeqNameAttributes(VariantContext vc1, VariantContext vc2) {
+        Map<String, Object> refSeqNameAttribs = new HashMap<String, Object>();
+
+        Map<String, RefSeqEntry> entriesMap1 = getAllRefSeqEntriesByName(vc1);
+        Map<String, RefSeqEntry> entriesMap2 = getAllRefSeqEntriesByName(vc2);
+
+        Set<String> commonNames = entriesMap1.keySet();
+        commonNames.retainAll(entriesMap2.keySet());
+        boolean addSuffix = commonNames.size() > 1;
+        int count = 1;
+
+        for (String name : commonNames) {
+            RefSeqEntry refseq1 = entriesMap1.get(name);
+            RefSeqEntry refseq2 = entriesMap2.get(name);
+
+            String keySuffix = "";
+            if (addSuffix)
+                keySuffix = "_" + count;
+
+            boolean added = false;
+            for (String key : NAME_KEYS) {
+                Object obj1 = refseq1.info.get(key);
+                Object obj2 = refseq2.info.get(key);
+                if (obj1 != null && obj2 != null && obj1.equals(obj2)) {
+                    added = true;
+                    String useKey = key + keySuffix;
+                    refSeqNameAttribs.put(useKey, obj1);
+                }
+            }
+            if (added)
+                count++;
+        }
+        if (count > 1)
+            refSeqNameAttribs.put(NUM_RECORDS_KEY, count - 1); // since incremented count one extra time
+
+        return refSeqNameAttribs;
+    }
+
+    private static Map<String, RefSeqEntry> getAllRefSeqEntriesByName(VariantContext vc) {
+        Map<String, RefSeqEntry> nameToEntries = new TreeMap<String, RefSeqEntry>();
+
+        List<RefSeqEntry> allEntries = getAllRefSeqEntries(vc);
+        for (RefSeqEntry entry : allEntries) {
+            Object name = entry.info.get(NAME_KEY);
+            if (name != null)
+                nameToEntries.put(name.toString(), entry);
+        }
+
+        return nameToEntries;
     }
 
     // Returns a List of SEPARATE Map<refseq.ENTRY, refseq.VALUE> for EACH RefSeq annotation (i.e., each gene), stripping out the "_1", "_2", etc.

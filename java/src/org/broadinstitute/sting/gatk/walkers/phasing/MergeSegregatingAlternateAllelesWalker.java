@@ -45,7 +45,7 @@ import java.util.*;
 import static org.broadinstitute.sting.utils.vcf.VCFUtils.getVCFHeadersFromRods;
 
 /**
- * Walks along all variant ROD loci, and merges consecutive sites if they segregate in all samples in the ROD.
+ * Walks along all variant ROD loci, and merges consecutive sites if some sample has segregating alt alleles in the ROD.
  */
 @Allows(value = {DataSource.REFERENCE})
 @Requires(value = {DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
@@ -55,10 +55,10 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
 
     @Output(doc = "File to which variants should be written", required = true)
     protected VCFWriter writer = null;
-    private MergePhasedSegregatingAlternateAllelesVCFWriter vcMergerWriter = null;
+    private MergeSegregatingAlternateAllelesVCFWriter vcMergerWriter = null;
 
-    @Argument(fullName = "maxGenomicDistanceForMNP", shortName = "maxDistMNP", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records into a MNP record; [default:1]", required = false)
-    protected int maxGenomicDistanceForMNP = 1;
+    @Argument(fullName = "maxGenomicDistance", shortName = "maxDist", doc = "The maximum reference-genome distance between consecutive heterozygous sites to permit merging phased VCF records; [default:1]", required = false)
+    protected int maxGenomicDistance = 1;
 
     @Argument(fullName = "useSingleSample", shortName = "useSample", doc = "Only output genotypes for the single sample given; [default:use all samples]", required = false)
     protected String useSingleSample = null;
@@ -74,8 +74,11 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
     public final static String UNION_REFSEQ = "UNION";
     public final static String INTERSECT_REFSEQ = "INTERSECT";
 
-    @Argument(fullName = "mergeBasedOnRefSeqAnnotation", shortName = "mergeBasedOnRefSeqAnnotation", doc = "'Should merging be performed if two sites lie on the same RefSeq sequence in the INFO field {" + IGNORE_REFSEQ + ", " + UNION_REFSEQ + ", " + INTERSECT_REFSEQ + "}; [default:"+ IGNORE_REFSEQ + "]", required = false)
+    @Argument(fullName = "mergeBasedOnRefSeqAnnotation", shortName = "mergeBasedOnRefSeqAnnotation", doc = "'Should merging be performed if two sites lie on the same RefSeq sequence in the INFO field {" + IGNORE_REFSEQ + ", " + UNION_REFSEQ + ", " + INTERSECT_REFSEQ + "}; [default:" + IGNORE_REFSEQ + "]", required = false)
     protected String mergeBasedOnRefSeqAnnotation = IGNORE_REFSEQ;
+
+    @Argument(fullName = "dontRequireSomeSampleHasDoubleAltAllele", shortName = "dontRequireSomeSampleHasDoubleAltAllele", doc = "Should the requirement, that SUCCESSIVE records to be merged have at least one sample with a double alternate allele, be relaxed?; [default:false]", required = false)
+    protected boolean dontRequireSomeSampleHasDoubleAltAllele = false;
 
     private LinkedList<String> rodNames = null;
 
@@ -89,14 +92,20 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
     private void initializeVcfWriter() {
         GenomeLocParser genomeLocParser = getToolkit().getGenomeLocParser();
 
-        MergeRule mergeRule = null;
+        VariantContextMergeRule vcMergeRule;
         if (mergeBasedOnRefSeqAnnotation.equals(IGNORE_REFSEQ))
-            mergeRule = new DistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser);
+            vcMergeRule = new DistanceMergeRule(maxGenomicDistance, genomeLocParser);
         else
-            mergeRule = new SameGenePlusWithinDistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser, mergeBasedOnRefSeqAnnotation);
+            vcMergeRule = new SameGenePlusWithinDistanceMergeRule(maxGenomicDistance, genomeLocParser, mergeBasedOnRefSeqAnnotation);
+
+        VariantContextUtils.AlleleMergeRule alleleMergeRule;
+        if (dontRequireSomeSampleHasDoubleAltAllele) // if a pair of VariantContext passes the vcMergeRule, then always merge them:
+            alleleMergeRule = new AlwaysMergeAllelesRule();
+        else
+            alleleMergeRule = new ExistsDoubleAltAlleleMergeRule();
 
         // false <-> don't take control of writer, since didn't create it:
-        vcMergerWriter = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer,genomeLocParser, getToolkit().getArguments().referenceFile, mergeRule, useSingleSample, emitOnlyMergedRecords, logger, false, !disablePrintAlternateAlleleStatistics);
+        vcMergerWriter = new MergeSegregatingAlternateAllelesVCFWriter(writer, genomeLocParser, getToolkit().getArguments().referenceFile, vcMergeRule, alleleMergeRule, useSingleSample, emitOnlyMergedRecords, logger, false, !disablePrintAlternateAlleleStatistics);
         writer = null; // so it can't be accessed directly [i.e., not through vcMergerWriter]
 
         // setup the header fields:
@@ -168,8 +177,8 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
             System.out.println("Only considered single sample: " + useSingleSample);
 
         System.out.println("Number of successive pairs of records: " + vcMergerWriter.getNumRecordsAttemptToMerge());
-        System.out.println("Number of potentially merged records (" + vcMergerWriter.getMergeRule() + "): " + vcMergerWriter.getNumRecordsSatisfyingMergeRule());
-        System.out.println("Number of records merged [all samples are mergeable, some sample has a MNP of ALT alleles]: " + vcMergerWriter.getNumMergedRecords());
+        System.out.println("Number of potentially merged records (" + vcMergerWriter.getVcMergeRule() + "): " + vcMergerWriter.getNumRecordsSatisfyingMergeRule());
+        System.out.println("Number of records merged ("+ vcMergerWriter.getAlleleMergeRule() + "): " + vcMergerWriter.getNumMergedRecords());
         System.out.println(vcMergerWriter.getAltAlleleStats());
     }
 }
@@ -177,32 +186,6 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
 
 enum MergeBasedOnRefSeqAnnotation {
     UNION_WITH_DIST, INTERSECT_WITH_DIST
-}
-
-interface MergeRule {
-    public boolean shouldMerge(VariantContext vc1, VariantContext vc2);
-}
-
-class DistanceMergeRule implements MergeRule {
-    private int maxGenomicDistanceForMNP;
-    private GenomeLocParser genomeLocParser;
-
-    public DistanceMergeRule(int maxGenomicDistanceForMNP, GenomeLocParser genomeLocParser) {
-        this.maxGenomicDistanceForMNP = maxGenomicDistanceForMNP;
-        this.genomeLocParser = genomeLocParser;
-    }
-
-    public boolean shouldMerge(VariantContext vc1, VariantContext vc2) {
-        return minDistance(vc1, vc2) <= maxGenomicDistanceForMNP;
-    }
-
-    public String toString() {
-        return "Merge distance <= " + maxGenomicDistanceForMNP;
-    }
-
-    public int minDistance(VariantContext vc1, VariantContext vc2) {
-        return VariantContextUtils.getLocation(genomeLocParser,vc1).minDistance(VariantContextUtils.getLocation(genomeLocParser,vc2));
-    }
 }
 
 class SameGenePlusWithinDistanceMergeRule extends DistanceMergeRule {
@@ -219,8 +202,8 @@ class SameGenePlusWithinDistanceMergeRule extends DistanceMergeRule {
             throw new UserException("Must provide " + MergeSegregatingAlternateAllelesWalker.IGNORE_REFSEQ + ", " + MergeSegregatingAlternateAllelesWalker.UNION_REFSEQ + ", or " + MergeSegregatingAlternateAllelesWalker.INTERSECT_REFSEQ + " as argument to mergeBasedOnRefSeqAnnotation!");
     }
 
-    public boolean shouldMerge(VariantContext vc1, VariantContext vc2) {
-        boolean withinDistance = super.shouldMerge(vc1, vc2);
+    public boolean shouldAttemptToMerge(VariantContext vc1, VariantContext vc2) {
+        boolean withinDistance = super.shouldAttemptToMerge(vc1, vc2);
 
         if (mergeBasedOnRefSeqAnnotation == MergeBasedOnRefSeqAnnotation.UNION_WITH_DIST)
             return withinDistance || sameGene(vc1, vc2);
@@ -246,5 +229,19 @@ class SameGenePlusWithinDistanceMergeRule extends DistanceMergeRule {
 
     public String toString() {
         return super.toString() + " " + (mergeBasedOnRefSeqAnnotation == MergeBasedOnRefSeqAnnotation.UNION_WITH_DIST ? "OR" : "AND") + " on the same gene";
+    }
+
+    public Map<String, Object> addToMergedAttributes(VariantContext vc1, VariantContext vc2) {
+        Map<String, Object> addedAttribs = super.addToMergedAttributes(vc1, vc2);
+        addedAttribs.putAll(RefSeqDataParser.getMergedRefSeqNameAttributes(vc1, vc2));
+        return addedAttribs;
+    }
+}
+
+
+
+class AlwaysMergeAllelesRule extends VariantContextUtils.AlleleMergeRule {
+    public boolean allelesShouldBeMerged(VariantContext vc1, VariantContext vc2) {
+        return true;
     }
 }

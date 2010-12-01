@@ -138,8 +138,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         // Wrapper VCFWriters will take ownership of inner writers iff: inner writer != origWriter [which wasn't created here]
         VCFWriter origWriter = writer;
 
-        if (enableMergePhasedSegregatingPolymorphismsToMNP) // null <-> use ALL samples, false <-> emit all records, false <-> don't track the statistics of alternate alleles being merged:
-            writer = new MergePhasedSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getGenomeLocParser(), getToolkit().getArguments().referenceFile, new DistanceMergeRule(maxGenomicDistanceForMNP, getToolkit().getGenomeLocParser()), null, false, logger, writer != origWriter, false);
+        if (enableMergePhasedSegregatingPolymorphismsToMNP)
+            writer = new MergeSegregatingAlternateAllelesVCFWriter(writer, getToolkit().getGenomeLocParser(), getToolkit().getArguments().referenceFile, maxGenomicDistanceForMNP, logger, writer != origWriter);
 
         /* Due to discardIrrelevantPhasedSites(), the startDistance spanned by [partiallyPhasedSites.peek(), unphasedSiteQueue.peek()] is <= cacheWindow
            Due to processQueue(), the startDistance spanned by [unphasedSiteQueue.peek(), mostDownstreamLocusReached] is <= cacheWindow

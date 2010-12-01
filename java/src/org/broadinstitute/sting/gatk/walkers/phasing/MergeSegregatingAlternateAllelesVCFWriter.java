@@ -42,13 +42,15 @@ import java.util.*;
 
 // Streams in VariantContext objects and streams out VariantContexts produced by merging phased segregating polymorphisms into MNP VariantContexts
 
-public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWriter {
+public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
     private VCFWriter innerWriter;
 
     private GenomeLocParser genomeLocParser;
 
     private ReferenceSequenceFile referenceFileForMNPmerging;
-    private MergeRule mergeRule;
+
+    private VariantContextMergeRule vcMergeRule;
+    private VariantContextUtils.AlleleMergeRule alleleMergeRule;
 
     private String useSingleSample = null;
 
@@ -67,11 +69,12 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
     // Should we call innerWriter.close() in close()
     private boolean takeOwnershipOfInner;
 
-    public MergePhasedSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, MergeRule mergeRule, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
+    public MergeSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, VariantContextMergeRule vcMergeRule, VariantContextUtils.AlleleMergeRule alleleMergeRule, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
         this.innerWriter = innerWriter;
         this.genomeLocParser = genomeLocParser;
         this.referenceFileForMNPmerging = new IndexedFastaSequenceFile(referenceFile);
-        this.mergeRule = mergeRule;
+        this.vcMergeRule = vcMergeRule;
+        this.alleleMergeRule = alleleMergeRule;
         this.useSingleSample = singleSample;
         this.emitOnlyMergedRecords = emitOnlyMergedRecords;
 
@@ -87,8 +90,8 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
         this.takeOwnershipOfInner = takeOwnershipOfInner;
     }
 
-    public MergePhasedSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, int maxGenomicDistanceForMNP, Logger logger) {
-        this(innerWriter, genomeLocParser, referenceFile, new DistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser), null, false, logger, false, false); // by default: consider all samples, emit all records, don't own inner, don't keep track of alt allele statistics
+    public MergeSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, int maxGenomicDistanceForMNP, Logger logger, boolean takeOwnershipOfInner) {
+        this(innerWriter, genomeLocParser, referenceFile, new DistanceMergeRule(maxGenomicDistanceForMNP, genomeLocParser), new SegregatingMNPmergeAllelesRule(), null, false, logger, takeOwnershipOfInner, true); // by default: consider all samples, emit all records, keep track of alt allele statistics
     }
 
     public void writeHeader(VCFHeader header) {
@@ -146,7 +149,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
             }
             else { // waiting to merge vcfrWaitingToMerge, and curVcIsNotFiltered. So, attempt to merge them:
                 numRecordsAttemptToMerge++;
-                boolean shouldMerge = mergeRule.shouldMerge(vcfrWaitingToMerge.vc, vc);
+                boolean shouldAttemptToMerge = vcMergeRule.shouldAttemptToMerge(vcfrWaitingToMerge.vc, vc);
 
                 /*
                 TODO: -- CONSIDER THE FOLLOWING EXAMPLE: WHAT DO WE WANT HERE??? --
@@ -163,14 +166,20 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
                 But, since we merged sites 1 and 2, we get that sites 1-2 and 3 are counted as two haplotypes of: ALT-REF and ALT-ALT
                  */
                 if (altAlleleStats != null)
-                    altAlleleStats.updateSampleStats(vcfrWaitingToMerge.vc, vc, shouldMerge);
+                    altAlleleStats.updateSampleStats(vcfrWaitingToMerge.vc, vc, shouldAttemptToMerge);
 
                 boolean mergedRecords = false;
-                if (shouldMerge) {
+                if (shouldAttemptToMerge) {
                     numRecordsSatisfyingMergeRule++;
-                    VariantContext mergedVc = VariantContextUtils.mergeIntoMNP(genomeLocParser, vcfrWaitingToMerge.vc, vc, referenceFileForMNPmerging);
+                    VariantContext mergedVc = VariantContextUtils.mergeIntoMNP(genomeLocParser, vcfrWaitingToMerge.vc, vc, referenceFileForMNPmerging, alleleMergeRule);
+
                     if (mergedVc != null) {
                         mergedRecords = true;
+
+                        Map<String, Object> addedAttribs = vcMergeRule.addToMergedAttributes(vcfrWaitingToMerge.vc, vc);
+                        addedAttribs.putAll(mergedVc.getAttributes());
+                        mergedVc = VariantContext.modifyAttributes(mergedVc, addedAttribs);
+
                         vcfrWaitingToMerge = new VCFRecord(mergedVc, vcfrWaitingToMerge.refBase, true);
                         numMergedRecords++;
                     }
@@ -213,8 +222,12 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
         return numMergedRecords;
     }
 
-    public MergeRule getMergeRule() {
-        return mergeRule;
+    public VariantContextMergeRule getVcMergeRule() {
+        return vcMergeRule;
+    }
+
+    public VariantContextUtils.AlleleMergeRule getAlleleMergeRule() {
+        return alleleMergeRule;
     }
 
     /**
@@ -248,7 +261,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
 
     private class AltAlleleStats {
         public int numSuccessiveGenotypes;
-        public int numSuccessiveGenotypesThatCouldBeMerged;
+        public int numSuccessiveGenotypesAttemptedToBeMerged;
 
         public int oneSampleMissing;
         public int atLeastOneSampleNotCalledOrFiltered;
@@ -267,7 +280,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
 
         public AltAlleleStats() {
             this.numSuccessiveGenotypes = 0;
-            this.numSuccessiveGenotypesThatCouldBeMerged = 0;
+            this.numSuccessiveGenotypesAttemptedToBeMerged = 0;
 
             this.oneSampleMissing = 0;
             this.atLeastOneSampleNotCalledOrFiltered = 0;
@@ -292,11 +305,11 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
             sb.append("Not called or filtered:\t" + atLeastOneSampleNotCalledOrFiltered + "\n");
 
             sb.append("* Number of successive pairs of genotypes:\t" + numSuccessiveGenotypes + "\n");
-            sb.append("Number of successive pairs of genotypes with " + mergeRule + ":\t" + numSuccessiveGenotypesThatCouldBeMerged + "\n");
+            sb.append("Number of successive pairs of genotypes with " + vcMergeRule + ":\t" + numSuccessiveGenotypesAttemptedToBeMerged + "\n");
 
-            sb.append("Unknown segregation, " + mergeRule + ":\t" + segregationUnknown + "\n");
-            sb.append("Not variant at least one of pair, segregation known, " + mergeRule + ":\t" + eitherNotVariant + "\n");
-            sb.append("* Variant at both, segregation known, " + mergeRule + ":\t" + percentageString(bothInPairHaveVariant, numSuccessiveGenotypes) + "\n");
+            sb.append("Unknown segregation, " + vcMergeRule + ":\t" + segregationUnknown + "\n");
+            sb.append("Not variant at least one of pair, segregation known, " + vcMergeRule + ":\t" + eitherNotVariant + "\n");
+            sb.append("* Variant at both, segregation known, " + vcMergeRule + ":\t" + percentageString(bothInPairHaveVariant, numSuccessiveGenotypes) + "\n");
 
             sb.append("[Total haplotypes at pairs:\t" + (ref_ref_pair + ref_alt_pair + alt_ref_pair + alt_alt_pair) + "\n");
             sb.append("REF-REF:\t" + ref_ref_pair + "\n");
@@ -326,7 +339,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
             this.sampleStats = new HashMap<String, AltAlleleStats>();
         }
 
-        public void updateSampleStats(VariantContext vc1, VariantContext vc2, boolean shouldMerge) {
+        public void updateSampleStats(VariantContext vc1, VariantContext vc2, boolean shouldAttemptToMerge) {
             if (vc1.isFiltered() || vc2.isFiltered())
                 return;
 
@@ -351,8 +364,8 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
                 else {
                     aas.numSuccessiveGenotypes++;
 
-                    if (shouldMerge) {
-                        aas.numSuccessiveGenotypesThatCouldBeMerged++;
+                    if (shouldAttemptToMerge) {
+                        aas.numSuccessiveGenotypesAttemptedToBeMerged++;
 
                         if (!VariantContextUtils.alleleSegregationIsKnown(gt1, gt2)) {
                             aas.segregationUnknown++;
@@ -428,7 +441,7 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append("-------------------------------------------------------------------------\n");
-            sb.append("Per-sample alternate allele statistics [" + mergeRule + "]\n");
+            sb.append("Per-sample alternate allele statistics [" + vcMergeRule + "]\n");
             sb.append("-------------------------------------------------------------------------");
 
             for (Map.Entry<String, AltAlleleStats> sampAltAllStatsEntry : sampleStats.entrySet()) {
@@ -439,5 +452,67 @@ public class MergePhasedSegregatingAlternateAllelesVCFWriter implements VCFWrite
 
             return sb.toString();
         }
+    }
+}
+
+
+
+/*
+ External classes:
+ */
+
+abstract class VariantContextMergeRule {
+    abstract public boolean shouldAttemptToMerge(VariantContext vc1, VariantContext vc2);
+
+    public Map<String, Object> addToMergedAttributes(VariantContext vc1, VariantContext vc2) {
+        return new HashMap<String, Object>();
+    }
+}
+
+class DistanceMergeRule extends VariantContextMergeRule {
+    private int maxGenomicDistanceForMNP;
+    private GenomeLocParser genomeLocParser;
+
+    public DistanceMergeRule(int maxGenomicDistanceForMNP, GenomeLocParser genomeLocParser) {
+        this.maxGenomicDistanceForMNP = maxGenomicDistanceForMNP;
+        this.genomeLocParser = genomeLocParser;
+    }
+
+    public boolean shouldAttemptToMerge(VariantContext vc1, VariantContext vc2) {
+        return minDistance(vc1, vc2) <= maxGenomicDistanceForMNP;
+    }
+
+    public String toString() {
+        return "Merge distance <= " + maxGenomicDistanceForMNP;
+    }
+
+    public int minDistance(VariantContext vc1, VariantContext vc2) {
+        return VariantContextUtils.getLocation(genomeLocParser, vc1).minDistance(VariantContextUtils.getLocation(genomeLocParser, vc2));
+    }
+}
+
+
+class ExistsDoubleAltAlleleMergeRule extends VariantContextUtils.AlleleMergeRule {
+    public boolean allelesShouldBeMerged(VariantContext vc1, VariantContext vc2) {
+        return VariantContextUtils.someSampleHasDoubleNonReferenceAllele(vc1, vc2);
+    }
+
+    public String toString() {
+        return super.toString() + ", some sample has a MNP of ALT alleles";
+    }
+}
+
+class SegregatingMNPmergeAllelesRule extends ExistsDoubleAltAlleleMergeRule {
+    public SegregatingMNPmergeAllelesRule() {
+        super();
+    }
+
+    public boolean allelesShouldBeMerged(VariantContext vc1, VariantContext vc2) {
+        // Must be interesting AND consistent:
+        return super.allelesShouldBeMerged(vc1, vc2) && VariantContextUtils.doubleAllelesSegregatePerfectlyAmongSamples(vc1, vc2);
+    }
+
+    public String toString() {
+        return super.toString() + ", all alleles segregate consistently";
     }
 }
