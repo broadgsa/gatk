@@ -56,7 +56,6 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.FileReader;
 import java.util.*;
 
 /**
@@ -83,10 +82,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Output(required=false, doc="Output bam")
     protected StingSAMFileWriter writer = null;
 
-    @Argument(fullName="output",shortName="O",doc="Please use --out instead")
-    @Deprecated
-    protected String oldOArg;
-
     @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs for constructing the alternate references.")
     protected boolean USE_KNOWN_INDELS_ONLY = false;
 
@@ -105,6 +100,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="maxReadsForRealignment", shortName="maxReads", doc="max reads allowed at an interval for realignment; "+
                        "if this value is exceeded, realignment is not attempted and the reads are passed to the output file(s) as-is", required=false)
     protected int MAX_READS = 20000;
+
+    @Hidden
+    @Argument(fullName="doNotSortEvenThoughItIsHighlyUnsafe", required=false,
+            doc="Should we not sort the final bam at all?")
+    protected boolean DO_NOT_SORT = false;
 
     @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", required=false,
             doc="Should we sort the final bam in coordinate order even though it will be malformed because "+
@@ -334,18 +334,17 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private SAMFileHeader setupHeader(SAMFileHeader header) {
-         if ( SORT_IN_COORDINATE_ORDER )
-             header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
-         else
-             header.setSortOrder(SAMFileHeader.SortOrder.queryname);
-         return header;
-    }
-
-    private void setupWriter(SAMFileHeader header) {
-        if ( SORT_IN_COORDINATE_ORDER )
+        if ( DO_NOT_SORT )
+            header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+        else if ( SORT_IN_COORDINATE_ORDER )
             header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
         else
             header.setSortOrder(SAMFileHeader.SortOrder.queryname);
+        return header;
+    }
+
+    private void setupWriter(SAMFileHeader header) {
+        header = setupHeader(header);
 
         if ( !NO_PG_TAG ) {
             final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
