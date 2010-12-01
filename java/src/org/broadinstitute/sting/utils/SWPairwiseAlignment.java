@@ -31,6 +31,7 @@ import net.sf.samtools.Cigar;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -52,6 +53,12 @@ public class SWPairwiseAlignment {
     private static final int ISTATE = 1;
     private static final int DSTATE = 2;
 
+//    private double [] best_gap_v ;
+//    private int [] gap_size_v ;
+//    private double [] best_gap_h ;
+//    private int [] gap_size_h ;
+
+
  //   private static double [][] sw = new double[500][500];
  //   private static int [][] btrack = new int[500][500];
 
@@ -67,9 +74,11 @@ public class SWPairwiseAlignment {
         align(seq1,seq2);
     }
 
+
     public SWPairwiseAlignment(byte[] seq1, byte[] seq2) {
         this(seq1,seq2,1.0,-1.0/3.0,-1.0-1.0/3.0,-1.0/3.0); // match=1, mismatch = -1/3, gap=-(1+k/3)
     }
+
 
     public Cigar getCigar() { return alignmentCigar ; }
 
@@ -79,14 +88,31 @@ public class SWPairwiseAlignment {
         final int n = a.length;
         final int m = b.length;
         double [] sw = new double[(n+1)*(m+1)];
+
         int [] btrack = new int[(n+1)*(m+1)];
+
+//        best_gap_v = new double[m+1];
+//        Arrays.fill(best_gap_v,-1.0e40);
+//        gap_size_v = new int[m+1];
+//        best_gap_h = new double[n+1];
+//        Arrays.fill(best_gap_h,-1.0e40);
+//        gap_size_h = new int[n+1];
+
         calculateMatrix(a, b, sw, btrack);
         calculateCigar(n, m, sw, btrack); // length of the segment (continuous matches, insertions or deletions)
     }
 
+
     private void calculateMatrix(final byte[] a, final byte[] b, double [] sw, int [] btrack ) {
         final int n = a.length+1;
         final int m = b.length+1;
+
+        double [] best_gap_v = new double[m+1];
+        Arrays.fill(best_gap_v,-1.0e40);
+        int [] gap_size_v = new int[m+1];
+        double [] best_gap_h = new double[n+1];
+        Arrays.fill(best_gap_h,-1.0e40);
+        int [] gap_size_h = new int[n+1];
 
         // build smith-waterman matrix and keep backtrack info:
         for ( int i = 1, row_offset_1 = 0 ; i < n ; i++ ) { // we do NOT update row_offset_1 here, see comment at the end of this outer loop
@@ -106,8 +132,33 @@ public class SWPairwiseAlignment {
 
                 // in other words, step_diag = sw[i-1][j-1] + wd(a_base,b_base);
                 double step_diag = sw[data_offset_1] + wd(a_base,b_base);
-                double step_down = 0.0 ;
-                int kd = 0;
+
+                // optimized "traversal" of all the matrix cells above the current one (i.e. traversing
+                // all 'step down' events that would end in the current cell. The optimized code
+                // does exactly the same thing as the commented out loop below. IMPORTANT:
+                // the optimization works ONLY for linear w(k)=wopen+(k-1)*wextend!!!!
+
+                // if a gap (length 1) was just opened above, this is the cost of arriving to the current cell:
+                double prev_gap = sw[data_offset_1+1]+w_open;
+
+                best_gap_v[j] += w_extend; // for the gaps that were already opened earlier, extending them by 1 costs w_extend
+
+                if ( prev_gap > best_gap_v[j] ) {
+                    // opening a gap just before the current cell results in better score than extending by one
+                    // the best previously opened gap. This will hold for ALL cells below: since any gap
+                    // once opened always costs w_extend to extend by another base, we will always get a better score
+                    // by arriving to any cell below from the gap we just opened (prev_gap) rather than from the previous best gap
+                    best_gap_v[j] = prev_gap;
+                    gap_size_v[j] = 1; // remember that the best step-down gap from above has length 1 (we just opened it)
+                } else {
+                    // previous best gap is still the best, even after extension by another base, so we just record that extension:
+                    gap_size_v[j]++;
+                }
+
+                final double step_down = best_gap_v[j] ;
+                final int kd = gap_size_v[j];
+
+/*
                 for ( int k = 1, data_offset_k = data_offset_1+1 ; k < i ; k++, data_offset_k -= m ) {
                     // data_offset_k is linearized offset of element [i-k][j]
                     // in other words, trial = sw[i-k][j]+gap_penalty:
@@ -117,9 +168,30 @@ public class SWPairwiseAlignment {
                         kd = k;
                     }
                 }
+*/
 
-                double step_right = 0;
-                int ki = 0;
+                // optimized "traversal" of all the matrix cells to the left of the current one (i.e. traversing
+                // all 'step right' events that would end in the current cell. The optimized code
+                // does exactly the same thing as the commented out loop below. IMPORTANT:
+                // the optimization works ONLY for linear w(k)=wopen+(k-1)*wextend!!!!
+
+                final int data_offset = row_offset + j; // linearized offset of element [i][j]
+                prev_gap = sw[data_offset-1]+w_open; // what would it cost us to open length 1 gap just to the left from current cell
+                best_gap_h[i] += w_extend; // previous best gap would cost us that much if extended by another base
+
+                if ( prev_gap > best_gap_h[i] ) {
+                    // newly opened gap is better (score-wise) than any previous gap with the same row index i; since
+                    // gap penalty is linear with k, this new gap location is going to remain better than any previous ones
+                    best_gap_h[i] = prev_gap;
+                    gap_size_h[i] = 1;
+                } else {
+                    gap_size_h[i]++;
+                }
+
+                final double step_right = best_gap_h[i];
+                final int ki = gap_size_h[i];
+
+/*
                 for ( int k = 1, data_offset = row_offset+j-1 ; k < j ; k++, data_offset-- ) {
                     // data_offset is linearized offset of element [i][j-k]
                     // in other words, step_right=sw[i][j-k]+gap_penalty;
@@ -131,18 +203,19 @@ public class SWPairwiseAlignment {
                 }
 
                 final int data_offset = row_offset + j; // linearized offset of element [i][j]
+*/
+
 
                 if ( step_down > step_right ) {
                     if ( step_down > step_diag ) {
                         sw[data_offset] = Math.max(0,step_down);
-                        btrack[data_offset] = kd; // positive=vertical
-                    }
-                    else {
+                        btrack[data_offset] = kd ; // positive=vertical
+                    } else {
                         sw[data_offset] = Math.max(0,step_diag);
                         btrack[data_offset] = 0; // 0 = diagonal
                     }
                 } else {
-                    // step_down < step_right
+                    // step_down <= step_right
                     if ( step_right > step_diag ) {
                         sw[data_offset] = Math.max(0,step_right);
                         btrack[data_offset] = -ki; // negative = horizontal
@@ -152,7 +225,7 @@ public class SWPairwiseAlignment {
                     }
                 }
 
-                sw[data_offset] = Math.max(0, Math.max(step_diag,Math.max(step_down,step_right)));
+//                sw[data_offset] = Math.max(0, Math.max(step_diag,Math.max(step_down,step_right)));
             }
 
             // IMPORTANT, IMPORTANT, IMPORTANT:
@@ -163,6 +236,7 @@ public class SWPairwiseAlignment {
         }
 //            print(sw,a,b);
     }
+
 
     private void calculateCigar(int n, int m, double [] sw, int [] btrack) {
         // p holds the position we start backtracking from; we will be assembling a cigar in the backwards order
@@ -313,5 +387,149 @@ public class SWPairwiseAlignment {
             System.out.println();
         }
     }
+
+    /* ##############################################
+    BELOW: main() method for testing; old implementations of the core methods are commented out below;
+           uncomment everything through the end of the file if benchmarking of new vs old implementations is needed.
+
+    public static void main(String argv[]) {
+        String ref="CACGAGCATATGTGTACATGAATTTGTATTGCACATGTGTTTAATGCGAACACGTGTCATGTGTATGTGTTCACATGCATGTGTGTCT";
+        String read =   "GCATATGTTTACATGAATTTGTATTGCACATGTGTTTAATGCGAACACGTGTCATGTGTGTGTTCACATGCATGTG";
+
+        long start = System.currentTimeMillis();
+
+        SWPairwiseAlignment a = null;
+        for ( int i = 0 ; i < 10000 ; i++ ) {
+            a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),true);
+        }
+
+        long stop1 = System.currentTimeMillis();
+
+        for ( int i = 0 ; i < 10000 ; i++ ) {
+            a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),false);
+        }
+
+        long stop2 = System.currentTimeMillis();
+
+        System.out.println("start="+a.getAlignmentStart2wrt1()+", cigar="+a.getCigar()+" length1="+ref.length()+" length2="+read.length());
+        long timeold = stop1-start;
+        long timenew = stop2-stop1;
+        System.out.println("TOTAL TIME OLD: "+(float)(timeold)/1000);
+        System.out.println("TOTAL TIME NEW: "+(float)(timenew)/1000);
+        System.out.println("Fold change: " + ((float) timeold)/timenew);
+    }
+
+    public SWPairwiseAlignment(byte[] seq1, byte[] seq2, double match, double mismatch, double open, double extend, boolean runOld ) {
+        w_match = match;
+        w_mismatch = mismatch;
+        w_open = open;
+        w_extend = extend;
+        if ( runOld ) align_old(seq1,seq2);
+        else align(seq1,seq2);
+    }
+
+    public SWPairwiseAlignment(byte[] seq1, byte[] seq2, boolean runOld) {
+        this(seq1,seq2,1.0,-1.0/3.0,-1.0-1.0/3.0,-1.0/3.0,runOld); // match=1, mismatch = -1/3, gap=-(1+k/3)
+    }
+
+    public void align_old(final byte[] a, final byte[] b) {
+        final int n = a.length;
+        final int m = b.length;
+        double [] sw = new double[(n+1)*(m+1)];
+        int [] btrack = new int[(n+1)*(m+1)];
+        calculateMatrix_old(a, b, sw, btrack);
+        calculateCigar(n, m, sw, btrack); // length of the segment (continuous matches, insertions or deletions)
+    }
+
+    private void calculateMatrix_old(final byte[] a, final byte[] b, double [] sw, int [] btrack ) {
+        final int n = a.length+1;
+        final int m = b.length+1;
+
+        // build smith-waterman matrix and keep backtrack info:
+        for ( int i = 1, row_offset_1 = 0 ; i < n ; i++ ) { // we do NOT update row_offset_1 here, see comment at the end of this outer loop
+            byte a_base = a[i-1]; // letter in a at the current pos
+
+            final int row_offset = row_offset_1 + m;
+
+            // On the entrance into the loop, row_offset_1 is the (linear) offset
+            // of the first element of row (i-1) and row_offset is the linear offset of the
+            // start of row i
+
+            for ( int j = 1, data_offset_1 = row_offset_1 ; j < m ; j++, data_offset_1++ ) {
+
+                // data_offset_1 is linearized offset of element [i-1][j-1]
+
+                final byte b_base = b[j-1]; // letter in b at the current pos
+
+                // in other words, step_diag = sw[i-1][j-1] + wd(a_base,b_base);
+                double step_diag = sw[data_offset_1] + wd(a_base,b_base);
+                int kd = 0;
+
+                double step_down = 0;
+
+                for ( int k = 1, data_offset_k = data_offset_1+1 ; k < i ; k++, data_offset_k -= m ) {
+                    // data_offset_k is linearized offset of element [i-k][j]
+                    // in other words, trial = sw[i-k][j]+gap_penalty:
+                    final double trial = sw[data_offset_k]+wk(k);
+                    if ( step_down < trial ) {
+                        step_down=trial;
+                        kd = k;
+                    }
+                }
+
+                int ki = 0;
+
+                // optimized "traversal" of all the matrix cells to the left of the current one (i.e. traversing
+                // all 'step right' events that would end in the current cell. The optimized code
+                // does exactly the same thing as the commented out loop below. IMPORTANT:
+                // the optimization works ONLY for linear w(k)=wopen+(k-1)*wextend!!!!
+
+                double step_right = 0;
+
+                for ( int k = 1, data_offset = row_offset+j-1 ; k < j ; k++, data_offset-- ) {
+                    // data_offset is linearized offset of element [i][j-k]
+                    // in other words, step_right=sw[i][j-k]+gap_penalty;
+                    final double trial = sw[data_offset]+wk(k);
+                    if ( step_right < trial ) {
+                        step_right=trial;
+                        ki = k;
+                    }
+                }
+
+                final int data_offset = row_offset + j; // linearized offset of element [i][j]
+
+                if ( step_down > step_right ) {
+                    if ( step_down > step_diag ) {
+                        sw[data_offset] = Math.max(0,step_down);
+                        btrack[data_offset] = kd ; // positive=vertical
+                    } else {
+                        sw[data_offset] = Math.max(0,step_diag);
+                        btrack[data_offset] = 0; // 0 = diagonal
+                    }
+                } else {
+                    // step_down <= step_right
+                    if ( step_right > step_diag ) {
+                        sw[data_offset] = Math.max(0,step_right);
+                        btrack[data_offset] = -ki; // negative = horizontal
+                    } else {
+                        sw[data_offset] = Math.max(0,step_diag);
+                        btrack[data_offset] = 0; // 0 = diagonal
+                    }
+                }
+
+//                sw[data_offset] = Math.max(0, Math.max(step_diag,Math.max(step_down,step_right)));
+            }
+
+            // IMPORTANT, IMPORTANT, IMPORTANT:
+            // note that we update this (secondary) outer loop variable here,
+            // so that we DO NOT need to update it
+            // in the for() statement itself.
+            row_offset_1 = row_offset;
+        }
+//            print(sw,a,b);
+    }
+#####################
+END COMMENTED OUT SECTION
+*/
 
 }
