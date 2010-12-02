@@ -305,16 +305,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
     }
 
     private void writeVCF(VariantContext vc) {
-        byte refBase;
-        if (!vc.isIndel()) {
-            Allele varAllele = vc.getReference();
-            refBase = SNPallelePair.getSingleBase(varAllele);
-        }
-        else {
-            refBase = vc.getReferenceBaseForIndel();
-        }
-
-        writer.add(vc, refBase);
+        WriteVCF.writeVCF(vc, writer, logger);
     }
 
     /*

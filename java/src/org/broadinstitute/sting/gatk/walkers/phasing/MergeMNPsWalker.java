@@ -111,16 +111,7 @@ public class MergeMNPsWalker extends RodWalker<Integer, Integer> {
     }
 
     private void writeVCF(VariantContext vc) {
-        byte refBase;
-        if (!vc.isIndel()) {
-            Allele varAllele = vc.getReference();
-            refBase = SNPallelePair.getSingleBase(varAllele);
-        }
-        else {
-            refBase = vc.getReferenceBaseForIndel();
-        }
-
-        vcMergerWriter.add(vc, refBase);
+        WriteVCF.writeVCF(vc, vcMergerWriter, logger);
     }
 
     public Integer reduce(Integer result, Integer total) {

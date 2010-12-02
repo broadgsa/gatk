@@ -980,16 +980,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private void writeVCF(VariantContext vc) {
-        byte refBase;
-        if (!vc.isIndel()) {
-            Allele varAllele = vc.getReference();
-            refBase = SNPallelePair.getSingleBase(varAllele);
-        }
-        else {
-            refBase = vc.getReferenceBaseForIndel();
-        }
-
-        writer.add(vc, refBase);
+        WriteVCF.writeVCF(vc, writer, logger);
     }
 
     public static boolean processVariantInPhasing(VariantContext vc) {
