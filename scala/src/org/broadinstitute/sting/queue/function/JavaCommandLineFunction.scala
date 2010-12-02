@@ -9,8 +9,20 @@ trait JavaCommandLineFunction extends CommandLineFunction {
    */
   def javaExecutable: String
 
+  /**
+   * Memory limit for the java executable, or if None will use the default memoryLimit.
+   */
+  var javaMemoryLimit: Option[Int] = None
+
+  override def freezeFieldValues = {
+    super.freezeFieldValues
+
+    if (javaMemoryLimit.isEmpty && memoryLimit.isDefined)
+      javaMemoryLimit = memoryLimit
+  }
+
   def javaOpts = "%s -Djava.io.tmpdir=%s"
-    .format(optional(" -Xmx", memoryLimit, "g"), jobTempDir)
+    .format(optional(" -Xmx", javaMemoryLimit, "g"), jobTempDir)
 
   def commandLine = "java%s %s"
     .format(javaOpts, javaExecutable)
