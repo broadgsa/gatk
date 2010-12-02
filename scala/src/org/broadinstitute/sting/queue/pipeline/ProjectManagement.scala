@@ -70,7 +70,7 @@ class ProjectManagement(stingPath: String) {
     call.intervals :+= intervals
     call.memoryLimit = Some(4)
     call.out = output
-    call.rodBind ++= likelihoods.map( a => new RodBind(a.getName.replace(".vcf",""),"vcf",a) )
+    call.rodBind ++= likelihoods.map( a => new RodBind("variant"+a.getName.replace(".vcf",""),"vcf",a) )
 
     return call
   }
