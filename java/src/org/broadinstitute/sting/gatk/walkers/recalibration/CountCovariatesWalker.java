@@ -71,10 +71,9 @@ import java.util.Map;
  */
 
 @By( DataSource.READS ) // Only look at covered loci, not every loci of the reference file
-@WalkerName( "CountCovariates" )
 @ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
-public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.CountedData, CovariateCounterWalker.CountedData> implements TreeReducible<CovariateCounterWalker.CountedData> {
+public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.CountedData, CountCovariatesWalker.CountedData> implements TreeReducible<CountCovariatesWalker.CountedData> {
 
     /////////////////////////////
     // Constants
@@ -286,7 +285,7 @@ public class CovariateCounterWalker extends LocusWalker<CovariateCounterWalker.C
         // Pull out data for this locus for all the input RODs and check if this is a known variant site in any of them
         boolean isSNP = false;
         for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
-            if( vc != null && vc.isSNP() ) {
+            if( vc != null ) {
                 isSNP = true;
                 break;
             }
