@@ -30,8 +30,8 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -73,7 +73,9 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
-    final List<Tranche> tranches = new ArrayList<Tranche>();
+    final private List<Tranche> tranches = new ArrayList<Tranche>();
+    final private Set<String> inputNames = new HashSet<String>();
+
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -91,11 +93,24 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
         }
         Collections.reverse(tranches); // this algorithm wants the tranches ordered from worst to best
 
+        for( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
+            if( d.getName().startsWith("input") ) {
+                inputNames.add(d.getName());
+                logger.info("Found input variant track with name " + d.getName());
+            } else {
+                logger.info("Not evaluating ROD binding " + d.getName());
+            }
+        }
+
+        if( inputNames.size() == 0 ) {
+            throw new UserException.BadInput( "No input variant tracks found. Input variant binding names must begin with 'input'." );
+        }
+
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
-        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
         final TreeSet<String> samples = new TreeSet<String>();
-        samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit()));
+        samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
         if( tranches.size() >= 2 ) {
             for( int iii = 0; iii < tranches.size() - 1; iii++ ) {
@@ -127,8 +142,8 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
             return 1;
         }
 
-        for( VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
-            if( vc != null && !vc.getSource().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) && vc.isSNP() ) {
+        for( VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
+            if( vc != null && vc.isSNP() ) {
                 String filterString = null;
                 if( !vc.isFiltered() ) {
                     try {
@@ -174,11 +189,11 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
     //---------------------------------------------------------------------------------------------------------------
 
     public Integer reduceInit() {
-        return 1;
+        return 1; // This value isn't used for anything
     }
 
     public Integer reduce( final Integer mapValue, final Integer reduceSum ) {
-        return 1;
+        return 1; // This value isn't used for anything
     }
 
     public void onTraversalDone( Integer reduceSum ) {

@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
-import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.*;
@@ -82,8 +81,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private double TARGET_TITV = 2.07;
     @Argument(fullName="backOff", shortName="backOff", doc="The Gaussian back off factor, used to prevent overfitting by enlarging the Gaussians.", required=false)
     private double BACKOFF_FACTOR = 1.3;
-    @Argument(fullName="desired_num_variants", shortName="dV", doc="The desired number of variants to keep in a theoretically filtered set", required=false)
-    private int DESIRED_NUM_VARIANTS = 0;
     @Argument(fullName="ignore_all_input_filters", shortName="ignoreAllFilters", doc="If specified the optimizer will use variants even if the FILTER column is marked in the VCF file", required=false)
     private boolean IGNORE_ALL_INPUT_FILTERS = false;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
@@ -113,11 +110,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     // Debug Arguments
     /////////////////////////////
     @Hidden
-    @Argument(fullName = "NoByHapMapValidationStatus", shortName = "NoByHapMapValidationStatus", doc = "Don't consider sites in dbsnp rod tagged as by-hapmap validation status as real HapMap sites. FOR DEBUGGING PURPOSES ONLY.", required=false)
-    private Boolean NO_BY_HAPMAP_VALIDATION_STATUS = false;
-    @Hidden
     @Argument(fullName = "qual", shortName = "qual", doc = "Don't use sites with original quality scores below the qual threshold. FOR DEBUGGING PURPOSES ONLY.", required=false)
     private double QUAL_THRESHOLD = 0.0;
+    @Hidden
     @Argument(fullName = "debugFile", shortName = "debugFile", doc = "Print debugging information here", required=false)
     private File DEBUG_FILE = null;
 
@@ -173,9 +168,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                 logger.info("Found input variant track with name " + d.getName());
             } else if ( d.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 logger.info("Found dbSNP track with prior probability = Q" + PRIOR_DBSNP);
-                if( !NO_BY_HAPMAP_VALIDATION_STATUS ) {
-                    logger.info("\tsites in dbSNP track tagged with by-hapmap validation status will be given prior probability = Q" + PRIOR_HAPMAP);
-                }
                 foundDBSNP = true;
             } else if ( d.getName().equals("hapmap") ) {
                 logger.info("Found HapMap track with prior probability = Q" + PRIOR_HAPMAP);
@@ -189,6 +181,11 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         if(!foundDBSNP) {
             throw new UserException.CommandLineException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
         }
+
+        if( inputNames.size() == 0 ) {
+            throw new UserException.BadInput( "No input variant tracks found. Input variant binding names must begin with 'input'." );
+        }
+
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -227,19 +224,20 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                         final VariantDatum variantDatum = new VariantDatum();
                         variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
 
-                        final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                        final Collection<VariantContext> vcsDbsnp = tracker.getVariantContexts(ref, "dbsnp", null, context.getLocation(), false, true);
                         final Collection<VariantContext> vcsHapMap = tracker.getVariantContexts(ref, "hapmap", null, context.getLocation(), false, true);
                         final Collection<VariantContext> vcs1KG = tracker.getVariantContexts(ref, "1kg", null, context.getLocation(), false, true);
+                        final VariantContext vcDbsnp = ( vcsDbsnp.size() != 0 ? vcsDbsnp.iterator().next() : null );
                         final VariantContext vcHapMap = ( vcsHapMap.size() != 0 ? vcsHapMap.iterator().next() : null );
                         final VariantContext vc1KG = ( vcs1KG.size() != 0 ? vcs1KG.iterator().next() : null );
 
-                        variantDatum.isKnown = ( dbsnp != null );
+                        variantDatum.isKnown = ( vcDbsnp != null );
                         double knownPrior_qScore = PRIOR_NOVELS;
-                        if( vcHapMap != null || ( !NO_BY_HAPMAP_VALIDATION_STATUS && dbsnp != null && DbSNPHelper.isHapmap(dbsnp) ) ) {
+                        if( vcHapMap != null ) {
                             knownPrior_qScore = PRIOR_HAPMAP;
                         } else if( vc1KG != null ) {
                             knownPrior_qScore = PRIOR_1KG;
-                        } else if( dbsnp != null ) {
+                        } else if( vcDbsnp != null ) {
                             knownPrior_qScore = PRIOR_DBSNP;
                         }
 

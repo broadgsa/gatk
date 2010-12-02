@@ -25,16 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
-import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.commandline.Argument;
@@ -99,9 +96,6 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     @Hidden
     @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
     protected Boolean NO_HEADER_LINE = false;
-    @Hidden
-    @Argument(fullName = "NoByHapMapValidationStatus", shortName = "NoByHapMapValidationStatus", doc = "Don't consider sites in dbsnp rod tagged as by-hapmap validation status as real HapMap sites. FOR DEBUGGING PURPOSES ONLY.", required=false)
-    private Boolean NO_BY_HAPMAP_VALIDATION_STATUS = false;
 
     /////////////////////////////
     // Private Member Variables
@@ -132,28 +126,39 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
             CLUSTER_FILE.println("\"" + getToolkit().createApproximateCommandLineArgumentString(getToolkit(), this) + "\"");
         }
 
-        boolean foundDBSNP = false;
+        boolean foundTruthSet = false;
         for( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
             if( d.getName().startsWith("input") ) {
                 inputNames.add(d.getName());
                 logger.info("Found input variant track with name " + d.getName());
-            } else if ( d.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
+            } else if ( d.getName().equals("dbsnp") ) {
                 logger.info("Found dbSNP track for use in training with weight = " + WEIGHT_DBSNP);
-                if( !NO_BY_HAPMAP_VALIDATION_STATUS ) {                                
-                    logger.info("\tsites in dbSNP track tagged with by-hapmap validation status will be used in training with weight = " + WEIGHT_HAPMAP);
+                if( WEIGHT_DBSNP > 0.0 ) {
+                    foundTruthSet = true;
                 }
-                foundDBSNP = true;
             } else if ( d.getName().equals("hapmap") ) {
                 logger.info("Found HapMap track for use in training with weight = " + WEIGHT_HAPMAP);
+                if( WEIGHT_HAPMAP > 0.0 ) {
+                    foundTruthSet = true;
+                }
+
             } else if ( d.getName().equals("1kg") ) {
                 logger.info("Found 1KG track for use in training with weight = " + WEIGHT_1KG);
+                if( WEIGHT_1KG > 0.0 ) {
+                    foundTruthSet = true;
+                }
+
             } else {
                 logger.info("Not evaluating ROD binding " + d.getName());
             }
         }
 
-        if(!foundDBSNP) {
-            throw new UserException.CommandLineException("dbSNP track is required. This calculation is critically dependent on being able to distinguish known and novel sites.");
+        if( !foundTruthSet ) {
+            throw new UserException.CommandLineException("No truth set found! Please provide sets of known polymorphic loci to be used as training data using the dbsnp, hapmap, or 1kg rod bindings. Clustering weights can be specified using -weightDBSNP, -weightHapMap, and -weight1KG");
+        }
+
+        if( inputNames.size() == 0 ) {
+            throw new UserException.BadInput( "No input variant tracks found. Input variant binding names must begin with 'input'." );
         }
     }
 
@@ -184,19 +189,20 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                     final VariantDatum variantDatum = new VariantDatum();
                     variantDatum.annotations = annotationValues;
 
-                    final DbSNPFeature dbsnp = DbSNPHelper.getFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                    final Collection<VariantContext> vcsDbsnp = tracker.getVariantContexts(ref, "dbsnp", null, context.getLocation(), false, true);
                     final Collection<VariantContext> vcsHapMap = tracker.getVariantContexts(ref, "hapmap", null, context.getLocation(), false, true);
                     final Collection<VariantContext> vcs1KG = tracker.getVariantContexts(ref, "1kg", null, context.getLocation(), false, true);
+                    final VariantContext vcDbsnp = ( vcsDbsnp.size() != 0 ? vcsDbsnp.iterator().next() : null );
                     final VariantContext vcHapMap = ( vcsHapMap.size() != 0 ? vcsHapMap.iterator().next() : null );
                     final VariantContext vc1KG = ( vcs1KG.size() != 0 ? vcs1KG.iterator().next() : null );
 
-                    variantDatum.isKnown = ( dbsnp != null );
-                    variantDatum.weight = WEIGHT_NOVELS;                   
-                    if( vcHapMap != null || ( !NO_BY_HAPMAP_VALIDATION_STATUS && dbsnp != null && DbSNPHelper.isHapmap(dbsnp) ) ) {
+                    variantDatum.isKnown = ( vcDbsnp != null );
+                    variantDatum.weight = WEIGHT_NOVELS;
+                    if( vcHapMap != null ) {
                         variantDatum.weight = WEIGHT_HAPMAP;
                     } else if( vc1KG != null ) {
                         variantDatum.weight = WEIGHT_1KG;
-                    } else if( dbsnp != null ) {
+                    } else if( vcDbsnp != null ) {
                         variantDatum.weight = WEIGHT_DBSNP;
                     }
 
