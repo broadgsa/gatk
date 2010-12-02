@@ -153,28 +153,29 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
         boolean requireStartHere = false; // see EVERY site of the MNP
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
         for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly)) {
+            GenomeLoc vcLoc = VariantContextUtils.getLocation(locParser, vc);
+            boolean atStartOfVc = curLocus.getStart() == vcLoc.getStart();
+            boolean atEndOfVc = curLocus.getStart() == vcLoc.getStop();
+
             if (vc.getType() == VariantContext.Type.MNP) {
-                GenomeLoc MNPloc = VariantContextUtils.getLocation(locParser, vc);
-                boolean atStartOfMNP = curLocus.getStart() == MNPloc.getStart();
-                boolean atEndOfMNP = curLocus.getStart() == MNPloc.getStop();
-                logger.debug("Observed MNP at " + MNPloc);
+                logger.debug("Observed MNP at " + vcLoc);
 
                 if (isChrM(vc)) {
-                    if (atStartOfMNP) {
-                        logger.warn("Skipping mitochondrial MNP at " + MNPloc + " due to complexity of coding table [need to know if first codon, etc.]...");
+                    if (atStartOfVc) {
+                        logger.warn("Skipping mitochondrial MNP at " + vcLoc + " due to complexity of coding table [need to know if first codon, etc.]...");
                         writeVCF(vc);
                     }
                     continue;
                 }
 
-                GenomeLoc stopLoc = locParser.createGenomeLoc(curLocus.getContig(), MNPloc.getStop());
+                GenomeLoc stopLoc = locParser.createGenomeLoc(curLocus.getContig(), vcLoc.getStop());
                 final List<Object> refSeqRODs = tracker.getReferenceMetaData(REFSEQ_ROD_NAME);
                 for (Object refSeqObject : refSeqRODs) {
                     AnnotatorInputTableFeature refSeqAnnotation = (AnnotatorInputTableFeature) refSeqObject;
                     locusToRefSeqFeatures.putLocusFeatures(curLocus, refSeqAnnotation, stopLoc);
                 }
 
-                if (atStartOfMNP) { // MNP is starting here, so register that we're waiting for it
+                if (atStartOfVc) { // MNP is starting here, so register that we're waiting for it
                     Set<GenomeLoc> stopLocs = MNPstartToStops.get(curLocus);
                     if (stopLocs == null) {
                         stopLocs = new HashSet<GenomeLoc>();
@@ -183,7 +184,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                     stopLocs.add(stopLoc);
                 }
 
-                if (atEndOfMNP) {
+                if (atEndOfVc) {
                     numMNPsObserved++; // only count a MNP at its stop site
                     logger.debug("Observed end of MNP at " + curLocus);
                     logger.debug("Current list of per-locus features\n" + locusToRefSeqFeatures);
@@ -193,7 +194,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                     vc = VariantContext.modifyAttributes(vc, MNPannotations);
                     writeVCF(vc);
 
-                    GenomeLoc startLoc = locParser.createGenomeLoc(curLocus.getContig(), MNPloc.getStart());
+                    GenomeLoc startLoc = locParser.createGenomeLoc(curLocus.getContig(), vcLoc.getStart());
                     Set<GenomeLoc> stopLocs = MNPstartToStops.get(startLoc);
                     if (stopLocs != null) { // otherwise, just removed stopLocs due to another MNP that has the same (start, stop)
                         stopLocs.remove(stopLoc);
@@ -202,7 +203,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                     }
                 }
             }
-            else {
+            else if (atStartOfVc) {// only want to write other VariantContexts records once (where they start):
                 writeVCF(vc);
             }
         }
