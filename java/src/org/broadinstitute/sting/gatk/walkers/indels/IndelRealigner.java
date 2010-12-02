@@ -143,6 +143,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 "the two-column tab-separated file with the specified name must exist and list unique output file name (2nd column)" +
                 "for each input file name (1st column).")
     protected String N_WAY_OUT = null;
+    @Hidden
+    @Argument(fullName="check_early",shortName="check_early",required=false,doc="Do early check of reads against existing consensuses")
+    protected boolean CHECKEARLY = false;
 
 
     // DEBUGGING OPTIONS FOLLOW
@@ -198,6 +201,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     protected Map<SAMReaderID,SAMFileWriter> nwayWriters = null;
 
+    // debug info for lazy SW evaluation:
+    private long exactMatchesFound = 0; // how many reads exactly matched a consensus we already had
+    private long SWalignmentRuns = 0; // how many times (=for how many reads) we ran SW alignment
+    private long SWalignmentSuccess = 0; // how many SW alignments were "successful" (i.e. found a workable indel and resulted in non-null consensus)
     public void initialize() {
 
         if ( LOD_THRESHOLD < 0.0 )
@@ -373,6 +380,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( N_WAY_OUT != null ) {
             SAMReaderID rid =  getToolkit().getReaderIDForRead(read);
             SAMFileWriter w = nwayWriters.get(rid);
+            // reset read's read group from merged to original if read group id collision has happened in merging:
+            if ( getToolkit().getReadsDataSource().hasReadGroupCollisions() ) {
+                read.setAttribute("RG",
+                        getToolkit().getReadsDataSource().getOriginalReadGroupId((String)read.getAttribute("RG")));
+            }
             w.addAlignment(read);
         }
     }
@@ -387,6 +399,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 // in initialize() we ensured that every reader has exactly one tag, so the following line is safe:
                 SAMReaderID rid =  getToolkit().getReaderIDForRead(read);
                 SAMFileWriter w = nwayWriters.get(rid);
+                // reset read's read group from merged to original if read group id collision has happened in merging:
+                if ( getToolkit().getReadsDataSource().hasReadGroupCollisions() ) {
+                    read.setAttribute("RG",
+                            getToolkit().getReadsDataSource().getOriginalReadGroupId((String)read.getAttribute("RG")));
+                }
                 w.addAlignment(read);
 
             }
@@ -525,6 +542,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( N_WAY_OUT != null ) {
             for ( SAMFileWriter w : nwayWriters.values() ) w.close();
         }
+        if ( CHECKEARLY ) {
+            logger.info("SW alignments runs: "+SWalignmentRuns);
+            logger.info("SW alignments successfull: "+SWalignmentSuccess + " ("+SWalignmentSuccess/SWalignmentRuns+"% of SW runs)");
+            logger.info("SW alignments skipped (perfect match): "+exactMatchesFound);
+            logger.info("Total reads SW worked for: "+(SWalignmentSuccess + exactMatchesFound)+
+                    " ("+(SWalignmentSuccess+exactMatchesFound)/(SWalignmentRuns+exactMatchesFound)+"% of all reads requiring SW)");
+        }
     }
 
     private void populateKnownIndels(ReadMetaDataTracker metaDataTracker, ReferenceContext ref) {
@@ -591,7 +615,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // use 'Smith-Waterman' to create alternate consenses from reads that mismatch the reference
         if ( !USE_KNOWN_INDELS_ONLY )
-            generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference);
+            generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference, leftmostIndex);
 
         // if ( debugOn ) System.out.println("------\nChecking consenses...\n--------\n");
 
@@ -839,12 +863,17 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         return totalRawMismatchSum;
     }
 
-    private void generateAlternateConsensesFromReads(final LinkedList<AlignedRead> altAlignmentsToTest, final Set<Consensus> altConsensesToPopulate, final byte[] reference) {
+    private void generateAlternateConsensesFromReads(final LinkedList<AlignedRead> altAlignmentsToTest,
+                                                     final Set<Consensus> altConsensesToPopulate,
+                                                     final byte[] reference,
+                                                     final int leftmostIndex) {
 
         // if we are under the limit, use all reads to generate alternate consenses
         if ( altAlignmentsToTest.size() <= MAX_READS_FOR_CONSENSUSES ) {
-            for ( AlignedRead aRead : altAlignmentsToTest )
-                createAndAddAlternateConsensus(aRead.getReadBases(), altConsensesToPopulate, reference);
+            for ( AlignedRead aRead : altAlignmentsToTest ) {
+                if ( CHECKEARLY ) createAndAddAlternateConsensus1(aRead, altConsensesToPopulate, reference,leftmostIndex);
+                else createAndAddAlternateConsensus(aRead.getReadBases(), altConsensesToPopulate, reference);
+            }
         }
         // otherwise, choose reads for alternate consenses randomly
         else {
@@ -852,12 +881,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             while ( readsSeen++ < MAX_READS_FOR_CONSENSUSES && altConsensesToPopulate.size() <= MAX_CONSENSUSES) {
                 int index = generator.nextInt(altAlignmentsToTest.size());
                 AlignedRead aRead = altAlignmentsToTest.remove(index);
-                createAndAddAlternateConsensus(aRead.getReadBases(), altConsensesToPopulate, reference);
+                if ( CHECKEARLY ) createAndAddAlternateConsensus1(aRead, altConsensesToPopulate, reference,leftmostIndex);
+                else createAndAddAlternateConsensus(aRead.getReadBases(), altConsensesToPopulate, reference);
             }
         }
     }
 
     private void createAndAddAlternateConsensus(final byte[] read, final Set<Consensus> altConsensesToPopulate, final byte[] reference) {
+
         // do a pairwise alignment against the reference
          SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, read, SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
          Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, read);
@@ -865,10 +896,32 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
              altConsensesToPopulate.add(c);
     }
 
+    private void createAndAddAlternateConsensus1(AlignedRead read, final Set<Consensus> altConsensesToPopulate,
+                                                 final byte[] reference, final int leftmostIndex) {
+
+         for ( Consensus known : altConsensesToPopulate ) {
+              Pair<Integer, Integer> altAlignment = findBestOffset(known.str, read, leftmostIndex);
+              // the mismatch score is the min of its alignment vs. the reference and vs. the alternate
+              int myScore = altAlignment.second;
+              if ( myScore == 0 ) {exactMatchesFound++; return; }// read matches perfectly to a known alt consensus - no need to run SW, we already know the answer
+         }
+         // do a pairwise alignment against the reference
+         SWalignmentRuns++;
+         SWPairwiseAlignment swConsensus = new SWPairwiseAlignment(reference, read.getReadBases(), SW_MATCH, SW_MISMATCH, SW_GAP, SW_GAP_EXTEND);
+         Consensus c = createAlternateConsensus(swConsensus.getAlignmentStart2wrt1(), swConsensus.getCigar(), reference, read.getReadBases());
+         if ( c != null ) {
+             altConsensesToPopulate.add(c);
+             SWalignmentSuccess++;
+         }
+    }
+
     // create a Consensus from cigar/read strings which originate somewhere on the reference
     private Consensus createAlternateConsensus(final int indexOnRef, final Cigar c, final byte[] reference, final byte[] readStr) {
         if ( indexOnRef < 0 )
             return null;
+
+        // if there are no indels, we do not need this consensus, can abort early:
+        if ( c.numCigarElements() == 1 && c.getCigarElement(0).getOperator() == CigarOperator.M ) return null;
 
         // create the new consensus
         ArrayList<CigarElement> elements = new ArrayList<CigarElement>(c.numCigarElements()-1);

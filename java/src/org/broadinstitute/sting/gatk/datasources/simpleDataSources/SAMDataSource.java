@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 import net.sf.picard.filter.SamRecordFilter;
-import net.sf.picard.filter.FilteringIterator;
 import net.sf.picard.sam.SamFileHeaderMerger;
 import net.sf.picard.sam.MergingSamRecordIterator;
 
@@ -103,9 +102,17 @@ public class SAMDataSource implements SimpleDataSource {
     private final boolean hasReadGroupCollisions;
 
     /**
-     * Maps the SAM readers' original read group ids to their revised ids.
+     * Maps the SAM readers' merged read group ids to their original ids. Since merged read group ids
+     * are always unique, we can simply use a map here, no need to stratify by reader.
      */
-    private final Map<SAMReaderID,ReadGroupMapping> mergedReadGroupMappings = new HashMap<SAMReaderID,ReadGroupMapping>();
+    private final ReadGroupMapping mergedToOriginalReadGroupMappings = new ReadGroupMapping();
+
+    /**
+     * Maps the SAM readers' original read group ids to their revised ids. This mapping must be stratified
+     * by readers, since there can be readgroup id collision: different bam files (readers) can list the
+     * same read group id, which will be disambiguated when these input streams are merged.
+     */
+    private final Map<SAMReaderID,ReadGroupMapping> originalToMergedReadGroupMappings = new HashMap<SAMReaderID,ReadGroupMapping>();
 
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(SAMDataSource.class);
@@ -209,20 +216,24 @@ public class SAMDataSource implements SimpleDataSource {
                 generateExtendedEvents
         );
         
-        // cache the read group id (original) -> read group id (merged) mapping.
+        // cache the read group id (original) -> read group id (merged)
+        // and read group id (merged) -> read group id (original) mappings.
         for(SAMReaderID id: readerIDs) {
             SAMFileReader reader = readers.getReader(id);
-            ReadGroupMapping mapping = new ReadGroupMapping();
+            ReadGroupMapping mappingToMerged = new ReadGroupMapping();
 
             List<SAMReadGroupRecord> readGroups = reader.getFileHeader().getReadGroups();
             for(SAMReadGroupRecord readGroup: readGroups) {
-                if(headerMerger.hasReadGroupCollisions())
-                    mapping.put(readGroup.getReadGroupId(),headerMerger.getReadGroupId(reader,readGroup.getReadGroupId()));
-                else
-                    mapping.put(readGroup.getReadGroupId(),readGroup.getReadGroupId());
+                if(headerMerger.hasReadGroupCollisions()) {
+                    mappingToMerged.put(readGroup.getReadGroupId(),headerMerger.getReadGroupId(reader,readGroup.getReadGroupId()));
+                    mergedToOriginalReadGroupMappings.put(headerMerger.getReadGroupId(reader,readGroup.getReadGroupId()),readGroup.getReadGroupId());
+                } else {
+                    mappingToMerged.put(readGroup.getReadGroupId(),readGroup.getReadGroupId());
+                    mergedToOriginalReadGroupMappings.put(readGroup.getReadGroupId(),readGroup.getReadGroupId());
+                }
             }
 
-            mergedReadGroupMappings.put(id,mapping);
+            originalToMergedReadGroupMappings.put(id,mappingToMerged);
         }
 
         resourcePool.releaseReaders(readers);
@@ -296,7 +307,17 @@ public class SAMDataSource implements SimpleDataSource {
      * @return Merged read group ID.
      */
     public String getReadGroupId(final SAMReaderID reader, final String originalReadGroupId) {
-        return mergedReadGroupMappings.get(reader).get(originalReadGroupId);
+        return originalToMergedReadGroupMappings.get(reader).get(originalReadGroupId);
+    }
+
+    /**
+     * Gets the original read group id (as it was specified in the original input bam file) that maps onto
+     * this 'merged' read group id.
+     * @param mergedReadGroupId 'merged' ID of the read group (as it is presented by the read received from merged input stream).
+     * @return Merged read group ID.
+     */
+    public String getOriginalReadGroupId(final String mergedReadGroupId) {
+        return mergedToOriginalReadGroupMappings.get(mergedReadGroupId);
     }
 
     /**
