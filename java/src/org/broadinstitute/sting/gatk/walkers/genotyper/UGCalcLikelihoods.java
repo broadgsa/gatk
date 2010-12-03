@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
@@ -41,8 +42,10 @@ import java.util.*;
 /**
  * Uses the UG engine to determine per-sample genotype likelihoods and emits them as a VCF (using PLs).
  * Absolutely not supported or recommended for public use.
- * Run this as you would the UnifiedGenotyper.
+ * Run this as you would the UnifiedGenotyper, except that you must additionally pass in a VCF bound to
+ * the name 'allele' so we know which alternate allele to use at each site.
  */
+@Requires(value={},referenceMetaData=@RMD(name="allele", type= VariantContext.class))
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.READS)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
@@ -85,7 +88,20 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
     }
 
     public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        return new VariantCallContext(UG_engine.calculateLikelihoods(tracker, refContext, rawContext), refContext.getBase(), true);
+        Collection<VariantContext> VCs = tracker.getVariantContexts(refContext, "allele", null, rawContext.getLocation(), true, false);
+        if ( VCs.size() == 0 )
+            return null;
+        if ( VCs.size() > 1 ) {
+            logger.warn("Multiple records seen in the 'allele' ROD at position " + rawContext.getLocation() + "; skipping...");
+            return null;
+        }
+        VariantContext vc = VCs.iterator().next();
+        if ( !vc.isBiallelic() ) {
+            logger.warn("The record in the 'allele' ROD at position " + rawContext.getLocation() + " is not biallelic; skipping...");
+            return null;
+        }
+
+        return new VariantCallContext(UG_engine.calculateLikelihoods(tracker, refContext, rawContext, vc.getAlternateAllele(0)), refContext.getBase(), true);
     }
 
     public Integer reduceInit() { return 0; }

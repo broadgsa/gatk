@@ -53,7 +53,8 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                  Map<String, StratifiedAlignmentContext> contexts,
                                  StratifiedAlignmentContext.StratifiedContextType contextType,
                                  GenotypePriors priors,
-                                 Map<String, BiallelicGenotypeLikelihoods> GLs) {
+                                 Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                 Allele alternateAlleleToUse) {
 
         if ( !(priors instanceof DiploidSNPGenotypePriors) )
             throw new StingException("Only diploid-based SNP priors are supported in the SNP GL model");
@@ -62,8 +63,10 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         Allele refAllele = Allele.create(refBase, true);
 
         // find the alternate allele with the largest sum of quality scores
-        if ( contextType == StratifiedAlignmentContext.StratifiedContextType.COMPLETE )
+        if ( alternateAlleleToUse == null )
             initializeBestAlternateAllele(refBase, contexts);
+        else
+            bestAlternateAllele = alternateAlleleToUse.getBases()[0];
 
         // if there are no non-ref bases...
         if ( bestAlternateAllele == null ) {

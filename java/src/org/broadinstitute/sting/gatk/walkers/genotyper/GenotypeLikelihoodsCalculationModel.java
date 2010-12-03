@@ -67,6 +67,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
      * @param contextType          stratified context type
      * @param priors               priors to use for GLs
      * @param GLs                  hash of sample->GL to fill in
+     * @param alternateAlleleToUse the alternate allele to use, null if not set
      *
      * @return genotype likelihoods per sample for AA, AB, BB
      */
@@ -75,7 +76,8 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
                                           Map<String, StratifiedAlignmentContext> contexts,
                                           StratifiedAlignmentContext.StratifiedContextType contextType,
                                           GenotypePriors priors,
-                                          Map<String, BiallelicGenotypeLikelihoods> GLs);
+                                          Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                          Allele alternateAlleleToUse);
 
     protected int getFilteredDepth(ReadBackedPileup pileup) {
         int count = 0;

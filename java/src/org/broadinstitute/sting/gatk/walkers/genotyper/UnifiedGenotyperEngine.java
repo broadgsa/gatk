@@ -142,7 +142,7 @@ public class UnifiedGenotyperEngine {
      */
     public VariantCallContext calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
-        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, null);
         if ( vc == null )
             return null;
 
@@ -157,15 +157,16 @@ public class UnifiedGenotyperEngine {
      * @param tracker    the meta data tracker
      * @param refContext the reference base
      * @param rawContext contextual information around the locus
+     * @param alternateAlleleToUse the alternate allele to use, null if not set
      * @return the VariantContext object
      */
-    public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+    public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Allele alternateAlleleToUse) {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
-        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, alternateAlleleToUse);
         return GLsToPLs(vc);
     }
 
-    private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type) {
+    private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse) {
         if ( stratifiedContexts == null )
             return null;
 
@@ -175,7 +176,7 @@ public class UnifiedGenotyperEngine {
         }
 
         Map<String, BiallelicGenotypeLikelihoods> GLs = new HashMap<String, BiallelicGenotypeLikelihoods>();
-        Allele refAllele = glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, type, genotypePriors, GLs);
+        Allele refAllele = glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, type, genotypePriors, GLs, alternateAlleleToUse);
 
         if (refAllele != null)
             return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
@@ -332,7 +333,7 @@ public class UnifiedGenotyperEngine {
             if ( DEBUG_SLOD ) System.out.println("overallLog10PofF=" + overallLog10PofF);
 
             // the forward lod
-            VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD);
+            VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD, vc.getAlternateAllele(0));
             clearAFarray(log10AlleleFrequencyPosteriors.get());
             afcm.get().getLog10PNonRef(tracker, refContext, vcForward.getGenotypes(), log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
             //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
@@ -341,7 +342,7 @@ public class UnifiedGenotyperEngine {
             if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
             // the reverse lod
-            VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE);
+            VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE, vc.getAlternateAllele(0));
             clearAFarray(log10AlleleFrequencyPosteriors.get());
             afcm.get().getLog10PNonRef(tracker, refContext, vcReverse.getGenotypes(), log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
             //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
@@ -574,8 +575,10 @@ public class UnifiedGenotyperEngine {
             // all bits are set to false by default
             BitSet bitset = new BitSet(record.getReadLength());
 
-            // if the mapping quality is too low or the mate is bad, we can just zero out the whole read and continue
+            // if the mapping quality is too low or the mate is bad, we can just zero out the whole read and continue.
+            // note that, because we cap the base quality by the mapping quality, if MQ < minBQ then we can filter this read.
             if ( record.getMappingQuality() < UAC.MIN_MAPPING_QUALTY_SCORE ||
+                 record.getMappingQuality() < UAC.MIN_BASE_QUALTY_SCORE ||   
                  (!UAC.USE_BADLY_MATED_READS && BadMateFilter.hasBadMate(record)) ) {
                 return bitset;
             }

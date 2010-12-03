@@ -67,7 +67,8 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
                                  Map<String, StratifiedAlignmentContext> contexts,
                                  StratifiedAlignmentContext.StratifiedContextType contextType,
                                  GenotypePriors priors,
-                                 Map<String, BiallelicGenotypeLikelihoods> GLs) {
+                                 Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                 Allele alternateAlleleToUse) {  // TODO: use this instead of reading the 'indels' ROD from the tracker below                               
 
         if ( tracker == null )
             return null;
