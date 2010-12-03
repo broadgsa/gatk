@@ -81,10 +81,10 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     protected String variantStatsFilePrefix = null;
     private PhasingQualityStatsWriter statsWriter = null;
 
-    @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for phasing [default: 10]", required = false)
-    public int MIN_BASE_QUALITY_SCORE = 20;
+    @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for phasing [default: 17]", required = false)
+    public int MIN_BASE_QUALITY_SCORE = 17;
 
-    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for phasing [default: 10]", required = false)
+    @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for phasing [default: 20]", required = false)
     public int MIN_MAPPING_QUALITY_SCORE = 20;
 
     private GenomeLoc mostDownstreamLocusReached = null;
@@ -121,6 +121,15 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         rodNames = new LinkedList<String>();
         rodNames.add("variant");
+
+        /*
+         Since we cap each base quality (BQ) by its read's mapping quality (MQ) [in Read.updateBaseAndQuality()], then:
+         if minBQ > minMQ, then we require that MQ be >= minBQ as well.
+         [Otherwise, we end up capping BQ by MQ only AFTER we tried removing bases with BQ < minBQ, which is WRONG!]
+
+         To do this properly, we set: minMQ = max(minMQ, minBQ)
+         */
+        MIN_MAPPING_QUALITY_SCORE = Math.max(MIN_MAPPING_QUALITY_SCORE, MIN_BASE_QUALITY_SCORE);
 
         unphasedSiteQueue = new LinkedList<VariantAndReads>();
         partiallyPhasedSites = new DoublyLinkedList<UnfinishedVariantAndReads>();
