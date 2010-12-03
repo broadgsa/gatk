@@ -177,7 +177,10 @@ public class UnifiedGenotyperEngine {
         Map<String, BiallelicGenotypeLikelihoods> GLs = new HashMap<String, BiallelicGenotypeLikelihoods>();
         Allele refAllele = glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, type, genotypePriors, GLs);
 
-        return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
+        if (refAllele != null)
+            return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
+        else
+            return null;
     }
 
     private VariantContext createVariantContextFromLikelihoods(ReferenceContext refContext, Allele refAllele, Map<String, BiallelicGenotypeLikelihoods> GLs) {

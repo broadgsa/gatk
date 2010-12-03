@@ -88,7 +88,8 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         if (!vc.isIndel())
             return null;
 
-        if (sitesVisited.contains(new Integer(vc.getStart())))
+        if (sitesVisited.contains(new Integer(vc.getStart())) &&
+                contextType.equals(StratifiedAlignmentContext.StratifiedContextType.COMPLETE))
              return null;
 
         sitesVisited.add(new Integer(vc.getStart()));
