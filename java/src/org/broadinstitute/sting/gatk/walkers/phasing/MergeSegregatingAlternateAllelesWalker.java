@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
-import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
@@ -99,8 +98,8 @@ public class MergeSegregatingAlternateAllelesWalker extends RodWalker<Integer, I
             vcMergeRule = new SameGenePlusWithinDistanceMergeRule(maxGenomicDistance, genomeLocParser, mergeBasedOnRefSeqAnnotation);
 
         VariantContextUtils.AlleleMergeRule alleleMergeRule;
-        if (dontRequireSomeSampleHasDoubleAltAllele) // if a pair of VariantContext passes the vcMergeRule, then always merge them:
-            alleleMergeRule = new AlwaysMergeAllelesRule();
+        if (dontRequireSomeSampleHasDoubleAltAllele) // if a pair of VariantContext passes the vcMergeRule, then always merge them if there is a trailing prefix of polymorphisms (i.e., upstream polymorphic site):
+            alleleMergeRule = new PrefixPolymorphismMergeAllelesRule();
         else
             alleleMergeRule = new ExistsDoubleAltAlleleMergeRule();
 
@@ -231,8 +230,12 @@ class SameGenePlusWithinDistanceMergeRule extends DistanceMergeRule {
 
 
 
-class AlwaysMergeAllelesRule extends VariantContextUtils.AlleleMergeRule {
+class PrefixPolymorphismMergeAllelesRule extends VariantContextUtils.AlleleMergeRule {
     public boolean allelesShouldBeMerged(VariantContext vc1, VariantContext vc2) {
-        return true;
+        return vc1.isPolymorphic();
+    }
+
+    public String toString() {
+        return super.toString() + ", there exists a polymorphism at the start of the merged allele";
     }
 }
