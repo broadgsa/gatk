@@ -117,7 +117,10 @@ public class UnifiedGenotyperEngine {
     }
 
     private void initialize(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, int numSamples) {
-        this.UAC = UAC;
+        // note that, because we cap the base quality by the mapping quality, minMQ cannot be less than minBQ
+        this.UAC = UAC.clone();
+        this.UAC.MIN_MAPPING_QUALTY_SCORE = Math.max(UAC.MIN_MAPPING_QUALTY_SCORE, UAC.MIN_BASE_QUALTY_SCORE);
+
         this.logger = logger;
         this.verboseWriter = verboseWriter;
         this.annotationEngine = engine;
@@ -575,10 +578,8 @@ public class UnifiedGenotyperEngine {
             // all bits are set to false by default
             BitSet bitset = new BitSet(record.getReadLength());
 
-            // if the mapping quality is too low or the mate is bad, we can just zero out the whole read and continue.
-            // note that, because we cap the base quality by the mapping quality, if MQ < minBQ then we can filter this read.
+            // if the mapping quality is too low or the mate is bad, we can just zero out the whole read and continue
             if ( record.getMappingQuality() < UAC.MIN_MAPPING_QUALTY_SCORE ||
-                 record.getMappingQuality() < UAC.MIN_BASE_QUALTY_SCORE ||   
                  (!UAC.USE_BADLY_MATED_READS && BadMateFilter.hasBadMate(record)) ) {
                 return bitset;
             }
