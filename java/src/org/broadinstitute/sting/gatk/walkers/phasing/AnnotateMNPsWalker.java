@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.phasing;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -60,6 +61,9 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
     @Output(doc = "File to which variants should be written", required = true)
     protected VCFWriter writer = null;
     private ManualSortingVCFWriter sortingWriter = null;
+
+    @Argument(fullName = "emitOnlyMNPs", shortName = "emitOnlyMNPs", doc = "Only output MNP records; [default:false]", required = false)
+    protected boolean emitOnlyMNPs = false;    
 
     private LinkedList<String> rodNames = null;
     private GenomeLocParser locParser = null;
@@ -203,7 +207,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                     }
                 }
             }
-            else if (atStartOfVc) {// only want to write other VariantContexts records once (where they start):
+            else if (atStartOfVc && !emitOnlyMNPs) {// only want to write other VariantContexts records once (where they start):
                 writeVCF(vc);
             }
         }
