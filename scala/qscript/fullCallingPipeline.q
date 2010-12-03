@@ -205,7 +205,7 @@ class fullCallingPipeline extends QScript {
     snps.jobOutputFile = new File(".queue/logs/SNPCalling/UnifiedGenotyper.out")
     snps.analysisName = base+"_SNP_calls"
     snps.input_file = bamFiles
-    snps.annotation ++= List("AlleleBalance")
+    //snps.annotation ++= List("AlleleBalance")
     snps.input_file = bamFiles
     snps.group :+= "Standard"
     snps.out = new File("SnpCalls", base+".vcf")
@@ -215,7 +215,7 @@ class fullCallingPipeline extends QScript {
     snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
     //snps.annotation :+= "QualByDepthV2"
     snps.DBSNP = qscript.pipeline.getProject.getDbsnpFile
-
+    snps.memoryLimit = Some(6)
     //if (qscript.trigger != null) {
     //  snps.trigger_min_confidence_threshold_for_calling = Some(30)
     //  snps.rodBind :+= RodBind("trigger", "VCF", qscript.trigger)
@@ -320,44 +320,44 @@ class fullCallingPipeline extends QScript {
     // 3.i generate gaussian clusters on the masked vcf
     // todo -- args for annotations?
     // todo -- args for resources (properties file)
-    val clusters = new GenerateVariantClusters with CommandLineGATKArgs
-    clusters.jobOutputFile = new File(".queue/logs/SNPCalling/Clusters.out")
-    clusters.rodBind :+= RodBind("input", "VCF", masker.out)
-    clusters.DBSNP = qscript.pipeline.getProject.getDbsnpFile
-    val clusters_clusterFile = swapExt("SnpCalls/IntermediateFiles",snps.out,".vcf",".cluster")
-    clusters.clusterFile = clusters_clusterFile
-    clusters.memoryLimit = Some(4)
-    clusters.jobQueue = qscript.big_mem_queue
+   // val clusters = new GenerateVariantClusters with CommandLineGATKArgs
+  //  clusters.jobOutputFile = new File(".queue/logs/SNPCalling/Clusters.out")
+  //  clusters.rodBind :+= RodBind("input", "VCF", masker.out)
+  //  clusters.rodBind :+= RodBind("dbsnp", "ROD", qscript.pipeline.getProject.getDbsnpFile)
+  //  val clusters_clusterFile = swapExt("SnpCalls/IntermediateFiles",snps.out,".vcf",".cluster")
+  //  clusters.clusterFile = clusters_clusterFile
+  //  clusters.memoryLimit = Some(4)
+  //  clusters.jobQueue = qscript.big_mem_queue
 
-    clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
-    clusters.analysisName = base+"_Cluster"
+   // clusters.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
+   // clusters.analysisName = base+"_Cluster"
 
     // 3.ii apply gaussian clusters to the masked vcf
-    val recalibrate = new VariantRecalibrator with CommandLineGATKArgs
-    recalibrate.jobOutputFile = new File(".queue/logs/SNPCalling/Recalibrator.out")
-    recalibrate.clusterFile = clusters.clusterFile
-    recalibrate.DBSNP = qscript.pipeline.getProject.getDbsnpFile
-    recalibrate.rodBind :+= RodBind("input", "VCF", masker.out)
-    recalibrate.out = swapExt("SnpCalls",masker.out,".vcf",".recalibrated.vcf")
-    recalibrate.target_titv = qscript.target_titv
-    recalibrate.tranches_file = swapExt("SnpCalls/IntermediateFiles", masker.out,".vcf",".recalibrate.tranches")
-    recalibrate.analysisName = base+"_VariantRecalibrator"
+   // val recalibrate = new VariantRecalibrator with CommandLineGATKArgs
+   // recalibrate.jobOutputFile = new File(".queue/logs/SNPCalling/Recalibrator.out")
+   // recalibrate.clusterFile = clusters.clusterFile
+   // recalibrate.DBSNP = qscript.pipeline.getProject.getDbsnpFile
+  //  recalibrate.rodBind :+= RodBind("input", "VCF", masker.out)
+  //  recalibrate.out = swapExt("SnpCalls",masker.out,".vcf",".recalibrated.vcf")
+//    recalibrate.target_titv = qscript.target_titv
+   // recalibrate.tranches_file = swapExt("SnpCalls/IntermediateFiles", masker.out,".vcf",".recalibrate.tranches")
+   // recalibrate.analysisName = base+"_VariantRecalibrator"
 
     // 3.iii apply variant cuts to the clusters
-    val cut = new ApplyVariantCuts with CommandLineGATKArgs
-    cut.jobOutputFile = new File(".queue/logs/SNPCalling/VariantCuts.out")
-    cut.rodBind :+= RodBind("input", "VCF", recalibrate.out)
-    cut.out = swapExt("SnpCalls",recalibrate.out,".vcf",".tranched.vcf")
-    cut.tranches_file = recalibrate.tranches_file
+   // val cut = new ApplyVariantCuts with CommandLineGATKArgs
+   // cut.jobOutputFile = new File(".queue/logs/SNPCalling/VariantCuts.out")
+   // cut.rodBind :+= RodBind("input", "VCF", recalibrate.out)
+   // cut.out = swapExt("SnpCalls",recalibrate.out,".vcf",".tranched.vcf")
+    //cut.tranches_file = recalibrate.tranches_file
     // todo -- fdr inputs, etc
-    cut.fdr_filter_level = Some(1)
-    cut.analysisName = base+"_ApplyVariantCuts"
+//    cut.fdr_filter_level = Some(1)
+  //  cut.analysisName = base+"_ApplyVariantCuts"
 
     // 4. Variant eval the cut and the hand-filtered vcf files
     val eval = new VariantEval with CommandLineGATKArgs
     eval.jobOutputFile = new File(".queue/logs/SNPCalling/VariantEval.out")
-    eval.rodBind :+= RodBind("evalOptimized", "VCF", cut.out)
-    eval.rodBind :+= RodBind("evalHandFiltered", "VCF", handFilter.out)
+   // eval.rodBind :+= RodBind("evalOptimized", "VCF", cut.out)
+    eval.rodBind :+= RodBind("eval", "VCF", handFilter.out)
     eval.evalModule ++= List("SimpleMetricsBySample", "CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
     eval.reportLocation = new File("SnpCalls", base+".eval")
     eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.R)
@@ -397,6 +397,6 @@ class fullCallingPipeline extends QScript {
     }
 
 //    add(mergeIndels,annotated,masker,handFilter,clusters,recalibrate,cut,eval,adpr)
-    add(mergeIndels,annotated,masker,handFilter,clusters,recalibrate,cut,eval)
+    add(mergeIndels,annotated,masker,handFilter,eval)
   }
 }
