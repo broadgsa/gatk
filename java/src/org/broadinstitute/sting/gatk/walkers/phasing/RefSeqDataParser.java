@@ -132,6 +132,19 @@ public class RefSeqDataParser {
         return refSeqNameAttribs;
     }
 
+    public static Map<String, Object> removeRefSeqAttributes(Map<String, Object> attributes) {
+        Map<String, Object> removedRefSeqAttributes = new HashMap<String, Object>(attributes);
+
+        Iterator<Map.Entry<String, Object>> attrIt = removedRefSeqAttributes.entrySet().iterator();
+        while (attrIt.hasNext()) {
+            String key = attrIt.next().getKey();
+            if (key.startsWith(REFSEQ_PREFIX))
+                attrIt.remove();
+        }
+
+        return removedRefSeqAttributes;
+    }
+
     private static Map<String, RefSeqEntry> getAllRefSeqEntriesByName(VariantContext vc) {
         Map<String, RefSeqEntry> nameToEntries = new TreeMap<String, RefSeqEntry>();
 

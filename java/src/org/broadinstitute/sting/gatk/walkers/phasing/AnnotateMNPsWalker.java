@@ -190,7 +190,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                     logger.debug("Current list of per-locus features\n" + locusToRefSeqFeatures);
 
                     Map<String, Object> MNPannotations = annotateMNP(vc);
-                    MNPannotations.putAll(vc.getAttributes());
+                    MNPannotations.putAll(RefSeqDataParser.removeRefSeqAttributes(vc.getAttributes())); // remove any RefSeq INFO, since adding it in more thoroughly here
                     vc = VariantContext.modifyAttributes(vc, MNPannotations);
                     writeVCF(vc);
 
