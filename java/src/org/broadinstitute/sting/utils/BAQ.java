@@ -463,6 +463,8 @@ public class BAQ {
         if ( DEBUG ) System.out.printf("BAQ %s read %s%n", calculationType, read.getReadName());
         if ( calculationType == Mode.NONE ) { // we don't want to do anything
             ; // just fall though
+        } else if ( read.getReadUnmappedFlag() ) {
+            ; // just fall through
         } else if ( calculationType == Mode.USE_TAG_ONLY ) {
             calcBAQFromTag(read, true, true);
         } else {
