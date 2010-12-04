@@ -1,10 +1,12 @@
 package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.filter.SamRecordFilter;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.utils.BAQ;
 
 import java.util.List;
 import java.util.Collection;
@@ -35,7 +37,11 @@ public class ReadProperties {
     private Collection<SamRecordFilter> supplementalFilters = null;
     private boolean includeReadsWithDeletionAtLoci = false;
     private boolean useOriginalBaseQualities = false;
-    private boolean generateExtendedEvents = false; // do we want to generate additional piles of "extended" events (indels)
+    private boolean generateExtendedEvents = false;
+    private BAQ.Mode mode = BAQ.Mode.NONE;
+    IndexedFastaSequenceFile refReader = null; // read for BAQ, if desired
+
+    // do we want to generate additional piles of "extended" events (indels)
 // immediately after the reference base such event is associated with?
 
 
@@ -120,6 +126,15 @@ public class ReadProperties {
         return useOriginalBaseQualities;
     }
 
+
+    public BAQ.Mode getBAQMode() {
+        return mode;
+    }
+
+    public IndexedFastaSequenceFile getRefReader() {
+        return refReader;
+    }
+
     /**
      * Extract the command-line arguments having to do with reads input
      * files and store them in an easy-to-work-with package.  Constructor
@@ -138,6 +153,8 @@ public class ReadProperties {
      * @param includeReadsWithDeletionAtLoci if 'true', the base pileups sent to the walker's map() method
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
+     * @param mode How should we apply the BAQ calculation to the reads?
+     * @param refReader if applyBAQ is true, must be a valid pointer to a indexed fasta file reads so we can get the ref bases for BAQ calculation
      */
     public ReadProperties( List<SAMReaderID> samFiles,
            SAMFileHeader header,
@@ -148,7 +165,9 @@ public class ReadProperties {
            ValidationExclusion exclusionList,
            Collection<SamRecordFilter> supplementalFilters,
            boolean includeReadsWithDeletionAtLoci,
-           boolean generateExtendedEvents) {
+           boolean generateExtendedEvents,
+           BAQ.Mode mode,
+           IndexedFastaSequenceFile refReader ) {
         this.readers = samFiles;
         this.header = header;
         this.readBufferSize = readBufferSize;
@@ -159,5 +178,7 @@ public class ReadProperties {
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
         this.generateExtendedEvents = generateExtendedEvents;
         this.useOriginalBaseQualities = useOriginalBaseQualities;
+        this.mode = mode;
+        this.refReader = refReader;
     }
 }

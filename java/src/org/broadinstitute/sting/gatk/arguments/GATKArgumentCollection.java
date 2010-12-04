@@ -34,6 +34,7 @@ import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
+import org.broadinstitute.sting.utils.BAQ;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persister;
 import org.simpleframework.xml.stream.Format;
@@ -148,6 +149,10 @@ public class GATKArgumentCollection {
             return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,downsampleCoverage,null);
         return new DownsamplingMethod(downsamplingType,downsampleCoverage,downsampleFraction);
     }
+
+    @Element(required = false)
+    @Argument(fullName = "baq", shortName="baq", doc="Type of BAQ calculation to apply in the engine", required = false)
+    public BAQ.Mode BAQMode = BAQ.Mode.NONE;
 
     /**
      * Gets the default downsampling method, returned if the user didn't specify any downsampling
@@ -336,11 +341,9 @@ public class GATKArgumentCollection {
             return false;
         }
         if (BTIMergeRule != other.BTIMergeRule)
-                return false;
-
-//        if (other.enableRodWalkers != this.enableRodWalkers) {
-//            return false;
-//        }
+            return false;
+        if ( BAQMode != other.BAQMode)
+            return false;
 
         return true;
     }

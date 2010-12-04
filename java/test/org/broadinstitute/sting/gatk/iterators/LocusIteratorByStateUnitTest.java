@@ -13,6 +13,7 @@ import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.BAQ;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
@@ -146,7 +147,8 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
                 new ValidationExclusion(),
                 new ArrayList<SamRecordFilter>(),
                 false,
-                false
+                false,
+                BAQ.Mode.NONE, null // no BAQ
         );
     }
 }

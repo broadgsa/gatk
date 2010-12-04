@@ -4,16 +4,11 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.RuntimeIOException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.gatk.ReadProperties;
 
 import java.util.Iterator;
 
 /**
- * Created by IntelliJ IDEA.
- * User: mdepristo
- * Date: Mar 15, 2009
- * Time: 6:02:31 PM
- * To change this template use File | Settings | File Templates.
+ * Verifies that the incoming stream of reads is correctly sorted
  */
 public class VerifyingSamIterator implements StingSAMIterator {
     private GenomeLocParser genomeLocParser;

@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.filter.SamRecordFilter;
 import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -318,7 +319,7 @@ public abstract class AbstractGenomeAnalysisEngine {
         referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
 
         validateSuppliedReads();
-        readsDataSource = createReadsDataSource(genomeLocParser);
+        readsDataSource = createReadsDataSource(genomeLocParser, referenceDataSource.getReference());
 
         sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
 
@@ -540,7 +541,7 @@ public abstract class AbstractGenomeAnalysisEngine {
      *
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource createReadsDataSource(GenomeLocParser genomeLocParser) {
+    private SAMDataSource createReadsDataSource(GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
         DownsamplingMethod method = getDownsamplingMethod();
 
         return new SAMDataSource(
@@ -553,7 +554,8 @@ public abstract class AbstractGenomeAnalysisEngine {
                 new ValidationExclusion(Arrays.asList(argCollection.unsafe)),
                 filters,
                 includeReadsWithDeletionAtLoci(),
-                generateExtendedEvents());
+                generateExtendedEvents(),
+                argCollection.BAQMode, refReader);
     }
 
     /**
