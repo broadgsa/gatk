@@ -69,6 +69,7 @@ import static java.lang.Math.pow;
 public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     protected final static int FIXED_PLOIDY = 2;
     protected final static int MAX_PLOIDY = FIXED_PLOIDY + 1;
+    protected final static double ploidyAdjustment = log10(FIXED_PLOIDY);
 
     protected boolean enableCacheFlag = true;
     protected boolean VERBOSE = false;
@@ -407,8 +408,6 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
             gl.setToZero();
 
             // we need to adjust for ploidy.  We take the raw p(obs | chrom) / ploidy, which is -log10(ploidy) in log space
-            double ploidyAdjustment = log10(FIXED_PLOIDY);
-
             for ( DiploidGenotype g : DiploidGenotype.values() ) {
 
                 // todo assumes ploidy is 2 -- should be generalized.  Obviously the below code can be turned into a loop
