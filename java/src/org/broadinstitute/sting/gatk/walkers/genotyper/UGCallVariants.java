@@ -95,7 +95,6 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
         if ( tracker == null )
             return null;
 
-
         List<VariantContext> VCs = new ArrayList<VariantContext>();
         for ( String name : trackNames ) {
             Collection<VariantContext> vc = tracker.getVariantContexts(ref, name, null, context.getLocation(), true, true);
@@ -135,11 +134,19 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
         if ( VCs.size() == 0 )
             return null;
 
-        VariantContext vc = VCs.get(0);
-        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(getGenotypesWithGLs(vc.getGenotypes()));
-        for (int i = 1; i < VCs.size(); i++)
-            genotypes.putAll(getGenotypesWithGLs(VCs.get(i).getGenotypes()));
-        return new VariantContext("VCwithGLs", vc.getChr(), vc.getStart(), vc.getEnd(), vc.getAlleles(), genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null);
+        VariantContext variantVC = null;
+        Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+        for ( VariantContext vc : VCs ) {
+            if ( variantVC == null && vc.isVariant() )
+                variantVC = vc;
+            genotypes.putAll(getGenotypesWithGLs(vc.getGenotypes()));
+        }
+
+        if ( variantVC == null ) {
+            VariantContext vc = VCs.get(0);
+            throw new UserException("There is no ALT allele in any of the VCF records passed in at " + vc.getChr() + ":" + vc.getStart());
+        }
+        return new VariantContext("VCwithGLs", variantVC.getChr(), variantVC.getStart(), variantVC.getEnd(), variantVC.getAlleles(), genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, null);
     }
 
     private static Map<String, Genotype> getGenotypesWithGLs(Map<String, Genotype> genotypes) {
