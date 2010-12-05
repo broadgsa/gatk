@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -64,7 +65,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         readers = new ArrayList<SAMReaderID>();
 
         // sequence
-        seq = new IndexedFastaSequenceFile(new File(hg18Reference));
+        seq = new CachingIndexedFastaSequenceFile(new File(hg18Reference));
         genomeLocParser = new GenomeLocParser(seq.getSequenceDictionary());
     }
 

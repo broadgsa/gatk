@@ -11,6 +11,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import org.testng.annotations.Test;
 import org.testng.annotations.BeforeClass;
@@ -39,7 +40,7 @@ public class VCFWriterUnitTest extends BaseTest {
 
     @BeforeClass
     public void beforeTests() {
-        IndexedFastaSequenceFile seq = new IndexedFastaSequenceFile(new File(hg18Reference));
+        IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(hg18Reference));
         genomeLocParser = new GenomeLocParser(seq);
     }
 

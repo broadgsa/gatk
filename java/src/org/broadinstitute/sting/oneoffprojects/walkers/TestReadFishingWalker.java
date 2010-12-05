@@ -37,6 +37,7 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.StringUtil;
 import net.sf.picard.reference.ReferenceSequence;
@@ -82,7 +83,7 @@ public class TestReadFishingWalker extends ReadWalker<Integer,Long> {
         IndexedFastaSequenceFile referenceReader;
         FileInputStream indelCallInputStream;
         try {
-            referenceReader = new IndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
+            referenceReader = new CachingIndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
             indelCallInputStream = new FileInputStream(indelCalls);
         }
         catch(IOException ex) {

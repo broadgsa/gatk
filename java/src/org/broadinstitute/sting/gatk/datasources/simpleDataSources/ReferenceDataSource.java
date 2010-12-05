@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 
@@ -177,7 +178,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
                 logger.info("Treating existing index file as complete.");
             }
 
-            index = new IndexedFastaSequenceFile(fastaFile);
+            index = new CachingIndexedFastaSequenceFile(fastaFile);
 
         }
         catch (Exception e) {

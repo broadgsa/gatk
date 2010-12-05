@@ -7,6 +7,7 @@ import org.testng.Assert;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -27,7 +28,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @BeforeClass
     public void init() {
-        ReferenceSequenceFile seq = new IndexedFastaSequenceFile(reference);
+        ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(reference);
         genomeLocParser = new GenomeLocParser(seq);
     }
 

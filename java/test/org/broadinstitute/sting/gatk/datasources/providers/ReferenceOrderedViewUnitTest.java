@@ -11,6 +11,7 @@ import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -53,7 +54,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     @BeforeClass
     public void init() throws FileNotFoundException {
         // sequence
-        seq = new IndexedFastaSequenceFile(new File(hg18Reference));
+        seq = new CachingIndexedFastaSequenceFile(new File(hg18Reference));
         genomeLocParser = new GenomeLocParser(seq);
         builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
     }

@@ -82,7 +82,7 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
                 out.printf("  read bases    : %s%n", new String(read.getReadBases()));
                 out.printf("  ref length    : %d%n", baq.refBases.length);
                 out.printf("  BQ tag        : %s%n", read.getStringAttribute(BAQ.BAQ_TAG));
-                printQuals("  BQ deltas     : ", BAQ.getBAQDeltas(read), true);
+                printQuals("  BQ deltas     : ", getBAQDeltas(read), true);
                 printQuals("  original quals: ", read.getBaseQualities(), true);
                 printQuals("  original quals: ", read.getBaseQualities());
                 printQuals("  tag      quals: ", baqFromTag);
@@ -131,6 +131,22 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
                 out.print((char)(quals[i]+33));
         }
         out.println();
+    }
+
+    /**
+     * Get the BAQ delta bytes from the tag in read.  Returns null if no BAQ tag is present.
+     * @param read
+     * @return
+     */
+    public static byte[] getBAQDeltas(SAMRecord read) {
+        byte[] baq = BAQ.getBAQTag(read);
+        if ( baq != null ) {
+            byte[] deltas = new byte[baq.length];
+            for ( int i = 0; i < deltas.length; i++)
+                deltas[i] = (byte)(-1 * (baq[i] - 64));
+            return deltas;
+        } else
+            return null;
     }
 
     public Integer reduceInit() { return 0; }

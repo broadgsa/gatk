@@ -16,6 +16,7 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -76,7 +77,7 @@ public class RMDIndexer extends CommandLineProgram {
         // ---------------------------------------------------------------------------------
 
         // setup the reference
-        ref = new IndexedFastaSequenceFile(referenceFile);
+        ref = new CachingIndexedFastaSequenceFile(referenceFile);
         genomeLocParser = new GenomeLocParser(ref);
 
         // get a track builder

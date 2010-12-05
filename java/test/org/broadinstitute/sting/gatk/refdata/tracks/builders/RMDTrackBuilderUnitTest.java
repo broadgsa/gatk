@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
 
 import org.testng.annotations.BeforeMethod;
@@ -58,7 +59,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
 
     @BeforeMethod
     public void setup() {
-        seq = new IndexedFastaSequenceFile(new File(b36KGReference));
+        seq = new CachingIndexedFastaSequenceFile(new File(b36KGReference));
         genomeLocParser = new GenomeLocParser(seq);
         builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
     }

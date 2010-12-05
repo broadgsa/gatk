@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import static org.testng.Assert.assertTrue;
 import org.testng.annotations.BeforeMethod;
@@ -49,7 +50,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @BeforeClass
     public void init() throws FileNotFoundException {
-        seq = new IndexedFastaSequenceFile(new File(hg18Reference));
+        seq = new CachingIndexedFastaSequenceFile(new File(hg18Reference));
         genomeLocParser = new GenomeLocParser(seq);
 
         testSite1 = genomeLocParser.createGenomeLoc("chrM",10);

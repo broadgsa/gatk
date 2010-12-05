@@ -41,6 +41,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecordFilter;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -132,7 +133,7 @@ public class UnifiedGenotyperEngine {
 
         filter.add(LOW_QUAL_FILTER_NAME);
 
-        referenceReader = new IndexedFastaSequenceFile(toolkit.getArguments().referenceFile);
+        referenceReader = new CachingIndexedFastaSequenceFile(toolkit.getArguments().referenceFile);
     }
 
     /**

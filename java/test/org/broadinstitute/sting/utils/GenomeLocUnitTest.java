@@ -9,6 +9,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -26,7 +27,7 @@ public class GenomeLocUnitTest extends BaseTest {
     @BeforeClass
     public void init() throws FileNotFoundException {
         // sequence
-        seq = new IndexedFastaSequenceFile(new File(hg18Reference));
+        seq = new CachingIndexedFastaSequenceFile(new File(hg18Reference));
         genomeLocParser = new GenomeLocParser(seq);
     }
 

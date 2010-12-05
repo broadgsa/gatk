@@ -4,6 +4,7 @@ import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -22,7 +23,7 @@ public class BedParserUnitTest extends BaseTest {
 
     @BeforeClass
     public void beforeTests() {
-        seq = new IndexedFastaSequenceFile(new File(b36KGReference));
+        seq = new CachingIndexedFastaSequenceFile(new File(b36KGReference));
         genomeLocParser = new GenomeLocParser(seq);
     }
 

@@ -15,6 +15,7 @@ import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import static org.testng.Assert.fail;
 
@@ -73,7 +74,7 @@ public class TraverseReadsUnitTest extends BaseTest {
 
     @BeforeClass
     public void doOnce() {
-        ref = new IndexedFastaSequenceFile(refFile);
+        ref = new CachingIndexedFastaSequenceFile(refFile);
         genomeLocParser = new GenomeLocParser(ref);
 
         engine = new GenomeAnalysisEngine();

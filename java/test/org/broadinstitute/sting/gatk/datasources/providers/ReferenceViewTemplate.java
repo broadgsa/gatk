@@ -5,6 +5,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -43,7 +44,7 @@ public abstract class ReferenceViewTemplate extends BaseTest {
      */
     @BeforeClass
     public void initialize() throws FileNotFoundException {
-        sequenceFile = new IndexedFastaSequenceFile( new File(hg18Reference) );
+        sequenceFile = new CachingIndexedFastaSequenceFile( new File(hg18Reference) );
         genomeLocParser = new GenomeLocParser(sequenceFile);
     }
 

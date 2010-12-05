@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMSequenceRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -38,6 +39,7 @@ public class BAQ {
     public enum Mode {
         NONE,                       // don't apply a BAQ at all, the default
         USE_TAG_ONLY,               // only use the TAG, if present, in the reads
+        ADD_TAG_ONLY,               // calculate the BAQ, but write it into the reads as the BAQ tag, leaving QUAL field alone
         CALCULATE_AS_NECESSARY,     // do HMM BAQ calculation on the fly, as necessary, if there's no tag
         RECALCULATE_ALWAYS          // do HMM BAQ calculation on the fly, regardless of whether there's a tag present
     }
@@ -266,6 +268,22 @@ public class BAQ {
 		return 0;
 	}
 
+    // ---------------------------------------------------------------------------------------------------------------
+    //
+    // Helper routines
+    //
+    // ---------------------------------------------------------------------------------------------------------------
+
+    /** decode the bit encoded state array values */
+    private static boolean stateIsIndel(int state) {
+        return (state & 3) != 0;
+    }
+
+    /** decode the bit encoded state array values */
+    private static int stateAlignedPosition(int state) {
+        return state >> 2;
+    }
+
     /**
      * helper routine for hmm_glocal
      *
@@ -296,6 +314,13 @@ public class BAQ {
         return out;
     }
 
+
+    // ---------------------------------------------------------------------------------------------------------------
+    //
+    // Actually working with the BAQ tag now
+    //
+    // ---------------------------------------------------------------------------------------------------------------
+    
     /**
      * Get the BAQ attribute from the tag in read.  Returns null if no BAQ tag is present.
      * @param read
@@ -306,21 +331,20 @@ public class BAQ {
         return s != null ? s.getBytes() : null;
     }
 
-    /**
-      * Get the BAQ delta bytes from the tag in read.  Returns null if no BAQ tag is present.
-      * @param read
-      * @return
-      */
-     public static byte[] getBAQDeltas(SAMRecord read) {
-        byte[] baq = getBAQTag(read);
-        if ( baq != null ) {
-            byte[] deltas = new byte[baq.length];
-            for ( int i = 0; i < deltas.length; i++)
-                deltas[i] = (byte)(-1 * (baq[i] - 64));
-            return deltas;
-        } else
-            return null;
+    public static String encodeBQTag(SAMRecord read, byte[] baq) {
+        // Offset to base alignment quality (BAQ), of the same length as the read sequence.
+        // At the i-th read base, BAQi = Qi - (BQi - 64) where Qi is the i-th base quality.
+        // so BQi = Qi - BAQi + 64
+        byte[] bqTag = new byte[baq.length];
+        for ( int i = 0; i < bqTag.length; i++)
+            bqTag[i] = (byte)(((int)read.getBaseQualities()[i] + 64) - baq[i]);
+        return new String(bqTag);
     }
+
+    public static void addBAQTag(SAMRecord read, byte[] baq) {
+        read.setAttribute(BAQ_TAG, encodeBQTag(read, baq));
+    }
+
 
     /**
       * Returns true if the read has a BAQ tag, or false otherwise
@@ -346,7 +370,7 @@ public class BAQ {
 
         if ( baq != null ) {
             // Offset to base alignment quality (BAQ), of the same length as the read sequence.
-            // At the i-th read base, BAQi = Qi ? (BQi ? 64) where Qi is the i-th base quality.
+            // At the i-th read base, BAQi = Qi - (BQi - 64) where Qi is the i-th base quality.
             newQuals = overwriteOriginalQuals ? rawQuals : new byte[rawQuals.length];
             for ( int i = 0; i < rawQuals.length; i++) {
                 int val = rawQuals[i] - (baq[i] - 64);
@@ -397,13 +421,18 @@ public class BAQ {
     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, IndexedFastaSequenceFile refReader) {
         // start is alignment start - band width / 2 - size of first I element, if there is one.  Stop is similar
         int offset = getBandWidth() / 2;
-        int start = read.getAlignmentStart() - offset - getFirstInsertionOffset(read);
-        int stop = read.getAlignmentEnd() + offset + getLastInsertionOffset(read);
+        long start = read.getAlignmentStart() - offset - getFirstInsertionOffset(read);
+        long stop = read.getAlignmentEnd() + offset + getLastInsertionOffset(read);
 
-        // now that we have the start and stop, get the reference sequence covering it
-        ReferenceSequence refSeq = refReader.getSubsequenceAt(read.getReferenceName(), start, stop);
+        if ( stop > refReader.getSequenceDictionary().getSequence(read.getReferenceName()).getSequenceLength() ) {
+            return null;
+        } else {
 
-        return calcBAQFromHMM(read, refSeq.getBases(), - (offset + getFirstInsertionOffset(read)));
+            // now that we have the start and stop, get the reference sequence covering it
+            ReferenceSequence refSeq = refReader.getSubsequenceAt(read.getReferenceName(), start, stop);
+
+            return calcBAQFromHMM(read, refSeq.getBases(), - (offset + getFirstInsertionOffset(read)));
+        }
     }
 
     // we need to bad ref by at least the bandwidth / 2 on either side
@@ -463,15 +492,21 @@ public class BAQ {
         if ( DEBUG ) System.out.printf("BAQ %s read %s%n", calculationType, read.getReadName());
         if ( calculationType == Mode.NONE ) { // we don't want to do anything
             ; // just fall though
-        } else if ( read.getReadUnmappedFlag() ) {
+        } else if ( excludeReadFromBAQ(read) ) {
             ; // just fall through
         } else if ( calculationType == Mode.USE_TAG_ONLY ) {
             calcBAQFromTag(read, true, true);
         } else {
-            if ( calculationType == Mode.RECALCULATE_ALWAYS || ! hasBAQTag(read) ) {
+            if ( calculationType == Mode.RECALCULATE_ALWAYS || ! hasBAQTag(read) || calculationType == Mode.ADD_TAG_ONLY ) {
                 if ( DEBUG ) System.out.printf("  Calculating BAQ on the fly%n");
                 BAQCalculationResult hmmResult = calcBAQFromHMM(read, refReader);
-                System.arraycopy(hmmResult.bq, 0, read.getBaseQualities(), 0, hmmResult.bq.length);
+                if ( hmmResult != null ) {
+                    if ( calculationType == Mode.ADD_TAG_ONLY )
+                        addBAQTag(read, hmmResult.bq);
+                    else
+                        // modify QUALs directly
+                        System.arraycopy(hmmResult.bq, 0, read.getBaseQualities(), 0, hmmResult.bq.length);
+                }
             } else {
                 if ( DEBUG ) System.out.printf("  Taking BAQ from tag%n");
                 // this overwrites the original qualities
@@ -482,11 +517,15 @@ public class BAQ {
         return read;
     }
 
-    private static boolean stateIsIndel(int state) {
-        return (state & 3) != 0;
-    }
-
-    private static int stateAlignedPosition(int state) {
-        return state >> 2;
+    /**
+     * Returns true if we don't think this read is eligable for the BAQ calculation.  Examples include non-PF reads,
+     * duplicates, or unmapped reads.  Used by baqRead to determine if a read should fall through the calculation.
+     *
+     * @param read
+     * @return
+     */
+    public boolean excludeReadFromBAQ(SAMRecord read) {
+        // keeping mapped reads, regardless of pairing status, or primary alignment status.
+        return read.getReadUnmappedFlag() || read.getReadFailsVendorQualityCheckFlag() || read.getDuplicateReadFlag();
     }
 }

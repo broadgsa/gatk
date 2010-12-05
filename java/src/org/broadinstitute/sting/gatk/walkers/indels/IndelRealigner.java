@@ -45,6 +45,7 @@ import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.interval.NwayIntervalMergingIterator;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
@@ -212,7 +213,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( MISMATCH_THRESHOLD <= 0.0 || MISMATCH_THRESHOLD > 1.0 )
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
-        referenceReader = new IndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
+        referenceReader = new CachingIndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
 
         if ( !TARGET_NOT_SORTED ) {
 

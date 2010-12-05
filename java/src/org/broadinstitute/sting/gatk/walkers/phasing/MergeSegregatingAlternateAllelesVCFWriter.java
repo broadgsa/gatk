@@ -35,6 +35,7 @@ import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
@@ -72,7 +73,7 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
     public MergeSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, VariantContextMergeRule vcMergeRule, VariantContextUtils.AlleleMergeRule alleleMergeRule, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
         this.innerWriter = innerWriter;
         this.genomeLocParser = genomeLocParser;
-        this.referenceFileForMNPmerging = new IndexedFastaSequenceFile(referenceFile);
+        this.referenceFileForMNPmerging = new CachingIndexedFastaSequenceFile(referenceFile);
         this.vcMergeRule = vcMergeRule;
         this.alleleMergeRule = alleleMergeRule;
         this.useSingleSample = singleSample;
