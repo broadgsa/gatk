@@ -421,7 +421,7 @@ public class BAQ {
     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, IndexedFastaSequenceFile refReader) {
         // start is alignment start - band width / 2 - size of first I element, if there is one.  Stop is similar
         int offset = getBandWidth() / 2;
-        long start = read.getAlignmentStart() - offset - getFirstInsertionOffset(read);
+        long start = Math.max(read.getAlignmentStart() - offset - getFirstInsertionOffset(read), 0);
         long stop = read.getAlignmentEnd() + offset + getLastInsertionOffset(read);
 
         if ( stop > refReader.getSequenceDictionary().getSequence(read.getReferenceName()).getSequenceLength() ) {
@@ -431,7 +431,8 @@ public class BAQ {
             // now that we have the start and stop, get the reference sequence covering it
             ReferenceSequence refSeq = refReader.getSubsequenceAt(read.getReferenceName(), start, stop);
 
-            return calcBAQFromHMM(read, refSeq.getBases(), - (offset + getFirstInsertionOffset(read)));
+            // todo -- think about last tiny bit of logic -- should be fine but need to convince myself that it's 100% correct
+            return calcBAQFromHMM(read, refSeq.getBases(), (int)(start - read.getAlignmentStart()));
         }
     }
 
