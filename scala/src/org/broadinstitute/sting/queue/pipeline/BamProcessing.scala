@@ -16,10 +16,13 @@ import org.broadinstitute.sting.queue.util.{PipelineUtils, IOUtils}
 import org.broadinstitute.sting.commandline.{Output, Input}
 import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 
-class BamProcessing(yaml: File, gatkJar: File, fixMatesJar: File) {
+class BamProcessing(attribs: Pipeline, gatkJar: File, fixMatesJar: File) {
   library =>
 
-  var attributes: Pipeline = YamlUtils.load(classOf[Pipeline],yaml)
+  var attributes : Pipeline = attribs
+
+  def this(yaml: File, gatkJar: File, fixMatesJar: File) = this(YamlUtils.load(classOf[Pipeline],yaml),gatkJar,fixMatesJar)
+
 
   trait StandardCommandLineGATK extends CommandLineGATK {
     this.reference_sequence = library.attributes.getProject.getReferenceFile

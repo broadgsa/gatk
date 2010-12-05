@@ -8,12 +8,14 @@ import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 
-class VariantCalling(yaml: File,gatkJar: File) {
+class VariantCalling(attribs: Pipeline,gatkJar: File) {
   vc =>
 
   // load attributes
-  var attributes: Pipeline = YamlUtils.load(classOf[Pipeline], yaml)
-  
+  var attributes = attribs
+
+  def this(yaml: File, gatkJar: File) = this(YamlUtils.load(classOf[Pipeline],yaml),gatkJar)
+
   /**
    * Trait to propagate basic attributes throughout the library
    */
