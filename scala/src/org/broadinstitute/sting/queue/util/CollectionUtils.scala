@@ -88,15 +88,4 @@ object CollectionUtils {
     }
     result
   }
-
-  /**
-   * Takes a List, returns a list of Lists; which are direct sub-lists of the input of a specific constant size
-   * (except perhaps the final element, which can be smaller)
-   * @param value -- The list to be batched
-   * @param size -- the sublist size
-   * @return the list batched into smaller lists of size N
-   */
-  def segmentBySize[T](value: List[T], size: Int) : List[List[T]] = {
-    return if(value.size == 0) Nil else List(value.splitAt(size)._1) ++ segmentBySize(value.drop(size),size)
-  }
 }
