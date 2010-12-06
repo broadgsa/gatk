@@ -168,7 +168,7 @@ public class SAMDataSource implements SimpleDataSource {
                 supplementalFilters,
                 includeReadsWithDeletionAtLoci,
                 generateExtendedEvents,
-                BAQ.Mode.NONE, null                 // no BAQ
+                BAQ.CalculationMode.NONE, BAQ.QualityMode.DONT_MODIFY, null                 // no BAQ
                 );
         }
 
@@ -199,7 +199,8 @@ public class SAMDataSource implements SimpleDataSource {
             Collection<SamRecordFilter> supplementalFilters,
             boolean includeReadsWithDeletionAtLoci,
             boolean generateExtendedEvents,
-            BAQ.Mode Mode,
+            BAQ.CalculationMode cmode,
+            BAQ.QualityMode qmode,
             IndexedFastaSequenceFile refReader
     ) {
         this.readMetrics = new ReadMetrics();
@@ -247,7 +248,7 @@ public class SAMDataSource implements SimpleDataSource {
                 supplementalFilters,
                 includeReadsWithDeletionAtLoci,
                 generateExtendedEvents,
-                Mode, refReader );
+                cmode, qmode, refReader );
         
         // cache the read group id (original) -> read group id (merged)
         // and read group id (merged) -> read group id (original) mappings.
@@ -517,7 +518,7 @@ public class SAMDataSource implements SimpleDataSource {
                 readProperties.getDownsamplingMethod().toFraction,
                 readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 readProperties.getSupplementalFilters(),
-                readProperties.getBAQMode(), readProperties.getRefReader());
+                readProperties.getBAQCalculationMode(), readProperties.getBAQQualityMode(), readProperties.getRefReader());
     }
 
     /**
@@ -541,7 +542,7 @@ public class SAMDataSource implements SimpleDataSource {
                 readProperties.getDownsamplingMethod().toFraction,
                 readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 readProperties.getSupplementalFilters(),
-                readProperties.getBAQMode(), readProperties.getRefReader());
+                readProperties.getBAQCalculationMode(), readProperties.getBAQQualityMode(), readProperties.getRefReader());
     }
 
     /**
@@ -575,7 +576,7 @@ public class SAMDataSource implements SimpleDataSource {
                                                         Double downsamplingFraction,
                                                         Boolean noValidationOfReadOrder,
                                                         Collection<SamRecordFilter> supplementalFilters,
-                                                        BAQ.Mode mode, IndexedFastaSequenceFile refReader ) {
+                                                        BAQ.CalculationMode cmode, BAQ.QualityMode qmode, IndexedFastaSequenceFile refReader ) {
         wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities);
 
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
@@ -588,8 +589,8 @@ public class SAMDataSource implements SimpleDataSource {
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(genomeLocParser,wrappedIterator);
 
-        if (mode != BAQ.Mode.NONE)
-            wrappedIterator = new BAQSamIterator(refReader, wrappedIterator, mode);
+        if (cmode != BAQ.CalculationMode.NONE)
+            wrappedIterator = new BAQSamIterator(refReader, wrappedIterator, cmode, qmode);
 
         wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));
 

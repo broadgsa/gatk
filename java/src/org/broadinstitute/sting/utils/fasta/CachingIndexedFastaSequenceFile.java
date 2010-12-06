@@ -124,6 +124,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             cacheMisses++;
             result = super.getSubsequenceAt(contig, start, stop);
         } else {
+            // todo -- potential optimization is to check if contig.name == contig, as this in generally will be true
             SAMSequenceRecord contigInfo = super.getSequenceDictionary().getSequence(contig);
 
             if (stop > contigInfo.getSequenceLength())
@@ -132,7 +133,6 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             synchronized (lock) { // access to shared cache information must be protected
                 if ( start < cacheStart || stop > cacheStop || cache == null || cache.getContigIndex() != contigInfo.getSequenceIndex() ) {
                     cacheMisses++;
-
                     cacheStart = Math.max(start - cacheMissBackup, 0);
                     cacheStop = Math.min(cacheStart + cacheSize, contigInfo.getSequenceLength());
                     cache = super.getSubsequenceAt(contig, cacheStart, cacheStop);

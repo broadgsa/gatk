@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.baq.BAQ;
 
 /**
  * A stub for routing and management of SAM file reading and writing.
@@ -99,6 +100,11 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * header, etc).
      */
     private boolean writeStarted = false;
+
+    /**
+     * HMM for BAQ, if needed
+     */
+    BAQ baqHMM = new BAQ();
 
     /**
      * Create a new stub given the requested SAM file and compression level.
@@ -236,6 +242,11 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      * @{inheritDoc}
      */
     public void addAlignment( SAMRecord alignment ) {
+        if ( engine.getArguments().BAQMode != BAQ.CalculationMode.NONE && engine.getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_OUTPUT ) {
+            System.out.printf("Writing BAQ at OUTPUT TIME%n");
+            baqHMM.baqRead(alignment, engine.getReferenceDataSource().getReference(), engine.getArguments().BAQMode, engine.getWalkerBAQQualityMode());
+        }
+
         writeStarted = true;
         outputTracker.getStorage(this).addAlignment(alignment);
     }

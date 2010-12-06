@@ -38,7 +38,8 @@ public class ReadProperties {
     private boolean includeReadsWithDeletionAtLoci = false;
     private boolean useOriginalBaseQualities = false;
     private boolean generateExtendedEvents = false;
-    private BAQ.Mode mode = BAQ.Mode.NONE;
+    private BAQ.CalculationMode cmode = BAQ.CalculationMode.NONE;
+    private BAQ.QualityMode qmode = BAQ.QualityMode.DONT_MODIFY;
     IndexedFastaSequenceFile refReader = null; // read for BAQ, if desired
 
     // do we want to generate additional piles of "extended" events (indels)
@@ -127,9 +128,8 @@ public class ReadProperties {
     }
 
 
-    public BAQ.Mode getBAQMode() {
-        return mode;
-    }
+    public BAQ.QualityMode getBAQQualityMode() { return qmode; }
+    public BAQ.CalculationMode getBAQCalculationMode() { return cmode; }
 
     public IndexedFastaSequenceFile getRefReader() {
         return refReader;
@@ -153,7 +153,8 @@ public class ReadProperties {
      * @param includeReadsWithDeletionAtLoci if 'true', the base pileups sent to the walker's map() method
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
-     * @param mode How should we apply the BAQ calculation to the reads?
+     * @param cmode How should we apply the BAQ calculation to the reads?
+     * @param qmode How should we apply the BAQ calculation to the reads?
      * @param refReader if applyBAQ is true, must be a valid pointer to a indexed fasta file reads so we can get the ref bases for BAQ calculation
      */
     public ReadProperties( List<SAMReaderID> samFiles,
@@ -166,7 +167,8 @@ public class ReadProperties {
            Collection<SamRecordFilter> supplementalFilters,
            boolean includeReadsWithDeletionAtLoci,
            boolean generateExtendedEvents,
-           BAQ.Mode mode,
+           BAQ.CalculationMode cmode,
+           BAQ.QualityMode qmode,
            IndexedFastaSequenceFile refReader ) {
         this.readers = samFiles;
         this.header = header;
@@ -178,7 +180,8 @@ public class ReadProperties {
         this.includeReadsWithDeletionAtLoci = includeReadsWithDeletionAtLoci;
         this.generateExtendedEvents = generateExtendedEvents;
         this.useOriginalBaseQualities = useOriginalBaseQualities;
-        this.mode = mode;
+        this.cmode = cmode;
+        this.qmode = qmode;
         this.refReader = refReader;
     }
 }

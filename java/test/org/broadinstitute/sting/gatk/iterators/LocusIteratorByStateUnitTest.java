@@ -148,7 +148,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
                 new ArrayList<SamRecordFilter>(),
                 false,
                 false,
-                BAQ.Mode.NONE, null // no BAQ
+                BAQ.CalculationMode.NONE, BAQ.QualityMode.DONT_MODIFY, null // no BAQ
         );
     }
 }

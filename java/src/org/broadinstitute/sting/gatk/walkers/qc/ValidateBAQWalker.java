@@ -20,6 +20,7 @@ import java.io.PrintStream;
  * Can also count the number of reads matching a given criterion using read filters (see the
  * --read-filter command line argument).  Simplest example of a read-backed analysis.
  */
+@BAQMode(QualityMode = BAQ.QualityMode.DONT_MODIFY, ApplicationTime = BAQ.ApplicationTime.HANDLED_IN_WALKER)
 @Reference(window=@Window(start=-5,stop=5))
 @Requires({DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES})
 public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {

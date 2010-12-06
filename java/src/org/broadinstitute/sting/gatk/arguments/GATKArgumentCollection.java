@@ -152,7 +152,7 @@ public class GATKArgumentCollection {
 
     @Element(required = false)
     @Argument(fullName = "baq", shortName="baq", doc="Type of BAQ calculation to apply in the engine", required = false)
-    public BAQ.Mode BAQMode = BAQ.Mode.NONE;
+    public BAQ.CalculationMode BAQMode = BAQ.CalculationMode.NONE;
 
     /**
      * Gets the default downsampling method, returned if the user didn't specify any downsampling

@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
@@ -45,6 +46,9 @@ import java.io.PrintStream;
  * A variant caller which unifies the approaches of several disparate callers.  Works for single-sample and
  * multi-sample data.  The user can choose from several different incorporated calculation models.
  */
+// todo -- change when UG is generalized to do BAQ as necessary
+//@BAQMode(QualityMode = BAQ.QualityMode.DONT_MODIFY, ApplicationTime = BAQ.ApplicationTime.HANDLED_IN_WALKER)
+@BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)

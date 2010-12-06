@@ -50,6 +50,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
@@ -544,6 +545,9 @@ public abstract class AbstractGenomeAnalysisEngine {
     private SAMDataSource createReadsDataSource(GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
         DownsamplingMethod method = getDownsamplingMethod();
 
+        if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.NONE )
+            throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
+
         return new SAMDataSource(
                 unpackBAMFileList(argCollection.samFiles),
                 genomeLocParser,
@@ -555,8 +559,17 @@ public abstract class AbstractGenomeAnalysisEngine {
                 filters,
                 includeReadsWithDeletionAtLoci(),
                 generateExtendedEvents(),
-                argCollection.BAQMode, refReader);
+                getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.NONE,
+                getWalkerBAQQualityMode(),
+                refReader);
     }
+
+    /**
+     * Overloaded to break abstraction.  Thanks Khalid :-(
+     * @return
+     */
+    public BAQ.QualityMode getWalkerBAQQualityMode()         { return BAQ.QualityMode.DONT_MODIFY; }
+    public BAQ.ApplicationTime getWalkerBAQApplicationTime() { return BAQ.ApplicationTime.ON_INPUT; }
 
     /**
      * Opens a reference sequence file paired with an index.

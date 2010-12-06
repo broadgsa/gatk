@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.help.DescriptionTaglet;
 import org.broadinstitute.sting.utils.help.DisplayNameTaglet;
 import org.broadinstitute.sting.utils.help.SummaryTaglet;
+import org.broadinstitute.sting.utils.baq.BAQ;
 
 import java.util.*;
 
@@ -358,6 +359,14 @@ public class WalkerManager extends PluginManager<Walker> {
 
         return downsamplingMethod;
     }
+
+    public static BAQ.QualityMode getBAQQualityMode(Walker walker) {
+        return walker.getClass().getAnnotation(BAQMode.class).QualityMode();
+    }
+
+    public static BAQ.ApplicationTime getBAQApplicationTime(Walker walker) {
+        return walker.getClass().getAnnotation(BAQMode.class).ApplicationTime();
+    }    
 
     /**
      * Gets the type of downsampling method requested by the walker.  If an alternative

@@ -30,6 +30,7 @@ import java.util.List;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.apache.log4j.Logger;
 
@@ -41,6 +42,7 @@ import org.apache.log4j.Logger;
  * To change this template use File | Settings | File Templates.
  */
 @ReadFilters(MalformedReadFilter.class)
+@BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 public abstract class Walker<MapType, ReduceType> {
     final protected static Logger logger = Logger.getLogger(Walker.class);
     private GenomeAnalysisEngine toolkit;

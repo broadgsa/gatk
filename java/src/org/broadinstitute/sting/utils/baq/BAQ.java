@@ -36,12 +36,24 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 public class BAQ {
     private final static boolean DEBUG = false;
 
-    public enum Mode {
+    public enum CalculationMode {
         NONE,                       // don't apply a BAQ at all, the default
-        USE_TAG_ONLY,               // only use the TAG, if present, in the reads
-        ADD_TAG_ONLY,               // calculate the BAQ, but write it into the reads as the BAQ tag, leaving QUAL field alone
         CALCULATE_AS_NECESSARY,     // do HMM BAQ calculation on the fly, as necessary, if there's no tag
-        RECALCULATE_ALWAYS          // do HMM BAQ calculation on the fly, regardless of whether there's a tag present
+        RECALCULATE                 // do HMM BAQ calculation on the fly, regardless of whether there's a tag present
+    }
+
+    /** these are features that only the walker can override */
+    public enum QualityMode {
+        ADD_TAG,                    // calculate the BAQ, but write it into the reads as the BAQ tag, leaving QUAL field alone
+        OVERWRITE_QUALS,            // overwrite the quality field directly
+        DONT_MODIFY                 // do the BAQ, but don't modify the quality scores themselves, just return them in the function.
+    }
+
+    public enum ApplicationTime {
+        FORBIDDEN,                  // Walker does not tolerate BAQ input
+        ON_INPUT,                   // apply the BAQ calculation to the incoming reads, the default
+        ON_OUTPUT,                  // apply the BAQ calculation to outgoing read streams
+        HANDLED_IN_WALKER           // the walker will deal with the BAQ calculation status itself
     }
 
     public static final String BAQ_TAG = "BQ";
@@ -487,35 +499,36 @@ public class BAQ {
      * @param read
      * @param refReader
      * @param calculationType
-     * @return
+     * @return BQ qualities for use, in case qmode is DONT_MODIFY
      */
-    public SAMRecord baqRead(SAMRecord read, IndexedFastaSequenceFile refReader, Mode calculationType ) {
+    public byte[] baqRead(SAMRecord read, IndexedFastaSequenceFile refReader, CalculationMode calculationType, QualityMode qmode ) {
         if ( DEBUG ) System.out.printf("BAQ %s read %s%n", calculationType, read.getReadName());
-        if ( calculationType == Mode.NONE ) { // we don't want to do anything
+
+        byte[] BAQQuals = read.getBaseQualities();      // in general we are overwriting quals, so just get a pointer to them
+        if ( calculationType == CalculationMode.NONE ) { // we don't want to do anything
             ; // just fall though
         } else if ( excludeReadFromBAQ(read) ) {
             ; // just fall through
-        } else if ( calculationType == Mode.USE_TAG_ONLY ) {
-            calcBAQFromTag(read, true, true);
         } else {
-            if ( calculationType == Mode.RECALCULATE_ALWAYS || ! hasBAQTag(read) || calculationType == Mode.ADD_TAG_ONLY ) {
+            if ( calculationType == CalculationMode.RECALCULATE || ! hasBAQTag(read) ) {
                 if ( DEBUG ) System.out.printf("  Calculating BAQ on the fly%n");
                 BAQCalculationResult hmmResult = calcBAQFromHMM(read, refReader);
                 if ( hmmResult != null ) {
-                    if ( calculationType == Mode.ADD_TAG_ONLY )
-                        addBAQTag(read, hmmResult.bq);
-                    else
-                        // modify QUALs directly
-                        System.arraycopy(hmmResult.bq, 0, read.getBaseQualities(), 0, hmmResult.bq.length);
+                    switch ( qmode ) {
+                        case ADD_TAG:         addBAQTag(read, hmmResult.bq); break;
+                        case OVERWRITE_QUALS: System.arraycopy(hmmResult.bq, 0, read.getBaseQualities(), 0, hmmResult.bq.length); break;
+                        case DONT_MODIFY:     BAQQuals = hmmResult.bq; break;
+                        default:              throw new ReviewedStingException("BUG: unexpected qmode " + qmode);
+                    }
                 }
-            } else {
+            } else if ( qmode == QualityMode.OVERWRITE_QUALS ) { // only makes sense if we are overwriting quals
                 if ( DEBUG ) System.out.printf("  Taking BAQ from tag%n");
                 // this overwrites the original qualities
                 calcBAQFromTag(read, true, false);
             }
         }
 
-        return read;
+        return BAQQuals;
     }
 
     /**

@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.commandline.Argument;
@@ -70,6 +71,7 @@ import java.util.Map;
  * @help.summary First pass of the recalibration. Generates recalibration table based on various user-specified covariates (such as reported quality score, cycle, and dinucleotide).
  */
 
+@BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By( DataSource.READS ) // Only look at covered loci, not every loci of the reference file
 @ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
