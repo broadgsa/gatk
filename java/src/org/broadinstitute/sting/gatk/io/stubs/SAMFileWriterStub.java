@@ -243,7 +243,7 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
      */
     public void addAlignment( SAMRecord alignment ) {
         if ( engine.getArguments().BAQMode != BAQ.CalculationMode.NONE && engine.getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_OUTPUT ) {
-            System.out.printf("Writing BAQ at OUTPUT TIME%n");
+            //System.out.printf("Writing BAQ at OUTPUT TIME%n");
             baqHMM.baqRead(alignment, engine.getReferenceDataSource().getReference(), engine.getArguments().BAQMode, engine.getWalkerBAQQualityMode());
         }
 

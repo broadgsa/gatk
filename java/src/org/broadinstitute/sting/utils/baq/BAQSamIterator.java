@@ -38,7 +38,7 @@ public class BAQSamIterator implements StingSAMIterator {
     }
 
     public SAMRecord next()     {
-        System.out.printf("BAQing during input%n");
+        //System.out.printf("BAQing during input%n");
         SAMRecord read = it.next();
         baqHMM.baqRead(read, refReader, cmode, qmode);
         return read;
