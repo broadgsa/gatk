@@ -34,7 +34,7 @@ import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
-import org.broadinstitute.sting.utils.BAQ;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.simpleframework.xml.*;
 import org.simpleframework.xml.core.Persister;
 import org.simpleframework.xml.stream.Format;

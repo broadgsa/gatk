@@ -1,8 +1,9 @@
-package org.broadinstitute.sting.gatk.iterators;
+package org.broadinstitute.sting.utils.baq;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.BAQ;
+import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 
 import java.util.Iterator;
 

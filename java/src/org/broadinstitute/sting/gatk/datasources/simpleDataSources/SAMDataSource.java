@@ -44,7 +44,8 @@ import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.CountingFilteringIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.BAQ;
+import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.baq.BAQSamIterator;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 

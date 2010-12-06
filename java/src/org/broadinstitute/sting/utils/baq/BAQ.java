@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.utils.baq;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.CigarElement;

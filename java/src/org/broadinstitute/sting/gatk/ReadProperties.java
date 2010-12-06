@@ -6,7 +6,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
-import org.broadinstitute.sting.utils.BAQ;
+import org.broadinstitute.sting.utils.baq.BAQ;
 
 import java.util.List;
 import java.util.Collection;

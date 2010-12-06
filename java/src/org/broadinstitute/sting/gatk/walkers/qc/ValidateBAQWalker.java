@@ -8,7 +8,7 @@ import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.BAQ;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.Argument;
