@@ -22,7 +22,7 @@ class batchMergePipeline extends QScript {
     var vcfs : List[File] = extractFileEntries(vcfList)
     var bams : List[File] = extractFileEntries(bamList)
     var pmLib = new ProjectManagement(stingDir)
-    addAll(pmLib.MergeBatches(vcfs,bams,batchOut,ref))
+    addAll(pmLib.MergeBatches(vcfs,bams,batchOut,ref,25))
   }
 
   def extractFileEntries(in: File): List[File] = {

@@ -28,7 +28,7 @@ class ProjectManagement(stingPath: String) {
     }
   }
 
-  def MergeBatches( callVCFs: List[File], allBams: List[File], mergedVCF: File, ref: File) : List[CommandLineFunction] = {
+  def MergeBatches( callVCFs: List[File], allBams: List[File], mergedVCF: File, ref: File, size: Int) : List[CommandLineFunction] = {
     var cmds : List[CommandLineFunction] = Nil
     var pfSites : PassFilterAlleles = new PassFilterAlleles(callVCFs,swapExt(mergedVCF,".vcf",".pf.alleles.vcf"))
     pfSites.sortByRef = pm.stingDirPath+"perl/sortByRef.pl"
@@ -36,7 +36,7 @@ class ProjectManagement(stingPath: String) {
 
     cmds :+= pfSites
     
-    var calcs: List[UGCalcLikelihoods] = allBams.map( a => LikelihoodCalc(a,ref,pfSites.out_intervals) )
+    var calcs: List[UGCalcLikelihoods] = batchLikelihoods(allBams,ref,pfSites.out_intervals,size)
 
     cmds ++= calcs
 
@@ -46,18 +46,22 @@ class ProjectManagement(stingPath: String) {
     
   }
 
-  def LikelihoodCalc( bam: File, ref: File, alleleVCF: File ) : UGCalcLikelihoods = {
+  def batchLikelihoods(bams: List[File], ref: File, alleleVCF: File, size: Int) : List[UGCalcLikelihoods] = {
+    return CollectionUtils.segmentBySize(bams,size).zipWithIndex.map( u => LikelihoodCalc(u._1,ref,alleleVCF, new File("batch%d.likelihoods.vcf".format(u._2))))
+  }
+
+  def LikelihoodCalc( bams: List[File], ref: File, alleleVCF: File, outVCF: File ) : UGCalcLikelihoods = {
     var calc = new UGCalcLikelihoods
-    calc.input_file :+= bam
+    calc.input_file ++= bams
     calc.reference_sequence = ref
     calc.jarFile = new File(pm.stingDirPath+"dist/GenomeAnalysisTK.jar")
     calc.downsample_to_coverage = Some(300)
-    calc.memoryLimit = Some(2)
+    calc.memoryLimit = if ( bams.size < 5 ) Some(2) else if(bams.size<50) Some(4) else Some(6)
     calc.min_base_quality_score = Some(22)
     calc.min_mapping_quality_score = Some(20)
     calc.genotype = true
     calc.output_all_callable_bases = true
-    calc.out = swapExt(bam,".bam",".likelihoods.vcf")
+    calc.out = outVCF
     calc.rodBind :+= new RodBind("allele","VCF",alleleVCF)
     calc.BTI = "allele"
 
@@ -70,7 +74,7 @@ class ProjectManagement(stingPath: String) {
     call.jarFile = new File(pm.stingDirPath+"dist/GenomeAnalysisTK.jar")
     call.rodBind :+= new RodBind("allele","vcf",intervalVCF)
     call.BTI = "allele"
-    call.memoryLimit = Some(4)
+    call.memoryLimit = Some(8)
     call.out = output
     call.rodBind ++= likelihoods.map( a => new RodBind("variant"+a.getName.replace(".vcf",""),"vcf",a) )
 
