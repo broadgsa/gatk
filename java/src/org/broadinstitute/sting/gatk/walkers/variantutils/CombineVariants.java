@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -81,9 +82,14 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     private List<String> priority = null;
 
     public void initialize() {
-        validateAnnotateUnionArguments();
-
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), null);
+
+        if ( PRIORITY_STRING == null ) {
+            PRIORITY_STRING = Utils.join(",", vcfRods.keySet());
+            logger.info("Priority string not provided, using arbitrary genotyping order: " + PRIORITY_STRING);
+        }
+
+        validateAnnotateUnionArguments();
         Set<String> samples = SampleUtils.getSampleList(vcfRods, genotypeMergeOption);
 
         if ( SET_KEY.toLowerCase().equals("null") )
