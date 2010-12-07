@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
+import net.sf.samtools.util.RuntimeIOException;
 import net.sf.samtools.util.StringUtil;
 import net.sf.samtools.util.SequenceUtil;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -304,8 +305,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
 
                 File f = new File(outName);
-                SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(setupHeader(getToolkit().getSAMFileHeader(rid)),
-                        false,f);
+                SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(setupHeader(getToolkit().getSAMFileHeader(rid)), false, f);
                 nwayWriters.put(rid,sw);
             }
 
@@ -379,28 +379,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private void emit(final SAMRecord read) {
-        if ( writer != null )
-            writer.addAlignment(read);
-        if ( N_WAY_OUT != null ) {
-            SAMReaderID rid =  getToolkit().getReaderIDForRead(read);
-            SAMFileWriter w = nwayWriters.get(rid);
-            // reset read's read group from merged to original if read group id collision has happened in merging:
-            if ( getToolkit().getReadsDataSource().hasReadGroupCollisions() ) {
-                read.setAttribute("RG",
-                        getToolkit().getReadsDataSource().getOriginalReadGroupId((String)read.getAttribute("RG")));
-            }
-            w.addAlignment(read);
-        }
-    }
-
-    private void emit(final List<SAMRecord> reads) {
-        if ( writer != null ) {
-            for ( SAMRecord read : reads )
+        try {
+            if ( writer != null )
                 writer.addAlignment(read);
-        }
-        if ( N_WAY_OUT != null ) {
-            for ( SAMRecord read : reads ) {
-                // in initialize() we ensured that every reader has exactly one tag, so the following line is safe:
+            else if ( N_WAY_OUT != null ) {
                 SAMReaderID rid =  getToolkit().getReaderIDForRead(read);
                 SAMFileWriter w = nwayWriters.get(rid);
                 // reset read's read group from merged to original if read group id collision has happened in merging:
@@ -409,9 +391,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                             getToolkit().getReadsDataSource().getOriginalReadGroupId((String)read.getAttribute("RG")));
                 }
                 w.addAlignment(read);
-
             }
+        } catch (RuntimeIOException e) {
+            throw new UserException.ErrorWritingBamFile(e.getMessage());
         }
+    }
+
+    private void emit(final List<SAMRecord> reads) {
+        for ( SAMRecord read : reads )
+            emit(read);
     }
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
@@ -544,7 +532,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         if ( N_WAY_OUT != null ) {
-            for ( SAMFileWriter w : nwayWriters.values() ) w.close();
+            try {
+                for ( SAMFileWriter w : nwayWriters.values() )
+                    w.close();
+            } catch (RuntimeIOException e) {
+                throw new UserException.ErrorWritingBamFile(e.getMessage());
+            }
         }
         if ( CHECKEARLY ) {
             logger.info("SW alignments runs: "+SWalignmentRuns);

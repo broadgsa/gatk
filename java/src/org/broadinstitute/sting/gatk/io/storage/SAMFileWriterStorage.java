@@ -90,7 +90,11 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
     }
 
     public void close() {
-        writer.close();
+        try {
+            writer.close();
+        } catch (RuntimeIOException e) {
+            throw new UserException.ErrorWritingBamFile(e.getMessage());
+        }
     }
 
     public void mergeInto( SAMFileWriter targetStream ) {

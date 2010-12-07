@@ -77,6 +77,12 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class ErrorWritingBamFile extends UserException {
+        public ErrorWritingBamFile(String message) {
+            super(String.format("An error occurred when trying to write the BAM file.  Usually this happens when there is not enough space in the directory to which the data is being written (generally the temp directory) or when your system's open file handle limit is too small.  To tell Java to use a bigger/better file system use -Djava.io.tmpdir=X on the command line.  The exact error was %s", message));
+        }
+    }
+
     public static class CouldNotReadInputFile extends UserException {
         public CouldNotReadInputFile(String message, Exception e) {
             super(String.format("Couldn't read file because %s caused by %s", message, e.getMessage()));
