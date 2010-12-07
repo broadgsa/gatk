@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.SAMRecord;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
@@ -42,12 +43,13 @@ public class HaplotypeIndelErrorModel {
     private final int maxReadDeletionLength; // maximum length of deletion on a read
     private final double noDeletionProbability; // alpha for geometric distribution for deletion length
     private final int haplotypeSize;
+    
+    private final int BASE_QUAL_THRESHOLD = 6;
 
     private final int PATH_METRIC_TABLE_LENGTH;
     private final int RIGHT_ALIGN_INDEX;
     private final int LEFT_ALIGN_INDEX;
 
-    private static final double INFINITE = 10000000000000.0;
 
     private double deletionErrorProbabilities[];
 
@@ -63,6 +65,23 @@ public class HaplotypeIndelErrorModel {
     private boolean doSimpleCalculationModel = false;
 
     private static final double QUAL_ONE_HALF = -10*Math.log10(0.5);
+
+    private static final int MAX_CACHED_QUAL = 60;
+
+    private static final double baseMatchArray[];
+    private static final double baseMismatchArray[];
+
+    static {
+        baseMatchArray = new double[MAX_CACHED_QUAL+1];
+        baseMismatchArray = new double[MAX_CACHED_QUAL+1];
+        for (int k=1; k <= MAX_CACHED_QUAL; k++) {
+            double baseProb = QualityUtils.qualToProb(k);
+
+
+            baseMatchArray[k] =  probToQual(baseProb);
+            baseMismatchArray[k] = (double)(k);
+        }
+    }
 
     public  HaplotypeIndelErrorModel(int mrdl, double insStart, double insEnd, double alpha, int haplotypeSize,
                                      boolean dosimple, boolean deb) {
@@ -115,17 +134,38 @@ public class HaplotypeIndelErrorModel {
 
     public double computeReadLikelihoodGivenHaplotype(Haplotype haplotype, SAMRecord read,
                                                       VariantContext vc, int eventLength) {
-        long numStartClippedBases = read.getAlignmentStart() - read.getUnclippedStart();
-        long numEndClippedBases = read.getUnclippedEnd() - read.getAlignmentEnd();
-        final long readStartPosition = read.getAlignmentStart();
-        final long haplotypeStartPosition = haplotype.getStartPosition();
-        //final long readEndPosition = read.getUnclippedEnd();
-        //final long haplotypeEndPosition = haplotype.getStartPosition() + haplotypeSize-1;
 
-        byte[] readBases = Arrays.copyOfRange(read.getReadBases(),(int)numStartClippedBases,
+        long numStartClippedBases = 0;
+        long numEndClippedBases = 0;
+
+
+        byte[] unclippedReadQuals = read.getBaseQualities();
+        byte[] unclippedReadBases = read.getReadBases();
+
+
+        // Do a stricter base clipping than provided by CIGAR string, since this one may be too conservative,
+        // and may leave a string of Q2 bases still hanging off the reads.
+        for (int i=0; i < read.getReadLength(); i++) {
+            if (unclippedReadQuals[i] < BASE_QUAL_THRESHOLD)
+                numStartClippedBases++;
+            else
+                break;
+
+        }
+        for (int i=read.getReadLength()-1; i >= 0; i-- ){
+            if (unclippedReadQuals[i] < BASE_QUAL_THRESHOLD)
+                numEndClippedBases++;
+            else
+                break;
+        }
+        //System.out.format("numstart: %d numend: %d\n", numStartClippedBases, numEndClippedBases);
+        if (numStartClippedBases + numEndClippedBases >= read.getReadLength()) {
+            return 0;///Double.POSITIVE_INFINITY;
+        }
+        byte[] readBases = Arrays.copyOfRange(unclippedReadBases,(int)numStartClippedBases,
                 (int)(read.getReadBases().length-numEndClippedBases));
 
-        byte[] readQuals = Arrays.copyOfRange(read.getBaseQualities(),(int)numStartClippedBases,
+        byte[] readQuals = Arrays.copyOfRange(unclippedReadQuals,(int)numStartClippedBases,
                 (int)(read.getReadBases().length-numEndClippedBases));
 
 
@@ -233,8 +273,7 @@ public class HaplotypeIndelErrorModel {
             byte readBase = readBases[indR];
             byte readQual = readQuals[indR];
 
-
-            for (int indX=LEFT_ALIGN_INDEX; indX <= RIGHT_ALIGN_INDEX; indX++) {
+             for (int indX=LEFT_ALIGN_INDEX; indX <= RIGHT_ALIGN_INDEX; indX++) {
 
 
                 byte haplotypeBase;
@@ -251,17 +290,8 @@ public class HaplotypeIndelErrorModel {
 
         // for debugging only: compute backtracking to find optimal route through trellis. Since I'm only interested
         // in log-likelihood of best state, this isn't really necessary.
-        int[] bestIndexArray = new int[readLength];
         double bestMetric = MathUtils.arrayMin(pathMetricArray[readLength]);
 
-        // start from last position of read, go backwards to find optimal alignment
-        int bestIndex = MathUtils.minElementIndex(pathMetricArray[readLength]);
-        bestIndexArray[readLength-1] = bestIndex;
-
-        for (int k=readLength-2; k>=0; k--) {
-            bestIndex = bestStateIndexArray[k][bestIndex];
-            bestIndexArray[k] = bestIndex;
-        }
         if (DEBUG) {
 
 
@@ -280,6 +310,22 @@ public class HaplotypeIndelErrorModel {
             }
             System.out.println();
 
+            System.out.print("Read quals: ");
+            for (int k=0; k <readQuals.length; k++) {
+                System.out.format("%d ", (int)readQuals[k]);
+            }
+            System.out.println();
+
+            // start from last position of read, go backwards to find optimal alignment
+            int[] bestIndexArray = new int[readLength];
+            int bestIndex = MathUtils.minElementIndex(pathMetricArray[readLength]);
+            bestIndexArray[readLength-1] = bestIndex;
+
+            for (int k=readLength-2; k>=0; k--) {
+                bestIndex = bestStateIndexArray[k][bestIndex];
+                bestIndexArray[k] = bestIndex;
+            }
+            
             System.out.print("Alignment: ");
             for (int k=0; k <readBases.length; k++) {
                 System.out.format("%d ", bestIndexArray[k]);
@@ -297,7 +343,7 @@ public class HaplotypeIndelErrorModel {
 
         double bmetric;
 
-        double bestMetric = INFINITE;
+        double bestMetric = Double.POSITIVE_INFINITY;
         int bestMetricIndex = -1;
 
         // compute metric for match/mismatch
@@ -307,11 +353,11 @@ public class HaplotypeIndelErrorModel {
         if (readQual < 1)
             readQual = 1;
 
-        double baseProb = QualityUtils.qualToProb(readQual);
+        if (readQual > MAX_CACHED_QUAL)
+            readQual = MAX_CACHED_QUAL;
 
-
-        double pBaseMatch =  probToQual(baseProb);
-        double pBaseMismatch = (double)(readQual);
+        double pBaseMatch =  baseMatchArray[(int)readQual];
+        double pBaseMismatch = baseMismatchArray[(int)readQual];
 
         if (haplotypeBase == readBase)
             pBaseRead =  pBaseMatch;
@@ -406,8 +452,11 @@ public class HaplotypeIndelErrorModel {
                     readLikelihood[0] = -readLikelihoods[readIdx][i]/10;
                     readLikelihood[1] = -readLikelihoods[readIdx][j]/10;
 
-                    double probRGivenHPair = MathUtils.sumLog10(readLikelihood)/2;
-                    haplotypeLikehoodMatrix[i][j] += HaplotypeIndelErrorModel.probToQual(probRGivenHPair);
+                    // Compute log10(10^x1/2 + 10^x2/2) = log10(10^x1+x0^x2)-log10(2)
+                    // First term is approximated by Jacobian log with table lookup.
+                    // Second term is a constant added to both likelihoods so will be ignored
+                    haplotypeLikehoodMatrix[i][j] += ExactAFCalculationModel.softMaxPair(readLikelihood[0],
+                            readLikelihood[1]);
 
                 }
 
@@ -419,18 +468,25 @@ public class HaplotypeIndelErrorModel {
 
     }
 
-    public static double[] getPosteriorProbabilitesFromHaplotypeLikelihoods(double[][] haplotypeLikehoodMatrix) {
+    public static double[] getHaplotypeLikelihoods(double[][] haplotypeLikehoodMatrix) {
         int hSize = haplotypeLikehoodMatrix.length;
         double[] genotypeLikelihoods = new double[hSize*(hSize+1)/2];
 
         int k=0;
+        double maxElement = Double.NEGATIVE_INFINITY;
         for (int i=0; i < hSize; i++) {
             for (int j=i; j < hSize; j++){
-                genotypeLikelihoods[k++] = -haplotypeLikehoodMatrix[i][j]/10;
+                genotypeLikelihoods[k++] = haplotypeLikehoodMatrix[i][j];
+                if (haplotypeLikehoodMatrix[i][j] > maxElement)
+                    maxElement = haplotypeLikehoodMatrix[i][j];
             }
         }
-        // normalize likelihoods and pass to linear domain.
-        return MathUtils.normalizeFromLog10(genotypeLikelihoods);
+
+        // renormalize
+        for (int i=0; i < genotypeLikelihoods.length; i++)
+            genotypeLikelihoods[i] -= maxElement;
+
+        return genotypeLikelihoods;
 
     }
 

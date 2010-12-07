@@ -151,7 +151,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         return softMaxPair(a,vec[2]);
     }
 
-    double softMaxPair(double x, double y) {
+    static public double softMaxPair(double x, double y) {
         if (Double.isInfinite(x))
             return y;
 

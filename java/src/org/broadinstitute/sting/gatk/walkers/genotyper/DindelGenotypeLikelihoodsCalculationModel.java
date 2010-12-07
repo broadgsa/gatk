@@ -45,7 +45,6 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
     private final double insertionEndProbability = 0.5;
     private final double alphaDeletionProbability = 1e-3;
     private final int HAPLOTYPE_SIZE = 80;
-    private static final double MINUS_LOG_INFINITY = -300;
 
     // todo - the following  need to be exposed for command line argument control
     private final double indelHeterozygosity = 1.0/8000;
@@ -89,11 +88,23 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         if (!vc.isIndel())
             return null;
 
-        if (sitesVisited.contains(new Integer(vc.getStart())) &&
-                contextType.equals(StratifiedAlignmentContext.StratifiedContextType.COMPLETE))
-             return null;
+        boolean visitedBefore = false;
+        synchronized (this) {
+            if (sitesVisited.contains(new Integer(vc.getStart())) &&
+                    contextType.equals(StratifiedAlignmentContext.StratifiedContextType.COMPLETE))
+                 visitedBefore = true;
+            else {
+                sitesVisited.add(new Integer(vc.getStart()));
+            }
+        }
 
-        sitesVisited.add(new Integer(vc.getStart()));
+        if (visitedBefore)
+                return null;
+
+        // protect against having an indel too close to the edge of a contig
+        if (vc.getStart() <= HAPLOTYPE_SIZE)
+            return null;
+        
 
         if ( !(priors instanceof DiploidIndelGenotypePriors) )
              throw new StingException("Only diploid-based Indel priors are supported in the DINDEL GL model");
@@ -105,11 +116,9 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
             eventLength = - eventLength;
 
         int currentHaplotypeSize = HAPLOTYPE_SIZE;
-        List<Haplotype> haplotypesInVC = new ArrayList<Haplotype>();
-        int minHaplotypeSize = Haplotype.LEFT_WINDOW_SIZE + eventLength + 2; // to be safe
 
         // int numSamples = getNSamples(contexts);
-        haplotypesInVC = Haplotype.makeHaplotypeListFromVariantContextAlleles( vc, ref, currentHaplotypeSize);
+        List<Haplotype> haplotypesInVC = Haplotype.makeHaplotypeListFromVariantContextAlleles( vc, ref, currentHaplotypeSize);
         // For each sample, get genotype likelihoods based on pileup
         // compute prior likelihoods on haplotypes, and initialize haplotype likelihood matrix with them.
         // initialize the GenotypeLikelihoods
@@ -126,7 +135,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         //double[] priorLikelihoods = priors.getPriors();
 
         for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
-            AlignmentContext context = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+            AlignmentContext context = sample.getValue().getContext(contextType);
 
             ReadBackedPileup pileup = null;
             if (context.hasExtendedEventPileup())
@@ -138,14 +147,8 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
                 haplotypeLikehoodMatrix = model.computeReadHaplotypeLikelihoods( pileup, haplotypesInVC, vc, eventLength);
 
 
-                double[] genotypeLikelihoods = HaplotypeIndelErrorModel.getPosteriorProbabilitesFromHaplotypeLikelihoods( haplotypeLikehoodMatrix);
+                double[] genotypeLikelihoods = HaplotypeIndelErrorModel.getHaplotypeLikelihoods( haplotypeLikehoodMatrix);
 
-                // todo- cleaner solution for case where probability is of form (1,0,0) or similar
-                for (int k=0; k < 3; k++) {
-                    genotypeLikelihoods[k] = Math.log10(genotypeLikelihoods[k]);
-                    if (Double.isInfinite(genotypeLikelihoods[k]))
-                        genotypeLikelihoods[k] = MINUS_LOG_INFINITY;
-                }
                 GLs.put(sample.getKey(), new BiallelicGenotypeLikelihoods(sample.getKey(),
                         vc.getReference(),
                         vc.getAlternateAllele(0),
