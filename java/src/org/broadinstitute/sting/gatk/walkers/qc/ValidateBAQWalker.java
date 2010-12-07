@@ -30,63 +30,81 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
     @Argument(doc="maximum read length to apply the BAQ calculation too",required=false)
     protected int maxReadLen = 1000;
 
+    @Argument(doc="",required=false)
+    protected double bw = 1e-3;
+
     @Argument(doc="only operates on reads with this name",required=false)
     protected String readName = null;
 
-    @Argument(doc="only prints out detailed information on the impact of BAQ when our implementation differences from the samtools BAQ tag", required=false)
-    protected boolean onlyPrintOnFailures = false;
+    @Argument(doc="prints info for each read", required=false)
+    protected boolean printEachRead = false;
 
     @Argument(doc="Also prints out detailed comparison information when for known calculation differences", required=false)
     protected boolean alsoPrintWarnings = false;
 
+    @Argument(doc="Include reads without BAQ tag", required=false)
+    protected boolean includeReadsWithoutBAQTag = false;
+
     int counter = 0;
 
-    BAQ baqHMM = new BAQ(1e-3, 0.1, 7, 0);         // matches current samtools parameters
+    BAQ baqHMM = null;         // matches current samtools parameters
+
+    public void initialize() {
+        baqHMM = new BAQ(bw, 0.1, 7, 0);
+    }
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker tracker) {
         IndexedFastaSequenceFile refReader = this.getToolkit().getReferenceDataSource().getReference();
 
-        if ( (readName == null || readName.equals(read.getReadName())) && read.getReadLength() <= maxReadLen && BAQ.hasBAQTag(read) ) {
-            byte[] baqFromTag = BAQ.calcBAQFromTag(read, false, false);
+        if ( (readName == null || readName.equals(read.getReadName())) && read.getReadLength() <= maxReadLen && (includeReadsWithoutBAQTag || BAQ.hasBAQTag(read) ) ) {
+            byte[] baqFromTag = BAQ.calcBAQFromTag(read, false, includeReadsWithoutBAQTag);
             if (counter++ % 1000 == 0) out.printf("Checking read %s (%d)%n", read.getReadName(), counter);
             BAQ.BAQCalculationResult baq = baqHMM.calcBAQFromHMM(read, refReader);
 
             boolean fail = false;
             boolean print = false;
             int badi = 0;
-            for ( badi = 0; badi < baqFromTag.length; badi++ ) {
-                if ( baqFromTag[badi] != baq.bq[badi] ) {
-                    if (MathUtils.arrayMin(read.getBaseQualities()) == 0) {
-                        print = true;
-                        out.printf("  different, but Q0 base detected%n");
-                        break;
-                    }
-                    else if (readHasSoftClip(read)) {
-                        print = true;
-                        out.printf("  different, but soft clip detected%n");
-                        break;
-                    } else if (readHasDeletion(read)) {
-                        print = true;
-                        out.printf("  different, but deletion detected%n");
-                        break;
-                    } else {
-                        fail = true; print = true;
-                        break;
+
+            if ( BAQ.hasBAQTag(read) ) {
+                for ( badi = 0; badi < baqFromTag.length; badi++ ) {
+                    if ( baqFromTag[badi] != baq.bq[badi] ) {
+                        if (MathUtils.arrayMin(read.getBaseQualities()) == 0) {
+                            print = true;
+                            out.printf("  different, but Q0 base detected%n");
+                            break;
+                        }
+                        else if (readHasSoftClip(read)) {
+                            print = true;
+                            out.printf("  different, but soft clip detected%n");
+                            break;
+                        } else if (readHasDeletion(read)) {
+                            print = true;
+                            out.printf("  different, but deletion detected%n");
+                            break;
+                        } else {
+                            fail = true; print = true;
+                            break;
+                        }
                     }
                 }
             }
 
-            if ( ! onlyPrintOnFailures || ( print && ( alsoPrintWarnings || fail ) ) ) {
+            if ( printEachRead || ( print && ( alsoPrintWarnings || fail ) ) ) {
+                byte[] pos = new byte[baq.bq.length];
+                for ( int i = 0; i < pos.length; i++ ) pos[i] = (byte)i;
+
                 out.printf("  read length   : %d%n", read.getReadLength());
                 out.printf("  read start    : %d%n", read.getAlignmentStart());
                 out.printf("  cigar         : %s%n", read.getCigarString());
                 out.printf("  read bases    : %s%n", new String(read.getReadBases()));
                 out.printf("  ref length    : %d%n", baq.refBases.length);
                 out.printf("  BQ tag        : %s%n", read.getStringAttribute(BAQ.BAQ_TAG));
-                printQuals("  BQ deltas     : ", getBAQDeltas(read), true);
+                if ( BAQ.hasBAQTag(read) ) printQuals("  BQ deltas     : ", getBAQDeltas(read), true);
                 printQuals("  original quals: ", read.getBaseQualities(), true);
+                printQuals("  baq      quals: ", baq.bq, true);
+                printQuals("  positions     : ", pos, true);
                 printQuals("  original quals: ", read.getBaseQualities());
-                printQuals("  tag      quals: ", baqFromTag);
+                if ( BAQ.hasBAQTag(read) ) printQuals("  tag      quals: ", baqFromTag);
                 printQuals("  hmm      quals: ", baq.bq);
                 out.printf("  read bases    : %s%n", new String(read.getReadBases()));
             }
@@ -126,7 +144,7 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
         out.print(prefix);
         for ( int i = 0; i < quals.length; i++) {
             if ( asInt ) {
-                out.print((int)quals[i]);
+                out.printf("%2d", (int)quals[i]);
                 if ( i+1 != quals.length ) out.print(",");
             } else
                 out.print((char)(quals[i]+33));
