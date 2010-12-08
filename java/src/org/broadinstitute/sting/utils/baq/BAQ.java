@@ -6,6 +6,7 @@ import net.sf.samtools.CigarOperator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 import java.util.Arrays;
 
@@ -96,7 +97,8 @@ public class BAQ {
      * Use defaults for everything
      */
     public BAQ() {
-        cd = DEFAULT_GOP; 
+        cd = DEFAULT_GOP;
+        initializeCachedData();
     }
 
     /**
@@ -109,10 +111,42 @@ public class BAQ {
      */
 	public BAQ(final double d, final double e, final int b, final byte minBaseQual) {
 		cd = d; ce = e; cb = b; this.minBaseQual = minBaseQual;
+        initializeCachedData();
 	}
 
     private final static double EM = 0.33333333333;
     private final static double EI = 0.25;
+
+    private double[][][] EPSILONS = new double[256][256][64];
+
+    private void initializeCachedData() {
+        for ( int i = 0; i < 256; i++ )
+            for ( int j = 0; j < 256; j++ )
+                for ( int q = 0; q < 64; q++ ) {
+                    double qual = qual2prob[q < minBaseQual ? minBaseQual : q];
+                    EPSILONS[i][j][q] = 1.0;
+                }
+
+        for ( char b1 : "ACGTacgt".toCharArray() ) {
+            for ( char b2 : "ACGTacgt".toCharArray() ) {
+                for ( int q = 0; q < 64; q++ ) {
+                    double qual = qual2prob[q < minBaseQual ? minBaseQual : q];
+                    double e = Character.toLowerCase(b1) == Character.toLowerCase(b2) ? 1 - qual : qual * EM;
+                    EPSILONS[(byte)b1][(byte)b2][q] = e;
+                }
+            }
+        }
+    }
+
+    private double calcEpsilon( byte ref, byte read, byte qualB ) {
+        return EPSILONS[ref][read][qualB];
+    }
+
+//    private double calcEpsilon( byte ref, byte read, byte qualB ) {
+//        double qual = qual2prob[qualB < minBaseQual ? minBaseQual : qualB];
+//        return (ref > 3 || read > 3)? 1. : ref == read ? 1. - qual : qual * EM;
+//    }
+
 
     // ####################################################################################################
     //
@@ -122,28 +156,20 @@ public class BAQ {
     // Note that _ref and _query are in the special 0-4 encoding [see above for docs]
     //
     // ####################################################################################################
-    public int hmm_glocal(final byte[] _ref, final byte[] _query, final byte[] _iqual, int[] state, byte[] q) {
-        if ( _ref == null ) throw new ReviewedStingException("BUG: ref sequence is null");
-        if ( _query == null ) throw new ReviewedStingException("BUG: query sequence is null");
+    public int hmm_glocal(final byte[] ref, final byte[] query, int qstart, int l_query, final byte[] _iqual, int[] state, byte[] q) {
+        if ( ref == null ) throw new ReviewedStingException("BUG: ref sequence is null");
+        if ( query == null ) throw new ReviewedStingException("BUG: query sequence is null");
         if ( _iqual == null ) throw new ReviewedStingException("BUG: query quality vector is null");
-        if ( _query.length != _iqual.length ) throw new ReviewedStingException("BUG: read sequence length != qual length");
-        if ( q != null && q.length != _query.length ) throw new ReviewedStingException("BUG: BAQ quality length != read sequence length");
-        if ( state != null && state.length != _query.length ) throw new ReviewedStingException("BUG: state length != read sequence length");
+        if ( query.length != _iqual.length ) throw new ReviewedStingException("BUG: read sequence length != qual length");
+        //if ( q != null && q.length != state.length ) throw new ReviewedStingException("BUG: BAQ quality length != read sequence length");
+        //if ( state != null && state.length != l_query ) throw new ReviewedStingException("BUG: state length != read sequence length");
 
 		int i, k;
 
         /*** initialization ***/
 		// change coordinates
-		int l_ref = _ref.length;
-		byte[] ref = new byte[l_ref+1];
-		for (i = 0; i < l_ref; ++i) ref[i+1] = _ref[i]; // FIXME: this is silly...
-		int l_query = _query.length;
-		byte[] query = new byte[l_query+1];
-		double[] qual = new double[l_query+1];
-		for (i = 0; i < l_query; ++i) {
-			query[i+1] = _query[i];
-			qual[i+1] = qual2prob[_iqual[i] < minBaseQual ? minBaseQual : _iqual[i]];
-		}
+		int l_ref = ref.length;
+		//int l_query = query.length;
 
 		// set band width
 		int bw2, bw = l_ref > l_query? l_ref : l_query;
@@ -174,7 +200,7 @@ public class BAQ {
 			int beg = 1, end = l_ref < bw + 1? l_ref : bw + 1, _beg, _end;
 			for (k = beg, sum = 0.; k <= end; ++k) {
 				int u;
-				double e = (ref[k] > 3 || query[1] > 3)? 1. : ref[k] == query[1]? 1. - qual[1] : qual[1] * EM;
+                double e = calcEpsilon(ref[k-1], query[qstart], _iqual[qstart]);
 				u = set_u(bw, 1, k);
 				fi[u+0] = e * bM; fi[u+1] = EI * bI;
 				sum += fi[u] + fi[u+1];
@@ -188,15 +214,14 @@ public class BAQ {
 		// f[2..l_query]
 		for (i = 2; i <= l_query; ++i) {
 			double[] fi = f[i], fi1 = f[i-1];
-			double sum, qli = qual[i];
+			double sum;
 			int beg = 1, end = l_ref, x, _beg, _end;
-			byte qyi = query[i];
+			byte qyi = query[qstart+i-1];
 			x = i - bw; beg = beg > x? beg : x; // band start
 			x = i + bw; end = end < x? end : x; // band end
 			for (k = beg, sum = 0.; k <= end; ++k) {
 				int u, v11, v01, v10;
-				double e;
-				e = (ref[k] > 3 || qyi > 3)? 1. : ref[k] == qyi? 1. - qli : qli * EM;
+                double e = calcEpsilon(ref[k-1], qyi, _iqual[qstart+i-1]);
 				u = set_u(bw, i, k); v11 = set_u(bw, i-1, k-1); v10 = set_u(bw, i-1, k); v01 = set_u(bw, i, k-1);
 				fi[u+0] = e * (m[0] * fi1[v11+0] + m[3] * fi1[v11+1] + m[6] * fi1[v11+2]);
 				fi[u+1] = EI * (m[1] * fi1[v10+0] + m[4] * fi1[v10+1]);
@@ -232,16 +257,15 @@ public class BAQ {
 		for (i = l_query - 1; i >= 1; --i) {
 			int beg = 1, end = l_ref, x, _beg, _end;
 			double[] bi = b[i], bi1 = b[i+1];
-			double y = (i > 1)? 1. : 0., qli1 = qual[i+1];
-			byte qyi1 = query[i+1];
+			double y = (i > 1)? 1. : 0.;
+			byte qyi1 = query[qstart+i];
 			x = i - bw; beg = beg > x? beg : x;
 			x = i + bw; end = end < x? end : x;
 			for (k = end; k >= beg; --k) {
 				int u, v11, v01, v10;
-				double e;
 				u = set_u(bw, i, k); v11 = set_u(bw, i+1, k+1); v10 = set_u(bw, i+1, k); v01 = set_u(bw, i, k+1);
-				e = (k >= l_ref? 0 : (ref[k+1] > 3 || qyi1 > 3)? 1. : ref[k+1] == qyi1? 1. - qli1 : qli1 * EM) * bi1[v11];
-				bi[u+0] = e * m[0] + EI * m[1] * bi1[v10+1] + m[2] * bi[v01+2]; // bi1[v11] has been foled into e.
+                double e = (k >= l_ref? 0 : calcEpsilon(ref[k], qyi1, _iqual[qstart+i])) * bi1[v11];
+                bi[u+0] = e * m[0] + EI * m[1] * bi1[v10+1] + m[2] * bi[v01+2]; // bi1[v11] has been foled into e.
 				bi[u+1] = e * m[3] + EI * m[4] * bi1[v10+1];
 				bi[u+2] = (e * m[6] + m[8] * bi[v01+2]) * y;
 			}
@@ -257,8 +281,8 @@ public class BAQ {
 			double sum = 0.;
 			for (k = end; k >= beg; --k) {
 				int u = set_u(bw, 1, k);
-				double e = (ref[k] > 3 || query[1] > 3)? 1. : ref[k] == query[1]? 1. - qual[1] : qual[1] * EM;
-				if (u < 3 || u >= bw2*3+3) continue;
+                double e = calcEpsilon(ref[k-1], query[qstart], _iqual[qstart]);
+                if (u < 3 || u >= bw2*3+3) continue;
 				sum += e * b[1][u+0] * bM + EI * b[1][u+1] * bI;
 			}
 			pb = b[0][set_u(bw, 0, 0)] = sum / s[0]; // if everything works as is expected, pb == 1.0
@@ -278,10 +302,10 @@ public class BAQ {
 				sum += (z = fi[u+1] * bi[u+1]); if (z > max) { max = z; max_k = (k-1)<<2 | 1; }
 			}
 			max /= sum; sum *= s[i]; // if everything works as is expected, sum == 1.0
-			if (state != null) state[i-1] = max_k;
+			if (state != null) state[qstart+i-1] = max_k;
 			if (q != null) {
 				k = (int)(-4.343 * Math.log(1. - max) + .499);
-				q[i-1] = (byte)(k > 100? 99 : (k < minBaseQual ? minBaseQual : k));
+				q[qstart+i-1] = (byte)(k > 100? 99 : (k < minBaseQual ? minBaseQual : k));
 			}
 			//System.out.println("("+pb+","+sum+")"+" ("+(i-1)+","+(max_k>>2)+","+(max_k&3)+","+max+")");
 		}
@@ -318,23 +342,6 @@ public class BAQ {
 		x = x > 0 ? x : 0;
 		return (k + 1 - x) * 3;
 	}
-
-    private static byte[] bases2indices(byte[] bases) {
-        byte[] out = new byte[bases.length];
-
-        for ( int i = 0; i < bases.length; i++ ) {
-            switch (bases[i]) {
-                case 'A': case 'a': out[i] = 0; break;
-                case 'C': case 'c': out[i] = 1; break;
-                case 'G': case 'g': out[i] = 2; break;
-                case 'T': case 't': out[i] = 3; break;
-                default: out[i] = 4; break;
-            }
-        }
-
-        return out;
-    }
-
 
     // ---------------------------------------------------------------------------------------------------------------
     //
@@ -408,7 +415,6 @@ public class BAQ {
         public byte[] refBases, rawQuals, readBases, bq;
         public int[] state;
 
-        // todo -- optimization: use static growing arrays here
         public BAQCalculationResult(SAMRecord read, byte[] ref) {
             this(read.getBaseQualities(), read.getReadBases(), ref);
         }
@@ -450,11 +456,8 @@ public class BAQ {
         if ( stop > refReader.getSequenceDictionary().getSequence(read.getReferenceName()).getSequenceLength() ) {
             return null;
         } else {
-
             // now that we have the start and stop, get the reference sequence covering it
             ReferenceSequence refSeq = refReader.getSubsequenceAt(read.getReferenceName(), start, stop);
-
-            // todo -- think about last tiny bit of logic -- should be fine but need to convince myself that it's 100% correct
             return calcBAQFromHMM(read, refSeq.getBases(), (int)(start - read.getAlignmentStart()));
         }
     }
@@ -462,20 +465,8 @@ public class BAQ {
     public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals, int queryStart, int queryEnd ) {
         // note -- assumes ref is offset from the *CLIPPED* start
         BAQCalculationResult baqResult = new BAQCalculationResult(query, quals, ref);
-        byte[] convSeq = bases2indices(baqResult.readBases);
-        byte[] convRef = bases2indices(baqResult.refBases);
-
-        //boolean clipped = queryStart > 0 || queryEnd < query.length; // we are clipping, need to handle
-        byte[] cseq = Arrays.copyOfRange(convSeq, queryStart, queryEnd );
-        byte[] cquals = Arrays.copyOfRange(baqResult.rawQuals, queryStart, queryEnd );
-        int[] cstate = Arrays.copyOfRange(baqResult.state, queryStart, queryEnd );
-        byte[] cbq = Arrays.copyOfRange(baqResult.bq, queryStart, queryEnd );
-
-        hmm_glocal(convRef, cseq, cquals, cstate, cbq);
-
-        System.arraycopy(cstate, 0, baqResult.state, queryStart, cstate.length);
-        System.arraycopy(cbq, 0, baqResult.bq, queryStart, cbq.length);
-
+        int queryLen = queryEnd - queryStart;
+        hmm_glocal(baqResult.refBases, baqResult.readBases, queryStart, queryLen, baqResult.rawQuals, baqResult.state, baqResult.bq);
         return baqResult;
     }
 

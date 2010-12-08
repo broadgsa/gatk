@@ -34,6 +34,9 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
     @Argument(doc="",required=false)
     protected double bw = 1e-3;
 
+    @Argument(doc="",required=false)
+    protected int mbq = 4;
+
     @Argument(doc="only operates on reads with this name",required=false)
     protected String readName = null;
 
@@ -54,7 +57,7 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
     BAQ baqHMM = null;         // matches current samtools parameters
 
     public void initialize() {
-        baqHMM = new BAQ(bw, 0.1, 7, (byte)0);
+        baqHMM = new BAQ(bw, 0.1, 7, (byte)mbq);
     }
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker tracker) {
