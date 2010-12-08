@@ -316,6 +316,9 @@ public abstract class AbstractGenomeAnalysisEngine {
     protected void initializeDataSources() {
         logger.info("Strictness is " + argCollection.strictnessLevel);
 
+        // TODO -- REMOVE ME
+        BAQ.DEFAULT_GOP = argCollection.BAQGOP;
+
         validateSuppliedReference();
         referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
 

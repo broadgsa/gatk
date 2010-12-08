@@ -42,6 +42,7 @@ import java.io.PrintStream;
  * in merged output sorted in coordinate order.  Can also optionally filter reads based on the --read-filter
  * command line argument.
  */
+@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_OUTPUT)
 @Requires({DataSource.READS, DataSource.REFERENCE})
 public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     /** an optional argument to dump the reads out to a BAM file */

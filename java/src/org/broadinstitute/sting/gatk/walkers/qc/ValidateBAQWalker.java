@@ -50,7 +50,7 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
     BAQ baqHMM = null;         // matches current samtools parameters
 
     public void initialize() {
-        baqHMM = new BAQ(bw, 0.1, 7, 0);
+        baqHMM = new BAQ(bw, 0.1, 7, (byte)0);
     }
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker tracker) {
@@ -81,6 +81,11 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
                             print = true;
                             out.printf("  different, but deletion detected%n");
                             break;
+                        } else if ( baq.bq[badi] < baqHMM.getMinBaseQual() ) {
+                            print = true;
+                            out.printf("  Base quality %d < min %d", baq.bq[badi], baqHMM.getMinBaseQual());
+                            fail = true;
+                            break;
                         } else {
                             fail = true; print = true;
                             break;
@@ -96,6 +101,7 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
                 out.printf("  read length   : %d%n", read.getReadLength());
                 out.printf("  read start    : %d%n", read.getAlignmentStart());
                 out.printf("  cigar         : %s%n", read.getCigarString());
+                out.printf("  ref bases     : %s%n", new String(baq.refBases));
                 out.printf("  read bases    : %s%n", new String(read.getReadBases()));
                 out.printf("  ref length    : %d%n", baq.refBases.length);
                 out.printf("  BQ tag        : %s%n", read.getStringAttribute(BAQ.BAQ_TAG));
@@ -136,11 +142,15 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
         return false;
     }
 
-    private final void printQuals( String prefix, byte[] quals ) {
+    public final void printQuals( String prefix, byte[] quals ) {
         printQuals(prefix, quals, false);
     }
 
-    private final void printQuals( String prefix, byte[] quals, boolean asInt ) {
+    public final void printQuals( String prefix, byte[] quals, boolean asInt ) {
+        printQuals(out, prefix, quals, asInt);
+    }
+
+    public final static void printQuals( PrintStream out, String prefix, byte[] quals, boolean asInt ) {
         out.print(prefix);
         for ( int i = 0; i < quals.length; i++) {
             if ( asInt ) {

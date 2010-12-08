@@ -31,6 +31,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
@@ -153,6 +154,11 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Argument(fullName = "baq", shortName="baq", doc="Type of BAQ calculation to apply in the engine", required = false)
     public BAQ.CalculationMode BAQMode = BAQ.CalculationMode.NONE;
+
+    @Element(required = false)
+    @Hidden
+    @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="Gap open penalty.  For testing purposes only", required = false)
+    public double BAQGOP = 1e-3; // todo remove me
 
     /**
      * Gets the default downsampling method, returned if the user didn't specify any downsampling

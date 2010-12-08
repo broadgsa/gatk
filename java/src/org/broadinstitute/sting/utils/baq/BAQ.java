@@ -3,7 +3,6 @@ package org.broadinstitute.sting.utils.baq;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import net.sf.samtools.SAMSequenceRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -64,14 +63,20 @@ public class BAQ {
             qual2prob[i] = Math.pow(10, -i/10.);
     }
 
-	private double cd = 1e-3;   // gap open probility [1e-3]
+    public static double DEFAULT_GOP = 1e-3; // todo -- make me final private
+
+    public double cd = -1;      // gap open probility [1e-3]
     private double ce = 0.1;    // gap extension probability [0.1]
 	private int cb = 7;         // band width [7]
+
+    public byte getMinBaseQual() {
+        return minBaseQual;
+    }
 
     /**
      * Any bases with Q < MIN_BASE_QUAL are raised up to this base quality
      */
-    private int minBaseQual = 4;
+    private byte minBaseQual = 4;
 
     public double getGapOpenProb() {
         return cd;
@@ -88,7 +93,9 @@ public class BAQ {
     /**
      * Use defaults for everything
      */
-    public BAQ() { }
+    public BAQ() {
+        cd = DEFAULT_GOP; 
+    }
 
     /**
      * Create a new HmmGlocal object with specified parameters
@@ -98,7 +105,7 @@ public class BAQ {
      * @param b band width
      * @param minBaseQual All bases with Q < minBaseQual are up'd to this value
      */
-	public BAQ(final double d, final double e, final int b, final int minBaseQual) {
+	public BAQ(final double d, final double e, final int b, final byte minBaseQual) {
 		cd = d; ce = e; cb = b; this.minBaseQual = minBaseQual;
 	}
 
@@ -272,7 +279,7 @@ public class BAQ {
 			if (state != null) state[i-1] = max_k;
 			if (q != null) {
 				k = (int)(-4.343 * Math.log(1. - max) + .499);
-				q[i-1] = (byte)(k > 100? 99 : k);
+				q[i-1] = (byte)(k > 100? 99 : (k < minBaseQual ? minBaseQual : k));
 			}
 			//System.out.println("("+pb+","+sum+")"+" ("+(i-1)+","+(max_k>>2)+","+(max_k&3)+","+max+")");
 		}
@@ -287,12 +294,12 @@ public class BAQ {
     // ---------------------------------------------------------------------------------------------------------------
 
     /** decode the bit encoded state array values */
-    private static boolean stateIsIndel(int state) {
+    public static boolean stateIsIndel(int state) {
         return (state & 3) != 0;
     }
 
     /** decode the bit encoded state array values */
-    private static int stateAlignedPosition(int state) {
+    public static int stateAlignedPosition(int state) {
         return state >> 2;
     }
 
@@ -397,20 +404,22 @@ public class BAQ {
 
     public static class BAQCalculationResult {
         public byte[] refBases, rawQuals, readBases, bq;
-        public int refOffset;
         public int[] state;
 
         // todo -- optimization: use static growing arrays here
-        public BAQCalculationResult(SAMRecord read, byte[] ref, int refOffset) {
+        public BAQCalculationResult(SAMRecord read, byte[] ref) {
+            this(read.getBaseQualities(), read.getReadBases(), ref);
+        }
+
+        public BAQCalculationResult(byte[] bases, byte[] quals, byte[] ref) {
             // prepares data for calculation
-            rawQuals = read.getBaseQualities();
-            readBases = read.getReadBases();
+            rawQuals = quals;
+            readBases = bases;
 
             // now actually prepare the data structures, and fire up the hmm
             bq = new byte[rawQuals.length];
             state = new int[rawQuals.length];
             this.refBases = ref;
-            this.refOffset = refOffset;
         }
     }
 
@@ -448,14 +457,19 @@ public class BAQ {
         }
     }
 
-    // we need to bad ref by at least the bandwidth / 2 on either side
-    public BAQCalculationResult calcBAQFromHMM(SAMRecord read, byte[] ref, int refOffset) {
+
+    public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals) {
         // note -- assumes ref is offset from the *CLIPPED* start
-        BAQCalculationResult baqResult = new BAQCalculationResult(read, ref, refOffset);
+        BAQCalculationResult baqResult = new BAQCalculationResult(query, quals, ref);
         byte[] convSeq = bases2indices(baqResult.readBases);
         byte[] convRef = bases2indices(baqResult.refBases);
-
         hmm_glocal(convRef, convSeq, baqResult.rawQuals, baqResult.state, baqResult.bq);
+        return baqResult;
+    }
+
+    // we need to bad ref by at least the bandwidth / 2 on either side
+    public BAQCalculationResult calcBAQFromHMM(SAMRecord read, byte[] ref, int refOffset) {
+        BAQCalculationResult baqResult = calcBAQFromHMM(ref, read.getReadBases(), read.getBaseQualities());
 
         // cap quals
         int readI = 0, refI = 0;
@@ -474,14 +488,8 @@ public class BAQ {
                 case D : refI += l; break;
                 case M :
                     for (int i = readI; i < readI + l; i++) {
-                        boolean isIndel = stateIsIndel(baqResult.state[i]);
-                        int pos = stateAlignedPosition(baqResult.state[i]);
                         int expectedPos = refI - refOffset + (i - readI);
-                        if ( isIndel || pos != expectedPos )
-                            // we are an indel or we don't align to our best current position
-                            baqResult.bq[i] = 0;
-                        else
-                            baqResult.bq[i] = baqResult.bq[i] < baqResult.rawQuals[i] ? baqResult.bq[i] : baqResult.rawQuals[i];
+                        baqResult.bq[i] = capBaseByBAQ( baqResult.rawQuals[i], baqResult.bq[i], baqResult.state[i], expectedPos );
                     }
                     readI += l; refI += l;
                     break;
@@ -489,6 +497,18 @@ public class BAQ {
         }
 
         return baqResult;
+    }
+
+    public byte capBaseByBAQ( byte oq, byte bq, int state, int expectedPos ) {
+        byte b;
+        boolean isIndel = stateIsIndel(state);
+        int pos = stateAlignedPosition(state);
+        if ( isIndel || pos != expectedPos ) // we are an indel or we don't align to our best current position
+            b = minBaseQual; // just take b = minBaseQuality
+        else
+            b = bq < oq ? bq : oq;
+
+        return b;
     }
 
     /**
