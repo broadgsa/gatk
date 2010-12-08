@@ -7,6 +7,8 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.util.Arrays;
+
 /*
   The topology of the profile HMM:
 
@@ -457,19 +459,31 @@ public class BAQ {
         }
     }
 
-
-    public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals) {
+    public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals, int queryStart, int queryEnd ) {
         // note -- assumes ref is offset from the *CLIPPED* start
         BAQCalculationResult baqResult = new BAQCalculationResult(query, quals, ref);
         byte[] convSeq = bases2indices(baqResult.readBases);
         byte[] convRef = bases2indices(baqResult.refBases);
-        hmm_glocal(convRef, convSeq, baqResult.rawQuals, baqResult.state, baqResult.bq);
+
+        //boolean clipped = queryStart > 0 || queryEnd < query.length; // we are clipping, need to handle
+        byte[] cseq = Arrays.copyOfRange(convSeq, queryStart, queryEnd );
+        byte[] cquals = Arrays.copyOfRange(baqResult.rawQuals, queryStart, queryEnd );
+        int[] cstate = Arrays.copyOfRange(baqResult.state, queryStart, queryEnd );
+        byte[] cbq = Arrays.copyOfRange(baqResult.bq, queryStart, queryEnd );
+
+        hmm_glocal(convRef, cseq, cquals, cstate, cbq);
+
+        System.arraycopy(cstate, 0, baqResult.state, queryStart, cstate.length);
+        System.arraycopy(cbq, 0, baqResult.bq, queryStart, cbq.length);
+
         return baqResult;
     }
 
     // we need to bad ref by at least the bandwidth / 2 on either side
     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, byte[] ref, int refOffset) {
-        BAQCalculationResult baqResult = calcBAQFromHMM(ref, read.getReadBases(), read.getBaseQualities());
+        int queryStart = (int)(read.getAlignmentStart() - read.getUnclippedStart());
+        int queryEnd = (int)(read.getReadLength() - (read.getUnclippedEnd() - read.getAlignmentEnd()));
+        BAQCalculationResult baqResult = calcBAQFromHMM(ref, read.getReadBases(), read.getBaseQualities(), queryStart, queryEnd);
 
         // cap quals
         int readI = 0, refI = 0;
@@ -493,6 +507,8 @@ public class BAQ {
                     }
                     readI += l; refI += l;
                     break;
+                default:
+                    throw new ReviewedStingException("BUG: Unexpected CIGAR element " + elt + " in read " + read.getReadName());
             }
         }
 

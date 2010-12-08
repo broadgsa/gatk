@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.Argument;
 
@@ -36,6 +37,9 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
     @Argument(doc="only operates on reads with this name",required=false)
     protected String readName = null;
 
+    @Argument(doc="If true, all differences are errors", required=false)
+    protected boolean strict = false;
+
     @Argument(doc="prints info for each read", required=false)
     protected boolean printEachRead = false;
 
@@ -58,7 +62,7 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
 
         if ( (readName == null || readName.equals(read.getReadName())) && read.getReadLength() <= maxReadLen && (includeReadsWithoutBAQTag || BAQ.hasBAQTag(read) ) ) {
             byte[] baqFromTag = BAQ.calcBAQFromTag(read, false, includeReadsWithoutBAQTag);
-            if (counter++ % 1000 == 0) out.printf("Checking read %s (%d)%n", read.getReadName(), counter);
+            if (counter++ % 1000 == 0 || printEachRead) out.printf("Checking read %s (%d)%n", read.getReadName(), counter);
             BAQ.BAQCalculationResult baq = baqHMM.calcBAQFromHMM(read, refReader);
 
             boolean fail = false;
@@ -70,31 +74,33 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
                     if ( baqFromTag[badi] != baq.bq[badi] ) {
                         if (MathUtils.arrayMin(read.getBaseQualities()) == 0) {
                             print = true;
+                            fail = strict;
                             out.printf("  different, but Q0 base detected%n");
                             break;
                         }
                         else if (readHasSoftClip(read)) {
                             print = true;
+                            fail = strict;
                             out.printf("  different, but soft clip detected%n");
                             break;
                         } else if (readHasDeletion(read)) {
                             print = true;
+                            fail = strict;
                             out.printf("  different, but deletion detected%n");
                             break;
                         } else if ( baq.bq[badi] < baqHMM.getMinBaseQual() ) {
-                            print = true;
+                            print = fail = true;
                             out.printf("  Base quality %d < min %d", baq.bq[badi], baqHMM.getMinBaseQual());
-                            fail = true;
                             break;
                         } else {
-                            fail = true; print = true;
+                            print = fail = true;
                             break;
                         }
                     }
                 }
             }
 
-            if ( printEachRead || ( print && ( alsoPrintWarnings || fail ) ) ) {
+            if ( fail || printEachRead || ( print && alsoPrintWarnings ) ) {
                 byte[] pos = new byte[baq.bq.length];
                 for ( int i = 0; i < pos.length; i++ ) pos[i] = (byte)i;
 
@@ -113,6 +119,7 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
                 if ( BAQ.hasBAQTag(read) ) printQuals("  tag      quals: ", baqFromTag);
                 printQuals("  hmm      quals: ", baq.bq);
                 out.printf("  read bases    : %s%n", new String(read.getReadBases()));
+                out.println(Utils.dupString('-', 80));
             }
 
 
