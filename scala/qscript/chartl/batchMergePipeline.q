@@ -4,6 +4,7 @@ import org.broadinstitute.sting.queue.extensions.gatk.CommandLineGATK
 import org.broadinstitute.sting.queue.pipeline.{ProjectManagement, BamProcessing, VariantCalling}
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
+import org.broadinstitute.sting.utils.text.XReadLines
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 
 class batchMergePipeline extends QScript {
@@ -22,18 +23,10 @@ class batchMergePipeline extends QScript {
     var vcfs : List[File] = extractFileEntries(vcfList)
     var bams : List[File] = extractFileEntries(bamList)
     var pmLib = new ProjectManagement(stingDir)
-    addAll(pmLib.MergeBatches(vcfs,bams,batchOut,ref,25))
+    addAll(pmLib.MergeBatches(vcfs,bams,batchOut,ref,20))
   }
 
   def extractFileEntries(in: File): List[File] = {
-    var reader : BufferedReader = new BufferedReader(new FileReader(in))
-    var entries : List[File] = Nil
-    var line : String = reader.readLine
-    while ( line != null ) {
-      entries :+= new File(line)
-      line = reader.readLine()
-    }
-
-    return entries
+    return (new XReadLines(in)).readLines.toList.map( new File(_) )
   }
 }

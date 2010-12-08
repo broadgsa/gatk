@@ -27,6 +27,7 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
   def isScatterGatherable(originalFunction: ScatterGatherableFunction) = {
     if (originalFunction.isInstanceOf[CommandLineGATK]) {
       val gatk = originalFunction.asInstanceOf[CommandLineGATK]
+      if ( gatk.BTI != null && gatk.BTIMR == null) throw new IllegalArgumentException("BTI requires BTIMR for use with scatter-gather (recommended: INTERSECTION)")
       gatk.reference_sequence != null
     } else false
   }
