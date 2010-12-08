@@ -40,7 +40,7 @@ public class LiftoverVariantsIntegrationTest extends WalkerTest {
          WalkerTestSpec spec = new WalkerTestSpec(
                  "-T LiftoverVariants -o %s -R " + b36KGReference + " -B:variant,vcf " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.noheader.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
                  1,
-                 Arrays.asList("cc1b1ccb800b16abce2d177c181ede56"));
+                 Arrays.asList("37e23efd7d6471fc0f807b31ccafe0eb"));
          executeTest("test b36 to hg19", spec);
     }
 
@@ -49,7 +49,7 @@ public class LiftoverVariantsIntegrationTest extends WalkerTest {
          WalkerTestSpec spec = new WalkerTestSpec(
                  "-T LiftoverVariants -o %s -R " + hg18Reference + " -B:variant,vcf " + validationDataLocation + "liftover_test.vcf -chain " + validationDataLocation + "hg18ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
                  1,
-                 Arrays.asList("22d4cd78d72da55f2423b9ab06f467b2"));
+                 Arrays.asList("3275373b3c44ad14a270b50664b3f8a3"));
          executeTest("test hg18 to hg19, unsorted", spec);
     }
 }

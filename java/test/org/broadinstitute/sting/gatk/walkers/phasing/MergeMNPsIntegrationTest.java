@@ -23,7 +23,7 @@ public class MergeMNPsIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "merging_test_chr20_556259_756570.vcf", 1)
                         + " -L chr20:556259-756570",
                 1,
-                Arrays.asList("19d0b2361367024bb9a83b9c15ef2453"));
+                Arrays.asList("e312b7d3854d5b2834a370659514a813"));
         executeTest("Merge MNP sites within genomic distance of 1 [TEST ONE]", spec);
     }
 
@@ -33,7 +33,7 @@ public class MergeMNPsIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "merging_test_chr20_556259_756570.vcf", 10)
                         + " -L chr20:556259-756570",
                 1,
-                Arrays.asList("f25a6403579dab1395773b3ba365c327"));
+                Arrays.asList("681f50e45f1d697370d2c355df2e18bc"));
         executeTest("Merge MNP sites within genomic distance of 10 [TEST TWO]", spec);
     }
 
@@ -43,7 +43,7 @@ public class MergeMNPsIntegrationTest extends WalkerTest {
                 baseTestString(hg18Reference, "merging_test_chr20_556259_756570.vcf", 100)
                         + " -L chr20:556259-756570",
                 1,
-                Arrays.asList("a064955ffeea7fc4e09512f3e9cdbb9e"));
+                Arrays.asList("0bccb0ef928a108418246bec01098083"));
         executeTest("Merge MNP sites within genomic distance of 100 [TEST THREE]", spec);
     }
 

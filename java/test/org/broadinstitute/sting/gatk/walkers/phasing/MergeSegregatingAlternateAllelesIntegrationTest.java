@@ -23,7 +23,7 @@ public class MergeSegregatingAlternateAllelesIntegrationTest extends WalkerTest 
                 baseTestString(hg18Reference, "merging_test_chr20_556259_756570.vcf", 1)
                         + " -L chr20:556259-756570",
                 1,
-                Arrays.asList("e6a14fc97dbd0aaa8e6a4d9a7f1616a6"));
+                Arrays.asList("e16f957d888054ae0518e25660295241"));
         executeTest("Merge sites within genomic distance of 1 [TEST ONE]", spec);
     }
 
@@ -33,7 +33,7 @@ public class MergeSegregatingAlternateAllelesIntegrationTest extends WalkerTest 
                 baseTestString(hg18Reference, "merging_test_chr20_556259_756570.vcf", 10)
                         + " -L chr20:556259-756570",
                 1,
-                Arrays.asList("cc2b45c85a51b4998e30758c48f61940"));
+                Arrays.asList("122a482090677c7619c2105d44e00d11"));
         executeTest("Merge sites within genomic distance of 10 [TEST TWO]", spec);
     }
 
@@ -43,7 +43,7 @@ public class MergeSegregatingAlternateAllelesIntegrationTest extends WalkerTest 
                 baseTestString(hg18Reference, "merging_test_chr20_556259_756570.vcf", 100)
                         + " -L chr20:556259-756570",
                 1,
-                Arrays.asList("47300cc7a5a7d84b3c279f04c4567739"));
+                Arrays.asList("bc6a8c8a42bb2601db98e88e9ad74748"));
         executeTest("Merge sites within genomic distance of 100 [TEST THREE]", spec);
     }
 

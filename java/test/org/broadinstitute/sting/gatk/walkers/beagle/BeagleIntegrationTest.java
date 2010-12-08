@@ -41,7 +41,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                         "-B:beagleR2,BEAGLE " + beagleValidationDataLocation + "inttestbgl.r2 " +
                         "-B:beagleProbs,BEAGLE " + beagleValidationDataLocation + "inttestbgl.gprobs " +
                         "-B:beaglePhased,BEAGLE " + beagleValidationDataLocation + "inttestbgl.phased " +
-                        "-o %s -NO_HEADER", 1, Arrays.asList("e746763ade40edea56a051dc1dfd6165"));
+                        "-o %s -NO_HEADER", 1, Arrays.asList("6bccee48ad2f06ba5a8c774fed444478"));
         executeTest("test BeagleOutputToVCF", spec);
     }
    
@@ -60,7 +60,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                 "-T ProduceBeagleInput -B:variant,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_HSQ_chr22_14-16m.vcf "+
                         "-B:validation,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_OMNI_chr22_14-16m.vcf "+
                         "-L 22:14000000-16000000 -o %s -bvcf %s -bs 0.8 -valp 0.98 -R /humgen/1kg/reference/human_g1k_v37.fasta -NO_HEADER ",2,
-                Arrays.asList("44d28b6b092d5f4c0ae59af442612ea3","481c58f8309916184a33ab1835e5cc48"));
+                Arrays.asList("44d28b6b092d5f4c0ae59af442612ea3","223fb977e8db567dcaf632c6ee51f294"));
         executeTest("test BeagleInputWithBootstrap",spec);
     }
 
@@ -72,7 +72,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                 "-B:beagleR2,beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.r2 "+
                 "-B:beagleProbs,beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.gprobs.bgl "+
                 "-B:beaglePhased,beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.phased.bgl "+
-                "-L 20:1-70000 -o %s -NO_HEADER ",1,Arrays.asList("71e7ac1118ecef82a7de0b6543973a81"));
+                "-L 20:1-70000 -o %s -NO_HEADER ",1,Arrays.asList("e09d2cba18ab5c571e563085296cd514"));
 
         executeTest("testBeagleChangesSitesToRef",spec);
     }

@@ -124,7 +124,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs + " -o %s -outputVCF %s -NO_HEADER",
                     2,
-                    Arrays.asList("50321436a65ef7d574286cb0a1c55f7e", "989bc30dea6c8a4cf771cd1b9fdab488"));
+                    Arrays.asList("50321436a65ef7d574286cb0a1c55f7e", "d4bdd06ed5cb1aff1dfee8b69d5d17b8"));
             executeTestParallel("testVEWriteVCF", spec);
             //executeTest("testVEWriteVCF", spec);
         }
