@@ -75,7 +75,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         VariantContext vc = null;
 
         for( final VariantContext vc_input : tracker.getVariantContexts(ref, "indels", null, ref.getLocus(), false, false) ) {
-            if( vc_input != null && vc_input.isIndel() ) {
+            if( vc_input != null && vc_input.isIndel() && ref.getLocus().getStart() == vc_input.getStart()) {
                 vc = vc_input;
                 break;
             }
@@ -90,6 +90,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
 
         boolean visitedBefore = false;
         synchronized (this) {
+
             if (sitesVisited.contains(new Integer(vc.getStart())) &&
                     contextType.equals(StratifiedAlignmentContext.StratifiedContextType.COMPLETE))
                  visitedBefore = true;
@@ -105,7 +106,6 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         if (vc.getStart() <= HAPLOTYPE_SIZE)
             return null;
         
-
         if ( !(priors instanceof DiploidIndelGenotypePriors) )
              throw new StingException("Only diploid-based Indel priors are supported in the DINDEL GL model");
 
