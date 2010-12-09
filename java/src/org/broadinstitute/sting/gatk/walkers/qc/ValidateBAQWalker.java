@@ -52,6 +52,9 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
     @Argument(doc="Include reads without BAQ tag", required=false)
     protected boolean includeReadsWithoutBAQTag = false;
 
+    @Argument(doc="x each read is processed", required=false)
+    protected int magnification = 1;
+
     int counter = 0;
 
     BAQ baqHMM = null;         // matches current samtools parameters
@@ -64,9 +67,14 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
         IndexedFastaSequenceFile refReader = this.getToolkit().getReferenceDataSource().getReference();
 
         if ( (readName == null || readName.equals(read.getReadName())) && read.getReadLength() <= maxReadLen && (includeReadsWithoutBAQTag || BAQ.hasBAQTag(read) ) ) {
+            if ( baqHMM.excludeReadFromBAQ(read) )
+                return 1;
             byte[] baqFromTag = BAQ.calcBAQFromTag(read, false, includeReadsWithoutBAQTag);
             if (counter++ % 1000 == 0 || printEachRead) out.printf("Checking read %s (%d)%n", read.getReadName(), counter);
-            BAQ.BAQCalculationResult baq = baqHMM.calcBAQFromHMM(read, refReader);
+            BAQ.BAQCalculationResult baq = null;
+            
+            for ( int i = 0; i < magnification; i++ )
+                baq = baqHMM.calcBAQFromHMM(read, refReader);
 
             boolean fail = false;
             boolean print = false;
