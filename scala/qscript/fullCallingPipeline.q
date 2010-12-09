@@ -209,9 +209,9 @@ class fullCallingPipeline extends QScript {
     snps.input_file = bamFiles
     snps.group :+= "Standard"
     snps.out = new File("SnpCalls", base+".vcf")
-    snps.standard_min_confidence_threshold_for_emitting = Some(10)
-    snps.min_mapping_quality_score = Some(20)
-    snps.min_base_quality_score = Some(20)
+    //snps.standard_min_confidence_threshold_for_emitting = Some(10)
+    //snps.min_mapping_quality_score = Some(20)
+    //snps.min_base_quality_score = Some(20)
     snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
     //snps.annotation :+= "QualByDepthV2"
     snps.DBSNP = qscript.pipeline.getProject.getDbsnpFile
