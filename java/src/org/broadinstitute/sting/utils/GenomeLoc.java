@@ -26,6 +26,14 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     protected final int start;
     protected final int stop;
     protected final String contigName;
+
+    /**
+     * A static constant to use when referring to the unmapped section of a datafile
+     * file.  The unmapped region cannot be subdivided.  Only this instance of
+     * the object may be used to refer to the region, as '==' comparisons are used
+     * in comparators, etc.
+     */
+    public static final GenomeLoc UNMAPPED = new GenomeLoc(null,-1,0,0);
     
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -64,6 +72,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     public final int getStart()    { return this.start; }
     public final int getStop()     { return this.stop; }
     public final String toString()  {
+        if(this == UNMAPPED) return "unmapped";
         if ( throughEndOfContigP() && atBeginningOfContigP() )
             return getContig();
         else if ( throughEndOfContigP() || getStart() == getStop() )
@@ -91,6 +100,12 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     }
 
     public GenomeLoc merge( GenomeLoc that ) throws ReviewedStingException {
+        if(this == UNMAPPED || that == UNMAPPED) {
+            if(this != UNMAPPED || that != UNMAPPED)
+                throw new ReviewedStingException("Tried to merge a mapped and an unmapped genome loc");
+            return UNMAPPED;
+        }
+
         if (!(this.contiguousP(that))) {
             throw new ReviewedStingException("The two genome loc's need to be contigous");
         }
@@ -101,6 +116,12 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     }
 
     public GenomeLoc intersect( GenomeLoc that ) throws ReviewedStingException {
+        if(this == UNMAPPED || that == UNMAPPED) {
+            if(this != UNMAPPED || that != UNMAPPED)
+                throw new ReviewedStingException("Tried to intersect a mapped and an unmapped genome loc");
+            return UNMAPPED;
+        }
+
         if (!(this.overlapsP(that))) {
             throw new ReviewedStingException("GenomeLoc::intersect(): The two genome loc's need to overlap");
         }
@@ -216,7 +237,12 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
         int result = 0;
         if ( this == that ) {
             result = 0;
-        } else {
+        }
+        else if(this == UNMAPPED)
+            result = 1;
+        else if(that == UNMAPPED)
+            result = -1;
+        else {
             final int cmpContig = compareContigs(that);
 
             if ( cmpContig != 0 ) {

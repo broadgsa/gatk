@@ -501,9 +501,12 @@ public class SAMDataSource implements SimpleDataSource {
         MergingSamRecordIterator mergingIterator = new MergingSamRecordIterator(headerMerger,readers.values(),true);
 
         for(SAMReaderID id: getReaderIDs()) {
-            if(shard.getFileSpans().get(id) == null)
+            CloseableIterator<SAMRecord> iterator = null;
+            if(!shard.isUnmapped() && shard.getFileSpans().get(id) == null)
                 continue;
-            CloseableIterator<SAMRecord> iterator = readers.getReader(id).iterator(shard.getFileSpans().get(id));            
+            iterator = shard.getFileSpans().get(id) != null ?
+                    readers.getReader(id).iterator(shard.getFileSpans().get(id)) :
+                    readers.getReader(id).queryUnmapped();
             if(readProperties.getReadBufferSize() != null)
                 iterator = new BufferingReadIterator(iterator,readProperties.getReadBufferSize());
             if(shard.getGenomeLocs() != null)
@@ -824,6 +827,11 @@ public class SAMDataSource implements SimpleDataSource {
         private SAMRecord nextRead;
 
         /**
+         * Rather than using the straight genomic bounds, use filter out only mapped reads.
+         */
+        private boolean keepOnlyUnmappedReads;
+
+        /**
          * Custom representation of interval bounds.
          * Makes it simpler to track current position. 
          */
@@ -837,14 +845,30 @@ public class SAMDataSource implements SimpleDataSource {
 
         public IntervalOverlapFilteringIterator(CloseableIterator<SAMRecord> iterator, List<GenomeLoc> intervals) {
             this.iterator = iterator;
-            this.intervalStarts = new int[intervals.size()];
-            this.intervalEnds = new int[intervals.size()];
-            int i = 0;
-            for(GenomeLoc interval: intervals) {
-                intervalStarts[i] = (int)interval.getStart();
-                intervalEnds[i] = (int)interval.getStop();
-                i++;
+
+            // Look at the interval list to detect whether we should worry about unmapped reads.
+            // If we find a mix of mapped/unmapped intervals, throw an exception.
+            boolean foundMappedIntervals = false;
+            for(GenomeLoc location: intervals) {
+                if(location != GenomeLoc.UNMAPPED)
+                    foundMappedIntervals = true;
+                keepOnlyUnmappedReads |= (location == GenomeLoc.UNMAPPED);
             }
+
+
+            if(foundMappedIntervals) {
+                if(keepOnlyUnmappedReads)
+                    throw new ReviewedStingException("Tried to apply IntervalOverlapFilteringIterator to a mixed of mapped and unmapped intervals.  Please apply this filter to only mapped or only unmapped reads");
+                this.intervalStarts = new int[intervals.size()];
+                this.intervalEnds = new int[intervals.size()];
+                int i = 0;
+                for(GenomeLoc interval: intervals) {
+                    intervalStarts[i] = (int)interval.getStart();
+                    intervalEnds[i] = (int)interval.getStop();
+                    i++;
+                }
+            }
+            
             advance();
         }
 
@@ -876,21 +900,31 @@ public class SAMDataSource implements SimpleDataSource {
                 return;
 
             SAMRecord candidateRead = iterator.next();
-            while(nextRead == null && currentBound < intervalStarts.length) {
-                if(candidateRead.getAlignmentEnd() >= intervalStarts[currentBound] ||
-                  (candidateRead.getReadUnmappedFlag() && candidateRead.getAlignmentStart() >= intervalStarts[currentBound])) {
-                    // This read ends after the current interval begins (or, if unmapped, starts within the bounds of the interval.
-                    // Promising, but this read must be checked against the ending bound.
-                    if(candidateRead.getAlignmentStart() <= intervalEnds[currentBound]) {
-                        // Yes, this read is within both bounds.  This must be our next read.
-                        nextRead = candidateRead;
-                        break;
+            while(nextRead == null && (keepOnlyUnmappedReads || currentBound < intervalStarts.length)) {
+                if(!keepOnlyUnmappedReads) {
+                    // Mapped read filter; check against GenomeLoc-derived bounds.
+                    if(candidateRead.getAlignmentEnd() >= intervalStarts[currentBound] ||
+                            (candidateRead.getReadUnmappedFlag() && candidateRead.getAlignmentStart() >= intervalStarts[currentBound])) {
+                        // This read ends after the current interval begins (or, if unmapped, starts within the bounds of the interval.
+                        // Promising, but this read must be checked against the ending bound.
+                        if(candidateRead.getAlignmentStart() <= intervalEnds[currentBound]) {
+                            // Yes, this read is within both bounds.  This must be our next read.
+                            nextRead = candidateRead;
+                            break;
+                        }
+                        else {
+                            // Oops, we're past the end bound.  Increment the current bound and try again.
+                            currentBound++;
+                            continue;
+                        }
                     }
-                    else {
-                        // Oops, we're past the end bound.  Increment the current bound and try again.
-                        currentBound++;
+                }
+                else {
+                    // Unmapped read filter; just check getReadUnmappedFlag().
+                    if(!candidateRead.getReadUnmappedFlag())
                         continue;
-                    }
+                    nextRead = candidateRead;
+                    break;
                 }
 
                 // No more reads available.  Stop the search.

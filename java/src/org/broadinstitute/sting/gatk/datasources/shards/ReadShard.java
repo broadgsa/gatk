@@ -55,14 +55,20 @@ public class ReadShard implements BAMFormatAwareShard {
     private final List<GenomeLoc> loci;
 
     /**
+     * Whether the current location is unmapped.
+     */
+    private final boolean isUnmapped;
+
+    /**
      * Statistics about which reads in this shards were used and which were filtered away.
      */
     private final ReadMetrics readMetrics = new ReadMetrics();
 
-    public ReadShard(SAMDataSource readsDataSource, Map<SAMReaderID,SAMFileSpan> fileSpans, List<GenomeLoc> loci) {
+    public ReadShard(SAMDataSource readsDataSource, Map<SAMReaderID,SAMFileSpan> fileSpans, List<GenomeLoc> loci, boolean isUnmapped) {
         this.readsDataSource = readsDataSource;
         this.fileSpans = fileSpans;
         this.loci = loci;
+        this.isUnmapped = isUnmapped;
     }
 
     /**
@@ -87,6 +93,16 @@ public class ReadShard implements BAMFormatAwareShard {
     public List<GenomeLoc> getGenomeLocs() {
         return loci;
     }
+
+    /**
+     * Whether this shard points to an unmapped region.
+     * @return True if this shard is unmapped.  False otherwise.
+     */
+    @Override
+    public boolean isUnmapped() {
+        return isUnmapped;
+    }
+
 
     /**
      * Returns true if this shard is meant to buffer reads, rather

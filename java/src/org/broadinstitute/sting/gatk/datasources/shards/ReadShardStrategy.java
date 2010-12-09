@@ -80,6 +80,11 @@ public class ReadShardStrategy implements ShardStrategy {
     private Map<SAMReaderID,SAMFileSpan> position;
 
     /**
+     * An indicator whether the strategy has sharded into the unmapped region.
+     */
+    private boolean isIntoUnmappedRegion = false;
+
+    /**
      * Create a new read shard strategy, loading read shards from the given BAM file.
      * @param dataSource Data source from which to load shards.
      * @param locations intervals to use for sharding.
@@ -130,13 +135,27 @@ public class ReadShardStrategy implements ShardStrategy {
             while(selectedReaders.size() == 0 && currentFilePointer != null) {
                 shardPosition = currentFilePointer.fileSpans;
                 for(SAMReaderID id: shardPosition.keySet()) {
-                    SAMFileSpan fileSpan = shardPosition.get(id).removeContentsBefore(position.get(id));
-                    if(!fileSpan.isEmpty())
-                        selectedReaders.put(id,fileSpan);
+                    // If the region contains location information (in other words, it is not at
+                    // the start of the unmapped region), add the region.
+                    if(currentFilePointer.isRegionUnmapped) {
+                        // If the region is unmapped and no location data exists, add a null as an indicator to
+                        // start at the next unmapped region.
+                        if(!isIntoUnmappedRegion) {
+                            selectedReaders.put(id,null);
+                            isIntoUnmappedRegion = true;
+                        }
+                        else
+                            selectedReaders.put(id,position.get(id));
+                    }
+                    else {
+                        SAMFileSpan fileSpan = shardPosition.get(id).removeContentsBefore(position.get(id));
+                        if(!fileSpan.isEmpty())
+                            selectedReaders.put(id,fileSpan);
+                    }
                 }
 
                 if(selectedReaders.size() > 0) {
-                    BAMFormatAwareShard shard = new ReadShard(dataSource,selectedReaders,currentFilePointer.locations);
+                    BAMFormatAwareShard shard = new ReadShard(dataSource,selectedReaders,currentFilePointer.locations,currentFilePointer.isRegionUnmapped);
                     dataSource.fillShard(shard);
 
                     if(!shard.isBufferEmpty()) {
@@ -150,7 +169,7 @@ public class ReadShardStrategy implements ShardStrategy {
             }
         }
         else {
-            BAMFormatAwareShard shard = new ReadShard(dataSource,position,null);
+            BAMFormatAwareShard shard = new ReadShard(dataSource,position,null,false);
             dataSource.fillShard(shard);
             nextShard = !shard.isBufferEmpty() ? shard : null;
         }

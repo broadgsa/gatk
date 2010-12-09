@@ -41,20 +41,21 @@ public class IntervalUtils {
                                // ensure that the arg list isn't null before looping.
             for (String argument : argList) {
 
-                // if any interval argument is '-L all', consider all loci by returning no intervals
-                if (argument.equals("all")) {
-                    if (argList.size() != 1) {
-                        // throw error if '-L all' is not only interval - potentially conflicting commands
-                        throw new UserException.CommandLineException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
-                    }
-                    return null;
-                }
-
                 // separate argument on semicolon first
                 for (String fileOrInterval : argument.split(";")) {
-
+                    // if any interval argument is '-L all', consider all loci by returning no intervals
+                    if (fileOrInterval.trim().toLowerCase().equals("all")) {
+                        if (argList.size() != 1) {
+                            // throw error if '-L all' is not only interval - potentially conflicting commands
+                            throw new UserException.CommandLineException(String.format("Conflicting arguments: Intervals given along with \"-L all\""));
+                        }
+                        return null;
+                    }
+                    // if any argument is 'unmapped', "parse" it to a null entry.  A null in this case means 'all the intervals with no alignment data'.
+                    else if(fileOrInterval.trim().toLowerCase().equals("unmapped"))
+                        rawIntervals.add(GenomeLoc.UNMAPPED);
                     // if it's a file, add items to raw interval list
-                    if (isIntervalFile(fileOrInterval)) {
+                    else if (isIntervalFile(fileOrInterval)) {
                         try {
                             rawIntervals.addAll(parser.intervalFileToList(fileOrInterval, allowEmptyIntervalList));
                         }

@@ -87,21 +87,38 @@ public class IntervalSharder {
             GenomeLocSortedSet nextBatch = new GenomeLocSortedSet(loci.getGenomeLocParser());
             String contig = null;
 
+            // If the next section of the BAM to be processed is unmapped, handle this region separately.
             while(locusIterator.hasNext() && nextBatch.isEmpty()) {
                 contig = null;
-                while(locusIterator.hasNext() && (contig == null || locusIterator.peek().getContig().equals(contig))) {
+                while(locusIterator.hasNext() && (contig == null || (locusIterator.peek() != GenomeLoc.UNMAPPED && locusIterator.peek().getContig().equals(contig)))) {
                     GenomeLoc nextLocus = locusIterator.next();
                     contig = nextLocus.getContig();
                     nextBatch.add(nextLocus);
                 }
             }
 
-            if(nextBatch.size() > 0)
+            if(nextBatch.size() > 0) {
                 cachedFilePointers.addAll(shardIntervalsOnContig(dataSource,contig,nextBatch));
+            }
         }
     }
-    
+
+    /**
+     * Merge / split intervals based on an awareness of the structure of the BAM file.
+     * @param dataSource
+     * @param contig Contig against which to align the intervals.  If null, create a file pointer across unmapped reads.
+     * @param loci
+     * @return
+     */
     private static List<FilePointer> shardIntervalsOnContig(final SAMDataSource dataSource, final String contig, final GenomeLocSortedSet loci) {
+        // If the contig is null, eliminate the chopping process and build out a file pointer consisting of the unmapped region of all BAMs.
+        if(contig == null) {
+            FilePointer filePointer = new FilePointer(GenomeLoc.UNMAPPED);
+            for(SAMReaderID id: dataSource.getReaderIDs())
+                filePointer.addFileSpans(id,null);
+            return Collections.singletonList(filePointer);
+        }        
+
         // Gather bins for the given loci, splitting loci as necessary so that each falls into exactly one lowest-level bin.
         List<FilePointer> filePointers = new ArrayList<FilePointer>();
         FilePointer lastFilePointer = null;
@@ -111,7 +128,8 @@ public class IntervalSharder {
         BinMergingIterator binMerger = new BinMergingIterator();
         for(SAMReaderID id: dataSource.getReaderIDs()) {
             final SAMSequenceRecord referenceSequence = dataSource.getHeader(id).getSequence(contig);
-            if(referenceSequence == null)
+            // If this contig can't be found in the reference, skip over it.
+            if(referenceSequence == null && contig != null)
                 continue;
             final BrowseableBAMIndex index = dataSource.getIndex(id);
             binMerger.addReader(id,
@@ -360,16 +378,23 @@ class FilePointer {
     protected final BAMOverlap overlap;
     protected final List<GenomeLoc> locations;
 
+    /**
+     * Does this file pointer point into an unmapped region?
+     */
+    protected final boolean isRegionUnmapped;
+
     public FilePointer(final GenomeLoc location) {
-        referenceSequence = location.getContig();
-        overlap = null;
-        locations = Collections.singletonList(location);
+        this.referenceSequence = location.getContig();
+        this.overlap = null;
+        this.locations = Collections.singletonList(location);
+        this.isRegionUnmapped = location == GenomeLoc.UNMAPPED;
     }
 
     public FilePointer(final String referenceSequence,final BAMOverlap overlap) {
         this.referenceSequence = referenceSequence;
         this.overlap = overlap;
         this.locations = new ArrayList<GenomeLoc>();
+        this.isRegionUnmapped = false;
     }
 
     public void addLocation(GenomeLoc location) {

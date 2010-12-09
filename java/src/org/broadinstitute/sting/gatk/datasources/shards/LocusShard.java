@@ -118,6 +118,15 @@ public class LocusShard implements BAMFormatAwareShard {
     }
 
     /**
+     * Locus shards don't make sense as unmapped regions.  Always return false.
+     * @return False always.
+     */
+    @Override
+    public boolean isUnmapped() {
+        return false;
+    }
+
+    /**
      * Gets key read validation and filtering properties.
      * @return set of read properties associated with this shard.
      */

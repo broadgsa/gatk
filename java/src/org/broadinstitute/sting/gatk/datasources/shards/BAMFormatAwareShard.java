@@ -53,4 +53,12 @@ public interface BAMFormatAwareShard extends Shard {
      * @return An iterator over the reads stored in the shard.
      */
     public StingSAMIterator iterator();
+
+    /**
+     * Whether this shard points to an unmapped region.
+     * Some shard types conceptually be unmapped (e.g. LocusShards).  In
+     * this case, isUnmapped should always return false.
+     * @return True if this shard is unmapped.  False otherwise.
+     */
+    public boolean isUnmapped();
 }
