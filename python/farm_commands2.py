@@ -17,12 +17,13 @@ def all(iterable):
 MAX_UNNAMED_DEPENDENCIES = 10
 
 class FarmJob:
-    def __init__( self, cmd_str_from_user, jobName = None, outputHead = None, outputFile = None, dependencies = [], dependencyNameString = None, dieOnFail = False):
+    def __init__( self, cmd_str_from_user, jobName = None, outputHead = None, outputFile = None, dependencies = [], dependencyNameString = None, dieOnFail = False, memlimit = None):
         self.cmd_str_from_user = cmd_str_from_user
         self.jobName = jobName
         self.outputHead = outputHead
         self.outputFile = outputFile
         self.dieOnFail = dieOnFail
+        self.memlimit = memlimit
 
         self.dependencies = dependencies
         if self.dependencies == None:
@@ -136,6 +137,9 @@ def buildExecutionString(job, farm_queue = None, debug = True):
         cmd_str = "bsub -r -q " + farm_queue 
         if farm_stdout != None:
             cmd_str += " -o " + farm_stdout
+
+        if ( job.memlimit != None ):
+            cmd_str += " -R \"rusage[mem=" + job.memlimit[0:-1] + "]\""
         
         # fixme
         if job.dependencies != []:
