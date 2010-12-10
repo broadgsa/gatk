@@ -27,6 +27,7 @@ package org.broadinstitute.sting.jna.lsf.v7_0_6;
 import com.sun.jna.*;
 import com.sun.jna.ptr.*;
 import org.broadinstitute.sting.jna.clibrary.JNAUtils;
+import org.broadinstitute.sting.jna.clibrary.LibC;
 
 /**
  * JNA wrappers for LSF's lsbatch.h and -lbat
@@ -59,6 +60,9 @@ public class LibBat {
             NativeLibrary.addSearchPath("bat", lsfLibDir);
         }
         NativeLibrary.getInstance("lsf");
+        // via Platform LSF Configuration Reference, by default quiet the BSUB output.
+        if ("Y".equals(System.getProperty("BSUB_QUIET", "Y")))
+            LibC.setenv("BSUB_QUIET", "Y", 1);
         Native.register("bat");
     }
 

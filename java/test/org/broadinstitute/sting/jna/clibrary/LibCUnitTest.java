@@ -24,22 +24,20 @@
 
 package org.broadinstitute.sting.jna.clibrary;
 
-import com.sun.jna.NativeLong;
-import com.sun.jna.Structure;
+import org.broadinstitute.sting.BaseTest;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
-/**
- * Sparse JNA port of time.h
- */
-@SuppressWarnings("unused")
-public class Time {
-    public static class timeval extends Structure {
-        public static class ByReference extends timeval implements Structure.ByReference {
-        }
+public class LibCUnitTest extends BaseTest {
 
-        public static class ByValue extends timeval implements Structure.ByValue {
-        }
-
-        public NativeLong tv_sec;
-        public NativeLong tv_usec;
+    @Test
+    public void testEnvironment() {
+        String testProperty = "test_property";
+        String testValue = "value";
+        Assert.assertEquals(LibC.getenv(testProperty), null);
+        Assert.assertEquals(LibC.setenv(testProperty, testValue, 1), 0);
+        Assert.assertEquals(LibC.getenv(testProperty), testValue);
+        Assert.assertEquals(LibC.unsetenv(testProperty), 0);
+        Assert.assertEquals(LibC.getenv(testProperty), null);
     }
 }
