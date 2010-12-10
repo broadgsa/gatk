@@ -28,18 +28,16 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.util.ParsingUtils;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.vcf.VCFCodec;
-import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.SimpleTimer;
 
 import java.io.PrintStream;
 import java.io.File;
@@ -60,6 +58,8 @@ public class ProfileRodSystem extends RodWalker<Integer, Integer> {
     @Argument(fullName="maxRecords", shortName="M", doc="Max. number of records to process", required=false)
     int MAX_RECORDS = -1;
 
+    SimpleTimer timer = new SimpleTimer("myTimer");
+
     public void initialize() {
         File rodFile = getRodFile();
 
@@ -75,13 +75,13 @@ public class ProfileRodSystem extends RodWalker<Integer, Integer> {
             out.printf("full.decode\t%d\t%.2f%n", i, readFile(rodFile, ReadMode.DECODE));
         }
 
-        startTimer(); // start up timer for map itself
+        timer.start(); // start up timer for map itself
     }
 
     private enum ReadMode { BY_BYTE, BY_LINE, BY_PARTS, DECODE_LOC, DECODE };
 
     private final double readFile(File f, ReadMode mode) {
-        startTimer();
+        timer.start();
 
         try {
             byte[] data = new byte[100000];
@@ -120,17 +120,7 @@ public class ProfileRodSystem extends RodWalker<Integer, Integer> {
             throw new RuntimeException(e);
         }
 
-        return elapsedTime();
-    }
-
-    private long startTime = -1l;
-    private void startTimer() {
-        startTime = System.currentTimeMillis();
-    }
-
-    private double elapsedTime() {
-        final long curTime = System.currentTimeMillis();
-        return (curTime - startTime) / 1000.0;
+        return timer.getElapsedTime();
     }
 
     private File getRodFile() {
@@ -162,6 +152,6 @@ public class ProfileRodSystem extends RodWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer sum) {
-        out.printf("gatk.traversal\t%d\t%.2f%n", 0, elapsedTime());
+        out.printf("gatk.traversal\t%d\t%.2f%n", 0, timer.getElapsedTime());
     }
 }

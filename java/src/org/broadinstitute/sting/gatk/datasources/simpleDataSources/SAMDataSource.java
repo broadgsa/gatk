@@ -168,7 +168,7 @@ public class SAMDataSource implements SimpleDataSource {
                 supplementalFilters,
                 includeReadsWithDeletionAtLoci,
                 generateExtendedEvents,
-                BAQ.CalculationMode.NONE, BAQ.QualityMode.DONT_MODIFY, null                 // no BAQ
+                BAQ.CalculationMode.OFF, BAQ.QualityMode.DONT_MODIFY, null                 // no BAQ
                 );
         }
 
@@ -592,7 +592,7 @@ public class SAMDataSource implements SimpleDataSource {
         if (!noValidationOfReadOrder && enableVerification)
             wrappedIterator = new VerifyingSamIterator(genomeLocParser,wrappedIterator);
 
-        if (cmode != BAQ.CalculationMode.NONE)
+        if (cmode != BAQ.CalculationMode.OFF)
             wrappedIterator = new BAQSamIterator(refReader, wrappedIterator, cmode, qmode);
 
         wrappedIterator = StingSAMIteratorAdapter.adapt(new CountingFilteringIterator(readMetrics,wrappedIterator,supplementalFilters));

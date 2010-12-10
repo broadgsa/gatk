@@ -31,7 +31,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Input;
-import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.DownsampleType;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.utils.interval.IntervalSetRule;
@@ -153,12 +152,11 @@ public class GATKArgumentCollection {
 
     @Element(required = false)
     @Argument(fullName = "baq", shortName="baq", doc="Type of BAQ calculation to apply in the engine", required = false)
-    public BAQ.CalculationMode BAQMode = BAQ.CalculationMode.NONE;
+    public BAQ.CalculationMode BAQMode = BAQ.CalculationMode.OFF;
 
     @Element(required = false)
-    @Hidden
-    @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="Gap open penalty.  For testing purposes only", required = false)
-    public double BAQGOP = 1e-3; // todo remove me
+    @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="BAQ gap open penalty.  Default value is 1e-4.  1e-3 is perhaps better for whole genome call sets", required = false)
+    public double BAQGOP = BAQ.DEFAULT_GOP;
 
     /**
      * Gets the default downsampling method, returned if the user didn't specify any downsampling
@@ -348,8 +346,9 @@ public class GATKArgumentCollection {
         }
         if (BTIMergeRule != other.BTIMergeRule)
             return false;
-        if ( BAQMode != other.BAQMode)
-            return false;
+
+        if ( BAQMode != other.BAQMode) return false;
+        if ( BAQGOP != other.BAQGOP ) return false;
 
         return true;
     }

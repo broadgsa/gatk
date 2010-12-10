@@ -6,9 +6,6 @@ import net.sf.samtools.CigarOperator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.BaseUtils;
-
-import java.util.Arrays;
 
 /*
   The topology of the profile HMM:
@@ -39,7 +36,7 @@ public class BAQ {
     private final static boolean DEBUG = false;
 
     public enum CalculationMode {
-        NONE,                       // don't apply a BAQ at all, the default
+        OFF,                        // don't apply a BAQ at all, the default
         CALCULATE_AS_NECESSARY,     // do HMM BAQ calculation on the fly, as necessary, if there's no tag
         RECALCULATE                 // do HMM BAQ calculation on the fly, regardless of whether there's a tag present
     }
@@ -66,11 +63,12 @@ public class BAQ {
             qual2prob[i] = Math.pow(10, -i/10.);
     }
 
-    public static double DEFAULT_GOP = 1e-3; // todo -- make me final private
+    public static double DEFAULT_GOP = 1e-4;
 
     public double cd = -1;      // gap open probility [1e-3]
     private double ce = 0.1;    // gap extension probability [0.1]
 	private int cb = 7;         // band width [7]
+    private boolean includeClippedBases = false;
 
     public byte getMinBaseQual() {
         return minBaseQual;
@@ -109,8 +107,10 @@ public class BAQ {
      * @param b band width
      * @param minBaseQual All bases with Q < minBaseQual are up'd to this value
      */
-	public BAQ(final double d, final double e, final int b, final byte minBaseQual) {
-		cd = d; ce = e; cb = b; this.minBaseQual = minBaseQual;
+	public BAQ(final double d, final double e, final int b, final byte minBaseQual, boolean includeClippedBases) {
+		cd = d; ce = e; cb = b;
+        this.minBaseQual = minBaseQual;
+        this.includeClippedBases = includeClippedBases;
         initializeCachedData();
 	}
 
@@ -142,12 +142,6 @@ public class BAQ {
         return EPSILONS[ref][read][qualB];
     }
 
-//    private double calcEpsilon( byte ref, byte read, byte qualB ) {
-//        double qual = qual2prob[qualB < minBaseQual ? minBaseQual : qualB];
-//        return (ref > 3 || read > 3)? 1. : ref == read ? 1. - qual : qual * EM;
-//    }
-
-
     // ####################################################################################################
     //
     // NOTE -- THIS CODE IS SYNCHRONIZED WITH CODE IN THE SAMTOOLS REPOSITORY.  CHANGES TO THIS CODE SHOULD BE
@@ -169,12 +163,21 @@ public class BAQ {
         /*** initialization ***/
 		// change coordinates
 		int l_ref = ref.length;
-		//int l_query = query.length;
+
 
 		// set band width
 		int bw2, bw = l_ref > l_query? l_ref : l_query;
-		if (bw > cb) bw = cb;
-		if (bw < Math.abs(l_ref - l_query)) bw = Math.abs(l_ref - l_query);
+        if (cb < Math.abs(l_ref - l_query)) {
+            bw = Math.abs(l_ref - l_query) + 3;
+            //System.out.printf("SC  cb=%d, bw=%d%n", cb, bw);
+        }
+        if (bw > cb) bw = cb;
+		if (bw < Math.abs(l_ref - l_query)) {
+            //int bwOld = bw;
+            bw = Math.abs(l_ref - l_query);
+            //System.out.printf("old bw is %d, new is %d%n", bwOld, bw);
+        }
+        //System.out.printf("c->bw = %d, bw = %d, l_ref = %d, l_query = %d\n", cb, bw, l_ref, l_query);
 		bw2 = bw * 2 + 1;
 
         // allocate the forward and backward matrices f[][] and b[][] and the scaling array s[]
@@ -185,11 +188,13 @@ public class BAQ {
 		// initialize transition probabilities
 		double sM, sI, bM, bI;
 		sM = sI = 1. / (2 * l_query + 2);
-		bM = (1 - cd) / l_query; bI = cd / l_query; // (bM+bI)*l_query==1
+        bM = (1 - cd) / l_ref; bI = cd / l_ref; // (bM+bI)*l_ref==1
+
 		double[] m = new double[9];
 		m[0*3+0] = (1 - cd - cd) * (1 - sM); m[0*3+1] = m[0*3+2] = cd * (1 - sM);
 		m[1*3+0] = (1 - ce) * (1 - sI); m[1*3+1] = ce * (1 - sI); m[1*3+2] = 0.;
 		m[2*3+0] = 1 - ce; m[2*3+1] = 0.; m[2*3+2] = ce;
+
 
 		/*** forward ***/
 		// f[0]
@@ -274,8 +279,7 @@ public class BAQ {
 			for (k = _beg, y = 1./s[i]; k <= _end; ++k) bi[k] *= y;
 		}
 
-        // TODO -- this appears to be a null operation overall.  For debugging only?
-		double pb;
+ 		double pb;
 		{ // b[0]
 			int beg = 1, end = l_ref < bw + 1? l_ref : bw + 1;
 			double sum = 0.;
@@ -288,6 +292,7 @@ public class BAQ {
 			pb = b[0][set_u(bw, 0, 0)] = sum / s[0]; // if everything works as is expected, pb == 1.0
 		}
 
+        
 		/*** MAP ***/
 		for (i = 1; i <= l_query; ++i) {
 			double sum = 0., max = 0.;
@@ -450,30 +455,34 @@ public class BAQ {
     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, IndexedFastaSequenceFile refReader) {
         // start is alignment start - band width / 2 - size of first I element, if there is one.  Stop is similar
         int offset = getBandWidth() / 2;
-        long start = Math.max(read.getAlignmentStart() - offset - getFirstInsertionOffset(read), 0);
-        long stop = read.getAlignmentEnd() + offset + getLastInsertionOffset(read);
+        long readStart = includeClippedBases ? read.getUnclippedStart() : read.getAlignmentStart();
+        long start = Math.max(readStart - offset - getFirstInsertionOffset(read), 0);
+        long stop = (includeClippedBases ? read.getUnclippedEnd() : read.getAlignmentEnd()) + offset + getLastInsertionOffset(read);
 
         if ( stop > refReader.getSequenceDictionary().getSequence(read.getReferenceName()).getSequenceLength() ) {
             return null;
         } else {
             // now that we have the start and stop, get the reference sequence covering it
             ReferenceSequence refSeq = refReader.getSubsequenceAt(read.getReferenceName(), start, stop);
-            return calcBAQFromHMM(read, refSeq.getBases(), (int)(start - read.getAlignmentStart()));
+            return calcBAQFromHMM(read, refSeq.getBases(), (int)(start - readStart));
         }
     }
 
+    public static int MAG = 1; // todo -- remove me for performance testing only
     public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals, int queryStart, int queryEnd ) {
         // note -- assumes ref is offset from the *CLIPPED* start
         BAQCalculationResult baqResult = new BAQCalculationResult(query, quals, ref);
         int queryLen = queryEnd - queryStart;
-        hmm_glocal(baqResult.refBases, baqResult.readBases, queryStart, queryLen, baqResult.rawQuals, baqResult.state, baqResult.bq);
+        for ( int i = 0; i < MAG; i++ )
+            hmm_glocal(baqResult.refBases, baqResult.readBases, queryStart, queryLen, baqResult.rawQuals, baqResult.state, baqResult.bq);
         return baqResult;
     }
 
     // we need to bad ref by at least the bandwidth / 2 on either side
     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, byte[] ref, int refOffset) {
-        int queryStart = (int)(read.getAlignmentStart() - read.getUnclippedStart());
-        int queryEnd = (int)(read.getReadLength() - (read.getUnclippedEnd() - read.getAlignmentEnd()));
+        // todo -- need to handle the case where the cigar sum of lengths doesn't cover the whole read
+        int queryStart = includeClippedBases ? 0 : read.getAlignmentStart() - read.getUnclippedStart();
+        int queryEnd = read.getReadLength() - (includeClippedBases ? 0 : read.getUnclippedEnd() - read.getAlignmentEnd());
         BAQCalculationResult baqResult = calcBAQFromHMM(ref, read.getReadBases(), read.getBaseQualities(), queryStart, queryEnd);
 
         // cap quals
@@ -485,7 +494,8 @@ public class BAQ {
                     return null;
                 case H : case P : // ignore pads and hard clips
                     break;
-                case I : case S :
+                case S : refI += l; // move the reference too, in addition to I
+                case I :
                     // todo -- is it really the case that we want to treat I and S the same?
                     for ( int i = readI; i < readI + l; i++ ) baqResult.bq[i] = baqResult.rawQuals[i];
                     readI += l;
@@ -502,6 +512,8 @@ public class BAQ {
                     throw new ReviewedStingException("BUG: Unexpected CIGAR element " + elt + " in read " + read.getReadName());
             }
         }
+        if ( readI != read.getReadLength() ) // odd cigar string
+            System.arraycopy(baqResult.rawQuals, 0, baqResult.bq, 0, baqResult.bq.length);
 
         return baqResult;
     }
@@ -532,7 +544,7 @@ public class BAQ {
         if ( DEBUG ) System.out.printf("BAQ %s read %s%n", calculationType, read.getReadName());
 
         byte[] BAQQuals = read.getBaseQualities();      // in general we are overwriting quals, so just get a pointer to them
-        if ( calculationType == CalculationMode.NONE ) { // we don't want to do anything
+        if ( calculationType == CalculationMode.OFF) { // we don't want to do anything
             ; // just fall though
         } else if ( excludeReadFromBAQ(read) ) {
             ; // just fall through

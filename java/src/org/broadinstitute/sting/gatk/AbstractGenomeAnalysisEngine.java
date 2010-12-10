@@ -548,7 +548,7 @@ public abstract class AbstractGenomeAnalysisEngine {
     private SAMDataSource createReadsDataSource(GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
         DownsamplingMethod method = getDownsamplingMethod();
 
-        if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.NONE )
+        if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
         return new SAMDataSource(
@@ -562,7 +562,7 @@ public abstract class AbstractGenomeAnalysisEngine {
                 filters,
                 includeReadsWithDeletionAtLoci(),
                 generateExtendedEvents(),
-                getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.NONE,
+                getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
                 getWalkerBAQQualityMode(),
                 refReader);
     }

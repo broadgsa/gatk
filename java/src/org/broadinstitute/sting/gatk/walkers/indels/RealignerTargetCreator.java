@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -53,6 +54,7 @@ import java.io.PrintStream;
 @Reference(window=@Window(start=-1,stop=50))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @By(DataSource.REFERENCE)
+@BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Event, RealignerTargetCreator.Event> {
     @Output
     protected PrintStream out;

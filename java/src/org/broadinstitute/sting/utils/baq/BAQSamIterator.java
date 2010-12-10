@@ -28,7 +28,7 @@ public class BAQSamIterator implements StingSAMIterator {
      * @param qmode
      */
     public BAQSamIterator(IndexedFastaSequenceFile refReader, StingSAMIterator it, BAQ.CalculationMode cmode, BAQ.QualityMode qmode) {
-        if ( cmode == BAQ.CalculationMode.NONE ) throw new ReviewedStingException("BUG: shouldn't create BAQSamIterator with calculation mode NONE");
+        if ( cmode == BAQ.CalculationMode.OFF) throw new ReviewedStingException("BUG: shouldn't create BAQSamIterator with calculation mode OFF");
         if ( qmode == BAQ.QualityMode.DONT_MODIFY ) throw new ReviewedStingException("BUG: shouldn't create BAQSamIterator with quailty mode DONT_MODIFY");
 
         this.refReader = refReader;

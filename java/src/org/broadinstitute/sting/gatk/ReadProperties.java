@@ -38,7 +38,7 @@ public class ReadProperties {
     private boolean includeReadsWithDeletionAtLoci = false;
     private boolean useOriginalBaseQualities = false;
     private boolean generateExtendedEvents = false;
-    private BAQ.CalculationMode cmode = BAQ.CalculationMode.NONE;
+    private BAQ.CalculationMode cmode = BAQ.CalculationMode.OFF;
     private BAQ.QualityMode qmode = BAQ.QualityMode.DONT_MODIFY;
     IndexedFastaSequenceFile refReader = null; // read for BAQ, if desired
 
