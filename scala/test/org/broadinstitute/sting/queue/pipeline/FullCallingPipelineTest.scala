@@ -15,33 +15,41 @@ class FullCallingPipelineTest extends BaseTest {
   private final val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
 
   val k1gChr20Dataset = {
-    val dataset = newK1gDataset
-    dataset.pipeline.getProject.setName("Barcoded_1000G_WEx_chr20")
+    val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20")
     dataset.pipeline.getProject.setIntervalList(new File(BaseTest.GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list"))
 
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.counter.nCalledLoci", "1390", "1420")
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.titv.tiTvRatio", "3.52", "3.60")
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.known.titv.tiTvRatio", "3.71", "3.80")
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.novel.titv.tiTvRatio", "2.79", "2.86")
+    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.all.counter.nCalledLoci", 1359)
+    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.known.counter.nCalledLoci", 1134)
+    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.novel.counter.nCalledLoci", 225)
+    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.all.titv.tiTvRatio", 3.6701)
+    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.known.titv.tiTvRatio", 3.7647)
+    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.novel.titv.tiTvRatio", 3.2453)
+
+    dataset.jobQueue = "hour"
 
     dataset
   }
 
   val k1gExomeDataset = {
-    val dataset = newK1gDataset
-    dataset.pipeline.getProject.setName("Barcoded_1000G_WEx")
+    val dataset = newK1gDataset("Barcoded_1000G_WEx")
     dataset.pipeline.getProject.setIntervalList(new File(BaseTest.GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list"))
 
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.counter.nCalledLoci", "51969", "53019")
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.all.titv.tiTvRatio", "3.18", "3.25")
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.known.titv.tiTvRatio", "3.29", "3.36")
-    dataset.validations :+= new PipelineValidation("evalHandFiltered.dbsnp.all.called.novel.titv.tiTvRatio", "2.80", "2.87")
+    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.all.counter.nCalledLoci", 51130)
+    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.known.counter.nCalledLoci", 41042)
+    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.novel.counter.nCalledLoci", 10088)
+    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.all.titv.tiTvRatio", 3.2598)
+    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.known.titv.tiTvRatio", 3.3307)
+    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.novel.titv.tiTvRatio", 2.9937)
+
+    dataset.jobQueue = "gsa"
+    dataset.bigMemQueue = "gsa"
 
     dataset
   }
 
-  def newK1gDataset = {
+  def newK1gDataset(projectName: String) = {
     val project = new PipelineProject
+    project.setName(projectName)
     project.setReferenceFile(new File(BaseTest.hg19Reference))
     project.setDbsnpFile(new File(BaseTest.b37dbSNP129))
 
@@ -52,7 +60,7 @@ class FullCallingPipelineTest extends BaseTest {
     var samples = List.empty[PipelineSample]
     for (id <- ids) {
       val sample = new PipelineSample
-      sample.setId(project.getName + "_" + id)
+      sample.setId(projectName + "_" + id)
       sample.setBamFiles(Map("recalibrated" -> new File("/seq/picard_aggregation/%1$s/%2$s/v6/%2$s.bam".format(squid,id))))
       sample.setTags(Map("SQUIDProject" -> squid, "CollaboratorID" -> id))
       samples :+= sample
@@ -66,12 +74,11 @@ class FullCallingPipelineTest extends BaseTest {
     dataset.pipeline = pipeline
     dataset.refseq = BaseTest.hg19Refseq
     dataset.targetTiTv = "3.0"
-    dataset.bigMemQueue = "gsa"
 
     dataset
   }
 
-  @DataProvider(name="datasets")
+  @DataProvider(name="datasets")//, parallel=true)
   final def convertDatasets: Array[Array[AnyRef]] =
     datasets.map(dataset => Array(dataset.asInstanceOf[AnyRef])).toArray
 
@@ -80,13 +87,19 @@ class FullCallingPipelineTest extends BaseTest {
     val projectName = dataset.pipeline.getProject.getName
     val testName = "fullCallingPipeline-" + projectName
     val yamlFile = writeTempYaml(dataset.pipeline)
+    var cleanType = "cleaned"
 
     // Run the pipeline with the expected inputs.
-    var pipelineCommand = ("-jobProject %s -S scala/qscript/fullCallingPipeline.q -Y %s" +
-            " -refseqTable %s" +
-            " --gatkjar %s/dist/GenomeAnalysisTK.jar -titv %s -skipCleaning")
-            .format(projectName, yamlFile, dataset.refseq, new File(".").getCanonicalPath, dataset.targetTiTv)
+    var pipelineCommand = ("-retry 1 -S scala/qscript/fullCallingPipeline.q" +
+            " -jobProject %s -Y %s -refseqTable %s -titv %s" +
+            " --gatkjar %s/dist/GenomeAnalysisTK.jar")
+            .format(projectName, yamlFile, dataset.refseq, dataset.targetTiTv, new File(".").getAbsolutePath)
 
+    if (!dataset.runIndelRealigner) {
+      pipelineCommand += " -skipCleaning"
+      cleanType = "uncleaned"
+    }
+    
     if (dataset.jobQueue != null)
       pipelineCommand += " -jobQueue " + dataset.jobQueue
 
@@ -98,25 +111,22 @@ class FullCallingPipelineTest extends BaseTest {
 
     // If actually running, evaluate the output validating the expressions.
     if (PipelineTest.run) {
-      // path where the pipeline should have output the uncleaned handfiltered vcf
-      val handFilteredVcf = PipelineTest.runDir(testName) + "SnpCalls/%s.uncleaned.annotated.handfiltered.vcf".format(projectName)
-
-      // path where the pipeline should have outout the indel masked vcf
-      val optimizedVcf = PipelineTest.runDir(testName) + "SnpCalls/%s.uncleaned.annotated.indel.masked.recalibrated.tranched.vcf".format(projectName)
+      // path where the pipeline should have output the handfiltered vcf
+      val handFilteredVcf = PipelineTest.runDir(testName) + "SnpCalls/%s.%s.annotated.handfiltered.vcf".format(projectName, cleanType)
 
       // eval modules to record in the validation directory
       val evalModules = List("CompOverlap", "CountFunctionalClasses", "CountVariants", "SimpleMetricsBySample", "TiTvVariantEvaluator")
 
       // write the report to the shared validation data location
       val formatter = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
-      val reportLocation = "%s/%s/validation.%s.eval".format(validationReportsDataLocation, testName, formatter.format(new Date))
+      val reportLocation = "%s%s/validation.%s.eval".format(validationReportsDataLocation, testName, formatter.format(new Date))
       new File(reportLocation).getParentFile.mkdirs
 
       // Run variant eval generating the report and validating the pipeline vcfs.
-      var walkerCommand = ("-T VariantEval -R %s -D %s -B:evalOptimized,VCF %s -B:evalHandFiltered,VCF %s" +
+      var walkerCommand = ("-T VariantEval -R %s -D %s -B:eval,VCF %s" +
               " -E %s -reportType R -reportLocation %s -L %s")
               .format(
-        dataset.pipeline.getProject.getReferenceFile, dataset.pipeline.getProject.getDbsnpFile, optimizedVcf, handFilteredVcf,
+        dataset.pipeline.getProject.getReferenceFile, dataset.pipeline.getProject.getDbsnpFile, handFilteredVcf,
         evalModules.mkString(" -E "), reportLocation, dataset.pipeline.getProject.getIntervalList)
 
       for (validation <- dataset.validations) {
@@ -135,16 +145,24 @@ class FullCallingPipelineTest extends BaseTest {
           var targetTiTv: String = null,
           var validations: List[PipelineValidation] = Nil,
           var jobQueue: String = null,
-          var bigMemQueue: String = null) {
+          var bigMemQueue: String = null,
+          var runIndelRealigner: Boolean = false) {
     override def toString = pipeline.getProject.getName
   }
 
-  class PipelineValidation(
-          var metric: String = null,
-          var min: String = null,
-          var max: String = null) {
+  class PipelineValidation(val metric: String, val min: String, val max: String) {
   }
-  
+
+  class IntegerValidation(metric: String, target: Int)
+          extends PipelineValidation(metric,
+            (target * .99).floor.toInt.toString, (target * 1.01).ceil.toInt.toString) {
+  }
+
+  class DoubleValidation(metric: String, target: Double)
+          extends PipelineValidation(metric,
+            "%.2f".format((target * 99).floor / 100), "%.2f".format((target * 101).ceil / 100)) {
+  }
+
   private def writeTempYaml(pipeline: Pipeline) = {
     val tempFile = File.createTempFile(pipeline.getProject.getName + "-", ".yaml")
     tempFile.deleteOnExit

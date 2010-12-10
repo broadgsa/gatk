@@ -9,7 +9,7 @@ import org.broadinstitute.sting.queue.function.QFunction
  * execute the function in the edge.
  */
 class FunctionEdge(var function: QFunction) extends QEdge {
-  var runner: JobRunner =_
+  var runner: JobRunner[_] =_
 
   /**
    * The number of times this edge has been run.

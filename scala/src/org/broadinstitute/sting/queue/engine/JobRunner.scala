@@ -7,7 +7,7 @@ import org.broadinstitute.sting.queue.function.QFunction
 /**
  * Base interface for job runners.
  */
-trait JobRunner {
+trait JobRunner[TFunction <: QFunction] {
   /**
    * Runs the function.
    * After the function returns the status of the function should
@@ -26,7 +26,7 @@ trait JobRunner {
   /**
    * Returns the function to be run.
    */
-  def function: QFunction
+  def function: TFunction
 
   protected def writeDone() = {
     val content = "%s%nDone.".format(function.description)
@@ -37,6 +37,9 @@ trait JobRunner {
     IOUtils.writeContents(functionErrorFile, content)
   }
 
+  /**
+   * Writes the stack trace to the error file.
+   */
   protected def writeStackTrace(e: Throwable) = {
     val stackTrace = new StringWriter
     val printWriter = new PrintWriter(stackTrace)
@@ -44,6 +47,17 @@ trait JobRunner {
     e.printStackTrace(printWriter)
     printWriter.close
     IOUtils.writeContents(functionErrorFile, stackTrace.toString)
+  }
+
+  /**
+   * Calls back to a hook that an expert user can setup to modify a job.
+   * @param value Value to modify.
+   */
+  protected def updateJobRun(value: Any) = {
+    val updater = function.updateJobRun
+    if (updater != null)
+      if (updater.isDefinedAt(value))
+        updater(value)
   }
 
   private def functionErrorFile = if (function.jobErrorFile != null) function.jobErrorFile else function.jobOutputFile

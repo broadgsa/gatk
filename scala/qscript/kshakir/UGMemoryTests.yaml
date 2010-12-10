@@ -1,0 +1,610 @@
+{
+  project: {
+    name: UGMemoryTests,
+    referenceFile: /seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta,
+    dbsnpFile: /humgen/gsa-hpprojects/GATK/data/dbsnp_129_b37.rod,
+    intervalList: /humgen/gsa-hpprojects/GATK/data/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr1.interval_list
+  },
+  samples: [
+    {
+      id: C315_32742,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/32742/v3/32742.bam }
+    },
+    {
+      id: C315_28-0154,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/28-0154/v3/28-0154.bam }
+    },
+    {
+      id: C315_A08694,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/A08694/v1/A08694.bam }
+    },
+    {
+      id: C315_9218,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/9218/v3/9218.bam }
+    },
+    {
+      id: C315_42284,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/42284/v2/42284.bam }
+    },
+    {
+      id: C315_395607-59,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/395607-59/v1/395607-59.bam }
+    },
+    {
+      id: C315_12751,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/12751/v2/12751.bam }
+    },
+    {
+      id: C315_A02027,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/A02027/v5/A02027.bam }
+    },
+    {
+      id: C315_389822-58,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/389822-58/v1/389822-58.bam }
+    },
+    {
+      id: C315_15899,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/15899/v1/15899.bam }
+    },
+    {
+      id: C315_47661,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/47661/v3/47661.bam }
+    },
+    {
+      id: C315_209541-66,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/209541-66/v1/209541-66.bam }
+    },
+    {
+      id: C315_49535,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/49535/v2/49535.bam }
+    },
+    {
+      id: C315_496560-33,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/496560-33/v1/496560-33.bam }
+    },
+    {
+      id: C315_4039,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/4039/v2/4039.bam }
+    },
+    {
+      id: C315_492677-36,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/492677-36/v1/492677-36.bam }
+    },
+    {
+      id: C315_40716,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/40716/v2/40716.bam }
+    },
+    {
+      id: C315_38201,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/38201/v2/38201.bam }
+    },
+    {
+      id: C315_500277-48,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/500277-48/v1/500277-48.bam }
+    },
+    {
+      id: C315_22866,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/22866/v1/22866.bam }
+    },
+    {
+      id: C315_507365-44,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/507365-44/v2/507365-44.bam }
+    },
+    {
+      id: C315_407001-34,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/407001-34/v1/407001-34.bam }
+    },
+    {
+      id: C315_51248,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/51248/v1/51248.bam }
+    },
+    {
+      id: C315_427532-47,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/427532-47/v1/427532-47.bam }
+    },
+    {
+      id: C315_6767,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/6767/v2/6767.bam }
+    },
+    {
+      id: C315_52221,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/52221/v2/52221.bam }
+    },
+    {
+      id: C315_14779,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/14779/v1/14779.bam }
+    },
+    {
+      id: C315_19309,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/19309/v1/19309.bam }
+    },
+    {
+      id: C315_497395-47,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/497395-47/v1/497395-47.bam }
+    },
+    {
+      id: C315_50333,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/50333/v1/50333.bam }
+    },
+    {
+      id: C315_472444-60,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/472444-60/v2/472444-60.bam }
+    },
+    {
+      id: C315_548668-34,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/548668-34/v1/548668-34.bam }
+    },
+    {
+      id: C315_335840-68,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/335840-68/v1/335840-68.bam }
+    },
+    {
+      id: C315_265276-65,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/265276-65/v3/265276-65.bam }
+    },
+    {
+      id: C315_17480,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/17480/v1/17480.bam }
+    },
+    {
+      id: C315_426521-75,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/426521-75/v1/426521-75.bam }
+    },
+    {
+      id: C315_222034-64,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/222034-64/v1/222034-64.bam }
+    },
+    {
+      id: C315_pcath980626-1,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/pcath980626-1/v3/pcath980626-1.bam }
+    },
+    {
+      id: C315_527830-33,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/527830-33/v1/527830-33.bam }
+    },
+    {
+      id: C315_421826-53,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/421826-53/v1/421826-53.bam }
+    },
+    {
+      id: C315_217094-74,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/217094-74/v3/217094-74.bam }
+    },
+    {
+      id: C315_562474-57,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/562474-57/v1/562474-57.bam }
+    },
+    {
+      id: C315_434049-48,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/434049-48/v1/434049-48.bam }
+    },
+    {
+      id: C315_360268-49,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/360268-49/v2/360268-49.bam }
+    },
+    {
+      id: C315_528492-65,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/528492-65/v1/528492-65.bam }
+    },
+    {
+      id: C315_206691-53,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/206691-53/v1/206691-53.bam }
+    },
+    {
+      id: C315_19156,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/19156/v1/19156.bam }
+    },
+    {
+      id: C315_364827-70,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/364827-70/v1/364827-70.bam }
+    },
+    {
+      id: C315_544273-42,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/544273-42/v1/544273-42.bam }
+    },
+    {
+      id: C315_41645,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/41645/v1/41645.bam }
+    },
+    {
+      id: C315_39048,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/39048/v1/39048.bam }
+    },
+    {
+      id: C315_14007,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/14007/v2/14007.bam }
+    },
+    {
+      id: C315_395725-33,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/395725-33/v1/395725-33.bam }
+    },
+    {
+      id: C315_42291,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/42291/v1/42291.bam }
+    },
+    {
+      id: C315_31981,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/31981/v2/31981.bam }
+    },
+    {
+      id: C315_87A84DD1,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/87A84DD1/v2/87A84DD1.bam }
+    },
+    {
+      id: C315_54393,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/54393/v1/54393.bam }
+    },
+    {
+      id: C315_15974,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/15974/v1/15974.bam }
+    },
+    {
+      id: C315_543091-49,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/543091-49/v2/543091-49.bam }
+    },
+    {
+      id: C315_283916-44,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/283916-44/v1/283916-44.bam }
+    },
+    {
+      id: C315_49900,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/49900/v2/49900.bam }
+    },
+    {
+      id: C315_460187-33,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/460187-33/v2/460187-33.bam }
+    },
+    {
+      id: C315_48019,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/48019/v2/48019.bam }
+    },
+    {
+      id: C315_329427-69,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/329427-69/v1/329427-69.bam }
+    },
+    {
+      id: C315_A06518,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/A06518/v1/A06518.bam }
+    },
+    {
+      id: C315_35484,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/35484/v5/35484.bam }
+    },
+    {
+      id: C315_325920-37,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/325920-37/v1/325920-37.bam }
+    },
+    {
+      id: C315_25775,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/25775/v1/25775.bam }
+    },
+    {
+      id: C315_202228-58,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/202228-58/v1/202228-58.bam }
+    },
+    {
+      id: C315_542914-48,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/542914-48/v3/542914-48.bam }
+    },
+    {
+      id: C315_36047,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/36047/v2/36047.bam }
+    },
+    {
+      id: C315_232846-59,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/232846-59/v1/232846-59.bam }
+    },
+    {
+      id: C315_5760,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/5760/v1/5760.bam }
+    },
+    {
+      id: C315_348907-53,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/348907-53/v1/348907-53.bam }
+    },
+    {
+      id: C315_8891,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C315/8891/v2/8891.bam }
+    },
+    {
+      id: C338_00164219,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00164219/v3/00164219.bam }
+    },
+    {
+      id: C338_00339745,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00339745/v2/00339745.bam }
+    },
+    {
+      id: C338_00339753,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00339753/v2/00339753.bam }
+    },
+    {
+      id: C338_00347320,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347320/v1/00347320.bam }
+    },
+    {
+      id: C338_00341953,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00341953/v2/00341953.bam }
+    },
+    {
+      id: C338_00347335,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347335/v2/00347335.bam }
+    },
+    {
+      id: C338_00347323,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347323/v2/00347323.bam }
+    },
+    {
+      id: C338_00313755,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313755/v2/00313755.bam }
+    },
+    {
+      id: C338_00344108,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00344108/v1/00344108.bam }
+    },
+    {
+      id: C338_00313306,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313306/v1/00313306.bam }
+    },
+    {
+      id: C338_00341959,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00341959/v3/00341959.bam }
+    },
+    {
+      id: C338_00344030,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00344030/v3/00344030.bam }
+    },
+    {
+      id: C338_00344099,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00344099/v3/00344099.bam }
+    },
+    {
+      id: C338_00339767,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00339767/v2/00339767.bam }
+    },
+    {
+      id: C338_00347317,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347317/v3/00347317.bam }
+    },
+    {
+      id: C338_00338716,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00338716/v2/00338716.bam }
+    },
+    {
+      id: C338_00314085,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00314085/v2/00314085.bam }
+    },
+    {
+      id: C338_00339707,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00339707/v2/00339707.bam }
+    },
+    {
+      id: C338_00342149,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00342149/v2/00342149.bam }
+    },
+    {
+      id: C338_00339680,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00339680/v3/00339680.bam }
+    },
+    {
+      id: C338_00314089,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00314089/v1/00314089.bam }
+    },
+    {
+      id: C338_00347305,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347305/v3/00347305.bam }
+    },
+    {
+      id: C338_00347299,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347299/v2/00347299.bam }
+    },
+    {
+      id: C338_00314127,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00314127/v4/00314127.bam }
+    },
+    {
+      id: C338_00314042,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00314042/v1/00314042.bam }
+    },
+    {
+      id: C338_00313624,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313624/v2/00313624.bam }
+    },
+    {
+      id: C338_00347929,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347929/v2/00347929.bam }
+    },
+    {
+      id: C338_00340223,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00340223/v3/00340223.bam }
+    },
+    {
+      id: C338_00314130,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00314130/v2/00314130.bam }
+    },
+    {
+      id: C338_00342001,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00342001/v3/00342001.bam }
+    },
+    {
+      id: C338_00313906,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313906/v2/00313906.bam }
+    },
+    {
+      id: C338_00313844,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313844/v2/00313844.bam }
+    },
+    {
+      id: C338_00153519,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00153519/v1/00153519.bam }
+    },
+    {
+      id: C338_00071493,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00071493/v2/00071493.bam }
+    },
+    {
+      id: C338_00314083,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00314083/v2/00314083.bam }
+    },
+    {
+      id: C338_00334568,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00334568/v6/00334568.bam }
+    },
+    {
+      id: C338_00346347,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00346347/v3/00346347.bam }
+    },
+    {
+      id: C338_00180648,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00180648/v1/00180648.bam }
+    },
+    {
+      id: C338_00187275,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00187275/v1/00187275.bam }
+    },
+    {
+      id: C338_00346283,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00346283/v3/00346283.bam }
+    },
+    {
+      id: C338_00313933,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313933/v5/00313933.bam }
+    },
+    {
+      id: C338_00313479,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313479/v2/00313479.bam }
+    },
+    {
+      id: C338_00313422,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313422/v1/00313422.bam }
+    },
+    {
+      id: C338_00153459,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00153459/v2/00153459.bam }
+    },
+    {
+      id: C338_00340147,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00340147/v3/00340147.bam }
+    },
+    {
+      id: C338_00308255,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00308255/v3/00308255.bam }
+    },
+    {
+      id: C338_00341944,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00341944/v3/00341944.bam }
+    },
+    {
+      id: C338_00314081,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00314081/v2/00314081.bam }
+    },
+    {
+      id: C338_00339729,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00339729/v2/00339729.bam }
+    },
+    {
+      id: C338_00340121,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00340121/v2/00340121.bam }
+    },
+    {
+      id: C338_00164078,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00164078/v1/00164078.bam }
+    },
+    {
+      id: C338_00314037,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00314037/v2/00314037.bam }
+    },
+    {
+      id: C338_00313708,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313708/v3/00313708.bam }
+    },
+    {
+      id: C338_00346266,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00346266/v3/00346266.bam }
+    },
+    {
+      id: C338_00313914,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313914/v1/00313914.bam }
+    },
+    {
+      id: C338_00340093,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00340093/v2/00340093.bam }
+    },
+    {
+      id: C338_00313909,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313909/v1/00313909.bam }
+    },
+    {
+      id: C338_00347739,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347739/v2/00347739.bam }
+    },
+    {
+      id: C338_00338680,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00338680/v3/00338680.bam }
+    },
+    {
+      id: C338_00347283,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347283/v3/00347283.bam }
+    },
+    {
+      id: C338_00180679,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00180679/v1/00180679.bam }
+    },
+    {
+      id: C338_00313247,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313247/v1/00313247.bam }
+    },
+    {
+      id: C338_00174844,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00174844/v2/00174844.bam }
+    },
+    {
+      id: C338_00313450,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313450/v1/00313450.bam }
+    },
+    {
+      id: C338_00313626,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313626/v2/00313626.bam }
+    },
+    {
+      id: C338_00313311,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313311/v2/00313311.bam }
+    },
+    {
+      id: C338_00313988,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313988/v2/00313988.bam }
+    },
+    {
+      id: C338_00314078,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00314078/v2/00314078.bam }
+    },
+    {
+      id: C338_00313721,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313721/v2/00313721.bam }
+    },
+    {
+      id: C338_00347894,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00347894/v2/00347894.bam }
+    },
+    {
+      id: C338_00329142,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00329142/v1/00329142.bam }
+    },
+    {
+      id: C338_00313304,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00313304/v1/00313304.bam }
+    },
+    {
+      id: C338_00334599,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00334599/v2/00334599.bam }
+    },
+    {
+      id: C338_00339674,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00339674/v2/00339674.bam }
+    },
+    {
+      id: C338_00234650,
+      bamFiles: { recalibrated: /seq/picard_aggregation/C338/00234650/v1/00234650.bam }
+    }
+  ]
+}

@@ -1,10 +1,12 @@
-package org.broadinstitute.sting.gatk.walkers.varianteval;
+package org.broadinstitute.sting.oneoffprojects.walkers.varianteval;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluator;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
 import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.utils.TableType;
@@ -178,7 +180,7 @@ public class AminoAcidTransition extends VariantEvaluator {
                 first = parsedNames [0];
                 second = parsedNames [1];
             } catch (ArrayIndexOutOfBoundsException e) {
-                veWalker.getLogger().warn("Error prasing variant context with value "+eval.getAttribute(infoKey));
+                getLogger().warn("Error parsing variant context with value "+eval.getAttribute(infoKey));
             }
             AminoAcid reference;
             AminoAcid alternate;

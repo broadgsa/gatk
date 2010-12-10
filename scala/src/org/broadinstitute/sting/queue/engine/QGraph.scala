@@ -26,6 +26,9 @@ class QGraph extends Logging {
   private var shuttingDown = false
   private val nl = "%n".format()
 
+  private val inProcessManager = new InProcessJobManager
+  private var commandLineManager: JobManager[CommandLineFunction, _<:JobRunner[CommandLineFunction]] = _
+
   /**
    * Adds a QScript created CommandLineFunction to the graph.
    * @param command Function to add to the graph.
@@ -261,6 +264,11 @@ class QGraph extends Logging {
    */
   private def runJobs() = {
     try {
+      if (settings.bsubAllJobs)
+        commandLineManager = new Lsf706JobManager
+      else
+        commandLineManager = new ShellJobManager
+
       if (settings.startFromScratch) {
         logger.info("Removing outputs from previous runs.")
         foreachFunction(_.resetToPending(true))
@@ -360,12 +368,9 @@ class QGraph extends Logging {
   private def newRunner(f: QFunction) = {
     f match {
       case cmd: CommandLineFunction =>
-        if (settings.bsubAllJobs)
-          new LsfJobRunner(cmd)
-        else
-          new ShellJobRunner(cmd)
+        commandLineManager.create(cmd)
       case inProc: InProcessFunction =>
-        new InProcessRunner(inProc)
+        inProcessManager.create(inProc)
       case _ =>
         throw new QException("Unexpected function: " + f)
     }
@@ -376,7 +381,7 @@ class QGraph extends Logging {
       val emailMessage = new EmailMessage
       emailMessage.from = settings.statusEmailFrom
       emailMessage.to = settings.statusEmailTo
-      emailMessage.subject = "Queue function: Failure"
+      emailMessage.subject = "Queue function: Failure: " + settings.qSettings.jobNamePrefix
       addFailedFunctions(emailMessage, failed)
       emailMessage.trySend(settings.qSettings.emailSettings)
     }
@@ -412,9 +417,9 @@ class QGraph extends Logging {
       emailMessage.to = settings.statusEmailTo
       emailMessage.body = getStatus + nl
       if (failed.size == 0) {
-        emailMessage.subject = "Queue run: Success"
+        emailMessage.subject = "Queue run: Success: " + settings.qSettings.jobNamePrefix
       } else {
-        emailMessage.subject = "Queue run: Failure"
+        emailMessage.subject = "Queue run: Failure: " + settings.qSettings.jobNamePrefix
         addFailedFunctions(emailMessage, failed)
       }
       emailMessage.trySend(settings.qSettings.emailSettings)
@@ -754,25 +759,7 @@ class QGraph extends Logging {
    */
   def shutdown() {
     shuttingDown = true
-    val lsfJobRunners = getRunningJobs.filter(_.runner.isInstanceOf[LsfJobRunner]).map(_.runner.asInstanceOf[LsfJobRunner])
-    if (lsfJobRunners.size > 0) {
-      for (jobRunners <- lsfJobRunners.filterNot(_.job.bsubJobId == null).grouped(10)) {
-        try {
-          val bkill = new LsfKillJob(jobRunners.map(_.job))
-          logger.info(bkill.command)
-          bkill.run()
-        } catch {
-          case jee: JobExitException =>
-            logger.error("Unable to kill all jobs:%n%s".format(jee.getMessage))
-          case e =>
-            logger.error("Unable to kill jobs.", e)
-        }
-        try {
-          jobRunners.foreach(_.removeTemporaryFiles())
-        } catch {
-          case e => /* ignore */
-        }
-      }
-    }
+    if (commandLineManager != null)
+      commandLineManager.tryStop(getRunningJobs.map(_.runner))
   }
 }

@@ -7,7 +7,7 @@ import java.io.File
 /**
  * Dispatches jobs to a compute cluster.
  */
-trait DispatchJobRunner extends JobRunner {
+trait DispatchJobRunner extends JobRunner[CommandLineFunction] {
   /**
    * Builds a command line that can be run to force an automount of the directories.
    * @param function Function to look jobDirectories.

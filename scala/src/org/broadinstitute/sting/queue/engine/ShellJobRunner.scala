@@ -6,7 +6,7 @@ import org.broadinstitute.sting.queue.util.{JobExitException, Logging, ShellJob}
 /**
  * Runs jobs one at a time locally
  */
-class ShellJobRunner(val function: CommandLineFunction) extends JobRunner with Logging {
+class ShellJobRunner(val function: CommandLineFunction) extends JobRunner[CommandLineFunction] with Logging {
   private var runStatus: RunnerStatus.Value = _
 
   /**
@@ -21,6 +21,9 @@ class ShellJobRunner(val function: CommandLineFunction) extends JobRunner with L
       job.outputFile = function.jobOutputFile
       job.errorFile = function.jobErrorFile
 
+      // Allow advanced users to update the job.
+      updateJobRun(job)
+
       if (logger.isDebugEnabled) {
         logger.debug("Starting: " + function.commandDirectory + " > " + function.commandLine)
       } else {
@@ -33,8 +36,8 @@ class ShellJobRunner(val function: CommandLineFunction) extends JobRunner with L
 
       function.deleteLogs()
       function.deleteOutputs()
-      runStatus = RunnerStatus.RUNNING
       function.mkOutputDirectories()
+      runStatus = RunnerStatus.RUNNING
       job.run()
       function.doneOutputs.foreach(_.createNewFile())
       runStatus = RunnerStatus.DONE

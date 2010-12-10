@@ -10,6 +10,7 @@
     <ibiblio name="libraries_with_inconsistent_poms" checkconsistency="false" m2compatible="true" />
     <ibiblio name="reflections-repo" m2compatible="true" root="http://reflections.googlecode.com/svn/repo" />
     <ibiblio name="java.net" m2compatible="false" root="http://download.java.net/maven/1/" pattern="[organisation]/jars/[artifact]-[revision].[ext]"/>
+    <ibiblio name="maven2-repository.dev.java.net" m2compatible="true" root="http://download.java.net/maven/2/" />
   </resolvers>
   <modules>
     <module organisation="edu.mit.broad" resolver="projects" />
@@ -22,5 +23,6 @@
     <module organisation="colt" module="colt" resolver="libraries_with_inconsistent_poms" />
     <module organisation="javax.mail" resolver="java.net" />
     <module organisation="javax.activation" resolver="java.net" />
+    <module organisation="net.java.dev.jna" resolver="maven2-repository.dev.java.net" />
   </modules>
 </ivysettings>

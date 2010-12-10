@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.gatk.walkers.varianteval;
+package org.broadinstitute.sting.oneoffprojects.walkers.varianteval;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
@@ -6,11 +6,12 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluator;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
 import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.utils.TableType;
-import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -72,7 +73,7 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
         Map<String,Object> attributes = new HashMap<String,Object>();
         VariantContextUtils.calculateChromosomeCounts(vc,attributes,false);
         vc = VariantContext.modifyAttributes(vc,attributes);
-        getVEWalker().getLogger().debug(String.format("%s %s | %s %s",attributes.get("AC"),attributes.get("AF"),vc.getAttribute("AC"),vc.getAttribute("AF")));
+        getLogger().debug(String.format("%s %s | %s %s",attributes.get("AC"),attributes.get("AF"),vc.getAttribute("AC"),vc.getAttribute("AF")));
         if ( attributes.size() == 2 && missingField(vc) ) {
             throw new org.broadinstitute.sting.utils.exceptions.StingException("VariantContext should have had attributes modified but did not");
         }

@@ -37,6 +37,12 @@ trait QFunction extends Logging {
   /** Order the function was added to the graph. */
   var addOrder: List[Int] = Nil
 
+  /**
+   * A callback for modifying the run.
+   * NOTE: This function is for ADVANCED use only and is unsupported.
+   */
+  var updateJobRun: PartialFunction[Any,Unit] = null
+
   /** File to redirect any output.  Defaults to <jobName>.out */
   @Output(doc="File to redirect any output", required=false)
   @Gather(classOf[SimpleTextGatherFunction])

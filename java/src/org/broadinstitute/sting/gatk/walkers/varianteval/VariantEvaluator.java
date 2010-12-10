@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -43,6 +44,10 @@ public abstract class VariantEvaluator {
 
     protected VariantEvalWalker getVEWalker() {
         return veWalker;
+    }
+
+    protected Logger getLogger() {
+        return veWalker.getLogger();
     }
 
     public abstract boolean enabled();

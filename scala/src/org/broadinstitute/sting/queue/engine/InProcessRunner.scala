@@ -6,7 +6,7 @@ import org.broadinstitute.sting.queue.util.Logging
 /**
  * Runs a function that executes in process and does not fork out an external process.
  */
-class InProcessRunner(val function: InProcessFunction) extends JobRunner with Logging {
+class InProcessRunner(val function: InProcessFunction) extends JobRunner[InProcessFunction] with Logging {
   private var runStatus: RunnerStatus.Value = _
 
   def start() = {
@@ -19,8 +19,8 @@ class InProcessRunner(val function: InProcessFunction) extends JobRunner with Lo
 
       function.deleteLogs()
       function.deleteOutputs()
-      runStatus = RunnerStatus.RUNNING
       function.mkOutputDirectories()
+      runStatus = RunnerStatus.RUNNING
       function.run()
       function.doneOutputs.foreach(_.createNewFile())
       writeDone()

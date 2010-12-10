@@ -7,16 +7,16 @@ import org.broadinstitute.sting.queue.util._
 /**
  * Runs jobs on an LSF compute cluster.
  */
-class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner with Logging {
-  private var runStatus: RunnerStatus.Value = _
+abstract class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner with Logging {
+  protected var runStatus: RunnerStatus.Value = _
 
-  var job: LsfJob = new LsfJob
+  var jobId = -1L
 
   /** Which directory to use for the job status files. */
-  private def jobStatusDir = function.jobTempDir
+  protected def jobStatusDir = function.jobTempDir
 
   /** A file to look for to validate that the function ran to completion. */
-  private var jobStatusPath: String = _
+  protected var jobStatusPath: String = _
 
   /** A temporary job done file to let Queue know that the process ran successfully. */
   private lazy val jobDoneFile = new File(jobStatusPath + ".done")
@@ -25,76 +25,16 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
   private lazy val jobFailFile = new File(jobStatusPath + ".fail")
 
   /** A generated exec shell script. */
-  private var exec: File = _
+  protected var exec: File = _
 
   /** A generated pre-exec shell script. */
-  private var preExec: File = _
+  protected var preExec: File = _
 
   /** A generated post-exec shell script. */
-  private var postExec: File = _
+  protected var postExec: File = _
 
-  /**
-   * Dispatches the function on the LSF cluster.
-   * @param function Command to run.
-   */
-  def start() = {
-    try {
-      function.mkOutputDirectories()
-
-      // job.name = function.jobName TODO: Make setting the job name optional.
-      job.outputFile = function.jobOutputFile
-      job.errorFile = function.jobErrorFile
-      job.project = function.jobProject
-      job.queue = function.jobQueue
-
-      if (IOUtils.absolute(new File(".")) != function.commandDirectory)
-        job.workingDir = function.commandDirectory
-
-      job.extraBsubArgs ++= function.extraArgs
-
-      if (function.jobRestartable)
-        job.extraBsubArgs :+= "-r"
-
-      if (function.memoryLimit.isDefined)
-        job.extraBsubArgs ++= List("-R", "rusage[mem=" + function.memoryLimit.get + "]")
-
-      job.name = function.commandLine.take(1000)
-
-      exec = writeExec()
-      job.command = "sh " + exec
-
-      preExec = writePreExec()
-      job.preExecCommand = "sh " + preExec
-
-      postExec = writePostExec()
-      job.postExecCommand = "sh " + postExec
-
-      if (logger.isDebugEnabled) {
-        logger.debug("Starting: " + function.commandDirectory + " > " + job.bsubCommand.mkString(" "))
-      } else {
-        logger.info("Starting: " + job.bsubCommand.mkString(" "))
-      }
-
-      function.deleteLogs()
-      function.deleteOutputs()
-
-      runStatus = RunnerStatus.RUNNING
-      Retry.attempt(() => job.run(), 1, 5, 10)
-      jobStatusPath = IOUtils.absolute(new File(jobStatusDir, "." + job.bsubJobId)).toString
-      logger.info("Submitted LSF job id: " + job.bsubJobId)
-    } catch {
-      case e =>
-        runStatus = RunnerStatus.FAILED
-        try {
-          removeTemporaryFiles()
-          function.failOutputs.foreach(_.createNewFile())
-          writeStackTrace(e)
-        } catch {
-          case _ => /* ignore errors in the exception handler */
-        }
-        logger.error("Error: " + job.bsubCommand.mkString(" "), e)
-    }
-  }
+  // TODO: Full bsub command for debugging.
+  protected def bsubCommand = "bsub " + function.commandLine
 
   /**
    * Updates and returns the status by looking for job status files.
@@ -114,12 +54,12 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
       if (jobFailFile.exists) {
         removeTemporaryFiles()
         runStatus = RunnerStatus.FAILED
-        logger.info("Error: " + job.bsubCommand.mkString(" "))
+        logger.info("Error: " + bsubCommand)
         tailError()
       } else if (jobDoneFile.exists) {
         removeTemporaryFiles()
         runStatus = RunnerStatus.DONE
-        logger.info("Done: " + job.bsubCommand.mkString(" "))
+        logger.info("Done: " + bsubCommand)
       }
     } catch {
       case e =>
@@ -131,7 +71,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
         } catch {
           case _ => /* ignore errors in the exception handler */
         }
-        logger.error("Error: " + job.bsubCommand.mkString(" "), e)
+        logger.error("Error: " + bsubCommand, e)
     }
 
     runStatus
@@ -151,8 +91,8 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
   /**
    * Outputs the last lines of the error logs.
    */
-  private def tailError() = {
-    val errorFile = if (job.errorFile != null) job.errorFile else job.outputFile
+  protected def tailError() = {
+    val errorFile = if (function.jobErrorFile != null) function.jobErrorFile else function.jobOutputFile
     if (IOUtils.waitFor(errorFile, 120)) {
       val tailLines = IOUtils.tail(errorFile, 100)
       val nl = "%n".format()
@@ -167,7 +107,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    * optionally mount any automount directories on the node.
    * @return the file path to the pre-exec.
    */
-  private def writeExec() = {
+  protected def writeExec() = {
     IOUtils.writeTempFile(function.commandLine, ".exec", "", jobStatusDir)
   }
 
@@ -176,7 +116,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    * optionally mount any automount directories on the node.
    * @return the file path to the pre-exec.
    */
-  private def writePreExec() = {
+  protected def writePreExec() = {
     val preExec = new StringBuilder
 
     preExec.append("rm -f '%s/'.$LSB_JOBID.done%n".format(jobStatusDir))
@@ -194,7 +134,7 @@ class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner 
    * Writes a post-exec file to create the status files.
    * @return the file path to the post-exec.
    */
-  private def writePostExec() = {
+  protected def writePostExec() = {
     val postExec = new StringBuilder
 
     val touchDone = function.doneOutputs.map("touch '%s'%n".format(_)).mkString
