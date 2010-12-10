@@ -449,9 +449,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private void abortCleanForCurrentInterval() {
-        // merge the two sets for emission
-        readsNotToClean.addAll(readsToClean.getReads());
         emit(readsNotToClean);
+        emit(readsToClean.getReads());
         readsToClean.clear();
         readsNotToClean.clear();
         currentInterval = intervals.hasNext() ? intervals.next() : null;
@@ -471,9 +470,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         clean(readsToClean);
         knownIndelsToTry.clear();
 
-        // merge the two sets for emission
-        readsNotToClean.addAll(readsToClean.getReads());
         emit(readsNotToClean);
+        emit(readsToClean.getReads());
         readsToClean.clear();
         readsNotToClean.clear();
 
