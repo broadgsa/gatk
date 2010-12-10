@@ -230,7 +230,7 @@ pDirectlyPhaseHetPairUsingWindow <- function(meanDepth, nReadsToPhase, L, theta,
 	lower = as.vector(matrix(data=MIN_DISTANCE, nrow=1, ncol=ndim))
 	upper = as.vector(matrix(data=MAX_DISTANCE, nrow=1, ncol=ndim))
 
-	N = 10^4 * ndim
+	N = 10^4 * ndim^2
 	high_dimensional_integrate(ndim, lower, upper, integrandFunction, N, DEBUG = TRUE, PRINT_EVERY = 10^2)
 }
 
