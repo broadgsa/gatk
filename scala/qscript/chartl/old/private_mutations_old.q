@@ -3,7 +3,7 @@ import org.broadinstitute.sting.queue.extensions.gatk.{UnifiedGenotyper, RodBind
 import org.broadinstitute.sting.queue.QScript
 import tools.nsc.io.File
 
-class private_mutations extends QScript {
+class private_mutations_old extends QScript {
   pm_script => // alias for the script arguments
 
   val eomi_merged_calls : File = new File("/humgen/gsa-hphome1/chartl/projects/private_mutations/resources/esp_merged.vcf")
