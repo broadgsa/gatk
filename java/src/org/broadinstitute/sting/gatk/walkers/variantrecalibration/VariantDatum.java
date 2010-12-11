@@ -38,6 +38,7 @@ public class VariantDatum implements Comparable<VariantDatum> {
     public boolean isKnown;
     public double lod;
     public double weight;
+    public boolean atTruthSite;
 
     public int compareTo(VariantDatum other) {
         return Double.compare(this.lod, other.lod);

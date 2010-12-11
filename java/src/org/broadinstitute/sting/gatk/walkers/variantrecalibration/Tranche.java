@@ -47,17 +47,20 @@ import java.util.*;
  */
 
 public class Tranche implements Comparable<Tranche> {
-    private static final int CURRENT_VERSION = 2;
+    private static final int CURRENT_VERSION = 3;
 
     public double fdr, minVQSLod, targetTiTv, knownTiTv, novelTiTv;
     public int numKnown,numNovel;
     public String name;
 
-    public Tranche(double fdr, double targetTiTv, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv) {
-        this(fdr, targetTiTv, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, "anonymous");
+    int accessibleTruthSites = 0;
+    int callsAtTruthSites = 0;
+
+    public Tranche(double fdr, double targetTiTv, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites) {
+        this(fdr, targetTiTv, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, "anonymous");
     }
 
-    public Tranche(double fdr, double targetTiTv, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, String name) {
+    public Tranche(double fdr, double targetTiTv, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites, String name ) {
         this.fdr = fdr;
         this.targetTiTv = targetTiTv;
         this.minVQSLod = minVQSLod;
@@ -67,7 +70,10 @@ public class Tranche implements Comparable<Tranche> {
         this.numKnown = numKnown;
         this.name = name;
 
-        if ( fdr <= 0.0 )
+        this.accessibleTruthSites = accessibleTruthSites;
+        this.callsAtTruthSites = callsAtTruthSites;
+
+        if ( fdr < 0.0 )
             throw new UserException("Target FDR is unreasonable " + fdr);
 
         if ( targetTiTv < 0.5 || targetTiTv > 10 )
@@ -80,13 +86,17 @@ public class Tranche implements Comparable<Tranche> {
             throw new ReviewedStingException("BUG -- name cannot be null");
     }
 
+    private double getTruthSensitivity() {
+        return accessibleTruthSites > 0 ? callsAtTruthSites / (1.0*accessibleTruthSites) : 0.0;
+    }
+
     public int compareTo(Tranche other) {
         return Double.compare(this.fdr,  other.fdr);
     }
 
     public String toString() {
-        return String.format("Tranche fdr=%.2f minVQSLod=%.4f known=(%d @ %.2f) novel=(%d @ %.2f) name=%s]",
-                fdr, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, name);
+        return String.format("Tranche fdr=%.2f minVQSLod=%.4f known=(%d @ %.2f) novel=(%d @ %.2f) truthSites(%d accessible, %d called), name=%s]",
+                fdr, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, name);
     }
 
     /**
@@ -105,13 +115,13 @@ public class Tranche implements Comparable<Tranche> {
 
         stream.println("# Variant quality score tranches file");
         stream.println("# Version number " + CURRENT_VERSION);
-        stream.println("FDRtranche,targetTiTv,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName");
+        stream.println("FDRtranche,targetTiTv,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName,accessibleTruthSites,callsAtTruthSites,truthSensitivity");
 
         Tranche prev = null;
         for ( Tranche t : tranches ) {
-            stream.printf("%.2f,%.2f,%d,%d,%.4f,%.4f,%.4f,FDRtranche%.2fto%.2f%n",
+            stream.printf("%.2f,%.2f,%d,%d,%.4f,%.4f,%.4f,FDRtranche%.2fto%.2f,%d,%d,%.4f%n",
                     t.fdr,t.targetTiTv,t.numKnown,t.numNovel,t.knownTiTv,t.novelTiTv, t.minVQSLod,
-                    (prev == null ? 0.0 : prev.fdr), t.fdr);
+                    (prev == null ? 0.0 : prev.fdr), t.fdr, t.accessibleTruthSites, t.callsAtTruthSites, t.getTruthSensitivity());
             prev = t;
         }
 
@@ -161,7 +171,7 @@ public class Tranche implements Comparable<Tranche> {
                     if ( header.length == 5 )
                         // old style tranches file, throw an error
                         throw new UserException.MalformedFile(f, "Unfortuanately, your tranches file is from a previous version of this tool and cannot be used with the latest code.  Please rerun VariantRecalibrator");
-                    if ( header.length != 8 )
+                    if ( header.length != 8 && header.length != 11 )
                         throw new UserException.MalformedFile(f, "Expected 8 elements in header line " + line);
                 } else {
                     if ( header.length != vals.length )
@@ -176,6 +186,8 @@ public class Tranche implements Comparable<Tranche> {
                             getDouble(bindings,"knownTiTv", false),
                             getInteger(bindings,"numNovel", true),
                             getDouble(bindings,"novelTiTv", true),
+                            getInteger(bindings,"accessibleTruthSites", false),
+                            getInteger(bindings,"callsAtTruthSites", false),
                             bindings.get("filterName")));
                 }
             }

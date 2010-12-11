@@ -122,10 +122,15 @@ public final class VariantGaussianMixtureModelUnitTest extends BaseTest {
         }
     }
 
+    private static final List<Tranche> findMyTranches(List<VariantDatum> vd, double[] fdrs, double targetTiTv) {
+        VariantGaussianMixtureModel.SelectionMetric metric = new VariantGaussianMixtureModel.NovelTiTvMetric(targetTiTv);
+        return VariantGaussianMixtureModel.findTranches(vd.toArray(new VariantDatum[0]), fdrs, metric);
+    }
+
     @Test
     public final void testFindTranches1() {
         List<VariantDatum> vd = readData();
-        List<Tranche> tranches = VariantGaussianMixtureModel.findTranches(vd.toArray(new VariantDatum[0]), FDRS, TARGET_TITV);
+        List<Tranche> tranches = findMyTranches(vd, FDRS, TARGET_TITV);
         System.out.printf(Tranche.tranchesString(tranches));
         assertTranchesAreTheSame(read(EXPECTED_TRANCHES_NEW), tranches, true, false);
     }
@@ -133,12 +138,12 @@ public final class VariantGaussianMixtureModelUnitTest extends BaseTest {
     @Test(expectedExceptions = {UserException.class})
     public final void testBadFDR() {
         List<VariantDatum> vd = readData();
-        VariantGaussianMixtureModel.findTranches(vd.toArray(new VariantDatum[0]), new double[]{-1}, TARGET_TITV);
+        List<Tranche> tranches = findMyTranches(vd, new double[]{-1}, TARGET_TITV);
     }
 
     @Test(expectedExceptions = {UserException.class})
     public final void testBadTargetTiTv() {
         List<VariantDatum> vd = readData();
-        VariantGaussianMixtureModel.findTranches(vd.toArray(new VariantDatum[0]), FDRS, 0.1);
+        List<Tranche> tranches = findMyTranches(vd, FDRS, 0.1);
     }
 }

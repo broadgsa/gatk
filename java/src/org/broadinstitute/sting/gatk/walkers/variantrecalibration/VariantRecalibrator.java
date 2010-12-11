@@ -94,7 +94,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName="prior1KG", shortName="prior1KG", doc="A prior on the quality of 1000 Genomes Project variants, a phred scaled probability of being true.", required=false)
     private double PRIOR_1KG = 12.0;
     @Argument(fullName="FDRtranche", shortName="tranche", doc="The levels of novel false discovery rate (FDR, implied by ti/tv) at which to slice the data. (in percent, that is 1.0 for 1 percent)", required=false)
-    private double[] FDR_TRANCHES = new double[]{0.1, 1.0, 5.0, 10.0};
+    private double[] FDR_TRANCHES = new double[]{0.1, 1.0, 10.0, 100.0};
     @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required=false)
     private String PATH_TO_RSCRIPT = "Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required=false)
@@ -112,9 +112,19 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Hidden
     @Argument(fullName = "qual", shortName = "qual", doc = "Don't use sites with original quality scores below the qual threshold. FOR DEBUGGING PURPOSES ONLY.", required=false)
     private double QUAL_THRESHOLD = 0.0;
+
     @Hidden
     @Argument(fullName = "debugFile", shortName = "debugFile", doc = "Print debugging information here", required=false)
     private File DEBUG_FILE = null;
+
+    @Hidden
+    @Argument(fullName = "selectionMetric", shortName = "sm", doc = "Selection metric to use", required=false)
+    private SelectionMetricType SELECTION_METRIC_TYPE = SelectionMetricType.NOVEL_TITV;
+
+    public enum SelectionMetricType {
+        NOVEL_TITV,
+        TRUTH_SENSITIVITY
+    }
 
     /////////////////////////////
     // Private Member Variables
@@ -126,6 +136,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private NestedHashMap priorCache = new NestedHashMap();
     private boolean trustACField = false;
     private PrintStream tranchesStream = null;
+    private int nTruthSites = 0;
 
     private static double round4(double num) {
         double result = num * 10000.0;
@@ -217,6 +228,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             return mapList;
         }
 
+        final Collection<VariantContext> vcsTruth = tracker.getVariantContexts(ref, "truth", null, context.getLocation(), false, true);
+        final VariantContext vcTruth = ( vcsTruth.size() != 0 ? vcsTruth.iterator().next() : null );
+        nTruthSites += vcTruth != null && vcTruth.isVariant() ? 1 : 0;
+
         for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
             if( vc != null && vc.isSNP() ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
@@ -293,6 +308,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                         variantDatum.pos = vc.getStart();
                         variantDatum.lod = round4(lod);
 
+                        // deal with the truth calculation
+                        variantDatum.atTruthSite = vcTruth != null && vcTruth.isVariant();
+
                         mapList.add( variantDatum );
                         final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
                         attrs.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
@@ -327,11 +345,22 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     }
 
     public void onTraversalDone( ExpandingArrayList<VariantDatum> reduceSum ) {
-
         final VariantDataManager dataManager = new VariantDataManager( reduceSum, theModel.dataManager.annotationKeys );
         reduceSum.clear(); // Don't need this ever again, clean up some memory
 
-        List<Tranche> tranches = VariantGaussianMixtureModel.findTranches( dataManager.data, FDR_TRANCHES, TARGET_TITV, DEBUG_FILE );
+        // deal with truth information
+        int nCallsAtTruth = VariantGaussianMixtureModel.countCallsAtTruth(dataManager.data, Double.NEGATIVE_INFINITY);
+        logger.info(String.format("Truth set size is %d, raw calls at these sites %d, maximum sensitivity of %.2f",
+                nTruthSites, nCallsAtTruth, (100.0*nCallsAtTruth / Math.max(nTruthSites, nCallsAtTruth))));
+
+        VariantGaussianMixtureModel.SelectionMetric metric = null;
+        switch ( SELECTION_METRIC_TYPE ) {
+            case NOVEL_TITV: metric = new VariantGaussianMixtureModel.NovelTiTvMetric(TARGET_TITV); break;
+            case TRUTH_SENSITIVITY: metric = new VariantGaussianMixtureModel.TruthSensitivityMetric(nCallsAtTruth); break;
+            default: throw new ReviewedStingException("BUG: unexpected SelectionMetricType " + SELECTION_METRIC_TYPE);
+        }
+        
+        List<Tranche> tranches = VariantGaussianMixtureModel.findTranches( dataManager.data, FDR_TRANCHES, metric, DEBUG_FILE );
         tranchesStream.print(Tranche.tranchesString(tranches));
 
         // Execute Rscript command to plot the optimization curve
