@@ -169,7 +169,7 @@ public class BAQUnitTest extends BaseTest {
     }
 
     public void testBAQ(BAQTest test, boolean lookupWithFasta) {
-        BAQ baqHMM = new BAQ(1e-3, 0.1, 7, (byte)4);         // matches current samtools parameters
+        BAQ baqHMM = new BAQ(1e-3, 0.1, 7, (byte)4, false);         // matches current samtools parameters
 
         SAMRecord read = test.createRead();
         BAQ.BAQCalculationResult result;
