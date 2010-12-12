@@ -61,6 +61,4 @@ class fullCallingPipelineV2 extends QScript {
 
     addAll(lib.StandardCallingPipeline(bamFiles,indel_vcf,recal_vcf,handfilt_vcf,fcp.pipelineArgs.target_titv,fcp.pipelineArgs.refseqTable))
   }
-
-  def addAll(clfs: List[CommandLineFunction]) = { clfs.foreach(c => add(c)) }
 }

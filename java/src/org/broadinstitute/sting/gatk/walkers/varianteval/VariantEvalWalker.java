@@ -914,5 +914,5 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         return eval.hasGenotypes() ? eval.getNSamples() : nSamples;
     }
 
-    protected Logger getLogger() { return logger; }
+    public Logger getLogger() { return logger; }
 }

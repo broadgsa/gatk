@@ -16,6 +16,8 @@ class ProjectManagement(stingPath: String) {
 
   var stingDirPath : String = stingPath
 
+  def this(f : File) = this(f.getAbsolutePath)
+
   class PassFilterAlleles(vcf_files: List[File], out_list: File) extends CommandLineFunction {
     @Input(doc="List of VCFs to extract PF sites from") var vcfs = vcf_files
     @Output(doc="The file to write the site list to") var out_vcf = out_list
@@ -24,7 +26,7 @@ class ProjectManagement(stingPath: String) {
 
     def commandLine = {
       "egrep \"FORMAT|format\" %s | cut -f1-8 > %s ; grep PASS %s | tr ':' '\\t' | awk '{print $2\"\\t\"$3\"\\t\"$4\"\\t\"$5\"\\t\"$6\"\\t.\\t.\\t.\"}' | sort -n -k2,2 | uniq | perl %s - %s.fai >> %s".format(
-        vcf_files(1).getAbsolutePath, out_vcf.getAbsolutePath, vcf_files.foldLeft[String]("")( (b,a) => b + " " + a.getAbsolutePath), sortByRef, ref.getAbsolutePath, out_vcf.getAbsolutePath
+        vcf_files(0).getAbsolutePath, out_vcf.getAbsolutePath, vcf_files.foldLeft[String]("")( (b,a) => b + " " + a.getAbsolutePath), sortByRef, ref.getAbsolutePath, out_vcf.getAbsolutePath
         )
     }
   }
@@ -50,7 +52,7 @@ class ProjectManagement(stingPath: String) {
 
     cmds :+= ints
     
-    var calcs: List[UGCalcLikelihoods] = allBams.grouped(size).toList.zipWithIndex.map(u => LikelihoodCalc(u._1,ref,ints.intervals,pfSites.out_vcf, new File("batch%d.likelihoods.vcf".format(u._2))))
+    var calcs: List[UGCalcLikelihoods] = allBams.grouped(size).toList.zipWithIndex.map(u => LikelihoodCalc(u._1,ref,ints.intervals,pfSites.out_vcf, new File("MBatch%d.likelihoods.vcf".format(u._2))))
 
     cmds ++= calcs
 

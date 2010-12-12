@@ -69,6 +69,10 @@ trait QScript extends Logging {
     functions.foreach(function => function.addOrder = QScript.nextAddOrder)
     this.functions ++= functions
   }
+
+  def addAll(functions: List[QFunction] ) = {
+    functions.foreach( f => add(f) )
+  }
 }
 
 object QScript {

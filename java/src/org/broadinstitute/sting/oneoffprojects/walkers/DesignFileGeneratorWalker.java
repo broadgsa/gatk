@@ -19,7 +19,7 @@ import java.io.PrintStream;
  * Takes an interval list and annotates intervals with genes and exons falling within that interval
  * Was written in order to annotate the Whole Exome Agilent designs at the Broad institute
  * Bind the refseq rod as -B refseq,refseq,/path/to/refGene.txt
- * Bind the interval list as -B interval_list,intervals,/path/to/intervals.interval_list
+ * Bind the interval list as -B interval_list,bed,/path/to/intervals.interval_list
  * Bind the additional files file as -B gene*,bed,/path/to/other/file.bed
  * @Author chartl                                                                                                                                                                                       
  * @Date Apr 26, 2010                                                                                                                                                                                   
@@ -39,7 +39,7 @@ public class DesignFileGeneratorWalker extends RodWalker<Long,Long> {
             return null;
         }
 
-        List<Object> intervalsList= tracker.getReferenceMetaData("interval_list");
+        List<GATKFeature> intervalsList= tracker.getGATKFeatureMetaData("interval_list",false);
         List<Object> refseqList = tracker.getReferenceMetaData("refseq");
         List<GATKFeature> bedList = tracker.getGATKFeatureMetaData("gene",false);
 
