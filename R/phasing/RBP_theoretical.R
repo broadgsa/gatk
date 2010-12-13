@@ -108,7 +108,7 @@ pDirectlyPhaseHetPair <- function(meanDepth, nReadsToPhase, L, theta, Im, Is) {
 }
 
 # Probability (over locations of sites on reads, insert sizes, and read depths) that paired-end reads can TRANSITIVELY phase phaseIndex relative to phaseIndex - 1, given a window of length(windowDistances)+1 het sites at distances given by windowDistances (where an edge in the transitive path requires at least nReadsToPhase reads):
-pPhaseHetPairAtDistanceUsingDepthAndWindow <- function(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Im, Is) {
+pPhaseHetPairAtDistanceUsingDepthAndWindow <- function(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Im, Is, MIN_PATH_PROB = 10^-6) {
 	n = length(windowDistances) + 1  # the window size
 	if (phaseIndex < 2 || phaseIndex > n) {
 		stop("phaseIndex < 2 || phaseIndex > n")
@@ -164,6 +164,11 @@ pPhaseHetPairAtDistanceUsingDepthAndWindow <- function(windowDistances, phaseInd
 			pSpecificPathPhases = 1
 			for (j in seq(from=1, to=length(path)-1, by=1)) {
 				pSpecificPathPhases = pSpecificPathPhases * pPhasePair[path[j], path[j+1]]
+				if (pSpecificPathPhases < MIN_PATH_PROB) { # Do a "bounded" calculation [any path that is ALREADY of low probability can be discarded]:
+					#print(paste("pSpecificPathPhases= ", pSpecificPathPhases, sep=""))
+					pSpecificPathPhases = 0
+					break
+				}
 			}
 			pWindowNotPhasing = pWindowNotPhasing * (1 - pSpecificPathPhases)
 
