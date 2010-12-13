@@ -17,14 +17,14 @@ class VCFExtractSamples(inVCF: File, outVCF: File, samples: List[String]) extend
 
   override def freezeFieldValues = {
     this.logger.warn("Note: Using VCFExtractSamples invalidates AC/AF/AN annotations. This is an explicit warning.")
-    sampleGrep = "\"" + sampleList.foldLeft[String](sampleList.get(0))( (a,b) => a + "|" + b) + "\""
+    sampleGrep = "\"" + sampleList.reduceLeft(_ + "\\\\\\\\|" + _) + "\""
     super.freezeFieldValues
   }
 
   def commandLine = {
 
     var first : String = "head -n 500 %s | grep \\\\#\\\\# > %s".format(inputVCF.getAbsolutePath,outputVCF.getAbsolutePath)
-    var second : String = "head -n 500 %s | grep \\\\#CHR | tr '\\t' '\\n' | awk '{print NF\"\\t\"$1}' ".format(inputVCF)
+    var second : String = "head -n 500 %s | grep \\\\#CHR | tr '\\t' '\\n' | awk '{print ++count\"\\t\"$1}' ".format(inputVCF.getAbsolutePath)
     second += "| egrep %s | awk '{print $1}' | tr '\\n' ',' | xargs -i cut -f1-9,\\{\\} %s | grep -v \\\\#\\\\# >> %s".format(sampleGrep,inputVCF.getAbsolutePath,outputVCF.getAbsolutePath)
 
     first+" ; "+second
