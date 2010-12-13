@@ -17,7 +17,7 @@ class VCFExtractSamples(inVCF: File, outVCF: File, samples: List[String]) extend
 
   override def freezeFieldValues = {
     this.logger.warn("Note: Using VCFExtractSamples invalidates AC/AF/AN annotations. This is an explicit warning.")
-    sampleGrep = "\"" + sampleList.reduceLeft(_ + "\\\\\\\\|" + _) + "\""
+    sampleGrep = "'" + sampleList.reduceLeft(_ + "|" + _) + "'"
     super.freezeFieldValues
   }
 

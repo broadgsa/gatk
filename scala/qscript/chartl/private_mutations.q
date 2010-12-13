@@ -11,6 +11,7 @@ class private_mutations extends QScript {
   @Argument(shortName="yaml",fullName="eomiYaml",doc="Project YAML file",required=true) var eomiYaml: File = _
   @Argument(shortName="sting",fullName="stingDir",doc="path to the Sting directory",required=true) var sting: String = _
   @Argument(shortName="out",fullName="finalVCF",doc="the merged vcf to write to", required=true) var finalMergedVCF : File = _
+  @Argument(shortName="mask",fullName="indelAndSVMask",doc="The indel/SV mask to apply during filtration",required=true) var filtMask : File = _
 
   var gatkjar : File = _
   def script = {
@@ -33,6 +34,8 @@ class private_mutations extends QScript {
     addAll(genotypers)
 
     var handFilters : List[VariantFiltration] = genotypers.map( g => vcLib.StandardHandfilter(g.out,swapExt(g.out,".raw.vcf",".handfiltered.vcf")))
+    handFilters.foreach( p => { p.rodBind :+= new RodBind("mask","bed",filtMask)
+      p.mask = "NearIndelOrSV"} )
 
     addAll(handFilters)
 
@@ -60,7 +63,7 @@ class private_mutations extends QScript {
     eval_all.out = swapExt(finalMergedVCF,".vcf",".perm.csv")
     eval_all.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
 
-    add(eval_all)
+    //add(eval_all)
 
     var eval_afr : VariantEval = vcLib.addTrait(new VariantEval)
     eval_afr.rodBind :+= new RodBind("evalAFR","VCF",extract_afr.outputVCF)
@@ -68,8 +71,9 @@ class private_mutations extends QScript {
     eval_afr.E :+= "PrivatePermutations"
     eval_afr.out = swapExt(extract_afr.outputVCF,".vcf",".perm.csv")
     eval_afr.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+    eval_afr.noStandard = true
 
-    add(eval_afr)
+    //add(eval_afr)
 
     var eval_eur : VariantEval = vcLib.addTrait(new VariantEval)
     eval_eur.rodBind :+= new RodBind("compAFR","VCF",extract_afr.outputVCF)
@@ -77,8 +81,9 @@ class private_mutations extends QScript {
     eval_eur.E :+= "PrivatePermutations"
     eval_eur.out = swapExt(extract_eur.outputVCF,".vcf",".perm.csv")
     eval_eur.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+    eval_eur.noStandard = true
 
-    add(eval_eur)
+    //add(eval_eur)
   }
   
 }
