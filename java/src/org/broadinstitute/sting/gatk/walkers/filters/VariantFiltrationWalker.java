@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
@@ -146,7 +147,13 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( rods.size() == 0 )
             return 0;
 
-        VariantContext vc = VariantContextAdaptors.toVariantContext( INPUT_VARIANT_ROD_BINDING_NAME, rods.get(0), ref );
+        
+        //VariantContext vc = VariantContextAdaptors.toVariantContext( INPUT_VARIANT_ROD_BINDING_NAME, rods.get(0), ref );
+        VariantContext vc = tracker.getVariantContext( ref, INPUT_VARIANT_ROD_BINDING_NAME, null, context.getLocation(), true );
+        // protect against case where we have a variant in context but we're not at the beginning of location
+        if (vc == null)
+            return 0;
+
         FiltrationContext varContext = new FiltrationContext(tracker, ref, vc);
 
         // if we're still initializing the context, do so
