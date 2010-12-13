@@ -1,7 +1,7 @@
 import collection.JavaConversions._
 import java.io.FileNotFoundException
 import org.broadinstitute.sting.datasources.pipeline._
-import org.broadinstitute.sting.queue.extensions.gatk.{VariantFiltration, UnifiedGenotyper}
+import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.library.clf.vcf._
 import org.broadinstitute.sting.queue.pipeline._
 import org.broadinstitute.sting.queue.QScript
@@ -52,6 +52,33 @@ class private_mutations extends QScript {
 
     add(extract_afr)
     add(extract_eur)
+
+    var eval_all : VariantEval = vcLib.addTrait(new VariantEval)
+    eval_all.rodBind :+= new RodBind("evalEOMI","vcf",finalMergedVCF)
+    eval_all.noStandard = true
+    eval_all.E :+= "PrivatePermutations"
+    eval_all.out = swapExt(finalMergedVCF,".vcf",".perm.csv")
+    eval_all.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+
+    add(eval_all)
+
+    var eval_afr : VariantEval = vcLib.addTrait(new VariantEval)
+    eval_afr.rodBind :+= new RodBind("evalAFR","VCF",extract_afr.outputVCF)
+    eval_afr.rodBind :+= new RodBind("compEUR","VCF",extract_eur.outputVCF)
+    eval_afr.E :+= "PrivatePermutations"
+    eval_afr.out = swapExt(extract_afr.outputVCF,".vcf",".perm.csv")
+    eval_afr.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+
+    add(eval_afr)
+
+    var eval_eur : VariantEval = vcLib.addTrait(new VariantEval)
+    eval_eur.rodBind :+= new RodBind("compAFR","VCF",extract_afr.outputVCF)
+    eval_eur.rodBind :+= new RodBind("evalEUR","VCF",extract_eur.outputVCF)
+    eval_eur.E :+= "PrivatePermutations"
+    eval_eur.out = swapExt(extract_eur.outputVCF,".vcf",".perm.csv")
+    eval_eur.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+
+    add(eval_eur)
   }
   
 }

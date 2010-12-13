@@ -29,6 +29,21 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
   }
 
   /**
+   * @Doc: Adds the trait data to a command line gatk that is passed in
+   * @Return: the input CLGATK with the SCLGATK data propagated into it
+   * @TODO: This should be better written, it'd be nice just to call it with addTrait[T], and return a T with SCLGATK
+   */
+  def addTrait[T <: CommandLineGATK](c : T) : T = {
+    c.reference_sequence = vc.attributes.getProject.getReferenceFile
+    c.intervals = List(vc.attributes.getProject.getIntervalList)
+    c.DBSNP = vc.attributes.getProject.getDbsnpFile
+    // set global memory limit on the low side. Additional input bams will affect it.
+    c.memoryLimit = Some(2)
+    c.jarFile = vc.gatkJar
+    c
+  }
+
+  /**
    * @Doc: Creates a standard UnifiedGenotyper CLF from input bams and an output file
    * @Return: UnifiedGenotyper with the standard GSA arguments
    * @TODO: Add a formula: f(#bams)=memory; allow yaml to specify triggers and perhaps other information
@@ -136,9 +151,9 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
     hFil.analysisName = "HandFilter"
     hFil.out = output
     hFil.variantVCF = snps
-    hFil.filterExpression :+= "QD<5"
+    hFil.filterExpression :+= "\"QD<5.0\""
     hFil.filterName :+= "LowQualByDepth"
-    hFil.filterExpression :+= "SB>-0.10"
+    hFil.filterExpression :+= "\"SB>-0.10\""
     hFil.filterName :+= "HighStrandBias"
     
     return hFil
