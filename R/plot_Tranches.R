@@ -5,7 +5,8 @@ verbose = TRUE
 
 tranchesFile = args[1]
 targetTITV = as.numeric(args[2])
-suppressLegend = ! is.na(args[3])
+targetSensitivity = as.numeric(args[3])
+suppressLegend = ! is.na(args[4])
 
 # -----------------------------------------------------------------------------------------------
 # Useful general routines
@@ -38,7 +39,8 @@ leftShift <- function(x, leftValue = 0) {
 # Tranches plot
 # -----------------------------------------------------------------------------------------------
 data2 = read.table(tranchesFile,sep=",",head=T)
-data2 = data2[order(data2$FDRtranche, decreasing=T),]
+data2 = data2[order(data2$novelTiTv, decreasing=F),]
+#data2 = data2[order(data2$FDRtranche, decreasing=T),]
 cols = c("cornflowerblue", "cornflowerblue", "darkorange", "darkorange")
 density=c(20, -1, -1, 20)
 outfile = paste(tranchesFile, ".pdf", sep="")
@@ -64,10 +66,22 @@ barplot(d/1000,horiz=TRUE,col=cols,space=0.2,xlab="Number of Novel Variants (100
 #abline(v= d[2,dim(d)[2]], lty=2)
 #abline(v= d[1,3], lty=2)
 if ( ! suppressLegend ) 
-    legend("topright", c('Cumulative TPs','Tranch-specific TPs', 'Tranch-specific FPs', 'Cumulative FPs' ), fill=cols, density=density, bg='white', cex=1.25)
+    legend(5, 1.75, c('Cumulative TPs','Tranch-specific TPs', 'Tranch-specific FPs', 'Cumulative FPs' ), fill=cols, density=density, bg='white', cex=1.25)
 
 mtext("Ti/Tv",2,line=2.25,at=length(data2$FDRtranche)*1.2,las=1, cex=1)
 mtext("FDR",2,line=0,at=length(data2$FDRtranche)*1.2,las=1, cex=1)
 axis(2,line=-1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$FDRtranche, las=1, cex.axis=1.0)
 axis(2,line=1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=round(novelTiTv,3), las=1, cex.axis=1.0)
+
+# plot sensitivity vs. specificity
+sensitivity = data2$truthSensitivity
+if ( ! is.null(sensitivity) ) {
+    #specificity = titvFPEstV(targetTITV, novelTiTv)
+    specificity = novelTiTv
+    plot(sensitivity, specificity, type="b", col="cornflowerblue", xlab="Tranche truth sensitivity", ylab="Specificity (Novel Ti/Tv ratio)")
+    abline(h=targetTITV, lty=2)
+    abline(v=targetSensitivity, lty=2)
+    #text(max(sensitivity), targetTITV-0.05, labels="Expected novel Ti/Tv", pos=2)
+}
+
 dev.off()
