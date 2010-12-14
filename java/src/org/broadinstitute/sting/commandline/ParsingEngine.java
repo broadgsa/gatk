@@ -326,10 +326,8 @@ public class ParsingEngine {
      * @param instance Object into which to inject the value.  The target might be in a container within the instance.
      */
     private void loadValueIntoObject( ArgumentSource source, Object instance, ArgumentMatches argumentMatches ) {
-        ArgumentTypeDescriptor typeDescriptor = selectBestTypeDescriptor(source.field.getType());
-
         // Nothing to load
-        if( argumentMatches.size() == 0 && !(typeDescriptor.createsTypeDefault(source) && source.isRequired()))
+        if( argumentMatches.size() == 0 && !(source.createsTypeDefault() && source.isRequired()))
             return;
 
         // Target instance into which to inject the value.
@@ -340,7 +338,7 @@ public class ParsingEngine {
             throw new ReviewedStingException("Internal command-line parser error: unable to find a home for argument matches " + argumentMatches);
 
         for( Object target: targets ) {
-            Object value = (argumentMatches.size() != 0) ? source.parse(this,argumentMatches) : typeDescriptor.createTypeDefault(this,source);
+            Object value = (argumentMatches.size() != 0) ? source.parse(this,argumentMatches) : source.createTypeDefault(this);
 
             JVMUtils.setFieldValue(source.field,target,value);
         }

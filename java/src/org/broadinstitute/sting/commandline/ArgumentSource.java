@@ -168,6 +168,23 @@ public class ArgumentSource {
     }
 
     /**
+     * Returns false if a type-specific default can be employed.
+     * @return True to throw in a type specific default.  False otherwise.
+     */
+    public boolean createsTypeDefault() {
+        return typeDescriptor.createsTypeDefault(this);
+    }
+
+    /**
+     * Generates a default for the given type.
+     * @param parsingEngine the parsing engine used to validate this argument type descriptor.
+     * @return A default value for the given type.
+     */
+    public Object createTypeDefault(ParsingEngine parsingEngine) {
+        return typeDescriptor.createTypeDefault(parsingEngine,this,field.getType());
+    }
+
+    /**
      * Builds out a new type descriptor for the given dependent argument as a function
      * of the containing object.
      * @param parsingEngine the parsing engine to use when building out this custom type descriptor.

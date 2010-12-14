@@ -108,7 +108,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) {
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source,Class<?> type) {
         if(!source.isRequired())
             throw new ReviewedStingException("BUG: tried to create type default for argument type descriptor that can't support a type default.");        
         VCFWriterStub stub = new VCFWriterStub(engine, defaultOutputStream, false, argumentSources, false);

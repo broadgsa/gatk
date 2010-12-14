@@ -84,9 +84,10 @@ public abstract class ArgumentTypeDescriptor {
      * Generates a default for the given type.
      * @param parsingEngine the parsing engine used to validate this argument type descriptor.
      * @param source Source of the command-line argument.
+     * @param type Type of value to create, in case the command-line argument system wants influence.
      * @return A default value for the given type.
      */
-    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) { throw new UnsupportedOperationException("Unable to create default for type " + getClass()); }
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source,Class<?> type) { throw new UnsupportedOperationException("Unable to create default for type " + getClass()); }
 
     /**
      * Given the given argument source and attributes, synthesize argument definitions for command-line arguments.
@@ -503,7 +504,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     }
 
     @Override
-    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source) {
+    public Object createTypeDefault(ParsingEngine parsingEngine,ArgumentSource source,Class<?> type) {
         if(multiplexer == null || multiplexedIds == null)
             throw new ReviewedStingException("No multiplexed ids available");
 
@@ -514,7 +515,7 @@ class MultiplexArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         for(Object id: multiplexedIds) {
             Object value = null;
             if(componentTypeDescriptor.createsTypeDefault(source))
-                value = componentTypeDescriptor.createTypeDefault(parsingEngine,source);
+                value = componentTypeDescriptor.createTypeDefault(parsingEngine,source,componentType);
             multiplexedMapping.put(id,value);
         }
         return multiplexedMapping;
