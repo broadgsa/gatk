@@ -54,7 +54,7 @@ import net.sf.samtools.SAMReadGroupRecord;
 public class BatchedCallsMerger extends LocusWalker<VariantContext, Integer> implements TreeReducible<Integer> {
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
-    @Argument(doc = "VCF file to which variants should be written", required = true)
+    @Output(doc = "VCF file to which variants should be written", required = true)
     public VCFWriter writer = null;
 
     @Argument(fullName="rod_list", shortName="rods", doc="A comma-separated string describing the rod names representing individual call batches", required=true)
