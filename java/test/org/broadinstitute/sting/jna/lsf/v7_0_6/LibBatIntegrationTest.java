@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.jna.lsf.v7_0_6;
 
+import com.sun.jna.ptr.IntByReference;
 import org.apache.commons.io.FileUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -36,15 +37,15 @@ import java.io.File;
  * Really a unit test, but this test will only run on systems with LSF setup.
  */
 public class LibBatIntegrationTest extends BaseTest {
-    @Test(enabled=false)
+    @Test
     public void testClusterName() {
         String clusterName = LibLsf.ls_getclustername();
         System.out.println("Cluster name: " + clusterName);
         Assert.assertNotNull(clusterName);
     }
 
-    @Test(enabled=false)
-    public void testSubmitEcho() {
+    @Test
+    public void testSubmitEcho() throws InterruptedException {
         String queue = "hour";
         File outFile = new File("LibBatIntegrationTest.out");
 
@@ -65,14 +66,41 @@ public class LibBatIntegrationTest extends BaseTest {
         req.options |= LibBat.SUB_OUT_FILE;
 
         req.command = "echo \"Hello world.\"";
-        req.options2 |= LibBat.SUB2_BSUB_BLOCK;
 
         submitReply reply = new submitReply();
         long jobId = LibBat.lsb_submit(req, reply);
 
         Assert.assertFalse(jobId < 0, LibBat.lsb_sperror("Error dispatching"));
+
+        System.out.println("Waiting for job to run: " + jobId);
+        int jobStatus = LibBat.JOB_STAT_PEND;
+        while (isSet(jobStatus, LibBat.JOB_STAT_PEND) || isSet(jobStatus, LibBat.JOB_STAT_RUN)) {
+            Thread.sleep(30 * 1000L);
+
+            int numJobs = LibBat.lsb_openjobinfo(jobId, null, null, null, null, LibBat.ALL_JOB);
+            try {
+                Assert.assertEquals(numJobs, 1);
+    
+                IntByReference more = new IntByReference();
+
+                jobInfoEnt jobInfo = LibBat.lsb_readjobinfo(more);
+                Assert.assertNotNull(jobInfo, "Job info is null");
+                Assert.assertEquals(more.getValue(), 0, "More job info results than expected");
+
+                jobStatus = jobInfo.status;
+            } finally {
+                LibBat.lsb_closejobinfo();
+            }
+        }
+        Assert.assertTrue(isSet(jobStatus, LibBat.JOB_STAT_DONE), String.format("Unexpected job status: 0x%02x", jobStatus));
+
         Assert.assertTrue(FileUtils.waitFor(outFile, 120), "File not found: " + outFile.getAbsolutePath());
         Assert.assertTrue(outFile.delete(), "Unable to delete " + outFile.getAbsolutePath());
         Assert.assertEquals(reply.queue, req.queue, "LSF reply queue does not match requested queue.");
+        System.out.println("Validating that we reached the end of the test without exit.");
+    }
+
+    private static boolean isSet(int value, int flag) {
+        return ((value & flag) == flag);
     }
 }

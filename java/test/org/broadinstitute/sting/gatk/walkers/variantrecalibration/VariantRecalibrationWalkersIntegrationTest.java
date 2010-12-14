@@ -30,15 +30,15 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
 
     VRTest yriTrio = new VRTest("yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
             "4eeffa7a1965ce0c25c5edd0bae76290",  // in vcf
-            "7407987a0148284ed910e1858116dd8d",  // tranches
+            "a04e00d00c991d76900634376bc1a9d1",  // tranches
             "f34b36c1da8bcb080a584592d1f6dae7",  // recalVCF
-            "1296ebde7dd61c1c58c11b07b31fd61b"); // cut VCF
+            "ee07ff6c0ff6108e00b131ce3c7a7f65"); // cut VCF
 
     VRTest lowPass = new VRTest("lowpass.N3.chr1.raw.vcf",
             "8937a3ae7f176dacf47b8ee6c0023416",  // in vcf
-            "2896657b5c30bfd8e82e62e58d94ef4e",  // tranches
+            "8da48dec888c9d4e3c3c7ed7943c0c61",  // tranches
             "ae6a1e0874c966312e891b5a3c47b0e3",  // recalVCF
-            "5eed2030d513fae05e45468fa0bb1538"); // cut VCF
+            "3ac16abdc5bbd5148f0cf88e8a7af3c9"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {

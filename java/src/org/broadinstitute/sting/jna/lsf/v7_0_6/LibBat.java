@@ -4477,7 +4477,7 @@ public class LibBat {
      */
     public static final int SUB2_MODIFY_CMD = 0x02;
 
-    /**
+    /**//* Removed access to SUB2_BSUB_BLOCK since it exits the process (including the JVM) with the exit code of the submitted job. -kshakir December 14, 2010
      * < Submit a job in a synchronous
      * mode so that submission does not return until the job terminates.
      * Note once this flag is set, the \ref lsb_submit will never return if
@@ -4486,7 +4486,7 @@ public class LibBat {
      * API call in the blocking mode and the parent process wait on the
      * child process (see wait() for details.
      */
-    public static final int SUB2_BSUB_BLOCK = 0x04;
+    //public static final int SUB2_BSUB_BLOCK = 0x04;
 
     /**
      * < Submit from NT.
