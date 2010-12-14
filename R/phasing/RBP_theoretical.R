@@ -1,21 +1,10 @@
-# For consecutive diploid het sites x and y, P(distance(x,y) = k)
-# = P(site y is the first het site downstream of x at distance = k | het site x exists at its location).
-# That is, het site x already "exists", and we want to know what the probability that the NEXT het site (y) is k bases away.
-#
 # pOneSiteIsHom = p(top chromosome is ref AND bottom chromosome is ref) + p(top chromosome is var AND bottom chromosome is var)
 # = (1-theta)^2 + theta^2
 #
 # pOneSiteIsHet = p(top chromosome is ref AND bottom chromosome is var) + p(top chromosome is var AND bottom chromosome is ref)
 # = (1-theta)*theta + theta*(1-theta) = 2*theta*(1-theta)
-#
-pHetPairAtDistance <- function(k, theta) {
-	pOneSiteIsHet = 2 * theta * (1 - theta)
-	dexp(k, pOneSiteIsHet)
-}
-
-# Since the geometric/exponential distribution is "memory-free", can simply multiply the (independent) probabilities for the distances:
-pHetPairsAtDistances <- function(dists, theta) {
-	prod(pHetPairAtDistance(dists, theta))
+pOneSiteIsHet <- function(theta) {
+	2 * theta * (1 - theta)
 }
 
 # p = 2 * theta * (1 - theta)
@@ -30,6 +19,26 @@ pHetPairsAtDistances <- function(dists, theta) {
 # (-1 + (1 - 2/d)^0.5) / -2
 meanIntraHetDistanceToTheta <- function(d) {
 	(-1 + (1 - 2/d)^0.5) / -2
+}
+
+# For consecutive diploid het sites x and y, P(distance(x,y) = k)
+# = P(site y is the first het site downstream of x at distance = k | het site x exists at its location).
+# That is, het site x already "exists", and we want to know what the probability that the NEXT het site (y) is k bases away.
+pHetPairAtDistance <- function(k, theta) {
+	pOneSiteIsHetTheta = pOneSiteIsHet(theta)
+	dexp(k, pOneSiteIsHet)
+}
+
+# Since the geometric/exponential distribution is "memory-free", can simply multiply the (independent) probabilities for the distances:
+pHetPairsAtDistances <- function(dists, theta) {
+	prod(pHetPairAtDistance(dists, theta))
+}
+
+# Sample numDists distances from the intra-het distance distribution.
+# [since the geometric/exponential distribution is "memory-free", can simply **independently** sample from the distribution]:
+sampleIntraHetDistances <- function(numDists, theta) {
+	pOneSiteIsHetTheta = pOneSiteIsHet(theta)
+	ceiling(rexp(numDists, pOneSiteIsHetTheta))  # round up to get whole-number distances starting from 1
 }
 
 # For consecutive diploid het sites x and y, P(distance(x,y) <= k)
