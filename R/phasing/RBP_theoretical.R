@@ -122,6 +122,7 @@ pPhaseHetPairAtDistanceUsingDepthAndWindow <- function(windowDistances, phaseInd
 	if (phaseIndex < 2 || phaseIndex > n) {
 		stop("phaseIndex < 2 || phaseIndex > n")
 	}
+	#print(paste("windowDistances= (", paste(windowDistances, collapse=", "), ")", sep=""))
 
 	# A. Pre-compute the upper diagonal of square matrix of n CHOOSE 2 values of:
 	# pDirectlyPhaseHetPairAtDistanceUsingDepth(meanDepth, nReadsToPhase, L, dist(i,j), Im, Is)
