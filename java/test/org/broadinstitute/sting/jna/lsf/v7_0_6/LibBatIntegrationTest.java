@@ -36,14 +36,14 @@ import java.io.File;
  * Really a unit test, but this test will only run on systems with LSF setup.
  */
 public class LibBatIntegrationTest extends BaseTest {
-    @Test
+    @Test(enabled=false)
     public void testClusterName() {
         String clusterName = LibLsf.ls_getclustername();
         System.out.println("Cluster name: " + clusterName);
         Assert.assertNotNull(clusterName);
     }
 
-    @Test
+    @Test(enabled=false)
     public void testSubmitEcho() {
         String queue = "hour";
         File outFile = new File("LibBatIntegrationTest.out");
