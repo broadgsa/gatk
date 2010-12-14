@@ -96,7 +96,9 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
         // create the output streams                     "
         initializeOutputStreams(microScheduler.getOutputTracker());
 
+        // initialize and validate the interval list                
         initializeIntervals();
+        validateSuppliedIntervals();
 
         ShardStrategy shardStrategy = getShardStrategy(microScheduler.getReference());
 
@@ -251,6 +253,15 @@ public class GenomeAnalysisEngine extends AbstractGenomeAnalysisEngine {
         for (RMDTrack rod : rods) {
             if (!WalkerManager.isAllowed(walker, rod))
                 throw new ArgumentException(String.format("Walker of type %s does not allow access to metadata: %s", walker.getClass(), rod.getName()));
+        }
+    }
+
+    protected void validateSuppliedIntervals() {
+        // Only read walkers support '-L unmapped' intervals.  Trap and validate any other instances of -L unmapped.
+        if(!(walker instanceof ReadWalker)) {
+            GenomeLocSortedSet intervals = getIntervals();
+            if(intervals != null && getIntervals().contains(GenomeLoc.UNMAPPED))
+                throw new ArgumentException("Interval list specifies unmapped region.  Only read walkers may include the unmapped region.");
         }
     }
 

@@ -494,14 +494,9 @@ public abstract class AbstractGenomeAnalysisEngine {
         return method;
     }
 
-    protected void validateSuppliedReads() {
-    }
-
-    protected void validateSuppliedReference() {
-    }
-
-    protected void validateSuppliedReferenceOrderedData(List<RMDTrack> rods) {
-    }
+    protected abstract void validateSuppliedReads();
+    protected abstract void validateSuppliedReference();
+    protected abstract void validateSuppliedReferenceOrderedData(List<RMDTrack> rods);
 
     /**
      * Now that all files are open, validate the sequence dictionaries of the reads vs. the reference vrs the reference ordered data (if available).
