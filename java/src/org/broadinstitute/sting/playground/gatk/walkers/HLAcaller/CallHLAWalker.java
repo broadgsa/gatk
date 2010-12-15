@@ -353,7 +353,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
             }
 
             //Calculate posterior probabilities
-            DiploidSNPGenotypeLikelihoods G = new DiploidSNPGenotypeLikelihoods(BaseMismatchModel.THREE_STATE);
+            DiploidSNPGenotypeLikelihoods G = new DiploidSNPGenotypeLikelihoods();
             SAMRecord read; int offset; char base; byte qual; int mapquality; String readname;
 
             //Check for bad bases and ensure mapping quality myself. This works.

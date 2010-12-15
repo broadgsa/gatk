@@ -38,9 +38,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ -- EXACT is the default option, while GRID_SEARCH is also available.", required = false)
     public AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
 
-    @Argument(fullName = "base_model", shortName = "bm", doc = "Base substitution model to employ when using the SNP Genotype Likelihoods model -- EMPIRICAL is the recommended default, but it's possible to select the THREE_STATE model for comparison purposes", required = false)
-    public BaseMismatchModel baseModel = BaseMismatchModel.EMPIRICAL;
-
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY;
 
@@ -72,10 +69,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
     public String ASSUME_SINGLE_SAMPLE = null;
 
-    @Hidden
-    @Argument(fullName = "platform", shortName = "pl", doc = "Causes the genotyper to assume that reads without PL header TAG are this platform.  Defaults to null, indicating that the system will throw a runtime exception when such reads are detected", required = false)
-    public EmpiricalSubstitutionProbabilities.SequencerPlatform defaultPlatform = null;
-
 
     // control the various parameters to be used
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
@@ -98,13 +91,11 @@ public class UnifiedArgumentCollection {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
 
         uac.GLmodel = GLmodel;
-        uac.baseModel = baseModel;
         uac.heterozygosity = heterozygosity;
         uac.GENOTYPE_MODE = GENOTYPE_MODE;
         uac.ALL_BASES_MODE = ALL_BASES_MODE;
         uac.NO_SLOD = NO_SLOD;
         uac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
-        uac.defaultPlatform = defaultPlatform;
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         uac.TRIGGER_CONFIDENCE_FOR_CALLING = TRIGGER_CONFIDENCE_FOR_CALLING;
