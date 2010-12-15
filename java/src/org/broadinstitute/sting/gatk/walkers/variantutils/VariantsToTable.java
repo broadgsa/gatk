@@ -47,7 +47,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     protected PrintStream out;
 
     @Argument(fullName="fields", shortName="F", doc="Fields to emit from the VCF, allows any VCF field, any info field, and some meta fields like nHets", required=true)
-    public List<String> fieldsToTake = null;
+    public ArrayList<String> fieldsToTake = new ArrayList<String>();
 
     @Argument(fullName="showFiltered", shortName="raw", doc="Include filtered records")
     public boolean showFiltered = false;

@@ -40,7 +40,7 @@ public class VariantToTableIntegrationTest extends WalkerTest {
                 "-R " + hg18Reference +
                         " -B:eval,vcf " + validationDataLocation + "/soap_gatk_annotated.vcf" +
                         " -T VariantsToTable" +
-                        " -F CHROM,POS,ID,REF,ALT,QUAL,FILTER,TRANSITION,DP,SB,set,RankSumP,refseq.functionalClass*" +
+                        " -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER -F TRANSITION -F DP -F SB -F set -F RankSumP -F refseq.functionalClass*" +
                         " -L chr1 -o %s",
                 Arrays.asList("b2a3712c1bfad8f1383ffada8b5017ba"));
         executeTest("testComplexVariantsToTable", spec).getFirst();
