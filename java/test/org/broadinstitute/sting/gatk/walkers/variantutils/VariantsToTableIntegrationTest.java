@@ -32,7 +32,7 @@ import org.testng.annotations.DataProvider;
 import java.util.*;
 import java.io.File;
 
-public class VariantToTableIntegrationTest extends WalkerTest {
+public class VariantsToTableIntegrationTest extends WalkerTest {
     @Test(enabled = true)
     public void testComplexVariantsToTable() {
         // functional class is a wild card operator
