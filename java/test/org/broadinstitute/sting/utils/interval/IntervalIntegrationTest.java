@@ -60,4 +60,36 @@ public class IntervalIntegrationTest extends WalkerTest {
                         Arrays.asList(md5));                        
         executeTest("testAllIntervalsExplicit",spec);
     }
+
+    @Test
+    public void testUnmappedReadInclusion() {
+        String md5 = "fcd11cfa8474472c617d400623a30fcd";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T PrintReads" +
+                        " -I " + validationDataLocation + "MV1994.bam" +
+                        " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
+                        " -L unmapped" +
+                        " -o %s" +
+                        " -U",
+                        1, // just one output file
+                        Arrays.asList(md5));
+        executeTest("testUnmappedReadInclusion",spec);
+    }
+
+    @Test
+    public void testUnmappedReadExclusion() {
+        String md5 = "3153593c9f9ff80a8551fff5655e65ec";
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                "-T PrintReads" +
+                        " -I " + validationDataLocation + "MV1994.bam" +
+                        " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
+                        " -XL unmapped" +
+                        " -o %s" +
+                        " -U",
+                        1, // just one output file
+                        Arrays.asList(md5));
+        executeTest("testUnmappedReadExclusion",spec);
+    }
+
+
 }
