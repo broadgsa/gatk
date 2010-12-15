@@ -10,27 +10,47 @@ if ( onCMDLine ) {
    d$end.time = as.Date(d$end.time)
 } # only read into d if its' available, otherwise assume the data is already loaded
 
+noRecords <- function(name) {
+    print(paste("No records", name))
+    frame()
+    title(paste("No records of", name), cex=2)
+}
+
 reportCountingPlot <- function(values, name, moreMargin = 0, ...) {
-    par(las=2) # make label text perpendicular to axis
-    oldMar <- par("mar")
-    par(mar=c(5,8+moreMargin,4,2)) # increase y-axis margin.
-    barplot(sort(table(factor(values))), horiz=TRUE, cex.names = 0.5, main = name, xlab="Counts", log="x", ...)
-    par("mar" = oldMar)
-    par("las" = 1)
+    #print(length(values))
+    if ( length(values) > 0 ) {
+        par(las=2) # make label text perpendicular to axis
+        oldMar <- par("mar")
+        par(mar=c(5,8+moreMargin,4,2)) # increase y-axis margin.
+        t = table(factor(values))
+        barplot(sort(t), horiz=TRUE, cex.names = 0.5, main = name, xlab="Counts", log="x", ...)
+        par("mar" = oldMar)
+        par("las" = 1)
+    } else {
+        noRecords(name)
+    }
 }
 
 reportConditionalCountingPlot <- function(values, conditions, name, moreMargin = 0, ...) {
-    par(las=2) # make label text perpendicular to axis
-    oldMar <- par("mar")
-    par(mar=c(5,8+moreMargin,4,2)) # increase y-axis margin.
-    t = table(values, conditions)
-    t = t[, order(colSums(t))]
-    #print(list(t = t))
-    nconds = dim(t)[2]
-    cols = rainbow(nconds)
-    barplot(t, legend.text = T, horiz=TRUE, cex.names = 0.5, main = name, xlab="Counts", col=cols, cex=0.5, ...)
-    par("mar" = oldMar)
-    par("las" = 1)
+    if ( length(values) > 0 ) {
+        t = table(values, conditions)
+        t = t[, order(colSums(t))]
+        #print(list(t = t))
+        if ( ! is.null(dim(t)) ) {
+            par(las=2) # make label text perpendicular to axis
+            oldMar <- par("mar")
+            par(mar=c(5,8+moreMargin,4,2)) # increase y-axis margin.
+            nconds = dim(t)[2]
+            cols = rainbow(nconds)
+            barplot(t, legend.text = T, horiz=TRUE, cex.names = 0.5, main = name, xlab="Counts", col=cols, cex=0.5, ...)
+            par("mar" = oldMar)
+            par("las" = 1)
+        } else {
+            noRecords(name)
+        }
+    } else {
+        noRecords(name)
+    }
 }
 
 
@@ -150,10 +170,10 @@ generateOneReport <- function(d, header, includeByWeek = T) {
     reportHist(log10(d$run.time / min), head("Run time (log10[min])"))
 
     reportCountingPlot(d$user.name, head("user"))
-    reportCountingPlot(d$host.name, head("host"))
+    #reportCountingPlot(d$host.name, head("host"))
 
     reportCountingPlot(d$java, head("Java version"))
-    reportCountingPlot(d$machine, head("Machine"))
+    #reportCountingPlot(d$machine, head("Machine"))
     #reportCountingPlot(d$working.directory, head("Working directory"))
 }
 

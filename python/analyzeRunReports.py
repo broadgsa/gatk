@@ -2,7 +2,7 @@ import os.path
 import sys
 from optparse import OptionParser
 from itertools import *
-from xml.etree.ElementTree import *
+from xml.etree.cElementTree import *
 import gzip
 import datetime
 import re
