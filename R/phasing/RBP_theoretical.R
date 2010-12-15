@@ -26,7 +26,7 @@ meanIntraHetDistanceToTheta <- function(d) {
 # That is, het site x already "exists", and we want to know what the probability that the NEXT het site (y) is k bases away.
 pHetPairAtDistance <- function(k, theta) {
 	pOneSiteIsHetTheta = pOneSiteIsHet(theta)
-	dexp(k, pOneSiteIsHet)
+	dexp(k, pOneSiteIsHetTheta)
 }
 
 # Since the geometric/exponential distribution is "memory-free", can simply multiply the (independent) probabilities for the distances:
