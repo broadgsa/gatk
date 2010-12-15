@@ -2,7 +2,7 @@ import collection.JavaConversions._
 import java.io.FileNotFoundException
 import org.broadinstitute.sting.datasources.pipeline._
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.library.clf.vcf._
+import org.broadinstitute.sting.queue.library.ipf.vcf._
 import org.broadinstitute.sting.queue.pipeline._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.utils.yaml.YamlUtils
@@ -63,7 +63,7 @@ class private_mutations extends QScript {
     eval_all.out = swapExt(finalMergedVCF,".vcf",".perm.csv")
     eval_all.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
 
-    //add(eval_all)
+    add(eval_all)
 
     var eval_afr : VariantEval = vcLib.addTrait(new VariantEval)
     eval_afr.rodBind :+= new RodBind("evalAFR","VCF",extract_afr.outputVCF)
@@ -73,7 +73,7 @@ class private_mutations extends QScript {
     eval_afr.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
     eval_afr.noStandard = true
 
-    //add(eval_afr)
+    add(eval_afr)
 
     var eval_eur : VariantEval = vcLib.addTrait(new VariantEval)
     eval_eur.rodBind :+= new RodBind("compAFR","VCF",extract_afr.outputVCF)
@@ -83,7 +83,7 @@ class private_mutations extends QScript {
     eval_eur.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
     eval_eur.noStandard = true
 
-    //add(eval_eur)
+    add(eval_eur)
   }
   
 }
