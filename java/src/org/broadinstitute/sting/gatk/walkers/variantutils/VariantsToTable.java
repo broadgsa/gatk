@@ -47,7 +47,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     protected PrintStream out;
 
     @Argument(fullName="fields", shortName="F", doc="Fields to emit from the VCF, allows any VCF field, any info field, and some meta fields like nHets", required=true)
-    public String FIELDS;
+    public List<String> fieldsToTake = null;
 
     @Argument(fullName="showFiltered", shortName="raw", doc="Include filtered records")
     public boolean showFiltered = false;
@@ -59,11 +59,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     @Argument(fullName="ignoreMultiAllelic", shortName="IMA", doc="If provided, we will not require the site to be biallelic", required=false)
     public boolean ignoreMultiAllelic = false;
 
-    private List<String> fieldsToTake;
-
     public void initialize() {
-        fieldsToTake = Arrays.asList(FIELDS.split(","));
-
         out.println(Utils.join("\t", fieldsToTake));
     }
 
