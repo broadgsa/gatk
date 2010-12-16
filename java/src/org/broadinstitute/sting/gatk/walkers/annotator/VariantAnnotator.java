@@ -202,12 +202,13 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        VariantContext vc = tracker.getVariantContext(ref, "variant", null, context.getLocation(), true);
-        if ( vc == null )
+        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+        if ( VCs.size() == 0 )
             return 0;
 
+        Collection<VariantContext> annotatedVCs = VCs;
+
         // if the reference base is not ambiguous, we can annotate
-        Collection<VariantContext> annotatedVCs = Arrays.asList(vc);
         Map<String, StratifiedAlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             if ( ! context.hasExtendedEventPileup() ) {
@@ -216,7 +217,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
                 stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(context.getExtendedEventPileup(), ASSUME_SINGLE_SAMPLE);
             }
             if ( stratifiedContexts != null ) {
-                annotatedVCs = engine.annotateContext(tracker, ref, stratifiedContexts, vc);
+                annotatedVCs = new ArrayList<VariantContext>(VCs.size());
+                for ( VariantContext vc : VCs )
+                    annotatedVCs.addAll(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
             }
         }
 
