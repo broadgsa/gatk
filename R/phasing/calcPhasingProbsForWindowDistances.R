@@ -1,4 +1,4 @@
-calcPhasingProbsForWindowDistances <- function(distances, MAX_WINDOW_SIZE, FILE_NAME = NULL) {
+calcPhasingProbsForWindowDistances <- function(distances, MAX_WINDOW_SIZE, meanDepth, nReadsToPhase, L, Fm, Fs, FILE_NAME = NULL) {
 	WINDOW_SIZES = 2:MAX_WINDOW_SIZE
 
 	phaseProbsPositionWindow = matrix(data = NA, nrow=length(distances), ncol=length(WINDOW_SIZES))
@@ -33,7 +33,7 @@ calcPhasingProbsForWindowDistances <- function(distances, MAX_WINDOW_SIZE, FILE_
 			windowDistances = distances[useDistancesRange]
 	
 			print(paste("Try to phase position ", i+1, " [relative to ", i, "] using positions: (", paste(usePositionRange, collapse=", "), "), windowDistances= (", paste(windowDistances, collapse=", "), "), [phaseIndex= ", phaseIndex, ", i=", i, "]", sep=""))
-			p = pPhaseHetPairAtDistanceUsingDepthAndWindow(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Im, Is)
+			p = pPhaseHetPairAtDistanceUsingDepthAndWindow(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Fm, Fs)
 			print(paste("phase prob: ", p, sep=""))
 			phaseProbsPositionWindow[i, j] = p
 		}
