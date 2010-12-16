@@ -72,6 +72,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
     protected String MASK_NAME = "Mask";
 
+    @Argument(fullName="missingValuesInExpressionsShouldEvaluateAsFailing", doc="When evaluating the JEXL expressions, should missing values be considered failing the expression (by default they are considered passing)?", required=false)
+    protected Boolean FAIL_MISSING_VALUES = false;
+
     // JEXL expressions for the filters
     List<VariantContextUtils.JexlVCMatchExp> filterExps;
     List<VariantContextUtils.JexlVCMatchExp> genotypeFilterExps;
@@ -221,7 +224,11 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             try {
                 if ( VariantContextUtils.match(vc, exp) )
                     filters.add(exp.name);
-            } catch (Exception e) {} // do nothing; it just means that the expression isn't defined for this context
+            } catch (Exception e) {
+                // do nothing unless specifically asked to; it just means that the expression isn't defined for this context
+                if ( FAIL_MISSING_VALUES )
+                    filters.add(exp.name);                         
+            }
         }
 
         VariantContext filteredVC;
