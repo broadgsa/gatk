@@ -141,7 +141,11 @@ pDirectlyPhaseHetPair <- function(meanDepth, nReadsToPhase, L, theta, Fm, Fs) {
 	MIN_DISTANCE = 0
 	MAX_DISTANCE = Inf
 
-	integrate(function(k) pDirectlyPhaseHetPairAndDistanceUsingDepth(meanDepth, nReadsToPhase, L, k, theta, Fm, Fs), lower=MIN_DISTANCE, upper=MAX_DISTANCE, subdivisions=1000)$value
+	iRes = integrate(function(k) pDirectlyPhaseHetPairAndDistanceUsingDepth(meanDepth, nReadsToPhase, L, k, theta, Fm, Fs), lower=MIN_DISTANCE, upper=MAX_DISTANCE, subdivisions=1000, stop.on.error = FALSE)
+	if (iRes$message != "OK") {
+		print(paste("DISTANCE INTEGRATION WARNING: ", iRes$message, sep=""))
+	}
+	iRes$value
 }
 
 # Probability (over locations of sites on reads, fragment sizes, and read depths) that paired-end reads can TRANSITIVELY phase phaseIndex relative to phaseIndex - 1, given a window of length(windowDistances)+1 het sites at distances given by windowDistances (where an edge in the transitive path requires at least nReadsToPhase reads):
