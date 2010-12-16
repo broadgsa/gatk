@@ -6,13 +6,7 @@
         <resource-bundle file="StingText.properties" />
         <dependencies>
             <!-- Queue -->
-            <class name="org.broadinstitute.sting.queue.QCommandLine" />
-            <package name="org.broadinstitute.sting.queue.function" />
-            <package name="org.broadinstitute.sting.queue.function.*" />
-            <package name="org.broadinstitute.sting.queue.util" />
-
-            <!-- Queue Extensions -->
-            <package name="org.broadinstitute.sting.queue.extensions.*" />
+            <package name="org.broadinstitute.sting.queue.**" />
 
             <!-- Pipeline + Utils -->
             <package name="org.broadinstitute.sting.datasources.pipeline.**" />
