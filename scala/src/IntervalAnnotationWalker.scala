@@ -99,9 +99,21 @@ class IntervalInfoBuilder(loc : GenomeLoc, minProp : Double) {
     finalized = true
     def isGC(b : Byte) : Int = if ( BaseUtils.gIndex == b || BaseUtils.cIndex == b ) { 1 } else { 0 }
     gcContent = baseContent.foldLeft[Int](0)( (a,b) => a + isGC(b)).asInstanceOf[Double]/location.size()
-    entropy = 0.0 // todo -- implement me
+    entropy = calcEntropy(baseContent.map(b => ListBuffer(b))) + calcEntropy(baseContent.reverse.map(b => ListBuffer(b)))
     val meta : String = metaData.reduceLeft(_ + "\t" + _)
     return "%s\t%d\t%d\t%.2f\t%.2f\t%s".format(location.getContig,location.getStart,location.getStop,gcContent,entropy,meta)
+  }
+
+  def calcEntropy(byteList : ListBuffer[ListBuffer[Byte]]) : Double = {
+    if(byteList.size == 1) return 0
+    Math.log(1+byteList.tail.size-byteList.tail.dropWhile( u => u.equals(byteList(1))).size) +
+      calcEntropy(byteList.tail.foldLeft(ListBuffer(byteList(0)))( (a,b) => {
+        if ( b.equals(byteList(1)) ) {
+          a.dropRight(1) + (a.last ++ b)
+        } else {
+          a + b
+        }
+      }))
   }
 
 }
