@@ -53,4 +53,12 @@ public class TableFeature implements Feature {
     public GenomeLoc getLocation() {
         return this.position;
     }
+
+    public List<String> getAllValues() {
+        return getValuesTo(values.size()-1);
+    }
+
+    public List<String> getValuesTo(int columnPosition) {
+        return values.subList(0,columnPosition);
+    }
 }
