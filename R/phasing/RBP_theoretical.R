@@ -69,8 +69,11 @@ pPairedEndReadsOfSpecificFragmentCanCoverHetPairAtDistance <- function(L, F, k) 
 		stop("Cannot have fragments of size < 1")
 	}
 
+	# if F < L, then set the effective read length to be F:
+	L = pmin(L, F)
+
 	i = F - 2 * L
-	#print(paste("pPairedEndReadsOfSpecificFragmentCanCoverHetPairAtDistance(L= ", L, ", F= (", paste(F, collapse=", "), "), k= (", paste(k, collapse=", "), ")), i= (", paste(i, collapse=", "), ")", sep=""))
+	#print(paste("pPairedEndReadsOfSpecificFragmentCanCoverHetPairAtDistance(L= (", paste(L, collapse=", "), "), F= (", paste(F, collapse=", "), "), k= (", paste(k, collapse=", "), ")), i= (", paste(i, collapse=", "), ")", sep=""))
 
 	# If i < 0, then ASSUMING that overlapping region is identical, we can "pretend" to have 2 reads of length L and L+i, with no insert between them.
 	# Otherwise, leave i alone and L1 = L2 = L:
