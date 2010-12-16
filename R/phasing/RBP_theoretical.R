@@ -49,52 +49,77 @@ pHetPairLteDistance <- function(k, theta) {
 	Vectorize(function(maxDist) integrate(function(dist) pHetPairAtDistance(dist, theta), lower=MIN_DISTANCE, upper=maxDist)$value)(k)
 }
 
-# Probability (over locations of x on the read) that a paired-end read ALREADY covering site x [with 2 mates of length L and an insert size of i between them] will ALSO cover site y (k bases downstream of x):
+# Probability (over locations of x on the read) that a paired-end read ALREADY covering site x [with 2 mates of length L reading a fragment of length F] will ALSO cover site y (k bases downstream of x):
+#
+# If read 1 in mate spans [s1, e1] and read 2 spans [s2, e2], where length(read 1) = e1 - s1 + 1 = length(read 2) = e2 - s2 + 1 = L, then i = s2 - e1 - 1 [BY DEFINITION of i].
+# i == "insert size" is DEFINED AS: F - 2 * L
+#
+#
+# FOR i >= 0:
 #
 # Assume that read is equally likely to cover x at any of the 2L positions, so uniform probability of 1/2L at each of them.
 # P(read r covers (x,y) | r covers x, r = [L,i,L], distance(x,y) = k)
 # = sum_p=1^p=L {1/2L * 1{k <= L-p OR L-p+i+1 <= k <= 2L+i-p}} + sum_p=1^p=L {1/2L * 1{k <= L-p}}
 # = 1/2L * [2 * sum_p=1^p=L {1{k <= L-p}} + sum_p=1^p=L {1{L-p+i+1 <= k <= 2L+i-p}}]
 # = 1/2L * [2 * max(0, L-k) + max(0, min(L, max(0, k-i)) - max(0, k-i-L))]
-pReadWithSpecificInsertCanCoverHetPairAtDistance <- function(L, i, k) {
-	pWithinSameMate = 2 * pmax(0, L - k)
+#
+#
+pPairedEndReadsOfSpecificFragmentCanCoverHetPairAtDistance <- function(L, F, k) {
+	if (min(F) < 1) {
+		stop("Cannot have fragments of size < 1")
+	}
 
-	maxValueFor_p = pmin(L, pmax(0, k - i))
-	minValueFor_p_minusOne = pmax(0, k - i - L)
+	i = F - 2 * L
+	#print(paste("pPairedEndReadsOfSpecificFragmentCanCoverHetPairAtDistance(L= ", L, ", F= (", paste(F, collapse=", "), "), k= (", paste(k, collapse=", "), ")), i= (", paste(i, collapse=", "), ")", sep=""))
+
+	# If i < 0, then ASSUMING that overlapping region is identical, we can "pretend" to have 2 reads of length L and L+i, with no insert between them.
+	# Otherwise, leave i alone and L1 = L2 = L:
+	L1 = L
+	L2 = L + pmin(0, i)   # set effective length of second read to L+i if i < 0
+	i = pmax(0, i) # set effective insert size to be >= 0
+
+
+	pWithinSameMate = pmax(0, L1 - k) + pmax(0, L2 - k)
+
+	#maxValueFor_p = pmin(L1, pmax(0, k - i))
+	#minValueFor_p_minusOne = pmax(0, k - i - L2)
+
+	maxValueFor_p = pmin(L1, L1 + L2 + i - k)
+	minValueFor_p_minusOne = pmax(0, L1 - k + i)
 	pInDifferentMates = pmax(0, maxValueFor_p - minValueFor_p_minusOne)
 
-	(pWithinSameMate + pInDifferentMates) / (2*L)
+	(pWithinSameMate + pInDifferentMates) / (L1 + L2)
 }
 
-# Probability of having an insert of size insertSize, where the insert sizes are normally distributed with mean Im and standard deviation Is:
-pInsertSize <- function(insertSize, Im, Is) {
-	dnorm(insertSize, mean = Im, sd = Is)
+# Probability of having a fragment of size fragmentSize, where the fragment sizes are normally distributed with mean Fm and standard deviation Fs:
+pFragmentSize <- function(fragmentSize, Fm, Fs) {
+	dnorm(fragmentSize, mean = Fm, sd = Fs)
 }
 
-# Probability (over locations of x on the read, and insert sizes) that there could exist a paired-end read [with 2 mates of length L and an insert between them] covers both sites x and y (at distance k):
-# Integral_from_0^to_INFINITY { pInsertSize(s, Im, Is) * pReadWithSpecificInsertCanCoverHetPairAtDistance(L, s, k) ds }
-pReadCanCoverHetPairAtDistance <- function(L, k, Im, Is) {
-	if (Is != 0) {
-		pCoverageBySpecificInsert <- function(s) {pInsertSize(s, Im, Is) * pReadWithSpecificInsertCanCoverHetPairAtDistance(L, s, k)}
+# Probability (over locations of x on the read, and fragment sizes) that there could exist a paired-end read [with 2 mates of length L covering a fragment] covers both sites x and y (at distance k):
+# Integral_from_0^to_INFINITY { pFragmentSize(s, Fm, Fs) * pPairedEndReadsOfSpecificFragmentCanCoverHetPairAtDistance(L, s, k) ds }
+pFragmentsReadsCanCoverHetPairAtDistance <- function(L, k, Fm, Fs) {
+	if (Fs != 0) {
+		pCoverageBySpecificFragment <- function(s) {pFragmentSize(s, Fm, Fs) * pPairedEndReadsOfSpecificFragmentCanCoverHetPairAtDistance(L, s, k)}
 
 		MAX_NUM_SD = 10
-		maxDistance = MAX_NUM_SD * Is
-		minInsertSize = max(0, Im - maxDistance)
-		maxInsertSize = Im + maxDistance
+		maxDistance = MAX_NUM_SD * Fs
+		minFragmentSize = max(1, Fm - maxDistance) # NOT meaningful to have fragment size < 1
+		maxFragmentSize = Fm + maxDistance
 	
-		integrate(pCoverageBySpecificInsert, lower=minInsertSize, upper=maxInsertSize)$value
+		integrate(pCoverageBySpecificFragment, lower=minFragmentSize, upper=maxFragmentSize)$value
 	}
-	else {# All reads have inserts of size exactly Im:
-		pReadWithSpecificInsertCanCoverHetPairAtDistance(L, Im, k)
+	else {# All fragments are of size exactly Fm:
+		pPairedEndReadsOfSpecificFragmentCanCoverHetPairAtDistance(L, Fm, k)
 	}
 }
 
-# Probability (over locations of x on the read, insert sizes, and read depths) that there exist at least nReadsToPhase paired-end reads covering both sites x and y (at distance k):
+# Probability (over locations of x on the read, fragment sizes, and read depths) that there exist at least nReadsToPhase paired-end reads covering both sites x and y (at distance k):
 # = Sum_from_d=0^to_d=2*meanDepth { p(having d reads | poisson with meanDepth) * p(there at least nReadsToPhase succeed in phasing x,y | given d reads in total) }
 # p(having d reads | poisson with meanDepth) = dpois(d, meanDepth)
-# p(there are at least nReadsToPhase that succeed in phasing x,y | given d reads in total) = pbinom(nReadsToPhase - 1, k, pReadCanCoverHetPairAtDistance(L, k, Im, Is), lower.tail = FALSE)
-pDirectlyPhaseHetPairAtDistanceUsingDepth <- function(meanDepth, nReadsToPhase, L, k, Im, Is) {
-	p = pReadCanCoverHetPairAtDistance(L, k, Im, Is)
+# p(there are at least nReadsToPhase that succeed in phasing x,y | given d reads in total) = pbinom(nReadsToPhase - 1, k, pFragmentsReadsCanCoverHetPairAtDistance(L, k, Fm, Fs), lower.tail = FALSE)
+pDirectlyPhaseHetPairAtDistanceUsingDepth <- function(meanDepth, nReadsToPhase, L, k, Fm, Fs) {
+	p = pFragmentsReadsCanCoverHetPairAtDistance(L, k, Fm, Fs)
 	pAtLeastNreadsToPhaseGivenDepth <- function(d) pbinom(nReadsToPhase - 1, d, p, lower.tail = FALSE)
 	pAtLeastNreadsToPhaseAndDepth	<- function(d) dpois(d, meanDepth) * pAtLeastNreadsToPhaseGivenDepth(d)
 	
@@ -103,21 +128,21 @@ pDirectlyPhaseHetPairAtDistanceUsingDepth <- function(meanDepth, nReadsToPhase, 
 	sum(apply(as.matrix(minDepth:maxDepth), 1, pAtLeastNreadsToPhaseAndDepth))
 }
 
-pDirectlyPhaseHetPairAndDistanceUsingDepth <- function(meanDepth, nReadsToPhase, L, k, theta, Im, Is) {
-	Vectorize(function(dist) pDirectlyPhaseHetPairAtDistanceUsingDepth(meanDepth, nReadsToPhase, L, dist, Im, Is) * pHetPairAtDistance(dist, theta))(k)
+pDirectlyPhaseHetPairAndDistanceUsingDepth <- function(meanDepth, nReadsToPhase, L, k, theta, Fm, Fs) {
+	Vectorize(function(dist) pDirectlyPhaseHetPairAtDistanceUsingDepth(meanDepth, nReadsToPhase, L, dist, Fm, Fs) * pHetPairAtDistance(dist, theta))(k)
 }
 
-# Probability (over locations of x on the read, insert sizes, read depths, and het-het distances) that that there exist at least nReadsToPhase paired-end reads covering both sites x and y (where the distance between x and y is as per the geometric/exponential distribution):
-pDirectlyPhaseHetPair <- function(meanDepth, nReadsToPhase, L, theta, Im, Is) {
+# Probability (over locations of x on the read, fragment sizes, read depths, and het-het distances) that that there exist at least nReadsToPhase paired-end reads covering both sites x and y (where the distance between x and y is as per the geometric/exponential distribution):
+pDirectlyPhaseHetPair <- function(meanDepth, nReadsToPhase, L, theta, Fm, Fs) {
 	# Although the real minimum distance starts with 1 (geometric distribution), the exponential distribution approximation starts with 0:
 	MIN_DISTANCE = 0
 	MAX_DISTANCE = Inf
 
-	integrate(function(k) pDirectlyPhaseHetPairAndDistanceUsingDepth(meanDepth, nReadsToPhase, L, k, theta, Im, Is), lower=MIN_DISTANCE, upper=MAX_DISTANCE, subdivisions=1000)$value
+	integrate(function(k) pDirectlyPhaseHetPairAndDistanceUsingDepth(meanDepth, nReadsToPhase, L, k, theta, Fm, Fs), lower=MIN_DISTANCE, upper=MAX_DISTANCE, subdivisions=1000)$value
 }
 
-# Probability (over locations of sites on reads, insert sizes, and read depths) that paired-end reads can TRANSITIVELY phase phaseIndex relative to phaseIndex - 1, given a window of length(windowDistances)+1 het sites at distances given by windowDistances (where an edge in the transitive path requires at least nReadsToPhase reads):
-pPhaseHetPairAtDistanceUsingDepthAndWindow <- function(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Im, Is, MIN_PATH_PROB = 10^-6) {
+# Probability (over locations of sites on reads, fragment sizes, and read depths) that paired-end reads can TRANSITIVELY phase phaseIndex relative to phaseIndex - 1, given a window of length(windowDistances)+1 het sites at distances given by windowDistances (where an edge in the transitive path requires at least nReadsToPhase reads):
+pPhaseHetPairAtDistanceUsingDepthAndWindow <- function(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Fm, Fs, MIN_PATH_PROB = 10^-6) {
 	n = length(windowDistances) + 1  # the window size
 	if (phaseIndex < 2 || phaseIndex > n) {
 		stop("phaseIndex < 2 || phaseIndex > n")
@@ -125,7 +150,7 @@ pPhaseHetPairAtDistanceUsingDepthAndWindow <- function(windowDistances, phaseInd
 	#print(paste("windowDistances= (", paste(windowDistances, collapse=", "), ")", sep=""))
 
 	# A. Pre-compute the upper diagonal of square matrix of n CHOOSE 2 values of:
-	# pDirectlyPhaseHetPairAtDistanceUsingDepth(meanDepth, nReadsToPhase, L, dist(i,j), Im, Is)
+	# pDirectlyPhaseHetPairAtDistanceUsingDepth(meanDepth, nReadsToPhase, L, dist(i,j), Fm, Fs)
 	#
 	# NOTE that the probabilities of phasing different pairs are NOT truly independent, but assume this for convenience...
 	#
@@ -135,7 +160,7 @@ pPhaseHetPairAtDistanceUsingDepthAndWindow <- function(windowDistances, phaseInd
 			dist = distanceBetweenPair(i, j, windowDistances)
 			#print(paste("distanceBetweenPair(", i, ", ", j, ", windowDistances) = ", dist, sep=""))
 			
-			pPhaseIandJ = pDirectlyPhaseHetPairAtDistanceUsingDepth(meanDepth, nReadsToPhase, L, dist, Im, Is)
+			pPhaseIandJ = pDirectlyPhaseHetPairAtDistanceUsingDepth(meanDepth, nReadsToPhase, L, dist, Fm, Fs)
 			pPhasePair[i, j] = pPhaseIandJ
 			pPhasePair[j, i] = pPhaseIandJ
 		}
@@ -214,22 +239,22 @@ powerSet <- function(n) {
 	subsets
 }
 
-pPhaseHetPairAndDistancesUsingDepthAndWindow <- function(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Im, Is, theta) {
-	p = pPhaseHetPairAtDistanceUsingDepthAndWindow(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Im, Is) * pHetPairsAtDistances(windowDistances, theta)
+pPhaseHetPairAndDistancesUsingDepthAndWindow <- function(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Fm, Fs, theta) {
+	p = pPhaseHetPairAtDistanceUsingDepthAndWindow(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Fm, Fs) * pHetPairsAtDistances(windowDistances, theta)
 
-	#print(paste(p, " = pPhaseHetPairAndDistancesUsingDepthAndWindow(windowDistances= (", paste(windowDistances, collapse=", "), "), phaseIndex= ", phaseIndex, ", meanDepth= ", meanDepth, ", nReadsToPhase= ", nReadsToPhase, ", L= ", L, ", Im= ", Im, ", Is= ", Is, ", theta= ", theta, ") * pHetPairsAtDistances(windowDistances= ", paste(windowDistances, collapse=", "), ", theta= ", theta, ")", sep=""))
+	#print(paste(p, " = pPhaseHetPairAndDistancesUsingDepthAndWindow(windowDistances= (", paste(windowDistances, collapse=", "), "), phaseIndex= ", phaseIndex, ", meanDepth= ", meanDepth, ", nReadsToPhase= ", nReadsToPhase, ", L= ", L, ", Fm= ", Fm, ", Fs= ", Fs, ", theta= ", theta, ") * pHetPairsAtDistances(windowDistances= ", paste(windowDistances, collapse=", "), ", theta= ", theta, ")", sep=""))
 
 	p
 }
 
-# Probability (over locations of sites on reads, insert sizes, and read depths) that paired-end reads can TRANSITIVELY phase phaseIndex relative to phaseIndex - 1, given a window of n het sites at distances distributed as determined by theta (where an edge in the transitive path requires at least nReadsToPhase reads):
-pDirectlyPhaseHetPairUsingWindow <- function(meanDepth, nReadsToPhase, L, theta, Im, Is, n, phaseIndex) {
+# Probability (over locations of sites on reads, fragment sizes, and read depths) that paired-end reads can TRANSITIVELY phase phaseIndex relative to phaseIndex - 1, given a window of n het sites at distances distributed as determined by theta (where an edge in the transitive path requires at least nReadsToPhase reads):
+pDirectlyPhaseHetPairUsingWindow <- function(meanDepth, nReadsToPhase, L, theta, Fm, Fs, n, phaseIndex) {
 	if (n < 2) {
 		stop("n < 2")
 	}
 	ndim = n-1
 
-	integrandFunction <- function(windowDistances) {pPhaseHetPairAndDistancesUsingDepthAndWindow(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Im, Is, theta)}
+	integrandFunction <- function(windowDistances) {pPhaseHetPairAndDistancesUsingDepthAndWindow(windowDistances, phaseIndex, meanDepth, nReadsToPhase, L, Fm, Fs, theta)}
 
 	MIN_DISTANCE = 0
 
