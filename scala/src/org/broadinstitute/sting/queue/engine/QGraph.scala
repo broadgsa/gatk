@@ -759,7 +759,8 @@ class QGraph extends Logging {
    */
   def shutdown() {
     shuttingDown = true
-    if (commandLineManager != null)
-      commandLineManager.tryStop(getRunningJobs.map(_.runner))
+    val runningJobs = getRunningJobs
+    if (commandLineManager != null && !runningJobs.isEmpty)
+      commandLineManager.tryStop(runningJobs.map(_.runner))
   }
 }
