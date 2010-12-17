@@ -59,7 +59,7 @@ public class BWACAligner extends BWAAligner {
      */
     @Override
     public void updateConfiguration(BWAConfiguration configuration) {
-        if(thunkPointer != 0)
+        if(thunkPointer == 0)
             throw new ReviewedStingException("BWA/C: attempting to update configuration of uninitialized aligner.");
         updateConfiguration(thunkPointer,configuration);
     }

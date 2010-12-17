@@ -208,7 +208,7 @@ void BWA::load_default_options()
 }
 
 void BWA::set_max_edit_distance(float edit_distance) { 
-  if(edit_distance < 1) {
+  if(edit_distance > 0 && edit_distance < 1) {
     options.fnr = edit_distance;
     options.max_diff = -1;
   }
@@ -245,6 +245,9 @@ bwa_seq_t* BWA::create_sequence(const char* bases, const unsigned read_length)
 
   sequence->cigar = NULL;
   sequence->n_cigar = 0;
+
+  sequence->multi = NULL;
+  sequence->n_multi = 0;
 
   return sequence;
 }
