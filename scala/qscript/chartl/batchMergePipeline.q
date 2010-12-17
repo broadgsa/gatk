@@ -16,8 +16,6 @@ class batchMergePipeline extends QScript {
   @Argument(doc="reference file",shortName="ref") var ref: File = _
   @Argument(doc="batched output",shortName="batch") var batchOut: File = _
 
-  def addAll( cmds : List[CommandLineFunction]) : Unit = { cmds.foreach( c => add(c)) }
-
   def script = {
 
     var vcfs : List[File] = extractFileEntries(vcfList)
