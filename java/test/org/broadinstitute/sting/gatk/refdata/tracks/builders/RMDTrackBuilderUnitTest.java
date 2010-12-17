@@ -163,7 +163,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
         }
 
         // make sure that we removed and updated the index
-        Assert.assertTrue(Tribble.indexFile(vcfFile).lastModified() == indexTimeStamp,"Fail: index file was modified");
+        Assert.assertTrue(Tribble.indexFile(vcfFile).lastModified() >= indexTimeStamp,"Fail: index file was modified");
     }
 
     /**
