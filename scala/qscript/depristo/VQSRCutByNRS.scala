@@ -18,7 +18,7 @@ class recalibrate extends QScript {
   @Argument(fullName = "prefix", doc="Prefix argument", required=false)
   var prefix: String = ""
 
-  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(4) }
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(3) }
 
 class Target(val name: String, val reference: File, val rodName: String, val VCF: File, val intervals: Option[String], val titvTarget: Double) {
     def clusterFile = new File(name + ".clusters")
@@ -37,11 +37,20 @@ val TGPWExGdA = new Target("1000G.WEx.GdA", hg19, "b37", new File("/humgen/gsa-s
 
 val targets = List(HiSeq, WEx, LowPassN60, LowPassAugust, TGPWExFH, TGPWExGdA)
 
+val allTailedAnnotations = List("QD+", "SB-", "HaplotypeScore-", "HRun-")
+val someTailedAnnotations = List("QD", "SB-", "HaplotypeScore-", "HRun")
+val twoTailedAnnotations = List("QD", "SB", "HaplotypeScore", "HRun")
+
 def script = {
     for (target <- targets) {
       add(new GenerateVariantClusters(target) )
-      add(new VariantRecalibratorTiTv(target) )
-      add(new VariantRecalibratorNRS(target) )
+      add(new VariantRecalibratorTiTv(target, someTailedAnnotations, ".sb.hs.tailed") )
+      add(new VariantRecalibratorNRS(target, someTailedAnnotations, ".sb.hs.tailed") )
+      add(new VariantRecalibratorTiTv(target, allTailedAnnotations, ".all.tailed") )
+      add(new VariantRecalibratorNRS(target, allTailedAnnotations, ".all.tailed") )
+      add(new VariantRecalibratorTiTv(target, twoTailedAnnotations, ".untailed") )
+      add(new VariantRecalibratorNRS(target, twoTailedAnnotations, ".untailed") )
+
     }
 }
 
@@ -66,7 +75,7 @@ class GenerateVariantClusters(t: Target) extends org.broadinstitute.sting.queue.
 }
 
 
-class VariantRecalibratorBase(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.VariantRecalibrator with UNIVERSAL_GATK_ARGS {
+class VariantRecalibratorBase(t: Target, ans: List[String]) extends org.broadinstitute.sting.queue.extensions.gatk.VariantRecalibrator with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
     this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_" + t.rodName + ".rod")
     this.rodBind :+= RodBind("hapmap", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/genotypes_r27_nr." + t.rodName + "_fwd.vcf")
@@ -80,18 +89,20 @@ class VariantRecalibratorBase(t: Target) extends org.broadinstitute.sting.queue.
     this.priorDBSNP = Some(2.0)
     this.priorHapMap = Some(2.0)
     this.target_titv = t.titvTarget
+    this.use_annotation ++= ans
+    this.out = new File("/dev/null")
 }
 
-class VariantRecalibratorTiTv(t: Target) extends VariantRecalibratorBase(t) {
+class VariantRecalibratorTiTv(t: Target, ans: List[String], prefix: String) extends VariantRecalibratorBase(t, ans) {
     this.tranche ++= List("0.1", "1.0", "10.0", "100.0")
-    this.out = new File(t.name + ".titv.recalibrated.vcf")
-    this.tranchesFile = new File(t.name + ".titv.tranches")
+    //this.out = new File(t.name + ".titv.recalibrated.vcf")
+    this.tranchesFile = new File(t.name + prefix + ".titv.tranches")
 }
 
-class VariantRecalibratorNRS(t: Target) extends VariantRecalibratorBase(t) {
+class VariantRecalibratorNRS(t: Target, ans: List[String], prefix: String) extends VariantRecalibratorBase(t,ans) {
     this.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
     this.tranche ++= List("50", "25", "10", "5", "2", "1", "0.5", "0.1")
-    this.out = new File(t.name + ".ts.recalibrated.vcf")
-    this.tranchesFile = new File(t.name + ".ts.tranches")
+    //this.out = new File(t.name + ".ts.recalibrated.vcf")
+    this.tranchesFile = new File(t.name + prefix + ".ts.tranches")
 }
 }

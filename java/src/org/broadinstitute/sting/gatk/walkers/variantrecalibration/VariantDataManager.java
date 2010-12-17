@@ -28,8 +28,10 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.io.PrintStream;
+import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -38,6 +40,11 @@ import java.io.PrintStream;
  */
 
 public class VariantDataManager {
+    public enum TailType {
+        TWO_TAILED,
+        SMALL_IS_GOOD,
+        BIG_IS_GOOD
+    }
 
     protected final static Logger logger = Logger.getLogger(VariantDataManager.class);
 
@@ -46,6 +53,7 @@ public class VariantDataManager {
     public final int numAnnotations;
     public final double[] meanVector;
     public final double[] varianceVector; // This is really the standard deviation
+    public final TailType[] tailTypes;
     public boolean isNormalized;
     public final ExpandingArrayList<String> annotationKeys;
 
@@ -59,6 +67,7 @@ public class VariantDataManager {
             numAnnotations = 0;
             meanVector = null;
             varianceVector = null;
+            tailTypes = null;
         } else {
             numAnnotations = _annotationKeys.size();
             if( numAnnotations <= 0 ) {
@@ -66,7 +75,9 @@ public class VariantDataManager {
             }
             meanVector = new double[numAnnotations];
             varianceVector = new double[numAnnotations];
-            isNormalized = false;            
+            tailTypes = new TailType[numAnnotations];
+            Arrays.fill(tailTypes, TailType.TWO_TAILED);
+            isNormalized = false;
         }
         annotationKeys = _annotationKeys;
     }
@@ -79,6 +90,8 @@ public class VariantDataManager {
         varianceVector = new double[numAnnotations];
         isNormalized = true;
         annotationKeys = new ExpandingArrayList<String>();
+        tailTypes = new TailType[numAnnotations];
+        Arrays.fill(tailTypes, TailType.TWO_TAILED);
 
         int jjj = 0;
         for( final String line : annotationLines ) {
@@ -89,6 +102,22 @@ public class VariantDataManager {
             jjj++;
         }
     }
+
+    //
+    // code for dealing with TailTypes
+    //
+    
+    public void setAnnotationType(String annotation, TailType t ) {
+        int i = annotationKeys.indexOf(annotation);
+        if ( i == -1 ) throw new UserException.BadInput("Attempt to modify unknown annotation " + annotation + ": cluster file has " + Utils.join(",", annotationKeys));
+        tailTypes[i] = t;
+        logger.info("Updating annotation " + annotation + " to have tail type " + t);
+    }
+
+    public TailType getAnnotationType(int i) {
+        return tailTypes[i];
+    }
+
 
     public void normalizeData() {
         boolean foundZeroVarianceAnnotation = false;

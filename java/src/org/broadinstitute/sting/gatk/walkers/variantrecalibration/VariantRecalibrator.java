@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2010 The Broad Institute
  *
@@ -121,6 +122,11 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Argument(fullName = "selectionMetric", shortName = "sm", doc = "Selection metric to use", required=false)
     private SelectionMetricType SELECTION_METRIC_TYPE = SelectionMetricType.NOVEL_TITV;
 
+    // arguments for handling 1 sided annotations
+    @Hidden
+    @Argument(fullName="use_annotation", shortName="an", doc="Allows us to provide information about the sidedness of annotations.  Can be either -AN QD [two-sided], -AN QD- [values less than mean are good] and -AN QD+ [values greater than the mean are good]", required=false)
+    private List<String> USE_ANNOTATIONS = null;
+
     public enum SelectionMetricType {
         NOVEL_TITV,
         TRUTH_SENSITIVITY
@@ -170,6 +176,25 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             //    break;
             default:
                 throw new UserException.BadArgumentValue("OPTIMIZATION_MODEL", "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
+        }
+
+
+        // deal with annotations
+        if ( USE_ANNOTATIONS  != null ) {
+            for ( String annotation : USE_ANNOTATIONS ) {
+                VariantDataManager.TailType type = VariantDataManager.TailType.TWO_TAILED;
+                String annotationName = annotation;
+                if ( annotation.endsWith("-") ) {
+                    type = VariantDataManager.TailType.SMALL_IS_GOOD;
+                    annotationName = annotation.substring(0, annotation.length()-1);
+                }
+                else if ( annotation.endsWith("+") ) {
+                    type = VariantDataManager.TailType.BIG_IS_GOOD;
+                    annotationName = annotation.substring(0, annotation.length()-1);
+                }
+
+                theModel.dataManager.setAnnotationType( annotationName, type );
+            }
         }
 
         boolean foundDBSNP = false;
