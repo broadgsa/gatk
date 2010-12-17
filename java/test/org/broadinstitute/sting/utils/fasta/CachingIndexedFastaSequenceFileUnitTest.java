@@ -8,6 +8,8 @@ package org.broadinstitute.sting.utils.fasta;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.BeforeMethod;
 import org.broadinstitute.sting.BaseTest;
 
 import java.io.File;
@@ -29,6 +31,11 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
     //private static final List<Integer> QUERY_SIZES = Arrays.asList(1);
     private static final List<Integer> QUERY_SIZES = Arrays.asList(1, 10, 100, 1000);
     private static final List<Integer> CACHE_SIZES = Arrays.asList(-1, 10, 1000);
+
+    @BeforeTest
+    public void clearCache() {
+        CachingIndexedFastaSequenceFile.resetThreadLocalCache();
+    }
 
     @DataProvider(name = "fastas")
     public Object[][] createData1() {

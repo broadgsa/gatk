@@ -67,11 +67,19 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
         ReferenceSequence seq = null;
     }
 
-    private static ThreadLocal<Cache> cache = new ThreadLocal<Cache> () {
-        @Override protected Cache initialValue() {
-            return new Cache();
-        }
+    private static ThreadLocal<Cache> cache;
+
+    static {
+        resetThreadLocalCache();
     };
+
+    protected static void resetThreadLocalCache() {
+        cache = new ThreadLocal<Cache> () {
+            @Override protected Cache initialValue() {
+                return new Cache();
+            }
+        };
+    }
 
     /**
      * Same as general constructor but allows one to override the default cacheSize
