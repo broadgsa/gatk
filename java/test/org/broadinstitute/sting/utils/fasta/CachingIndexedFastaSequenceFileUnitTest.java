@@ -50,8 +50,8 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
         IndexedFastaSequenceFile uncached = new IndexedFastaSequenceFile(fasta);
 
         SAMSequenceRecord contig = uncached.getSequenceDictionary().getSequence(0);
-        //logger.warn(String.format("Checking contig %s length %d with cache size %d and query size %d",
-        //        contig.getSequenceName(), contig.getSequenceLength(), cacheSize, querySize));
+        logger.warn(String.format("Checking contig %s length %d with cache size %d and query size %d",
+                contig.getSequenceName(), contig.getSequenceLength(), cacheSize, querySize));
         for ( int i = 0; i < contig.getSequenceLength(); i += STEP_SIZE ) {
             int start = i;
             int stop = start + querySize;
@@ -76,6 +76,9 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
 
         int middleStart = (contig.getSequenceLength() - querySize) / 2;
         int middleStop = middleStart + querySize;
+
+        logger.warn(String.format("Checking contig %s length %d with cache size %d and query size %d with intermediate query",
+                contig.getSequenceName(), contig.getSequenceLength(), cacheSize, querySize));
 
         for ( int i = 0; i < contig.getSequenceLength(); i += 10 ) {
             int start = i;
