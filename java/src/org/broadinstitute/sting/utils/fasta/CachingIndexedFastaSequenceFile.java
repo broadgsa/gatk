@@ -42,17 +42,31 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
     private static final boolean USE_CACHE = true;
     private static final boolean PRINT_EFFICIENCY = false;
     private static final int PRINT_FREQUENCY = 10000;
+    private static final long DEFAULT_CACHE_SIZE = 1000000;
 
-    private Object lock = new Object();
+    private static long ourStaticCacheSize = DEFAULT_CACHE_SIZE;
 
     long cacheHits = 0;
     long cacheMisses = 0;
 
-    long cacheStart = -1;
-    long cacheStop = -1;
-    long cacheSize = 100000;
-    long cacheMissBackup = 100;
-    ReferenceSequence cache = null;
+    private static class Cache {
+        long cacheStart = -1;
+        long cacheStop = -1;
+        long cacheSize = DEFAULT_CACHE_SIZE;
+        long cacheMissBackup = 100;
+        ReferenceSequence cachedSequence = null;
+
+        public Cache(long cacheSize) {
+            this.cacheSize = cacheSize;
+            this.cacheMissBackup = Math.max(cacheSize / 100, 1);
+        }
+    }
+
+    private static ThreadLocal<Cache> cache = new ThreadLocal<Cache> () {
+        @Override protected Cache initialValue() {
+            return new Cache(ourStaticCacheSize);
+        }
+    };
 
     /**
      * Same as general constructor but allows one to override the default cacheSize
@@ -61,9 +75,8 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * @param cacheSize
      */
     public CachingIndexedFastaSequenceFile(final File file, final FastaSequenceIndex index, long cacheSize) {
-        this(file, index);
-        this.cacheSize = cacheSize;
-        this.cacheMissBackup = Math.max(cacheSize / 100, 1);
+        super(file, index);
+        ourStaticCacheSize = cacheSize; // BUG: class only supports one univeral cache size
     }
 
     /**
@@ -73,7 +86,7 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * @throws java.io.FileNotFoundException If the fasta or any of its supporting files cannot be found.
      */
     public CachingIndexedFastaSequenceFile(final File file, final FastaSequenceIndex index) {
-        super(file, index);
+        this(file, index, DEFAULT_CACHE_SIZE);
     }
 
     /**
@@ -81,13 +94,12 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * @param file The file to open.
      */
     public CachingIndexedFastaSequenceFile(final File file) {
-        super(file);
+        this(file, DEFAULT_CACHE_SIZE);
     }
 
     public CachingIndexedFastaSequenceFile(final File file, long cacheSize ) {
         super(file);
-        this.cacheSize = cacheSize;
-        this.cacheMissBackup = Math.max(cacheSize / 100, 1);
+        ourStaticCacheSize = cacheSize; // BUG: class only supports one univeral cache size
     }
 
     public void printEfficiency() {
@@ -119,8 +131,10 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      */
     public ReferenceSequence getSubsequenceAt( String contig, long start, long stop ) {
         ReferenceSequence result;
+        Cache myCache = cache.get();
+        //System.out.printf("getSubsequentAt cache=%s%n", myCache);
 
-        if ( ! USE_CACHE || (stop - start) >= cacheSize ) {
+        if ( ! USE_CACHE || (stop - start) >= myCache.cacheSize ) {
             cacheMisses++;
             result = super.getSubsequenceAt(contig, start, stop);
         } else {
@@ -130,27 +144,25 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
             if (stop > contigInfo.getSequenceLength())
                 throw new PicardException("Query asks for data past end of contig");
 
-            synchronized (lock) { // access to shared cache information must be protected
-                if ( start < cacheStart || stop > cacheStop || cache == null || cache.getContigIndex() != contigInfo.getSequenceIndex() ) {
-                    cacheMisses++;
-                    cacheStart = Math.max(start - cacheMissBackup, 0);
-                    cacheStop = Math.min(cacheStart + cacheSize, contigInfo.getSequenceLength());
-                    cache = super.getSubsequenceAt(contig, cacheStart, cacheStop);
-                    //System.out.printf("New cache at %s %d-%d%n", contig, cacheStart, cacheStop);
-                } else {
-                    cacheHits++;
-                }
+            if ( start < myCache.cacheStart || stop > myCache.cacheStop || myCache.cachedSequence == null || myCache.cachedSequence.getContigIndex() != contigInfo.getSequenceIndex() ) {
+                cacheMisses++;
+                myCache.cacheStart = Math.max(start - myCache.cacheMissBackup, 0);
+                myCache.cacheStop = Math.min(myCache.cacheStart + myCache.cacheSize, contigInfo.getSequenceLength());
+                myCache.cachedSequence = super.getSubsequenceAt(contig, myCache.cacheStart, myCache.cacheStop);
+                //System.out.printf("New cache at %s %d-%d%n", contig, cacheStart, cacheStop);
+            } else {
+                cacheHits++;
+            }
 
-                // at this point we determine where in the cache we want to extract the requested subsequence
-                int cacheOffsetStart = (int)(start - cacheStart);
-                int cacheOffsetStop = (int)(stop - start + cacheOffsetStart + 1);
+            // at this point we determine where in the cache we want to extract the requested subsequence
+            int cacheOffsetStart = (int)(start - myCache.cacheStart);
+            int cacheOffsetStop = (int)(stop - start + cacheOffsetStart + 1);
 
-                try {
-                    result = new ReferenceSequence(cache.getName(), cache.getContigIndex(), Arrays.copyOfRange(cache.getBases(), cacheOffsetStart, cacheOffsetStop));
-                } catch ( ArrayIndexOutOfBoundsException e ) {
-                    throw new ReviewedStingException(String.format("BUG: bad array indexing.  Cache start %d and end %d, request start %d end %d, offset start %d and end %d, base size %d",
-                            cacheStart, cacheStop, start, stop, cacheOffsetStart, cacheOffsetStop, cache.getBases().length), e);
-                }
+            try {
+                result = new ReferenceSequence(myCache.cachedSequence.getName(), myCache.cachedSequence.getContigIndex(), Arrays.copyOfRange(myCache.cachedSequence.getBases(), cacheOffsetStart, cacheOffsetStop));
+            } catch ( ArrayIndexOutOfBoundsException e ) {
+                throw new ReviewedStingException(String.format("BUG: bad array indexing.  Cache start %d and end %d, request start %d end %d, offset start %d and end %d, base size %d",
+                        myCache.cacheStart, myCache.cacheStop, start, stop, cacheOffsetStart, cacheOffsetStop, myCache.cachedSequence.getBases().length), e);
             }
         }
 

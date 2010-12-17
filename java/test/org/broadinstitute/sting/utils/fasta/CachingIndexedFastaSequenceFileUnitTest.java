@@ -28,7 +28,7 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
 
     //private static final List<Integer> QUERY_SIZES = Arrays.asList(1);
     private static final List<Integer> QUERY_SIZES = Arrays.asList(1, 10, 100, 1000);
-    private static final List<Integer> CACHE_SIZES = Arrays.asList(10, 1000);
+    private static final List<Integer> CACHE_SIZES = Arrays.asList(-1, 10, 1000);
 
     @DataProvider(name = "fastas")
     public Object[][] createData1() {
@@ -46,8 +46,8 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
 
     @Test(dataProvider = "fastas", enabled = true)
     public void testCachingIndexedFastaReaderSequential1(File fasta, int cacheSize, int querySize) {
+        IndexedFastaSequenceFile caching = cacheSize == -1 ? new CachingIndexedFastaSequenceFile(fasta) : new CachingIndexedFastaSequenceFile(fasta, cacheSize);
         IndexedFastaSequenceFile uncached = new IndexedFastaSequenceFile(fasta);
-        IndexedFastaSequenceFile caching = new CachingIndexedFastaSequenceFile(fasta, cacheSize);
 
         SAMSequenceRecord contig = uncached.getSequenceDictionary().getSequence(0);
         //logger.warn(String.format("Checking contig %s length %d with cache size %d and query size %d",
