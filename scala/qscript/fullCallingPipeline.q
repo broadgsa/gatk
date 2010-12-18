@@ -256,6 +256,7 @@ class fullCallingPipeline extends QScript {
 
       var indel = new IndelGenotyperV2 with CommandLineGATKArgs
       indel.jobOutputFile = new File(".queue/logs/IndelCalling/%s/IndelGenotyperV2.out".format(sampleId))
+      indel.window_size = Some(350)
       indel.analysisName = "IndelGenotyper_"+sampleId
       indel.input_file :+= bam
       indel.out = swapExt("IndelCalls/IntermediateFiles/" + sampleId, bam,".bam",".indels.vcf")
