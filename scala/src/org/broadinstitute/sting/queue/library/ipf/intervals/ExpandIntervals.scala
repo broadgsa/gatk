@@ -42,11 +42,11 @@ class ExpandIntervals(in : File, start: Int, size: Int, out: File, ref: File, op
       val new1 = parser.createGenomeLoc(current.getContig,current.getStart-startInt-sizeInt,current.getStart-startInt)
       val new2 = parser.createGenomeLoc(current.getContig,current.getStop+startInt,current.getStop+startInt+sizeInt)
       if ( ok(new1) ) {
-        System.out.println("Printing! %s".format(repr(new1)))
+        //System.out.println("Printing! %s".format(repr(new1)))
         output.print("%s%n".format(repr(new1)))
       }
       if ( ok(new2) ) {
-        System.out.println("Printing! %s".format(repr(new2)))
+        //System.out.println("Printing! %s".format(repr(new2)))
         output.print("%s%n".format(repr(new2)))
       }
       previous = current
