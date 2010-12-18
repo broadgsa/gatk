@@ -15,7 +15,7 @@ class PipelineArgumentCollection {
   @Input(doc="path to trigger track (for UnifiedGenotyper)", shortName="trigger", required=false)
   var trigger: File = _
 
-  @Input(doc="path to refseqTable (for GenomicAnnotator)", shortName="refseqTable")
+  @Input(doc="path to refseqTable (for GenomicAnnotator)", shortName="refseqTable",required=false)
   var refseqTable: File = _
 
   @Input(doc="path to Picard FixMateInformation.jar.  See http://picard.sourceforge.net/ .", required=false)
