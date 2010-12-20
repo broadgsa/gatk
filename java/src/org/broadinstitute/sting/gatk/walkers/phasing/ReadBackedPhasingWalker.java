@@ -176,7 +176,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         // todo -- fix samplesToPhase
         Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
-        writer.writeHeader(new VCFHeader(hInfo, new TreeSet<String>(rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples())));
+        Set<String> samples = new TreeSet<String>(samplesToPhase == null ? rodNameToHeader.get(rodNames.get(0)).getGenotypeSamples() : samplesToPhase);
+        writer.writeHeader(new VCFHeader(hInfo, samples));
     }
 
     public boolean generateExtendedEvents() {
@@ -241,11 +242,11 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private VariantContext reduceVCToSamples(VariantContext vc, List<String> samplesToPhase) {
-        for ( String sample : samplesToPhase )
-            logger.debug(String.format("  Sample %s has genotype %s, het = %s", sample, vc.getGenotype(sample), vc.getGenotype(sample).isHet() ));
+//        for ( String sample : samplesToPhase )
+//            logger.debug(String.format("  Sample %s has genotype %s, het = %s", sample, vc.getGenotype(sample), vc.getGenotype(sample).isHet() ));
         VariantContext subvc = vc.subContextFromGenotypes(vc.getGenotypes(samplesToPhase).values());
-        logger.debug("original VC = " + vc);
-        logger.debug("sub      VC = " + subvc);
+//        logger.debug("original VC = " + vc);
+//        logger.debug("sub      VC = " + subvc);
         return subvc;
     }
 
@@ -899,7 +900,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         public MaxHaplotypeAndQuality(PhasingTable hapTable, boolean printDebug) {
             // Marginalize each haplotype to its first 2 positions:
             hapTable = HaplotypeTableCreator.marginalizeAsNewTable(hapTable);
-            if (printDebug)
+            if (DEBUG && printDebug)
                 logger.debug("\nPhasing table [AFTER MAPPING]:\n" + hapTable + "\n");
 
             calculateMaxHapAndPhasingQuality(hapTable, printDebug);
@@ -909,7 +910,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         private void calculateMaxHapAndPhasingQuality(PhasingTable hapTable, boolean printDebug) {
             hapTable.normalizeScores();
-            if (printDebug)
+            if (DEBUG && printDebug)
                 logger.debug("\nPhasing table [AFTER NORMALIZATION]:\n" + hapTable + "\n");
 
             // Determine the phase at this position:
