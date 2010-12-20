@@ -1008,7 +1008,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private void writeVCF(VariantContext vc) {
-        if ( samplesToPhase == null || vc.isVariant() ) // if we are only operating on specific samples, don't write out all sites, just those where the VC is variant
+        if ( samplesToPhase == null || (vc.isVariant() && vc.isNotFiltered())) // if we are only operating on specific samples, don't write out all sites, just those where the VC is variant
             WriteVCF.writeVCF(vc, writer, logger);
     }
 
