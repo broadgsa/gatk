@@ -9,75 +9,93 @@ import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.utils.{GenomeLoc, GenomeLocParser}
 
 // todo -- this is unsafe. Need to use a reference dictionary to ensure no off-contig targets are created
-class ExpandIntervals(in : File, start: Int, size: Int, out: File, ref: File, opType: String) extends InProcessFunction {
+class ExpandIntervals(in : File, start: Int, size: Int, out: File, ref: File, ipType: String, opType: String) extends InProcessFunction {
   @Input(doc="The interval list to expand") val inList : File = in
   @Input(doc="The reference sequence") val refDict : File = ref
   @Argument(doc="Number of basepair to start the expanded interval") val startInt : Int = start
   @Argument(doc="Number of baispair to stop the expanded interval") val sizeInt : Int = size
   @Output(doc="The output intervals file to write to") val outList : File = out
   @Argument(doc="The output format for the intervals") val outTypeStr = opType
+  @Argument(doc="The input format for the intervals") val inTypeStr = ipType
 
-  val output : PrintStream = new PrintStream(outList)
-  val parser : GenomeLocParser = new GenomeLocParser(new FastaSequenceFile(ref,true))
-  val xrl : XReadLines = new XReadLines(inList)
-  val outType = if ( outTypeStr.equals("INTERVALS") ) IntervalOutputType.INTERVALS else IntervalOutputType.BED
+  var output : PrintStream = _
+  var parser : GenomeLocParser = _
+  var xrl : XReadLines = _
+  val outType = IntervalFormatType.convert(outTypeStr)
+  val inType = IntervalFormatType.convert(inTypeStr)
 
-  var previous : GenomeLoc = _
-  var current : GenomeLoc = _
-  var next : GenomeLoc = _
+  var offsetIn : Int = 0
+  var offsetOut : Int = 0
+
+  var first : Boolean = true
+  var lastTwo : (GenomeLoc,GenomeLoc) = _
 
   def run = {
-    // todo -- there's got to be a special view that gives prevous, current, next
-    asScalaIterable(xrl).filter( ! _.startsWith("@")).map(parseGenomeInterval(_)).foreach(expand(_))
+    first = true
+    lastTwo = null
+    output = new PrintStream(outList)
+    parser = new GenomeLocParser(new FastaSequenceFile(ref,true))
+    xrl = new XReadLines(inList)
+    offsetIn = if (isBed(inType)) 1 else 0
+    offsetOut = if (isBed(outType)) 1 else 0
+    asScalaIterable(xrl).filter( ! _.startsWith("@")).map(parseGenomeInterval(_)).sliding(3).map(a => a.toList).foreach(a => expand(a(0),a(1),a(2)))
+    expand(lastTwo._1,lastTwo._2,null)
+    output.close()
   }
 
-  def expand(loc : GenomeLoc) : Unit = {
+  def expand(previous: GenomeLoc, current: GenomeLoc, next: GenomeLoc) : Unit = {
+    if ( first ) {
+      first = false
+      expand(null,previous,current)
+    }
+    lastTwo = (current,next)
+
     if ( start > 0 ) {
-      previous = current
-      current = next
-      next = loc
-      if ( current == null ) {
-        return
-      }
       val new1 = parser.createGenomeLoc(current.getContig,current.getStart-startInt-sizeInt,current.getStart-startInt)
       val new2 = parser.createGenomeLoc(current.getContig,current.getStop+startInt,current.getStop+startInt+sizeInt)
-      if ( ok(new1) ) {
+      if ( ok(new1,previous,next) ) {
         //System.out.println("Printing! %s".format(repr(new1)))
         output.print("%s%n".format(repr(new1)))
       }
-      if ( ok(new2) ) {
+      if ( ok(new2,previous,next) ) {
         //System.out.println("Printing! %s".format(repr(new2)))
         output.print("%s%n".format(repr(new2)))
       }
-      previous = current
     } else {
-      output.print("%s%n".format(repr(parser.createGenomeLoc(loc.getContig,loc.getStart-sizeInt,loc.getStop+sizeInt))))
+      output.print("%s%n".format(repr(parser.createGenomeLoc(current.getContig,current.getStart-sizeInt,current.getStop+sizeInt))))
     }
   }
 
-  def ok( loc : GenomeLoc ) : Boolean = {
+  def ok( loc : GenomeLoc, prev: GenomeLoc, next: GenomeLoc  ) : Boolean = {
     //System.out.println("%s - %s - %s".format(repr(next),repr(loc),repr(previous)))
-    ( next == null || loc.distance(next) >= start) && (previous == null || loc.distance(previous) >= start)
+    ( next == null || loc.distance(next) >= start) && (prev == null || loc.distance(prev) >= start)
   }
 
   def repr(loc : GenomeLoc) : String = {
     if ( loc == null ) return "null"
-    if ( outType == IntervalOutputType.INTERVALS ) {
+    if ( outType == IntervalFormatType.INTERVALS ) {
       return "%s:%d-%d".format(loc.getContig,loc.getStart,loc.getStop)
-    } else if ( outType == IntervalOutputType.BED ) {
-      return "%s\t%d\t%d".format(loc.getContig,loc.getStart-1,loc.getStop)
     } else {
-      return "FORMAT?"
+      return "%s\t%d\t%d".format(loc.getContig,loc.getStart-offsetOut,loc.getStop+offsetOut)
     }
   }
 
+  def isBed(t: IntervalFormatType.IntervalFormatType) : Boolean = {
+    t == IntervalFormatType.BED
+   }
+
   def parseGenomeInterval( s : String ) : GenomeLoc = {
     val sp = s.split("\\s+")
-    if ( s.contains(":") ) parser.parseGenomeInterval(s) else parser.createGenomeLoc(sp(0),sp(1).toInt,sp(2).toInt)
+    // todo -- maybe specify whether the bed format [0,6) --> (1,2,3,4,5) is what's wanted  
+    if ( s.contains(":") ) parser.parseGenomeInterval(s) else parser.createGenomeLoc(sp(0),sp(1).toInt+offsetIn,sp(2).toInt-offsetIn)
   }
 
-  object IntervalOutputType extends Enumeration("INTERVALS","BED") {
-    type IntervalOutputType = Value
-    val INTERVALS,BED = Value
+  object IntervalFormatType extends Enumeration("INTERVALS","BED","TDF") {
+    type IntervalFormatType = Value
+    val INTERVALS,BED,TDF = Value
+
+    def convert(s : String) : IntervalFormatType = {
+      if ( s.equals("INTERVALS") ) INTERVALS else { if (s.equals("BED") ) BED else TDF}
+    }
   }
 }
