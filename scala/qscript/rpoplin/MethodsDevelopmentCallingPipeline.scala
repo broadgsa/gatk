@@ -90,12 +90,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.reference_sequence = t.reference
     this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_" + t.rodName + ".rod")
     this.intervalsString ++= List(t.intervals)
-    this.scatterCount = 64
-    if( t.isLowpass ) {
-      this.dcov = Some(50)
-    } else {
-      this.dcov = Some(250)
-    }
+    this.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
+    this.dcov = Some( if ( t.isLowpass ) { 50 } else { 250 } )
     this.input_file :+= t.bamList
     this.out = t.rawVCF
     this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE)
@@ -118,44 +114,30 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 3.) VQSR part1 Generate Gaussian clusters based on truth sites
   class GenerateVariantClusters(t: Target, goldStandard: Boolean) extends org.broadinstitute.sting.queue.extensions.gatk.GenerateVariantClusters with UNIVERSAL_GATK_ARGS {
-      var name: String = t.name
-      if( goldStandard ) { name = t.goldStandardName }
+      val name: String = if ( goldStandard ) { t.goldStandardName } else { t.name }
       this.reference_sequence = t.reference
       this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_" + t.rodName + ".rod")
       this.rodBind :+= RodBind("hapmap", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/genotypes_r27_nr." + t.rodName + "_fwd.vcf")
-      if( goldStandard ) {
-        this.rodBind :+= RodBind("input", "VCF", t.goldStandard_VCF)
-        this.clusterFile = t.goldStandardClusterFile
-      } else {
-        this.rodBind :+= RodBind("input", "VCF", t.filteredVCF)
-        this.clusterFile = t.clusterFile
-      }
+      this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
+      this.clusterFile = if ( goldStandard ) { t.goldStandardClusterFile } else { t.clusterFile }
       this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
       this.analysisName = name + "_GVC"
       this.intervalsString ++= List(t.intervals)
-      this.qual = Some(300)
+      this.qual = Some(300) // clustering parameters to be updated soon pending new experimentation results
       this.std = Some(3.5)
-      this.mG = Some(16) // v2 calls
-      // ignores
+      this.mG = Some(16)
       this.ignoreFilter ++= FiltersToIgnore
   }
 
   // 4.) VQSR part2 Calculate new LOD for all input SNPs by evaluating the Gaussian clusters
   class VariantRecalibratorBase(t: Target, goldStandard: Boolean) extends org.broadinstitute.sting.queue.extensions.gatk.VariantRecalibrator with UNIVERSAL_GATK_ARGS {
-      var name: String = t.name
-      if( goldStandard ) { name = t.goldStandardName }
-
+      val name: String = if ( goldStandard ) { t.goldStandardName } else { t.name }
       this.reference_sequence = t.reference
       this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_" + t.rodName + ".rod")
       this.rodBind :+= RodBind("hapmap", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/genotypes_r27_nr." + t.rodName + "_fwd.vcf")
       this.rodBind :+= RodBind("truth", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/genotypes_r27_nr." + t.rodName + "_fwd.vcf")
-      if( goldStandard ) {
-        this.rodBind :+= RodBind("input", "VCF", t.goldStandard_VCF)
-        this.clusterFile = t.goldStandardClusterFile
-      } else {
-        this.rodBind :+= RodBind("input", "VCF", t.filteredVCF)
-        this.clusterFile = t.clusterFile
-      }
+      this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
+      this.clusterFile = if ( goldStandard ) { t.goldStandardClusterFile } else { t.clusterFile }
       this.analysisName = name + "_VR"
       this.intervalsString ++= List(t.intervals)
       this.ignoreFilter ++= FiltersToIgnore
