@@ -43,5 +43,5 @@ calcPhasingProbsForWindowDistances <- function(distances, MAX_WINDOW_SIZE, meanD
 		}
 	}
 	
-	phaseProbsPositionWindow
+	list(phaseProbsPositionWindow=phaseProbsPositionWindow, WINDOW_SIZES=WINDOW_SIZES)
 }
