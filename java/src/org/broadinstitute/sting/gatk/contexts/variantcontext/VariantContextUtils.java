@@ -293,7 +293,8 @@ public class VariantContextUtils {
             Map<String, Object> d = mvc.getAttributes();
             mvc.clearAttributes();
             for ( String key : keysToPreserve )
-                mvc.putAttribute(key, d.get(key));
+                if ( d.containsKey(key) )
+                    mvc.putAttribute(key, d.get(key));
         }
 
         Collection<Genotype> gs = mvc.getGenotypes().values();
@@ -301,6 +302,9 @@ public class VariantContextUtils {
         for ( Genotype g : gs ) {
             MutableGenotype mg = new MutableGenotype(g);
             mg.clearAttributes();
+            for ( String key : keysToPreserve )
+                if ( g.hasAttribute(key) )
+                    mg.putAttribute(key, g.getAttribute(key));
             mvc.addGenotype(mg);
         }
 

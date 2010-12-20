@@ -241,13 +241,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         return new PhasingStatsAndOutput(phaseStats, completedList);
     }
 
+    private static final Set<String> KEYS_TO_KEEP_IN_REDUCED_VCF = new HashSet<String>(Arrays.asList("PQ"));
     private VariantContext reduceVCToSamples(VariantContext vc, List<String> samplesToPhase) {
 //        for ( String sample : samplesToPhase )
 //            logger.debug(String.format("  Sample %s has genotype %s, het = %s", sample, vc.getGenotype(sample), vc.getGenotype(sample).isHet() ));
         VariantContext subvc = vc.subContextFromGenotypes(vc.getGenotypes(samplesToPhase).values());
 //        logger.debug("original VC = " + vc);
 //        logger.debug("sub      VC = " + subvc);
-        return subvc;
+        return VariantContextUtils.pruneVariantContext(subvc, KEYS_TO_KEEP_IN_REDUCED_VCF );
     }
 
     private List<VariantContext> processQueue(PhasingStats phaseStats, boolean processAll) {
