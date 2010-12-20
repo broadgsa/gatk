@@ -34,7 +34,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // Define the target datasets here
   def lowPass = true
   val HiSeq = new Target("NA12878.HiSeq", hg18, "hg18",
-        new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.bam"),
+        new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
         new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
         "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.07, !lowPass)
   val WEx = new Target("NA12878.WEx", hg18, "hg18",
