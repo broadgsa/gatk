@@ -1,7 +1,6 @@
 import org.broadinstitute.sting.commandline.ArgumentCollection
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.library.ipf.ExpandIntervals
-import org.broadinstitute.sting.queue.library.ipf.intervals.GroupIntervals
 import org.broadinstitute.sting.queue.pipeline.PipelineArgumentCollection
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.utils.text.XReadLines
@@ -15,7 +14,7 @@ class expanded_targets extends QScript {
   def script = {
 
     val intervalExpands : List[ExpandIntervals] = (new Range(0,40,1)).toList.map( u => {
-      new ExpandIntervals(args.projectIntervals,1+5*u,5,new File(System.getProperty("user.dir")+"/"+args.projectName+"_expanded_%d_%d.interval_list".format(1+5*u,6+5*u)),args.projectRef,"TSV","INTERVALS")
+      new ExpandIntervals(args.projectIntervals,1+5*u,5,new File("./"+args.projectName+"_expanded_%d_%d.interval_list".format(1+5*u,6+5*u)),args.projectRef,"TSV","INTERVALS")
     })
 
      trait GATKArgs extends CommandLineGATK {
@@ -24,7 +23,7 @@ class expanded_targets extends QScript {
       this.jarFile = args.gatkJar
     }
 
-    val userDir = System.getProperty("user.dir")
+    val userDir = "."
 
     addAll(intervalExpands)
 
@@ -41,54 +40,22 @@ class expanded_targets extends QScript {
       rtc
     })
     val clean : List[IndelRealigner] = realign.map( u => {
-      var clean : IndelRealigner = new IndelRealigner with GATKArgs
-      clean.targetIntervals = u.out
-      clean.input_file = u.input_file
-      clean.memoryLimit = Some(4)
-      clean.out = new File(userDir+"/"+swapExt(u.out,".bam",".expanded.targets.bam").getName)
-      clean
+      var cleaner : IndelRealigner = new IndelRealigner with GATKArgs
+      cleaner.targetIntervals = u.out
+      cleaner.input_file = u.input_file
+      cleaner.memoryLimit = Some(4)
+      cleaner.out = new File(userDir+"/"+swapExt(u.out,".bam",".expanded.targets.bam").getName)
+      cleaner
     })
 
     addAll(realign)
     addAll(clean)
 
-    val callFiles: List[File] = intervalExpands.map(u => makeCalls(u.outList,20,clean.map(h => h.out)))
+    val callFiles: List[File] = intervalExpands.map(u => makeCalls(u.outList,clean.map(h => h.out)))
 
   }
 
-  def makeCalls(iList: File, scatterNo: Int, bams: List[File]): File = {
-    var scatters : GroupIntervals = new GroupIntervals(iList,20,true,Some(System.getProperty("user.dir")))
-    var filtered : List[(File,File)] = scatters.outputList.zipWithIndex.map(v => reallyMakeCalls(v._1,bams,v._2))
-    var gatherStandard : VcfGatherFunction = new VcfGatherFunction
-    gatherStandard.gatherParts = filtered.map(u => u._1)
-    gatherStandard.originalOutput = swapExt(iList,".interval_list",".filtered.calls.vcf")
-    var gatherHiseq : VcfGatherFunction = new VcfGatherFunction
-    gatherHiseq.gatherParts = filtered.map(u => u._2)
-    gatherHiseq.originalOutput = swapExt(iList,".interval_list",".filtered.hiseq.vcf")
-
-    add(scatters)
-    add(gatherStandard)
-    add(gatherHiseq)
-
-    trait GATKArgs extends CommandLineGATK {
-      this.reference_sequence = args.projectRef
-      this.DBSNP = args.projectDBSNP
-      this.jarFile = args.gatkJar
-    }
-
-
-    var eval : VariantEval = new VariantEval with GATKArgs
-    eval.rodBind :+= new RodBind("evalInterval","vcf",gatherStandard.originalOutput)
-    eval.rodBind :+= new RodBind("compHiSeq","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/NA12878/NA12878.hg19.HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.optimized.cut.vcf"))
-    eval.rodBind :+= new RodBind("compHiSeq_atSites","vcf",gatherHiseq.originalOutput)
-    eval.rodBind :+= new RodBind("compOMNI","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni_2.5_764_samples.b37.deduped.annot.vcf"))
-    eval.out = swapExt(iList,".interval_list",".eval")
-    eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
-
-    eval.out
-  }
-
-  def reallyMakeCalls(iList: File, bams : List[File], scatterNo: Int) : (File,File) = {
+  def makeCalls(iList: File,  bams: List[File]): File = {
 
     trait GATKArgs extends CommandLineGATK {
       this.reference_sequence = args.projectRef
@@ -99,25 +66,37 @@ class expanded_targets extends QScript {
 
     var call : UnifiedGenotyper = new UnifiedGenotyper with GATKArgs
     call.input_file = bams
-    call.out = swapExt(iList,".interval_list",".scatter%d.raw.vcf".format(scatterNo))
+    call.out = swapExt(iList,".interval_list",".raw.vcf")
     call.trig_emit_conf = Some(0.0)
     call.rodBind :+= new RodBind("trigger","vcf",thisTrigger)
+    call.scatterCount = 10
+    call.memoryLimit = Some(6)
     var filter : VariantFiltration = new VariantFiltration with GATKArgs
     filter.rodBind :+= new RodBind("variant","vcf",call.out)
     filter.filterExpression :+= "\"QD<5.0\""
     filter.filterName :+= "LowQualByDepth"
     filter.filterExpression :+= "\"SB>-0.10\""
     filter.filterName :+= "HighStrandBias"
-    filter.out = swapExt(iList,".interval_list",".scatter%d.filtered.vcf".format(scatterNo))
+    filter.out = swapExt(iList,".interval_list",".filtered.vcf")
     var callHiseq : UnifiedGenotyper = new UnifiedGenotyper with GATKArgs
     callHiseq.input_file = List(new File("/humgen/1kg/analysis/bamsForDataProcessingPapers/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"))
     callHiseq.rodBind :+= new RodBind("trigger","vcf",filter.out)
-    callHiseq.out = swapExt(iList,".interval_list",".scatter%d.hiSeq.genotypes.vcf".format(scatterNo))
+    callHiseq.out = swapExt(iList,".interval_list",".hiSeq.genotypes.vcf")
     callHiseq.trig_emit_conf = Some(0.0)
+    callHiseq.scatterCount = 5
 
     add(call,filter,callHiseq)
 
-    return (filter.out,callHiseq.out)
+    var eval : VariantEval = new VariantEval with GATKArgs
+    eval.rodBind :+= new RodBind("evalInterval","vcf",filter.out)
+    eval.rodBind :+= new RodBind("compHiSeq","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/NA12878/NA12878.hg19.HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.optimized.cut.vcf"))
+    eval.rodBind :+= new RodBind("compHiSeq_atSites","vcf",callHiseq.out)
+    eval.rodBind :+= new RodBind("compOMNI","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni_2.5_764_samples.b37.deduped.annot.vcf"))
+    eval.out = swapExt(iList,".interval_list",".eval")
+    eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+
+    add(eval)
+    eval.out
 
   }
 }
