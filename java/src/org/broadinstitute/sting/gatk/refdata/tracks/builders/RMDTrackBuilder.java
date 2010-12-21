@@ -33,13 +33,13 @@ import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.AbstractGenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
@@ -391,14 +391,14 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      *
      * @return a list of RMDTracks, one for each -B option
      */
-    public List<RMDTrack> getReferenceMetaDataSources(AbstractGenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
+    public List<RMDTrack> getReferenceMetaDataSources(GenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
         initializeConvenienceBindings(engine,argCollection);
         initializeFullBindings(engine,argCollection);
         // try and make the tracks given their requests
         return createRequestedTrackObjects();
     }
 
-    private void initializeConvenienceBindings(AbstractGenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
+    private void initializeConvenienceBindings(GenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
         if (argCollection.DBSNPFile != null) {
             if(argCollection.DBSNPFile.toLowerCase().contains("vcf"))
                 throw new UserException("--DBSNP (-D) argument currently does not support VCF.  To use dbSNP in VCF format, please use -B:dbsnp,vcf <filename>.");
@@ -411,7 +411,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param engine The engine, used to populate tags.
      * @param argCollection input arguments to the GATK.
      */
-    private void initializeFullBindings(AbstractGenomeAnalysisEngine engine,GATKArgumentCollection argCollection) {
+    private void initializeFullBindings(GenomeAnalysisEngine engine,GATKArgumentCollection argCollection) {
         // NOTE: Method acts as a static.  Once the inputs have been passed once they are locked in.
         if (argCollection.RODBindings.size() == 0)
             return;
