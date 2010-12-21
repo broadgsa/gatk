@@ -121,8 +121,18 @@ pFragmentsReadsCanCoverHetPairAtDistance <- function(L, k, Fm, Fs) {
 # = Sum_from_d=0^to_d=2*meanDepth { p(having d reads | poisson with meanDepth) * p(there at least nReadsToPhase succeed in phasing x,y | given d reads in total) }
 # p(having d reads | poisson with meanDepth) = dpois(d, meanDepth)
 # p(there are at least nReadsToPhase that succeed in phasing x,y | given d reads in total) = pbinom(nReadsToPhase - 1, k, pFragmentsReadsCanCoverHetPairAtDistance(L, k, Fm, Fs), lower.tail = FALSE)
-pDirectlyPhaseHetPairAtDistanceUsingDepth <- function(meanDepth, nReadsToPhase, L, k, Fm, Fs) {
+pDirectlyPhaseHetPairAtDistanceUsingDepth_SINGLE_k <- function(meanDepth, nReadsToPhase, L, k, Fm, Fs) {
+	THRESH = 10^-8
 	p = pFragmentsReadsCanCoverHetPairAtDistance(L, k, Fm, Fs)
+
+	# deal with numerical issues:
+	if (abs(1 - p) < THRESH) {
+		p = 1
+	}
+	else if (abs(p) < THRESH) {
+		p = 0
+	}
+
 	pAtLeastNreadsToPhaseGivenDepth <- function(d) pbinom(nReadsToPhase - 1, d, p, lower.tail = FALSE)
 	pAtLeastNreadsToPhaseAndDepth	<- function(d) dpois(d, meanDepth) * pAtLeastNreadsToPhaseGivenDepth(d)
 	
@@ -131,8 +141,12 @@ pDirectlyPhaseHetPairAtDistanceUsingDepth <- function(meanDepth, nReadsToPhase, 
 	sum(apply(as.matrix(minDepth:maxDepth), 1, pAtLeastNreadsToPhaseAndDepth))
 }
 
+pDirectlyPhaseHetPairAtDistanceUsingDepth <- function(meanDepth, nReadsToPhase, L, k, Fm, Fs) {
+	Vectorize(function(dist) pDirectlyPhaseHetPairAtDistanceUsingDepth_SINGLE_k(meanDepth, nReadsToPhase, L, dist, Fm, Fs))(k)
+}
+
 pDirectlyPhaseHetPairAndDistanceUsingDepth <- function(meanDepth, nReadsToPhase, L, k, theta, Fm, Fs) {
-	Vectorize(function(dist) pDirectlyPhaseHetPairAtDistanceUsingDepth(meanDepth, nReadsToPhase, L, dist, Fm, Fs) * pHetPairAtDistance(dist, theta))(k)
+	pDirectlyPhaseHetPairAtDistanceUsingDepth(meanDepth, nReadsToPhase, L, k, Fm, Fs) * pHetPairAtDistance(k, theta)
 }
 
 # Probability (over locations of x on the read, fragment sizes, read depths, and het-het distances) that that there exist at least nReadsToPhase paired-end reads covering both sites x and y (where the distance between x and y is as per the geometric/exponential distribution):
