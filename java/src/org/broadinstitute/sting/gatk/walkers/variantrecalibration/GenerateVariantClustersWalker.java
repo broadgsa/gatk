@@ -179,7 +179,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
         final double annotationValues[] = new double[annotationKeys.size()];
 
         for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
-            if( vc != null && vc.isSNP() ) {
+            if( vc != null  ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     int iii = 0;
                     for( final String key : annotationKeys ) {
