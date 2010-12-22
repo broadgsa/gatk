@@ -199,7 +199,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     }
 
     public boolean genotypesArePhasedAboveThreshold(Genotype gt) {
-        if (!gt.genotypesArePhased())
+        if (!gt.isPhased())
             return false;
 
         Double pq = getPQ(gt);

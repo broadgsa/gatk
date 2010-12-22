@@ -201,7 +201,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
                         if ( VariantContextUtils.match(vc, g, exp) )
                             filters.add(exp.name);
                     }
-                    genotypes.put(genotype.getKey(), new Genotype(genotype.getKey(), g.getAlleles(), g.getNegLog10PError(), filters, g.getAttributes(), g.genotypesArePhased()));
+                    genotypes.put(genotype.getKey(), new Genotype(genotype.getKey(), g.getAlleles(), g.getNegLog10PError(), filters, g.getAttributes(), g.isPhased()));
                 } else {
                     genotypes.put(genotype.getKey(), g);
                 }

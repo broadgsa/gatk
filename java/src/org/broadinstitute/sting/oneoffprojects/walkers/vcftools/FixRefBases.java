@@ -153,7 +153,7 @@ public class FixRefBases extends RodWalker<Integer,Integer> {
         }
         return new Genotype(g.getSampleName(),
                 newAlleles,g.hasNegLog10PError() ? g.getNegLog10PError() : VCFConstants.MISSING_QUALITY_v3_DOUBLE,
-                g.getAttributes().keySet(), g.getAttributes(),g.genotypesArePhased());
+                g.getAttributes().keySet(), g.getAttributes(),g.isPhased());
     }
 
     private Map<String,Genotype> flipGenotypes(Map<String,Genotype> old, Set<Allele> newAlleles) {
@@ -192,7 +192,7 @@ public class FixRefBases extends RodWalker<Integer,Integer> {
 
         return new Genotype(old.getSampleName(),
                 newGTAlleles,old.hasNegLog10PError() ? old.getNegLog10PError() : VCFConstants.MISSING_QUALITY_v3_DOUBLE,
-                old.getAttributes().keySet(), old.getAttributes(),old.genotypesArePhased());
+                old.getAttributes().keySet(), old.getAttributes(),old.isPhased());
     }
 
 }

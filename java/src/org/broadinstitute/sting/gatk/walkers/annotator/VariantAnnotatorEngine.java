@@ -260,7 +260,7 @@ public class VariantAnnotatorEngine {
                 if ( result != null )
                     genotypeAnnotations.putAll(result);
             }
-            genotypes.put(g.getKey(), new Genotype(g.getKey(), genotype.getAlleles(), genotype.getNegLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.genotypesArePhased()));
+            genotypes.put(g.getKey(), new Genotype(g.getKey(), genotype.getAlleles(), genotype.getNegLog10PError(), genotype.getFilters(), genotypeAnnotations, genotype.isPhased()));
         }
 
         return genotypes;
