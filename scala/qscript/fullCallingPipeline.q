@@ -65,6 +65,8 @@ class fullCallingPipeline extends QScript {
 
   private var pipeline: Pipeline = _
 
+  private var dbsnpType: String = _
+
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.intervals = List(qscript.pipeline.getProject.getIntervalList)
     this.jarFile = qscript.gatkJar
@@ -78,12 +80,21 @@ class fullCallingPipeline extends QScript {
 
   def script = {
     pipeline = YamlUtils.load(classOf[Pipeline], qscript.yamlFile)
+    //var dbsnpType: String = _ //figure out how to get it so this is recognized and the whole thing has access to it.
+      if (qscript.pipeline.getProject.getDbsnpFile.toString.contains("rod")){
+        dbsnpType = "dbSNP"
+      } else  {
+        dbsnpType = "VCF"
+      }
+
 
     val projectBase: String = qscript.pipeline.getProject.getName
     if (qscript.skip_cleaning) {
       //endToEnd(projectBase + ".uncleaned", "recalibrated", adprRscript, seq, expKind)
+
       endToEnd(projectBase + ".uncleaned", "recalibrated")
     } else {
+
       // there are commands that use all the bam files
       val recalibratedSamples = qscript.pipeline.getSamples.filter(_.getBamFiles.contains("recalibrated"))
       //val adprRScript = qscript.adprScript
@@ -124,7 +135,7 @@ class fullCallingPipeline extends QScript {
         realigner.intervals = Nil
         realigner.intervalsString = Nil
         realigner.scatterCount = num_cleaner_scatter_jobs min contigs.size
-        realigner.DBSNP = qscript.pipeline.getProject.getDbsnpFile
+        realigner.rodBind :+= RodBind("dbsnp", dbsnpType, qscript.pipeline.getProject.getDbsnpFile)
         realigner.rodBind :+= RodBind("indels", "VCF", swapExt(realigner.reference_sequence.getParentFile, realigner.reference_sequence, "fasta", "1kg_pilot_indels.vcf"))
 
         // if scatter count is > 1, do standard scatter gather, if not, explicitly set up fix mates
@@ -214,7 +225,7 @@ class fullCallingPipeline extends QScript {
     //snps.min_base_quality_score = Some(20)
     snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
     //snps.annotation :+= "QualByDepthV2"
-    snps.DBSNP = qscript.pipeline.getProject.getDbsnpFile
+    snps.rodBind :+= RodBind("dbsnp", dbsnpType, qscript.pipeline.getProject.getDbsnpFile)
     snps.memoryLimit = Some(6)
     //if (qscript.trigger != null) {
     //  snps.trigger_min_confidence_threshold_for_calling = Some(30)
@@ -363,8 +374,12 @@ class fullCallingPipeline extends QScript {
     eval.reportLocation = new File("SnpCalls", base+".eval")
     eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.R)
     eval.analysisName = base+"_VariantEval"
-    eval.DBSNP = qscript.pipeline.getProject.getDbsnpFile
+    if(dbsnpType=="VCF"){
+     eval.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_b37.rod")
 
+    } else{
+      eval.rodBind :+= RodBind("dbsnp", dbsnpType, qscript.pipeline.getProject.getDbsnpFile)
+    }
     add(snps)
 
     // 5. Run the ADPR and make pretty stuff
