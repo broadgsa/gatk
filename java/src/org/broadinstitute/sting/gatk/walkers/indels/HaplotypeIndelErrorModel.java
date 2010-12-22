@@ -132,8 +132,7 @@ public class HaplotypeIndelErrorModel {
         return -10.0*Math.log10(prob);
     }
 
-    public double computeReadLikelihoodGivenHaplotype(Haplotype haplotype, SAMRecord read,
-                                                      VariantContext vc, int eventLength) {
+    public double computeReadLikelihoodGivenHaplotype(Haplotype haplotype, SAMRecord read) {
 
         long numStartClippedBases = 0;
         long numEndClippedBases = 0;
@@ -419,8 +418,7 @@ public class HaplotypeIndelErrorModel {
 
     }
 
-    public double[][] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, List<Haplotype> haplotypesInVC,
-                                                      VariantContext vc, int eventLength){
+    public double[][] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, List<Haplotype> haplotypesInVC){
         double[][] haplotypeLikehoodMatrix = new double[haplotypesInVC.size()][haplotypesInVC.size()];
         double readLikelihoods[][] = new double[pileup.getReads().size()][haplotypesInVC.size()];
         int i=0;
@@ -429,7 +427,7 @@ public class HaplotypeIndelErrorModel {
             // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
             // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
             for (int j=0; j < haplotypesInVC.size(); j++) {
-                readLikelihoods[i][j]= computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(j), read, vc, eventLength);
+                readLikelihoods[i][j]= computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(j), read);
                 if (DEBUG) {
                     System.out.print(read.getReadName()+" ");
 

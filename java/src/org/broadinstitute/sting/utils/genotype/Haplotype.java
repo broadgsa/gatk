@@ -29,6 +29,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -95,22 +96,35 @@ public class Haplotype {
         return isReference;
     }
 
-    public static List<Haplotype> makeHaplotypeListFromVariantContextAlleles(VariantContext vc, ReferenceContext ref, final int haplotypeSize) {
+    public static List<Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref, final int haplotypeSize) {
 
 
         List<Haplotype> haplotypeList = new ArrayList<Haplotype>();
+
+        Allele refAllele = null;
+
+        for (Allele a:alleleList) {
+            if (a.isReference()) {
+                refAllele = a;
+                break;
+            }
+
+        }
+
+        if (refAllele == null)
+            throw new ReviewedStingException("BUG: no ref alleles in input to makeHaplotypeListfrom Alleles at loc: "+ startPos);
 
         byte[] refBases = ref.getBases();
 
         int numPrefBases = LEFT_WINDOW_SIZE;
 
-        int startIdxInReference = (int)(1+vc.getStart()-numPrefBases-ref.getWindow().getStart());
+        int startIdxInReference = (int)(1+startPos-numPrefBases-ref.getWindow().getStart());
         //int numPrefBases = (int)(vc.getStart()-ref.getWindow().getStart()+1); // indel vc starts one before event
 
  
         byte[] basesBeforeVariant = Arrays.copyOfRange(refBases,startIdxInReference,startIdxInReference+numPrefBases);
         byte[] basesAfterVariant = Arrays.copyOfRange(refBases,
-                startIdxInReference+numPrefBases+vc.getReference().getBases().length, refBases.length);
+                startIdxInReference+numPrefBases+ refAllele.getBases().length, refBases.length);
 
 
         // Create location for all haplotypes
@@ -120,7 +134,7 @@ public class Haplotype {
         GenomeLoc locus = ref.getGenomeLocParser().createGenomeLoc(ref.getLocus().getContig(),startLoc,stopLoc);
 
 
-        for (Allele a : vc.getAlleles()) {
+        for (Allele a : alleleList) {
 
             byte[] alleleBases = a.getBases();
             // use string concatenation

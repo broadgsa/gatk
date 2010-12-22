@@ -86,6 +86,11 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
+    @Argument(fullName = "get_indel_alleles_from_vcf", shortName = "getIndelAllelesFromVCF", doc = "Get reference/alt alleles for indel genotyping from VCF", required = false)
+    public boolean GET_ALLELES_FROM_VCF = false;
+
+    @Argument(fullName = "min_indel_count_for_genotyping", shortName = "minIndelCnt", doc = "Minimum number of consensus indels required to trigger genotyping run", required = false)
+    public int MIN_INDEL_COUNT_FOR_GENOTYPING = 5;
 
     public UnifiedArgumentCollection clone() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
