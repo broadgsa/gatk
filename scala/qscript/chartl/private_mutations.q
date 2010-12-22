@@ -59,7 +59,7 @@ class private_mutations extends QScript {
     var eval_all : VariantEval = vcLib.addTrait(new VariantEval)
     eval_all.rodBind :+= new RodBind("evalEOMI","vcf",finalMergedVCF)
     eval_all.noStandard = true
-    eval_all.E :+= "PrivatePermutations"
+    eval_all.E :+= "ACTransitionTable"
     eval_all.out = swapExt(finalMergedVCF,".vcf",".perm.csv")
     eval_all.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
 
@@ -68,7 +68,7 @@ class private_mutations extends QScript {
     var eval_afr : VariantEval = vcLib.addTrait(new VariantEval)
     eval_afr.rodBind :+= new RodBind("evalAFR","VCF",extract_afr.outputVCF)
     eval_afr.rodBind :+= new RodBind("compEUR","VCF",extract_eur.outputVCF)
-    eval_afr.E :+= "PrivatePermutations"
+    eval_afr.E :+= "ACTransitionTable"
     eval_afr.out = swapExt(extract_afr.outputVCF,".vcf",".perm.csv")
     eval_afr.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
     eval_afr.noStandard = true
@@ -78,7 +78,7 @@ class private_mutations extends QScript {
     var eval_eur : VariantEval = vcLib.addTrait(new VariantEval)
     eval_eur.rodBind :+= new RodBind("compAFR","VCF",extract_afr.outputVCF)
     eval_eur.rodBind :+= new RodBind("evalEUR","VCF",extract_eur.outputVCF)
-    eval_eur.E :+= "PrivatePermutations"
+    eval_eur.E :+= "ACTransitionTable"
     eval_eur.out = swapExt(extract_eur.outputVCF,".vcf",".perm.csv")
     eval_eur.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
     eval_eur.noStandard = true

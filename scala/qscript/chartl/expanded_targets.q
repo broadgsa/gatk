@@ -34,9 +34,10 @@ class expanded_targets extends QScript {
     val uncleanBams : List[File] = asScalaIterable(new XReadLines(args.projectBams)).toList.map(u => new File(u))
     val realign : List[RealignerTargetCreator] = uncleanBams.map(u => {
       var rtc : RealignerTargetCreator = new RealignerTargetCreator with GATKArgs
-      rtc.out = swapExt(userDir,u,".bam",".expanded.targets.txt")
+      rtc.out = swapExt(userDir,u,".bam",".clean.targets.interval_list")
       rtc.input_file :+= u.getAbsoluteFile
       rtc.intervals :+= cleanIntervals.outList
+      rtc.memoryLimit = Some(4)
       rtc
     })
     val clean : List[IndelRealigner] = realign.map( u => {
@@ -45,6 +46,7 @@ class expanded_targets extends QScript {
       cleaner.input_file = u.input_file
       cleaner.memoryLimit = Some(4)
       cleaner.out = new File(userDir+"/"+swapExt(u.out,".bam",".expanded.targets.bam").getName)
+      cleaner.intervals :+= cleanIntervals.outList
       cleaner
     })
 
