@@ -75,7 +75,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     public static final String SequenceDictionaryPropertyPredicate = "DICT:";
 
     // the input strings we use to create RODs from
-    private final List<RMDTriplet> inputs = new ArrayList<RMDTriplet>();
+    private final Collection<RMDTriplet> inputs;
 
     private Map<String, Class> classes = null;
 
@@ -93,16 +93,35 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     private ValidationExclusion.TYPE validationExclusionType;
 
     /**
-     * Create a new RMDTrackBuilder, with dictionary and genomeLocParser predefined.
+     * Create a new RMDTrackBuilder, predefined to use a given set of reference metadata.
+     * @param referenceMetaDataDescriptors file descriptors to build out during trackbuilder construction.
      * @param dict Sequence dictionary to use.
      * @param genomeLocParser Location parser to use.
      * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
      */
-    public RMDTrackBuilder(SAMSequenceDictionary dict,GenomeLocParser genomeLocParser, ValidationExclusion.TYPE validationExclusionType) {
+    public RMDTrackBuilder(Collection<RMDTriplet> referenceMetaDataDescriptors,
+                           SAMSequenceDictionary dict,
+                           GenomeLocParser genomeLocParser,
+                           ValidationExclusion.TYPE validationExclusionType) {
         super(FeatureCodec.class, "Codecs", "Codec");
+        this.inputs = referenceMetaDataDescriptors;
         this.dict = dict;
         this.genomeLocParser = genomeLocParser;
         this.validationExclusionType = validationExclusionType;
+    }
+
+    /**
+     * Construct an RMDTrackerBuilder, allowing the user to define tracks to build after-the-fact.  This is generally
+     * used when walkers want to directly manage the ROD system for whatever reason.  Before using this constructor,
+     * please talk through your approach with the SE team.
+     * @param dict Sequence dictionary to use.
+     * @param genomeLocParser Location parser to use.
+     * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
+     */
+    public RMDTrackBuilder(SAMSequenceDictionary dict,
+                           GenomeLocParser genomeLocParser,
+                           ValidationExclusion.TYPE validationExclusionType) {
+        this(Collections.<RMDTriplet>emptyList(),dict,genomeLocParser,validationExclusionType);
     }
 
     /** @return a list of all available track types we currently have access to create */
@@ -392,52 +411,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @return a list of RMDTracks, one for each -B option
      */
     public List<RMDTrack> getReferenceMetaDataSources(GenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
-        initializeConvenienceBindings(engine,argCollection);
-        initializeFullBindings(engine,argCollection);
         // try and make the tracks given their requests
-        return createRequestedTrackObjects();
-    }
-
-    private void initializeConvenienceBindings(GenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
-        if (argCollection.DBSNPFile != null) {
-            if(argCollection.DBSNPFile.toLowerCase().contains("vcf"))
-                throw new UserException("--DBSNP (-D) argument currently does not support VCF.  To use dbSNP in VCF format, please use -B:dbsnp,vcf <filename>.");
-            inputs.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile));
-        }
-    }
-
-    /**
-     * initialize our lists of bindings
-     * @param engine The engine, used to populate tags.
-     * @param argCollection input arguments to the GATK.
-     */
-    private void initializeFullBindings(GenomeAnalysisEngine engine,GATKArgumentCollection argCollection) {
-        // NOTE: Method acts as a static.  Once the inputs have been passed once they are locked in.
-        if (argCollection.RODBindings.size() == 0)
-            return;
-
-        for (String binding: argCollection.RODBindings) {
-            if(engine != null) {
-                if(engine.getTags(binding).size() != 2)
-                    throw new UserException("Invalid syntax for -B (reference-ordered data) input flag.  " +
-                                            "Please use the following syntax when providing reference-ordered " +
-                                            "data: -B:<name>,<type> <filename>.");
-                // Assume that if tags are present, those tags are name and type.
-                // Name is always first, followed by type.
-                List<String> parameters = engine.getTags(binding);
-                String name = parameters.get(0);
-                String type = parameters.get(1);
-                inputs.add(new RMDTriplet(name,type,binding));
-            }
-        }
-    }
-
-    /**
-     * create the requested track objects
-     *
-     * @return a list of the tracks, one for each of the requested input tracks
-     */
-    private List<RMDTrack> createRequestedTrackObjects() {
         // create of live instances of the tracks
         List<RMDTrack> tracks = new ArrayList<RMDTrack>();
 
@@ -450,7 +424,6 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         }
         return tracks;
     }
-
 
     // ---------------------------------------------------------------------------------------------------------
     // static functions to work with the sequence dictionaries of indexes

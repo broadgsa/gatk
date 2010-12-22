@@ -28,7 +28,7 @@ import java.util.Collection;
  * information about how they should be downsampled, sorted, and filtered.
  */
 public class ReadProperties {
-    private List<SAMReaderID> readers = null;
+    private Collection<SAMReaderID> readers = null;
     private SAMFileHeader header = null;
     private SAMFileReader.ValidationStringency validationStringency = SAMFileReader.ValidationStringency.STRICT;
     private Integer readBufferSize = null;
@@ -71,7 +71,7 @@ public class ReadProperties {
      * Gets a list of the files acting as sources of reads.
      * @return A list of files storing reads data.
      */
-    public List<SAMReaderID> getSAMReaderIDs() {
+    public Collection<SAMReaderID> getSAMReaderIDs() {
         return readers;
     }
 
@@ -157,7 +157,7 @@ public class ReadProperties {
      * @param qmode How should we apply the BAQ calculation to the reads?
      * @param refReader if applyBAQ is true, must be a valid pointer to a indexed fasta file reads so we can get the ref bases for BAQ calculation
      */
-    public ReadProperties( List<SAMReaderID> samFiles,
+    public ReadProperties( Collection<SAMReaderID> samFiles,
            SAMFileHeader header,
            boolean useOriginalBaseQualities,
            SAMFileReader.ValidationStringency strictness,

@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
@@ -79,7 +80,12 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     public void testSingleBinding() {
         File file = new File(testDir + "TabularDataTest.dat");
         RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest",file);
-        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,null,track,false);
+        ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(Collections.singleton(new RMDTriplet("tableTest","Table",file.getAbsolutePath())),
+                                                                                                     seq.getSequenceDictionary(),
+                                                                                                     genomeLocParser,
+                                                                                                     null,
+                                                                                                     track,
+                                                                                                     false);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));
 
@@ -101,11 +107,13 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     public void testMultipleBinding() {
         File file = new File(testDir + "TabularDataTest.dat");
 
-
+        RMDTriplet testTriplet1 = new RMDTriplet("tableTest1","Table",file.getAbsolutePath());
         RMDTrack track = builder.createInstanceOfTrack(TableCodec.class,"tableTest1",file);
-        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,null,track,false);
+        ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(Collections.singleton(testTriplet1),seq.getSequenceDictionary(),genomeLocParser,null,track,false);
+
+        RMDTriplet testTriplet2 = new RMDTriplet("tableTest2","Table",file.getAbsolutePath());
         RMDTrack track2 = builder.createInstanceOfTrack(TableCodec.class,"tableTest2",file);
-        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(seq.getSequenceDictionary(),genomeLocParser,null,track2,false);
+        ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(Collections.singleton(testTriplet2),seq.getSequenceDictionary(),genomeLocParser,null,track2,false);
 
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));

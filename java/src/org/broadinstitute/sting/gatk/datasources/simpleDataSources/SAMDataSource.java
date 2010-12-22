@@ -76,7 +76,7 @@ public class SAMDataSource implements SimpleDataSource {
     /**
      * Identifiers for the readers driving this data source.
      */
-    private final List<SAMReaderID> readerIDs;
+    private final Collection<SAMReaderID> readerIDs;
 
     /**
      * How strict are the readers driving this data source.
@@ -129,7 +129,7 @@ public class SAMDataSource implements SimpleDataSource {
      * Create a new SAM data source given the supplied read metadata.
      * @param samFiles list of reads files.
      */
-    public SAMDataSource(List<SAMReaderID> samFiles,GenomeLocParser genomeLocParser) {
+    public SAMDataSource(Collection<SAMReaderID> samFiles,GenomeLocParser genomeLocParser) {
         this(
                 samFiles,
                 genomeLocParser,
@@ -148,7 +148,7 @@ public class SAMDataSource implements SimpleDataSource {
      * See complete constructor.  Does not enable BAQ by default.
      */
     public SAMDataSource(
-            List<SAMReaderID> samFiles,
+            Collection<SAMReaderID> samFiles,
             GenomeLocParser genomeLocParser,
             boolean useOriginalBaseQualities,
             SAMFileReader.ValidationStringency strictness,
@@ -189,7 +189,7 @@ public class SAMDataSource implements SimpleDataSource {
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
      */
     public SAMDataSource(
-            List<SAMReaderID> samFiles,
+            Collection<SAMReaderID> samFiles,
             GenomeLocParser genomeLocParser,
             boolean useOriginalBaseQualities,
             SAMFileReader.ValidationStringency strictness,
@@ -301,7 +301,7 @@ public class SAMDataSource implements SimpleDataSource {
      * Returns readers used by this data source.
      * @return A list of SAM reader IDs.
      */
-    public List<SAMReaderID> getReaderIDs() {
+    public Collection<SAMReaderID> getReaderIDs() {
         return readerIDs;
     }
 

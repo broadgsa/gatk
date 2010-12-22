@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -18,6 +19,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 /**
  * User: hanna
@@ -50,7 +52,8 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * Create a new reference-ordered data source.
      * @param rod the reference ordered data
      */
-    public ReferenceOrderedDataSource(SAMSequenceDictionary sequenceDictionary,
+    public ReferenceOrderedDataSource(Collection<RMDTriplet> refMetaDataDescriptors,
+                                      SAMSequenceDictionary sequenceDictionary,
                                       GenomeLocParser genomeLocParser,
                                       ValidationExclusion.TYPE validationExclusionType,
                                       RMDTrack rod, boolean flashbackData ) {
@@ -58,7 +61,7 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
         if (rod.supportsQuery())
             iteratorPool = new ReferenceOrderedQueryDataPool(sequenceDictionary,
                                                              genomeLocParser,
-                                                             new RMDTrackBuilder(sequenceDictionary,genomeLocParser,validationExclusionType),
+                                                             new RMDTrackBuilder(refMetaDataDescriptors,sequenceDictionary,genomeLocParser,validationExclusionType),
                                                              rod);
         else
             iteratorPool = new ReferenceOrderedDataPool(sequenceDictionary,genomeLocParser,rod, flashbackData );

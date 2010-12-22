@@ -55,6 +55,7 @@ import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDIntervalGenerator;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -142,6 +143,32 @@ public class GenomeAnalysisEngine {
 
     public void setWalker(Walker<?, ?> walker) {
         this.walker = walker;
+    }
+
+    /**
+     * A processed collection of SAM reader identifiers.
+     */
+    private Collection<SAMReaderID> samReaderIDs;
+
+    /**
+     * Set the SAM/BAM files over which to traverse.
+     * @param samReaderIDs Collection of ids to use during this traversal.
+     */
+    public void setSAMFileIDs(Collection<SAMReaderID> samReaderIDs) {
+        this.samReaderIDs = samReaderIDs;
+    }
+
+    /**
+     * Collection of reference metadata files over which to traverse.
+     */
+    private Collection<RMDTriplet> referenceMetaDataFiles;
+
+    /**
+     * Set the reference metadata files to use for this traversal.
+     * @param referenceMetaDataFiles Collection of files and descriptors over which to traverse.
+     */
+    public void setReferenceMetaDataFiles(Collection<RMDTriplet> referenceMetaDataFiles) {
+        this.referenceMetaDataFiles = referenceMetaDataFiles;
     }
 
     /**
@@ -613,15 +640,6 @@ public class GenomeAnalysisEngine {
         outputs.add(stub);
     }
 
-    /**
-     * Gets the tags associated with a given object.
-     * @param key Key for which to find a tag.
-     * @return List of tags associated with this key.
-     */
-    public List<String> getTags(Object key)  {
-        return parsingEngine.getTags(key);
-    }
-
     protected void initializeDataSources() {
         logger.info("Strictness is " + argCollection.strictnessLevel);
 
@@ -643,7 +661,7 @@ public class GenomeAnalysisEngine {
         sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
 
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
-        RMDTrackBuilder manager = new RMDTrackBuilder(referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
+        RMDTrackBuilder manager = new RMDTrackBuilder(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
         List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection);
         validateSuppliedReferenceOrderedData(tracks);
 
@@ -680,7 +698,7 @@ public class GenomeAnalysisEngine {
      * @return Sets of samples in the merged input SAM stream, grouped by readers
      */
     public List<Set<String>> getSamplesByReaders() {
-        List<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
+        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
 
         List<Set<String>> sample_sets = new ArrayList<Set<String>>(readers.size());
 
@@ -709,7 +727,7 @@ public class GenomeAnalysisEngine {
     public List<Set<String>> getLibrariesByReaders() {
 
 
-        List<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
+        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
 
         List<Set<String>> lib_sets = new ArrayList<Set<String>>(readers.size());
 
@@ -740,7 +758,7 @@ public class GenomeAnalysisEngine {
     public List<Set<String>> getMergedReadGroupsByReaders() {
 
 
-        List<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
+        Collection<SAMReaderID> readers = getReadsDataSource().getReaderIDs();
 
         List<Set<String>> rg_sets = new ArrayList<Set<String>>(readers.size());
 
@@ -814,7 +832,7 @@ public class GenomeAnalysisEngine {
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
         return new SAMDataSource(
-                unpackBAMFileList(argCollection.samFiles),
+                samReaderIDs,
                 genomeLocParser,
                 argCollection.useOriginalBaseQualities,
                 argCollection.strictnessLevel,
@@ -850,7 +868,8 @@ public class GenomeAnalysisEngine {
     private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(List<RMDTrack> rods) {
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
         for (RMDTrack rod : rods)
-            dataSources.add(new ReferenceOrderedDataSource(referenceDataSource.getReference().getSequenceDictionary(),
+            dataSources.add(new ReferenceOrderedDataSource(referenceMetaDataFiles,
+                                                           referenceDataSource.getReference().getSequenceDictionary(),
                                                            genomeLocParser,
                                                            argCollection.unsafe,
                                                            rod,
@@ -969,41 +988,6 @@ public class GenomeAnalysisEngine {
      */
     public ReadMetrics getCumulativeMetrics() {
         return readsDataSource == null ? null : readsDataSource.getCumulativeReadMetrics();
-    }
-
-    /**
-     * Unpack the bam files to be processed, given a list of files.  That list of files can
-     * itself contain entries which are lists of other files to be read (note: you cannot have lists of lists of lists)
-     *
-     * @param inputFiles a list of files that represent either bam files themselves, or a file containing a list of bam files to process
-     *
-     * @return a flattened list of the bam files provided
-     */
-    private List<SAMReaderID> unpackBAMFileList( List<File> inputFiles ) {
-        List<SAMReaderID> unpackedReads = new ArrayList<SAMReaderID>();
-        for( File inputFile: inputFiles ) {
-            if (inputFile.getName().toLowerCase().endsWith(".list") ) {
-                try {
-                    for(String fileName : new XReadLines(inputFile))
-                        unpackedReads.add(new SAMReaderID(new File(fileName),getTags(inputFile)));
-                }
-                catch( FileNotFoundException ex ) {
-                    throw new UserException.CouldNotReadInputFile(inputFile, "Unable to find file while unpacking reads", ex);
-                }
-            }
-            else if(inputFile.getName().toLowerCase().endsWith(".bam")) {
-                unpackedReads.add( new SAMReaderID(inputFile,getTags(inputFile)) );
-            }
-            else if(inputFile.getName().equals("-")) {
-                unpackedReads.add(new SAMReaderID(new File("/dev/stdin"),Collections.<String>emptyList()));
-            }
-            else {
-                throw new UserException.CommandLineException(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
-                        "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
-                        "of BAM files is in the correct format, update the extension, and try again.",inputFile.getName()));
-            }
-        }
-        return unpackedReads;
     }
 
     public SampleDataSource getSampleMetadata() {
