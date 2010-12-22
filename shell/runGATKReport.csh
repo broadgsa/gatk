@@ -2,8 +2,8 @@
 
 source /broad/tools/scripts/useuse
 
-# reuse Python-2.5
-# use R-2.11
+reuse Python-2.5
+use R-2.11
 
 setenv DIR /humgen/gsa-hpprojects/GATK/reports 
 setenv ARCHIVE_DIR $DIR/archive
@@ -15,18 +15,18 @@ setenv GATK ~/dev/GenomeAnalysisTK/trunk
 
 cd $DIR
 
-# echo "Archiving recently submitted jobs"
-# python $GATK/python/analyzeRunReports.py archive $DIR/submitted -o $ARCHIVE.gz -D
+echo "Archiving recently submitted jobs"
+python $GATK/python/analyzeRunReports.py archive $DIR/submitted -o $ARCHIVE.gz -D
 
-# echo "All runs"
-# python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --max_days 1
+echo "All runs"
+python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --max_days 1
 
-# echo "No-dev"
-# python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --max_days 1 --no-dev
-# python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE.gz --max_days 1 -E sting --no-dev
+echo "No-dev"
+python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --max_days 1 --no-dev
+python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE.gz --max_days 1 -E sting --no-dev
 
-#echo "Archive directory contents"
-#ls -ltrh $ARCHIVE_DIR
+echo "Archive directory contents"
+ls -ltrh $ARCHIVE_DIR
 
 foreach maxDays ( 7 30 360 ) 
     echo "Creating table"
