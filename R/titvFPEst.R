@@ -123,3 +123,17 @@ plotQsamples <- function(depths, Qs, Qmax) {
 
     legend("topleft", paste("Q", Qs), fill=cols)
 }
+
+pCallHetGivenDepth <- function(depth, nallelesToCall) {
+  depths = 0:(2*depth)   
+  pNoAllelesToCall = apply(as.matrix(depths),1,function(d) sum(dbinom(0:nallelesToCall,d,0.5)))
+  dpois(depths,depth)*(1-pNoAllelesToCall)
+}
+
+pCallHets <- function(depth, nallelesToCall) {
+  sum(pCallHetGivenDepth(depth,nallelesToCall))
+}
+
+pCallHetMultiSample <- function(depth, nallelesToCall, nsamples) {
+  1-(1-pCallHets(depth,nallelesToCall))^nsamples
+}
