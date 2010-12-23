@@ -34,11 +34,11 @@ public class ACTransitionTable extends VariantEvaluator {
     @DataPoint(name="Het transitions",description="AC[s] = AC[s-1]+1 and AC[s] = AC[s-1]+2 transitions")
     TransitionTable transitions = null;
     @DataPoint(name="Private permutations",description="Marginal increase in number of sites per sample")
-    PermutationCounts privatePermutations = new PermutationCounts(1,transitions);
+    PermutationCounts privatePermutations;
     @DataPoint(name="AC2 Permutations",description="Marginal increase in number of AC=2 sites, per sample")
-    PermutationCounts doubletonPermutations = new PermutationCounts(2,transitions);
+    PermutationCounts doubletonPermutations;
     @DataPoint(name="AC3 Permutations",description="Marginal increase in number of tripleton sites, per sample")
-    PermutationCounts tripletonPermutations = new PermutationCounts(3,transitions);
+    PermutationCounts tripletonPermutations;
 
     String[][] permutations;
 
@@ -73,13 +73,16 @@ public class ACTransitionTable extends VariantEvaluator {
                 for ( String sample : ordering ) {
                     if ( eval.getGenotype(sample).isHet() ) {
                         variant_ac++;
-                        transitions.hetTransitionCounts[order_offset][sample_offset][variant_ac-1]++;
+                        transitions.hetTransitionCounts[order_offset][variant_ac-1][sample_offset]++;
                     } else if ( eval.getGenotype(sample).isHomVar() ) {
                         variant_ac += 2;
-                        transitions.homTransitionCounts[order_offset][sample_offset][variant_ac-1]++;
+                        transitions.homTransitionCounts[order_offset][variant_ac-1][sample_offset]++;
                     } else {
                         // todo -- note, unclear how to treat no calls. Is the hom in het,ref,ref,nocall,hom sample 4 or 5?
-                        transitions.stationaryCounts[order_offset][sample_offset][variant_ac-1]++;
+                        // todo -- do we want to tabulate P[sample i is not variant | some variant]? This is just combinatorics so i left it out
+                        if ( variant_ac > 0 ) {
+                            transitions.stationaryCounts[order_offset][variant_ac-1][sample_offset]++;
+                        }
                     }
                     sample_offset ++;
                 }
@@ -133,13 +136,16 @@ public class ACTransitionTable extends VariantEvaluator {
         }
 
         transitions = new TransitionTable();
-        transitions.hetTransitionCounts = new int[NUM_PERMUTATIONS][permuteSamples.size()][2*permuteSamples.size()];
-        transitions.homTransitionCounts = new int[NUM_PERMUTATIONS][permuteSamples.size()][2*permuteSamples.size()];
-        transitions.stationaryCounts = new int[NUM_PERMUTATIONS][permuteSamples.size()][2*permuteSamples.size()];
+        transitions.hetTransitionCounts = new int[NUM_PERMUTATIONS][permuteSamples.size()*2][permuteSamples.size()];
+        transitions.homTransitionCounts = new int[NUM_PERMUTATIONS][permuteSamples.size()*2][permuteSamples.size()];
+        transitions.stationaryCounts = new int[NUM_PERMUTATIONS][permuteSamples.size()*2][permuteSamples.size()];
+        privatePermutations = new PermutationCounts(1,transitions);
+        doubletonPermutations = new PermutationCounts(2,transitions);
+        tripletonPermutations = new PermutationCounts(3,transitions);
     }
 
-    public void finalizeEvaluation() {
-        veWalker.getLogger().info(String.format("Skipped: %d",skipped));    
+    public void finalizeEvaluation() { // note: data points are null when this is called (wtf?)
+        veWalker.getLogger().info(String.format("Skipped: %d",skipped));
     }
 
     class TransitionTable implements TableType {
@@ -154,13 +160,13 @@ public class ACTransitionTable extends VariantEvaluator {
             if ( rowKeys == null ) {
                 rowKeys = new String[3*hetTransitionCounts[0].length];
                 for ( int i = 0; i < hetTransitionCounts[0].length; i ++ ) {
-                    rowKeys[i] = String.format("%s%d%s","Sample_",i,"_(het)");
+                    rowKeys[i] = String.format("%s%d%s","AC_",i,"_(het)");
                 }
                 for ( int i = 0; i < hetTransitionCounts[0].length; i ++ ) {
-                    rowKeys[i] = String.format("%s%d%s","Sample_",i,"_(hom)");
+                    rowKeys[hetTransitionCounts[0].length+i] = String.format("%s%d%s","AC_",i,"_(hom)");
                 }
                 for ( int i = 0; i < hetTransitionCounts[0].length; i ++ ) {
-                    rowKeys[i] = String.format("%s%d%s","Sample_",i,"_(ref)");
+                    rowKeys[2*hetTransitionCounts[0].length+i] = String.format("%s%d%s","AC_",i,"_(ref)");
                 }
             }
 
@@ -170,27 +176,31 @@ public class ACTransitionTable extends VariantEvaluator {
 
         public String getCell(int x, int y) {
             if ( countAverages == null ) {
-                countAverages = new String[hetTransitionCounts[0].length][hetTransitionCounts[0][0].length];
-                for ( int idx = 0; idx < hetTransitionCounts[0][0].length; idx ++) {
-                    for ( int sam = 0 ; sam < hetTransitionCounts[0].length; sam ++ ) {
+                countAverages = new String[hetTransitionCounts[0].length*3][hetTransitionCounts[0][0].length];
+                for ( int sam = 0; sam < hetTransitionCounts[0][0].length; sam ++) {
+                    for ( int idx = 0 ; idx < hetTransitionCounts[0].length; idx ++ ) {
                         int totalTimesAtACSample = 0;
                         int totalStationary = 0;
                         int totalAC1Shift = 0;
                         int totalAC2Shift = 0;
                         for ( int p = 0; p < hetTransitionCounts.length; p++ ) {
-                            totalStationary += stationaryCounts[p][sam][idx];
-                            totalAC2Shift += (idx+2 > hetTransitionCounts[0][0].length) ? 0 : homTransitionCounts[p][sam][idx+2];
-                            totalAC1Shift += (idx+1 > hetTransitionCounts[0][0].length) ? 0 : hetTransitionCounts[p][sam][idx+1];
+                            totalStationary += stationaryCounts[p][idx][sam];
+                            totalAC2Shift += (idx+2 >= hetTransitionCounts[0][0].length) ? 0 : homTransitionCounts[p][idx+2][sam];
+                            totalAC1Shift += (idx+1 >= hetTransitionCounts[0][0].length) ? 0 : hetTransitionCounts[p][idx+1][sam];
                         }
                         totalTimesAtACSample = totalStationary+totalAC1Shift+totalAC2Shift;
-                        countAverages[sam][idx] = String.format("%.4f", ((double) totalAC1Shift)/totalTimesAtACSample);
-                        countAverages[sam][hetTransitionCounts[0][0].length+idx] = String.format("%.4f", ((double) totalAC2Shift)/totalTimesAtACSample);
-                        countAverages[sam][hetTransitionCounts[0][0].length*2+idx] = String.format("%.4f",((double)totalStationary)/totalTimesAtACSample);
+                        countAverages[idx][sam] = formatProp(totalAC1Shift,totalTimesAtACSample);
+                        countAverages[hetTransitionCounts[0].length+idx][sam] = formatProp(totalAC2Shift,totalTimesAtACSample);
+                        countAverages[hetTransitionCounts[0].length*2+idx][sam] = formatProp(totalStationary,totalTimesAtACSample);
                     }
                 }
             }
 
-            return countAverages[x][y];
+            return countAverages[x][y] == null ? "0.00" : countAverages[x][y];
+        }
+
+        private String formatProp(int num, int denom) {
+            return (denom != 0) ? String.format("%.4f", ((double) num)/denom) : "0.0";
         }
 
         public String getName() { return "AC Transition Tables"; }
@@ -199,7 +209,7 @@ public class ACTransitionTable extends VariantEvaluator {
             if ( colKeys == null ) {
                 colKeys = new String[hetTransitionCounts[0][0].length];
                 for ( int ac = 0; ac < hetTransitionCounts[0][0].length; ac ++ ) {
-                    colKeys[ac] = String.format("AC%d",ac);
+                    colKeys[ac] = String.format("Sample_%d",ac);
                 }
             }
 
@@ -220,6 +230,7 @@ public class ACTransitionTable extends VariantEvaluator {
         }
 
         public String[] getRowKeys() {
+            //System.out.printf("%s%n",table);
             if ( rowNames == null ) {
                 rowNames = new String[table.stationaryCounts.length];
                 for ( int p = 0 ; p < rowNames.length; p ++ ) {
@@ -232,7 +243,7 @@ public class ACTransitionTable extends VariantEvaluator {
 
         public String[] getColumnKeys() {
             if ( colNames == null ) {
-                colNames = new String[table.stationaryCounts[0].length];
+                colNames = new String[table.stationaryCounts[0][0].length];
                 for ( int s = 0 ; s < colNames.length; s ++ ) {
                     colNames[s] = String.format("Sample%d",s+1);
                 }
@@ -242,12 +253,18 @@ public class ACTransitionTable extends VariantEvaluator {
         }
 
         public Integer getCell(int x, int y) {
-            return table.hetTransitionCounts[x][y][acToExtract-1] +
-                    ( (acToExtract > table.homTransitionCounts[0][0].length) ? 0 : table.homTransitionCounts[x][y][acToExtract-1]);
+            return table.hetTransitionCounts[x][acToExtract-1][y] +
+                    ( (acToExtract > table.homTransitionCounts[0][0].length) ? 0 : table.homTransitionCounts[x][acToExtract-1][y]);
         }
 
         public String getName() {
             return String.format("PermutationCountsAC%d",acToExtract);
+        }
+
+        public void init() {
+            getRowKeys();
+            getColumnKeys();
+            getCell(1,1);
         }
     }
 
