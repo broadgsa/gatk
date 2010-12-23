@@ -47,7 +47,7 @@ public class CreateTriggerTrack extends RodWalker<Integer, Integer> {
 
         Collection<VariantContext> VCs = tracker.getAllVariantContexts(ref);
         if ( VCs.size() > 0 )
-            writer.println(context.getLocation().getContig() + "\t" + context.getLocation().getStart() + "\t" + context.getLocation().getStart());
+            writer.println(context.getLocation().getContig() + "\t" + (context.getLocation().getStart()-1) + "\t" + context.getLocation().getStart());
 
         return 0;
     }
