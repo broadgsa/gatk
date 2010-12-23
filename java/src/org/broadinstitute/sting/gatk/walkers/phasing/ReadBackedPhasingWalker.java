@@ -201,7 +201,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         if (tracker == null)
             return null;
 
-        // todo -- potential performance problem here with unconditional, frequent writes to debug
         mostDownstreamLocusReached = ref.getLocus();
         if ( DEBUG ) logger.debug("map() at: " + mostDownstreamLocusReached);
 
@@ -217,7 +216,6 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 VariantAndReads vr = new VariantAndReads(vc, context);
                 unphasedSiteQueue.add(vr);
 
-                // todo -- potential performance problem here with unconditional, frequent writes to debug
                 if ( DEBUG ) logger.debug("Added variant to queue = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vr.variant));
             }
             else {
@@ -1008,12 +1006,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private void writeVCF(VariantContext vc) {
-        if ( samplesToPhase == null || (vc.isVariant() && vc.isNotFiltered())) // if we are only operating on specific samples, don't write out all sites, just those where the VC is variant
+        if ( vc.isNotFiltered() )
+	    //if ( samplesToPhase == null || (vc.isVariant() && vc.isNotFiltered())) // if we are only operating on specific samples, don't write out all sites, just those where the VC is variant
             WriteVCF.writeVCF(vc, writer, logger);
     }
 
     public static boolean processVariantInPhasing(VariantContext vc) {
-        return isUnfilteredBiallelicSNP(vc);
+        return vc.isNotFiltered() && ((vc.isSNP() && vc.isBiallelic()) || ! vc.isVariant()); // we can handle the non-variant case as well
+        //return isUnfilteredBiallelicSNP(vc);
     }
 
 
