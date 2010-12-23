@@ -792,7 +792,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         private List<GenotypeAndReadBases> trimWindow(List<GenotypeAndReadBases> listHetGenotypes, String sample, GenomeLoc phaseLocus) {
-            logger.warn("Trying to phase sample " + sample + " at locus " + phaseLocus + " within a window of " + cacheWindow + " bases yields " + listHetGenotypes.size() + " heterozygous sites to phase:\n" + toStringGRL(listHetGenotypes));
+            if ( DEBUG) logger.warn("Trying to phase sample " + sample + " at locus " + phaseLocus + " within a window of " + cacheWindow + " bases yields " + listHetGenotypes.size() + " heterozygous sites to phase:\n" + toStringGRL(listHetGenotypes));
 
             int prevSiteIndex = phasingSiteIndex - 1; // index of previous in listHetGenotypes
             int numToUse = maxPhaseSites - 2; // since always keep previous and current het sites!
@@ -815,7 +815,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             int stopIndex = phasingSiteIndex + useOnRight + 1; // put the index 1 past the desired index to keep
             phasingSiteIndex -= startIndex;
             listHetGenotypes = listHetGenotypes.subList(startIndex, stopIndex);
-            logger.warn("NAIVELY REDUCED to " + listHetGenotypes.size() + " sites:\n" + toStringGRL(listHetGenotypes));
+            if ( DEBUG ) logger.warn("NAIVELY REDUCED to " + listHetGenotypes.size() + " sites:\n" + toStringGRL(listHetGenotypes));
 
             return listHetGenotypes;
         }
@@ -1006,7 +1006,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private void writeVCF(VariantContext vc) {
-        if ( vc.isNotFiltered() )
+        if ( samplesToPhase == null || vc.isNotFiltered() )
 	    //if ( samplesToPhase == null || (vc.isVariant() && vc.isNotFiltered())) // if we are only operating on specific samples, don't write out all sites, just those where the VC is variant
             WriteVCF.writeVCF(vc, writer, logger);
     }
