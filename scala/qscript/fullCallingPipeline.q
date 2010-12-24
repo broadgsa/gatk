@@ -34,7 +34,7 @@ class fullCallingPipeline extends QScript {
   var target_titv: Float = _
 
   @Input(doc="per-sample downsampling level",shortName="dcov",required=false)
-  var downsampling_coverage = 300
+  var downsampling_coverage = 600
 
   @Input(doc="level of parallelism for IndelRealigner.  By default is set to 1.", shortName="cleanerScatter", required=false)
   var num_cleaner_scatter_jobs = 1
@@ -292,7 +292,7 @@ class fullCallingPipeline extends QScript {
     mergeIndels.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
     mergeIndels.rodBind = indelCallFiles
     mergeIndels.analysisName = base+"_MergeIndels"
-    mergeIndels.memoryLimit = Some(16)
+    mergeIndels.memoryLimit = Some(4)
     mergeIndels.jobQueue = qscript.big_mem_queue
 
     // 1b. genomically annotate SNPs -- no longer slow
