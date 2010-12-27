@@ -11,7 +11,6 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
-import org.broadinstitute.sting.utils.*;
 
 import java.util.*;
 
@@ -218,10 +217,21 @@ public class VariantContextAdaptors {
 
             HapMapFeature hapmap = (HapMapFeature)input;
 
-            // add the reference allele
             HashSet<Allele> alleles = new HashSet<Allele>();
-            Allele refAllele = Allele.create(ref.getBase(), true);
-            alleles.add(refAllele);
+            Allele refSNPAllele = Allele.create(ref.getBase(), true);
+            int deletionLength = -1;
+
+            Map<String, Allele> alleleMap = hapmap.getActualAlleles();
+            // use the actual alleles, if available
+            if ( alleleMap != null ) {
+                alleles.addAll(alleleMap.values());
+                Allele deletionAllele = alleleMap.get(HapMapFeature.INSERTION);  // yes, use insertion here (since we want the reference bases)
+                if ( deletionAllele != null && deletionAllele.isReference() )
+                    deletionLength = deletionAllele.length();
+            } else {
+                // add the reference allele for SNPs
+                alleles.add(refSNPAllele);
+            }
 
             // make a mapping from sample to genotype
             String[] samples = hapmap.getSampleIDs();
@@ -230,26 +240,42 @@ public class VariantContextAdaptors {
             Map<String, Genotype> genotypes = new HashMap<String, Genotype>(samples.length);
             for ( int i = 0; i < samples.length; i++ ) {
                 // ignore bad genotypes
-                if ( genotypeStrings[i].contains("N") || genotypeStrings[i].contains("I") || genotypeStrings[i].contains("D") )
+                if ( genotypeStrings[i].contains("N") )
                     continue;
 
                 String a1 = genotypeStrings[i].substring(0,1);
                 String a2 = genotypeStrings[i].substring(1);
-
-                Allele allele1 = Allele.create(a1, refAllele.basesMatch(a1));
-                Allele allele2 = Allele.create(a2, refAllele.basesMatch(a2));
-
                 ArrayList<Allele> myAlleles = new ArrayList<Allele>(2);
-                myAlleles.add(allele1);
-                myAlleles.add(allele2);
-                alleles.add(allele1);
-                alleles.add(allele2);
+
+                // use the mapping to actual alleles, if available
+                if ( alleleMap != null ) {
+                    myAlleles.add(alleleMap.get(a1));
+                    myAlleles.add(alleleMap.get(a2));
+                } else {
+                    // ignore indels (which we can't handle without knowing the alleles)
+                    if ( genotypeStrings[i].contains("I") || genotypeStrings[i].contains("D") )
+                        continue;
+
+                    Allele allele1 = Allele.create(a1, refSNPAllele.basesMatch(a1));
+                    Allele allele2 = Allele.create(a2, refSNPAllele.basesMatch(a2));
+
+                    myAlleles.add(allele1);
+                    myAlleles.add(allele2);
+                    alleles.add(allele1);
+                    alleles.add(allele2);
+                }
 
                 Genotype g = new Genotype(samples[i], myAlleles);
                 genotypes.put(samples[i], g);
             }
 
-            VariantContext vc = new VariantContext(name, hapmap.getChr(), hapmap.getStart(), hapmap.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, new HashMap<String, String>());
+            HashMap<String, Object> attrs = new HashMap<String, Object>(1);
+            attrs.put(VariantContext.ID_KEY, hapmap.getName());
+
+            long end = hapmap.getEnd();
+            if ( deletionLength > 0 )
+                end += deletionLength;
+            VariantContext vc = new VariantContext(name, hapmap.getChr(), hapmap.getStart(), end, alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs);
             return vc;
        }
     }
