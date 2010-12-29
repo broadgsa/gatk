@@ -193,15 +193,21 @@ class RecordAsTable(StageHandler):
                 val = parsed[field]
                 if val == None:
                     if OPTIONS.verbose: print >> sys.stderr, 'field', field, 'is missing in', parsed['id']
-                elif val.find(" ") != -1:
-                    val = "\"" + val + "\""
+                else:
+                    val = val.replace('"',"'")
+#                    if val.find("\t") != -1:
+#                        if OPTIONS.verbose: print >> sys.stderr, 'Warning -- val', val, 'contains tabs, droping field', field
+#                        raise Error
+                        #val = "value contained tabs, dropped"
+                    if val.find(" ") != -1:
+                        val = "\"" + val + "\""
             return val
         try:
             print >> self.out, "\t".join([ oneField(field) for field in self.decoder.fields ])
         except:
+            print 'Failed to convert to table ', parsed
             pass
-            #print 'Failed to convert to table ', parsed
-
+            
 addHandler('table', RecordAsTable)
 
 class CountRecords(StageHandler):
