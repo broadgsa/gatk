@@ -29,10 +29,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 
 /**
@@ -167,5 +164,16 @@ public class ReadMetaDataTracker {
      */
     public Map<Integer, Collection<GATKFeature>> getContigOffsetMapping(Class cl) {
         return createGenomeLocAlignment(record, mapping, cl, null);
+    }
+
+    /**
+     * get the list of all the RODS overlapping this read, without any information about their position
+     * @return a Collection (no order guaranteed), of all the RODs covering this read
+     */
+    public List<GATKFeature> getAllCoveringRods() {
+        List<GATKFeature> ret = new ArrayList<GATKFeature>();
+        for (Map.Entry<Integer, RODMetaDataContainer> entry : mapping.entrySet())
+            ret.addAll(entry.getValue().getSet());
+        return ret;
     }
 }
