@@ -208,7 +208,7 @@ public class UnifiedGenotyperEngine {
             HashMap<String, Object> attributes = new HashMap<String, Object>();
             GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods(), VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
             attributes.put(VCFConstants.DEPTH_KEY, GL.getDepth());
-            attributes.put(likelihoods.getKey(), likelihoods.getAsString());
+            attributes.put(likelihoods.getKey(), likelihoods);
 
             genotypes.put(GL.getSample(), new Genotype(GL.getSample(), noCall, Genotype.NO_NEG_LOG_10PERROR, null, attributes, false));
         }
