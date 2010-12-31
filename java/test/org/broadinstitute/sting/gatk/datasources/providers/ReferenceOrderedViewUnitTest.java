@@ -64,12 +64,14 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
      */
     @Test
     public void testNoBindings() {
+        System.out.printf("Starting testNoBindings%n");
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));
         LocusShardDataProvider provider = new LocusShardDataProvider(shard, null, genomeLocParser, shard.getGenomeLocs().get(0), null, seq, Collections.<ReferenceOrderedDataSource>emptyList());
         ReferenceOrderedView view = new ManagingReferenceOrderedView( provider );
 
         RefMetaDataTracker tracker = view.getReferenceOrderedDataAtLocus(genomeLocParser.createGenomeLoc("chrM",10));
         Assert.assertEquals(tracker.getAllRods().size(), 0, "The tracker should not have produced any data");
+        System.out.printf("Ending testNoBindings%n");
     }
 
     /**
@@ -77,6 +79,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
      */
     @Test
     public void testSingleBinding() {
+        System.out.printf("Starting testSingleBinding%n");
         String fileName = testDir + "TabularDataTest.dat";
         RMDTriplet triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE);
         ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(triplet,builder,seq.getSequenceDictionary(),genomeLocParser,false);
@@ -92,6 +95,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         Assert.assertEquals(datum.get("COL1"),"C","datum parameter for COL1 is incorrect");
         Assert.assertEquals(datum.get("COL2"),"D","datum parameter for COL2 is incorrect");
         Assert.assertEquals(datum.get("COL3"),"E","datum parameter for COL3 is incorrect");
+        System.out.printf("Ending testSingleBinding%n");
     }
 
     /**
@@ -99,6 +103,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
      */
     @Test
     public void testMultipleBinding() {
+        System.out.printf("Starting testMultipleBinding%n");
         File file = new File(testDir + "TabularDataTest.dat");
 
         RMDTriplet testTriplet1 = new RMDTriplet("tableTest1","Table",file.getAbsolutePath(),RMDStorageType.FILE);
@@ -124,5 +129,6 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
         Assert.assertEquals(datum2.get("COL1"),"C","datum2 parameter for COL1 is incorrect");
         Assert.assertEquals(datum2.get("COL2"),"D","datum2 parameter for COL2 is incorrect");
         Assert.assertEquals(datum2.get("COL3"),"E","datum2 parameter for COL3 is incorrect");
+        System.out.printf("Ending testMultipleBinding%n");
     }
 }
