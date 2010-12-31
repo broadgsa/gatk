@@ -60,13 +60,10 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
 
     @Override
     public Object readHeader(LineReader reader) {
-        System.out.printf("  TableCodec.readHeader:%n  ");
-        new Exception().printStackTrace(System.out);
         String line = "";
         try {
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith(headerDelimiter)) {
-                    System.out.printf("  Line w/ header delimiter: %s%n",line);
                     if (header.size() > 0) throw new IllegalStateException("Input table file seems to have two header lines.  The second is = " + line);
                     String spl[] = line.split(delimiterRegex);
                     for (String s : spl) header.add(s);

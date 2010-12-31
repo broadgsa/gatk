@@ -237,14 +237,12 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         FeatureSource featureSource = null;
         SAMSequenceDictionary sequenceDictionary = null;
 
-        FeatureCodec codec = createCodec(targetClass, name);
-
         // Detect whether or not this source should be indexed.
         boolean canBeIndexed = (storageType == RMDStorageType.FILE);
 
         if(canBeIndexed) {
             try {
-                Index index = loadIndex(inputFile, codec);
+                Index index = loadIndex(inputFile, createCodec(targetClass, name));
                 try { logger.info(String.format("  Index for %s has size in bytes %d", inputFile, Sizeof.getObjectGraphSize(index))); }
                 catch (ReviewedStingException e) { }
 
@@ -257,7 +255,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
                     sequenceDictionary = getSequenceDictionaryFromProperties(index);
                 }
 
-                featureSource = new BasicFeatureSource(inputFile.getAbsolutePath(), index, codec);
+                featureSource = new BasicFeatureSource(inputFile.getAbsolutePath(), index, createCodec(targetClass, name));
             }
             catch (TribbleException e) {
                 throw new UserException(e.getMessage());
@@ -267,7 +265,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
             }
         }
         else {
-            featureSource = BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(),codec,false);
+            featureSource = BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(),createCodec(targetClass, name),false);
         }
 
         return new Pair<FeatureSource,SAMSequenceDictionary>(featureSource,sequenceDictionary);
