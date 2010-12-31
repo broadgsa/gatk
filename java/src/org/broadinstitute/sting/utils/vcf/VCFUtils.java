@@ -57,9 +57,8 @@ public class VCFUtils {
             if ( rodNames != null && !rodNames.contains(source.getName()) )
                 continue;
 
-            RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getHeader() != null && rod.getHeader() instanceof VCFHeader )
-                data.put(rod.getName(), (VCFHeader)rod.getHeader());
+            if ( source.getHeader() != null && source.getHeader() instanceof VCFHeader )
+                data.put(source.getName(), (VCFHeader)source.getHeader());
         }
 
         return data;
@@ -96,9 +95,8 @@ public class VCFUtils {
             if ( rodNames != null && !rodNames.contains(source.getName()) )
                 continue;
 
-            RMDTrack rod = source.getReferenceOrderedData();
-            if ( rod.getRecordType().equals(VariantContext.class)) {
-                VCFHeader header = (VCFHeader)rod.getHeader();
+            if ( source.getRecordType().equals(VariantContext.class)) {
+                VCFHeader header = (VCFHeader)source.getHeader();
                 if ( header != null )
                     fields.addAll(header.getMetaData());
             }

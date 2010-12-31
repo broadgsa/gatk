@@ -86,11 +86,10 @@ public class VCF4WriterTestWalker extends RodWalker<Integer, Integer> {
         vcfWriter = new StandardVCFWriter(new File(OUTPUT_FILE));
         VCFHeader header = null;
         for( final ReferenceOrderedDataSource source : dataSources ) {
-            final RMDTrack rod = source.getReferenceOrderedData();
-            if(rod.getName().equalsIgnoreCase(INPUT_ROD_NAME)) {
+            if(source.getName().equalsIgnoreCase(INPUT_ROD_NAME)) {
 
                 try {
-                    AsciiLineReader lineReader = new AsciiLineReader(new FileInputStream(rod.getFile().getAbsolutePath()));
+                    AsciiLineReader lineReader = new AsciiLineReader(new FileInputStream(source.getFile().getAbsolutePath()));
                     header = (VCFHeader)vcf4codec.readHeader(lineReader);
                     out.printf("Read %d header lines%n", header.getMetaData().size());
                 }

@@ -33,14 +33,12 @@ import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrackCreationException;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -53,6 +51,7 @@ import org.broadinstitute.sting.utils.instrumentation.Sizeof;
 
 import java.io.*;
 import java.util.*;
+
 
 
 /**
@@ -146,45 +145,48 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     /**
      * create a RMDTrack of the specified type
      *
-     * @param targetClass the target class of track
-     * @param name        what to call the track
-     * @param inputFile   the input file
+     * @param fileDescriptor a description of the type of track to build.
      *
      * @return an instance of the track
      * @throws RMDTrackCreationException
      *          if we don't know of the target class or we couldn't create it
      */
-    public RMDTrack createInstanceOfTrack(Class targetClass, String name, File inputFile) throws RMDTrackCreationException {
+    public RMDTrack createInstanceOfTrack(RMDTriplet fileDescriptor) throws RMDTrackCreationException {
+        String name = fileDescriptor.getName();
+        File inputFile = new File(fileDescriptor.getFile());
+
+        Class featureCodecClass = getAvailableTrackNamesAndTypes().get(fileDescriptor.getType().toUpperCase());
+        if (featureCodecClass == null)
+            throw new UserException.BadArgumentValue("-B",fileDescriptor.getType());
+
         // return a feature reader track
-        Pair<FeatureSource, SAMSequenceDictionary> pair = createFeatureReader(targetClass, name, inputFile);
-        if (pair == null) throw new UserException.CouldNotReadInputFile(inputFile, "Unable to make the feature reader for input file");
-        return new RMDTrack(targetClass, name, inputFile, pair.first, pair.second, genomeLocParser, createCodec(targetClass,name));
-    }
-
-    /**
-     * create a tribble feature reader class, given the target class and the input file
-     * @param targetClass the target class, of a Tribble Codec type
-     * @param inputFile the input file, that corresponds to the feature type
-     * @return a pair of <BasicFeatureSource, SAMSequenceDictionary>
-     */
-    public Pair<FeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, File inputFile) {
-        return createFeatureReader(targetClass, "anonymous", inputFile);
-    }
-
-    /**
-     * create a feature reader of the specified type
-     * @param targetClass the target codec type
-     * @param name the target name
-     * @param inputFile the input file to create the track from (of the codec type)
-     * @return the FeatureReader instance
-     */
-    public Pair<FeatureSource, SAMSequenceDictionary> createFeatureReader(Class targetClass, String name, File inputFile) {
         Pair<FeatureSource, SAMSequenceDictionary> pair;
         if (inputFile.getAbsolutePath().endsWith(".gz"))
-            pair = createBasicFeatureSourceNoAssumedIndex(targetClass, name, inputFile);
+            pair = createTabixIndexedFeatureSource(featureCodecClass, name, inputFile);
         else
-            pair = getFeatureSource(targetClass, name, inputFile);
-        return pair;
+            pair = getFeatureSource(featureCodecClass, name, inputFile, fileDescriptor.getStorageType());
+        if (pair == null) throw new UserException.CouldNotReadInputFile(inputFile, "Unable to make the feature reader for input file");
+        return new RMDTrack(featureCodecClass, name, inputFile, pair.first, pair.second, genomeLocParser, createCodec(featureCodecClass,name));
+    }
+
+    /**
+     * Convenience method simplifying track creation.  Assume unnamed track based on a file rather than a stream.
+     * @param targetClass Type of Tribble class to build.
+     * @param inputFile Input file type to use.
+     * @return An RMDTrack, suitable for accessing reference metadata.
+     */
+    public RMDTrack createInstanceOfTrack(Class targetClass, File inputFile) {
+        // TODO: Update RMDTriplet to contain an actual class object rather than a name to avoid these gymnastics.
+        String typeName = null;
+        for(Map.Entry<String,Class> trackType: getAvailableTrackNamesAndTypes().entrySet()) {
+            if(trackType.getValue().equals(targetClass))
+                typeName = trackType.getKey();
+        }
+
+        if(typeName == null)
+            throw new ReviewedStingException("Unable to find type name for class " + targetClass.getName());
+
+        return createInstanceOfTrack(new RMDTriplet("anonymous",typeName,inputFile.getAbsolutePath(),RMDStorageType.FILE));
     }
 
     /**
@@ -197,7 +199,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param inputFile the file to load
      * @return a feature reader implementation
      */
-    private Pair<FeatureSource, SAMSequenceDictionary> createBasicFeatureSourceNoAssumedIndex(Class targetClass, String name, File inputFile) {
+    private Pair<FeatureSource, SAMSequenceDictionary> createTabixIndexedFeatureSource(Class targetClass, String name, File inputFile) {
         // we might not know the index type, try loading with the default reader constructor
         logger.info("Attempting to blindly load " + inputFile + " as a tabix indexed file");
         try {
@@ -213,7 +215,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param name the name to assign this codec
      * @return the feature codec itself
      */
-    private FeatureCodec createCodec(Class targetClass, String name) {
+    public FeatureCodec createCodec(Class targetClass, String name) {
         FeatureCodec codex = this.createByType(targetClass);
         if ( codex instanceof NameAwareCodec )
             ((NameAwareCodec)codex).setName(name);
@@ -227,33 +229,48 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
      * @param targetClass the target class
      * @param name the name of the codec
      * @param inputFile the tribble file to parse
+     * @param storageType How the RMD is streamed into the input file.
      * @return the input file as a FeatureReader
      */
-    private Pair<FeatureSource, SAMSequenceDictionary> getFeatureSource(Class targetClass, String name, File inputFile) {
-        Pair<FeatureSource, SAMSequenceDictionary> reader;
-        try {
-            Index index = loadIndex(inputFile, createCodec(targetClass, name));
-            try { logger.info(String.format("  Index for %s has size in bytes %d", inputFile, Sizeof.getObjectGraphSize(index))); }
-            catch ( ReviewedStingException e) { }
+    private Pair<FeatureSource, SAMSequenceDictionary> getFeatureSource(Class targetClass, String name, File inputFile, RMDStorageType storageType) {
+        // Feature source and sequence dictionary to use as the ultimate reference
+        FeatureSource featureSource = null;
+        SAMSequenceDictionary sequenceDictionary = null;
 
-            SAMSequenceDictionary dictFromIndex = getSequenceDictionaryFromProperties(index);
+        FeatureCodec codec = createCodec(targetClass, name);
 
-            // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
-            if (dictFromIndex.size() == 0 && dict != null) {
-                File indexFile = Tribble.indexFile(inputFile);
-                setIndexSequenceDictionary(inputFile,index,dict,indexFile,true);
-                dictFromIndex = getSequenceDictionaryFromProperties(index);
+        // Detect whether or not this source should be indexed.
+        boolean canBeIndexed = (storageType == RMDStorageType.FILE);
+
+        if(canBeIndexed) {
+            try {
+                Index index = loadIndex(inputFile, codec);
+                try { logger.info(String.format("  Index for %s has size in bytes %d", inputFile, Sizeof.getObjectGraphSize(index))); }
+                catch (ReviewedStingException e) { }
+
+                sequenceDictionary = getSequenceDictionaryFromProperties(index);
+
+                // if we don't have a dictionary in the Tribble file, and we've set a dictionary for this builder, set it in the file if they match
+                if (sequenceDictionary.size() == 0 && dict != null) {
+                    File indexFile = Tribble.indexFile(inputFile);
+                    setIndexSequenceDictionary(inputFile,index,dict,indexFile,true);
+                    sequenceDictionary = getSequenceDictionaryFromProperties(index);
+                }
+
+                featureSource = new BasicFeatureSource(inputFile.getAbsolutePath(), index, codec);
             }
-
-            FeatureSource source = new BasicFeatureSource(inputFile.getAbsolutePath(), index, createCodec(targetClass, name));
-            //source = new CachingFeatureSource(source, 100, 100000);
-            reader = new Pair<FeatureSource, SAMSequenceDictionary>(source, dictFromIndex);
-        } catch (TribbleException e) {
-            throw new UserException(e.getMessage());
-        } catch (IOException e) {
-            throw new UserException.CouldNotCreateOutputFile(inputFile, "unable to write Tribble index", e);
+            catch (TribbleException e) {
+                throw new UserException(e.getMessage());
+            }
+            catch (IOException e) {
+                throw new UserException.CouldNotCreateOutputFile(inputFile, "unable to write Tribble index", e);
+            }
         }
-        return reader;
+        else {
+            featureSource = BasicFeatureSource.getFeatureSource(inputFile.getAbsolutePath(),codec,false);
+        }
+
+        return new Pair<FeatureSource,SAMSequenceDictionary>(featureSource,sequenceDictionary);
     }
 
     /**
@@ -400,29 +417,6 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
                 names.add(availableTrackRecordType.getKey());
         }
         return names;
-    }
-
-    /**
-     * find the associated reference meta data
-     *
-     * @param argCollection the input arguments to the GATK.
-     * @param engine the GATK engine to bind the tracks to
-     *
-     * @return a list of RMDTracks, one for each -B option
-     */
-    public List<RMDTrack> getReferenceMetaDataSources(GenomeAnalysisEngine engine, GATKArgumentCollection argCollection) {
-        // try and make the tracks given their requests
-        // create of live instances of the tracks
-        List<RMDTrack> tracks = new ArrayList<RMDTrack>();
-
-        // create instances of each of the requested types
-        for (RMDTriplet trip : inputs) {
-            Class featureCodecClass = getAvailableTrackNamesAndTypes().get(trip.getType().toUpperCase());
-            if (featureCodecClass == null)
-                throw new UserException.BadArgumentValue("-B",trip.getType());
-            tracks.add(createInstanceOfTrack(featureCodecClass, trip.getName(), new File(trip.getFile())));
-        }
-        return tracks;
     }
 
     // ---------------------------------------------------------------------------------------------------------

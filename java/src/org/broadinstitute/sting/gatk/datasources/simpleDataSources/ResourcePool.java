@@ -30,7 +30,7 @@ abstract class ResourcePool <T,I extends Iterator> {
     /**
      * Sequence dictionary.
      */
-    protected final SAMSequenceDictionary sequenceDictionary;
+    protected final SAMSequenceDictionary referenceSequenceDictionary;
 
     /**
      * Builder/parser for GenomeLocs.
@@ -52,8 +52,8 @@ abstract class ResourcePool <T,I extends Iterator> {
      */
     private Map<I,T> resourceAssignments = new HashMap<I,T>();
 
-    protected ResourcePool(SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser) {
-        this.sequenceDictionary = sequenceDictionary;
+    protected ResourcePool(SAMSequenceDictionary referenceSequenceDictionary,GenomeLocParser genomeLocParser) {
+        this.referenceSequenceDictionary = referenceSequenceDictionary;
         this.genomeLocParser = genomeLocParser;
     }
 

@@ -87,7 +87,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             ReferenceOrderedData snp_mask;
             if ( SNP_MASK.contains(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME)) {
                 RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser(),getToolkit().getArguments().unsafe);
-                CloseableIterator<GATKFeature> iter = builder.createInstanceOfTrack(DbSNPCodec.class,"snp_mask",new java.io.File(SNP_MASK)).getIterator();
+                CloseableIterator<GATKFeature> iter = builder.createInstanceOfTrack(DbSNPCodec.class,new java.io.File(SNP_MASK)).getIterator();
                 snpMaskIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser(),iter);
                 
             } else {

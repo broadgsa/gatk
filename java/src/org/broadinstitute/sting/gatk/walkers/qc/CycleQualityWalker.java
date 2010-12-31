@@ -164,7 +164,7 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
         if ( HTML ) {
             out.println("<h3>Cycle Quality QC</h3>\n");
             out.println("File(s) analyzed: <br>");
-            for ( File f : getToolkit().getArguments().samFiles) out.println(f.toString()+"<br>");
+            for ( String fileName : getToolkit().getArguments().samFiles) out.println(fileName+"<br>");
             out.println("<br>");
         }
         if ( HTML ) out.println("<br><br>");

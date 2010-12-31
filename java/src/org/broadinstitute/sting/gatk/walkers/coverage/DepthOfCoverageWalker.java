@@ -26,13 +26,13 @@
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
 import net.sf.samtools.SAMReadGroupRecord;
-import org.broad.tribble.FeatureSource;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.*;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -44,7 +44,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -406,15 +405,9 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
         RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                                                       getToolkit().getGenomeLocParser(),
                                                       getToolkit().getArguments().unsafe);
-        FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,refSeqGeneList).first;
-        try {
-            return new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
-                                           getToolkit().getGenomeLocParser(),
-                                           new FeatureToGATKFeatureIterator(getToolkit().getGenomeLocParser(),
-                                           refseq.iterator(),"refseq"));
-        } catch (IOException e) {
-            throw new UserException.CouldNotReadInputFile(refSeqGeneList, "Unable to open file", e);
-        }
+        RMDTrack refseq = builder.createInstanceOfTrack(RefSeqCodec.class,refSeqGeneList);
+        return new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                getToolkit().getGenomeLocParser(),refseq.getIterator());
     }
 
     private void printTargetSummary(PrintStream output, Pair<?,DepthOfCoverageStats> intervalStats) {

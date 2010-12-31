@@ -110,7 +110,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
         List<ReferenceOrderedDataSource> dataSources = getToolkit().getRodDataSources();
         for ( ReferenceOrderedDataSource source : dataSources ) {
-            if ( source.getReferenceOrderedData().getName().equals("mask") ) {
+            if ( source.getName().equals("mask") ) {
                 hInfo.add(new VCFFilterHeaderLine(MASK_NAME, "Overlaps a user-input mask"));
                 break;
             }

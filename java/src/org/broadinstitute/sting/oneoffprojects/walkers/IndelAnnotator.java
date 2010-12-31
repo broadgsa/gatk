@@ -10,18 +10,16 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 public class IndelAnnotator extends RodWalker<Integer,Long> {
@@ -38,15 +36,10 @@ public class IndelAnnotator extends RodWalker<Integer,Long> {
             RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                                                           getToolkit().getGenomeLocParser(),
                                                           getToolkit().getArguments().unsafe);
-            FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
+            RMDTrack refseq = builder.createInstanceOfTrack(RefSeqCodec.class,new File(RefseqFileName));
 
-            try {
-                refseqIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
-                                                         getToolkit().getGenomeLocParser(),
-                                                         new FeatureToGATKFeatureIterator(getToolkit().getGenomeLocParser(),refseq.iterator(),"refseq"));
-            } catch (IOException e) {
-                throw new UserException.CouldNotReadInputFile(RefseqFileName, e);
-            }
+            refseqIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                    getToolkit().getGenomeLocParser(),refseq.getIterator());
 
             logger.info("Using RefSeq annotations from " + RefseqFileName);
         }

@@ -69,7 +69,7 @@ public class GATKArgumentCollection {
     // parameters and their defaults
     @ElementList(required = false)
     @Input(fullName = "input_file", shortName = "I", doc = "SAM or BAM file(s)", required = false)
-    public List<File> samFiles = new ArrayList<File>();
+    public List<String> samFiles = new ArrayList<String>();
 
     // parameters and their defaults
     @ElementList(required = false)

@@ -33,6 +33,15 @@ public class SAMReaderID {
     }
 
     /**
+     * Creates an identifier for a SAM file based on read.
+     * @param samFileName The source filename for SAM data.
+     * @param tags tags to use when creating a reader ID.
+     */
+    public SAMReaderID(String samFileName, List<String> tags) {
+        this(new File(samFileName),tags);        
+    }
+
+    /**
      * Gets the tags associated with the given BAM file.
      * @return A collection of the tags associated with this file.
      */

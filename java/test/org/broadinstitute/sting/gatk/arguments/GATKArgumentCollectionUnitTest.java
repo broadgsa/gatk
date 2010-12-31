@@ -76,8 +76,8 @@ public class GATKArgumentCollectionUnitTest extends BaseTest {
         wArgs.put("wArgType3", "Arg3");
         collect.walkerArgs = wArgs;
 
-        List<File> input = new ArrayList<File>();
-        input.add(new File("test.file"));
+        List<String> input = new ArrayList<String>();
+        input.add("test.file");
         collect.samFiles = input;
         collect.strictnessLevel = SAMFileReader.ValidationStringency.STRICT;
         collect.referenceFile = new File("referenceFile".toLowerCase());

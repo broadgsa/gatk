@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.*;
-import org.broad.tribble.FeatureSource;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.util.variantcontext.Genotype;
@@ -35,9 +34,10 @@ import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
@@ -56,7 +56,6 @@ import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.commandline.Hidden;
 
 import java.io.*;
@@ -228,8 +227,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         for ( Map.Entry<String, String> commandLineArg : commandLineArgs.entrySet() )
             headerInfo.add(new VCFHeaderLine(String.format("IGv2_%s", commandLineArg.getKey()), commandLineArg.getValue()));
         // also, the list of input bams
-        for ( File file : getToolkit().getArguments().samFiles )
-            headerInfo.add(new VCFHeaderLine("IGv2_bam_file_used", file.getName()));
+        for ( String fileName : getToolkit().getArguments().samFiles )
+            headerInfo.add(new VCFHeaderLine("IGv2_bam_file_used", fileName));
 
         return headerInfo;
     }
@@ -251,15 +250,11 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 			RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                                                           getToolkit().getGenomeLocParser(),
                                                           getToolkit().getArguments().unsafe);
-            FeatureSource refseq = builder.createFeatureReader(RefSeqCodec.class,new File(RefseqFileName)).first;
+            RMDTrack refseq = builder.createInstanceOfTrack(RefSeqCodec.class,new File(RefseqFileName));
 
-            try {
-                refseqIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
-                                                         getToolkit().getGenomeLocParser(),
-                                                         new FeatureToGATKFeatureIterator(getToolkit().getGenomeLocParser(),refseq.iterator(),"refseq"));
-            } catch (IOException e) {
-                throw new UserException.CouldNotReadInputFile(new File(RefseqFileName), "Write failed", e);
-            }
+            refseqIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                     getToolkit().getGenomeLocParser(),
+                                                     refseq.getIterator());
 		}
 
 		if ( refseqIterator == null ) logger.info("No gene annotations available");

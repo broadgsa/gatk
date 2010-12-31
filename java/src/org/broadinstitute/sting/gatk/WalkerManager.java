@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.filter.SamRecordFilter;
 import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -236,7 +237,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param rod Source to check.
      * @return True if the walker forbids this data type.  False otherwise.
      */
-    public static boolean isAllowed(Class<? extends Walker> walkerClass, RMDTrack rod) {
+    public static boolean isAllowed(Class<? extends Walker> walkerClass, ReferenceOrderedDataSource rod) {
         Allows allowsDataSource = getWalkerAllowed(walkerClass);
 
         // Allows is less restrictive than requires.  If an allows
@@ -263,7 +264,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param rod Source to check.
      * @return True if the walker forbids this data type.  False otherwise.
      */
-    public static boolean isAllowed(Walker walker, RMDTrack rod) {
+    public static boolean isAllowed(Walker walker, ReferenceOrderedDataSource rod) {
         return isAllowed(walker.getClass(), rod);
     }
 

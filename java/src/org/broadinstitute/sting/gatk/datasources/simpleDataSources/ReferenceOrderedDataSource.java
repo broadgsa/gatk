@@ -1,25 +1,20 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import net.sf.samtools.SAMSequenceDictionary;
-import org.broad.tribble.FeatureSource;
-import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
-import org.broadinstitute.sting.gatk.refdata.utils.FeatureToGATKFeatureIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
+import java.lang.reflect.Type;
 import java.util.List;
 /**
  * User: hanna
@@ -41,7 +36,22 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
     /**
      * The reference-ordered data itself.
      */
-    private final RMDTrack rod;
+    private final RMDTriplet fileDescriptor;
+
+    /**
+     * The header associated with this VCF, if any.
+     */
+    private final Object header;
+
+    /**
+     * The private sequence dictionary associated with this RMD.
+     */
+    private final SAMSequenceDictionary sequenceDictionary;
+
+    /**
+     * The builder to use when constructing new reference-ordered data readers.
+     */
+    private final RMDTrackBuilder builder;
 
     /**
      * A pool of iterators for navigating through the genome.
@@ -50,21 +60,28 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
 
     /**
      * Create a new reference-ordered data source.
-     * @param rod the reference ordered data
      */
-    public ReferenceOrderedDataSource(Collection<RMDTriplet> refMetaDataDescriptors,
-                                      SAMSequenceDictionary sequenceDictionary,
+    public ReferenceOrderedDataSource(RMDTriplet fileDescriptor,
+                                      RMDTrackBuilder builder,
+                                      SAMSequenceDictionary referenceSequenceDictionary,
                                       GenomeLocParser genomeLocParser,
-                                      ValidationExclusion.TYPE validationExclusionType,
-                                      RMDTrack rod, boolean flashbackData ) {
-        this.rod = rod;
-        if (rod.supportsQuery())
-            iteratorPool = new ReferenceOrderedQueryDataPool(sequenceDictionary,
-                                                             genomeLocParser,
-                                                             new RMDTrackBuilder(refMetaDataDescriptors,sequenceDictionary,genomeLocParser,validationExclusionType),
-                                                             rod);
-        else
-            iteratorPool = new ReferenceOrderedDataPool(sequenceDictionary,genomeLocParser,rod, flashbackData );
+                                      boolean flashbackData ) {
+        this.fileDescriptor = fileDescriptor;
+        this.builder = builder;
+        if (fileDescriptor.getStorageType() != RMDTriplet.RMDStorageType.STREAM) {
+            iteratorPool = new ReferenceOrderedQueryDataPool(fileDescriptor,
+                                                             builder,
+                                                             referenceSequenceDictionary,
+                                                             genomeLocParser);
+            header = ((ReferenceOrderedQueryDataPool)iteratorPool).getHeader();
+            this.sequenceDictionary = ((ReferenceOrderedQueryDataPool)iteratorPool).getSequenceDictionary();
+        }
+        else {
+            RMDTrack track = builder.createInstanceOfTrack(fileDescriptor);
+            header = track.getHeader();
+            this.sequenceDictionary = track.getSequenceDictionary();
+            iteratorPool = new ReferenceOrderedDataPool(track,referenceSequenceDictionary,genomeLocParser,flashbackData);
+        }
     }
 
     /**
@@ -72,15 +89,43 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
      * @return Name of the underlying rod.
      */
     public String getName() {
-        return this.rod.getName(); 
+        return fileDescriptor.getName();
+    }
+
+    public Class getType() {
+        return builder.getAvailableTrackNamesAndTypes().get(fileDescriptor.getType().toUpperCase());                
+    }
+
+    public Class getRecordType() {
+        return builder.createCodec(getType(),getName()).getFeatureType();
+    }
+
+    public File getFile() {
+        return new File(fileDescriptor.getFile());
+    }
+
+    public Object getHeader() {
+        return header;    
     }
 
     /**
-     * Return the underlying reference-ordered data.
-     * @return the underlying rod.
+     * Retrieves the sequence dictionary created by this ROD.
+     * @return
      */
-    public RMDTrack getReferenceOrderedData() {
-        return this.rod;
+    public SAMSequenceDictionary getSequenceDictionary() {
+        return sequenceDictionary;
+    }
+
+    /**
+     * helper function for determining if we are the same track based on name and record type
+     *
+     * @param name the name to match
+     * @param type the type to match
+     *
+     * @return true on a match, false if the name or type is different
+     */
+    public boolean matchesNameAndRecordType(String name, Type type) {
+        return (name.equals(fileDescriptor.getName()) && (type.getClass().isAssignableFrom(getType().getClass())));
     }
 
     /**
@@ -120,12 +165,12 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
  * A pool of reference-ordered data iterators.
  */
 class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIterator, LocationAwareSeekableRODIterator> {
-    private final RMDTrack rod;
+    private final RMDTrack track;
     boolean flashbackData = false;
-    public ReferenceOrderedDataPool( SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser, RMDTrack rod, boolean flashbackData ) {
+    public ReferenceOrderedDataPool( RMDTrack track, SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser, boolean flashbackData ) {
         super(sequenceDictionary,genomeLocParser);
+        this.track = track;
         this.flashbackData = flashbackData;
-        this.rod = rod;
     }
 
     /**
@@ -134,7 +179,7 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
      * @return The newly created resource.
      */
     public LocationAwareSeekableRODIterator createNewResource() {
-        LocationAwareSeekableRODIterator iter = new SeekableRODIterator(sequenceDictionary,genomeLocParser,rod.getIterator());
+        LocationAwareSeekableRODIterator iter = new SeekableRODIterator(referenceSequenceDictionary,genomeLocParser,track.getIterator());
         return (flashbackData) ? new FlashBackIterator(iter) : iter;
     }
 
@@ -183,61 +228,81 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
      * kill the buffers in the iterator
      */
     public void closeResource( LocationAwareSeekableRODIterator resource ) {
-        if (resource instanceof FlashBackIterator) ((FlashBackIterator)resource).close();            
+        if (resource instanceof FlashBackIterator) ((FlashBackIterator)resource).close();
     }
 }
 
 /**
  * a data pool for the new query based RODs
  */
-class ReferenceOrderedQueryDataPool extends ResourcePool<FeatureSource, LocationAwareSeekableRODIterator> {
+class ReferenceOrderedQueryDataPool extends ResourcePool<RMDTrack,LocationAwareSeekableRODIterator> {
     // the reference-ordered data itself.
-    private final RMDTrack rod;
+    private final RMDTriplet fileDescriptor;
 
     // our tribble track builder
     private final RMDTrackBuilder builder;
 
-    public ReferenceOrderedQueryDataPool( SAMSequenceDictionary sequenceDictionary, GenomeLocParser genomeLocParser, RMDTrackBuilder builder, RMDTrack rod ) {
-        super(sequenceDictionary,genomeLocParser);
-        this.rod = rod;
+    /**
+     * The header from this RMD, if present.
+     */
+    private final Object header;
+
+    /**
+     * The sequence dictionary from this ROD.  If no sequence dictionary is present, this dictionary will be the same as the reference's.
+     */
+    private final SAMSequenceDictionary sequenceDictionary;
+
+    public ReferenceOrderedQueryDataPool(RMDTriplet fileDescriptor, RMDTrackBuilder builder, SAMSequenceDictionary referenceSequenceDictionary, GenomeLocParser genomeLocParser) {
+        super(referenceSequenceDictionary,genomeLocParser);
+        this.fileDescriptor = fileDescriptor;
         this.builder = builder;
-        // a little bit of a hack, but it saves us from re-reading the index from the file
-        this.addNewResource(rod.getReader());
+
+        // prepopulate one RMDTrack
+        RMDTrack track = builder.createInstanceOfTrack(fileDescriptor);
+        this.addNewResource(track);
+
+        // Pull the proper header and sequence dictionary from the prepopulated track.
+        this.header = track.getHeader();
+        this.sequenceDictionary = track.getSequenceDictionary();
+    }
+
+    public Object getHeader() {
+        return header;
+    }
+
+    public SAMSequenceDictionary getSequenceDictionary() {
+        return sequenceDictionary;
     }
 
     @Override
-    protected FeatureSource createNewResource() {
-        return builder.createFeatureReader(rod.getType(),rod.getFile()).first;
+    protected RMDTrack createNewResource() {
+        return builder.createInstanceOfTrack(fileDescriptor);
     }
 
     @Override
-    protected FeatureSource selectBestExistingResource(DataStreamSegment segment, List<FeatureSource> availableResources) {
-            for (FeatureSource reader : availableResources)
+    protected RMDTrack selectBestExistingResource(DataStreamSegment segment, List<RMDTrack> availableResources) {
+            for (RMDTrack reader : availableResources)
                 if (reader != null) return reader;
         return null;
     }
 
     @Override
-    protected LocationAwareSeekableRODIterator createIteratorFromResource(DataStreamSegment position, FeatureSource resource) {
+    protected LocationAwareSeekableRODIterator createIteratorFromResource(DataStreamSegment position, RMDTrack track) {
         try {
             if (position instanceof MappedStreamSegment) {
                 GenomeLoc pos = ((MappedStreamSegment) position).locus;
-                return new SeekableRODIterator(sequenceDictionary,genomeLocParser,new FeatureToGATKFeatureIterator(genomeLocParser,resource.query(pos.getContig(),(int) pos.getStart(), (int) pos.getStop()),rod.getName()));
+                return new SeekableRODIterator(referenceSequenceDictionary,genomeLocParser,track.query(pos));
             } else {
-                return new SeekableRODIterator(sequenceDictionary,genomeLocParser,new FeatureToGATKFeatureIterator(genomeLocParser,resource.iterator(),rod.getName()));
+                return new SeekableRODIterator(referenceSequenceDictionary,genomeLocParser,track.getIterator());
             }
         } catch (IOException e) {
-            throw new ReviewedStingException("Unable to create iterator for rod named " + rod.getName(),e);
+            throw new ReviewedStingException("Unable to create iterator for rod named " + fileDescriptor.getName(),e);
         }
     }
 
     @Override
-    protected void closeResource(FeatureSource resource) {
-        try {
-            resource.close();
-        } catch (IOException e) {
-            throw new UserException.CouldNotReadInputFile("Unable to close reader for rod named " + rod.getName(),e);
-        }
+    protected void closeResource(RMDTrack track) {
+        track.close();
     }
 }
 

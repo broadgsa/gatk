@@ -1,15 +1,16 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broad.tribble.FeatureSource;
+import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.dbsnp.DbSNPCodec;
-import org.broad.tribble.dbsnp.DbSNPFeature;
-import org.broad.tribble.iterators.CloseableTribbleIterator;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.gatk.walkers.By;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
@@ -34,7 +35,7 @@ import java.io.PrintStream;
 public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
 
     // what we read in new tracks with
-    private FeatureSource reader;
+    private RMDTrack track;
     
     @Output
     private PrintStream out;
@@ -50,12 +51,12 @@ public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
         RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                                                       getToolkit().getGenomeLocParser(),
                                                       getToolkit().getArguments().unsafe);
-        reader = builder.createFeatureReader(DbSNPCodec.class,myDbSNPFile).first;
+        track = builder.createInstanceOfTrack(DbSNPCodec.class,myDbSNPFile);
     }
 
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        CloseableTribbleIterator<DbSNPFeature> dbSNPs;
+        CloseableIterator<GATKFeature> dbSNPs;
 
         // our upstream and downstream window locations
         int windowStart = (int)Math.max(context.getLocation().getStart()-windowSize,0);
@@ -63,19 +64,17 @@ public class DbSNPWindowCounter extends LocusWalker<Integer, Long> {
 
         // query the dnSNP iterator
         try {
-            dbSNPs = reader.query(context.getContig(),
-                    windowStart,
-                    windowStop);
+            dbSNPs = track.query(getToolkit().getGenomeLocParser().createGenomeLoc(context.getContig(),windowStart,windowStop));
         } catch (IOException e) {
             throw new UserException.CouldNotReadInputFile(myDbSNPFile, e);
         }
 
         // count the number of dbSNPs we've seen
         int counter = 0;
-        for (DbSNPFeature feature: dbSNPs)
+        while(dbSNPs.hasNext())
             counter++;
         out.println(context.getContig() + ":" + windowStart + "-" + context.getContig() + ":" + windowStop + "=" +
-                    counter + " (dnSNP records)");
+                    counter + " (dbSNP records)");
         return 1;
     }
 

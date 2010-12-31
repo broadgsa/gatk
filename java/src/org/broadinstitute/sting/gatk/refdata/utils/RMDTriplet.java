@@ -24,27 +24,55 @@
 package org.broadinstitute.sting.gatk.refdata.utils;
 
 
-/** a helper class to manage our triplets of data for the -B command line option (name, type, file) */
+/**
+ * a helper class to manage our triplets of data for the -B command line option (name, type, file)
+ * TODO: The presence of four datapoints here suggests that this class' name isn't sufficient to describe its function.  Rename.
+ */
 public class RMDTriplet {
-    private String name;
-    private String type;
-    private String file;
+    public enum RMDStorageType { FILE, STREAM };
 
-    public RMDTriplet(String name, String type, String file) {
+    private final String name;
+    private final String type;
+    private final String file;
+    private final RMDStorageType storageType;
+
+    public RMDTriplet(final String name, final String type, final String file, final RMDStorageType storageType) {
         this.name = name;
         this.type = type;
         this.file = file;
+        this.storageType = storageType;
     }
 
+    /**
+     * Gets the name of this track.  RefMetaDataTrackers can use this identifier to retrieve data of a certain type.
+     * @return Name associated with this track.
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Gets the type of this track.  Informs the GATK how to parse this file type.
+     * @return Type associated with this track.
+     */
     public String getType() {
         return type;
     }
 
+    /**
+     * Gets the filename representing this track.  Data is loaded from this file.
+     * @return Filename of the RMD.
+     */
     public String getFile() {
         return file;
+    }
+
+    /**
+     * The type of storage being used for this metadata track.  Right now, can be either a
+     * file type (can be indexed) or a stream type (can't be indexed).
+     * @return Storage type for this RMD 'triplet'.
+     */
+    public RMDStorageType getStorageType() {
+        return storageType;
     }
 }

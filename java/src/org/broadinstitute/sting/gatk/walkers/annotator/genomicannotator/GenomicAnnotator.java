@@ -94,11 +94,11 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
         final Set<String> allFullyQualifiedColumnNames = new LinkedHashSet<String>();
         final Set<String> allBindingNames = new LinkedHashSet<String>();
             for(ReferenceOrderedDataSource ds : getToolkit().getRodDataSources()) {
-                if(! ds.getReferenceOrderedData().getType().equals(AnnotatorInputTableCodec.class)) {
+                if(! ds.getType().equals(AnnotatorInputTableCodec.class)) {
                     continue; //skip all non-AnnotatorInputTable files.
                 }
                 final String bindingName = ds.getName();
-                File file = ds.getReferenceOrderedData().getFile();
+                File file = ds.getFile();
                 allBindingNames.add(bindingName);
                 try {
                     final ArrayList<String> header = AnnotatorInputTableCodec.readHeader(file);

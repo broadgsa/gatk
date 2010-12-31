@@ -148,7 +148,7 @@ public class GenomeAnalysisEngine {
     /**
      * A processed collection of SAM reader identifiers.
      */
-    private Collection<SAMReaderID> samReaderIDs;
+    private Collection<SAMReaderID> samReaderIDs = Collections.emptyList();
 
     /**
      * Set the SAM/BAM files over which to traverse.
@@ -334,12 +334,12 @@ public class GenomeAnalysisEngine {
      *
      * @param rods   Reference-ordered data to load.
      */
-    protected void validateSuppliedReferenceOrderedData(List<RMDTrack> rods) {
+    protected void validateSuppliedReferenceOrderedData(List<ReferenceOrderedDataSource> rods) {
         // Check to make sure that all required metadata is present.
         List<RMD> allRequired = WalkerManager.getRequiredMetaData(walker);
         for (RMD required : allRequired) {
             boolean found = false;
-            for (RMDTrack rod : rods) {
+            for (ReferenceOrderedDataSource rod : rods) {
                 if (rod.matchesNameAndRecordType(required.name(), required.type()))
                     found = true;
             }
@@ -349,7 +349,7 @@ public class GenomeAnalysisEngine {
         }
 
         // Check to see that no forbidden rods are present.
-        for (RMDTrack rod : rods) {
+        for (ReferenceOrderedDataSource rod : rods) {
             if (!WalkerManager.isAllowed(walker, rod))
                 throw new ArgumentException(String.format("Walker of type %s does not allow access to metadata: %s", walker.getClass(), rod.getName()));
         }
@@ -614,7 +614,7 @@ public class GenomeAnalysisEngine {
             for (String str : rodNames.keySet())
                 if (str.equals(rodName)) {
                     logger.info("Adding interval list from track (ROD) named " + rodName);
-                    RMDIntervalGenerator intervalGenerator = new RMDIntervalGenerator(rodNames.get(str).getReferenceOrderedData());
+                    RMDIntervalGenerator intervalGenerator = new RMDIntervalGenerator(rodNames.get(str));
                     ret.addAll(intervalGenerator.toGenomeLocList());
                 }
         }
@@ -661,14 +661,7 @@ public class GenomeAnalysisEngine {
         sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
 
         // set the sequence dictionary of all of Tribble tracks to the sequence dictionary of our reference
-        RMDTrackBuilder manager = new RMDTrackBuilder(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
-        List<RMDTrack> tracks = manager.getReferenceMetaDataSources(this,argCollection);
-        validateSuppliedReferenceOrderedData(tracks);
-
-        // validate all the sequence dictionaries against the reference
-        validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), tracks, manager);
-
-        rodDataSources = getReferenceOrderedDataSources(tracks);
+        rodDataSources = getReferenceOrderedDataSources(referenceMetaDataFiles,referenceDataSource.getReference().getSequenceDictionary(),genomeLocParser,argCollection.unsafe);
     }
 
     /**
@@ -788,10 +781,10 @@ public class GenomeAnalysisEngine {
      *
      * @param reads     Reads data source.
      * @param reference Reference data source.
-     * @param tracks    a collection of the reference ordered data tracks
+     * @param rods    a collection of the reference ordered data tracks
      */
-    private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<RMDTrack> tracks, RMDTrackBuilder manager) {
-        if ((reads.isEmpty() && (tracks == null || tracks.isEmpty())) || reference == null )
+    private void validateSourcesAgainstReference(SAMDataSource reads, ReferenceSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, RMDTrackBuilder manager) {
+        if ((reads.isEmpty() && (rods == null || rods.isEmpty())) || reference == null )
             return;
 
         // Compile a set of sequence names that exist in the reference file.
@@ -815,9 +808,8 @@ public class GenomeAnalysisEngine {
             SequenceDictionaryUtils.validateDictionaries(logger, getArguments().unsafe, "reads", readsDictionary, "reference", referenceDictionary);
         }
 
-        // compare the tracks to the reference, if they have a sequence dictionary
-        for (RMDTrack track : tracks)
-            manager.validateTrackSequenceDictionary(track.getName(),track.getSequenceDictionary(),referenceDictionary);
+        for (ReferenceOrderedDataSource rod : rods)
+            manager.validateTrackSequenceDictionary(rod.getName(),rod.getSequenceDictionary(),referenceDictionary);
     }
 
     /**
@@ -862,18 +854,34 @@ public class GenomeAnalysisEngine {
     /**
      * Open the reference-ordered data sources.
      *
-     * @param rods the reference order data to execute using
+     * @param referenceMetaDataFiles collection of RMD descriptors to load and validate.
+     * @param sequenceDictionary GATK-wide sequnce dictionary to use for validation.
+     * @param genomeLocParser to use when creating and validating GenomeLocs.
+     * @param validationExclusionType potentially indicate which validations to include / exclude.
+     *
      * @return A list of reference-ordered data sources.
      */
-    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(List<RMDTrack> rods) {
+    private List<ReferenceOrderedDataSource> getReferenceOrderedDataSources(Collection<RMDTriplet> referenceMetaDataFiles,
+                                                                            SAMSequenceDictionary sequenceDictionary,
+                                                                            GenomeLocParser genomeLocParser,
+                                                                            ValidationExclusion.TYPE validationExclusionType) {
+        RMDTrackBuilder builder = new RMDTrackBuilder(referenceMetaDataFiles,sequenceDictionary,genomeLocParser,validationExclusionType);
+        // try and make the tracks given their requests
+        // create of live instances of the tracks
+        List<RMDTrack> tracks = new ArrayList<RMDTrack>();
+
         List<ReferenceOrderedDataSource> dataSources = new ArrayList<ReferenceOrderedDataSource>();
-        for (RMDTrack rod : rods)
-            dataSources.add(new ReferenceOrderedDataSource(referenceMetaDataFiles,
-                                                           referenceDataSource.getReference().getSequenceDictionary(),
+        for (RMDTriplet fileDescriptor : referenceMetaDataFiles)
+            dataSources.add(new ReferenceOrderedDataSource(fileDescriptor,
+                                                           builder,
+                                                           sequenceDictionary,
                                                            genomeLocParser,
-                                                           argCollection.unsafe,
-                                                           rod,
                                                            flashbackData()));
+
+        // validation: check to make sure everything the walker needs is present, and that all sequence dictionaries match.
+        validateSuppliedReferenceOrderedData(dataSources);
+        validateSourcesAgainstReference(readsDataSource, referenceDataSource.getReference(), dataSources, builder);
+
         return dataSources;
     }
 

@@ -2,11 +2,12 @@ package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.refdata.features.table.TableCodec;
 import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
@@ -60,14 +61,14 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @BeforeMethod
     public void setUp() {
-        File file = new File(testDir + "TabularDataTest.dat");
+        String fileName = testDir + "TabularDataTest.dat";
         RMDTrackBuilder builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
-        rod = builder.createInstanceOfTrack(TableCodec.class, "tableTest", file);
+        rod = builder.createInstanceOfTrack(new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE));
     }
 
     @Test
     public void testCreateSingleIterator() {
-        ResourcePool iteratorPool = new ReferenceOrderedDataPool(seq.getSequenceDictionary(),genomeLocParser,rod, false);
+        ResourcePool iteratorPool = new ReferenceOrderedDataPool(rod,seq.getSequenceDictionary(),genomeLocParser,false);
         LocationAwareSeekableRODIterator iterator = (LocationAwareSeekableRODIterator)iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
@@ -88,7 +89,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testCreateMultipleIterators() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(seq.getSequenceDictionary(),genomeLocParser,rod, false);
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod,seq.getSequenceDictionary(),genomeLocParser,false);
         LocationAwareSeekableRODIterator iterator1 = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         // Create a new iterator at position 2.
@@ -138,7 +139,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testIteratorConservation() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(seq.getSequenceDictionary(),genomeLocParser,rod, false);
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod,seq.getSequenceDictionary(),genomeLocParser,false);
         LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite1) );
 
         Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");
@@ -173,7 +174,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
 
     @Test
     public void testIteratorCreation() {
-        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(seq.getSequenceDictionary(),genomeLocParser, rod, false);
+        ReferenceOrderedDataPool iteratorPool = new ReferenceOrderedDataPool(rod,seq.getSequenceDictionary(),genomeLocParser,false);
         LocationAwareSeekableRODIterator iterator = iteratorPool.iterator( new MappedStreamSegment(testSite3) );
 
         Assert.assertEquals(iteratorPool.numIterators(), 1, "Number of iterators in the pool is incorrect");

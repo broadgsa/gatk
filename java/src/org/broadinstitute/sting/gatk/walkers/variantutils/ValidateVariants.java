@@ -65,7 +65,7 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     public void initialize() {
         for ( ReferenceOrderedDataSource source : getToolkit().getRodDataSources() ) {
             if ( source.getName().equals(TARGET_ROD_NAME) ) {
-                file = source.getReferenceOrderedData().getFile();
+                file = source.getFile();
                 break;
             }
         }

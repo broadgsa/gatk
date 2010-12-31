@@ -126,7 +126,7 @@ public class ProfileRodSystem extends RodWalker<Integer, Integer> {
     private File getRodFile() {
         List<ReferenceOrderedDataSource> rods = this.getToolkit().getRodDataSources();
         ReferenceOrderedDataSource rod = rods.get(0);
-        return rod.getReferenceOrderedData().getFile();
+        return rod.getFile();
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {

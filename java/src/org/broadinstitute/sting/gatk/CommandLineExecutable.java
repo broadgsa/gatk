@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescripto
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 
@@ -204,26 +205,28 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
      */
     private List<SAMReaderID> unpackBAMFileList(GATKArgumentCollection argCollection) {
         List<SAMReaderID> unpackedReads = new ArrayList<SAMReaderID>();
-        for( File inputFile: argCollection.samFiles ) {
-            if (inputFile.getName().toLowerCase().endsWith(".list") ) {
+        for( String inputFileName: argCollection.samFiles ) {
+            List<String> inputFileNameTags = parser.getTags(inputFileName);
+            inputFileName = expandFileName(inputFileName);
+            if (inputFileName.toLowerCase().endsWith(".list") ) {
                 try {
-                    for(String fileName : new XReadLines(inputFile))
-                        unpackedReads.add(new SAMReaderID(new File(fileName),parser.getTags(inputFile)));
+                    for(String fileName : new XReadLines(new File(inputFileName)))
+                        unpackedReads.add(new SAMReaderID(fileName,parser.getTags(inputFileName)));
                 }
                 catch( FileNotFoundException ex ) {
-                    throw new UserException.CouldNotReadInputFile(inputFile, "Unable to find file while unpacking reads", ex);
+                    throw new UserException.CouldNotReadInputFile(new File(inputFileName), "Unable to find file while unpacking reads", ex);
                 }
             }
-            else if(inputFile.getName().toLowerCase().endsWith(".bam")) {
-                unpackedReads.add( new SAMReaderID(inputFile,parser.getTags(inputFile)) );
+            else if(inputFileName.toLowerCase().endsWith(".bam")) {
+                unpackedReads.add(new SAMReaderID(inputFileName,inputFileNameTags));
             }
-            else if(inputFile.getName().equals("-")) {
-                unpackedReads.add(new SAMReaderID(new File("/dev/stdin"),Collections.<String>emptyList()));
+            else if(inputFileName.endsWith("stdin")) {
+                unpackedReads.add(new SAMReaderID(inputFileName,inputFileNameTags));
             }
             else {
                 throw new UserException.CommandLineException(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
                         "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
-                        "of BAM files is in the correct format, update the extension, and try again.",inputFile.getName()));
+                        "of BAM files is in the correct format, update the extension, and try again.",inputFileName));
             }
         }
         return unpackedReads;
@@ -236,27 +239,47 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     private Collection<RMDTriplet> unpackRODBindings(GATKArgumentCollection argCollection) {
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
 
-        for (String binding: argCollection.RODBindings) {
-            if(parser.getTags(binding).size() != 2)
+
+        for (String fileName: argCollection.RODBindings) {
+            List<String> parameters = parser.getTags(fileName);
+            fileName = expandFileName(fileName);
+            RMDStorageType storageType = fileName.toLowerCase().endsWith("stdin") ? RMDStorageType.STREAM : RMDStorageType.FILE;
+
+            if(parameters.size() != 2)
                 throw new UserException("Invalid syntax for -B (reference-ordered data) input flag.  " +
                         "Please use the following syntax when providing reference-ordered " +
                         "data: -B:<name>,<type> <filename>.");
             // Assume that if tags are present, those tags are name and type.
             // Name is always first, followed by type.
-            List<String> parameters = parser.getTags(binding);
             String name = parameters.get(0);
             String type = parameters.get(1);
-            rodBindings.add(new RMDTriplet(name,type,binding));
+            rodBindings.add(new RMDTriplet(name,type,fileName,storageType));
         }
 
         if (argCollection.DBSNPFile != null) {
             if(argCollection.DBSNPFile.toLowerCase().contains("vcf"))
                 throw new UserException("--DBSNP (-D) argument currently does not support VCF.  To use dbSNP in VCF format, please use -B:dbsnp,vcf <filename>.");
-            rodBindings.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME, "dbsnp", argCollection.DBSNPFile));
+
+            String fileName = expandFileName(argCollection.DBSNPFile);
+            RMDStorageType storageType = fileName.toLowerCase().endsWith("stdin") ? RMDStorageType.STREAM : RMDStorageType.FILE;
+
+            rodBindings.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME,"dbsnp",fileName,storageType));
         }
 
         return rodBindings;
     }
 
-
+    /**
+     * Expand any special characters that appear in the filename.  Right now, '-' is expanded to
+     * '/dev/stdin' only, but in the future, special characters like '~' and '*' that are passed
+     * directly to the command line in some circumstances could be expanded as well.  Be careful
+     * when adding UNIX-isms. 
+     * @param argument the text appearing on the command-line.
+     * @return An expanded string suitable for opening by Java/UNIX file handling utilities.
+     */
+    private String expandFileName(String argument) {
+        if(argument.trim().equals("-"))
+            return "/dev/stdin";
+        return argument;
+    }
 }

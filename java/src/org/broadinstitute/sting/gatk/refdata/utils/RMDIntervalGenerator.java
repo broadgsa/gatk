@@ -16,15 +16,15 @@ import java.util.*;
  * Creates an interval list, given an RMDTrack
  */
 public class RMDIntervalGenerator {
-    public RMDTrack track;
+    public ReferenceOrderedDataSource dataSource;
 
     /**
      * create a interval representation of a ROD track
-     * @param track the track
+     * @param dataSource the track
      */
-    public RMDIntervalGenerator(RMDTrack track) {
-        if (track == null) throw new IllegalArgumentException("Track cannot be null");
-        this.track = track;
+    public RMDIntervalGenerator(ReferenceOrderedDataSource dataSource) {
+        if (dataSource == null) throw new IllegalArgumentException("Data source cannot be null");
+        this.dataSource = dataSource;
     }
 
     /**
@@ -32,10 +32,10 @@ public class RMDIntervalGenerator {
      * @return a list of genome locations
      */
     public List<GenomeLoc> toGenomeLocList() {
-        Iterator<GATKFeature> iter = track.getIterator();
+        Iterator<RODRecordList> iter = dataSource.seek((GenomeLoc)null);
         List<GenomeLoc> locations = new ArrayList<GenomeLoc>();
         while (iter.hasNext()) {
-            GATKFeature feature = iter.next();
+            RODRecordList feature = iter.next();
             GenomeLoc loc = feature.getLocation();
             if (loc != null) locations.add(loc);            
         }

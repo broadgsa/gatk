@@ -187,9 +187,9 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
         boolean foundDBSNP = false;
         for( ReferenceOrderedDataSource rod : this.getToolkit().getRodDataSources() ) {
             if( rod != null ) {
-                if( rod.getReferenceOrderedData().getType().equals(DbSNPCodec.class) ||
-                        rod.getReferenceOrderedData().getType().equals(VCFCodec.class) ||
-                        rod.getReferenceOrderedData().getType().equals(BEDCodec.class) ) {
+                if( rod.getType().equals(DbSNPCodec.class) ||
+                        rod.getType().equals(VCFCodec.class) ||
+                        rod.getType().equals(BEDCodec.class) ) {
                     foundDBSNP = true;
                     break;
                 }

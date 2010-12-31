@@ -80,23 +80,6 @@ public class RMDTrack {
         return file;
     }
 
-    public Class getRecordType() {
-        return recordType;
-    }
-
-    /**
-     * helper function for determining if we are the same track based on name and record type
-     *
-     * @param name the name to match
-     * @param type the type to match
-     *
-     * @return true on a match, false if the name or type is different
-     */
-    public boolean matchesNameAndRecordType(String name, Type type) {
-        return (name.equals(this.name) && (type.getClass().isAssignableFrom(this.type.getClass())));
-    }
-
-
     /**
      * Create a track
      *
@@ -128,15 +111,6 @@ public class RMDTrack {
         } catch (IOException e) {
             throw new UserException.CouldNotReadInputFile(getFile(), "Unable to read from file", e);
         }
-    }
-
-    /**
-     * do we support the query interface?
-     *
-     * @return true
-     */
-    public boolean supportsQuery() {
-        return true;
     }
 
     public CloseableIterator<GATKFeature> query(GenomeLoc interval) throws IOException {
