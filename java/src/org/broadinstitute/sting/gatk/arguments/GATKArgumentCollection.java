@@ -150,6 +150,11 @@ public class GATKArgumentCollection {
         return new DownsamplingMethod(downsamplingType,downsampleCoverage,downsampleFraction);
     }
 
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // BAQ arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
     @Element(required = false)
     @Argument(fullName = "baq", shortName="baq", doc="Type of BAQ calculation to apply in the engine", required = false)
     public BAQ.CalculationMode BAQMode = BAQ.CalculationMode.OFF;
@@ -157,6 +162,15 @@ public class GATKArgumentCollection {
     @Element(required = false)
     @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="BAQ gap open penalty.  Default value is 1e-4.  1e-3 is perhaps better for whole genome call sets", required = false)
     public double BAQGOP = BAQ.DEFAULT_GOP;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // performance log arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    @Element(required = false)
+    @Argument(fullName = "performanceLog", shortName="PF", doc="If provided, a GATK runtime performance log will be written to this file", required = false)
+    public File performanceLog = null;
 
     /**
      * Gets the default downsampling method, returned if the user didn't specify any downsampling
@@ -349,6 +363,10 @@ public class GATKArgumentCollection {
 
         if ( BAQMode != other.BAQMode) return false;
         if ( BAQGOP != other.BAQGOP ) return false;
+
+        if ((other.performanceLog == null && this.performanceLog != null) ||
+                (other.performanceLog != null && !other.performanceLog.equals(this.performanceLog))) {
+            return false;
 
         return true;
     }

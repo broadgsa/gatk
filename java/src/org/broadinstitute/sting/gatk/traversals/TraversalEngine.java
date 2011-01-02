@@ -52,7 +52,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     private final long N_RECORDS_TO_PRINT = 1000000;
 
     // for performance log
-    private static final boolean PERFORMANCE_LOG_ENABLED = false;
+    private static final boolean PERFORMANCE_LOG_ENABLED = true;
     private PrintStream performanceLog = null;
     private long lastPerformanceLogPrintTime = -1;                  // When was the last time we printed to the performance log?
     private final long PERFORMANCE_LOG_PRINT_FREQUENCY = 1 * 1000;  // in seconds
@@ -126,17 +126,15 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
         //
         // code to process the performance log
-        // TODO -- should be integrated into command line system [hard coded off now]
-        // TODO -- should write a unique log name as an option?
+        //
         // TODO -- should be controlled by Queue so that .out and .performance.log comes out
         //
-        if ( PERFORMANCE_LOG_ENABLED && performanceLog == null ) {
+        if ( PERFORMANCE_LOG_ENABLED && performanceLog == null && engine.getArguments().performanceLog != null ) {
             try {
-                // todo -- temp for testing
-                performanceLog = new PrintStream(new FileOutputStream("performance.log"));
+                performanceLog = new PrintStream(new FileOutputStream(engine.getArguments().performanceLog));
                 performanceLog.println(Utils.join("\t", Arrays.asList("elapsed.time", "units.processed", "processing.speed")));
             } catch (FileNotFoundException e) {
-                throw new UserException.CouldNotCreateOutputFile(new File("performance.log"), e);
+                throw new UserException.CouldNotCreateOutputFile(engine.getArguments().performanceLog, e);
             }
         }
 
