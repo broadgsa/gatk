@@ -205,7 +205,7 @@ class RecordAsTable(StageHandler):
         try:
             print >> self.out, "\t".join([ oneField(field) for field in self.decoder.fields ])
         except:
-            print 'Failed to convert to table ', parsed
+            #print 'Failed to convert to table ', parsed
             pass
             
 addHandler('table', RecordAsTable)

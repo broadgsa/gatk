@@ -26,7 +26,7 @@ python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --max_days 1 --no-d
 python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE.gz --max_days 1 -E sting --no-dev
 
 echo "Archive directory contents"
-ls -ltrh $ARCHIVE_DIR
+du -sh $ARCHIVE_DIR
 
 foreach maxDays ( 7 30 360 ) 
     echo "Creating table"
