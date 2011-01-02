@@ -33,7 +33,13 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Map;
 
 public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,ProviderType extends ShardDataProvider> {
@@ -42,8 +48,15 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     private long lastProgressPrintTime = -1;                // When was the last time we printed our progress?
 
     // How long can we go without printing some progress info?
-    private final long MAX_PROGRESS_PRINT_TIME = 30 * 1000;        // 10 seconds in millisecs
+    private final long MAX_PROGRESS_PRINT_TIME = 30 * 1000;        // in seconds
     private final long N_RECORDS_TO_PRINT = 1000000;
+
+    // for performance log
+    private static final boolean PERFORMANCE_LOG_ENABLED = false;
+    private PrintStream performanceLog = null;
+    private long lastPerformanceLogPrintTime = -1;                  // When was the last time we printed to the performance log?
+    private final long PERFORMANCE_LOG_PRINT_FREQUENCY = 1 * 1000;  // in seconds
+
 
     /** our log, which we want to capture anything from this class */
     protected static Logger logger = Logger.getLogger(TraversalEngine.class);
@@ -58,11 +71,13 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
     /**
      * @param curTime (current runtime, in millisecs)
+     * @param lastPrintTime the last time we printed, in machine milliseconds
+     * @param printFreq maximum permitted difference between last print and current times
      *
      * @return true if the maximum interval (in millisecs) has passed since the last printing
      */
-    private boolean maxElapsedIntervalForPrinting(final long curTime) {
-        return (curTime - this.lastProgressPrintTime) > MAX_PROGRESS_PRINT_TIME;
+    private boolean maxElapsedIntervalForPrinting(final long curTime, long lastPrintTime, long printFreq) {
+        return (curTime - lastPrintTime) > printFreq;
     }
 
     /**
@@ -91,11 +106,13 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         final long nRecords = metrics.getNumIterations();
         final long curTime = System.currentTimeMillis();
         final double elapsed = (curTime - startTime) / 1000.0;
-        //System.out.printf("Cur = %d, last print = %d, elapsed=%.2f, nRecords=%d, met=%b%n", curTime, lastProgressPrintTime, elapsed, nRecords, maxElapsedIntervalForPrinting(curTime));
+        final double secsPer1MReads = (elapsed * 1000000.0) / Math.max(nRecords, 1);
 
-        if (mustPrint || nRecords == 1 || nRecords % N_RECORDS_TO_PRINT == 0 || maxElapsedIntervalForPrinting(curTime)) {
-            this.lastProgressPrintTime = curTime;
-            final double secsPer1MReads = (elapsed * 1000000.0) / nRecords;
+        if (mustPrint
+                || nRecords == 1
+                || nRecords % N_RECORDS_TO_PRINT == 0
+                || maxElapsedIntervalForPrinting(curTime, lastProgressPrintTime, MAX_PROGRESS_PRINT_TIME)) {
+            lastProgressPrintTime = curTime;
 
             if ( nRecords == 1 )
                 logger.info("[INITIALIZATION COMPLETE; TRAVERSAL STARTING]");
@@ -105,7 +122,28 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
                 else
                     logger.info(String.format("[PROGRESS] Traversed %,d %s in %.2f secs (%.2f secs per 1M %s)", nRecords, getTraversalType(), elapsed, secsPer1MReads, getTraversalType()));
             }
-        }   
+        }
+
+        //
+        // code to process the performance log
+        // TODO -- should be integrated into command line system [hard coded off now]
+        // TODO -- should write a unique log name as an option?
+        // TODO -- should be controlled by Queue so that .out and .performance.log comes out
+        //
+        if ( PERFORMANCE_LOG_ENABLED && performanceLog == null ) {
+            try {
+                // todo -- temp for testing
+                performanceLog = new PrintStream(new FileOutputStream("performance.log"));
+                performanceLog.println(Utils.join("\t", Arrays.asList("elapsed.time", "units.processed", "processing.speed")));
+            } catch (FileNotFoundException e) {
+                throw new UserException.CouldNotCreateOutputFile(new File("performance.log"), e);
+            }
+        }
+
+        if ( performanceLog != null && maxElapsedIntervalForPrinting(curTime, lastPerformanceLogPrintTime, PERFORMANCE_LOG_PRINT_FREQUENCY)) {
+            lastPerformanceLogPrintTime = curTime;
+            if ( nRecords > 1 ) performanceLog.printf("%.2f\t%d\t%.2f%n", elapsed, nRecords, secsPer1MReads);
+        }
     }
 
     /**
@@ -133,6 +171,8 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
             logger.info(String.format("  -> %d reads (%.2f%% of total) failing %s",
                     count, 100.0 * MathUtils.ratio(count,cumulativeMetrics.getNumReadsSeen()), Utils.getClassName(filterCounts.getKey())));
         }
+
+        if ( performanceLog != null ) performanceLog.close();
     }
 
     /**
