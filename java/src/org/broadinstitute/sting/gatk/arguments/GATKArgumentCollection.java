@@ -365,7 +365,7 @@ public class GATKArgumentCollection {
         if ( BAQGOP != other.BAQGOP ) return false;
 
         if ((other.performanceLog == null && this.performanceLog != null) ||
-                (other.performanceLog != null && !other.performanceLog.equals(this.performanceLog))) {
+                (other.performanceLog != null && !other.performanceLog.equals(this.performanceLog)))
             return false;
 
         return true;
