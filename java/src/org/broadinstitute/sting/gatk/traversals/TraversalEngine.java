@@ -129,7 +129,8 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         //
         // TODO -- should be controlled by Queue so that .out and .performance.log comes out
         //
-        if ( PERFORMANCE_LOG_ENABLED && performanceLog == null && engine.getArguments().performanceLog != null ) {
+        if ( PERFORMANCE_LOG_ENABLED && performanceLog == null
+                && engine != null && engine.getArguments().performanceLog != null ) {
             try {
                 performanceLog = new PrintStream(new FileOutputStream(engine.getArguments().performanceLog));
                 performanceLog.println(Utils.join("\t", Arrays.asList("elapsed.time", "units.processed", "processing.speed")));
