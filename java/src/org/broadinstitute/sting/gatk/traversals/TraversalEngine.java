@@ -127,18 +127,6 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         //
         // code to process the performance log
         //
-        // TODO -- should be controlled by Queue so that .out and .performance.log comes out
-        //
-        if ( PERFORMANCE_LOG_ENABLED && performanceLog == null
-                && engine != null && engine.getArguments().performanceLog != null ) {
-            try {
-                performanceLog = new PrintStream(new FileOutputStream(engine.getArguments().performanceLog));
-                performanceLog.println(Utils.join("\t", Arrays.asList("elapsed.time", "units.processed", "processing.speed")));
-            } catch (FileNotFoundException e) {
-                throw new UserException.CouldNotCreateOutputFile(engine.getArguments().performanceLog, e);
-            }
-        }
-
         if ( performanceLog != null && maxElapsedIntervalForPrinting(curTime, lastPerformanceLogPrintTime, PERFORMANCE_LOG_PRINT_FREQUENCY)) {
             lastPerformanceLogPrintTime = curTime;
             if ( nRecords > 1 ) performanceLog.printf("%.2f\t%d\t%.2f%n", elapsed, nRecords, secsPer1MReads);
@@ -180,6 +168,15 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      */
     public void initialize(GenomeAnalysisEngine engine) {
         this.engine = engine;
+
+        if ( PERFORMANCE_LOG_ENABLED && engine != null && engine.getArguments() != null && engine.getArguments().performanceLog != null ) {
+            try {
+                performanceLog = new PrintStream(new FileOutputStream(engine.getArguments().performanceLog));
+                performanceLog.println(Utils.join("\t", Arrays.asList("elapsed.time", "units.processed", "processing.speed")));
+            } catch (FileNotFoundException e) {
+                throw new UserException.CouldNotCreateOutputFile(engine.getArguments().performanceLog, e);
+            }
+        }
     }
 
     /**
