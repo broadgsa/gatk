@@ -35,10 +35,12 @@ import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.*;
 
 // Streams in VariantContext objects and streams out VariantContexts produced by merging phased segregating polymorphisms into MNP VariantContexts
@@ -73,7 +75,12 @@ public class MergeSegregatingAlternateAllelesVCFWriter implements VCFWriter {
     public MergeSegregatingAlternateAllelesVCFWriter(VCFWriter innerWriter, GenomeLocParser genomeLocParser, File referenceFile, VariantContextMergeRule vcMergeRule, VariantContextUtils.AlleleMergeRule alleleMergeRule, String singleSample, boolean emitOnlyMergedRecords, Logger logger, boolean takeOwnershipOfInner, boolean trackAltAlleleStats) {
         this.innerWriter = innerWriter;
         this.genomeLocParser = genomeLocParser;
-        this.referenceFileForMNPmerging = new CachingIndexedFastaSequenceFile(referenceFile);
+        try {
+            this.referenceFileForMNPmerging = new CachingIndexedFastaSequenceFile(referenceFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(referenceFile,ex);
+        }        
         this.vcMergeRule = vcMergeRule;
         this.alleleMergeRule = alleleMergeRule;
         this.useSingleSample = singleSample;

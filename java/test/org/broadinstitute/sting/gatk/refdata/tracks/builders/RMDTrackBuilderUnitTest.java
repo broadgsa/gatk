@@ -30,6 +30,7 @@ import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -59,7 +60,13 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
 
     @BeforeMethod
     public void setup() {
-        seq = new CachingIndexedFastaSequenceFile(new File(b36KGReference));
+        File referenceFile = new File(b36KGReference);
+        try {
+            seq = new CachingIndexedFastaSequenceFile(referenceFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(referenceFile,ex);
+        }
         genomeLocParser = new GenomeLocParser(seq);
         builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
     }

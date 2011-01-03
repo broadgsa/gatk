@@ -116,7 +116,7 @@ public class RemapAlignments extends CommandLineProgram {
 		
 		SAMFileHeader h = new SAMFileHeader();
 		
-		for ( Entry<String, Object> attr : oldHeader.getAttributes() ) h.setAttribute(attr.getKey(), attr.getValue());
+		for ( Entry<String, String> attr : oldHeader.getAttributes() ) h.setAttribute(attr.getKey(), attr.getValue());
 		h.setGroupOrder(oldHeader.getGroupOrder());
 		h.setProgramRecords(oldHeader.getProgramRecords());
 		h.setReadGroups(oldHeader.getReadGroups());

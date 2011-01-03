@@ -5,6 +5,7 @@ package org.broadinstitute.sting.utils.fasta;
 // the imports for unit testing.
 
 
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
@@ -13,6 +14,7 @@ import org.testng.annotations.BeforeMethod;
 import org.broadinstitute.sting.BaseTest;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -53,8 +55,14 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
 
     @Test(dataProvider = "fastas", enabled = true)
     public void testCachingIndexedFastaReaderSequential1(File fasta, int cacheSize, int querySize) {
-        IndexedFastaSequenceFile caching = cacheSize == -1 ? new CachingIndexedFastaSequenceFile(fasta) : new CachingIndexedFastaSequenceFile(fasta, cacheSize);
-        IndexedFastaSequenceFile uncached = new IndexedFastaSequenceFile(fasta);
+        IndexedFastaSequenceFile caching, uncached;
+        try {
+            caching = cacheSize == -1 ? new CachingIndexedFastaSequenceFile(fasta) : new CachingIndexedFastaSequenceFile(fasta, cacheSize);
+            uncached = new IndexedFastaSequenceFile(fasta);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(fasta,ex);
+        }
 
         SAMSequenceRecord contig = uncached.getSequenceDictionary().getSequence(0);
         logger.warn(String.format("Checking contig %s length %d with cache size %d and query size %d",
@@ -76,8 +84,14 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
     // Tests grabbing sequences around a middle cached value.
     @Test(dataProvider = "fastas", enabled = true)
     public void testCachingIndexedFastaReaderTwoStage(File fasta, int cacheSize, int querySize) {
-        IndexedFastaSequenceFile uncached = new IndexedFastaSequenceFile(fasta);
-        IndexedFastaSequenceFile caching = new CachingIndexedFastaSequenceFile(fasta, cacheSize);
+        IndexedFastaSequenceFile caching, uncached;
+        try {
+            uncached = new IndexedFastaSequenceFile(fasta);
+            caching = new CachingIndexedFastaSequenceFile(fasta, cacheSize);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(fasta,ex);
+        }
 
         SAMSequenceRecord contig = uncached.getSequenceDictionary().getSequence(0);
 

@@ -50,7 +50,7 @@ public class ReadUtils {
         copy.setReadGroups(toCopy.getReadGroups());
         copy.setSequenceDictionary(toCopy.getSequenceDictionary());
 
-        for (Map.Entry<String, Object> e : toCopy.getAttributes())
+        for (Map.Entry<String, String> e : toCopy.getAttributes())
             copy.setAttribute(e.getKey(), e.getValue());
 
         return copy;

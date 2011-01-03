@@ -6,6 +6,7 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -40,8 +41,14 @@ public class VCFWriterUnitTest extends BaseTest {
 
     @BeforeClass
     public void beforeTests() {
-        IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(new File(hg18Reference));
-        genomeLocParser = new GenomeLocParser(seq);
+        File referenceFile = new File(hg18Reference);
+        try {
+            IndexedFastaSequenceFile seq = new CachingIndexedFastaSequenceFile(referenceFile);
+            genomeLocParser = new GenomeLocParser(seq);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(referenceFile,ex);
+        }
     }
 
     /** test, using the writer and reader, that we can output and input a VCF file without problems */

@@ -29,6 +29,7 @@ import net.sf.picard.reference.*;
 import net.sf.samtools.SAMSequenceRecord;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -111,11 +112,11 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
      * Open the given indexed fasta sequence file.  Throw an exception if the file cannot be opened.
      * @param file The file to open.
      */
-    public CachingIndexedFastaSequenceFile(final File file) {
+    public CachingIndexedFastaSequenceFile(final File file) throws FileNotFoundException {
         this(file, DEFAULT_CACHE_SIZE);
     }
 
-    public CachingIndexedFastaSequenceFile(final File file, long cacheSize ) {
+    public CachingIndexedFastaSequenceFile(final File file, long cacheSize ) throws FileNotFoundException {
         super(file);
         setCacheSize(cacheSize);
     }

@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
@@ -47,6 +48,7 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecordFilter;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broad.tribble.vcf.VCFConstants;
 
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -133,7 +135,12 @@ public class UnifiedGenotyperEngine {
 
         filter.add(LOW_QUAL_FILTER_NAME);
 
-        referenceReader = new CachingIndexedFastaSequenceFile(toolkit.getArguments().referenceFile);
+        try {
+            referenceReader = new CachingIndexedFastaSequenceFile(toolkit.getArguments().referenceFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(toolkit.getArguments().referenceFile,ex);
+        }
     }
 
     /**

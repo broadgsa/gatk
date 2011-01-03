@@ -58,6 +58,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
@@ -217,8 +218,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( MISMATCH_THRESHOLD <= 0.0 || MISMATCH_THRESHOLD > 1.0 )
             throw new RuntimeException("Entropy threshold must be a fraction between 0 and 1");
 
-        referenceReader = new CachingIndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
-
+        try {
+            referenceReader = new CachingIndexedFastaSequenceFile(getToolkit().getArguments().referenceFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(getToolkit().getArguments().referenceFile,ex);
+        }
+        
         if ( !TARGET_NOT_SORTED ) {
 
             NwayIntervalMergingIterator merger = new NwayIntervalMergingIterator(IntervalMergingRule.OVERLAPPING_ONLY);

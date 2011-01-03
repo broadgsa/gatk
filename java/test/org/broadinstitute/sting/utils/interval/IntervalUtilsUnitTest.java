@@ -13,6 +13,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,8 +29,13 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @BeforeClass
     public void init() {
-        ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(reference);
-        genomeLocParser = new GenomeLocParser(seq);
+        try {
+            ReferenceSequenceFile seq = new CachingIndexedFastaSequenceFile(reference);
+            genomeLocParser = new GenomeLocParser(seq);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(reference,ex);
+        }
     }
 
     @Test(expectedExceptions=UserException.class)

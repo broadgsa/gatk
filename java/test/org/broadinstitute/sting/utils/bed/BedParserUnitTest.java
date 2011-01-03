@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils.bed;
 
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -10,6 +11,7 @@ import org.testng.annotations.Test;
 
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.List;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -23,7 +25,14 @@ public class BedParserUnitTest extends BaseTest {
 
     @BeforeClass
     public void beforeTests() {
-        seq = new CachingIndexedFastaSequenceFile(new File(b36KGReference));
+        File referenceFile = new File(b36KGReference);
+        try {
+            seq = new CachingIndexedFastaSequenceFile(referenceFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(referenceFile,ex);
+        }
+
         genomeLocParser = new GenomeLocParser(seq);
     }
 

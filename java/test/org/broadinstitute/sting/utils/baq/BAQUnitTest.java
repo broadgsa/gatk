@@ -5,6 +5,7 @@ package org.broadinstitute.sting.utils.baq;
 // the imports for unit testing.
 
 
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
@@ -17,6 +18,7 @@ import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -38,7 +40,13 @@ public class BAQUnitTest extends BaseTest {
     @BeforeMethod
     public void before() {
         header = ArtificialSAMUtils.createArtificialSamHeader(numChr, startChr, chrSize);
-        fasta = new IndexedFastaSequenceFile(new File(hg18Reference));
+        File referenceFile = new File(hg18Reference);
+        try {
+            fasta = new IndexedFastaSequenceFile(referenceFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(referenceFile,ex);
+        }
     }
 
     private class BAQTest {

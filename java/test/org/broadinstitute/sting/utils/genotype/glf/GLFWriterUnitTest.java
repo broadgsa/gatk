@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils.genotype.glf;
 
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -13,6 +14,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
@@ -69,7 +71,13 @@ public class GLFWriterUnitTest extends BaseTest {
 
     @BeforeClass
     public void beforeTests() {
-        seq = new CachingIndexedFastaSequenceFile(new File(b36KGReference));
+        File referenceFile = new File(b36KGReference);
+        try {
+            seq = new CachingIndexedFastaSequenceFile(referenceFile);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(referenceFile,ex);
+        }
         genomeLocParser = new GenomeLocParser(seq);
 
     }
