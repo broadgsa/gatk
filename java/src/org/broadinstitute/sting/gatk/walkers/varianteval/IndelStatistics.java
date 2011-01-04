@@ -337,7 +337,7 @@ public class IndelStatistics extends VariantEvaluator {
 
 
             // See first if indel is a repetition of bases before current
-            int indStart = refBases.length/2-eventLength;
+            int indStart = refBases.length/2-eventLength+1;
 
             boolean done = false;
             int numRepetitions = 0;
@@ -359,7 +359,7 @@ public class IndelStatistics extends VariantEvaluator {
 
             // now do it forward
             done = false;
-            indStart = refBases.length/2;
+            indStart = refBases.length/2+1;
             while (!done) {
                 if (indStart + eventLength >= refBases.length)
                     break;
