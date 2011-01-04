@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -34,8 +35,6 @@ import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.StandardVCFWriter;
 
 import java.io.File;
 import java.util.*;
@@ -61,6 +60,9 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="newSequenceDictionary", shortName="dict", doc="Sequence .dict file for the new build", required=true)
     protected File NEW_SEQ_DICT = null;
 
+    @Argument(fullName="recordOriginalLocation", shortName="recordOriginalLocation", doc="Should we record what the original location was in the INFO field?", required=false)
+    protected Boolean RECORD_ORIGINAL_LOCATION = false;
+
     private LiftOver liftOver;
 
     private long successfulIntervals = 0, failedIntervals = 0;
@@ -75,7 +77,16 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
 
-        final VCFHeader vcfHeader = new VCFHeader(vcfHeaders.containsKey("variant") ? vcfHeaders.get("variant").getMetaData() : null, samples);
+        Set<VCFHeaderLine> metaData = new HashSet<VCFHeaderLine>();
+        if ( vcfHeaders.containsKey("variant") )
+            metaData.addAll(vcfHeaders.get("variant").getMetaData());
+        if ( RECORD_ORIGINAL_LOCATION ) {
+            metaData.add(new VCFInfoHeaderLine("OriginalChr", 1, VCFHeaderLineType.String, "Original contig name for the record"));
+            metaData.add(new VCFInfoHeaderLine("OriginalStart", 1, VCFHeaderLineType.Integer, "Original start position for the record"));
+        }
+
+
+        final VCFHeader vcfHeader = new VCFHeader(metaData, samples);
         writer = new StandardVCFWriter(file, false);
         writer.writeHeader(vcfHeader);
     }
@@ -95,8 +106,15 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
             }
 
             vc = VariantContext.modifyLocation(vc, toInterval.getSequence(), toInterval.getStart(), toInterval.getStart() + length);
-            VariantContext newVC = VariantContext.createVariantContextWithPaddedAlleles(vc, ref.getBase(), false);
 
+            if ( RECORD_ORIGINAL_LOCATION ) {
+                HashMap<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+                attrs.put("OriginalChr", fromInterval.getSequence());
+                attrs.put("OriginalStart", fromInterval.getStart());
+                vc = VariantContext.modifyAttributes(vc, attrs);
+            }
+
+            VariantContext newVC = VariantContext.createVariantContextWithPaddedAlleles(vc, ref.getBase(), false);
             if ( originalVC.isSNP() && originalVC.isBiallelic() && VariantContextUtils.getSNPSubstitutionType(originalVC) != VariantContextUtils.getSNPSubstitutionType(newVC) ) {
                 logger.warn(String.format("VCF at %s / %d => %s / %d is switching substitution type %s/%s to %s/%s",
                         originalVC.getChr(), originalVC.getStart(), newVC.getChr(), newVC.getStart(),
