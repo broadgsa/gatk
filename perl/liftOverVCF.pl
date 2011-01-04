@@ -36,7 +36,10 @@ my $unsorted_vcf = "$tmp_prefix.unsorted.vcf";
 
 # lift over the file
 print "Lifting over the vcf...";
-my $cmd = "java -jar $gatk/dist/GenomeAnalysisTK.jar -T LiftoverVariants -R $oldRef.fasta -B:variant,vcf $in -o $unsorted_vcf -chain $chain -dict $newRef.dict -recordOriginalLocation $recordOriginalLocation";
+my $cmd = "java -jar $gatk/dist/GenomeAnalysisTK.jar -T LiftoverVariants -R $oldRef.fasta -B:variant,vcf $in -o $unsorted_vcf -chain $chain -dict $newRef.dict";
+if ($recordOriginalLocation) {
+  $cmd .= " -recordOriginalLocation";
+}
 system($cmd);
 
 # we need to sort the lifted over file now
