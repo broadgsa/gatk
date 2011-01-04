@@ -47,13 +47,7 @@ public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
 
             if ( genotype.getValue().hasLikelihoods() ) {
                 GenotypeLikelihoods GLs = genotype.getValue().getLikelihoods();
-                double[] likelihoods = GLs.getAsVector();
-                if ( GLs.getKey() == VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY ) {
-                    for (int i = 0; i < likelihoods.length; i++)
-                        likelihoods[i] /= -10.0;
-                }
-
-                qual += 10.0 * getQual(likelihoods);
+                qual += 10.0 * getQual(GLs.getAsVector());
             }
         }
 
