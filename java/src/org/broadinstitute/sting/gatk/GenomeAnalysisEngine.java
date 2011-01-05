@@ -196,6 +196,9 @@ public class GenomeAnalysisEngine {
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = createMicroscheduler();
 
+        // create temp directories as necessary
+        initializeTempDirectory();
+
         // create the output streams                     "
         initializeOutputStreams(microScheduler.getOutputTracker());
 
@@ -471,6 +474,14 @@ public class GenomeAnalysisEngine {
 
     protected boolean flashbackData() {
         return walker instanceof ReadWalker;
+    }
+
+    /**
+     * Create the temp directory if it doesn't exist.
+     */
+    private void initializeTempDirectory() {
+        File tempDir = new File(System.getProperty("java.io.tmpdir"));
+        tempDir.mkdirs();
     }
 
     /**
