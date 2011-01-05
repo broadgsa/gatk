@@ -93,6 +93,10 @@ public class BaseUtils {
         return simpleBaseToBaseIndex(base1) == simpleBaseToBaseIndex(base2);
     }
 
+    static public boolean extendedBasesAreEqual(byte base1, byte base2) {
+        return extendedBaseToBaseIndex(base1) == extendedBaseToBaseIndex(base2);
+    }
+
 
     /**
      * Converts a IUPAC nucleotide code to a pair of bases

@@ -21,7 +21,6 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import org.broad.tribble.util.variantcontext.Allele;
@@ -202,7 +201,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             return null;
 
         mostDownstreamLocusReached = ref.getLocus();
-        if ( DEBUG ) logger.debug("map() at: " + mostDownstreamLocusReached);
+        if (DEBUG) logger.debug("map() at: " + mostDownstreamLocusReached);
 
         PhasingStats phaseStats = new PhasingStats();
         List<VariantContext> unprocessedList = new LinkedList<VariantContext>();
@@ -210,13 +209,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         boolean requireStartHere = true; // only see each VariantContext once
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
         for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly)) {
-            if ( samplesToPhase != null ) vc = reduceVCToSamples(vc, samplesToPhase);
+            if (samplesToPhase != null) vc = reduceVCToSamples(vc, samplesToPhase);
 
             if (ReadBackedPhasingWalker.processVariantInPhasing(vc)) {
                 VariantAndReads vr = new VariantAndReads(vc, context);
                 unphasedSiteQueue.add(vr);
 
-                if ( DEBUG ) logger.debug("Added variant to queue = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vr.variant));
+                if (DEBUG)
+                    logger.debug("Added variant to queue = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant));
             }
             else {
                 unprocessedList.add(vc); // Finished with the unprocessed variant, and writer can enforce sorting on-the-fly
@@ -240,13 +240,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private static final Set<String> KEYS_TO_KEEP_IN_REDUCED_VCF = new HashSet<String>(Arrays.asList("PQ"));
+
     private VariantContext reduceVCToSamples(VariantContext vc, List<String> samplesToPhase) {
 //        for ( String sample : samplesToPhase )
 //            logger.debug(String.format("  Sample %s has genotype %s, het = %s", sample, vc.getGenotype(sample), vc.getGenotype(sample).isHet() ));
         VariantContext subvc = vc.subContextFromGenotypes(vc.getGenotypes(samplesToPhase).values());
 //        logger.debug("original VC = " + vc);
 //        logger.debug("sub      VC = " + subvc);
-        return VariantContextUtils.pruneVariantContext(subvc, KEYS_TO_KEEP_IN_REDUCED_VCF );
+        return VariantContextUtils.pruneVariantContext(subvc, KEYS_TO_KEEP_IN_REDUCED_VCF);
     }
 
     private List<VariantContext> processQueue(PhasingStats phaseStats, boolean processAll) {
@@ -255,7 +256,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         while (!unphasedSiteQueue.isEmpty()) {
             if (!processAll) { // otherwise, phase until the end of unphasedSiteQueue
                 VariantContext nextToPhaseVc = unphasedSiteQueue.peek().variant;
-                if (startDistancesAreInWindowRange(mostDownstreamLocusReached, VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),nextToPhaseVc))) {
+                if (startDistancesAreInWindowRange(mostDownstreamLocusReached, VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), nextToPhaseVc))) {
                     /* mostDownstreamLocusReached is still not far enough ahead of nextToPhaseVc to have all phasing information for nextToPhaseVc
                      (note that we ASSUME that the VCF is ordered by <contig,locus>).
                       Note that this will always leave at least one entry (the last one), since mostDownstreamLocusReached is in range of itself.
@@ -266,16 +267,17 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
             // Update partiallyPhasedSites before it's used in phaseSite:
             oldPhasedList.addAll(discardIrrelevantPhasedSites());
-            if ( DEBUG ) logger.debug("oldPhasedList(1st) = " + toStringVCL(oldPhasedList));
+            if (DEBUG) logger.debug("oldPhasedList(1st) = " + toStringVCL(oldPhasedList));
 
             VariantAndReads vr = unphasedSiteQueue.remove();
-            if ( DEBUG ) logger.debug("Performing phasing for " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vr.variant));
+            if (DEBUG)
+                logger.debug("Performing phasing for " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant));
             phaseSite(vr, phaseStats);
         }
 
         // Update partiallyPhasedSites after phaseSite is done:
         oldPhasedList.addAll(discardIrrelevantPhasedSites());
-        if ( DEBUG ) logger.debug("oldPhasedList(2nd) = " + toStringVCL(oldPhasedList));
+        if (DEBUG) logger.debug("oldPhasedList(2nd) = " + toStringVCL(oldPhasedList));
 
         if (outputMultipleBaseCountsWriter != null)
             outputMultipleBaseCountsWriter.outputMultipleBaseCounts();
@@ -288,7 +290,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         GenomeLoc nextToPhaseLoc = null;
         if (!unphasedSiteQueue.isEmpty())
-            nextToPhaseLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),unphasedSiteQueue.peek().variant);
+            nextToPhaseLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), unphasedSiteQueue.peek().variant);
 
         while (!partiallyPhasedSites.isEmpty()) {
             if (nextToPhaseLoc != null) { // otherwise, unphasedSiteQueue.isEmpty(), and therefore no need to keep any of the "past"
@@ -313,7 +315,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private void phaseSite(VariantAndReads vr, PhasingStats phaseStats) {
         VariantContext vc = vr.variant;
-        logger.debug("Will phase vc = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc));
+        logger.debug("Will phase vc = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
 
         UnfinishedVariantAndReads uvr = new UnfinishedVariantAndReads(vr);
         UnfinishedVariantContext uvc = uvr.unfinishedVariant;
@@ -325,7 +327,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             String samp = sampGtEntry.getKey();
             Genotype gt = sampGtEntry.getValue();
 
-            if ( DEBUG ) logger.debug("sample = " + samp);
+            if (DEBUG) logger.debug("sample = " + samp);
             if (isUnfilteredCalledDiploidGenotype(gt)) {
                 if (gt.isHom()) { // Note that this Genotype may be replaced later to contain the PQ of a downstream het site that was phased relative to a het site lying upstream of this hom site:
                     // true <-> can trivially phase a hom site relative to ANY previous site:
@@ -336,7 +338,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     PhasingWindow phaseWindow = new PhasingWindow(vr, samp);
                     if (phaseWindow.hasPreviousHets()) { // Otherwise, nothing to phase this against
                         SNPallelePair allelePair = new SNPallelePair(gt);
-                        if ( DEBUG ) logger.debug("Want to phase TOP vs. BOTTOM for: " + "\n" + allelePair);
+                        if (DEBUG) logger.debug("Want to phase TOP vs. BOTTOM for: " + "\n" + allelePair);
 
                         DoublyLinkedList.BidirectionalIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = phaseWindow.prevHetAndInteriorIt;
                         /* Notes:
@@ -350,15 +352,17 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                         boolean genotypesArePhased = passesPhasingThreshold(pr.phaseQuality);
 
                         if (pr.phasingContainsInconsistencies) {
-                            if ( DEBUG ) logger.debug("MORE than " + (MAX_FRACTION_OF_INCONSISTENT_READS * 100) + "% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc));
+                            if (DEBUG)
+                                logger.debug("MORE than " + (MAX_FRACTION_OF_INCONSISTENT_READS * 100) + "% of the reads are inconsistent for phasing of " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
                             uvc.setPhasingInconsistent();
                         }
 
                         if (genotypesArePhased) {
                             SNPallelePair prevAllelePair = new SNPallelePair(prevHetGenotype);
 
-                            if ( DEBUG ) logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevAllelePair + "\n");
-                            if ( DEBUG ) logger.debug("THE PHASE CHOSEN HERE:\n" + allelePair + "\n\n");
+                            if (DEBUG)
+                                logger.debug("THE PHASE PREVIOUSLY CHOSEN FOR PREVIOUS:\n" + prevAllelePair + "\n");
+                            if (DEBUG) logger.debug("THE PHASE CHOSEN HERE:\n" + allelePair + "\n\n");
 
                             ensurePhasing(allelePair, prevAllelePair, pr.haplotype);
                             Map<String, Object> gtAttribs = new HashMap<String, Object>(gt.getAttributes());
@@ -389,7 +393,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                         }
 
                         if (statsWriter != null)
-                            statsWriter.addStat(samp, VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc), startDistance(prevUvc, vc), pr.phaseQuality, phaseWindow.readsAtHetSites.size(), phaseWindow.hetGenotypes.length);
+                            statsWriter.addStat(samp, VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc), startDistance(prevUvc, vc), pr.phaseQuality, phaseWindow.readsAtHetSites.size(), phaseWindow.hetGenotypes.length);
 
                         PhaseCounts sampPhaseCounts = samplePhaseStats.get(samp);
                         if (sampPhaseCounts == null) {
@@ -436,7 +440,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         private Genotype[] hetGenotypes = null;
         private DoublyLinkedList.BidirectionalIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = null;
         private int phasingSiteIndex = -1;
-        private Map<String, Read> readsAtHetSites = null;
+        private Map<String, PhasingRead> readsAtHetSites = null;
 
         public boolean hasPreviousHets() {
             return phasingSiteIndex > 0;
@@ -458,7 +462,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 else if (gt.isHet()) {
                     GenotypeAndReadBases grb = new GenotypeAndReadBases(gt, phasedVr.sampleReadBases.get(sample), phasedVr.unfinishedVariant.getLocation());
                     listHetGenotypes.add(grb);
-                    if ( DEBUG ) logger.debug("Using UPSTREAM het site = " + grb.loc);
+                    if (DEBUG) logger.debug("Using UPSTREAM het site = " + grb.loc);
                     prevHetAndInteriorIt = phasedIt.clone();
                 }
             }
@@ -471,10 +475,11 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             prevHetAndInteriorIt.previous(); // so that it points to the previous het site [and NOT one after it, due to the last call to next()]
 
             // Add the (het) position to be phased:
-            GenomeLoc phaseLocus = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vr.variant);
+            GenomeLoc phaseLocus = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vr.variant);
             GenotypeAndReadBases grbPhase = new GenotypeAndReadBases(vr.variant.getGenotype(sample), vr.sampleReadBases.get(sample), phaseLocus);
             listHetGenotypes.add(grbPhase);
-            if ( DEBUG ) logger.debug("PHASING het site = " + grbPhase.loc + " [phasingSiteIndex = " + phasingSiteIndex + "]");
+            if (DEBUG)
+                logger.debug("PHASING het site = " + grbPhase.loc + " [phasingSiteIndex = " + phasingSiteIndex + "]");
 
             // Include as-of-yet unphased sites in the phasing computation:
             for (VariantAndReads nextVr : unphasedSiteQueue) {
@@ -485,9 +490,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     break;
                 }
                 else if (gt.isHet()) {
-                    GenotypeAndReadBases grb = new GenotypeAndReadBases(gt, nextVr.sampleReadBases.get(sample), VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),nextVr.variant));
+                    GenotypeAndReadBases grb = new GenotypeAndReadBases(gt, nextVr.sampleReadBases.get(sample), VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), nextVr.variant));
                     listHetGenotypes.add(grb);
-                    if ( DEBUG ) logger.debug("Using DOWNSTREAM het site = " + grb.loc);
+                    if (DEBUG) logger.debug("Using DOWNSTREAM het site = " + grb.loc);
                 }
             }
 
@@ -515,7 +520,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             buildReadsAtHetSites(listHetGenotypes, onlyKeepReads);
 
             // Copy to a fixed-size array:
-            if ( DEBUG ) logger.debug("FINAL phasing window of " + listHetGenotypes.size() + " sites:\n" + toStringGRL(listHetGenotypes));
+            if (DEBUG)
+                logger.debug("FINAL phasing window of " + listHetGenotypes.size() + " sites:\n" + toStringGRL(listHetGenotypes));
             hetGenotypes = new Genotype[listHetGenotypes.size()];
             int index = 0;
             for (GenotypeAndReadBases copyGrb : listHetGenotypes)
@@ -531,7 +537,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         private void buildReadsAtHetSites(List<GenotypeAndReadBases> listHetGenotypes, String sample, GenomeLoc phasingLoc, Set<String> onlyKeepReads) {
-            readsAtHetSites = new HashMap<String, Read>();
+            readsAtHetSites = new HashMap<String, PhasingRead>();
 
             int index = 0;
             for (GenotypeAndReadBases grb : listHetGenotypes) {
@@ -542,9 +548,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                         if (onlyKeepReads != null && !onlyKeepReads.contains(readName)) // if onlyKeepReads exists, ignore reads not in onlyKeepReads
                             continue;
 
-                        Read rd = readsAtHetSites.get(readName);
+                        PhasingRead rd = readsAtHetSites.get(readName);
                         if (rd == null) {
-                            rd = new Read(listHetGenotypes.size(), rb.mappingQual);
+                            rd = new PhasingRead(listHetGenotypes.size(), rb.mappingQual);
                             readsAtHetSites.put(readName, rd);
                         }
                         else if (outputMultipleBaseCountsWriter != null && rd.getBase(index) != null // rd already has a base at index
@@ -558,13 +564,13 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 }
                 index++;
             }
-            if ( DEBUG ) logger.debug("Number of sites in window = " + index);
+            if (DEBUG) logger.debug("Number of sites in window = " + index);
 
-            if ( DEBUG && logger.isDebugEnabled()) {
+            if (DEBUG && logger.isDebugEnabled()) {
                 logger.debug("ALL READS [phasingSiteIndex = " + phasingSiteIndex + "]:");
-                for (Map.Entry<String, Read> nameToReads : readsAtHetSites.entrySet()) {
+                for (Map.Entry<String, PhasingRead> nameToReads : readsAtHetSites.entrySet()) {
                     String rdName = nameToReads.getKey();
-                    Read rd = nameToReads.getValue();
+                    PhasingRead rd = nameToReads.getValue();
                     logger.debug(rd + "\t" + rdName);
                 }
             }
@@ -620,16 +626,16 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             EdgeToReads edgeToReads = new EdgeToReads();
             Set<Integer> sitesWithEdges = new TreeSet<Integer>();
 
-            for (Map.Entry<String, Read> nameToReads : readsAtHetSites.entrySet()) {
+            for (Map.Entry<String, PhasingRead> nameToReads : readsAtHetSites.entrySet()) {
                 String rdName = nameToReads.getKey();
-                Read rd = nameToReads.getValue();
+                PhasingRead rd = nameToReads.getValue();
 
                 int[] siteInds = rd.getNonNullIndices();
                 // Connect each pair of non-null sites in rd:
                 for (int i = 0; i < siteInds.length; i++) {
                     for (int j = i + 1; j < siteInds.length; j++) {
                         GraphEdge e = new GraphEdge(siteInds[i], siteInds[j]);
-                        if ( DEBUG ) logger.debug("Read = " + rdName + " is adding edge: " + e);
+                        if (DEBUG) logger.debug("Read = " + rdName + " is adding edge: " + e);
                         readGraph.addEdge(e);
 
                         edgeToReads.addRead(e, rdName);
@@ -639,7 +645,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     }
                 }
             }
-            if ( DEBUG ) logger.debug("Read graph:\n" + readGraph);
+            if (DEBUG) logger.debug("Read graph:\n" + readGraph);
             Set<String> keepReads = new HashSet<String>();
 
             /* Check which Reads are involved in acyclic paths from (phasingSiteIndex - 1) to (phasingSiteIndex):
@@ -692,7 +698,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             int cur = phasingSiteIndex;
 
             if (!readGraph.getConnectedComponents().inSameSet(prev, cur)) { // There is NO path between cur and prev
-                if ( DEBUG ) logger.debug("NO READ PATH between PHASE site [" + cur + "] and UPSTREAM site [" + prev + "]");
+                if (DEBUG)
+                    logger.debug("NO READ PATH between PHASE site [" + cur + "] and UPSTREAM site [" + prev + "]");
                 readsAtHetSites.clear();
                 return keepReads;
             }
@@ -703,7 +710,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             IntegerSet[] removedSiteSameCCAsPrev = new IntegerSet[numHetSites];
             IntegerSet[] removedSiteSameCCAsCur = new IntegerSet[numHetSites];
             for (int i : sitesWithEdges) {
-                if ( DEBUG ) logger.debug("Calculating CC after removing edges of site: " + i);
+                if (DEBUG) logger.debug("Calculating CC after removing edges of site: " + i);
 
                 // Remove all edges incident to i and see which positions have paths to prev and cur:
                 Collection<GraphEdge> removedEdges = readGraph.removeAllIncidentEdges(i);
@@ -713,15 +720,15 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 removedSiteSameCCAsPrev[i] = new IntegerSet(ccAfterRemove.inSameSetAs(prev, sitesWithEdges));
                 removedSiteSameCCAsCur[i] = new IntegerSet(ccAfterRemove.inSameSetAs(cur, sitesWithEdges));
 
-                if ( DEBUG ) logger.debug("Same CC as previous [" + prev + "]: " + removedSiteSameCCAsPrev[i]);
-                if ( DEBUG ) logger.debug("Same CC as current  [" + cur + "]: " + removedSiteSameCCAsCur[i]);
+                if (DEBUG) logger.debug("Same CC as previous [" + prev + "]: " + removedSiteSameCCAsPrev[i]);
+                if (DEBUG) logger.debug("Same CC as current  [" + cur + "]: " + removedSiteSameCCAsCur[i]);
 
                 // Add the removed edges back in:
                 readGraph.addEdges(removedEdges);
             }
 
             for (GraphEdge e : readGraph) {
-                if ( DEBUG ) logger.debug("Testing the path-connectivity of Edge: " + e);
+                if (DEBUG) logger.debug("Testing the path-connectivity of Edge: " + e);
 
                 /* Edge e={v1,v2} contributes a path between prev and cur for testRead iff:
                    testRead[v1] != null, testRead[v2] != null, and there is a path from prev ---> v1 -> v2 ---> cur  [or vice versa].
@@ -746,13 +753,13 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
 
             // Retain only the reads that contain an edge in a path connecting prev and cur:
-            Iterator<Map.Entry<String, Read>> readIt = readsAtHetSites.entrySet().iterator();
+            Iterator<Map.Entry<String, PhasingRead>> readIt = readsAtHetSites.entrySet().iterator();
             while (readIt.hasNext()) {
-                Map.Entry<String, Read> nameToReads = readIt.next();
+                Map.Entry<String, PhasingRead> nameToReads = readIt.next();
                 String rdName = nameToReads.getKey();
                 if (!keepReads.contains(rdName)) {
                     readIt.remove();
-                    if ( DEBUG ) logger.debug("Removing extraneous read: " + rdName);
+                    if (DEBUG) logger.debug("Removing extraneous read: " + rdName);
                 }
             }
 
@@ -761,8 +768,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
         private List<GenotypeAndReadBases> removeExtraneousSites(List<GenotypeAndReadBases> listHetGenotypes) {
             Set<Integer> sitesWithReads = new HashSet<Integer>();
-            for (Map.Entry<String, Read> nameToReads : readsAtHetSites.entrySet()) {
-                Read rd = nameToReads.getValue();
+            for (Map.Entry<String, PhasingRead> nameToReads : readsAtHetSites.entrySet()) {
+                PhasingRead rd = nameToReads.getValue();
                 for (int i : rd.getNonNullIndices())
                     sitesWithReads.add(i);
             }
@@ -779,7 +786,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 if (keepSite || index == phasingSiteIndex || index == phasingSiteIndex - 1) {
                     keepHetSites.add(grb);
                     if (!keepSite)
-                        if ( DEBUG ) logger.debug("Although current or previous sites have no relevant reads, continuing empty attempt to phase them [for sake of program flow]...");
+                        if (DEBUG)
+                            logger.debug("Although current or previous sites have no relevant reads, continuing empty attempt to phase them [for sake of program flow]...");
                 }
                 else if (index <= phasingSiteIndex)
                     numPrecedingRemoved++;
@@ -792,7 +800,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         private List<GenotypeAndReadBases> trimWindow(List<GenotypeAndReadBases> listHetGenotypes, String sample, GenomeLoc phaseLocus) {
-            if ( DEBUG) logger.warn("Trying to phase sample " + sample + " at locus " + phaseLocus + " within a window of " + cacheWindow + " bases yields " + listHetGenotypes.size() + " heterozygous sites to phase:\n" + toStringGRL(listHetGenotypes));
+            if (DEBUG)
+                logger.warn("Trying to phase sample " + sample + " at locus " + phaseLocus + " within a window of " + cacheWindow + " bases yields " + listHetGenotypes.size() + " heterozygous sites to phase:\n" + toStringGRL(listHetGenotypes));
 
             int prevSiteIndex = phasingSiteIndex - 1; // index of previous in listHetGenotypes
             int numToUse = maxPhaseSites - 2; // since always keep previous and current het sites!
@@ -815,7 +824,8 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             int stopIndex = phasingSiteIndex + useOnRight + 1; // put the index 1 past the desired index to keep
             phasingSiteIndex -= startIndex;
             listHetGenotypes = listHetGenotypes.subList(startIndex, stopIndex);
-            if ( DEBUG ) logger.warn("NAIVELY REDUCED to " + listHetGenotypes.size() + " sites:\n" + toStringGRL(listHetGenotypes));
+            if (DEBUG)
+                logger.warn("NAIVELY REDUCED to " + listHetGenotypes.size() + " sites:\n" + toStringGRL(listHetGenotypes));
 
             return listHetGenotypes;
         }
@@ -831,9 +841,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         if (DEBUG && logger.isDebugEnabled()) {
             logger.debug("Number of USED reads [connecting the two positions to be phased] at sites: " + phaseWindow.readsAtHetSites.size());
             logger.debug("USED READS:");
-            for (Map.Entry<String, Read> nameToReads : phaseWindow.readsAtHetSites.entrySet()) {
+            for (Map.Entry<String, PhasingRead> nameToReads : phaseWindow.readsAtHetSites.entrySet()) {
                 String rdName = nameToReads.getKey();
-                Read rd = nameToReads.getValue();
+                PhasingRead rd = nameToReads.getValue();
                 logger.debug(rd + "\t" + rdName);
             }
         }
@@ -847,19 +857,20 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         double totalAbsPQchange = 0;
         int numPQchangesObserved = 0;
 
-        for (Map.Entry<String, Read> nameToReads : phaseWindow.readsAtHetSites.entrySet()) {
-            Read rd = nameToReads.getValue();
-            if ( DEBUG ) logger.debug("\nrd = " + rd + "\tname = " + nameToReads.getKey());
+        for (Map.Entry<String, PhasingRead> nameToReads : phaseWindow.readsAtHetSites.entrySet()) {
+            PhasingRead rd = nameToReads.getValue();
+            if (DEBUG) logger.debug("\nrd = " + rd + "\tname = " + nameToReads.getKey());
 
             for (PhasingTable.PhasingTableEntry pte : sampleHaps) {
                 PhasingScore score = rd.matchHaplotypeClassScore(pte.getHaplotypeClass());
                 pte.getScore().integrateReadScore(score);
-                if ( DEBUG ) logger.debug("score(" + rd + ", " + pte.getHaplotypeClass() + ") = " + score);
+                if (DEBUG) logger.debug("score(" + rd + ", " + pte.getHaplotypeClass() + ") = " + score);
             }
 
             // Check the current best haplotype assignment and compare it to the previous one:
             MaxHaplotypeAndQuality curMaxHapAndQual = new MaxHaplotypeAndQuality(sampleHaps, false);
-            if ( DEBUG ) logger.debug("CUR MAX hap:\t" + curMaxHapAndQual.maxEntry.getHaplotypeClass() + "\tcurPhaseQuality:\t" + curMaxHapAndQual.phaseQuality);
+            if (DEBUG)
+                logger.debug("CUR MAX hap:\t" + curMaxHapAndQual.maxEntry.getHaplotypeClass() + "\tcurPhaseQuality:\t" + curMaxHapAndQual.phaseQuality);
             if (prevMaxHapAndQual != null) {
                 double changeInPQ = prevMaxHapAndQual.phaseQuality - curMaxHapAndQual.phaseQuality;
 
@@ -867,7 +878,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                     numHighQualityIterations++;
                     if (!curMaxHapAndQual.hasSameRepresentativeHaplotype(prevMaxHapAndQual) || // switched phase
                             (numPQchangesObserved > 0 && changeInPQ > FRACTION_OF_MEAN_PQ_CHANGES * (totalAbsPQchange / numPQchangesObserved))) { // a "significant" decrease in PQ
-                        if ( DEBUG ) logger.debug("Inconsistent read found!");
+                        if (DEBUG) logger.debug("Inconsistent read found!");
                         numInconsistentIterations++;
                     }
                 }
@@ -878,12 +889,14 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             prevMaxHapAndQual = curMaxHapAndQual;
         }
 
-        if ( DEBUG ) logger.debug("\nPhasing table [AFTER CALCULATION]:\n" + sampleHaps + "\n");
+        if (DEBUG) logger.debug("\nPhasing table [AFTER CALCULATION]:\n" + sampleHaps + "\n");
         MaxHaplotypeAndQuality maxHapQual = new MaxHaplotypeAndQuality(sampleHaps, true);
         double posteriorProb = maxHapQual.maxEntry.getScore().getValue();
 
-        if ( DEBUG ) logger.debug("MAX hap:\t" + maxHapQual.maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + maxHapQual.phaseQuality);
-        if ( DEBUG ) logger.debug("Number of used reads " + phaseWindow.readsAtHetSites.size() + "; number of high PQ iterations " + numHighQualityIterations + "; number of inconsistencies " + numInconsistentIterations);
+        if (DEBUG)
+            logger.debug("MAX hap:\t" + maxHapQual.maxEntry.getHaplotypeClass() + "\tposteriorProb:\t" + posteriorProb + "\tphaseQuality:\t" + maxHapQual.phaseQuality);
+        if (DEBUG)
+            logger.debug("Number of used reads " + phaseWindow.readsAtHetSites.size() + "; number of high PQ iterations " + numHighQualityIterations + "; number of inconsistencies " + numInconsistentIterations);
 
         boolean phasingContainsInconsistencies = false;
         if (numInconsistentIterations / (double) numHighQualityIterations > MAX_FRACTION_OF_INCONSISTENT_READS)
@@ -951,7 +964,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private boolean startDistancesAreInWindowRange(VariantContext vc1, VariantContext vc2) {
-        return startDistancesAreInWindowRange(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc1), VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc2));
+        return startDistancesAreInWindowRange(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc1), VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc2));
     }
 
     private boolean startDistancesAreInWindowRange(GenomeLoc loc1, GenomeLoc loc2) {
@@ -959,7 +972,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private int startDistance(UnfinishedVariantContext uvc1, VariantContext vc2) {
-        return uvc1.getLocation().distance(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc2));
+        return uvc1.getLocation().distance(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc2));
     }
 
     public PhasingStats reduce(PhasingStatsAndOutput statsAndList, PhasingStats stats) {
@@ -1006,13 +1019,13 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     }
 
     private void writeVCF(VariantContext vc) {
-        if ( samplesToPhase == null || vc.isNotFiltered() )
-	    //if ( samplesToPhase == null || (vc.isVariant() && vc.isNotFiltered())) // if we are only operating on specific samples, don't write out all sites, just those where the VC is variant
+        if (samplesToPhase == null || vc.isNotFiltered())
+            //if ( samplesToPhase == null || (vc.isVariant() && vc.isNotFiltered())) // if we are only operating on specific samples, don't write out all sites, just those where the VC is variant
             WriteVCF.writeVCF(vc, writer, logger);
     }
 
     public static boolean processVariantInPhasing(VariantContext vc) {
-        return vc.isNotFiltered() && ((vc.isSNP() && vc.isBiallelic()) || ! vc.isVariant()); // we can handle the non-variant case as well
+        return vc.isNotFiltered() && ((vc.isSNP() && vc.isBiallelic()) || !vc.isVariant()); // we can handle the non-variant case as well
         //return isUnfilteredBiallelicSNP(vc);
     }
 
@@ -1140,45 +1153,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             else
                 sb.append(" -- ");
 
-            sb.append(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),vc));
+            sb.append(VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
         }
         return sb.toString();
-    }
-
-    private static class ReadBase {
-        public String readName;
-        public byte base;
-        public int mappingQual;
-        public byte baseQual;
-
-        public ReadBase(String readName, byte base, int mappingQual, byte baseQual) {
-            this.readName = readName;
-            this.base = base;
-            this.mappingQual = mappingQual;
-            this.baseQual = baseQual;
-        }
-    }
-
-    private static class ReadBasesAtPosition implements Iterable<ReadBase> {
-        // list of: <read name, base>
-        private LinkedList<ReadBase> bases;
-
-        public ReadBasesAtPosition() {
-            this.bases = new LinkedList<ReadBase>();
-        }
-
-        public void putReadBase(PileupElement pue) {
-            ReadBase rb = new ReadBase(pue.getRead().getReadName(), pue.getBase(), pue.getMappingQual(), pue.getQual());
-            bases.add(rb);
-        }
-
-        public Iterator<ReadBase> iterator() {
-            return bases.iterator();
-        }
-
-        public boolean isEmpty() {
-            return bases.isEmpty();
-        }
     }
 
 //
@@ -1432,7 +1409,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         public void outputMultipleBaseCounts() {
             GenomeLoc nextToPhaseLoc = null;
             if (!unphasedSiteQueue.isEmpty())
-                nextToPhaseLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),unphasedSiteQueue.peek().variant);
+                nextToPhaseLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), unphasedSiteQueue.peek().variant);
 
             outputMultipleBaseCounts(nextToPhaseLoc);
         }
@@ -1484,108 +1461,6 @@ class PhasingScore extends PreciseNonNegativeDouble {
     }
 }
 
-abstract class BaseArray implements Comparable<BaseArray> {
-    protected Byte[] bases;
-
-    public BaseArray(byte[] bases) {
-        this.bases = new Byte[bases.length];
-        for (int i = 0; i < bases.length; i++)
-            this.bases[i] = bases[i];
-    }
-
-    public BaseArray(Byte[] bases) {
-        this.bases = Arrays.copyOf(bases, bases.length);
-    }
-
-    public BaseArray(int length) {
-        this.bases = new Byte[length];
-        Arrays.fill(this.bases, null);
-    }
-
-    public BaseArray(BaseArray other) {
-        this(other.bases);
-    }
-
-    public void updateBase(int index, Byte base) {
-        bases[index] = base;
-    }
-
-    public Byte getBase(int index) {
-        return bases[index];
-    }
-
-    public int size() {
-        return bases.length;
-    }
-
-    public String toString() {
-        StringBuilder sb = new StringBuilder(bases.length);
-        for (Byte b : bases)
-            sb.append(b != null ? (char) b.byteValue() : "_");
-
-        return sb.toString();
-    }
-
-    public int compareTo(BaseArray that) {
-        int sz = this.bases.length;
-        if (sz != that.bases.length)
-            return (sz - that.bases.length);
-
-        for (int i = 0; i < sz; i++) {
-            Byte thisBase = this.getBase(i);
-            Byte thatBase = that.getBase(i);
-            if (thisBase == null || thatBase == null) {
-                if (thisBase == null && thatBase != null) {
-                    return -1;
-                }
-                else if (thisBase != null && thatBase == null) {
-                    return 1;
-                }
-            }
-            else if (!BaseUtils.basesAreEqual(thisBase, thatBase)) {
-                return thisBase - thatBase;
-            }
-        }
-        return 0;
-    }
-}
-
-class Haplotype extends BaseArray implements Cloneable {
-    public Haplotype(byte[] bases) {
-        super(bases);
-    }
-
-    private Haplotype(Byte[] bases) {
-        super(bases);
-    }
-
-    public Haplotype(Haplotype other) {
-        super(other);
-    }
-
-    public void updateBase(int index, Byte base) {
-        if (base == null) {
-            throw new ReviewedStingException("Internal error: CANNOT have null for a missing Haplotype base!");
-        }
-        super.updateBase(index, base);
-    }
-
-    public Haplotype clone() {
-        try {
-            super.clone();
-        } catch (CloneNotSupportedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-        return new Haplotype(this);
-    }
-
-    // Returns a new Haplotype containing the portion of this Haplotype between the specified fromIndex, inclusive, and toIndex, exclusive.
-
-    public Haplotype subHaplotype(int fromIndex, int toIndex) {
-        return new Haplotype(Arrays.copyOfRange(bases, fromIndex, Math.min(toIndex, size())));
-    }
-}
-
 class HaplotypeClass implements Iterable<Haplotype> {
     private ArrayList<Haplotype> haps;
     private Haplotype rep;
@@ -1616,82 +1491,6 @@ class HaplotypeClass implements Iterable<Haplotype> {
         }
         sb.append(" [").append(rep).append("]");
         return sb.toString();
-    }
-}
-
-class Read extends BaseArray {
-    private PreciseNonNegativeDouble mappingProb; // the probability that this read is mapped correctly
-    private PreciseNonNegativeDouble[] baseProbs; // the probabilities that the base identities are CORRECT
-    private PreciseNonNegativeDouble[] baseErrorProbs; // the probabilities that the base identities are INCORRECT
-
-    public Read(int length, int mappingQual) {
-        super(length);
-
-        this.mappingProb = new PreciseNonNegativeDouble(QualityUtils.qualToProb(mappingQual));
-
-        this.baseProbs = new PreciseNonNegativeDouble[length];
-        Arrays.fill(this.baseProbs, null);
-
-        this.baseErrorProbs = new PreciseNonNegativeDouble[length];
-        Arrays.fill(this.baseErrorProbs, null);
-    }
-
-    public void updateBaseAndQuality(int index, Byte base, byte baseQual) {
-        updateBase(index, base);
-
-        double errProb = QualityUtils.qualToErrorProb(baseQual);
-
-        // The base error should be AT LEAST AS HIGH as the mapping error [equivalent to capping the base quality (BQ) by the mapping quality (MQ)]:
-        errProb = Math.max(errProb, 1.0 - mappingProb.getValue());
-
-        baseProbs[index] = new PreciseNonNegativeDouble(1.0 - errProb); // The probability that the true base is the base called in the read
-        baseErrorProbs[index] = new PreciseNonNegativeDouble(errProb / 3.0); // DIVIDE up the error probability EQUALLY over the 3 non-called bases
-    }
-
-    public PhasingScore matchHaplotypeClassScore(HaplotypeClass hapClass) {
-        PreciseNonNegativeDouble value = new PreciseNonNegativeDouble(0.0);
-        for (Haplotype h : hapClass)
-            value.plusEqual(matchHaplotypeScore(h));
-
-        return new PhasingScore(value);
-    }
-
-    private PreciseNonNegativeDouble matchHaplotypeScore(Haplotype hap) {
-        PreciseNonNegativeDouble score = new PreciseNonNegativeDouble(1.0);
-
-        int sz = this.bases.length;
-        if (sz != hap.bases.length)
-            throw new ReviewedStingException("Read and Haplotype should have same length to be compared!");
-
-        // Technically, this HAS NO EFFECT since it is multiplied in for ALL haplotype pairs, but do so for completeness:
-        score.timesEqual(mappingProb);
-
-        for (int i = 0; i < sz; i++) {
-            Byte thisBase = this.getBase(i);
-            Byte hapBase = hap.getBase(i);
-            if (thisBase != null && hapBase != null) {
-                if (BaseUtils.basesAreEqual(thisBase, hapBase))
-                    score.timesEqual(baseProbs[i]);
-                else
-                    score.timesEqual(baseErrorProbs[i]);
-            }
-        }
-
-        return score;
-    }
-
-    public int[] getNonNullIndices() {
-        List<Integer> nonNull = new LinkedList<Integer>();
-        for (int i = 0; i < bases.length; i++) {
-            if (getBase(i) != null)
-                nonNull.add(i);
-        }
-
-        int[] nonNullArray = new int[nonNull.size()];
-        int index = 0;
-        for (int i : nonNull)
-            nonNullArray[index++] = i;
-        return nonNullArray;
     }
 }
 
