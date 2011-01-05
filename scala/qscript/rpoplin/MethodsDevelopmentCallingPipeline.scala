@@ -16,7 +16,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="skipCalling", doc="If true, skip the calling part of the pipeline and only run VQSR on preset, gold standard VCF files", required=false)
   var skipCalling: Boolean = false
 
-  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(4); }
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(3); }
 
   class Target(val baseName: String, val reference: File, val rodName: String, val bamList: File, val goldStandard_VCF: File, val intervals: String, val titvTarget: Double, val isLowpass: Boolean) {
     def name = qscript.outputDir + baseName
@@ -65,7 +65,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass)
   val LowPassFIN79Nov = new Target("FIN.nov2010", b37, "b37",
         new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
-        new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+        new File("/broad/shptmp/rpoplin/pipeline_newHS7/FIN.nov2010.filtered.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
         "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass)
   val TGPWExGdA = new Target("1000G.WEx.GdA", b37, "b37",
         new File("/humgen/1kg/processing/pipeline_test_bams/Barcoded_1000G_WEx_Reduced_Plate_1.cleaned.list"), // BUGBUG: reduce from 60 to 20 people
@@ -73,7 +73,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
 
   val targets = List(HiSeq, WEx, LowPassN60, LowPassAugust, LowPassEUR363Nov, LowPassFIN79Nov, TGPWExGdA)
-  
+  //val targets = List(HiSeq, WEx, LowPassEUR363Nov, LowPassFIN79Nov)
+  //val targets = List(LowPassFIN79Nov)
+
   def script = {
       def goldStandard = true
       for (target <- targets) {
@@ -102,6 +104,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
     this.dcov = Some( if ( t.isLowpass ) { 50 } else { 250 } )
+    this.stand_call_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
+    this.stand_emit_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
     this.input_file :+= t.bamList
     this.out = t.rawVCF
     this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE)
@@ -128,14 +132,17 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.reference_sequence = t.reference
       this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_" + t.rodName + ".rod")
       this.rodBind :+= RodBind("hapmap", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/genotypes_r27_nr." + t.rodName + "_fwd.vcf")
+      if( t.rodName.equals("b37") ) {
+        this.rodBind :+= RodBind("1kg", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/ALL.low_coverage.2010_07.hg19.vcf")
+      }
       this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
       this.clusterFile = if ( goldStandard ) { t.goldStandardClusterFile } else { t.clusterFile }
       this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
       this.analysisName = name + "_GVC"
       this.intervalsString ++= List(t.intervals)
-      this.qual = Some(300) // clustering parameters to be updated soon pending new experimentation results
+      this.qual = Some(350) // clustering parameters to be updated soon pending new experimentation results
       this.std = Some(3.5)
-      this.mG = Some(16)
+      this.mG = Some(10)
       this.ignoreFilter ++= FiltersToIgnore
   }
 
@@ -145,6 +152,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.reference_sequence = t.reference
       this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_" + t.rodName + ".rod")
       this.rodBind :+= RodBind("hapmap", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/genotypes_r27_nr." + t.rodName + "_fwd.vcf")
+      if( t.rodName.equals("b37") ) {
+        this.rodBind :+= RodBind("1kg", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/ALL.low_coverage.2010_07.hg19.vcf")
+      }
       this.rodBind :+= RodBind("truth", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.2/genotypes_r27_nr." + t.rodName + "_fwd.vcf")
       this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
       this.clusterFile = if ( goldStandard ) { t.goldStandardClusterFile } else { t.clusterFile }
@@ -152,8 +162,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.intervalsString ++= List(t.intervals)
       this.ignoreFilter ++= FiltersToIgnore
       this.ignoreFilter ++= List("HARD_TO_VALIDATE")
-      this.priorDBSNP = Some(2.0)
-      this.priorHapMap = Some(2.0)
       this.target_titv = t.titvTarget
   }
 
@@ -169,6 +177,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
       this.tranche ++= List("0.1", "1.0", "10.0", "100.0")
       this.out = new File(this.name + ".ts.recalibrated.vcf")
+      this.priorDBSNP = Some(2.0)
+      this.priorHapMap = Some(2.0)
+      this.prior1KG = Some(2.0)    
       this.tranchesFile = new File(this.name + ".ts.tranches")
   }
 }
