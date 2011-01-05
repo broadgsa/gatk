@@ -50,7 +50,7 @@ public class GATKSAMRecord extends SAMRecord {
     // TODO: this is a temporary hack.  If it works, clean it up.
     private BitSet mBitSet = null;
 
-    public GATKSAMRecord(SAMRecord record, boolean useOriginalBaseQualities) {
+    public GATKSAMRecord(SAMRecord record, boolean useOriginalBaseQualities, byte defaultBaseQualities) {
         super(null); // it doesn't matter - this isn't used
         if ( record == null )
             throw new IllegalArgumentException("The SAMRecord argument cannot be null");
@@ -65,6 +65,20 @@ public class GATKSAMRecord extends SAMRecord {
         for ( SAMTagAndValue attribute : attributes )
             setAttribute(attribute.tag, attribute.value);
 
+        // if we are using default quals, check if we need them, and add if necessary.
+        // 1. we need if reads are lacking or have incomplete quality scores
+        // 2. we add if defaultBaseQualities has a positive value
+        if (defaultBaseQualities >= 0) {
+            byte reads [] = record.getReadBases();
+            byte quals [] = record.getBaseQualities();
+            if (quals == null || quals.length < reads.length) {
+                byte new_quals [] = new byte [reads.length];
+                for (int i=0; i<reads.length; i++)
+                    new_quals[i] = defaultBaseQualities;
+                record.setBaseQualities(new_quals);
+            }
+        }
+
         // if we are using original quals, set them now if they are present in the record
         if ( useOriginalBaseQualities ) {
             byte[] originalQuals = mRecord.getOriginalBaseQualities();
@@ -74,7 +88,7 @@ public class GATKSAMRecord extends SAMRecord {
 
         // sanity check that the lengths of the base and quality strings are equal
         if ( getBaseQualities().length  != getReadLength() )
-            throw new UserException.MalformedBam(this, String.format("Error: the number of base qualities does not match the number of bases in %s (and the GATK does not currently support '*' for the quals)", mRecord.getReadName()));
+            throw new UserException.MalformedBam(this, String.format("Error: the number of base qualities does not match the number of bases in %s. Use -DBQ x to set a default base quality score to all reads so GATK can proceed.", mRecord.getReadName()));
     }
 
     public void setGoodBases(GATKSAMRecordFilter filter, boolean abortIfAlreadySet) {

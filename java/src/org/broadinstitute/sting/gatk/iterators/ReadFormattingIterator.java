@@ -33,13 +33,22 @@ public class ReadFormattingIterator implements StingSAMIterator {
     private final boolean useOriginalBaseQualities;
 
     /**
+      * Positive if there is a default Base Quality value to fill in the reads with.
+      */
+     private final byte defaultBaseQualities;
+
+
+    /**
      * Decorate the given iterator inside a ReadWrappingIterator.
      * @param wrappedIterator iterator
      * @param useOriginalBaseQualities true if original base qualities should be used
+     * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.  
      */
-    public ReadFormattingIterator(StingSAMIterator wrappedIterator, boolean useOriginalBaseQualities) {
+    public ReadFormattingIterator(StingSAMIterator wrappedIterator, boolean useOriginalBaseQualities, byte defaultBaseQualities) {
         this.wrappedIterator = wrappedIterator;
         this.useOriginalBaseQualities = useOriginalBaseQualities;
+        this.defaultBaseQualities = defaultBaseQualities;
+
     }
 
     /**
@@ -74,7 +83,7 @@ public class ReadFormattingIterator implements StingSAMIterator {
      *         no next exists.
      */
     public SAMRecord next() {
-        return new GATKSAMRecord(wrappedIterator.next(), useOriginalBaseQualities);
+        return new GATKSAMRecord(wrappedIterator.next(), useOriginalBaseQualities, defaultBaseQualities);
     }
 
     /**

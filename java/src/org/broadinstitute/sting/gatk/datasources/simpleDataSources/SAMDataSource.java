@@ -140,8 +140,7 @@ public class SAMDataSource implements SimpleDataSource {
                 new ValidationExclusion(),
                 new ArrayList<SamRecordFilter>(),
                 false,
-                false
-        );
+                false);
     }
 
     /**
@@ -157,7 +156,7 @@ public class SAMDataSource implements SimpleDataSource {
             ValidationExclusion exclusionList,
             Collection<SamRecordFilter> supplementalFilters,
             boolean includeReadsWithDeletionAtLoci,
-            boolean generateExtendedEvents ) {
+            boolean generateExtendedEvents) {
         this(   samFiles,
                 genomeLocParser,
                 useOriginalBaseQualities,
@@ -168,7 +167,10 @@ public class SAMDataSource implements SimpleDataSource {
                 supplementalFilters,
                 includeReadsWithDeletionAtLoci,
                 generateExtendedEvents,
-                BAQ.CalculationMode.OFF, BAQ.QualityMode.DONT_MODIFY, null                 // no BAQ
+                BAQ.CalculationMode.OFF,
+                BAQ.QualityMode.DONT_MODIFY,
+                null, // no BAQ
+                (byte) -1
                 );
         }
 
@@ -187,6 +189,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @param includeReadsWithDeletionAtLoci if 'true', the base pileups sent to the walker's map() method
      *         will explicitly list reads with deletion over the current reference base; otherwise, only observed
      *        bases will be seen in the pileups, and the deletions will be skipped silently.
+     * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
      */
     public SAMDataSource(
             Collection<SAMReaderID> samFiles,
@@ -201,8 +204,8 @@ public class SAMDataSource implements SimpleDataSource {
             boolean generateExtendedEvents,
             BAQ.CalculationMode cmode,
             BAQ.QualityMode qmode,
-            IndexedFastaSequenceFile refReader
-    ) {
+            IndexedFastaSequenceFile refReader,
+            byte defaultBaseQualities) {
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
 
@@ -248,7 +251,10 @@ public class SAMDataSource implements SimpleDataSource {
                 supplementalFilters,
                 includeReadsWithDeletionAtLoci,
                 generateExtendedEvents,
-                cmode, qmode, refReader );
+                cmode,
+                qmode,
+                refReader,
+                defaultBaseQualities);
         
         // cache the read group id (original) -> read group id (merged)
         // and read group id (merged) -> read group id (original) mappings.
@@ -521,7 +527,10 @@ public class SAMDataSource implements SimpleDataSource {
                 readProperties.getDownsamplingMethod().toFraction,
                 readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 readProperties.getSupplementalFilters(),
-                readProperties.getBAQCalculationMode(), readProperties.getBAQQualityMode(), readProperties.getRefReader());
+                readProperties.getBAQCalculationMode(),
+                readProperties.getBAQQualityMode(),
+                readProperties.getRefReader(),
+                readProperties.defaultBaseQualities());
     }
 
     /**
@@ -545,7 +554,10 @@ public class SAMDataSource implements SimpleDataSource {
                 readProperties.getDownsamplingMethod().toFraction,
                 readProperties.getValidationExclusionList().contains(ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION),
                 readProperties.getSupplementalFilters(),
-                readProperties.getBAQCalculationMode(), readProperties.getBAQQualityMode(), readProperties.getRefReader());
+                readProperties.getBAQCalculationMode(),
+                readProperties.getBAQQualityMode(),
+                readProperties.getRefReader(),
+                readProperties.defaultBaseQualities());
     }
 
     /**
@@ -570,6 +582,7 @@ public class SAMDataSource implements SimpleDataSource {
      * @param downsamplingFraction whether and how much to downsample the reads themselves (not at a locus).
      * @param noValidationOfReadOrder Another trigger for the verifying iterator?  TODO: look into this.
      * @param supplementalFilters additional filters to apply to the reads.
+     * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
      * @return An iterator wrapped with filters reflecting the passed-in parameters.  Will not be null.
      */
     protected StingSAMIterator applyDecoratingIterators(ReadMetrics readMetrics,
@@ -579,8 +592,11 @@ public class SAMDataSource implements SimpleDataSource {
                                                         Double downsamplingFraction,
                                                         Boolean noValidationOfReadOrder,
                                                         Collection<SamRecordFilter> supplementalFilters,
-                                                        BAQ.CalculationMode cmode, BAQ.QualityMode qmode, IndexedFastaSequenceFile refReader ) {
-        wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities);
+                                                        BAQ.CalculationMode cmode,
+                                                        BAQ.QualityMode qmode,
+                                                        IndexedFastaSequenceFile refReader,
+                                                        byte defaultBaseQualities) {
+        wrappedIterator = new ReadFormattingIterator(wrappedIterator, useOriginalBaseQualities, defaultBaseQualities);
 
         // NOTE: this (and other filtering) should be done before on-the-fly sorting
         //  as there is no reason to sort something that we will end of throwing away

@@ -41,6 +41,7 @@ public class ReadProperties {
     private BAQ.CalculationMode cmode = BAQ.CalculationMode.OFF;
     private BAQ.QualityMode qmode = BAQ.QualityMode.DONT_MODIFY;
     IndexedFastaSequenceFile refReader = null; // read for BAQ, if desired
+    private byte defaultBaseQualities;
 
     // do we want to generate additional piles of "extended" events (indels)
 // immediately after the reference base such event is associated with?
@@ -136,6 +137,13 @@ public class ReadProperties {
     }
 
     /**
+     * @return Default base quality value to fill reads missing base quality information.
+     */
+    public byte defaultBaseQualities() {
+        return defaultBaseQualities;
+    }
+
+    /**
      * Extract the command-line arguments having to do with reads input
      * files and store them in an easy-to-work-with package.  Constructor
      * is package protected.
@@ -156,6 +164,7 @@ public class ReadProperties {
      * @param cmode How should we apply the BAQ calculation to the reads?
      * @param qmode How should we apply the BAQ calculation to the reads?
      * @param refReader if applyBAQ is true, must be a valid pointer to a indexed fasta file reads so we can get the ref bases for BAQ calculation
+     * @param defaultBaseQualities if the reads have incomplete quality scores, set them all to defaultBaseQuality.
      */
     public ReadProperties( Collection<SAMReaderID> samFiles,
            SAMFileHeader header,
@@ -169,7 +178,8 @@ public class ReadProperties {
            boolean generateExtendedEvents,
            BAQ.CalculationMode cmode,
            BAQ.QualityMode qmode,
-           IndexedFastaSequenceFile refReader ) {
+           IndexedFastaSequenceFile refReader,
+           byte defaultBaseQualities) {
         this.readers = samFiles;
         this.header = header;
         this.readBufferSize = readBufferSize;
@@ -183,5 +193,6 @@ public class ReadProperties {
         this.cmode = cmode;
         this.qmode = qmode;
         this.refReader = refReader;
+        this.defaultBaseQualities = defaultBaseQualities;
     }
 }

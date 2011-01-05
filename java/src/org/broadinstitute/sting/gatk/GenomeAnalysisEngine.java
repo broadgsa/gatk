@@ -847,7 +847,8 @@ public class GenomeAnalysisEngine {
                 generateExtendedEvents(),
                 getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
                 getWalkerBAQQualityMode(),
-                refReader);
+                refReader,
+                argCollection.defaultBaseQualities);
     }
 
     /**
