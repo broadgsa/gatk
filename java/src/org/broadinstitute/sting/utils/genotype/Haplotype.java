@@ -81,6 +81,14 @@ public class Haplotype {
         return s;
     }
 
+    public String toString() {
+        String returnString = "";
+        for(int iii = 0; iii < bases.length; iii++) {
+            returnString += (char) bases[iii];
+        }
+        return returnString;
+    }
+
     public double[] getQuals() {
         return quals;
     }

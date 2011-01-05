@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Arrays;
 
 
-public class MappingQualityRankSumTest /*extends RankSumTest*/ {
+public class MappingQualityRankSumTest extends RankSumTest {
 
     public List<String> getKeyNames() { return Arrays.asList("MQRankSum"); }
 
@@ -21,10 +21,11 @@ public class MappingQualityRankSumTest /*extends RankSumTest*/ {
             if ( p.isDeletion() )
                 continue;
 
-            if ( p.getBase() == ref )
+            if ( p.getBase() == ref ) {
                 refQuals.add(p.getMappingQual());
-            else if ( (char)p.getBase() == alt )
+            } else if ( (char)p.getBase() == alt ) {
                 altQuals.add(p.getMappingQual());
+            }
         }
     }
 }

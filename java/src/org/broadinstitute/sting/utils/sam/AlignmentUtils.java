@@ -422,7 +422,7 @@ public class AlignmentUtils {
             switch( ce.getOperator() ) {
             case I:
             case S:
-                for ( int jjj = 0 ; jjj < elementLength; jjj++ ) {
+                for ( int jjj = 0; jjj < elementLength; jjj++ ) {
                     alignment[alignPos++] = '+';
                 }
                 break;
@@ -431,10 +431,151 @@ public class AlignmentUtils {
                 refPos++;
                 break;
             case M:
-                for ( int jjj = 0 ; jjj < elementLength; jjj++ ) {
+                for ( int jjj = 0; jjj < elementLength; jjj++ ) {
                     alignment[alignPos] = ref[refPos];
                     alignPos++;
                     refPos++;
+                }
+                break;
+            case H:
+            case P:
+                break;
+            default:
+                throw new ReviewedStingException( "Unsupported cigar operator: " + ce.getOperator() );
+            }
+        }
+        return alignment;
+    }
+
+    public static int calcAlignmentByteArrayOffset( final Cigar cigar, int pileupOffset, final int alignmentStart, final int refLocus ) {
+
+        boolean atDeletion = false;
+        if(pileupOffset == -1) {
+            atDeletion = true;
+            pileupOffset = refLocus - alignmentStart;
+            final CigarElement ce = cigar.getCigarElement(0);
+            if( ce.getOperator() == CigarOperator.S ) {
+                pileupOffset += ce.getLength();
+            }
+        }
+       int pos = 0;
+       int alignmentPos = 0;
+       for ( int iii = 0 ; iii < cigar.numCigarElements() ; iii++ ) {
+
+            final CigarElement ce = cigar.getCigarElement(iii);
+            final int elementLength = ce.getLength();
+
+            switch( ce.getOperator() ) {
+            case I:
+            case S:
+                for ( int jjj = 0; jjj < elementLength; jjj++ ) {
+                    if( pos == pileupOffset ) {
+                        return alignmentPos;
+                    }
+                    pos++;
+                }
+                break;
+            case D:
+            case N:
+                if(!atDeletion) {
+                    for ( int jjj = 0; jjj < elementLength; jjj++ ) {
+                        alignmentPos++;
+                    }
+                } else {
+                    for ( int jjj = 0; jjj < elementLength; jjj++ ) {
+                        if( pos == pileupOffset ) {
+                            return alignmentPos;
+                        }
+                        pos++;
+                        alignmentPos++;
+                    }
+
+                }
+                break;
+            case M:
+                for ( int jjj = 0; jjj < elementLength; jjj++ ) {
+                    if( pos == pileupOffset ) {
+                        return alignmentPos;
+                    }
+                    pos++;
+                    alignmentPos++;
+                }
+                break;
+            case H:
+            case P:
+                break;
+            default:
+                throw new ReviewedStingException( "Unsupported cigar operator: " + ce.getOperator() );
+            }
+        }
+        return alignmentPos;
+    }
+
+   public static byte[] readToAlignmentByteArray( final Cigar cigar, final byte[] read ) {
+
+       int alignmentLength = 0;
+       for ( int iii = 0 ; iii < cigar.numCigarElements() ; iii++ ) {
+
+            final CigarElement ce = cigar.getCigarElement(iii);
+            final int elementLength = ce.getLength();
+
+            switch( ce.getOperator() ) {
+            case I:
+            case S:
+                break;
+            case D:
+            case N:
+                alignmentLength += elementLength;
+                break;
+            case M:
+                alignmentLength += elementLength;
+                break;
+            case H:
+            case P:
+                break;
+            default:
+                throw new ReviewedStingException( "Unsupported cigar operator: " + ce.getOperator() );
+            }
+        }
+
+        final byte[] alignment = new byte[alignmentLength];
+        int alignPos = 0;
+        int readPos = 0;
+        for ( int iii = 0 ; iii < cigar.numCigarElements() ; iii++ ) {
+
+            final CigarElement ce = cigar.getCigarElement(iii);
+            final int elementLength = ce.getLength();
+
+            switch( ce.getOperator() ) {
+            case I:                
+                if( alignPos > 0 ) {
+                    if(alignment[alignPos-1] == (byte) 'A') {
+                        alignment[alignPos-1] = PileupElement.INSERTION_BASE_A;
+                    } else if(alignment[alignPos-1] == (byte) 'C') {
+                        alignment[alignPos-1] = PileupElement.INSERTION_BASE_C;
+                    } else if(alignment[alignPos-1] == (byte) 'T') {
+                        alignment[alignPos-1] = PileupElement.INSERTION_BASE_T;
+                    } else if(alignment[alignPos-1] == (byte) 'G') {
+                        alignment[alignPos-1] = PileupElement.INSERTION_BASE_G;
+                    }
+                }
+            case S:
+                for ( int jjj = 0; jjj < elementLength; jjj++ ) {
+                    readPos++;
+                }
+                break;
+            case D:
+            case N:
+                for ( int jjj = 0; jjj < elementLength; jjj++ ) {
+                    alignment[alignPos] = PileupElement.DELETION_BASE;
+                    alignPos++;
+                }
+                break;
+            case M:
+                for ( int jjj = 0; jjj < elementLength; jjj++ ) {
+                    alignment[alignPos] = read[readPos];
+                    alignPos++;
+                    readPos++;
                 }
                 break;
             case H:

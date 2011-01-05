@@ -18,7 +18,11 @@ import java.util.Arrays;
  */
 public class PileupElement {
     public static final byte DELETION_BASE = BaseUtils.D;
-    public static final byte DELETION_QUAL = 0;
+    public static final byte INSERTION_BASE_A = 87;
+    public static final byte INSERTION_BASE_C = 88;
+    public static final byte INSERTION_BASE_T = 89;
+    public static final byte INSERTION_BASE_G = 90;
+    public static final byte DELETION_QUAL = 18;
 
     protected SAMRecord read;
     protected int offset;

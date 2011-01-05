@@ -92,8 +92,8 @@ public class WilcoxonRankSum {
     // just used to convert a z-score into a cumulative probability
     public boolean DEBUG = false;
 
-    private static final double NORMAL_MEAN = 0;
-    private static final double NORMAL_SD   = 1;
+    private static final double NORMAL_MEAN = 0.0;
+    private static final double NORMAL_SD   = 3.0; // Need to spread out the standard normal in order to provide better resolution
     private static final Normal NORMAL = new Normal(NORMAL_MEAN, NORMAL_SD, null);
 
     // The minimum length for both data series (individually) in order to use a normal distribution
@@ -151,11 +151,11 @@ public class WilcoxonRankSum {
 
         double pvalue;
         // if we don't have enough data points, quit
-        if ( n1 < minimumNormalN || n2 < minimumNormalN ) {
-            pvalue = exactCalculation(h0, n1, n2, U1, U2);
-        } else {
+//        if ( n1 < minimumNormalN || n2 < minimumNormalN ) {
+//            pvalue = exactCalculation(h0, n1, n2, U1, U2);
+//        } else {
             pvalue = normalApproximation(h0, n1, n2, U1, U2);
-        }
+//       }
 
         if ( DEBUG && (n1 < minimumNormalN || n2 < minimumNormalN) ) {
             //for (int i = 0; i < observations.size(); i++)

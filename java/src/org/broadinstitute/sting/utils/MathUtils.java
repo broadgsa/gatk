@@ -326,6 +326,22 @@ public class MathUtils {
     }
 
     /**
+     * calculate the Root Mean Square of an array of doubles
+     * @param x  a double[] of numbers
+     * @return   the RMS of the specified numbers.
+    */
+    public static double rms(Double[] x) {
+        if ( x.length == 0 )
+            return 0.0;
+
+        double rms = 0.0;
+        for (Double i : x)
+            rms += i * i;
+        rms /= x.length;
+        return Math.sqrt(rms);
+    }
+
+    /**
      * normalizes the log10-based array
      *
      * @param array  the array to be normalized

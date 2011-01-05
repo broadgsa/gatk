@@ -25,7 +25,7 @@ public class
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("e90af2265bdbfc1c336c7e1484b86a4a"));
+                Arrays.asList("ae901e034b00aef16d36295821b3ea63"));
         executeTest("testMultiSamplePilot1", spec);
     }
 
@@ -33,7 +33,7 @@ public class
     public void testMultiSamplePilot2() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,050,000", 1,
-                Arrays.asList("9ef1405f3ddf4a9894d12718cc6041a1"));
+                Arrays.asList("2ad026dee3fe592c124eb8724a843a5e"));
         executeTest("testMultiSamplePilot2", spec);
     }
 
@@ -41,7 +41,7 @@ public class
     public void testSingleSamplePilot2() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,100,000", 1,
-                Arrays.asList("88a095d59e3210955dd066e54cfff6cd"));
+                Arrays.asList("bc573090407ae9ec4401757eaa03de20"));
         executeTest("testSingleSamplePilot2", spec);
     }
 
@@ -51,7 +51,7 @@ public class
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private final static String COMPRESSED_OUTPUT_MD5 = "f213174bc3f6890dbe72628763be75d0";
+    private final static String COMPRESSED_OUTPUT_MD5 = "1889ecc5aa1b23b2e77b1bd192577f1a";
 
     @Test
     public void testCompressedOutput() {
@@ -78,7 +78,7 @@ public class
 
     @Test
     public void testParallelization() {
-        String md5 = "4c88572ec014cd0b256b76cb5fac41df";
+        String md5 = "d19745ab31f903de8d5a8e853b4e52dd";
 
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000", 1,
@@ -105,12 +105,12 @@ public class
     @Test
     public void testParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-genotype", "9d24c57250ec66905a157975c27f7094" );
-        e.put( "-all_bases", "6bd860e4de6a4f013693a49556ccfd02" );
-        e.put( "--min_base_quality_score 26", "94de36ab7021e767f14903b7fd0cf80e" );
-        e.put( "--min_mapping_quality_score 26", "a86e9cdc629f0957658f8d570014f45b" );
-        e.put( "--max_mismatches_in_40bp_window 5", "4cf60eeff7f25d8e778c72deb7e14cc2" );
-        e.put( "--p_nonref_model GRID_SEARCH", "eda1afbdb42c9c5d6fc07a321020071a" );
+        e.put( "-genotype", "37d3954e19309a24c386758afad93252" );
+        e.put( "-all_bases", "04568093c5dc70fa7965b4ab15fd0f7e" );
+        e.put( "--min_base_quality_score 26", "5d1886a9637183707645bc2dc6bf8282" );
+        e.put( "--min_mapping_quality_score 26", "78423524cf56cce1d0847847d542459f" );
+        e.put( "--max_mismatches_in_40bp_window 5", "2963c771aafe84b62082f475d20bad5e" );
+        e.put( "--p_nonref_model GRID_SEARCH", "c254a4e593b4ffb112299be874503ce0" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -124,12 +124,12 @@ public class
     public void testConfidence() {
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000 -stand_call_conf 10 ", 1,
-                Arrays.asList("eda1afbdb42c9c5d6fc07a321020071a"));
+                Arrays.asList("c254a4e593b4ffb112299be874503ce0"));
         executeTest("testConfidence1", spec1);
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000 -stand_emit_conf 10 ", 1,
-                Arrays.asList("8daa14278976555e64c582c4e44b9b8e"));
+                Arrays.asList("d2323a0234d27257393f4931fca70dbc"));
         executeTest("testConfidence2", spec2);
     }
 
@@ -141,8 +141,8 @@ public class
     @Test
     public void testHeterozyosity() {
         HashMap<Double, String> e = new HashMap<Double, String>();
-        e.put( 0.01, "3679786112b414546a464c94c900174e" );
-        e.put( 1.0 / 1850, "efa1cb09fa72dd4bd6dbdf6c0fa0f038" );
+        e.put( 0.01, "96e85b26cf5f0a523b4b0886dbb902b1" );
+        e.put( 1.0 / 1850, "5ffecb68b52169ded04312aa5dcdc137" );
 
         for ( Map.Entry<Double, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -165,7 +165,7 @@ public class
                         " -o %s" +
                         " -L 1:10,000,000-10,100,000",
                 1,
-                Arrays.asList("037e7c0d56e88b4d85f326bf27ad9f1c"));
+                Arrays.asList("e65c95a9d2a0995078d3e6835cf4ee61"));
 
         executeTest(String.format("testMultiTechnologies"), spec);
     }

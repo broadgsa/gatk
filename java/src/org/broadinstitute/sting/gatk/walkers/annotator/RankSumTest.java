@@ -15,9 +15,9 @@ import java.util.Map;
 import java.util.HashMap;
 
 
-public abstract class RankSumTest implements InfoFieldAnnotation, WorkInProgressAnnotation {
+public abstract class RankSumTest implements InfoFieldAnnotation, ExperimentalAnnotation {
     private final static boolean DEBUG = false;
-    private static final double minPValue = 1e-10;
+    private static final double minPValue = 1e-20;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
@@ -30,45 +30,49 @@ public abstract class RankSumTest implements InfoFieldAnnotation, WorkInProgress
         if ( genotypes == null || genotypes.size() == 0 )
             return null;
 
-        ArrayList<Integer> refQuals = new ArrayList<Integer>();
-        ArrayList<Integer> altQuals = new ArrayList<Integer>();
+        final ArrayList<Integer> refQuals = new ArrayList<Integer>();
+        final ArrayList<Integer> altQuals = new ArrayList<Integer>();
 
-        for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
-            // we care only about het calls
-            if ( genotype.getValue().isHet() ) {
-                StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
+        for ( final Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
+            if ( !genotype.getValue().isHomRef() ) {
+                final StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
                 if ( context == null )
                     continue;
 
                 fillQualsFromPileup(ref.getBase(), vc.getAlternateAllele(0).toString().charAt(0), context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), refQuals, altQuals);
             }
         }
-
-        WilcoxonRankSum wilcoxon = new WilcoxonRankSum();
-        for ( Integer qual : altQuals )
+        final WilcoxonRankSum wilcoxon = new WilcoxonRankSum();
+        for ( final Integer qual : altQuals ) {
             wilcoxon.addObservation((double)qual, WilcoxonRankSum.WILCOXON_SET.SET1);
-        for ( Integer qual : refQuals )
+        }
+        for ( final Integer qual : refQuals ) {
             wilcoxon.addObservation((double)qual, WilcoxonRankSum.WILCOXON_SET.SET2);
-
-        // for R debugging
-        if ( DEBUG ) {
-            wilcoxon.DEBUG = DEBUG;
-            System.out.printf("%s%n", ref.getLocus());
-            System.out.printf("alt <- c(%s)%n", Utils.join(",", altQuals));
-            System.out.printf("ref <- c(%s)%n", Utils.join(",", refQuals));
         }
 
+        // for R debugging
+        //if ( DEBUG ) {
+        //    wilcoxon.DEBUG = DEBUG;
+        //    System.out.printf("%s%n", ref.getLocus());
+        //    System.out.printf("alt <- c(%s)%n", Utils.join(",", altQuals));
+        //    System.out.printf("ref <- c(%s)%n", Utils.join(",", refQuals));
+        //}
+
         // we are testing these set1 (the alt bases) have lower quality scores than set2 (the ref bases)
-        double pvalue = wilcoxon.getPValue(WilcoxonRankSum.WILCOXON_H0.SMALLER_SET_LT);
-        if ( MathUtils.compareDoubles(pvalue, -1.0) == 0 )
-            return null;
+        double pvalue = wilcoxon.getPValue(WilcoxonRankSum.WILCOXON_H0.SET1_LT_SET2);
+        //System.out.println("p = " + pvalue);
+        //System.out.println();
+        if ( MathUtils.compareDoubles(pvalue, -1.0) == 0 ) {
+            pvalue = 1.0;
+        }
 
         // deal with precision issues
-        if ( pvalue < minPValue )
+        if ( pvalue < minPValue ) {
             pvalue = minPValue;
+        }
 
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.1f", QualityUtils.phredScaleErrorRate(pvalue)));
+        final Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyNames().get(0), String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
         return map;
     }
 

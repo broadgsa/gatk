@@ -9,8 +9,7 @@ import java.util.List;
 import java.util.Arrays;
 
 
-public class BaseQualityRankSumTest /*extends RankSumTest*/ {
-    // todo -- seems math in this test is dubious, need to recheck and verify (p-values wildly divergent from R or MATLAB)
+public class BaseQualityRankSumTest extends RankSumTest {
     public List<String> getKeyNames() { return Arrays.asList("BaseQRankSum"); }
 
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("BaseQRankSum", 1, VCFHeaderLineType.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Base Qualities")); }
@@ -21,10 +20,11 @@ public class BaseQualityRankSumTest /*extends RankSumTest*/ {
             if ( p.isDeletion() )
                 continue;
 
-            if ( p.getBase() == ref )
+            if ( p.getBase() == ref ) {
                 refQuals.add((int)p.getQual());
-            else if ( (char)p.getBase() == alt )
+            } else if ( (char)p.getBase() == alt ) {
                 altQuals.add((int)p.getQual());
+            }
         }
     }
 }
