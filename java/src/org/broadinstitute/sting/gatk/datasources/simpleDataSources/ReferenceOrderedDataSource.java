@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.FlashBackIterator;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -13,9 +14,12 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Scanner;
 /**
  * User: hanna
  * Date: May 21, 2009
@@ -68,19 +72,24 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
                                       boolean flashbackData ) {
         this.fileDescriptor = fileDescriptor;
         this.builder = builder;
+
+        // TODO: Unify the two blocks of code below by creating a ReferenceOrderedDataPool base class of a coherent type (not RMDTrack for one and SeekableIterator for the other).
         if (fileDescriptor.getStorageType() != RMDTriplet.RMDStorageType.STREAM) {
             iteratorPool = new ReferenceOrderedQueryDataPool(fileDescriptor,
                                                              builder,
                                                              referenceSequenceDictionary,
                                                              genomeLocParser);
-            header = ((ReferenceOrderedQueryDataPool)iteratorPool).getHeader();
+            this.header = ((ReferenceOrderedQueryDataPool)iteratorPool).getHeader();
             this.sequenceDictionary = ((ReferenceOrderedQueryDataPool)iteratorPool).getSequenceDictionary();
         }
         else {
-            RMDTrack track = builder.createInstanceOfTrack(fileDescriptor);
-            header = track.getHeader();
-            this.sequenceDictionary = track.getSequenceDictionary();
-            iteratorPool = new ReferenceOrderedDataPool(track,referenceSequenceDictionary,genomeLocParser,flashbackData);
+            iteratorPool = new ReferenceOrderedDataPool(fileDescriptor,
+                                                        builder,
+                                                        referenceSequenceDictionary,
+                                                        genomeLocParser,
+                                                        flashbackData);
+            this.header = ((ReferenceOrderedDataPool)iteratorPool).getHeader();
+            this.sequenceDictionary = ((ReferenceOrderedDataPool)iteratorPool).getSequenceDictionary();
         }
     }
 
@@ -165,12 +174,54 @@ public class ReferenceOrderedDataSource implements SimpleDataSource {
  * A pool of reference-ordered data iterators.
  */
 class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIterator, LocationAwareSeekableRODIterator> {
-    private final RMDTrack track;
+    // the reference-ordered data itself.
+    private final RMDTriplet fileDescriptor;
+
+    // our tribble track builder
+    private final RMDTrackBuilder builder;
+
+    /**
+     * The header from this RMD, if present.
+     */
+    private final Object header;
+
+    /**
+     * The sequence dictionary from this ROD.  If no sequence dictionary is present, this dictionary will be the same as the reference's.
+     */
+    private final SAMSequenceDictionary sequenceDictionary;
+
     boolean flashbackData = false;
-    public ReferenceOrderedDataPool( RMDTrack track, SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser, boolean flashbackData ) {
+    public ReferenceOrderedDataPool(RMDTriplet fileDescriptor,RMDTrackBuilder builder,SAMSequenceDictionary sequenceDictionary,GenomeLocParser genomeLocParser,boolean flashbackData) {
         super(sequenceDictionary,genomeLocParser);
-        this.track = track;
+        this.fileDescriptor = fileDescriptor;
+        this.builder = builder;
         this.flashbackData = flashbackData;
+
+        // prepopulate one RMDTrack
+        LocationAwareSeekableRODIterator iterator = createNewResource();
+        this.addNewResource(iterator);
+
+        // Pull the proper header and sequence dictionary from the prepopulated track.
+        //this.header = iterator.getHeader();
+        //this.sequenceDictionary = iterator.getSequenceDictionary();
+        this.header = null;
+        this.sequenceDictionary = null;
+    }
+
+    /**
+     * Gets the header used by this resource pool.
+     * @return Header used by this resource pool.
+     */
+    public Object getHeader() {
+        return header;
+    }
+
+    /**
+     * Gets the sequence dictionary built into the ROD index file.
+     * @return Sequence dictionary from the index file.
+     */
+    public SAMSequenceDictionary getSequenceDictionary() {
+        return sequenceDictionary;
     }
 
     /**
@@ -179,7 +230,9 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
      * @return The newly created resource.
      */
     public LocationAwareSeekableRODIterator createNewResource() {
-        LocationAwareSeekableRODIterator iter = new SeekableRODIterator(referenceSequenceDictionary,genomeLocParser,track.getIterator());
+        if(numIterators() > 0)
+            throw new ReviewedStingException("BUG: Tried to create multiple iterators over streaming ROD interface");
+        LocationAwareSeekableRODIterator iter = new SeekableRODIterator(referenceSequenceDictionary,genomeLocParser,builder.createInstanceOfTrack(fileDescriptor).getIterator());
         return (flashbackData) ? new FlashBackIterator(iter) : iter;
     }
 
@@ -281,8 +334,8 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<RMDTrack,LocationAwareS
 
     @Override
     protected RMDTrack selectBestExistingResource(DataStreamSegment segment, List<RMDTrack> availableResources) {
-            for (RMDTrack reader : availableResources)
-                if (reader != null) return reader;
+        for (RMDTrack reader : availableResources)
+            if (reader != null) return reader;
         return null;
     }
 

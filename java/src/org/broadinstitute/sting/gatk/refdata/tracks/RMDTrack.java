@@ -114,11 +114,11 @@ public class RMDTrack {
     }
 
     public CloseableIterator<GATKFeature> query(GenomeLoc interval) throws IOException {
-        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
+        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(interval.getContig(),interval.getStart(),interval.getStop()),this.getName());
     }
 
     public CloseableIterator<GATKFeature> query(GenomeLoc interval, boolean contained) throws IOException {
-        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(interval.getContig(),(int)interval.getStart(),(int)interval.getStop()),this.getName());
+        return new FeatureToGATKFeatureIterator(genomeLocParser,reader.query(interval.getContig(),interval.getStart(),interval.getStop()),this.getName());
     }
 
     public CloseableIterator<GATKFeature> query(String contig, int start, int stop) throws IOException {
