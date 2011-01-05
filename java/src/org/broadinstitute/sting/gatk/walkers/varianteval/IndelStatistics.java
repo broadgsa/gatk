@@ -312,17 +312,39 @@ public class IndelStatistics extends VariantEvaluator {
         /*
          * increment the specified value
          */
+        private String findMinimalEvent(String eventString) {
+
+            // for each length up to given string length, see if event string is a repetition of units of size N
+            boolean foundSubstring = false;
+            String minEvent = eventString;
+            for (int k=1; k < eventString.length(); k++) {
+                if (eventString.length() % k > 0)
+                    continue;
+                String str = eventString.substring(0,k);
+                // now see if event string is a repetition of str
+                int numReps = eventString.length() / k;
+                String r = "";
+                for (int j=0; j < numReps; j++)
+                    r = r.concat(str);
+
+                if (r.matches(eventString)) {
+                    foundSubstring = true;
+                    minEvent = str;
+                    break;
+                }
+
+            }
+            return minEvent;
+        }
         public void incrValue(VariantContext vc, ReferenceContext ref) {
             int eventLength = 0;
             boolean isInsertion = false, isDeletion = false;
             String indelAlleleString;
 
             if ( vc.isInsertion() ) {
-                eventLength = vc.getAlternateAllele(0).length();
                 isInsertion = true;
                 indelAlleleString = vc.getAlternateAllele(0).getDisplayString();
             } else if ( vc.isDeletion() ) {
-                eventLength = vc.getReference().length();
                 isDeletion = true;
                 indelAlleleString = vc.getReference().getDisplayString();
             }
@@ -334,8 +356,9 @@ public class IndelStatistics extends VariantEvaluator {
 
             byte[] refBases = ref.getBases();
 
-
-
+            indelAlleleString = findMinimalEvent(indelAlleleString);
+            eventLength = indelAlleleString.length();
+            
             // See first if indel is a repetition of bases before current
             int indStart = refBases.length/2-eventLength+1;
 
