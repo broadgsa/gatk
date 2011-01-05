@@ -72,7 +72,7 @@ public abstract class RankSumTest implements InfoFieldAnnotation, ExperimentalAn
         }
 
         final Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
+        map.put(getKeyNames().get(0), String.format("%.3f", Math.abs(QualityUtils.phredScaleErrorRate(pvalue))));
         return map;
     }
 

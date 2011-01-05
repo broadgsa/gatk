@@ -124,8 +124,9 @@ public class WilcoxonRankSum {
     // calculate normal approximation of the p-value
     // returns -1 when unable to calculate it (too few data points)
     public double getPValue(WILCOXON_H0 h0) {
-        if ( observations.size() == 0 )
+        if ( observations.size() == 0 ) {
             return -1.0;
+        }
 
         // dither to break rank ties
         dither();
@@ -143,6 +144,11 @@ public class WilcoxonRankSum {
             }
         }
         int n2 = observations.size() - n1;
+
+        if ( n1 == 0 || n2 == 0 ) {
+            // one of the sets is empty so there is no information
+            return -1.0;
+        }
 
         // todo -- these are actually integers
         // we want the smaller of U1 and U2
