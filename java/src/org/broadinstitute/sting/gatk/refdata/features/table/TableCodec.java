@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * implementation of a simple table (tab or comma delimited format) input files... more improvements to come
+ * implementation of a simple table (tab or comma delimited format) input files
  */
 public class TableCodec implements ReferenceDependentFeatureCodec {
     private String delimiterRegex = "\\s+";
@@ -48,8 +48,6 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
         String[] split = line.split(delimiterRegex);
         if (split.length < 1)
             throw new IllegalArgumentException("TableCodec line = " + line + " doesn't appear to be a valid table format");
-
-
         return new TableFeature(genomeLocParser.parseGenomeLoc(split[0]),Arrays.asList(split),header);
     }
 
@@ -67,6 +65,7 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
                     if (header.size() > 0) throw new IllegalStateException("Input table file seems to have two header lines.  The second is = " + line);
                     String spl[] = line.split(delimiterRegex);
                     for (String s : spl) header.add(s);
+                    return header;
                 } else if (!line.startsWith(commentDelimiter)) {
                     break;
                 }
