@@ -5,7 +5,8 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.*;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
+import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.utils.TableType;
 
@@ -18,11 +19,11 @@ import java.util.*;
  * @Author chartl
  */
 public abstract class VariantEvaluatorBySample extends VariantEvaluator {
-    @DataPoint(name="VariantEvaluatorBySample",description="Evaluation broken down by sample")
+    @org.broadinstitute.sting.utils.report.tags.DataPoint(name="VariantEvaluatorBySample",description="Evaluation broken down by sample")
     EvalBySample evalBySample;
 
     public VariantEvaluatorBySample(VariantEvalWalker parent) {
-        super(parent);
+        //super(parent);
         evalBySample = initializeTable();
     }
 

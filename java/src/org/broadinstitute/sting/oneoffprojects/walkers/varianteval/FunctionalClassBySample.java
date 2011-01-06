@@ -5,7 +5,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.*;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import java.util.List;
  * Extends the Per-sample variant evaluator class and returns, for each sample, the number of variants, the Ti/Tv, and
  * the comp overlap. It does this only on sites where the sample is identified as hom var, or het.
  */
-@Analysis(name="FunctionalClassBySample",description="Count of SNPs by functional class by sample")
+@org.broadinstitute.sting.utils.report.tags.Analysis(name="FunctionalClassBySample",description="Count of SNPs by functional class by sample")
 public class FunctionalClassBySample extends VariantEvaluatorBySample {
 
     public FunctionalClassBySample(VariantEvalWalker parent) { super(parent); }
