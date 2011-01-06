@@ -331,7 +331,7 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
         int j = qualityScore;
         if ( j > SAMUtils.MAX_PHRED_SCORE )
-            throw new UserException.MalformedBam(read, String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s", SAMUtils.MAX_PHRED_SCORE, j, read.getReadName()));
+            throw new UserException.MalformedBam(read, String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, j, read.getReadName()));
         int k = ploidy;
         int x = strandIndex(! read.getReadNegativeStrandFlag() );
 
@@ -343,7 +343,7 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
         int j = qualityScore;
         if ( j > SAMUtils.MAX_PHRED_SCORE )
-            throw new UserException.MalformedBam(read, String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s", SAMUtils.MAX_PHRED_SCORE, j, read.getReadName()));
+            throw new UserException.MalformedBam(read, String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, j, read.getReadName()));
         int k = ploidy;
         int x = strandIndex(! read.getReadNegativeStrandFlag() );
         return cache[i][j][k][x];
