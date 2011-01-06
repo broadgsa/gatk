@@ -215,5 +215,59 @@ public class SampleUtils {
         return new ArrayList<String>();
     }
 
-    
+    public static Set<String> getSamplesFromCommandLineInput(Collection<String> vcfSamples, Collection<String> sampleExpressions) {
+        Set<String> samples = new HashSet<String>();
+
+        if (sampleExpressions != null) {
+            // Let's first go through the list and see if we were given any files.  We'll add every entry in the file to our
+            // sample list set, and treat the entries as if they had been specified on the command line.
+            Set<String> samplesFromFiles = new HashSet<String>();
+            for (String sampleExpression : sampleExpressions) {
+                File sampleFile = new File(sampleExpression);
+
+                try {
+                    XReadLines reader = new XReadLines(sampleFile);
+
+                    List<String> lines = reader.readLines();
+                    for (String line : lines) {
+                        samplesFromFiles.add(line);
+                    }
+                } catch (FileNotFoundException e) {
+                    // ignore exception
+                }
+            }
+
+            sampleExpressions.addAll(samplesFromFiles);
+
+            // Let's now assume that the values in sampleExpressions are literal sample names and not regular
+            // expressions.  Extract those samples specifically so we don't make the mistake of selecting more
+            // than what the user really wants.
+            Set<String> possibleSampleRegexs = new HashSet<String>();
+            for (String sampleExpression : sampleExpressions) {
+                if (!(new File(sampleExpression).exists())) {
+                    if (vcfSamples.contains(sampleExpression)) {
+                        samples.add(sampleExpression);
+                    } else {
+                        possibleSampleRegexs.add(sampleExpression);
+                    }
+                }
+            }
+
+            // Now, check the expressions that weren't used in the previous step, and use them as if they're regular expressions
+            for (String sampleRegex : possibleSampleRegexs) {
+                Pattern p = Pattern.compile(sampleRegex);
+
+                for (String vcfSample : vcfSamples) {
+                    Matcher m = p.matcher(vcfSample);
+                    if (m.find()) {
+                        samples.add(vcfSample);
+                    }
+                }
+            }
+        } else {
+            samples.addAll(vcfSamples);
+        }
+
+        return samples;
+    }
 }

@@ -75,87 +75,25 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private List<VariantContextUtils.JexlVCMatchExp> jexls = null;
 
     private Set<String> samples = new HashSet<String>();
-    private Set<String> possibleSampleRegexs = new HashSet<String>();
-    private Set<String> sampleExpressionsThatDidNotWork = new HashSet<String>();
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
      */
     public void initialize() {
+        // Get list of samples to include in the output
         ArrayList<String> rodNames = new ArrayList<String>();
         rodNames.add("variant");
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
-        if (SAMPLE_EXPRESSIONS != null) {
-            // Let's first go through the list and see if we were given any files.  We'll add every entry in the file to our
-            // sample list set, and treat the entries as if they had been specified on the command line.
-            Set<String> samplesFromFiles = new HashSet<String>();
-            for (String SAMPLE_EXPRESSION : SAMPLE_EXPRESSIONS) {
-                File sampleFile = new File(SAMPLE_EXPRESSION);
-
-                try {
-                    XReadLines reader = new XReadLines(sampleFile);
-
-                    List<String> lines = reader.readLines();
-                    for (String line : lines) {
-                        samplesFromFiles.add(line);
-                    }
-                } catch (FileNotFoundException e) {
-                    // ignore exception
-                }
-            }
-
-            SAMPLE_EXPRESSIONS.addAll(samplesFromFiles);
-            
-            // Let's now assume that the values in SAMPLE_EXPRESSIONS are literal sample names and not regular
-            // expressions.  Extract those samples specifically so we don't make the mistake of selecting more
-            // than what the user really wants.
-            for (String SAMPLE_EXPRESSION : SAMPLE_EXPRESSIONS) {
-                if (!(new File(SAMPLE_EXPRESSION).exists())) {
-                    if (vcfSamples.contains(SAMPLE_EXPRESSION)) {
-                        samples.add(SAMPLE_EXPRESSION);
-                    } else {
-                        possibleSampleRegexs.add(SAMPLE_EXPRESSION);
-                    }
-                }
-            }
-
-            // Now, check the expressions that weren't used in the previous step, and use them as if they're regular expressions
-            for (String sampleRegex : possibleSampleRegexs) {
-                Pattern p = Pattern.compile(sampleRegex);
-
-                boolean patternWorked = false;
-
-                for (String vcfSample : vcfSamples) {
-                    Matcher m = p.matcher(vcfSample);
-                    if (m.find()) {
-                        samples.add(vcfSample);
-
-                        patternWorked = true;
-                    }
-                }
-
-                if (!patternWorked) {
-                    sampleExpressionsThatDidNotWork.add(sampleRegex);
-                }
-            }
-
-            // Finally, warn the user about any leftover sample expressions that had no effect
-            if (sampleExpressionsThatDidNotWork.size() > 0) {
-                for (String exp : sampleExpressionsThatDidNotWork) {
-                    logger.warn("The sample expression '" + exp + "' had no effect (no matching sample or pattern match found).  Skipping.");
-                }
-            }
-        } else {
-            samples.addAll(vcfSamples);
-        }
+        samples = SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS);
 
         for (String sample : samples) {
             logger.info("Including sample '" + sample + "'");
         }
 
+        // Initialize VCF header
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
