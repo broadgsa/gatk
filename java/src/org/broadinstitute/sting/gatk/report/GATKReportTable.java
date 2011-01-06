@@ -1,8 +1,13 @@
 package org.broadinstitute.sting.gatk.report;
 
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
 import java.io.PrintStream;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A data structure that allows data to be collected over the course of a walker's computation, then have that data
@@ -92,8 +97,22 @@ public class GATKReportTable {
 
     private String primaryKeyName;
     private TreeSet<Object> primaryKeyColumn;
+    private boolean primaryKeyDisplay;
 
-    private HashMap<String, GATKReportColumn> columns;
+    private LinkedHashMap<String, GATKReportColumn> columns;
+
+    /**
+     * Verifies that a table or column name has only alphanumeric characters - no spaces or special characters allowed
+     *
+     * @param name  the name of the table or column
+     * @return  true if the name is valid, false if otherwise
+     */
+    private boolean isValidName(String name) {
+        Pattern p = Pattern.compile("[^a-zA-Z0-9_]");
+        Matcher m = p.matcher(name);
+
+        return !m.find();
+    }
 
     /**
      * Construct a new GATK report table with the specified name and description
@@ -102,10 +121,14 @@ public class GATKReportTable {
      * @param tableDescription  the description of the table
      */
     public GATKReportTable(String tableName, String tableDescription) {
+        if (!isValidName(tableName)) {
+            throw new ReviewedStingException("Attempted to set a GATKReportTable name of '" + tableName + "'.  GATKReportTable names must be purely alphanumeric - no spaces or special characters are allowed.");
+        }
+
         this.tableName = tableName;
         this.tableDescription = tableDescription;
 
-        columns = new HashMap<String, GATKReportColumn>();
+        columns = new LinkedHashMap<String, GATKReportColumn>();
     }
 
     /**
@@ -114,9 +137,30 @@ public class GATKReportTable {
      * @param primaryKeyName  the name of the primary key column
      */
     public void addPrimaryKey(String primaryKeyName) {
+        if (!isValidName(primaryKeyName)) {
+            throw new ReviewedStingException("Attempted to set a GATKReportTable primary key name of '" + primaryKeyName + "'.  GATKReportTable primary key names must be purely alphanumeric - no spaces or special characters are allowed.");
+        }
+
         this.primaryKeyName = primaryKeyName;
 
         primaryKeyColumn = new TreeSet<Object>();
+        primaryKeyDisplay = true;
+    }
+
+    /**
+     * Add an optionally visible primary key column.  This becomes the unique identifier for every column in the table, and will always be printed as the first column.
+     *
+     * @param primaryKeyName  the name of the primary key column
+     */
+    public void addPrimaryKey(String primaryKeyName, boolean display) {
+        if (!isValidName(primaryKeyName)) {
+            throw new ReviewedStingException("Attempted to set a GATKReportTable primary key name of '" + primaryKeyName + "'.  GATKReportTable primary key names must be purely alphanumeric - no spaces or special characters are allowed.");
+        }
+
+        this.primaryKeyName = primaryKeyName;
+
+        primaryKeyColumn = new TreeSet<Object>();
+        primaryKeyDisplay = display;
     }
 
     /**
@@ -126,6 +170,10 @@ public class GATKReportTable {
      * @param defaultValue  the default value for the column
      */
     public void addColumn(String columnName, Object defaultValue) {
+        if (!isValidName(columnName)) {
+            throw new ReviewedStingException("Attempted to set a GATKReportTable column name of '" + columnName + "'.  GATKReportTable column names must be purely alphanumeric - no spaces or special characters are allowed.");
+        }
+
         addColumn(columnName, defaultValue, true);
     }
 
@@ -467,12 +515,19 @@ public class GATKReportTable {
         // Emit the table definition
         out.printf("##:GATKReport.v0.1 %s : %s%n", tableName, tableDescription);
 
-        // Emit the table header
-        out.printf(primaryKeyFormat, primaryKeyName);
+        // Emit the table header, taking into account the padding requirement if the primary key is a hidden column
+        boolean needsPadding = false;
+        if (primaryKeyDisplay) {
+            out.printf(primaryKeyFormat, primaryKeyName);
+            needsPadding = true;
+        }
 
         for (String columnName : columns.keySet()) {
             if (columns.get(columnName).isDisplayable()) {
-                out.printf("  " + columnWidths.get(columnName), columnName);
+                if (needsPadding) { out.printf("  "); }
+                out.printf(columnWidths.get(columnName), columnName);
+
+                needsPadding = true;
             }
         }
 
@@ -480,12 +535,20 @@ public class GATKReportTable {
 
         // Emit the table body
         for (Object primaryKey : primaryKeyColumn) {
-            out.printf(primaryKeyFormat, primaryKey);
+            needsPadding = false;
+            if (primaryKeyDisplay) {
+                out.printf(primaryKeyFormat, primaryKey);
+                needsPadding = true;
+            }
 
             for (String columnName : columns.keySet()) {
                 if (columns.get(columnName).isDisplayable()) {
                     Object obj = columns.get(columnName).getWithoutSideEffects(primaryKey);
-                    out.printf("  " + columnWidths.get(columnName), obj.toString());
+
+                    if (needsPadding) { out.printf("  "); }
+                    out.printf(columnWidths.get(columnName), obj.toString());
+
+                    needsPadding = true;
                 }
             }
 
