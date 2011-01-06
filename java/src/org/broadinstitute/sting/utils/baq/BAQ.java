@@ -6,6 +6,7 @@ import net.sf.samtools.CigarOperator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /*
   The topology of the profile HMM:
@@ -369,8 +370,13 @@ public class BAQ {
         // At the i-th read base, BAQi = Qi - (BQi - 64) where Qi is the i-th base quality.
         // so BQi = Qi - BAQi + 64
         byte[] bqTag = new byte[baq.length];
-        for ( int i = 0; i < bqTag.length; i++)
-            bqTag[i] = (byte)(((int)read.getBaseQualities()[i] + 64) - baq[i]);
+        for ( int i = 0; i < bqTag.length; i++) {
+            int bq = (int)read.getBaseQualities()[i] + 64;
+            int baq_i = (int)baq[i];
+            int tag = bq - baq_i;
+            if ( tag < 0 ) throw new ReviewedStingException("BAQ tag calculation error.  BAQ value above base quality at " + read);
+            bqTag[i] = (byte)tag;
+        }
         return new String(bqTag);
     }
 
@@ -406,8 +412,12 @@ public class BAQ {
             // At the i-th read base, BAQi = Qi - (BQi - 64) where Qi is the i-th base quality.
             newQuals = overwriteOriginalQuals ? rawQuals : new byte[rawQuals.length];
             for ( int i = 0; i < rawQuals.length; i++) {
-                int val = rawQuals[i] - (baq[i] - 64);
-                newQuals[i] = val < 0 ? 0 : (byte)val;
+                int rawQual = (int)rawQuals[i];
+                int baq_delta = (int)baq[i] - 64;
+                int newval =  rawQual - baq_delta;
+                if ( newval < 0 )
+                    throw new UserException.MalformedBam(read, "BAQ tag error: the BAQ value is larger than the base quality");
+                newQuals[i] = (byte)newval;
             }
         } else if ( ! useRawQualsIfNoBAQTag ) {
             throw new IllegalStateException("Required BAQ tag to be present, but none was on read " + read.getReadName());
