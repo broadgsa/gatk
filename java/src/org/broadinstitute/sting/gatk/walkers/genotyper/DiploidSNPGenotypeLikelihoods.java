@@ -26,14 +26,13 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-
-import java.util.HashSet;
-import java.util.Set;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
@@ -331,6 +330,8 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
                              SAMRecord read, DiploidSNPGenotypeLikelihoods val ) {
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
         int j = qualityScore;
+        if ( j > SAMUtils.MAX_PHRED_SCORE )
+            throw new UserException.MalformedBam(read, String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s", SAMUtils.MAX_PHRED_SCORE, j, read.getReadName()));
         int k = ploidy;
         int x = strandIndex(! read.getReadNegativeStrandFlag() );
 
@@ -341,6 +342,8 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
                                             byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
         int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
         int j = qualityScore;
+        if ( j > SAMUtils.MAX_PHRED_SCORE )
+            throw new UserException.MalformedBam(read, String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s", SAMUtils.MAX_PHRED_SCORE, j, read.getReadName()));
         int k = ploidy;
         int x = strandIndex(! read.getReadNegativeStrandFlag() );
         return cache[i][j][k][x];
