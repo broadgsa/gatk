@@ -37,7 +37,7 @@ gsa.read.gatkreport <- function(filename) {
             headerFields = unlist(strsplit(line, "[[:space:]]+"));
 
             if (!is.na(tableName)) {
-                .assignGATKTableToEnvironment(tableName, tableHeader, tableRows, tableEnv);
+                .gsa.assignGATKTableToEnvironment(tableName, tableHeader, tableRows, tableEnv);
             }
 
             tableName = headerFields[2];
