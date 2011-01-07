@@ -66,6 +66,8 @@ public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Float, "Variant Confidence/Quality by Depth")); }
 
     private double getQual(double[] GLs) {
+        if ( GLs == null )
+            return 0.0;        
 
         // normalize so that we don't have precision issues
         double[] adjustedLikelihoods = new double[GLs.length];
