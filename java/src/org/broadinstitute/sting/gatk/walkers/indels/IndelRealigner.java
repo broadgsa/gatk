@@ -182,10 +182,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private final ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
     private final IdentityHashMap<Object, VariantContext> knownIndelsToTry = new IdentityHashMap<Object, VariantContext>();
 
-    // random number generator
-    private static final long RANDOM_SEED = 1252863495;
-    private static final Random generator = new Random(RANDOM_SEED);
-
     private static final int MAX_QUAL = 99;
 
     // fraction of mismatches that need to no longer mismatch for a column to be considered cleaned
@@ -614,9 +610,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // if there are reads with a single indel in them, add that indel to the list of alternate consenses
         long totalRawMismatchSum = determineReadsThatNeedCleaning(reads, refReads, altReads, altAlignmentsToTest, altConsenses, leftmostIndex, reference);
 
-        // use 'Smith-Waterman' to create alternate consenses from reads that mismatch the reference
+        // use 'Smith-Waterman' to create alternate consenses from reads that mismatch the reference, using totalRawMismatchSum as the random seed
         if ( !USE_KNOWN_INDELS_ONLY )
-            generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference, leftmostIndex);
+            generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference, leftmostIndex, totalRawMismatchSum);
 
         // if ( debugOn ) System.out.println("------\nChecking consenses...\n--------\n");
 
@@ -867,7 +863,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private void generateAlternateConsensesFromReads(final LinkedList<AlignedRead> altAlignmentsToTest,
                                                      final Set<Consensus> altConsensesToPopulate,
                                                      final byte[] reference,
-                                                     final int leftmostIndex) {
+                                                     final int leftmostIndex,
+                                                     final long randomSeed) {
 
         // if we are under the limit, use all reads to generate alternate consenses
         if ( altAlignmentsToTest.size() <= MAX_READS_FOR_CONSENSUSES ) {
@@ -879,6 +876,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // otherwise, choose reads for alternate consenses randomly
         else {
             int readsSeen = 0;
+            Random generator = new Random(randomSeed);
             while ( readsSeen++ < MAX_READS_FOR_CONSENSUSES && altConsensesToPopulate.size() <= MAX_CONSENSUSES) {
                 int index = generator.nextInt(altAlignmentsToTest.size());
                 AlignedRead aRead = altAlignmentsToTest.remove(index);

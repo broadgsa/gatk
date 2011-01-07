@@ -2,16 +2,11 @@ package org.broadinstitute.sting.queue.extensions.gatk
 
 import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.utils.interval.IntervalUtils
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSource
 import java.io.File
-import net.sf.picard.util.IntervalList
-import net.sf.samtools.SAMFileHeader
 import collection.JavaConversions._
-import org.broadinstitute.sting.utils.{GenomeLoc, GenomeLocSortedSet, GenomeLocParser}
 import org.broadinstitute.sting.queue.util.IOUtils
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, ScatterGatherableFunction, ScatterFunction}
 import org.broadinstitute.sting.queue.function.{QFunction, InProcessFunction}
-import org.broadinstitute.sting.queue.QException
 
 /**
  * An interval scatter function.
@@ -19,11 +14,30 @@ import org.broadinstitute.sting.queue.QException
 class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
   var splitByContig = false
 
+  /** The total number of clone jobs that will be created. */
+  private var scatterCount: Int = _
+
+  /** The reference sequence for the GATK function. */
   private var referenceSequence: File = _
+
+  /** The runtime field to set for specifying an interval file. */
   private var intervalsField: ArgumentSource = _
+
+  /** The runtime field to set for specifying an interval string. */
   private var intervalsStringField: ArgumentSource = _
+
+  /** The list of interval files ("/path/to/interval.list") or interval strings ("chr1", "chr2") to parse into smaller parts. */
   private var intervals: List[String] = Nil
 
+  /** Whether the laster scatter job should also include any unmapped reads. */
+  private var includeUnmapped: Boolean = _
+
+  /**
+   * Checks if the function is scatter gatherable.
+   * @param originalFunction Function to check.
+   * @return true if the function is a GATK function with the reference sequence set.
+   * @throws IllegalArgumentException if -BTI or -BTIMR are set.  QScripts should not try to scatter gather with those option set.
+   */
   def isScatterGatherable(originalFunction: ScatterGatherableFunction) = {
     if (originalFunction.isInstanceOf[CommandLineGATK]) {
       val gatk = originalFunction.asInstanceOf[CommandLineGATK]
@@ -32,18 +46,32 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
     } else false
   }
 
+  /**
+   * Sets the scatter gatherable function.
+   * @param originalFunction Function to bind.
+   */
   def setScatterGatherable(originalFunction: ScatterGatherableFunction) = {
     val gatk = originalFunction.asInstanceOf[CommandLineGATK]
-    this.referenceSequence = gatk.reference_sequence
-    this.intervals ++= gatk.intervalsString
-    this.intervals ++= gatk.intervals.map(_.toString)
     this.intervalsField = QFunction.findField(originalFunction.getClass, "intervals")
     this.intervalsStringField = QFunction.findField(originalFunction.getClass, "intervalsString")
+    this.scatterCount = originalFunction.scatterCount
+    this.referenceSequence = gatk.reference_sequence
+    if (gatk.intervals.isEmpty && gatk.intervalsString.isEmpty) {
+      this.intervals ++= IntervalUtils.distinctContigs(this.referenceSequence).toList
+      this.includeUnmapped = this.splitByContig
+    } else {
+      this.intervals ++= gatk.intervals.map(_.toString)
+      this.intervals ++= gatk.intervalsString.filterNot(interval => IntervalUtils.isUnmapped(interval))
+      this.includeUnmapped = gatk.intervalsString.exists(interval => IntervalUtils.isUnmapped(interval))
+    }
   }
 
   def initCloneInputs(cloneFunction: CloneFunction, index: Int) = {
     cloneFunction.setFieldValue(this.intervalsField, List(new File("scatter.intervals")))
-    cloneFunction.setFieldValue(this.intervalsStringField, List.empty[String])
+    if (index == scatterCount && includeUnmapped)
+      cloneFunction.setFieldValue(this.intervalsStringField, List("unmapped"))
+    else
+      cloneFunction.setFieldValue(this.intervalsStringField, List.empty[String])
   }
 
   def bindCloneInputs(cloneFunction: CloneFunction, index: Int) = {

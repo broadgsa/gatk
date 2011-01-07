@@ -52,7 +52,7 @@ public class IntervalUtils {
                         return null;
                     }
                     // if any argument is 'unmapped', "parse" it to a null entry.  A null in this case means 'all the intervals with no alignment data'.
-                    else if(fileOrInterval.trim().toLowerCase().equals("unmapped"))
+                    else if (isUnmapped(fileOrInterval))
                         rawIntervals.add(GenomeLoc.UNMAPPED);
                     // if it's a file, add items to raw interval list
                     else if (isIntervalFile(fileOrInterval)) {
@@ -73,6 +73,15 @@ public class IntervalUtils {
         }
 
         return rawIntervals;
+    }
+
+    /**
+     * Returns true if the interval string is the "unmapped" interval
+     * @param interval Interval to check
+     * @return true if the interval string is the "unmapped" interval
+     */
+    public static boolean isUnmapped(String interval) {
+        return (interval != null && interval.trim().toLowerCase().equals("unmapped"));
     }
 
     /**

@@ -101,10 +101,8 @@ class fullCallingPipeline extends QScript {
       //val seq = qscript.machine
       //val expKind = qscript.protocol
 
-      // get contigs (needed for indel cleaning parallelism)
-      val contigs = IntervalUtils.distinctContigs(
-        qscript.pipeline.getProject.getReferenceFile,
-        List(qscript.pipeline.getProject.getIntervalList.getAbsolutePath)).toList
+      // get max num contigs for indel cleaning parallelism, plus 1 for -L unmapped
+      val numContigs = IntervalUtils.distinctContigs(qscript.pipeline.getProject.getReferenceFile).size + 1
 
       for ( sample <- recalibratedSamples ) {
         val sampleId = sample.getId
@@ -134,13 +132,12 @@ class fullCallingPipeline extends QScript {
         realigner.targetIntervals = targetCreator.out
         realigner.intervals = Nil
         realigner.intervalsString = Nil
-        realigner.scatterCount = num_cleaner_scatter_jobs min contigs.size
+        realigner.scatterCount = num_cleaner_scatter_jobs min numContigs
         realigner.rodBind :+= RodBind("dbsnp", dbsnpType, qscript.pipeline.getProject.getDbsnpFile)
         realigner.rodBind :+= RodBind("indels", "VCF", swapExt(realigner.reference_sequence.getParentFile, realigner.reference_sequence, "fasta", "1kg_pilot_indels.vcf"))
 
         // if scatter count is > 1, do standard scatter gather, if not, explicitly set up fix mates
         if (realigner.scatterCount > 1) {
-          realigner.intervalsString = contigs
           realigner.out = cleaned_bam
           // While gathering run fix mates.
           realigner.setupScatterFunction = {

@@ -10,8 +10,8 @@
     <property name="resource.file" value="StingText.properties" />
     <property name="resource.path" value="${java.classes}/StingText.properties" />
 
-    <property name="queue.source.dir" value="scala/src" />
-    <property name="queue.classes" value="${build.dir}/scala/classes" />
+    <property name="scala.source.dir" value="scala/src" />
+    <property name="scala.classes" value="${build.dir}/scala/classes" />
 
     <property name="queue-extensions.source.dir" value="${build.dir}/queue-extensions/src" />
     
@@ -73,14 +73,14 @@
       </fileset>
     </path>
 
-    <!-- Path to queue dependencies. -->
-    <path id="queue.dependencies">
+    <!-- Path to scala dependencies. -->
+    <path id="scala.dependencies">
         <path refid="external.dependencies" />
         <pathelement location="${java.classes}" />
         <!-- Need the resources as we will be running a command line program which needs the help text. -->
         <pathelement location="${resource.path}" />
-	<!-- Add any previously compiled queue classes to the path. -->
-        <pathelement location="${queue.classes}" />
+        <!-- Add any previously compiled scala classes to the path. -->
+        <pathelement location="${scala.classes}" />
     </path>
 
     <target name="init.resolve" unless="init.resolve.done">
@@ -105,12 +105,7 @@
 
     <target name="resolve" depends="init.resolve,init"
             description="locate and download library dependencies">
-        <property name="gatk.ivy.conf" value="default" />
-        <property name="scala.ivy.conf" value="default" />
-        <condition property="queue.ivy.conf" value="queue" else="default">
-            <isset property="queue.include" />
-        </condition>
-        <property name="ivy.conf" value="default, ${gatk.ivy.conf}, ${scala.ivy.conf}, ${queue.ivy.conf}"/>
+        <property name="ivy.conf" value="default"/>
       <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
       <!-- Remove old versions of ivy jars AFTER the ivy:retrieve has been class loaded. -->
       <delete file="${ivy.jar.dir}/ivy-2.0.0.jar"/>
@@ -118,9 +113,9 @@
     </target>
 
     <target name="init.buildall">
-        <!-- Set the properties needed to build Queue -->
+        <!-- Set the properties needed to build everything -->
         <property name="gatk.target" value="oneoffs"/>
-        <property name="queue.target" value="core"/>
+        <property name="scala.target" value="core"/>
     </target>
 
     <!-- define some key locations that might change based on how the build is run -->
@@ -144,31 +139,24 @@
         </condition>
 
         <!-- Get the queue build target.  Default to none.  -->
-        <condition property="queue.target" value="none" else="${env.QUEUE_BUILD_TYPE}">
+        <condition property="scala.target" value="none" else="${env.QUEUE_BUILD_TYPE}">
             <equals arg1="${env.QUEUE_BUILD_TYPE}" arg2="$${env.QUEUE_BUILD_TYPE}" />
         </condition>
 
-        <!-- If the queue target is set, or if the queue-extensions needs to be built, then include all queue tasks. -->
-        <condition property="queue.include">
+        <!-- If the scala target is set, then include all scala tasks. -->
+        <condition property="scala.include">
             <or>
-                <not><equals arg1="${queue.target}" arg2="none" /></not>
+                <not><equals arg1="${scala.target}" arg2="none" /></not>
             </or>
         </condition>
 
-        <!-- If queue is being built, then include scala tasks (init.scalatasks) -->
-        <condition property="scala.include">
-            <or>
-                <isset property="queue.include" />
-            </or>
-        </condition>
-        
         <!-- Get the pipeline run type.  Default to dry.  -->
         <condition property="pipeline.run" value="dry" else="${pipeline.run}">
             <equals arg1="${pipeline.run}" arg2="$${pipeline.run}" />
         </condition>
 
         <echo message="GATK build      : ${gatk.target}"/>
-        <echo message="Queue build     : ${queue.target}"/>
+        <echo message="Scala build     : ${scala.target}"/>
       <echo message="source revision : ${build.version}"/>
       <echo message="build time      : ${build.timestamp}" />
       
@@ -202,7 +190,7 @@
       </pathconvert>
     </target>
 
-    <target name="init.scalatasks" depends="resolve" if="scala.include"
+    <target name="init.scala.compile" depends="resolve"
             description="Initializes the scala ant tasks from scala-compiler.jar">
         <path id="scala.classpath">
             <fileset dir="lib">
@@ -232,33 +220,61 @@
         </subant>
     </target>
 
+    <target name="init.queue-extensions.generate" depends="gatk.compile">
+        <condition property="uptodate.queue-extensions.generate">
+            <or>
+                <not>
+                    <isset property="scala.include"/>
+                </not>
+                <uptodate targetfile="${queue-extensions.source.dir}">
+                    <srcfiles refid="java.source.files"/>
+                    <srcfiles refid="external.source.files"/>
+                </uptodate>
+            </or>
+        </condition>
+    </target>
+
     <!-- NOTE: Extracting help first to avoid "Unable to load help text.  Help output will be sparse." warning message. -->
-    <target name="queue-extensions.generate" depends="gatk.compile, extracthelp" if="queue.include" description="generate GATK modules for Queue">
+    <target name="queue-extensions.generate" depends="extracthelp,init.queue-extensions.generate" unless="uptodate.queue-extensions.generate" description="generate GATK modules for Queue">
         <mkdir dir="${queue-extensions.source.dir}"/>
         <echo>Generating Queue GATK extensions...</echo>
-        <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" classpathref="queue.dependencies">
+        <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" classpathref="scala.dependencies">
             <arg value="-outDir" />
             <arg path="${queue-extensions.source.dir}" />
             <arg value="-l" />
             <arg value="WARN" />
         </java>
+        <touch>
+            <file file="${queue-extensions.source.dir}"/>
+        </touch>
     </target>
 
-    <!-- Queue depends on the gatk since it contains the StingUtils (including CommandLine) -->
-    <target name="queue.compile" depends="init,resolve,gatk.compile,init.scalatasks,queue-extensions.generate" if="queue.include" description="compile Queue">
-        <mkdir dir="${queue.classes}"/>
-        <echo>Building Queue...</echo>
-        <scalac fork="true" jvmargs="-Xmx512m" destdir="${queue.classes}" classpathref="queue.dependencies" deprecation="yes" unchecked="yes">
-            <src path="${queue.source.dir}" />
+    <!-- Scala depends on the java compile -->
+    <target name="scala.compile" depends="init,resolve,gatk.compile,queue-extensions.generate,init.scala.compile" if="scala.include" description="compile Scala">
+        <mkdir dir="${scala.classes}"/>
+        <echo>Building Scala...</echo>
+        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
+            <src path="${scala.source.dir}" />
             <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala"/>
-            <exclude name="*.scala"/>
         </scalac>
     </target>
 
-    <target name="extracthelp" depends="init,gatk.compile"
+    <target name="init.extracthelp" depends="init,gatk.compile">
+        <condition property="uptodate.extracthelp">
+            <or>
+                <isset property="disable.help"/>
+                <uptodate targetfile="${basedir}/${resource.path}">
+                    <srcfiles refid="java.source.files"/>
+                    <srcfiles refid="external.source.files"/>
+                </uptodate>
+            </or>
+        </condition>
+    </target>
+
+    <target name="extracthelp" depends="init.extracthelp"
 	    description="Extract help key/value pair file from the JavaDoc tags."
-	    unless="disable.help">
+	    unless="uptodate.extracthelp">
         <path id="doclet.classpath">
           <path refid="external.dependencies" />
           <pathelement location="${java.classes}" />
@@ -273,7 +289,7 @@
       </javadoc>
     </target>
 
-    <target name="sting.compile" depends="gatk.compile, queue.compile" />
+    <target name="sting.compile" depends="gatk.compile, scala.compile" />
 
     <target name="init.jar" depends="sting.compile,extracthelp">
         <mkdir dir="${dist.dir}"/>
@@ -333,9 +349,17 @@
         </subant>
     </target>
 
-    <target name="queue.jar" depends="queue.compile, init.jar" if="queue.include">
+    <target name="scala.jar" depends="scala.compile, init.jar" if="scala.include">
+        <jar jarfile="${dist.dir}/GATKScala.jar">
+          <fileset dir="${scala.classes}">
+            <include name="org/broadinstitute/sting/scala/**/*.class"/>
+          </fileset>
+        </jar>
+    </target>
+
+    <target name="queue.jar" depends="scala.compile, init.jar" if="scala.include">
         <jar jarfile="${dist.dir}/Queue.jar">
-            <fileset dir="${queue.classes}">
+            <fileset dir="${scala.classes}">
                 <include name="org/broadinstitute/sting/queue/**/*.class"/>
             </fileset>
             <fileset dir="${java.classes}">
@@ -381,7 +405,7 @@
 
     </target>
 
-    <target name="queue.manifests" depends="queue.jar, init.manifests" if="queue.include">
+    <target name="queue.manifests" depends="queue.jar, init.manifests" if="scala.include">
         <jar jarfile="${dist.dir}/Queue.jar" update="true" >
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
@@ -416,16 +440,20 @@
         inheritAll is false so that 'ant queue' does not accidentally import
         params if the build was called with 'ant clean oneoffs queue'.
         Instead this task resets the parameters and is just like running
-        a fresh 'ant dist -Dqueue.target=core'.
+        a fresh 'ant dist -Dscala.target=core'.
         -->
         <antcall target="dist" inheritAll="false">
-            <param name="queue.target" value="core" />
+            <param name="scala.target" value="core" />
         </antcall>
     </target>
 
-    <target name="test.compile" depends="init.buildall,dist">
-        <echo message="Sting: Compiling test cases!"/>
+    <target name="test.init.compile">
         <mkdir dir="${java.test.classes}"/>
+        <mkdir dir="${scala.test.classes}"/>
+    </target>
+
+    <target name="test.java.compile" depends="init.buildall,dist,test.init.compile">
+        <echo message="Sting: Compiling test cases!"/>
         <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on">
             <src path="${java.test.sources}"/>
             <classpath>
@@ -434,55 +462,30 @@
                 <pathelement location="lib/testng-5.14.1.jar"/>
             </classpath>
         </javac>
+    </target>
 
-        <echo message="Queue: Compiling test cases!"/>
-        <mkdir dir="${queue.test.classes}"/>
-        <scalac fork="true" jvmargs="-Xmx512m" srcdir="${queue.test.sources}" destdir="${queue.test.classes}" deprecation="yes" unchecked="yes">
-            <include name="org/broadinstitute/sting/queue/**/*.scala"/>
+    <target name="test.scala.compile" depends="test.java.compile,scala.compile" if="scala.include">
+        <echo message="Scala: Compiling test cases!"/>
+        <scalac fork="true" jvmargs="-Xmx512m" srcdir="${scala.test.sources}" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
+            <include name="**/*.scala"/>
             <classpath>
-                <path refid="queue.dependencies"/>
-                <pathelement location="${queue.classes}"/>
+                <path refid="scala.dependencies"/>
+                <pathelement location="${scala.classes}"/>
                 <pathelement location="${java.test.classes}"/>
                 <pathelement location="lib/testng-5.14.1.jar"/>
             </classpath>
         </scalac>
     </target>
 
+    <target name="test.compile" depends="test.java.compile,test.scala.compile">
+    </target>
+
     <!-- new scala target -->
     
     <target name="scala" description="build the scala directory">
-      <antcall target="resolve">
-        <param name="ivy.conf" value="scala"/>
-      </antcall>
-        <antcall target="dist"/>    
-      <property name="scala.source.dir" value="scala/src" />
-      <property name="scala.classes" value="build/scala" />
-      
-      <path id="scala.classpath">
-	    <fileset dir="lib">
-          <include name="scala-compiler-*.jar"/>
-          <include name="scala-library-*.jar"/>
-	    </fileset>
-        <fileset dir="${dist.dir}">
-          <patternset id="scalaStuff">
-            <include name="*.jar"/>
-        </patternset>
-        </fileset>
-      </path>
-      <taskdef resource="scala/tools/ant/antlib.xml">
-        <classpath refid="scala.classpath"/>
-      </taskdef>
-      <mkdir dir="${scala.classes}"/>
-      <echo>Building Scala...</echo>
-      <scalac fork="true" srcdir="${scala.source.dir}" destdir="${scala.classes}" classpathref="scala.classpath" force="changed">
-        <include name="*.scala"/>
-      </scalac>
-      
-      <jar jarfile="${dist.dir}/GATKScala.jar">
-        <fileset dir="${scala.classes}">
-          <include name="*.class"/>
-        </fileset>
-      </jar>
+        <antcall target="scala.jar" inheritAll="false">
+            <param name="scala.target" value="core" />
+        </antcall>
     </target>
     
     <!-- ***************************************************************************** -->
@@ -493,8 +496,8 @@
     <property name="java.test.classes" value="${build.dir}/java/testclasses"/>
     <property name="test.output" value="${dist.dir}/test"/>
     <property name="java.test.sources" value="java/test"/>
-    <property name="queue.test.classes" value="${build.dir}/scala/testclasses"/>
-    <property name="queue.test.sources" value="scala/test"/>
+    <property name="scala.test.classes" value="${build.dir}/scala/testclasses"/>
+    <property name="scala.test.sources" value="scala/test"/>
     <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
     <property name="test.maxmemory" value="4g"/>
 
@@ -521,13 +524,13 @@
                 <classpath>
                     <path refid="external.dependencies" />
                     <pathelement location="${java.classes}" />
-                    <pathelement location="${queue.classes}" />
+                    <pathelement location="${scala.classes}" />
                     <pathelement location="${java.test.classes}" />
-                    <pathelement location="${queue.test.classes}" />
+                    <pathelement location="${scala.test.classes}" />
                 </classpath>
 
                 <classfileset dir="${java.test.classes}" includes="**/@{testtype}.class"/>
-                <classfileset dir="${queue.test.classes}" includes="**/@{testtype}*.class" />
+                <classfileset dir="${scala.test.classes}" includes="**/@{testtype}*.class" />
             </testng>
 
             <!-- generate a report for Bamboo or Hudson to read in -->
@@ -599,20 +602,21 @@
 
     <target name="clean.javadoc">
         <delete dir="javadoc"/>
+        <delete dir="scaladoc"/>
     </target>
 
-    <target name="javadoc" depends="init.buildall,resolve,queue-extensions.generate" description="generates javadoc">
+    <target name="javadoc" depends="init.buildall,resolve,queue-extensions.generate,init.scala.compile" description="generates javadoc">
       <mkdir dir="javadoc"/>
       <javadoc destdir="javadoc"
                classpathref="external.dependencies">
-        <packageset refid="java.source.files"/>
+            <fileset refid="java.source.files"/>
+            <fileset refid="external.source.files"/>
       </javadoc>
-
-        <mkdir dir="javadoc/queue"/>
-        <scaladoc srcdir="" destdir="javadoc/queue" classpathref="queue.dependencies" deprecation="yes" unchecked="yes">
-            <src path="${queue.source.dir}"/>
+        <mkdir dir="scaladoc"/>
+        <scaladoc srcdir="" destdir="scaladoc" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
+            <src path="${scala.source.dir}"/>
             <src path="${queue-extensions.source.dir}"/>
-            <include name="org/broadinstitute/sting/queue/**/*.scala"/>
+            <include name="**/*.scala"/>
         </scaladoc>
     </target>
 

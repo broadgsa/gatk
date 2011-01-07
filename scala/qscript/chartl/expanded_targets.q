@@ -1,6 +1,6 @@
 import org.broadinstitute.sting.commandline.ArgumentCollection
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.library.ipf.ExpandIntervals
+import org.broadinstitute.sting.queue.library.ipf.intervals.ExpandIntervals
 import org.broadinstitute.sting.queue.pipeline.PipelineArgumentCollection
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.utils.text.XReadLines

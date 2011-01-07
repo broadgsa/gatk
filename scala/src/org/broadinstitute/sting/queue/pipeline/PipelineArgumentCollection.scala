@@ -39,9 +39,8 @@ class PipelineArgumentCollection {
   @Input(doc="Skip indel-cleaning for BAM files (for testing only)", shortName="skipCleaning", required=false)
   var skip_cleaning = false
 
-  @Input(doc="List of samples and bams (in the form sample_id k1:v1,k2:v2 "+
-          "cleaned:/path/to/cleaned.bam,recalibrated:/path/to/recal.bam,unreacalibrated:/path/to/unrecal.bam)."+
-          "Mutually exclusive with YAML",required=false, shortName="pBams")
+  @Input(doc="List of samples and bams (in the form sample_id k1:v1,k2:v2 cleaned:/path/to/cleaned.bam,recalibrated:/path/to/recal.bam,unreacalibrated:/path/to/unrecal.bam). Mutually exclusive with YAML",
+    required=false, shortName="pBams")
   var projectBams: File = _
 
   @Input(doc="The project name. Mutually exclusive with YAML.", required = false, shortName="pName")

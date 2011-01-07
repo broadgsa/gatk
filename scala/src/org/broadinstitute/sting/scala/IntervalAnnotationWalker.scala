@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.walkers.{TreeReducible, RefWalker}
 import org.broadinstitute.sting.commandline.{Output, Argument}
 import org.broadinstitute.sting.utils.{BaseUtils, GenomeLoc}
 import collection.mutable.{ListBuffer, HashSet}
+import java.lang.Math
 
 class IntervalAnnotationWalker extends RefWalker[AnnotationMetaData,List[IntervalInfoBuilder]] {
   @Argument(doc="Min proportion of bases overlapping between an interval of interest and an annotation interval for annotation to occur",shortName="mpb")
@@ -109,9 +110,9 @@ class IntervalInfoBuilder(loc : GenomeLoc, minProp : Double) {
     Math.log(1+byteList.tail.size-byteList.tail.dropWhile( u => u.equals(byteList(1))).size) +
       calcEntropy(byteList.tail.foldLeft(ListBuffer(byteList(0)))( (a,b) => {
         if ( b.equals(byteList(1)) ) {
-          a.dropRight(1) + (a.last ++ b)
+          a.dropRight(1) :+ (a.last ++ b)
         } else {
-          a + b
+          a :+ b
         }
       }))
   }

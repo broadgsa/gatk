@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.queue.library.ipf
+package org.broadinstitute.sting.queue.library.ipf.intervals
 
 import org.broadinstitute.sting.queue.function.InProcessFunction
 import org.broadinstitute.sting.commandline._
