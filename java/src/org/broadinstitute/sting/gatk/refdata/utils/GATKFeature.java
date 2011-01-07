@@ -75,9 +75,6 @@ public abstract class GATKFeature implements Feature {
         }
         public GenomeLoc getLocation() {
             if (position == null) position = genomeLocParser.createGenomeLoc(feature.getChr(), feature.getStart(), feature.getEnd());
-            if (position.getStart() > position.getStop()) {
-                throw new UserException.BadInput("A feature produced by the reference metadata track named \"" + this.name + "\" at position " + position + " has a start greater than the stop; this is an invalid this is an invalid position");
-            }
             return position;
         }
 
