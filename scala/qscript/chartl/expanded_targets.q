@@ -12,6 +12,8 @@ class expanded_targets extends QScript {
   @Argument(shortName="thisTrigger",doc="The trigger track to use",required=false) var thisTrigger : File = new File("/humgen/gsa-hphome1/chartl/projects/exome/expanded/triggers/joined.omni.hiseq.vcf")
 
   def script = {
+    // note : bam sorting and indexing handled outside of this script
+    // GATK hacked by modifying GenomeLocSortedSet not to fuss about getting multiple instances of the same interval
 
     val intervalExpands : List[ExpandIntervals] = (new Range(0,40,1)).toList.map( u => {
       new ExpandIntervals(args.projectIntervals,1+5*u,5,new File("./"+args.projectName+"_expanded_%d_%d.interval_list".format(1+5*u,6+5*u)),args.projectRef,"TSV","INTERVALS")
@@ -37,14 +39,14 @@ class expanded_targets extends QScript {
       rtc.out = swapExt(userDir,u,".bam",".clean.targets.interval_list")
       rtc.input_file :+= u.getAbsoluteFile
       rtc.intervals :+= cleanIntervals.outList
-      rtc.memoryLimit = Some(4)
+      rtc.memoryLimit = Some(6)
       rtc
     })
     val clean : List[IndelRealigner] = realign.map( u => {
       var cleaner : IndelRealigner = new IndelRealigner with GATKArgs
       cleaner.targetIntervals = u.out
       cleaner.input_file = u.input_file
-      cleaner.memoryLimit = Some(4)
+      cleaner.memoryLimit = Some(6)
       cleaner.out = new File(userDir+"/"+swapExt(u.out,".bam",".expanded.targets.bam").getName)
       cleaner.intervals :+= cleanIntervals.outList
       cleaner
@@ -53,7 +55,7 @@ class expanded_targets extends QScript {
     addAll(realign)
     addAll(clean)
 
-    val callFiles: List[File] = intervalExpands.map(u => makeCalls(u.outList,clean.map(h => h.out)))
+    val callFiles: List[File] = intervalExpands.map(u => makeCalls(u.outList,clean.map(h => swapExt(h.out,".bam",".sorted.bam"))))
 
   }
 
@@ -81,7 +83,8 @@ class expanded_targets extends QScript {
     filter.filterName :+= "HighStrandBias"
     filter.out = swapExt(iList,".interval_list",".filtered.vcf")
     var callHiseq : UnifiedGenotyper = new UnifiedGenotyper with GATKArgs
-    callHiseq.input_file = List(new File("/humgen/1kg/analysis/bamsForDataProcessingPapers/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"))
+    callHiseq.reference_sequence = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
+    callHiseq.input_file = List(new File("/seq/picard_aggregation/EXT1/NA12878/v3/NA12878.bam"))
     callHiseq.rodBind :+= new RodBind("trigger","vcf",filter.out)
     callHiseq.out = swapExt(iList,".interval_list",".hiSeq.genotypes.vcf")
     callHiseq.trig_emit_conf = Some(0.0)
@@ -93,12 +96,24 @@ class expanded_targets extends QScript {
     eval.rodBind :+= new RodBind("evalInterval","vcf",filter.out)
     eval.rodBind :+= new RodBind("compHiSeq","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/NA12878/NA12878.hg19.HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.optimized.cut.vcf"))
     eval.rodBind :+= new RodBind("compHiSeq_atSites","vcf",callHiseq.out)
-    eval.rodBind :+= new RodBind("compOMNI","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni_2.5_764_samples.b37.deduped.annot.vcf"))
+    eval.rodBind :+= new RodBind("compOMNI","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/764samples.deduped.b37.annot.vcf"))
     eval.out = swapExt(iList,".interval_list",".eval")
     eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+    eval.memoryLimit = Some(4)
 
     add(eval)
     eval.out
 
+  }
+
+  class B37_to_HG19 extends CommandLineFunction {
+    @Input(doc="vcf") var vcf : File = _
+    @Output(doc="out") var outVCF : File = _
+
+    def commandLine = "python /humgen/gsa-hphome1/chartl/sting/python/vcf_b36_to_hg18.py %s %s".format(vcf.getAbsolutePath,outVCF.getAbsolutePath)
+  }
+
+  class HG19_to_B37 extends B37_to_HG19 {
+    override def commandLine = "python /humgen/gsa-hphome1/chartl/sting/python/vcf_b36_to_hg18.py -r %s %s".format(vcf.getAbsolutePath,outVCF.getAbsolutePath)
   }
 }

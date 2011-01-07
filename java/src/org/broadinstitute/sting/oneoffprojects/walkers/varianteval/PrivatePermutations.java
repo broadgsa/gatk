@@ -25,8 +25,9 @@ import java.util.Set;
 @Analysis(name = "PrivatePermutations", description = "Number of additional mutations from each new sample; random permutations")
 public class PrivatePermutations extends VariantEvaluator {
     private final int NUM_PERMUTATIONS = 50;
-    private final double LOW_GQ_PCT = 0.95;
-    private final double LOW_GQ_THRSH = 30.0;
+    private final double LOW_GQ_PCT = 0.80;
+    private final double LOW_GQ_THRSH = 25.0;
+    private final boolean IGNORE_FILTER_FIELD = true;
     private boolean initialized = false;
     private long skipped = 0l;
 
@@ -80,18 +81,21 @@ public class PrivatePermutations extends VariantEvaluator {
     }
 
     private boolean isGood(VariantContext vc) {
-        if ( vc == null || vc.isFiltered() || (vc.getHetCount() + vc.getHomVarCount() == 0) ) { // todo -- should be is variant, but need to ensure no alt alleles at ref sites
+        if ( vc == null || (vc.isFiltered() && ! IGNORE_FILTER_FIELD) || (vc.getHetCount() + vc.getHomVarCount() == 0) ) { // todo -- should be is variant, but need to ensure no alt alleles at ref sites
             return false;
         } else {
             Collection<Genotype> gtypes = vc.getGenotypes().values();
             int ngood = 0;
+            int nbad = 0;
             for ( Genotype g : gtypes) {
                 if ( g.getPhredScaledQual() >= LOW_GQ_THRSH ) {
                     ngood ++;
+                } else {
+                    nbad ++;
                 }
             }
 
-            return ( (0.0+ngood)/(0.0+gtypes.size()) >= LOW_GQ_PCT );
+            return ( (0.0+ngood)/(0.0+ngood + nbad) >= LOW_GQ_PCT );
         }
     }
 
