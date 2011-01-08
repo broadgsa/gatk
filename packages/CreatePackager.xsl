@@ -147,6 +147,13 @@
   <xsl:for-each select="file">
     <fileset file="{$staging.dir}/{@name}" />
   </xsl:for-each>
+    <xsl:for-each select="dir">
+        <fileset dir="{$staging.dir}">
+            <xsl:attribute name="includes">
+                <xsl:value-of select="concat(@name,'/**')"/>
+            </xsl:attribute>
+        </fileset>
+    </xsl:for-each>
 </xsl:template>
 
 <!-- Determine the short name (filename w/o directory structure of the given filename -->
