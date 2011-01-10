@@ -91,6 +91,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs for constructing the alternate references.")
     protected boolean USE_KNOWN_INDELS_ONLY = false;
 
+    @Hidden
+    @Argument(fullName="doNotUseSW", shortName="doNotUseSW", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs or indels in the reads for constructing the alternate references.")
+    protected boolean NO_SW = false;
+
     @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
                 "If too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool may run out of memory.", required=false)
     protected int MAX_RECORDS_IN_RAM = 500000;
@@ -598,10 +602,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         byte[] reference = readsToClean.getReference(referenceReader);
         int leftmostIndex = (int)readsToClean.getLocation().getStart();
 
-        final ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();                   // reads that perfectly match ref
+        final ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();                 // reads that perfectly match ref
         final ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
         final LinkedList<AlignedRead> altAlignmentsToTest = new LinkedList<AlignedRead>();  // should we try to make an alt consensus from the read?
-        final Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();                 // list of alt consenses
+        final Set<Consensus> altConsenses = new LinkedHashSet<Consensus>();               // list of alt consenses
 
         // if there are any known indels for this region, get them and create alternate consenses
         generateAlternateConsensesFromKnownIndels(altConsenses, leftmostIndex, reference);
@@ -611,7 +615,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         long totalRawMismatchSum = determineReadsThatNeedCleaning(reads, refReads, altReads, altAlignmentsToTest, altConsenses, leftmostIndex, reference);
 
         // use 'Smith-Waterman' to create alternate consenses from reads that mismatch the reference, using totalRawMismatchSum as the random seed
-        if ( !USE_KNOWN_INDELS_ONLY )
+        if ( !USE_KNOWN_INDELS_ONLY && !NO_SW )
             generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference, leftmostIndex, totalRawMismatchSum);
 
         // if ( debugOn ) System.out.println("------\nChecking consenses...\n--------\n");
