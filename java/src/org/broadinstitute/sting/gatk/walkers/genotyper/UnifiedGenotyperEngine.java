@@ -629,8 +629,15 @@ public class UnifiedGenotyperEngine {
     protected void computeAlleleFrequencyPriors(int N) {
         // calculate the allele frequency priors for 1-N
         double sum = 0.0;
+        double heterozygosity;
+
+        if (UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL)
+            heterozygosity = UAC.INDEL_HETEROZYGOSITY;
+        else
+            heterozygosity = UAC.heterozygosity;
+        
         for (int i = 1; i <= N; i++) {
-            double value = UAC.heterozygosity / (double)i;
+            double value = heterozygosity / (double)i;
             log10AlleleFrequencyPriors[i] = Math.log10(value);
             sum += value;
         }

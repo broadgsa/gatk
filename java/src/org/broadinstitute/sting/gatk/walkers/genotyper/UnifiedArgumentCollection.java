@@ -92,6 +92,9 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "min_indel_count_for_genotyping", shortName = "minIndelCnt", doc = "Minimum number of consensus indels required to trigger genotyping run", required = false)
     public int MIN_INDEL_COUNT_FOR_GENOTYPING = 5;
 
+    @Argument(fullName = "indel_heterozygosity", shortName = "indelHeterozygosity", doc = "Heterozygosity for indel calling", required = false)
+    public double INDEL_HETEROZYGOSITY = 1.0/8000;
+
     public UnifiedArgumentCollection clone() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
 
@@ -110,6 +113,9 @@ public class UnifiedArgumentCollection {
         uac.MAX_MISMATCHES = MAX_MISMATCHES;
         uac.USE_BADLY_MATED_READS = USE_BADLY_MATED_READS;
         uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
+        uac.GET_ALLELES_FROM_VCF = GET_ALLELES_FROM_VCF;
+        uac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
+        uac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
 
         return uac;
     }
