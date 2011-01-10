@@ -5,9 +5,29 @@ import org.broadinstitute.sting.queue.util.IOUtils
 import java.io.File
 
 /**
- * Dispatches jobs to a compute cluster.
+ * Runs a command line function.
  */
-trait DispatchJobRunner extends JobRunner[CommandLineFunction] {
+trait CommandLineJobRunner extends JobRunner[CommandLineFunction] {
+  /** A generated exec shell script. */
+  protected var exec: File = _
+
+  /** Which directory to use for the job status files. */
+  protected def jobStatusDir = function.jobTempDir
+
+  /**
+   * Writes the function command line to an exec file.
+   */
+  protected def writeExec() {
+    this.exec = IOUtils.writeTempFile(function.commandLine, ".exec", "", jobStatusDir)
+  }
+
+  /**
+   * Removes all temporary files used for this LSF job.
+   */
+  def removeTemporaryFiles() = {
+    IOUtils.tryDelete(exec)
+  }
+
   /**
    * Builds a command line that can be run to force an automount of the directories.
    * @param function Function to look jobDirectories.

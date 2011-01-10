@@ -6,7 +6,7 @@ import org.broadinstitute.sting.queue.util.{JobExitException, Logging, ShellJob}
 /**
  * Runs jobs one at a time locally
  */
-class ShellJobRunner(val function: CommandLineFunction) extends JobRunner[CommandLineFunction] with Logging {
+class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRunner with Logging {
   private var runStatus: RunnerStatus.Value = _
 
   /**
@@ -16,10 +16,13 @@ class ShellJobRunner(val function: CommandLineFunction) extends JobRunner[Comman
   def start() = {
     try {
       val job = new ShellJob
-      job.command = function.commandLine
+
       job.workingDir = function.commandDirectory
       job.outputFile = function.jobOutputFile
       job.errorFile = function.jobErrorFile
+
+      writeExec()
+      job.shellScript = exec
 
       // Allow advanced users to update the job.
       updateJobRun(job)
@@ -39,6 +42,7 @@ class ShellJobRunner(val function: CommandLineFunction) extends JobRunner[Comman
       function.mkOutputDirectories()
       runStatus = RunnerStatus.RUNNING
       job.run()
+      removeTemporaryFiles()
       function.doneOutputs.foreach(_.createNewFile())
       runStatus = RunnerStatus.DONE
       logger.info("Done: " + function.commandLine)
@@ -46,6 +50,7 @@ class ShellJobRunner(val function: CommandLineFunction) extends JobRunner[Comman
       case jee: JobExitException =>
         runStatus = RunnerStatus.FAILED
         try {
+          removeTemporaryFiles()
           function.failOutputs.foreach(_.createNewFile())
           writeError(jee.getMessage)
         } catch {
@@ -56,6 +61,7 @@ class ShellJobRunner(val function: CommandLineFunction) extends JobRunner[Comman
       case e =>
         runStatus = RunnerStatus.FAILED
         try {
+          removeTemporaryFiles()
           function.failOutputs.foreach(_.createNewFile())
           writeStackTrace(e)
         } catch {

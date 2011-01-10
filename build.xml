@@ -48,6 +48,10 @@
         <patternset refid="java.source.pattern" />
     </fileset>
 
+    <fileset id="java.class.files" dir="${java.classes}" erroronmissingdir="false">
+        <include name="**/*.class"/>
+    </fileset>
+
     <!-- the path for resources that need to go into the GATK jar;
          any additional resources should go into this set. -->
     <path id="gatk.resources">
@@ -227,8 +231,7 @@
                     <isset property="scala.include"/>
                 </not>
                 <uptodate targetfile="${queue-extensions.source.dir}">
-                    <srcfiles refid="java.source.files"/>
-                    <srcfiles refid="external.source.files"/>
+                    <srcfiles refid="java.class.files"/>
                 </uptodate>
             </or>
         </condition>
@@ -265,8 +268,7 @@
             <or>
                 <isset property="disable.help"/>
                 <uptodate targetfile="${basedir}/${resource.path}">
-                    <srcfiles refid="java.source.files"/>
-                    <srcfiles refid="external.source.files"/>
+                    <srcfiles refid="java.class.files"/>
                 </uptodate>
             </or>
         </condition>

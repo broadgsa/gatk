@@ -7,13 +7,10 @@ import org.broadinstitute.sting.queue.util._
 /**
  * Runs jobs on an LSF compute cluster.
  */
-abstract class LsfJobRunner(val function: CommandLineFunction) extends DispatchJobRunner with Logging {
+abstract class LsfJobRunner(val function: CommandLineFunction) extends CommandLineJobRunner with Logging {
   protected var runStatus: RunnerStatus.Value = _
 
   var jobId = -1L
-
-  /** Which directory to use for the job status files. */
-  protected def jobStatusDir = function.jobTempDir
 
   /** A file to look for to validate that the function ran to completion. */
   protected var jobStatusPath: String = _
@@ -23,9 +20,6 @@ abstract class LsfJobRunner(val function: CommandLineFunction) extends DispatchJ
 
   /** A temporary job done file to let Queue know that the process exited with an error. */
   private lazy val jobFailFile = new File(jobStatusPath + ".fail")
-
-  /** A generated exec shell script. */
-  protected var exec: File = _
 
   /** A generated pre-exec shell script. */
   protected var preExec: File = _
@@ -80,8 +74,8 @@ abstract class LsfJobRunner(val function: CommandLineFunction) extends DispatchJ
   /**
    * Removes all temporary files used for this LSF job.
    */
-  def removeTemporaryFiles() = {
-    IOUtils.tryDelete(exec)
+  override def removeTemporaryFiles() = {
+    super.removeTemporaryFiles()
     IOUtils.tryDelete(preExec)
     IOUtils.tryDelete(postExec)
     IOUtils.tryDelete(jobDoneFile)
@@ -92,7 +86,7 @@ abstract class LsfJobRunner(val function: CommandLineFunction) extends DispatchJ
    * Outputs the last lines of the error logs.
    */
   protected def tailError() = {
-    val errorFile = if (function.jobErrorFile != null) function.jobErrorFile else function.jobOutputFile
+    val errorFile = functionErrorFile
     if (IOUtils.waitFor(errorFile, 120)) {
       val tailLines = IOUtils.tail(errorFile, 100)
       val nl = "%n".format()
@@ -103,20 +97,10 @@ abstract class LsfJobRunner(val function: CommandLineFunction) extends DispatchJ
   }
 
   /**
-   * Writes an exec file to cleanup any status files and
-   * optionally mount any automount directories on the node.
-   * @return the file path to the pre-exec.
-   */
-  protected def writeExec() = {
-    IOUtils.writeTempFile(function.commandLine, ".exec", "", jobStatusDir)
-  }
-
-  /**
    * Writes a pre-exec file to cleanup any status files and
    * optionally mount any automount directories on the node.
-   * @return the file path to the pre-exec.
    */
-  protected def writePreExec() = {
+  protected def writePreExec() {
     val preExec = new StringBuilder
 
     preExec.append("rm -f '%s/'.$LSB_JOBID.done%n".format(jobStatusDir))
@@ -127,14 +111,13 @@ abstract class LsfJobRunner(val function: CommandLineFunction) extends DispatchJ
     mountCommand(function).foreach(command =>
       preExec.append("%s%n".format(command)))
 
-    IOUtils.writeTempFile(preExec.toString, ".preExec", "", jobStatusDir)
+    this.preExec = IOUtils.writeTempFile(preExec.toString, ".preExec", "", jobStatusDir)
   }
 
   /**
    * Writes a post-exec file to create the status files.
-   * @return the file path to the post-exec.
    */
-  protected def writePostExec() = {
+  protected def writePostExec() {
     val postExec = new StringBuilder
 
     val touchDone = function.doneOutputs.map("touch '%s'%n".format(_)).mkString
@@ -153,6 +136,6 @@ abstract class LsfJobRunner(val function: CommandLineFunction) extends DispatchJ
   |fi
   |""".stripMargin.format(jobStatusDir, touchDone, touchFail))
 
-    IOUtils.writeTempFile(postExec.toString, ".postExec", "", jobStatusDir)
+    this.postExec = IOUtils.writeTempFile(postExec.toString, ".postExec", "", jobStatusDir)
   }
 }

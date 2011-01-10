@@ -15525,7 +15525,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * \ref _consumertype
-     * @see \ref lsb_freeLimitInfoEnt
+     * #see \ref lsb_freeLimitInfoEnt
      */
     public static native int lsb_limitInfo(_limitInfoReq req, Pointer limitItemRef, IntByReference size, LibLsf.lsInfo lsInfo);
 
@@ -15567,7 +15567,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         $LSB_CONFDIR/cluster_name/configdir/lsb.hosts \n
      *         $LSB_CONFDIR/cluster_name/configdir/lsb.resources
      * @param ent input, the array of limit information
-     * @see \ref lsb_limitInfo
+     * #see \ref lsb_limitInfo
      */
 
     public static native void lsb_freeLimitInfoEnt(_limitInfoEnt ent, int size);
@@ -16023,8 +16023,8 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_usergrpinfo
-     * @see \ref lsb_hostgrpinfo
+     * #see \ref lsb_usergrpinfo
+     * #see \ref lsb_hostgrpinfo
      * @param stringArray1 stringArray1
      */
     public static native hostPartInfoEnt.ByReference lsb_hostpartinfo(Pointer stringArray1, IntByReference numHostHosts);
@@ -16135,12 +16135,12 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * @param hostName Passes information about jobs on the named host, host
      * group or cluster name. If host is null, jobs on all hosts of the batch
      * system will be considered.
-     * @see \ref               lsb_openjobinfo_a
-     * @see \ref               lsb_openjobinfo_a_ext
-     * @see \ref               lsb_openjobinfo_req
-     * @see \ref               lsb_closejobinfo
-     * @see \ref               lsb_readjobinfo
-     * @see \ref               lsb_readframejob
+     * #see \ref               lsb_openjobinfo_a
+     * #see \ref               lsb_openjobinfo_a_ext
+     * #see \ref               lsb_openjobinfo_req
+     * #see \ref               lsb_closejobinfo
+     * #see \ref               lsb_readjobinfo
+     * #see \ref               lsb_readframejob
      */
     public static native int lsb_openjobinfo(long jobId, String jobName, String userName, String queueName, String hostName, int options);
 
@@ -16209,10 +16209,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * @param hostName Passes information about jobs on the named host, host group
      * or cluster name. If hostName is null, jobs on all hosts of the batch system
      * will be considered.
-     * @see \ref lsb_openjobinfo
-     * @see \ref lsb_closejobinfo
-     * @see \ref lsb_readjobinfo
-     * @see \ref lsb_readframejob
+     * #see \ref lsb_openjobinfo
+     * #see \ref lsb_closejobinfo
+     * #see \ref lsb_readjobinfo
+     * #see \ref lsb_readframejob
      */
     public static native jobInfoHead.ByReference lsb_openjobinfo_a(long jobId, String jobName, String userName, String queueName, String hostName, int options);
 
@@ -16278,10 +16278,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * @param hostName Passes information about jobs on the named host, host group
      * or cluster name. If hostName is null, jobs on all hosts of the batch system
      * will be considered.
-     * @see \ref lsb_openjobinfo
-     * @see \ref lsb_closejobinfo
-     * @see \ref lsb_readjobinfo
-     * @see \ref lsb_readframejob
+     * #see \ref lsb_openjobinfo
+     * #see \ref lsb_closejobinfo
+     * #see \ref lsb_readjobinfo
+     * #see \ref lsb_readframejob
      */
     public static native jobInfoHeadExt.ByReference lsb_openjobinfo_a_ext(long jobId, String jobName, String userName, String queueName, String hostName, int options);
 
@@ -16322,11 +16322,11 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \par
      * \ref defs_lsb_openjobinfo_a
      * \n \ref defs_lsb_openjobinfo
-     * @see \ref               lsb_openjobinfo_a
-     * @see \ref               lsb_openjobinfo_a_ext
-     * @see \ref               lsb_closejobinfo
-     * @see \ref               lsb_readjobinfo
-     * @see \ref               lsb_readframejob
+     * #see \ref               lsb_openjobinfo_a
+     * #see \ref               lsb_openjobinfo_a_ext
+     * #see \ref               lsb_closejobinfo
+     * #see \ref               lsb_readjobinfo
+     * #see \ref               lsb_readframejob
      */
     public static native jobInfoHeadExt.ByReference lsb_openjobinfo_req(jobInfoReq req);
 
@@ -16382,13 +16382,13 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \ref job_states
      * \n \ref jobgroup_counterIndex
      * \n \ref group_nodetypes
-     * @see \ref lsb_openjobinfo
-     * @see \ref lsb_openjobinfo_a
-     * @see \ref lsb_closejobinfo
-     * @see \ref lsb_hostinfo
-     * @see \ref lsb_pendreason
-     * @see \ref lsb_queueinfo
-     * @see \ref lsb_suspreason
+     * #see \ref lsb_openjobinfo
+     * #see \ref lsb_openjobinfo_a
+     * #see \ref lsb_closejobinfo
+     * #see \ref lsb_hostinfo
+     * #see \ref lsb_pendreason
+     * #see \ref lsb_queueinfo
+     * #see \ref lsb_suspreason
      */
     public static native jobInfoEnt.ByReference lsb_readjobinfo(IntByReference more);
 
@@ -16440,9 +16440,9 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \ref lsb_submit_options
      * \n \ref lsb_submit_options2
      * \n \ref lsb_submit_options3
-     * @see \ref lsb_modify
-     * @see \ref ls_info
-     * @see \ref lsb_queueinfo
+     * #see \ref lsb_modify
+     * #see \ref ls_info
+     * #see \ref lsb_queueinfo
      */
     public static native long lsb_submit(submit jobSubReq, submitReply jobSubReply);
 
@@ -16499,14 +16499,14 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \par
      * \ref external_msg_processing
      * \n \ref group_nodetypes
-     * @see \ref lsb_openjobinfo
-     * @see \ref lsb_openjobinfo_a
-     * @see \ref lsb_closejobinfo
-     * @see \ref lsb_hostinfo
-     * @see \ref lsb_pendreason
-     * @see \ref lsb_queueinfo
-     * @see \ref lsb_readjobinfo
-     * @see \ref lsb_suspreason
+     * #see \ref lsb_openjobinfo
+     * #see \ref lsb_openjobinfo_a
+     * #see \ref lsb_closejobinfo
+     * #see \ref lsb_hostinfo
+     * #see \ref lsb_pendreason
+     * #see \ref lsb_queueinfo
+     * #see \ref lsb_readjobinfo
+     * #see \ref lsb_suspreason
      */
     public static native jobInfoEnt.ByReference lsb_readjobinfo_cond(IntByReference more, jobInfoHeadExt jInfoHExt);
 
@@ -16566,9 +16566,9 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_openjobinfo
-     * @see \ref lsb_readjobinfo
-     * @see \ref lsb_closejobinfo
+     * #see \ref lsb_openjobinfo
+     * #see \ref lsb_readjobinfo
+     * #see \ref lsb_closejobinfo
      */
 
     public static native int lsb_readframejob(long jobId, String frameName, String user, String queue, String host, int options, Pointer frameJobInfoTbl);
@@ -16609,9 +16609,9 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         <b>Files:</b>
      *         \par
      *         ${LSF_ENVDIR:-/etc}/lsf.conf
-     * @see \ref lsb_openjobinfo
-     * @see \ref lsb_openjobinfo_a
-     * @see \ref lsb_readjobinfo
+     * #see \ref lsb_openjobinfo
+     * #see \ref lsb_openjobinfo_a
+     * #see \ref lsb_readjobinfo
      */
 
     public static native void lsb_closejobinfo();
@@ -16654,7 +16654,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * \ref host_ctrl_option
-     * @see \ref lsb_reconfig
+     * #see \ref lsb_reconfig
      */
     public static native int lsb_hostcontrol(hostCtrlReq req);
 
@@ -16713,9 +16713,9 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * the queues that are enabled for the hosts are of interest.
      * @param user The name of user. If user is not null, then only the queues
      * that are enabled for the user are of interest.
-     * @see \ref lsb_hostinfo
-     * @see \ref lsb_userinfo
-     * @see \ref lsb_usergrpinfo
+     * #see \ref lsb_hostinfo
+     * #see \ref lsb_userinfo
+     * #see \ref lsb_usergrpinfo
      */
     public static native queueInfoEnt.ByReference lsb_queueinfo(Pointer queues, IntByReference numQueues, String hosts, String user, int options);
 
@@ -16760,7 +16760,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * \ref mbd_operation
-     * @see \ref lsb_openjobinfo
+     * #see \ref lsb_openjobinfo
      */
     public static native int lsb_reconfig(mbdCtrlReq req);
 
@@ -16810,9 +16810,9 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         <b>Files:</b>
      *         \par
      *         ${LSF_ENVDIR:-/etc}/lsf.conf
-     * @see \ref lsb_chkpntjob
-     * @see \ref lsb_forcekilljob
-     * @see \ref lsb_mig
+     * #see \ref lsb_chkpntjob
+     * #see \ref lsb_forcekilljob
+     * #see \ref lsb_mig
      */
 
     public static native int lsb_signaljob(long jobId, int sigValue);
@@ -16955,8 +16955,8 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         <b>Files:</b>
      *         \par
      *         ${LSF_ENVDIR:-/etc}/lsf.conf
-     * @see \ref lsb_signaljob
-     * @see \ref lsb_chkpntjob
+     * #see \ref lsb_signaljob
+     * #see \ref lsb_chkpntjob
      */
     public static native int lsb_deletejob(long jobId, int times, int options);
 
@@ -16991,7 +16991,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         <b>Files:</b>
      *         \par
      *         none
-     * @see \ref lsb_signaljob
+     * #see \ref lsb_signaljob
      */
     public static native int lsb_forcekilljob(long jobId);
 
@@ -17124,8 +17124,8 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * \ref requeuejob_options
-     * @see \ref lsb_movejob
-     * @see \ref lsb_pendreason
+     * #see \ref lsb_movejob
+     * #see \ref lsb_pendreason
      */
     public static native int lsb_requeuejob(jobrequeue reqPtr);
 
@@ -17167,8 +17167,8 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         <b>Files:</b>
      *         \par
      *         none
-     * @see \ref ls_perror
-     * @see \ref ls_sysmsg
+     * #see \ref ls_perror
+     * #see \ref ls_sysmsg
      */
     public static native String lsb_sysmsg();
 
@@ -17304,7 +17304,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_submit
+     * #see \ref lsb_submit
      */
     public static native int lsb_mig(submig mig, IntByReference badHostIdx);
 
@@ -17354,11 +17354,11 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \ref host_status
      * \n \ref host_load_BusyReason
      * \n \ref host_attributes
-     * @see \ref lsb_hostinfo_ex
-     * @see \ref ls_info
-     * @see \ref ls_loadofhosts
-     * @see \ref lsb_queueinfo
-     * @see \ref lsb_userinfo
+     * #see \ref lsb_hostinfo_ex
+     * #see \ref ls_info
+     * #see \ref ls_loadofhosts
+     * #see \ref lsb_queueinfo
+     * #see \ref lsb_userinfo
      */
     public static native hostInfoEnt.ByReference lsb_hostinfo(Pointer hosts, IntByReference numHosts);
 
@@ -17410,11 +17410,11 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * that satisfy the resource requirements is returned. Returned hosts are
      * sorted according to the load on the resource() given in resReq, or by
      * default according to CPU and paging load.
-     * @see \ref ls_info
-     * @see \ref ls_loadofhosts
-     * @see \ref lsb_hostinfo
-     * @see \ref lsb_queueinfo
-     * @see \ref lsb_userinfo
+     * #see \ref ls_info
+     * #see \ref ls_loadofhosts
+     * #see \ref lsb_hostinfo
+     * #see \ref lsb_queueinfo
+     * #see \ref lsb_userinfo
      * @param string1 string1
      */
 
@@ -17469,7 +17469,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * * numHosts will be set to the actual number of hostInfoEnt structures in
      * the host group when this call returns.
      * @param resReq Any resource requirements called with the function.
-     * @see \ref lsb_hostinfo
+     * #see \ref lsb_hostinfo
      */
     public static native condHostInfoEnt.ByReference lsb_hostinfo_cond(Pointer hosts, IntByReference numHosts, String resReq, int options);
 
@@ -17530,7 +17530,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         ${LSF_ENVDIR:-/etc}/lsf.conf
      * @param position The new position of the job in a queue. position must be
      * a value of 1 or more.
-     * @see \ref lsb_pendreason
+     * #see \ref lsb_pendreason
      */
 
     public static native int lsb_movejob(long jobId, IntByReference opCode, int position);
@@ -17623,7 +17623,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * \ref queue_ctrl_option
-     * @see \ref lsb_queueinfo
+     * #see \ref lsb_queueinfo
      */
     public static native int lsb_queuecontrol(queueCtrlReq req);
 
@@ -17677,8 +17677,8 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_hostinfo
-     * @see \ref lsb_queueinfo
+     * #see \ref lsb_hostinfo
+     * #see \ref lsb_queueinfo
      */
     public static native userInfoEnt.ByReference lsb_userinfo(Pointer users, IntByReference numUsers);
 
@@ -17737,7 +17737,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * @param groups An array of group names.
      * @param numGroups The number of group names.* numGroups will be updated
      * to the actual number of groups when this call returns.
-     * @see \ref lsb_usergrpinfo
+     * #see \ref lsb_usergrpinfo
      */
     public static native groupInfoEnt.ByReference lsb_hostgrpinfo(Pointer groups, IntByReference numGroups, int options);
 
@@ -17787,7 +17787,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * @param groups An array of group names.
      * @param numGroups The number of group names.* numGroups will be updated
      * to the actual number of groups when this call returns.
-     * @see \ref lsb_hostgrpinfo
+     * #see \ref lsb_hostgrpinfo
      */
     public static native groupInfoEnt.ByReference lsb_usergrpinfo(Pointer groups, IntByReference numGroups, int options);
 
@@ -17876,10 +17876,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * to the batch system and an error is returned.
      * @param jobSubReply Describes the results of the job modification to the
      * batch system.
-     * @see \ref lsb_submit
-     * @see \ref ls_info
-     * @see \ref ls_rtask
-     * @see \ref lsb_queueinfo
+     * #see \ref lsb_submit
+     * #see \ref ls_info
+     * #see \ref ls_rtask
+     * #see \ref lsb_queueinfo
      */
     public static native long lsb_modify(submit jobSubReq, submitReply jobSubReply, long jobId);
 
@@ -17964,7 +17964,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \par
      * \ref suspending_reasons \n
      * \ref suspending_subreasons
-     * @see \ref lsb_pendreason
+     * #see \ref lsb_pendreason
      */
     public static native String lsb_suspreason(int reasons, int subreasons, loadIndexLog ld);
 
@@ -18017,7 +18017,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * @param ld From \ref lsb_suspreason, when reasons is SUSP_LOAD_REASON, ld is used to
      * determine the name of any external load indices. ld uses the most recent load
      * index log in the lsb.events file.
-     * @see \ref lsb_geteventrec
+     * #see \ref lsb_geteventrec
      */
     public static native String lsb_pendreason(int numReasons, IntByReference rsTb, jobInfoHead jInfoH, loadIndexLog ld, int clusterId);
 
@@ -18065,7 +18065,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_calendarop
+     * #see \ref lsb_calendarop
      */
     public static native calendarInfoEnt.ByReference lsb_calendarinfo(Pointer calendars, IntByReference numCalendars, String user);
 
@@ -18131,7 +18131,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * \ref calendar_command
-     * @see \ref lsb_calendarinfo
+     * #see \ref lsb_calendarinfo
      */
     public static native int lsb_calendarop(int oper, int numNames, Pointer names, String desc, String calExpr, int options, String badStr);
 
@@ -18238,7 +18238,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \n \ref defs_lsb_XF_OP
      * \n \ref jobgroup_controltypes
      * \n \ref signal_action
-     * @see \ref lsb_geteventrec
+     * #see \ref lsb_geteventrec
      */
     public static native int lsb_puteventrec(Pointer logPtr, eventRec log_fp);
 
@@ -18348,14 +18348,14 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \n \ref defs_lsb_XF_OP
      * \n \ref jobgroup_controltypes
      * \n \ref signal_action
-     * @see \ref lsb_hostcontrol
-     * @see \ref lsb_movejob
-     * @see \ref lsb_pendreason
-     * @see \ref lsb_puteventrec
-     * @see \ref lsb_queuecontrol
-     * @see \ref lsb_readjobinfo
-     * @see \ref lsb_submit
-     * @see \ref lsb_suspreason
+     * #see \ref lsb_hostcontrol
+     * #see \ref lsb_movejob
+     * #see \ref lsb_pendreason
+     * #see \ref lsb_puteventrec
+     * #see \ref lsb_queuecontrol
+     * #see \ref lsb_readjobinfo
+     * #see \ref lsb_submit
+     * #see \ref lsb_suspreason
      */
     public static native eventRec.ByReference lsb_geteventrec(Pointer log_fp, IntByReference lineNum);
 
@@ -18418,7 +18418,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * @param hostName hostName is a string containing a host name. Only shared resource
      * available on the specified host will be returned. If hostName is a null,
      * shared resource available on all hosts will be returned.
-     * @see \ref ls_sharedresourceinfo
+     * #see \ref ls_sharedresourceinfo
      */
     public static native Pointer lsb_sharedresourceinfo(Pointer resources, IntByReference numResources, String hostName, int options);
 
@@ -18716,7 +18716,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *  \n $JOB_ATTA_DIR
      *  \n $LSB_SHAREDIR/info
      *
-     * @see \ref lsb_readjobmsg
+     * #see \ref lsb_readjobmsg
      *
      */
 
@@ -18785,7 +18785,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *  $LSB_CONFDIR/cluster_name/configdir/lsb.params
      *  \n $JOB_ATTA_DIR
      *  \n $LSB_SHAREDIR/info
-     * @see \ref lsb_postjobmsg
+     * #see \ref lsb_postjobmsg
      */
 
     public static native int lsb_readjobmsg(jobExternalMsgReq jobExternalMsg, jobExternalMsgReply jobExternalMsgReply);
@@ -18836,9 +18836,9 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * \ref reservation_option
-     * @see \ref lsb_removereservation
-     * @see \ref lsb_modreservation
-     * @see \ref lsb_reservationinfo
+     * #see \ref lsb_removereservation
+     * #see \ref lsb_modreservation
+     * #see \ref lsb_reservationinfo
      */
     public static native int lsb_addreservation(addRsvRequest request, String rsvId);
 
@@ -18876,9 +18876,9 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_addreservation
-     * @see \ref lsb_modreservation
-     * @see \ref lsb_reservationinfo
+     * #see \ref lsb_addreservation
+     * #see \ref lsb_modreservation
+     * #see \ref lsb_reservationinfo
      */
     public static native int lsb_removereservation(String rsvId);
 
@@ -18931,9 +18931,9 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         none
      * @param rsvId Reservation ID of the requested reservation.
      * @param numEnts Number of reservation entries that mbatchd returns.
-     * @see \ref lsb_addreservation
-     * @see \ref lsb_modreservation
-     * @see \ref lsb_removereservation
+     * #see \ref lsb_addreservation
+     * #see \ref lsb_modreservation
+     * #see \ref lsb_removereservation
      */
 
     public static native rsvInfoEnt.ByReference lsb_reservationinfo(String rsvId, IntByReference numEnts, int options);
@@ -18981,9 +18981,9 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_addreservation
-     * @see \ref lsb_removereservation
-     * @see \ref lsb_reservationinfo
+     * #see \ref lsb_addreservation
+     * #see \ref lsb_removereservation
+     * #see \ref lsb_reservationinfo
      */
 
     public static native int lsb_modreservation(modRsvRequest request);
@@ -19291,11 +19291,11 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_closestream
-     * @see \ref lsb_readstreamline
-     * @see \ref lsb_writestream
-     * @see \ref lsb_readstream
-     * @see \ref lsb_streamversion
+     * #see \ref lsb_closestream
+     * #see \ref lsb_readstreamline
+     * #see \ref lsb_writestream
+     * #see \ref lsb_readstream
+     * #see \ref lsb_streamversion
      */
     // NOTE: Not in libbat
     //public static native int lsb_openstream(lsbStream params);
@@ -19335,11 +19335,11 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_openstream
-     * @see \ref lsb_readstreamline
-     * @see \ref lsb_writestream
-     * @see \ref lsb_readstream
-     * @see \ref lsb_streamversion
+     * #see \ref lsb_openstream
+     * #see \ref lsb_readstreamline
+     * #see \ref lsb_writestream
+     * #see \ref lsb_readstream
+     * #see \ref lsb_streamversion
      */
     // NOTE: Not in libbat
     //public static native int lsb_closestream(String config);
@@ -19379,13 +19379,13 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         <b>Files:</b>
      *         \par
      *         $LSB_CONFDIR/cluster_name/configdir/lsb.params
-     * @see \ref lsb_closestream
-     * @see \ref lsb_geteventrec
-     * @see \ref lsb_openstream
-     * @see \ref lsb_puteventrec
-     * @see \ref lsb_readstreamline
-     * @see \ref lsb_writestream
-     * @see \ref lsb_readstream
+     * #see \ref lsb_closestream
+     * #see \ref lsb_geteventrec
+     * #see \ref lsb_openstream
+     * #see \ref lsb_puteventrec
+     * #see \ref lsb_readstreamline
+     * #see \ref lsb_writestream
+     * #see \ref lsb_readstream
      */
     // NOTE: Not in libbat
     //public static native String lsb_streamversion();
@@ -19488,13 +19488,13 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \n \ref defs_lsb_XF_OP
      * \n \ref jobgroup_controltypes
      * \n \ref signal_action
-     * @see \ref lsb_closestream
-     * @see \ref lsb_geteventrec
-     * @see \ref lsb_openstream
-     * @see \ref lsb_puteventrec
-     * @see \ref lsb_readstreamline
-     * @see \ref lsb_streamversion
-     * @see \ref lsb_readstream
+     * #see \ref lsb_closestream
+     * #see \ref lsb_geteventrec
+     * #see \ref lsb_openstream
+     * #see \ref lsb_puteventrec
+     * #see \ref lsb_readstreamline
+     * #see \ref lsb_streamversion
+     * #see \ref lsb_readstream
      */
     // NOTE: Not in libbat
     //public static native int lsb_writestream(eventRec logPtr);
@@ -19532,13 +19532,13 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_closestream
-     * @see \ref lsb_geteventrec
-     * @see \ref lsb_openstream
-     * @see \ref lsb_puteventrec
-     * @see \ref lsb_readstreamline
-     * @see \ref lsb_streamversion
-     * @see \ref lsb_writestream
+     * #see \ref lsb_closestream
+     * #see \ref lsb_geteventrec
+     * #see \ref lsb_openstream
+     * #see \ref lsb_puteventrec
+     * #see \ref lsb_readstreamline
+     * #see \ref lsb_streamversion
+     * #see \ref lsb_writestream
      */
     // NOTE: Not in libbat
     //public static native eventRec.ByReference lsb_readstream(IntByReference nline);
@@ -19578,13 +19578,13 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * none
-     * @see \ref lsb_closestream
-     * @see \ref lsb_geteventrec
-     * @see \ref lsb_openstream
-     * @see \ref lsb_puteventrec
-     * @see \ref lsb_readstream
-     * @see \ref lsb_streamversion
-     * @see \ref lsb_writestream
+     * #see \ref lsb_closestream
+     * #see \ref lsb_geteventrec
+     * #see \ref lsb_openstream
+     * #see \ref lsb_puteventrec
+     * #see \ref lsb_readstream
+     * #see \ref lsb_streamversion
+     * #see \ref lsb_writestream
      */
     // NOTE: Not in libbat
     //public static native eventRec.ByReference lsb_readstreamline(String line);
@@ -19912,7 +19912,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      *         <b>Files:</b>
      *         \par
      *         none
-     * @see \ref lsb_resize_release
+     * #see \ref lsb_resize_release
      */
 
     public static native int lsb_resize_cancel(long jobId);
@@ -19958,7 +19958,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * <b>Define Statements:</b>
      * \par
      * \ref resizablejob_related
-     * @see \ref lsb_resize_cancel
+     * #see \ref lsb_resize_cancel
      */
     public static native int lsb_resize_release(job_resize_release req);
 

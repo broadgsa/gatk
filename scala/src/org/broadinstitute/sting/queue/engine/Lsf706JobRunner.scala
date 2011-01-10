@@ -63,14 +63,14 @@ class Lsf706JobRunner(function: CommandLineFunction) extends LsfJobRunner(functi
         request.options |= LibBat.SUB_JOB_NAME
       }
 
-      exec = writeExec()
+      writeExec()
       request.command = "sh " + exec
 
-      preExec = writePreExec()
+      writePreExec()
       request.preExecCmd = "sh " + preExec
       request.options |= LibBat.SUB_PRE_EXEC
 
-      postExec = writePostExec()
+      writePostExec()
       request.postExecCmd = "sh " + postExec
       request.options3 |= LibBat.SUB3_POST_EXEC
 

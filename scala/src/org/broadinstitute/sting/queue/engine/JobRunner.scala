@@ -28,19 +28,25 @@ trait JobRunner[TFunction <: QFunction] {
    */
   def function: TFunction
 
-  protected def writeDone() = {
+  /**
+   * Writes the basic function description to the job done file.
+   */
+  protected def writeDone() {
     val content = "%s%nDone.".format(function.description)
     IOUtils.writeContents(function.jobOutputFile, content)
   }
 
-  protected def writeError(content: String) = {
+  /**
+   * Writes the contents of the error to the error file.
+   */
+  protected def writeError(content: String) {
     IOUtils.writeContents(functionErrorFile, content)
   }
 
   /**
    * Writes the stack trace to the error file.
    */
-  protected def writeStackTrace(e: Throwable) = {
+  protected def writeStackTrace(e: Throwable) {
     val stackTrace = new StringWriter
     val printWriter = new PrintWriter(stackTrace)
     printWriter.println(function.description)
@@ -53,12 +59,16 @@ trait JobRunner[TFunction <: QFunction] {
    * Calls back to a hook that an expert user can setup to modify a job.
    * @param value Value to modify.
    */
-  protected def updateJobRun(value: Any) = {
+  protected def updateJobRun(value: Any) {
     val updater = function.updateJobRun
     if (updater != null)
       if (updater.isDefinedAt(value))
         updater(value)
   }
 
-  private def functionErrorFile = if (function.jobErrorFile != null) function.jobErrorFile else function.jobOutputFile
+  /**
+   * Returns the path to the file to use for logging errors.
+   * @return the path to the file to use for logging errors.
+   */
+  protected def functionErrorFile = if (function.jobErrorFile != null) function.jobErrorFile else function.jobOutputFile
 }

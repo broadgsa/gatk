@@ -49,10 +49,18 @@ object IOUtils extends Logging {
   def writeContents(file: File, content: String) =  FileUtils.writeStringToFile(file, content)
 
   /**
+   * Reads content of a file into a string.
+   * Only for use on really small files!
+   * @param file File to read to.
+   * @return content Content of the file.
+   */
+  def readContents(file: File) = FileUtils.readFileToString(file)
+
+  /**
    * Writes content to a temp file and returns the path to the temporary file.
    * @param content to write.
    * @param prefix Prefix for the temp file.
-   * @parm suffix Suffix for the temp file.
+   * @param suffix Suffix for the temp file.
    * @param directory Directory for the temp file.
    * @return the path to the temp file.
    */

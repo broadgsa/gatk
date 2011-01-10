@@ -6,7 +6,7 @@ import java.io.File
  * Base utility class for a command line job.
  */
 abstract class CommandLineJob {
-  var command: String = _
+  var shellScript: File = _
   var workingDir: File = _
   var inputFile: File = _
   var outputFile: File = _
