@@ -199,6 +199,9 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
     }
 
     public boolean genotypesArePhasedAboveThreshold(Genotype gt) {
+        if (gt.isHom()) // Can always consider a hom site to be phased to its predecessor, since its successor will only be phased to it if it's hom or "truly" phased
+            return true;
+
         if (!gt.isPhased())
             return false;
 
