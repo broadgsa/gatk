@@ -70,6 +70,11 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
     @BeforeMethod
     public void setUp() {
         String fileName = testDir + "TabularDataTest.dat";
+
+        // check to see if we have an index, if so, delete it
+        File indexFileName = new File(testDir + "TabularDataTest.dat.idx");
+        if (indexFileName.exists()) indexFileName.delete();  
+
         triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE);
         builder = new RMDTrackBuilder(Collections.singletonList(triplet),seq.getSequenceDictionary(),genomeLocParser,null);
     }
