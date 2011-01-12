@@ -98,6 +98,27 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
     }
 
     /**
+     * Return the number of bps before loc in the sorted set
+     *
+     * @param loc the location before which we are counting bases
+     * @return
+     */
+    public long sizeBeforeLoc(GenomeLoc loc) {
+        long s = 0;
+
+        for ( GenomeLoc e : this ) {
+            if ( e.isBefore(loc) )
+                s += e.size();
+            else if ( e.isPast(loc) )
+                ; // don't do anything
+            else // loc is inside of s
+                s += loc.getStart() - e.getStart();
+        }
+
+        return s;
+    }
+
+    /**
      * determine if the collection is empty
      *
      * @return true if we have no elements

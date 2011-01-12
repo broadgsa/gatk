@@ -213,7 +213,38 @@ public class GenomeLocSortedSetUnitTest extends BaseTest {
         assertEquals(genomeLocParser.createGenomeLoc(contigOneName, 19, 20), p4);
     }
 
-    
+    private void testSizeBeforeLocX(int pos, int size) {
+        GenomeLoc test = genomeLocParser.createGenomeLoc(contigOneName, pos, pos);
+        assertEquals(mSortedSet.sizeBeforeLoc(test), size, String.format("X pos=%d size=%d", pos, size));
+    }
+
+    @Test
+    public void testSizeBeforeLoc() {
+        GenomeLoc r1 = genomeLocParser.createGenomeLoc(contigOneName, 3, 5);
+        GenomeLoc r2 = genomeLocParser.createGenomeLoc(contigOneName, 10, 12);
+        GenomeLoc r3 = genomeLocParser.createGenomeLoc(contigOneName, 16, 18);
+        mSortedSet.addAll(Arrays.asList(r1,r2,r3));
+
+        testSizeBeforeLocX(2, 0);
+        testSizeBeforeLocX(3, 0);
+        testSizeBeforeLocX(4, 1);
+        testSizeBeforeLocX(5, 2);
+        testSizeBeforeLocX(6, 3);
+
+        testSizeBeforeLocX(10, 3);
+        testSizeBeforeLocX(11, 4);
+        testSizeBeforeLocX(12, 5);
+        testSizeBeforeLocX(13, 6);
+        testSizeBeforeLocX(15, 6);
+
+        testSizeBeforeLocX(16, 6);
+        testSizeBeforeLocX(17, 7);
+        testSizeBeforeLocX(18, 8);
+        testSizeBeforeLocX(19, 9);
+        testSizeBeforeLocX(50, 9);
+        testSizeBeforeLocX(50, (int)mSortedSet.coveredSize());
+    }
+
 
     @Test
     public void fromSequenceDictionary() {

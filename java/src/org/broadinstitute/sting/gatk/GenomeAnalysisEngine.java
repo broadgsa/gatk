@@ -193,6 +193,10 @@ public class GenomeAnalysisEngine {
         // Prepare the data for traversal.
         initializeDataSources();
 
+        // initialize and validate the interval list
+        initializeIntervals();
+        validateSuppliedIntervals();
+
         // our microscheduler, which is in charge of running everything
         MicroScheduler microScheduler = createMicroscheduler();
 
@@ -201,10 +205,6 @@ public class GenomeAnalysisEngine {
 
         // create the output streams                     "
         initializeOutputStreams(microScheduler.getOutputTracker());
-
-        // initialize and validate the interval list                
-        initializeIntervals();
-        validateSuppliedIntervals();
 
         ShardStrategy shardStrategy = getShardStrategy(microScheduler.getReference());
 
