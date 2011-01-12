@@ -57,7 +57,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( !vc.isBiallelic() || !vc.isSNP() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
+        if ( !vc.isBiallelic() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
             return null;
         
         final AlignmentContext context = StratifiedAlignmentContext.joinContexts(stratifiedContexts.values());
@@ -68,7 +68,16 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         final int locus = ref.getLocus().getStart() + (ref.getLocus().getStop() - ref.getLocus().getStart()) / 2;
 
         // Compute all haplotypes consistent with the current read pileup
-        final List<Haplotype> haplotypes = computeHaplotypes(context.getBasePileup(), contextSize, locus);
+        ReadBackedPileup pileup = null;
+        if (context.hasExtendedEventPileup())
+            pileup = context.getExtendedEventPileup();
+        else if (context.hasBasePileup())
+            pileup = context.getBasePileup();
+
+        if (pileup == null)
+            return null;
+        
+        final List<Haplotype> haplotypes = computeHaplotypes(pileup, contextSize, locus);
 
 	    final MathUtils.RunningAverage scoreRA = new MathUtils.RunningAverage();
         if (haplotypes != null) {
@@ -76,8 +85,19 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             for ( final Map.Entry<String, Genotype> genotype : genotypes ) {
                 final StratifiedAlignmentContext thisContext = stratifiedContexts.get(genotype.getKey());
                 if ( thisContext != null ) {
-                    double thisScore = scoreReadsAgainstHaplotypes(haplotypes, thisContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), contextSize, locus);
-                    scoreRA.add(thisScore); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
+                    final AlignmentContext aContext = thisContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+                    final ReadBackedPileup thisPileup;
+                    if (aContext.hasExtendedEventPileup())
+                        thisPileup = aContext.getExtendedEventPileup();
+                    else if (aContext.hasBasePileup())
+                        thisPileup = aContext.getBasePileup();
+                    else
+                        thisPileup = null;
+
+                    if (thisPileup != null) {
+                        double thisScore = scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus);
+                        scoreRA.add(thisScore); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
+                    }
                 }
             }
         }
