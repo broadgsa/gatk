@@ -536,8 +536,11 @@ class UnmatchedArgumentException extends ArgumentException {
     private static String formatArguments( ArgumentMatch invalidValues ) {
         StringBuilder sb = new StringBuilder();
         for( int index: invalidValues.indices.keySet() )
-            for( String value: invalidValues.indices.get(index) )
+            for( String value: invalidValues.indices.get(index) ) {
                 sb.append( String.format("%nInvalid argument value '%s' at position %d.", value, index) );
+                if(value != null && Utils.dupString(' ',value.length()).equals(value))
+                    sb.append("  Please make sure any line continuation backslashes on your command line are not followed by whitespace.");
+            }
         return sb.toString();
     }
 }
