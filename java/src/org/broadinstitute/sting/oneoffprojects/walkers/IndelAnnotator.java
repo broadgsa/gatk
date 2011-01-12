@@ -38,8 +38,11 @@ public class IndelAnnotator extends RodWalker<Integer,Long> {
                                                           getToolkit().getArguments().unsafe);
             RMDTrack refseq = builder.createInstanceOfTrack(RefSeqCodec.class,new File(RefseqFileName));
 
-            refseqIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
-                    getToolkit().getGenomeLocParser(),refseq.getIterator());
+            refseqIterator = new SeekableRODIterator(refseq.getHeader(),
+                                                     refseq.getSequenceDictionary(),
+                                                     getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                     getToolkit().getGenomeLocParser(),
+                                                     refseq.getIterator());
 
             logger.info("Using RefSeq annotations from " + RefseqFileName);
         }

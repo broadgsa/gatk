@@ -23,6 +23,7 @@
 
 package org.broadinstitute.sting.gatk.refdata.utils;
 
+import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.Comparator;
@@ -55,6 +56,25 @@ public class FlashBackIterator implements LocationAwareSeekableRODIterator {
     public FlashBackIterator(LocationAwareSeekableRODIterator iterator) {
         this.iterator = iterator;
     }
+
+    /**
+     * Gets the header associated with the backing input stream.
+     * @return the ROD header.
+     */
+    @Override
+    public Object getHeader() {
+        return iterator.getHeader();
+    }
+
+    /**
+     * Gets the sequence dictionary associated with the backing input stream.
+     * @return sequence dictionary from the ROD header.
+     */
+    @Override
+    public SAMSequenceDictionary getSequenceDictionary() {
+        return iterator.getSequenceDictionary();
+    }
+
 
     /**
      * peek at the next location

@@ -202,10 +202,8 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
         this.addNewResource(iterator);
 
         // Pull the proper header and sequence dictionary from the prepopulated track.
-        //this.header = iterator.getHeader();
-        //this.sequenceDictionary = iterator.getSequenceDictionary();
-        this.header = null;
-        this.sequenceDictionary = null;
+        this.header = iterator.getHeader();
+        this.sequenceDictionary = iterator.getSequenceDictionary();
     }
 
     /**
@@ -232,7 +230,8 @@ class ReferenceOrderedDataPool extends ResourcePool<LocationAwareSeekableRODIter
     public LocationAwareSeekableRODIterator createNewResource() {
         if(numIterators() > 0)
             throw new ReviewedStingException("BUG: Tried to create multiple iterators over streaming ROD interface");
-        LocationAwareSeekableRODIterator iter = new SeekableRODIterator(referenceSequenceDictionary,genomeLocParser,builder.createInstanceOfTrack(fileDescriptor).getIterator());
+        RMDTrack track = builder.createInstanceOfTrack(fileDescriptor);
+        LocationAwareSeekableRODIterator iter = new SeekableRODIterator(track.getHeader(),track.getSequenceDictionary(),referenceSequenceDictionary,genomeLocParser,track.getIterator());
         return (flashbackData) ? new FlashBackIterator(iter) : iter;
     }
 
@@ -344,9 +343,9 @@ class ReferenceOrderedQueryDataPool extends ResourcePool<RMDTrack,LocationAwareS
         try {
             if (position instanceof MappedStreamSegment) {
                 GenomeLoc pos = ((MappedStreamSegment) position).locus;
-                return new SeekableRODIterator(referenceSequenceDictionary,genomeLocParser,track.query(pos));
+                return new SeekableRODIterator(header,sequenceDictionary,referenceSequenceDictionary,genomeLocParser,track.query(pos));
             } else {
-                return new SeekableRODIterator(referenceSequenceDictionary,genomeLocParser,track.getIterator());
+                return new SeekableRODIterator(header,sequenceDictionary,referenceSequenceDictionary,genomeLocParser,track.getIterator());
             }
         } catch (IOException e) {
             throw new ReviewedStingException("Unable to create iterator for rod named " + fileDescriptor.getName(),e);

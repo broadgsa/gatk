@@ -40,9 +40,16 @@ import java.util.List;
  */
 public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
     /**
+     * Header for the datasource backing this iterator.
+     */
+    private final Object header;
+
+    /**
      * The parser, used to construct new genome locs.
      */
     private final GenomeLocParser parser;
+
+    private final SAMSequenceDictionary sequenceDictionary;
 
     private PushbackIterator<GATKFeature> it;
     List<GATKFeature> records = null;  // here we will keep a pile of records overlaping with current position; when we iterate
@@ -86,8 +93,10 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
     // This implementation tracks the query history and makes next() illegal after a seekforward query of length > 1,
     // but re-enables next() again after a length-1 query.
 
-    public SeekableRODIterator(SAMSequenceDictionary dictionary,GenomeLocParser parser,CloseableIterator<GATKFeature> it) {
+    public SeekableRODIterator(Object header,SAMSequenceDictionary rodDictionary,SAMSequenceDictionary referenceDictionary,GenomeLocParser parser,CloseableIterator<GATKFeature> it) {
+        this.header = header;
         this.parser = parser;
+        this.sequenceDictionary = rodDictionary;
         this.it = new PushbackIterator<GATKFeature>(it);
         records = new LinkedList<GATKFeature>();
         // the following is a trick: we would like the iterator to know the actual name assigned to
@@ -99,8 +108,27 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
         if (this.it.hasNext()) r = this.it.element();
         name = (r==null?null:r.getName());
 
-        curr_contig = dictionary.getSequence(0).getSequenceName();
+        curr_contig = referenceDictionary.getSequence(0).getSequenceName();
     }
+
+    /**
+     * Gets the header associated with the backing input stream.
+     * @return the ROD header.
+     */
+    @Override
+    public Object getHeader() {
+        return header;
+    }
+
+    /**
+     * Gets the sequence dictionary associated with the backing input stream.
+     * @return sequence dictionary from the ROD header.
+     */
+    @Override
+    public SAMSequenceDictionary getSequenceDictionary() {
+        return sequenceDictionary;
+    }
+
 
     /**
      * Returns true if the data we iterate over has records associated with (any, not necessarily adjacent)

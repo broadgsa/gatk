@@ -252,7 +252,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                                                           getToolkit().getArguments().unsafe);
             RMDTrack refseq = builder.createInstanceOfTrack(RefSeqCodec.class,new File(RefseqFileName));
 
-            refseqIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+            refseqIterator = new SeekableRODIterator(refseq.getHeader(),
+                                                     refseq.getSequenceDictionary(),
+                                                     getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                                                      getToolkit().getGenomeLocParser(),
                                                      refseq.getIterator());
 		}

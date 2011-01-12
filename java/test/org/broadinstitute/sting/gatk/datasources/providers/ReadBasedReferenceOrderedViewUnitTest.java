@@ -25,6 +25,7 @@ package org.broadinstitute.sting.gatk.datasources.providers;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceDictionary;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
@@ -108,6 +109,25 @@ class FakePeekingRODIterator implements LocationAwareSeekableRODIterator {
         this.name = name;
         this.location = genomeLocParser.createGenomeLoc(startingLoc.getContig(), startingLoc.getStart() + 1, startingLoc.getStop() + 1);
     }
+
+    /**
+     * Gets the header associated with the backing input stream.
+     * @return the ROD header.
+     */
+    @Override
+    public Object getHeader() {
+        return null;
+    }
+
+    /**
+     * Gets the sequence dictionary associated with the backing input stream.
+     * @return sequence dictionary from the ROD header.
+     */
+    @Override
+    public SAMSequenceDictionary getSequenceDictionary() {
+        return null;
+    }
+
 
     @Override
     public GenomeLoc peekNextLocation() {

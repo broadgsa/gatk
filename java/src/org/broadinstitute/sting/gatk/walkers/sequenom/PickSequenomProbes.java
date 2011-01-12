@@ -32,6 +32,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
@@ -87,9 +88,13 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             ReferenceOrderedData snp_mask;
             if ( SNP_MASK.contains(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME)) {
                 RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser(),getToolkit().getArguments().unsafe);
-                CloseableIterator<GATKFeature> iter = builder.createInstanceOfTrack(DbSNPCodec.class,new java.io.File(SNP_MASK)).getIterator();
-                snpMaskIterator = new SeekableRODIterator(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser(),iter);
-                
+                RMDTrack track = builder.createInstanceOfTrack(DbSNPCodec.class,new java.io.File(SNP_MASK));
+                snpMaskIterator = new SeekableRODIterator(track.getHeader(),
+                                                          track.getSequenceDictionary(),
+                                                          getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
+                                                          getToolkit().getGenomeLocParser(),
+                                                          track.getIterator());
+
             } else {
                 // TODO: fix me when Plink is back
                 throw new IllegalArgumentException("We currently do not support other snp_mask tracks (like Plink)");

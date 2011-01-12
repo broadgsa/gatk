@@ -26,7 +26,9 @@
 package org.broadinstitute.sting.gatk.arguments;
 
 import net.sf.samtools.SAMFileReader;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
+import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.commandline.Argument;
@@ -210,6 +212,11 @@ public class GATKArgumentCollection {
     @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
     public List<String> readGroupBlackList = null;
 
+    @Element(required=false)
+    @Argument(fullName="rod_input_type",shortName="rit",doc="Indicates whether to use a file approach or a streaming approach to loading ROD data",required=false)
+    @Hidden
+    public RMDTriplet.RMDStorageType rodInputType = null;
+
     /**
      * marshal the data out to a object
      *
@@ -369,6 +376,9 @@ public class GATKArgumentCollection {
 
         if ((other.performanceLog == null && this.performanceLog != null) ||
                 (other.performanceLog != null && !other.performanceLog.equals(this.performanceLog)))
+            return false;
+
+        if(rodInputType != other.rodInputType)
             return false;
 
         return true;

@@ -243,7 +243,14 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         for (String fileName: argCollection.RODBindings) {
             List<String> parameters = parser.getTags(fileName);
             fileName = expandFileName(fileName);
-            RMDStorageType storageType = fileName.toLowerCase().endsWith("stdin") ? RMDStorageType.STREAM : RMDStorageType.FILE;
+
+            RMDStorageType storageType = null;
+            if(argCollection.rodInputType != null)
+                storageType = argCollection.rodInputType;
+            else if(fileName.toLowerCase().endsWith("stdin"))
+                storageType = RMDStorageType.STREAM;
+            else
+                storageType = RMDStorageType.FILE;
 
             if(parameters.size() != 2)
                 throw new UserException("Invalid syntax for -B (reference-ordered data) input flag.  " +
