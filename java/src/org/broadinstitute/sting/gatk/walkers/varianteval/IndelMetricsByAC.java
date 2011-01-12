@@ -3,7 +3,6 @@ package org.broadinstitute.sting.gatk.walkers.varianteval;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.report.tags.Analysis;
 import org.broadinstitute.sting.utils.report.tags.DataPoint;
@@ -43,10 +42,10 @@ import java.util.ArrayList;
  */
 
 @Analysis(name = "Indel Metrics by allele count", description = "Shows various stats binned by allele count")
-public class IndelMetricsByAC extends VariantEvaluator implements StandardEval {
+public class IndelMetricsByAC extends VariantEvaluator {
     // a mapping from quality score histogram bin to Ti/Tv ratio
     @DataPoint(name="Indel Metrics by AC", description = "Indel Metrics by allele count")
-    MetricsByAc metrics = null;
+    IndelMetricsByAc metrics = null;
 
     //@DataPoint(name="Quality by Allele Count", description = "average variant quality for each allele count")
     //AlleleCountStats alleleCountStats = null;
@@ -74,11 +73,11 @@ public class IndelMetricsByAC extends VariantEvaluator implements StandardEval {
             METRIC_COLUMNS[k] = "indel_size_len"+Integer.valueOf(index2len(k));
     }
 
-    class MetricsAtAC {
+    class IndelMetricsAtAC {
         public int ac = -1, nIns =0, nDel = 0, nComplex = 0, nLong;
         public int sizeCount[] = new int[2*INDEL_SIZE_LIMIT+1];
 
-        public MetricsAtAC(int ac) { this.ac = ac; }
+        public IndelMetricsAtAC(int ac) { this.ac = ac; }
 
         public void update(VariantContext eval) {
             int eventLength = 0;
@@ -120,15 +119,15 @@ public class IndelMetricsByAC extends VariantEvaluator implements StandardEval {
         }
     }
 
-    class MetricsByAc implements TableType {
-        ArrayList<MetricsAtAC> metrics = new ArrayList<MetricsAtAC>();
+    class IndelMetricsByAc implements TableType {
+        ArrayList<IndelMetricsAtAC> metrics = new ArrayList<IndelMetricsAtAC>();
         Object[] rows = null;
 
-        public MetricsByAc( int nchromosomes ) {
+        public IndelMetricsByAc( int nchromosomes ) {
             rows = new Object[nchromosomes+1];
-            metrics = new ArrayList<MetricsAtAC>(nchromosomes+1);
+            metrics = new ArrayList<IndelMetricsAtAC>(nchromosomes+1);
             for ( int i = 0; i < nchromosomes + 1; i++ ) {
-                metrics.add(new MetricsAtAC(i));
+                metrics.add(new IndelMetricsAtAC(i));
                 rows[i] = "ac" + i;
             }
         }
@@ -142,7 +141,7 @@ public class IndelMetricsByAC extends VariantEvaluator implements StandardEval {
         }
 
         public String getName() {
-            return "MetricsByAc";
+            return "IndelMetricsByAc";
         }
 
         //
@@ -197,7 +196,7 @@ public class IndelMetricsByAC extends VariantEvaluator implements StandardEval {
             if ( metrics == null ) {
                 int nSamples = this.getVEWalker().getNSamplesForEval(eval);
                 if ( nSamples != -1 )
-                    metrics = new MetricsByAc(2 * nSamples);
+                    metrics = new IndelMetricsByAc(2 * nSamples);
             }
 
             if ( eval.isIndel() && eval.isBiallelic() &&
