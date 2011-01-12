@@ -299,6 +299,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object parse(ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches) {
         if (source.isFlag())
             return true;
+
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
         Object result;
@@ -308,6 +309,8 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         try {
             if (type.isPrimitive()) {
                 Method valueOf = primitiveToWrapperMap.get(type).getMethod("valueOf",String.class);
+                if(value == null)
+                    throw new MissingArgumentValueException(createDefaultArgumentDefinition(source));
                 result = valueOf.invoke(null,value.trim());
             } else if (type.isEnum()) {
                 Object[] vals = type.getEnumConstants();

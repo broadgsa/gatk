@@ -125,6 +125,20 @@ public class ParsingEngineUnitTest extends BaseTest {
         Assert.assertEquals(argProvider.foo, 5, "Argument is not correctly initialized");
     }
 
+    @Test(expectedExceptions=MissingArgumentValueException.class)
+    public void primitiveArgumentNoValueTest() {
+        final String[] commandLine = new String[] {"--foo"};
+
+        parsingEngine.addArgumentSource( PrimitiveArgProvider.class );
+        parsingEngine.parse( commandLine );
+        parsingEngine.validate();
+
+        PrimitiveArgProvider argProvider = new PrimitiveArgProvider();
+        parsingEngine.loadArgumentsIntoObject( argProvider );
+
+        Assert.assertEquals(argProvider.foo, 5, "Argument is not correctly initialized");
+    }
+
     private class PrimitiveArgProvider {
         @Argument(doc="simple integer")
         int foo;
