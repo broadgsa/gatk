@@ -658,7 +658,7 @@ public class GenomeAnalysisEngine {
         BAQ.DEFAULT_GOP = argCollection.BAQGOP;
 
         validateSuppliedReference();
-        referenceDataSource = openReferenceSequenceFile(argCollection.referenceFile);
+        setReferenceDataSource(argCollection.referenceFile);
 
         validateSuppliedReads();
         readsDataSource = createReadsDataSource(genomeLocParser, referenceDataSource.getReference());
@@ -852,15 +852,14 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Opens a reference sequence file paired with an index.
+     * Opens a reference sequence file paired with an index.  Only public for testing purposes
      *
      * @param refFile Handle to a reference sequence file.  Non-null.
      * @return A thread-safe file wrapper.
      */
-    private ReferenceDataSource openReferenceSequenceFile(File refFile) {
-        ReferenceDataSource ref = new ReferenceDataSource(refFile);
-        genomeLocParser = new GenomeLocParser(ref.getReference());
-        return ref;
+    public void setReferenceDataSource(File refFile) {
+        this.referenceDataSource = new ReferenceDataSource(refFile);
+        genomeLocParser = new GenomeLocParser(referenceDataSource.getReference());
     }
 
     /**

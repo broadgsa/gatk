@@ -37,6 +37,7 @@ import org.testng.annotations.BeforeMethod;
 
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -55,6 +56,8 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
     private SAMFileHeader header;
     private GenomeLocParser genomeLocParser;
     private GenomeAnalysisEngine engine;
+    private File refFile = new File(validationDataLocation + "Homo_sapiens_assembly17.fasta");
+
 
     @BeforeMethod
     public void doBefore() {
@@ -62,6 +65,7 @@ public class TraverseDuplicatesUnitTest extends BaseTest {
         genomeLocParser =new GenomeLocParser(header.getSequenceDictionary());
 
         engine = new GenomeAnalysisEngine();
+        engine.setReferenceDataSource(refFile);
         engine.setGenomeLocParser(genomeLocParser);
         
         obj.initialize(engine);

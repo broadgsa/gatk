@@ -84,6 +84,7 @@ public class TraverseReadsUnitTest extends BaseTest {
         genomeLocParser = new GenomeLocParser(ref);
 
         engine = new GenomeAnalysisEngine();
+        engine.setReferenceDataSource(refFile);
         engine.setGenomeLocParser(genomeLocParser);
     }
 
