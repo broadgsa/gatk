@@ -292,6 +292,9 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         if (loc.getStart() <= HAPLOTYPE_SIZE)
             return null;
 
+        // check if there is enough reference window to create haplotypes (can be an issue at end of contigs)
+        if (ref.getWindow().getStop() <= loc.getStop()+HAPLOTYPE_SIZE)
+            return null;
         if ( !(priors instanceof DiploidIndelGenotypePriors) )
             throw new StingException("Only diploid-based Indel priors are supported in the DINDEL GL model");
 
