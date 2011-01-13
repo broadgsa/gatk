@@ -548,17 +548,6 @@ public class AlignmentUtils {
 
             switch( ce.getOperator() ) {
             case I:                
-                if( alignPos > 0 ) {
-                    if(alignment[alignPos-1] == (byte) 'A') {
-                        alignment[alignPos-1] = PileupElement.INSERTION_BASE_A;
-                    } else if(alignment[alignPos-1] == (byte) 'C') {
-                        alignment[alignPos-1] = PileupElement.INSERTION_BASE_C;
-                    } else if(alignment[alignPos-1] == (byte) 'T') {
-                        alignment[alignPos-1] = PileupElement.INSERTION_BASE_T;
-                    } else if(alignment[alignPos-1] == (byte) 'G') {
-                        alignment[alignPos-1] = PileupElement.INSERTION_BASE_G;
-                    }
-                }
             case S:
                 for ( int jjj = 0; jjj < elementLength; jjj++ ) {
                     readPos++;

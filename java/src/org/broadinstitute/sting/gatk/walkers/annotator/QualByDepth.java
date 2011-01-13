@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Arrays;
 
 
-public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
+public class QualByDepth extends AnnotationByDepth implements InfoFieldAnnotation, StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
@@ -55,13 +55,18 @@ public class QualByDepth implements InfoFieldAnnotation, StandardAnnotation {
         if ( qual == 0.0 )
             qual = 10.0 * vc.getNegLog10PError();
 
-        double QbyD = qual / (double)depth;
+        double sumGLbyD = qual / (double)depth;
+
+        int qDepth = annotationByVariantDepth(genotypes, stratifiedContexts);
+        double QD = 10.0 * vc.getNegLog10PError() / (double)qDepth;
+
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.2f", QbyD));
+        map.put(getKeyNames().get(0), String.format("%.2f", QD));
+        map.put(getKeyNames().get(1), String.format("%.2f", sumGLbyD));
         return map;
     }
 
-    public List<String> getKeyNames() { return Arrays.asList("QD"); }
+    public List<String> getKeyNames() { return Arrays.asList("QD", "sumGLbyD"); }
 
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Float, "Variant Confidence/Quality by Depth")); }
 

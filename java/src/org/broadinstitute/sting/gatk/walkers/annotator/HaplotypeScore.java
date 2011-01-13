@@ -46,7 +46,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private final static boolean DEBUG = false;
-    private final static int MIN_CONTEXT_WING_SIZE = 20;
+    private final static int MIN_CONTEXT_WING_SIZE = 10;
     private final static int MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER = 50;
     private final static char REGEXP_WILDCARD = '.';
 

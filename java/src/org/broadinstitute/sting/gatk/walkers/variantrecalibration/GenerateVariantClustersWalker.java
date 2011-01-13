@@ -84,7 +84,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     @Argument(fullName="stdThreshold", shortName="std", doc="If a variant has annotations more than -std standard deviations away from mean then don't use it for clustering.", required=false)
     private double STD_THRESHOLD = 4.5;
     @Argument(fullName="qualThreshold", shortName="qual", doc="If a known variant has raw QUAL value less than -qual then don't use it for clustering.", required=false)
-    private double QUAL_THRESHOLD = 800.0;
+    private double QUAL_THRESHOLD = 100.0;
     @Argument(fullName="shrinkage", shortName="shrinkage", doc="The shrinkage parameter in variational Bayes algorithm.", required=false)
     private double SHRINKAGE = 0.0001;
     @Argument(fullName="dirichlet", shortName="dirichlet", doc="The dirichlet parameter in variational Bayes algoirthm.", required=false)
