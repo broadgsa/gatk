@@ -1,7 +1,3 @@
-package org.broadinstitute.sting.utils;
-
-import java.util.*;
-
 /*
  * Copyright (c) 2010, The Broad Institute
  *
@@ -25,6 +21,9 @@ import java.util.*;
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+package org.broadinstitute.sting.utils;
+
+import java.util.*;
 
 public class DisjointSet {
     private ItemNode[] nodes;

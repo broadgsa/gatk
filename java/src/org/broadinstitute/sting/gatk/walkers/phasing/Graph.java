@@ -1,10 +1,3 @@
-package org.broadinstitute.sting.utils;
-
-import org.broadinstitute.sting.utils.DisjointSet;
-import org.broadinstitute.sting.utils.GraphEdge;
-
-import java.util.*;
-
 /*
  * Copyright (c) 2010, The Broad Institute
  *
@@ -28,6 +21,11 @@ import java.util.*;
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
+package org.broadinstitute.sting.gatk.walkers.phasing;
+
+import org.broadinstitute.sting.utils.DisjointSet;
+
+import java.util.*;
 
 // Represents an undirected graph with no self-edges:
 public class Graph implements Iterable<GraphEdge> {
