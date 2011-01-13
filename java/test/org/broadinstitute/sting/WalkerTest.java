@@ -379,9 +379,4 @@ public class WalkerTest extends BaseTest {
             }
         }
     }
-
-    @Test
-    public void testWalkerUnitTest() {
-        //System.out.println("WalkerTest is just a framework");
-    }
 }
