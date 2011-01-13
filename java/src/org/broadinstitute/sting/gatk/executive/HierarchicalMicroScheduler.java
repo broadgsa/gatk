@@ -31,11 +31,6 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
  */
 public class HierarchicalMicroScheduler extends MicroScheduler implements HierarchicalMicroSchedulerMBean, ReduceTree.TreeReduceNotifier {
     /**
-     * Counts the number of instances of the class that are currently alive.
-     */
-    private static int instanceNumber = 0;
-
-    /**
      * How many outstanding output merges are allowed before the scheduler stops
      * allowing new processes and starts merging flat-out.
      */
@@ -101,23 +96,6 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         if (!( walker instanceof TreeReducible ))
             throw new IllegalArgumentException("The GATK can currently run in parallel only with TreeReducible walkers");
 
-        // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
-        // To get around this limitation and since we have no job identifier at this point, register a simple counter that
-        // will count the number of instances of this object that have been created in this JVM.
-        int thisInstance;
-        synchronized(HierarchicalMicroScheduler.class) {
-            thisInstance = instanceNumber++;
-        }        
-        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-        ObjectName name = null;
-        try {
-            name = new ObjectName("org.broadinstitute.sting.gatk.executive:type=HierarchicalMicroScheduler,instanceNumber="+thisInstance);
-            mbs.registerMBean(this, name);
-        }
-        catch (JMException ex) {
-            throw new ReviewedStingException("Unable to register microscheduler with JMX", ex);
-        }
-
         traversalEngine.startTimers();
         ReduceTree reduceTree = new ReduceTree(this);
         initializeWalker(walker);
@@ -164,14 +142,9 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
             throw new ReviewedStingException("Unable to retrieve result", ex);
         }
 
+        // do final cleanup operations
         outputTracker.close();
-
-        try {
-            mbs.unregisterMBean(name);
-        }
-        catch (JMException ex) {
-            throw new ReviewedStingException("Unable to unregister microscheduler with JMX", ex);
-        }
+        cleanup();
 
         return result;
     }

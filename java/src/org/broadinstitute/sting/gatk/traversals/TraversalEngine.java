@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -115,10 +116,12 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
     // How long can we go without printing some progress info?
     private long lastProgressPrintTime = -1;                       // When was the last time we printed progress log?
-    private final long PROGRESS_PRINT_FREQUENCY = 10 * 1000;        // in seconds
+    private long PROGRESS_PRINT_FREQUENCY = 10 * 1000;             // in seconds
 
     // for performance log
     private static final boolean PERFORMANCE_LOG_ENABLED = true;
+    private final Object performanceLogLock = new Object();
+    private File performanceLogFile;
     private PrintStream performanceLog = null;
     private long lastPerformanceLogPrintTime = -1;                   // When was the last time we printed to the performance log?
     private final long PERFORMANCE_LOG_PRINT_FREQUENCY = PROGRESS_PRINT_FREQUENCY;  // in seconds
@@ -172,12 +175,9 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         this.engine = engine;
 
         if ( PERFORMANCE_LOG_ENABLED && engine.getArguments() != null && engine.getArguments().performanceLog != null ) {
-            try {
-                performanceLog = new PrintStream(new FileOutputStream(engine.getArguments().performanceLog));
-                List<String> pLogHeader = Arrays.asList("elapsed.time", "units.processed", "processing.speed", "bp.processed", "bp.speed", "genome.fraction.complete", "est.total.runtime", "est.time.remaining");
-                performanceLog.println(Utils.join("\t", pLogHeader));
-            } catch (FileNotFoundException e) {
-                throw new UserException.CouldNotCreateOutputFile(engine.getArguments().performanceLog, e);
+            synchronized(this.performanceLogLock) {
+                performanceLogFile = engine.getArguments().performanceLog;
+                createNewPerformanceLog();
             }
         }
 
@@ -189,6 +189,17 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         targetSize = targetIntervals.coveredSize();
     }
 
+    private void createNewPerformanceLog() {
+        synchronized(performanceLogLock) {
+            try {
+                performanceLog = new PrintStream(new FileOutputStream(engine.getArguments().performanceLog));
+                List<String> pLogHeader = Arrays.asList("elapsed.time", "units.processed", "processing.speed", "bp.processed", "bp.speed", "genome.fraction.complete", "est.total.runtime", "est.time.remaining");
+                performanceLog.println(Utils.join("\t", pLogHeader));
+            } catch (FileNotFoundException e) {
+                throw new UserException.CouldNotCreateOutputFile(engine.getArguments().performanceLog, e);
+            }
+        }
+    }
     /**
      * Should be called to indicate that we're going to process records and the timer should start ticking
      */
@@ -273,9 +284,11 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
                 if ( printLog ) {
                     lastPerformanceLogPrintTime = curTime;
-                    performanceLog.printf("%.2f\t%d\t%.2e\t%d\t%.2e\t%.2e\t%.2f\t%.2f%n",
-                            elapsed.t, nRecords, unitRate.t, last.bpProcessed, bpRate.t,
-                            fractionGenomeTargetCompleted, estTotalRuntime.t, timeToCompletion.t);
+                    synchronized(performanceLogLock) {
+                        performanceLog.printf("%.2f\t%d\t%.2e\t%d\t%.2e\t%.2e\t%.2f\t%.2f%n",
+                                elapsed.t, nRecords, unitRate.t, last.bpProcessed, bpRate.t,
+                                fractionGenomeTargetCompleted, estTotalRuntime.t, timeToCompletion.t);
+                    }
                 }
             }
         }
@@ -344,5 +357,51 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
         }
 
         if ( performanceLog != null ) performanceLog.close();
+    }
+
+    /**
+     * Gets the filename to which performance data is currently being written.
+     * @return Filename to which performance data is currently being written.
+     */
+    public String getPerformanceLogFileName() {
+        synchronized(performanceLogLock) {
+            return performanceLogFile.getAbsolutePath();
+        }
+    }
+
+    /**
+     * Sets the filename of the log for performance.  If set, will write performance data.
+     * @param fileName filename to use when writing performance data.
+     */
+    public void setPerformanceLogFileName(String fileName) {
+        File file = new File(fileName);
+
+        synchronized(performanceLogLock) {
+            // Ignore multiple calls to reset the same lock.
+            if(performanceLogFile != null && performanceLogFile.equals(fileName))
+                return;
+
+            // Close an existing log
+            if(performanceLog != null) performanceLog.close();
+
+            performanceLogFile = file;
+            createNewPerformanceLog();
+        }
+    }
+
+    /**
+     * Gets the frequency with which performance data is written.
+     * @return Frequency, in seconds, of performance log writes.
+     */
+    public long getPerformanceProgressPrintFrequencySeconds() {
+        return PROGRESS_PRINT_FREQUENCY;
+    }
+
+    /**
+     * How often should the performance log message be written?
+     * @param seconds number of seconds between messages indicating performance frequency.
+     */
+    public void setPerformanceProgressPrintFrequencySeconds(long seconds) {
+        PROGRESS_PRINT_FREQUENCY = seconds;
     }
 }

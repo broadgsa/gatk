@@ -75,6 +75,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         printOnTraversalDone(result,engine.getCumulativeMetrics());
 
         outputTracker.close();
+        cleanup();
 
         return accumulator;
     }

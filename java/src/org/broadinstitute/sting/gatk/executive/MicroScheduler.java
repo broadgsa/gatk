@@ -30,20 +30,25 @@ import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.traversals.*;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
-import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 
+import java.io.File;
+import java.lang.management.ManagementFactory;
 import java.util.*;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
 
 
 /**
@@ -55,8 +60,13 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
  */
 
 /** Shards and schedules data in manageable chunks. */
-public abstract class MicroScheduler {
+public abstract class MicroScheduler implements MicroSchedulerMBean {
     protected static Logger logger = Logger.getLogger(MicroScheduler.class);
+
+    /**
+     * Counts the number of instances of the class that are currently alive.
+     */
+    private static int instanceNumber = 0;
 
     /**
      * The engine invoking this scheduler.
@@ -68,6 +78,9 @@ public abstract class MicroScheduler {
 
     private final SAMDataSource reads;
     protected final Collection<ReferenceOrderedDataSource> rods;
+
+    private final MBeanServer mBeanServer;
+    private final ObjectName mBeanName;
 
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
@@ -123,6 +136,19 @@ public abstract class MicroScheduler {
         }        
 
         traversalEngine.initialize(engine);
+
+        // JMX does not allow multiple instances with the same ObjectName to be registered with the same platform MXBean.
+        // To get around this limitation and since we have no job identifier at this point, register a simple counter that
+        // will count the number of instances of this object that have been created in this JVM.
+        int thisInstance = instanceNumber++;
+        mBeanServer = ManagementFactory.getPlatformMBeanServer();
+        try {
+            mBeanName = new ObjectName("org.broadinstitute.sting.gatk.executive:type=MicroScheduler,instanceNumber="+thisInstance);
+            mBeanServer.registerMBean(this, mBeanName);
+        }
+        catch (JMException ex) {
+            throw new ReviewedStingException("Unable to register microscheduler with JMX", ex);
+        }
     }
 
     /**
@@ -175,4 +201,45 @@ public abstract class MicroScheduler {
      * @return The reference maintained by this scheduler.
      */
     public IndexedFastaSequenceFile getReference() { return reference; }
+
+    /**
+     * Gets the filename to which performance data is currently being written.
+     * @return Filename to which performance data is currently being written.
+     */
+    public String getPerformanceLogFileName() {
+        return traversalEngine.getPerformanceLogFileName();
+    }
+
+    /**
+     * Set the filename of the log for performance.  If set,
+     * @param fileName filename to use when writing performance data.
+     */
+    public void setPerformanceLogFileName(String fileName) {
+        traversalEngine.setPerformanceLogFileName(fileName);
+    }
+
+    /**
+     * Gets the frequency with which performance data is written.
+     * @return Frequency, in seconds, of performance log writes.
+     */
+    public long getPerformanceProgressPrintFrequencySeconds() {
+        return traversalEngine.getPerformanceProgressPrintFrequencySeconds();
+    }    
+
+    /**
+     * How often should the performance log message be written?
+     * @param seconds number of seconds between messages indicating performance frequency.
+     */
+    public void setPerformanceProgressPrintFrequencySeconds(long seconds) {
+        traversalEngine.setPerformanceProgressPrintFrequencySeconds(seconds);
+    }
+
+    protected void cleanup() {
+        try {
+            mBeanServer.unregisterMBean(mBeanName);
+        }
+        catch (JMException ex) {
+            throw new ReviewedStingException("Unable to unregister microscheduler with JMX", ex);
+        }
+    }
 }

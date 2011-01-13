@@ -16,7 +16,7 @@ package org.broadinstitute.sting.gatk.executive;
  * An interface for retrieving runtime statistics about how the hierarchical
  * microscheduler is behaving. 
  */
-public interface HierarchicalMicroSchedulerMBean {
+public interface HierarchicalMicroSchedulerMBean extends MicroSchedulerMBean {
     /**
      * What is the total number of shards assigned to this microscheduler?
      * @return Total number of shards to process.
