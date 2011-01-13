@@ -519,10 +519,8 @@
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
-<!--
-                <jvmarg value="-Xdebug"/>
-                <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
--->
+<!--                 <jvmarg value="-Xdebug"/> -->
+<!--                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/> -->
                 <classpath>
                     <path refid="external.dependencies" />
                     <pathelement location="${java.classes}" />
