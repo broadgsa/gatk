@@ -141,7 +141,8 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                     samplePrevGenotypes.put(samp, curLocus, compSampGt, evalSampGt);
 
                     if (prevCompAndEval != null) {
-                        logger.debug("Potentially phaseable het locus: " + curLocus + " [relative to previous het locus: " + prevCompAndEval.getLocus() + "]");
+                        GenomeLoc prevLocus = prevCompAndEval.getLocus();
+                        logger.debug("Potentially phaseable het locus: " + curLocus + " [relative to previous het locus: " + prevLocus + "]");
                         PhaseStats ps = samplePhasingStatistics.ensureSampleStats(samp);
 
                         boolean compSampIsPhased = genotypesArePhasedAboveThreshold(compSampGt);
@@ -149,11 +150,11 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                         if (compSampIsPhased || evalSampIsPhased) {
                             if (!evalSampIsPhased) {
                                 ps.onlyCompPhased++;
-                                interesting.addReason("ONLY_COMP", samp, group, "");
+                                interesting.addReason("ONLY_COMP", samp, group, prevLocus, "");
                             }
                             else if (!compSampIsPhased) {
                                 ps.onlyEvalPhased++;
-                                interesting.addReason("ONLY_EVAL", samp, group, "");
+                                interesting.addReason("ONLY_EVAL", samp, group, prevLocus, "");
                             }
                             else { // both comp and eval are phased:                        
                                 AllelePair prevCompAllelePair = new AllelePair(prevCompAndEval.getCompGenotpye());
@@ -169,12 +170,12 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
                                     Double compPQ = getPQ(compSampGt);
                                     Double evalPQ = getPQ(evalSampGt);
                                     if (compPQ != null && evalPQ != null && MathUtils.compareDoubles(compPQ, evalPQ) != 0)
-                                        interesting.addReason("PQ_CHANGE", samp, group, compPQ + " -> " + evalPQ);
+                                        interesting.addReason("PQ_CHANGE", samp, group, prevLocus, compPQ + " -> " + evalPQ);
                                 }
                                 else {
                                     ps.phasesDisagree++;
                                     logger.debug("SWITCHED locus: " + curLocus);
-                                    interesting.addReason("SWITCH", samp, group, toString(prevCompAllelePair, compAllelePair) + " -> " + toString(prevEvalAllelePair, evalAllelePair));
+                                    interesting.addReason("SWITCH", samp, group, prevLocus, toString(prevCompAllelePair, compAllelePair) + " -> " + toString(prevEvalAllelePair, evalAllelePair));
                                 }
                             }
                         }
@@ -243,8 +244,8 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
             sb = new StringBuilder();
         }
 
-        public void addReason(String category, String sample, VariantEvalWalker.EvaluationContext evalGroup, String reason) {
-             sb.append(category + "(" + sample + " [" + evalGroup.compTrackName + ", " + evalGroup.evalTrackName + "]): " + reason + ";");
+        public void addReason(String category, String sample, VariantEvalWalker.EvaluationContext evalGroup, GenomeLoc prevLoc, String reason) {
+             sb.append(category + "(" + sample + ", previous= " + prevLoc + " [" + evalGroup.compTrackName + ", " + evalGroup.evalTrackName + "]): " + reason + ";");
         }
 
         public String toString() {
