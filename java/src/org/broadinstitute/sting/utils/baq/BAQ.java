@@ -64,7 +64,18 @@ public class BAQ {
             qual2prob[i] = Math.pow(10, -i/10.);
     }
 
-    public static double DEFAULT_GOP = 1e-4;
+    // Phred scaled now (changed 1/10/2011)
+    public static double DEFAULT_GOP = 40;
+
+    /*  Takes a Phred Scale quality score and returns the error probability.
+     *
+     *  Quick conversion function to maintain internal structure of BAQ calculation on
+     *  probability scale, but take the user entered parameter in phred-scale.
+     *
+     *  @param x phred scaled score
+     *  @return probability of incorrect base call
+     */
+    private double convertFromPhredScale(double x) { return (Math.pow(10,(-x)/10.));}
 
     public double cd = -1;      // gap open probility [1e-3]
     private double ce = 0.1;    // gap extension probability [0.1]
@@ -96,14 +107,14 @@ public class BAQ {
      * Use defaults for everything
      */
     public BAQ() {
-        cd = DEFAULT_GOP;
+        cd = convertFromPhredScale(DEFAULT_GOP);
         initializeCachedData();
     }
 
     /**
      * Create a new HmmGlocal object with specified parameters
      *
-     * @param d gap open prob.
+     * @param d gap open prob (not phred scaled!).
      * @param e gap extension prob.
      * @param b band width
      * @param minBaseQual All bases with Q < minBaseQual are up'd to this value

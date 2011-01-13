@@ -14,10 +14,10 @@ class tdPipeline extends QScript {
   var outputDir: String = "./"
 
   @Argument(shortName="noBAQ", doc="turns off BAQ calculation", required=false)
-  var useBAQ: Boolean = true
+  var noBAQ: Boolean = false
 
   @Argument(shortName="noMask", doc="turns off MASK calculation", required=false)
-  var useMask: Boolean = true
+  var noMask: Boolean = false
 
 
   trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(4);}
@@ -37,6 +37,8 @@ class tdPipeline extends QScript {
     val clusterFile = new File(name + ".clusters")
     val rawVCF = new File(name + ".raw.vcf")
     val filteredVCF = new File(name + ".filtered.vcf")
+    val titvRecalibratedVCF = new File(name + ".titv.recalibrated.vcf")
+    val tsRecalibratedVCF = new File(name + ".ts.recalibrated.vcf")
     val goldStandardName = qscript.outputDir + "goldStandard/" + baseName
     val goldStandardClusterFile = new File(goldStandardName + ".clusters")
   }
@@ -51,35 +53,64 @@ class tdPipeline extends QScript {
         hg18,
         "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_129_hg18.rod",
         "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.hg18_fwd.vcf",
-        "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.indels.bed",
+        "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.indels.10.mask",
         new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
         new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
         "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals",
         2.07,
         !lowPass)
 
-  val LowPassFIN79Nov = new Target("FIN.nov2010",
+  val FIN = new Target("FIN",
         b37,
         "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_132_b37.leftAligned.vcf",
         "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf",
-        "/humgen/1kg/processing/pipeline_test_bams/pilot1.dindel.mask.hg18.bed",
+        "/humgen/1kg/processing/pipeline_test_bams/pilot1.dindel.mask.b37.bed",
         new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
         new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
         "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals",
         2.3,
         lowPass)
 
+  val WEx = new Target("NA12878.WEx",
+        hg18,
+        "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_129_hg18.rod",
+        "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.hg18_fwd.vcf",
+        "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.indels.10.mask",
+        new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
+        new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.vcf"),
+        "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list",
+        2.6,
+        !lowPass)
+
+  val WEx1kg = new Target("1000G.WEx.GdA",
+        b37,
+        "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_132_b37.leftAligned.vcf",
+        "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf",
+        "/humgen/1kg/processing/pipeline_test_bams/pilot1.dindel.mask.b37.bed",
+        new File("/humgen/1kg/processing/pipeline_test_bams/Barcoded_1000G_WEx_Reduced_Plate_1.cleaned.list"), // BUGBUG: reduce from 60 to 20 people
+        new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+        "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list",
+        2.6,
+        !lowPass)
+/*
+  // Needs an interval file, and a decent TiTv estimate.
+  val PacBio = new Target("pacbio",
+        b37,
+        "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_132_b37.leftAligned.vcf",
+        "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf",
+        "/humgen/1kg/processing/pipeline_test_bams/pilot1.dindel.mask.b37.bed",
+        new File("/humgen/gsa-scr1/carneiro/prj/pacbio/pb_reads.18.recal.bam"),
+        new File("/humgen/gsa-scr1/carneiro/prj/pacbio/pb_reads.18.recal.bam"),
+        "",
+        2.00,
+        !lowPass
+    )
+*/
   /*
    * These sources need to be updated, never used.
 
-  val TGPWExGdA = new Target("1000G.WEx.GdA", b37, "b37",
-        new File("/humgen/1kg/processing/pipeline_test_bams/Barcoded_1000G_WEx_Reduced_Plate_1.cleaned.list"), // BUGBUG: reduce from 60 to 20 people
-        new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-        "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
-  val WEx = new Target("NA12878.WEx", hg18, "hg18",
-        new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
-        new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.vcf"),
-        "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 2.6, !lowPass)
+
+
   val LowPassN60 = new Target("lowpass.N60", b36, "b36",                                                              // which reference the data is aligned to
         new File("/humgen/1kg/analysis/bamsForDataProcessingPapers/lowpass_b36/lowpass.chr20.cleaned.matefixed.bam"), // the bam list to call from
         new File("/home/radon01/depristo/work/oneOffProjects/VQSRCutByNRS/lowpass.N60.chr20.filtered.vcf"),           // the gold standard VCF file to run through the VQSR
@@ -93,7 +124,8 @@ class tdPipeline extends QScript {
         new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
         "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass)
   */
-  val targets = List(HiSeq, LowPassFIN79Nov)
+
+  val targets = List(HiSeq)
 
   def script = {
       val goldStandard = true
@@ -116,14 +148,10 @@ class tdPipeline extends QScript {
     else if (t.dbsnpFile.endsWith(".vcf")) this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
-    this.jobQueue = "hour"
     this.dcov = Some( if ( t.isLowpass ) { 50 } else { 250 } )
     this.input_file :+= t.bamList
     this.out = t.rawVCF
-    if  (useBAQ)
-      this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE)
-    else
-      this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF)
+    this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE})
     this.stand_call_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
     this.stand_emit_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
     this.analysisName = t.name + "_UG"
@@ -134,10 +162,9 @@ class tdPipeline extends QScript {
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 10
-    this.jobQueue = "hour"
     this.variantVCF = t.rawVCF
     this.out = t.filteredVCF
-    if (useMask) {
+    if (!noMask) {
       this.rodBind :+= RodBind("mask", "Bed", t.maskFile)
       this.maskName = "InDel"
     }
@@ -205,10 +232,12 @@ class tdPipeline extends QScript {
       if (t.dbsnpFile.endsWith(".rod")) this.DBSNP = new File(t.dbsnpFile)
 	    else if (t.dbsnpFile.endsWith(".vcf")) this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
       this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
-      this.rodBind :+= RodBind("input", "VCF", t.filteredVCF)
+      this.rodBind :+= RodBind("eval", "VCF", t.tsRecalibratedVCF)
       this.analysisName = name + "_VR"
       this.intervalsString ++= List(t.intervals)
       this.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.R)
       this.reportLocation = new File(t.name + ".eval")
+      this.noStandard = true
+      this.evalModule ++= List("TiTvVariantEvaluator", "CountVariants", "GenotypeConcordance")
   }
 }

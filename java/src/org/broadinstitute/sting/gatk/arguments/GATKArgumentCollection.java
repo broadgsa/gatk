@@ -162,7 +162,7 @@ public class GATKArgumentCollection {
     public BAQ.CalculationMode BAQMode = BAQ.CalculationMode.OFF;
 
     @Element(required = false)
-    @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="BAQ gap open penalty.  Default value is 1e-4.  1e-3 is perhaps better for whole genome call sets", required = false)
+    @Argument(fullName = "baqGapOpenPenalty", shortName="baqGOP", doc="BAQ gap open penalty (Phred Scaled).  Default value is 40.  30 is perhaps better for whole genome call sets", required = false)
     public double BAQGOP = BAQ.DEFAULT_GOP;
 
     // --------------------------------------------------------------------------------------------------------------
