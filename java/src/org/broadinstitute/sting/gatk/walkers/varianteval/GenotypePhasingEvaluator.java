@@ -245,7 +245,7 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         }
 
         public void addReason(String category, String sample, VariantEvalWalker.EvaluationContext evalGroup, GenomeLoc prevLoc, String reason) {
-             sb.append(category + "(" + sample + ", previous= " + prevLoc + " [" + evalGroup.compTrackName + ", " + evalGroup.evalTrackName + "]): " + reason + ";");
+             sb.append(category + "(" + sample + ", previous: " + prevLoc + " [" + evalGroup.compTrackName + ", " + evalGroup.evalTrackName + "]): " + reason + ";");
         }
 
         public String toString() {
