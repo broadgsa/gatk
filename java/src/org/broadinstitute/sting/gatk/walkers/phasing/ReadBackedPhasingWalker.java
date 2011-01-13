@@ -93,7 +93,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
     private GenomeLoc mostDownstreamLocusReached = null;
 
     private LinkedList<VariantAndReads> unphasedSiteQueue = null;
-    private DoublyLinkedList<UnfinishedVariantAndReads> partiallyPhasedSites = null; // the phased VCs to be emitted, and the alignment bases at these positions
+    private CloneableIteratorLinkedList<UnfinishedVariantAndReads> partiallyPhasedSites = null; // the phased VCs to be emitted, and the alignment bases at these positions
 
     private static PreciseNonNegativeDouble ZERO = new PreciseNonNegativeDouble(0.0);
 
@@ -135,7 +135,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         MIN_MAPPING_QUALITY_SCORE = Math.max(MIN_MAPPING_QUALITY_SCORE, MIN_BASE_QUALITY_SCORE);
 
         unphasedSiteQueue = new LinkedList<VariantAndReads>();
-        partiallyPhasedSites = new DoublyLinkedList<UnfinishedVariantAndReads>();
+        partiallyPhasedSites = new CloneableIteratorLinkedList<UnfinishedVariantAndReads>();
 
         initializeVcfWriter();
 
@@ -340,7 +340,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                         SNPallelePair allelePair = new SNPallelePair(gt);
                         if (DEBUG) logger.debug("Want to phase TOP vs. BOTTOM for: " + "\n" + allelePair);
 
-                        DoublyLinkedList.BidirectionalIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = phaseWindow.prevHetAndInteriorIt;
+                        CloneableIteratorLinkedList.CloneableIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = phaseWindow.prevHetAndInteriorIt;
                         /* Notes:
                         1. Call to next() advances iterator to next position in partiallyPhasedSites.
                         2. prevHetGenotype != null, since otherwise prevHetAndInteriorIt would not have been chosen to point to its UnfinishedVariantAndReads.
@@ -438,7 +438,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     private class PhasingWindow {
         private Genotype[] hetGenotypes = null;
-        private DoublyLinkedList.BidirectionalIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = null;
+        private CloneableIteratorLinkedList.CloneableIterator<UnfinishedVariantAndReads> prevHetAndInteriorIt = null;
         private int phasingSiteIndex = -1;
         private Map<String, PhasingRead> readsAtHetSites = null;
 
@@ -452,7 +452,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             List<GenotypeAndReadBases> listHetGenotypes = new LinkedList<GenotypeAndReadBases>();
 
             // Include previously phased sites in the phasing computation:
-            DoublyLinkedList.BidirectionalIterator<UnfinishedVariantAndReads> phasedIt = partiallyPhasedSites.iterator();
+            CloneableIteratorLinkedList.CloneableIterator<UnfinishedVariantAndReads> phasedIt = partiallyPhasedSites.iterator();
             while (phasedIt.hasNext()) {
                 UnfinishedVariantAndReads phasedVr = phasedIt.next();
                 Genotype gt = phasedVr.unfinishedVariant.getGenotype(sample);
@@ -577,13 +577,13 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         private class EdgeToReads {
-            private TreeMap<GraphEdge, List<String>> edgeReads;
+            private TreeMap<PhasingGraphEdge, List<String>> edgeReads;
 
             public EdgeToReads() {
-                this.edgeReads = new TreeMap<GraphEdge, List<String>>(); // implemented GraphEdge.compareTo()
+                this.edgeReads = new TreeMap<PhasingGraphEdge, List<String>>(); // implemented GraphEdge.compareTo()
             }
 
-            public void addRead(GraphEdge e, String readName) {
+            public void addRead(PhasingGraphEdge e, String readName) {
                 List<String> reads = edgeReads.get(e);
                 if (reads == null) {
                     reads = new LinkedList<String>();
@@ -592,7 +592,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 reads.add(readName);
             }
 
-            public List<String> getReads(GraphEdge e) {
+            public List<String> getReads(PhasingGraphEdge e) {
                 return edgeReads.get(e);
             }
         }
@@ -622,7 +622,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         }
 
         public Set<String> removeExtraneousReads(int numHetSites) {
-            Graph readGraph = new Graph(numHetSites);
+            PhasingGraph readGraph = new PhasingGraph(numHetSites);
             EdgeToReads edgeToReads = new EdgeToReads();
             Set<Integer> sitesWithEdges = new TreeSet<Integer>();
 
@@ -634,7 +634,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 // Connect each pair of non-null sites in rd:
                 for (int i = 0; i < siteInds.length; i++) {
                     for (int j = i + 1; j < siteInds.length; j++) {
-                        GraphEdge e = new GraphEdge(siteInds[i], siteInds[j]);
+                        PhasingGraphEdge e = new PhasingGraphEdge(siteInds[i], siteInds[j]);
                         if (DEBUG) logger.debug("Read = " + rdName + " is adding edge: " + e);
                         readGraph.addEdge(e);
 
@@ -713,7 +713,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 if (DEBUG) logger.debug("Calculating CC after removing edges of site: " + i);
 
                 // Remove all edges incident to i and see which positions have paths to prev and cur:
-                Collection<GraphEdge> removedEdges = readGraph.removeAllIncidentEdges(i);
+                Collection<PhasingGraphEdge> removedEdges = readGraph.removeAllIncidentEdges(i);
 
                 // Run-time for efficiently calculating connected components using DisjointSet: O(E)
                 DisjointSet ccAfterRemove = readGraph.getConnectedComponents();
@@ -727,7 +727,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
                 readGraph.addEdges(removedEdges);
             }
 
-            for (GraphEdge e : readGraph) {
+            for (PhasingGraphEdge e : readGraph) {
                 if (DEBUG) logger.debug("Testing the path-connectivity of Edge: " + e);
 
                 /* Edge e={v1,v2} contributes a path between prev and cur for testRead iff:

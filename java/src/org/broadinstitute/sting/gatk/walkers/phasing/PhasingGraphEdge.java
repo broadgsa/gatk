@@ -23,11 +23,14 @@
  */
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
-public class GraphEdge implements Comparable<GraphEdge> {
+/*
+ Edge class for PhasingGraph
+ */
+public class PhasingGraphEdge implements Comparable<PhasingGraphEdge> {
     protected int v1;
     protected int v2;
 
-    public GraphEdge(int v1, int v2) {
+    public PhasingGraphEdge(int v1, int v2) {
         this.v1 = v1;
         this.v2 = v2;
     }
@@ -40,7 +43,7 @@ public class GraphEdge implements Comparable<GraphEdge> {
         return v2;
     }
 
-    public int compareTo(GraphEdge that) {
+    public int compareTo(PhasingGraphEdge that) {
         if (this.v1 != that.v1)
             return (this.v1 - that.v1);
 
@@ -48,7 +51,7 @@ public class GraphEdge implements Comparable<GraphEdge> {
         return (this.v2 - that.v2);
     }
 
-    public boolean equals(GraphEdge other) {
+    public boolean equals(PhasingGraphEdge other) {
         return (this.compareTo(other) == 0);
     }
 

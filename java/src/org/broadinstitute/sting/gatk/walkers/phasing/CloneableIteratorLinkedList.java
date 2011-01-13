@@ -25,12 +25,17 @@ package org.broadinstitute.sting.gatk.walkers.phasing;
 
 import java.util.NoSuchElementException;
 
-public class DoublyLinkedList<E> {
-    private DoublyLinkedNode<E> first;
-    private DoublyLinkedNode<E> last;
+/*
+  DoublyLinkedList class is a doubly-linked list, which allows O(1) traversal to next and previous elements in the list.
+  It is UNIQUE in the fact that its iterator (BidirectionalIterator) can be cloned
+  to save the current pointer for a later time (while the original iterator can continue to iterate).
+ */
+public class CloneableIteratorLinkedList<E> {
+    private CloneableIteratorDoublyLinkedNode<E> first;
+    private CloneableIteratorDoublyLinkedNode<E> last;
     private int size;
 
-    public DoublyLinkedList() {
+    public CloneableIteratorLinkedList() {
         this.first = null;
         this.last = null;
         this.size = 0;
@@ -45,7 +50,7 @@ public class DoublyLinkedList<E> {
     }
 
     public void addFirst(E e) {
-        DoublyLinkedNode<E> newNode = new DoublyLinkedNode<E>(e);
+        CloneableIteratorDoublyLinkedNode<E> newNode = new CloneableIteratorDoublyLinkedNode<E>(e);
 
         if (isEmpty())
             last = newNode;
@@ -59,7 +64,7 @@ public class DoublyLinkedList<E> {
     }
 
     public void addLast(E e) {
-        DoublyLinkedNode<E> newNode = new DoublyLinkedNode<E>(e);
+        CloneableIteratorDoublyLinkedNode<E> newNode = new CloneableIteratorDoublyLinkedNode<E>(e);
 
         if (isEmpty())
             first = newNode;
@@ -132,17 +137,17 @@ public class DoublyLinkedList<E> {
         return true;
     }
 
-    public BidirectionalIterator<E> iterator() {
-        return new BidirectionalIterator<E>(this);
+    public CloneableIterator<E> iterator() {
+        return new CloneableIterator<E>(this);
     }
 
 
-    private static class DoublyLinkedNode<E> {
+    private static class CloneableIteratorDoublyLinkedNode<E> {
         private E element = null;
-        private DoublyLinkedNode<E> next = null;
-        private DoublyLinkedNode<E> previous = null;
+        private CloneableIteratorDoublyLinkedNode<E> next = null;
+        private CloneableIteratorDoublyLinkedNode<E> previous = null;
 
-        public DoublyLinkedNode(E element) {
+        public CloneableIteratorDoublyLinkedNode(E element) {
             this.element = element;
             this.next = null;
             this.previous = null;
@@ -150,16 +155,19 @@ public class DoublyLinkedList<E> {
     }
 
 
-    public static class BidirectionalIterator<E> implements Cloneable {
-        private DoublyLinkedNode<E> nextNode;
-        private DoublyLinkedNode<E> lastNode;
+    /*
+    This iterator is unique since it can be cloned to save the current pointer for a later time (while the original iterator can continue to iterate).
+     */
+    public static class CloneableIterator<E> implements Cloneable {
+        private CloneableIteratorDoublyLinkedNode<E> nextNode;
+        private CloneableIteratorDoublyLinkedNode<E> lastNode;
 
-        private BidirectionalIterator(DoublyLinkedNode<E> nextNode, DoublyLinkedNode<E> lastNode) {
+        private CloneableIterator(CloneableIteratorDoublyLinkedNode<E> nextNode, CloneableIteratorDoublyLinkedNode<E> lastNode) {
             this.nextNode = nextNode;
             this.lastNode = lastNode;
         }
 
-        private BidirectionalIterator(DoublyLinkedList<E> list) {
+        private CloneableIterator(CloneableIteratorLinkedList<E> list) {
             this(list.first, list.last);
         }
 
@@ -195,13 +203,13 @@ public class DoublyLinkedList<E> {
             return nextNode.element;
         }
 
-        public BidirectionalIterator<E> clone() {
+        public CloneableIterator<E> clone() {
             try {
                 super.clone();
             } catch (CloneNotSupportedException e) {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
-            return new BidirectionalIterator<E>(nextNode, lastNode);
+            return new CloneableIterator<E>(nextNode, lastNode);
         }
     }
 }

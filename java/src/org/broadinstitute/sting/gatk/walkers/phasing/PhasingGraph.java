@@ -28,16 +28,16 @@ import org.broadinstitute.sting.utils.DisjointSet;
 import java.util.*;
 
 // Represents an undirected graph with no self-edges:
-public class Graph implements Iterable<GraphEdge> {
+public class PhasingGraph implements Iterable<PhasingGraphEdge> {
     private Neighbors[] adj;
 
-    public Graph(int numVertices) {
+    public PhasingGraph(int numVertices) {
         adj = new Neighbors[numVertices];
         for (int i = 0; i < numVertices; i++)
             adj[i] = new Neighbors();
     }
 
-    public void addEdge(GraphEdge e) {
+    public void addEdge(PhasingGraphEdge e) {
         if (e.v1 == e.v2) // do not permit self-edges
             return;
 
@@ -45,20 +45,20 @@ public class Graph implements Iterable<GraphEdge> {
         adj[e.v2].addNeighbor(e);
     }
 
-    public void addEdges(Collection<GraphEdge> edges) {
-        for (GraphEdge e : edges)
+    public void addEdges(Collection<PhasingGraphEdge> edges) {
+        for (PhasingGraphEdge e : edges)
             addEdge(e);
     }
 
-    public void removeEdge(GraphEdge e) {
+    public void removeEdge(PhasingGraphEdge e) {
         adj[e.v1].removeNeighbor(e);
         adj[e.v2].removeNeighbor(e);
     }
 
-    public Collection<GraphEdge> removeAllIncidentEdges(int vertexIndex) {
-        Collection<GraphEdge> incidentEdges = new TreeSet<GraphEdge>(adj[vertexIndex].neighbors); // implemented GraphEdge.compareTo()
+    public Collection<PhasingGraphEdge> removeAllIncidentEdges(int vertexIndex) {
+        Collection<PhasingGraphEdge> incidentEdges = new TreeSet<PhasingGraphEdge>(adj[vertexIndex].neighbors); // implemented GraphEdge.compareTo()
 
-        for (GraphEdge neighbEdge : incidentEdges) {
+        for (PhasingGraphEdge neighbEdge : incidentEdges) {
             if (vertexIndex != neighbEdge.v1) // vertexIndex == neighbEdge.v2
                 adj[neighbEdge.v1].removeNeighbor(neighbEdge);
             else if (vertexIndex != neighbEdge.v2) // vertexIndex == neighbEdge.v1
@@ -72,13 +72,13 @@ public class Graph implements Iterable<GraphEdge> {
     public DisjointSet getConnectedComponents() {
         DisjointSet cc = new DisjointSet(adj.length);
 
-        for (GraphEdge e : this)
+        for (PhasingGraphEdge e : this)
             cc.setUnion(e.v1, e.v2);
 
         return cc;
     }
 
-    public Iterator<GraphEdge> iterator() {
+    public Iterator<PhasingGraphEdge> iterator() {
         return new AllEdgesIterator();
     }
 
@@ -87,7 +87,7 @@ public class Graph implements Iterable<GraphEdge> {
 
         for (int i = 0; i < adj.length; i++) {
             sb.append(i + ":");
-            for (GraphEdge e : adj[i]) {
+            for (PhasingGraphEdge e : adj[i]) {
                 sb.append(" " + (e.v1 == i ? e.v2 : e.v1));
             }
             sb.append("\n");
@@ -96,10 +96,10 @@ public class Graph implements Iterable<GraphEdge> {
         return sb.toString();
     }
 
-    private class AllEdgesIterator implements Iterator<GraphEdge> {
+    private class AllEdgesIterator implements Iterator<PhasingGraphEdge> {
         private int curInd;
-        private Iterator<GraphEdge> innerIt;
-        private GraphEdge nextEdge;
+        private Iterator<PhasingGraphEdge> innerIt;
+        private PhasingGraphEdge nextEdge;
 
         public AllEdgesIterator() {
             curInd = 0;
@@ -116,7 +116,7 @@ public class Graph implements Iterable<GraphEdge> {
                     innerIt = adj[curInd].iterator();
 
                 while (innerIt.hasNext()) {
-                    GraphEdge e = innerIt.next();
+                    PhasingGraphEdge e = innerIt.next();
                     if (e.v1 == curInd) { // only want to see each edge once
                         nextEdge = e;
                         return true;
@@ -129,11 +129,11 @@ public class Graph implements Iterable<GraphEdge> {
             return false;
         }
 
-        public GraphEdge next() {
+        public PhasingGraphEdge next() {
             if (!hasNext())
                 throw new NoSuchElementException();
 
-            GraphEdge tmpEdge = nextEdge;
+            PhasingGraphEdge tmpEdge = nextEdge;
             nextEdge = null;
             return tmpEdge;
         }
@@ -143,22 +143,22 @@ public class Graph implements Iterable<GraphEdge> {
         }
     }
 
-    private class Neighbors implements Iterable<GraphEdge> {
-        private Set<GraphEdge> neighbors;
+    private class Neighbors implements Iterable<PhasingGraphEdge> {
+        private Set<PhasingGraphEdge> neighbors;
 
         public Neighbors() {
-            this.neighbors = new TreeSet<GraphEdge>(); // implemented GraphEdge.compareTo()
+            this.neighbors = new TreeSet<PhasingGraphEdge>(); // implemented GraphEdge.compareTo()
         }
 
-        public void addNeighbor(GraphEdge e) {
+        public void addNeighbor(PhasingGraphEdge e) {
             neighbors.add(e);
         }
 
-        public void removeNeighbor(GraphEdge e) {
+        public void removeNeighbor(PhasingGraphEdge e) {
             neighbors.remove(e);
         }
 
-        public Iterator<GraphEdge> iterator() {
+        public Iterator<PhasingGraphEdge> iterator() {
             return neighbors.iterator();
         }
 
