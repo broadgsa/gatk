@@ -74,10 +74,10 @@ public class PluginManager<PluginType> {
     /**
      * Plugins stored based on their name.
      */
-    private SortedMap<String, Class<? extends PluginType>> pluginsByName = null;
+    private final SortedMap<String, Class<? extends PluginType>> pluginsByName;
 
-    private List<Class<? extends PluginType>> plugins;
-    private List<Class<? extends PluginType>> interfaces;
+    private final List<Class<? extends PluginType>> plugins;
+    private final List<Class<? extends PluginType>> interfaces;
 
     /**
      * Create a new plugin manager.
@@ -138,6 +138,12 @@ public class PluginManager<PluginType> {
             else
                 interfaces.add(type);
         }
+
+        pluginsByName = new TreeMap<String, Class<? extends PluginType>>();
+        for (Class<? extends PluginType> pluginClass : plugins) {
+            String pluginName = getName(pluginClass);
+            pluginsByName.put(pluginName, pluginClass);
+        }
     }
 
     /**
@@ -161,16 +167,8 @@ public class PluginManager<PluginType> {
       }
     }
     
-    protected SortedMap<String, Class<? extends PluginType>> getPluginsByName() {
-        if (pluginsByName == null) {
-            SortedMap<String, Class<? extends PluginType>> newPlugins = new TreeMap<String, Class<? extends PluginType>>();
-            for (Class<? extends PluginType> pluginClass : plugins) {
-                String pluginName = getName(pluginClass);
-                newPlugins.put(pluginName, pluginClass);
-            }
-            pluginsByName = newPlugins;
-        }
-        return pluginsByName;
+    protected Map<String, Class<? extends PluginType>> getPluginsByName() {
+        return Collections.unmodifiableMap(pluginsByName);
     }
 
     /**
@@ -180,7 +178,7 @@ public class PluginManager<PluginType> {
      * @return True if the plugin exists, false otherwise.
      */
     public boolean exists(String pluginName) {
-        return getPluginsByName().containsKey(pluginName);
+        return pluginsByName.containsKey(pluginName);
     }
 
     /**
@@ -190,7 +188,7 @@ public class PluginManager<PluginType> {
      * @return True if the plugin exists, false otherwise.
      */
     public boolean exists(Class<?> plugin) {
-        return getPluginsByName().containsValue(plugin);
+        return pluginsByName.containsValue(plugin);
     }
 
     /**
@@ -231,7 +229,7 @@ public class PluginManager<PluginType> {
      * @return The plugin object if found; null otherwise.
      */
     public PluginType createByName(String pluginName) {
-        Class<? extends PluginType> plugin = getPluginsByName().get(pluginName);
+        Class<? extends PluginType> plugin = pluginsByName.get(pluginName);
         if( plugin == null )
             throw new UserException(String.format("Could not find %s with name: %s", pluginCategory,pluginName));
         try {
