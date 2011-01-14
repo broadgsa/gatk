@@ -265,18 +265,13 @@ public class GenomeAnalysisEngine {
      * @return a new microscheduler
      */
     private MicroScheduler createMicroscheduler() {
-        Walker my_walker = this.walker;
-
-        // the mircoscheduler to return
-        MicroScheduler microScheduler = null;
-
         // Temporarily require all walkers to have a reference, even if that reference is not conceptually necessary.
-        if ((my_walker instanceof ReadWalker || my_walker instanceof DuplicateWalker || my_walker instanceof ReadPairWalker) && 
+        if ((walker instanceof ReadWalker || walker instanceof DuplicateWalker || walker instanceof ReadPairWalker) &&
                 this.getArguments().referenceFile == null) {
             throw new UserException.CommandLineException("Read-based traversals require a reference file but none was given");
         }
 
-        return MicroScheduler.create(this,my_walker,this.getReadsDataSource(),this.getReferenceDataSource().getReference(),this.getRodDataSources(),this.getArguments().numberOfThreads);
+        return MicroScheduler.create(this,walker,this.getReadsDataSource(),this.getReferenceDataSource().getReference(),this.getRodDataSources(),this.getArguments().numberOfThreads);
     }
 
     protected DownsamplingMethod getDownsamplingMethod() {
@@ -383,8 +378,8 @@ public class GenomeAnalysisEngine {
         if(readsDataSource != null && !readsDataSource.hasIndex() ) { 
             if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM))
                 throw new UserException.CommandLineException("The GATK cannot currently process unindexed BAM files without the -U ALLOW_UNINDEXED_BAM");
-            if(intervals != null && WalkerManager.getWalkerDataSource(walker) != DataSource.REFERENCE)
-                throw new UserException.CommandLineException("Cannot perform interval processing when walker is not driven by reference and no index is available.");
+            if(intervals != null)
+                throw new UserException.CommandLineException("Cannot perform interval processing when reads are present but no index is available.");
 
             Shard.ShardType shardType;
             if(walker instanceof LocusWalker) {
