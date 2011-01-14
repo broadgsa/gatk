@@ -377,7 +377,7 @@ public class GenomeAnalysisEngine {
         // sharding system; it's required with the new sharding system only for locus walkers.
         if(readsDataSource != null && !readsDataSource.hasIndex() ) { 
             if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM))
-                throw new UserException.CommandLineException("The GATK cannot currently process unindexed BAM files without the -U ALLOW_UNINDEXED_BAM");
+                throw new UserException.CommandLineException("Cannot process the provided BAM file(s) because they were not indexed.  The GATK does offer limited processing of unindexed BAMs in --unsafe mode, but this GATK feature is currently unsupported.");
             if(intervals != null)
                 throw new UserException.CommandLineException("Cannot perform interval processing when reads are present but no index is available.");
 
