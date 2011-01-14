@@ -16,54 +16,54 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
 
     // basic counts on various rates found
     @DataPoint(description = "Number of processed loci")
-    long nProcessedLoci = 0;
+    public long nProcessedLoci = 0;
     @DataPoint(description = "Number of called loci")
-    long nCalledLoci = 0;
+    public long nCalledLoci = 0;
     @DataPoint(description = "Number of reference loci")
-    long nRefLoci = 0;
+    public long nRefLoci = 0;
     @DataPoint(description = "Number of variant loci")
-    long nVariantLoci = 0;
+    public long nVariantLoci = 0;
 
     // the following two calculations get set in the finalizeEvaluation
     @DataPoint(description = "Variants per loci rate")
-    double variantRate = 0;
+    public double variantRate = 0;
     @DataPoint(description = "Number of variants per base")
-    double variantRatePerBp = 0;
+    public double variantRatePerBp = 0;
 
 
     @DataPoint(description = "Number of snp loci")
-    long nSNPs = 0;
+    public long nSNPs = 0;
     @DataPoint(description = "Number of insertions")
-    long nInsertions = 0;
+    public long nInsertions = 0;
     @DataPoint(description = "Number of deletions")
-    long nDeletions = 0;
+    public long nDeletions = 0;
     @DataPoint(description = "Number of complex loci")
-    long nComplex = 0;
+    public long nComplex = 0;
 
     @DataPoint(description = "Number of no calls loci")
-    long nNoCalls = 0;
+    public long nNoCalls = 0;
     @DataPoint(description = "Number of het loci")
-    long nHets = 0;
+    public long nHets = 0;
     @DataPoint(description = "Number of hom ref loci")
-    long nHomRef = 0;
+    public long nHomRef = 0;
     @DataPoint(description = "Number of hom var loci")
-    long nHomVar = 0;
+    public long nHomVar = 0;
     @DataPoint(description = "Number of singletons")
-    long nSingletons = 0;
+    public long nSingletons = 0;
 
     // calculations that get set in the finalizeEvaluation method
     @DataPoint(description = "heterozygosity per locus rate")
-    double heterozygosity = 0;
+    public double heterozygosity = 0;
     @DataPoint(description = "heterozygosity per base pair")
-    double heterozygosityPerBp = 0;
+    public double heterozygosityPerBp = 0;
     @DataPoint(description = "heterozygosity to homozygosity ratio")
-    double hetHomRatio = 0;
+    public double hetHomRatio = 0;
     @DataPoint(description = "indel rate (insertion count + deletion count)")
-    double indelRate = 0;
+    public double indelRate = 0;
     @DataPoint(description = "indel rate per base pair")
-    double indelRatePerBp = 0;
+    public double indelRatePerBp = 0;
     @DataPoint(description = "deletion to insertion ratio")
-    double deletionInsertionRatio = 0;
+    public double deletionInsertionRatio = 0;
     
     private double perLocusRate(long n) {
         return rate(n, nProcessedLoci);
@@ -86,7 +86,6 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     }
 
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        //nProcessedLoci++;
         nCalledLoci++;
 
         if (vc1.isVariant()) nVariantLoci++;

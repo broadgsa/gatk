@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import java.util.ArrayList;
 import java.util.Set;
 
-public class EvalRodStratifier extends VariantStratifier implements RequiredStratification {
+public class EvalRod extends VariantStratifier implements RequiredStratification {
     // needs to know the eval rods
     private Set<String> evalNames;
     private ArrayList<String> states;
@@ -24,7 +24,7 @@ public class EvalRodStratifier extends VariantStratifier implements RequiredStra
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, VariantContext eval, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
         relevantStates.add("eval");

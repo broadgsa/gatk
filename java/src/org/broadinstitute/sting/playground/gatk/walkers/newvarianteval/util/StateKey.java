@@ -19,7 +19,8 @@ public class StateKey extends TreeMap<String, String> {
         String value = "";
 
         for ( String key : this.keySet() ) {
-            value += "\tstate " + key + ":" + this.get(key) + "\n";
+            //value += "\tstate " + key + ":" + this.get(key) + "\n";
+            value += String.format("%s:%s;", key, this.get(key));
         }
 
         return value;

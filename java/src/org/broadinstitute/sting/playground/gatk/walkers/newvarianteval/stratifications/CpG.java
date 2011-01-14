@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import java.util.ArrayList;
 import java.util.Set;
 
-public class CpGStatusStratifier extends VariantStratifier {
+public class CpG extends VariantStratifier {
     private ArrayList<String> states;
 
     @Override
@@ -22,7 +22,7 @@ public class CpGStatusStratifier extends VariantStratifier {
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, VariantContext eval, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String sampleName) {
         boolean isCpG = false;
         if (ref != null && ref.getBases() != null) {
             String fwRefBases = new String(ref.getBases());

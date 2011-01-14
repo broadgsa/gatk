@@ -15,11 +15,7 @@ public abstract class VariantStratifier implements Comparable {
         return new ArrayList<String>();
     }
 
-    public boolean isApplicable(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext comp, VariantContext eval, String state) {
-        return false;
-    }
-
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, VariantContext eval, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String sampleName) {
         return null;
     }
 

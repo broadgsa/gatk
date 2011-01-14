@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import java.util.ArrayList;
 import java.util.Set;
 
-public class JexlExpressionStratifier extends VariantStratifier implements StandardStratification {
+public class JexlExpression extends VariantStratifier implements StandardStratification {
     // needs to know the jexl expressions
     private Set<VariantContextUtils.JexlVCMatchExp> jexlExpressions;
     private ArrayList<String> states;
@@ -27,7 +27,7 @@ public class JexlExpressionStratifier extends VariantStratifier implements Stand
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, VariantContext eval, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
         relevantStates.add("none");
 

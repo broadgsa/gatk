@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import java.util.ArrayList;
 import java.util.Set;
 
-public class FunctionalClassStratifier extends VariantStratifier {
+public class FunctionalClass extends VariantStratifier {
     // needs to know the variant context
     private ArrayList<String> states;
 
@@ -24,7 +24,7 @@ public class FunctionalClassStratifier extends VariantStratifier {
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, VariantContext eval, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
         relevantStates.add("all");

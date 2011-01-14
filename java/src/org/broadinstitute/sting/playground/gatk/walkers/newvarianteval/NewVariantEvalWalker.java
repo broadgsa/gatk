@@ -88,7 +88,6 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
 
     // The list of stratifiers and evaluators to use
     private TreeSet<VariantStratifier> stratificationObjects = null;
-    private Set<Class<? extends VariantEvaluator>> evaluationObjects = null;
 
     // The set of all possible evaluation contexts
     private HashMap<StateKey, NewEvaluationContext> evaluationContexts = null;
@@ -106,14 +105,14 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         List<Class<? extends VariantStratifier>> vsClasses = new PluginManager<VariantStratifier>( VariantStratifier.class ).getPlugins();
         List<Class<? extends VariantEvaluator>> veClasses = new PluginManager<VariantEvaluator>( VariantEvaluator.class ).getPlugins();
 
-        logger.info("Available stratifcation modules:");
+        logger.info("Available stratification modules:");
         logger.info("(Standard modules are starred)");
         for (Class<? extends VariantStratifier> vsClass : vsClasses) {
             logger.info("\t" + vsClass.getSimpleName() + (RequiredStratification.class.isAssignableFrom(vsClass) || StandardStratification.class.isAssignableFrom(vsClass) ? "*" : ""));
         }
         logger.info("");
 
-        logger.info("Available eval modules:");
+        logger.info("Available evaluation modules:");
         logger.info("(Standard modules are starred)");
         for (Class<? extends VariantEvaluator> veClass : veClasses) {
             logger.info("\t" + veClass.getSimpleName() + (StandardEval.class.isAssignableFrom(veClass) ? "*" : ""));
@@ -123,6 +122,13 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         System.exit(0);
     }
 
+    /**
+     * Initialize required, standard and user-specified stratification objects
+     *
+     * @param noStandardStrats  don't use the standard stratifications
+     * @param modulesToUse      the list of stratification modules to use
+     * @return  set of stratifications to use
+     */
     private TreeSet<VariantStratifier> initializeStratificationObjects(boolean noStandardStrats, String[] modulesToUse) {
         TreeSet<VariantStratifier> strats = new TreeSet<VariantStratifier>();
         Set<String> stratsToUse = new HashSet<String>();
@@ -177,6 +183,13 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         return strats;
     }
 
+    /**
+     * Initialize required, standard and user-specified evaluation objects
+     *
+     * @param noStandardEvals  don't use the standard evaluations
+     * @param modulesToUse     the list of evaluation modules to use
+     * @return  set of evaluations to use
+     */
     private Set<Class<? extends VariantEvaluator>> initializeEvaluationObjects(boolean noStandardEvals, String[] modulesToUse) {
         Set<Class<? extends VariantEvaluator>> evals = new HashSet<Class<? extends VariantEvaluator>>();
 
@@ -209,6 +222,15 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         return evals;
     }
 
+    /**
+     * Recursively initialize the evaluation contexts
+     *
+     * @param stratificationObjects  the stratifications to use
+     * @param evaluationObjects      the evaluations to use
+     * @param stratStack             a stack of stratifications to apply
+     * @param ec                     evaluation context
+     * @return  a map of all the evaluation contexts
+     */
     private HashMap<StateKey, NewEvaluationContext> initializeEvaluationContexts(Set<VariantStratifier> stratificationObjects,  Set<Class<? extends VariantEvaluator>> evaluationObjects, Stack<VariantStratifier> stratStack, NewEvaluationContext ec) {
         HashMap<StateKey, NewEvaluationContext> ecs = new HashMap<StateKey, NewEvaluationContext>();
 
@@ -253,6 +275,13 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         return ecs;
     }
 
+    /**
+     * Initialize the output report
+     *
+     * @param stratificationObjects  the stratifications to use
+     * @param evaluationObjects      the evaluations to use
+     * @return  an initialized report object
+     */
     private GATKReport initializeGATKReport(Set<VariantStratifier> stratificationObjects, Set<Class<? extends VariantEvaluator>> evaluationObjects) {
         GATKReport report = new GATKReport();
 
@@ -264,12 +293,10 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
 
             GATKReportTable table = report.getTable(tableName);
             table.addPrimaryKey("entry", false);
+            table.addColumn(tableName, tableName);
 
             for ( VariantStratifier vs : stratificationObjects ) {
                 String columnName = vs.getClass().getSimpleName();
-
-                columnName = columnName.replace("Stratifier", "");
-                columnName = columnName.replace("Status", "");
 
                 table.addColumn(columnName, "unknown");
             }
@@ -285,6 +312,9 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         return report;
     }
 
+    /**
+     * Initialize the stratifications, evaluations, evaluation contexts, and reporting object
+     */
     public void initialize() {
         // Just list the modules, and exit quickly.
         if (LIST) { listModulesAndExit(); }
@@ -306,14 +336,19 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         // Now that we have all the rods categorized, determine the sample list from the eval rods.
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), evalNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
-        sampleNames.addAll(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS));
+        sampleNames.add(ALL_SAMPLE_NAME);
+
+        // If we're not using the per-sample stratification, don't bother loading the sample list
+        if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample")) {
+            sampleNames.addAll(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS));
+        }
 
         // Initialize select expressions
         jexlExpressions.addAll(VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS));
 
         // Initialize the set of stratifications and evaluations to use
         stratificationObjects = initializeStratificationObjects(NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
-        evaluationObjects = initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
+        Set<Class<? extends VariantEvaluator>> evaluationObjects = initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
 
         // Initialize the evaluation contexts
         evaluationContexts = initializeEvaluationContexts(stratificationObjects, evaluationObjects, null, null);
@@ -322,15 +357,26 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         report = initializeGATKReport(stratificationObjects, evaluationObjects);
     }
 
+    /**
+     * Figure out what the allowable variation types are based on the eval context
+     *
+     * @param tracker    the reference metadata tracker
+     * @param ref        the reference context
+     * @param evalNames  the evaluation track names
+     * @return  the set of allowable variation types
+     */
     private EnumSet<VariantContext.Type> getAllowableVariationTypes(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> evalNames) {
         EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.NO_VARIATION);
 
-        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, evalNames, null, ref.getLocus(), true, false);
+        if (tracker != null) {
+            Collection<VariantContext> vcs = tracker.getVariantContexts(ref, evalNames, null, ref.getLocus(), true, false);
 
-        for ( VariantContext vc : vcs ) {
-            allowableTypes.add(vc.getType());
+            for ( VariantContext vc : vcs ) {
+                allowableTypes.add(vc.getType());
+            }
+        } else {
+            allowableTypes.add(VariantContext.Type.SNP);
         }
-
         return allowableTypes;
     }
 
@@ -350,9 +396,9 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         HashMap<String, HashMap<String, VariantContext>> bindings = new HashMap<String, HashMap<String, VariantContext>>();
 
         for ( String trackName : trackNames ) {
-            Collection<VariantContext> contexts = tracker.getVariantContexts(ref, trackName, allowableTypes, ref.getLocus(), true, true);
+            Collection<VariantContext> contexts = tracker == null ? null : tracker.getVariantContexts(ref, trackName, allowableTypes, ref.getLocus(), true, true);
 
-            VariantContext vc = contexts.size() == 1 ? contexts.iterator().next() : null;
+            VariantContext vc = contexts != null && contexts.size() == 1 ? contexts.iterator().next() : null;
 
             HashMap<String, VariantContext> vcs = new HashMap<String, VariantContext>();
 
@@ -400,14 +446,22 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         EnumSet<VariantContext.Type> allowableTypes = getAllowableVariationTypes(tracker, ref, evalNames);
 
         HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allSamplesList, allowableTypes);
-        HashMap<String, HashMap<String, VariantContext>> evalBindings = bindVariantContexts(tracker, ref, evalNames, sampleNames, allowableTypes);
 
-        //HashMap<String, HashMap<String, VariantContext>> evalBindings;
-        //if (stratificationObjects.contains(SampleStratifier) {
-        //    evalBindings = bindVariantContexts(tracker, ref, evalNames, sampleNames, allowableTypes);
-        //} else {
-        //    evalBindings = bindVariantContexts(tracker, ref, evalNames, allSamplesList, allowableTypes);
-        //}
+        HashMap<String, HashMap<String, VariantContext>> evalBindings;
+
+        boolean perSampleIsEnabled = false;
+        for (VariantStratifier vs : stratificationObjects) {
+            if (vs.getClass().getSimpleName().equals("Sample")) {
+                perSampleIsEnabled = true;
+                break;
+            }
+        }
+
+        if (perSampleIsEnabled) {
+            evalBindings = bindVariantContexts(tracker, ref, evalNames, sampleNames, allowableTypes);
+        } else {
+            evalBindings = bindVariantContexts(tracker, ref, evalNames, allSamplesList, allowableTypes);
+        }
 
         vcs.putAll(compBindings);
         vcs.putAll(evalBindings);
@@ -415,9 +469,16 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         return vcs;
     }
 
-    private ArrayList<StateKey> initializeStateKeys(HashMap<VariantStratifier, ArrayList<String>> stateMap, Stack<HashMap<VariantStratifier, ArrayList<String>>> stateStack, StateKey stateKey) {
-        ArrayList<StateKey> stateKeys = new ArrayList<StateKey>();
-
+    /**
+     * Recursively initialize the state keys used to look up the right evaluation context based on the state of the variant context
+     *
+     * @param stateMap    the map of allowable states
+     * @param stateStack  a stack of the states
+     * @param stateKey    a state key object
+     * @param stateKeys   all the state keys
+     * @return  a list of state keys
+     */
+    private ArrayList<StateKey> initializeStateKeys(HashMap<VariantStratifier, ArrayList<String>> stateMap, Stack<HashMap<VariantStratifier, ArrayList<String>>> stateStack, StateKey stateKey, ArrayList<StateKey> stateKeys) {
         if (stateStack == null) {
             stateStack = new Stack<HashMap<VariantStratifier, ArrayList<String>>>();
 
@@ -433,60 +494,62 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
             Stack<HashMap<VariantStratifier, ArrayList<String>>> newStateStack = new Stack<HashMap<VariantStratifier, ArrayList<String>>>();
             newStateStack.addAll(stateStack);
 
-            StateKey newStateKey = new StateKey();
-            if (stateKey != null) {
-                newStateKey.putAll(stateKey);
-            }
-
             HashMap<VariantStratifier, ArrayList<String>> oneSetOfStates = newStateStack.pop();
             VariantStratifier vs = oneSetOfStates.keySet().iterator().next();
 
             for ( String state : oneSetOfStates.get(vs)) {
+                StateKey newStateKey = new StateKey();
+                if (stateKey != null) {
+                    newStateKey.putAll(stateKey);
+                }
+
                 newStateKey.put(vs.getClass().getSimpleName(), state);
 
-                stateKeys.addAll(initializeStateKeys(stateMap, newStateStack, newStateKey));
+                initializeStateKeys(stateMap, newStateStack, newStateKey, stateKeys);
             }
         } else {
-            ArrayList<StateKey> newStateKeys = new ArrayList<StateKey>();
+            stateKeys.add(stateKey);
 
-            newStateKeys.add(stateKey);
-
-            return newStateKeys;
+            return stateKeys;
         }
 
         return stateKeys;
     }
 
+    /**
+     * Collect relevant information from each variant in the supplied VCFs
+     */
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        if (tracker != null) {
-            //      track           sample  vc
-            HashMap<String, HashMap<String, VariantContext>> vcs = getVariantContexts(tracker, ref, compNames, evalNames, sampleNames);
+        for ( NewEvaluationContext nec : evaluationContexts.values() ) {
+            nec.update0(tracker, ref, context);
+        }
 
-            for ( String compName : compNames ) {
-                VariantContext comp = vcs.containsKey(compName) && vcs.get(compName) != null && vcs.get(compName).containsKey(ALL_SAMPLE_NAME) ? vcs.get(compName).get(ALL_SAMPLE_NAME) : null;
+        //      track           sample  vc
+        HashMap<String, HashMap<String, VariantContext>> vcs = getVariantContexts(tracker, ref, compNames, evalNames, sampleNames);
 
-                for ( String evalName : evalNames ) {
-                    for ( String sampleName : sampleNames ) {
-                        VariantContext eval = vcs.get(evalName) == null ? null : vcs.get(evalName).get(sampleName);
+        for ( String compName : compNames ) {
+            VariantContext comp = vcs.containsKey(compName) && vcs.get(compName) != null && vcs.get(compName).containsKey(ALL_SAMPLE_NAME) ? vcs.get(compName).get(ALL_SAMPLE_NAME) : null;
 
-                        HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();
-                        for ( VariantStratifier vs : stratificationObjects ) {
-                            ArrayList<String> states = vs.getRelevantStates(ref, comp, eval, sampleName);
-                            stateMap.put(vs, states);
-                        }
+            for ( String evalName : evalNames ) {
+                for ( String sampleName : sampleNames ) {
+                    VariantContext eval = vcs.containsKey(evalName) && vcs.get(evalName) != null ? vcs.get(evalName).get(sampleName) : null;
 
-                        ArrayList<StateKey> stateKeys = initializeStateKeys(stateMap, null, null);
+                    HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();
+                    for ( VariantStratifier vs : stratificationObjects ) {
+                        ArrayList<String> states = vs.getRelevantStates(ref, comp, compName, eval, sampleName);
+                        stateMap.put(vs, states);
+                    }
 
-                        for ( StateKey stateKey : stateKeys ) {
-                            NewEvaluationContext nec = evaluationContexts.get(stateKey);
+                    ArrayList<StateKey> stateKeys = new ArrayList<StateKey>();
+                    initializeStateKeys(stateMap, null, null, stateKeys);
 
-                            nec.apply(tracker, ref, context, comp, eval);
-                        }
+                    HashSet<StateKey> stateKeysHash = new HashSet<StateKey>(stateKeys);
 
-                        //logger.info(ref.getLocus());
-                        //logger.info("\tcomp: " + comp);
-                        //logger.info("\teval: " + eval);
+                    for ( StateKey stateKey : stateKeysHash ) {
+                        NewEvaluationContext nec = evaluationContexts.get(stateKey);
+
+                        nec.apply(tracker, ref, context, comp, eval);
                     }
                 }
             }
@@ -528,6 +591,11 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         return null;
     }
 
+    /**
+     * Output the finalized report
+     *
+     * @param result  an integer that doesn't get used for anything
+     */
     public void onTraversalDone(Integer result) {
         for ( StateKey stateKey : evaluationContexts.keySet() ) {
             NewEvaluationContext nec = evaluationContexts.get(stateKey);
@@ -542,9 +610,6 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
 
                 for ( VariantStratifier vs : stratificationObjects ) {
                     String columnName = vs.getClass().getSimpleName();
-
-                    columnName = columnName.replace("Stratifier", "");
-                    columnName = columnName.replace("Status", "");
 
                     table.set(stateKey.toString(), columnName, stateKey.get(vs.getClass().getSimpleName()));
                 }
