@@ -38,6 +38,13 @@ trait QFunction extends Logging {
   var addOrder: List[Int] = Nil
 
   /**
+   * EXPERIMENTAL AND NOT SUPPORTED!!
+   * Limits the number of seconds that the job will run.
+   * TODO: Replace with full resource specifications.
+   */
+  var jobLimitSeconds: Option[Int] = None
+
+  /**
    * A callback for modifying the run.
    * NOTE: This function is for ADVANCED use only and is unsupported.
    */

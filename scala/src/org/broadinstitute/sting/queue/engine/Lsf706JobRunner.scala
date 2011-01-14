@@ -63,6 +63,10 @@ class Lsf706JobRunner(function: CommandLineFunction) extends LsfJobRunner(functi
         request.options |= LibBat.SUB_JOB_NAME
       }
 
+      if (function.jobLimitSeconds.isDefined) {
+        request.rLimits(LibLsf.LSF_RLIMIT_RUN) = function.jobLimitSeconds.get
+      }
+
       writeExec()
       request.command = "sh " + exec
 
