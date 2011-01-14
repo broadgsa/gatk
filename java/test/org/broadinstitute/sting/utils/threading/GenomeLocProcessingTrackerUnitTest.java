@@ -212,6 +212,11 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         return null;
     }
 
+    private static final <T> void assertAllThreadsFinished(List<Future<T>> futures) {
+        for ( Future f : futures )
+            Assert.assertTrue(f.isDone(), "Thread never finished running");
+    }
+
     @Test(dataProvider = "data", enabled = true)
     public void testThreadedProcesses(TestTarget test) {
         // start up 3 threads
@@ -224,15 +229,17 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         ExecutorService exec = java.util.concurrent.Executors.newFixedThreadPool(threads.size());
 
         try {
-            List<Future<Integer>> results = exec.invokeAll(threads, 60, TimeUnit.SECONDS);
+            List<Future<Integer>> results = exec.invokeAll(threads, 300, TimeUnit.SECONDS);
             GenomeLocProcessingTracker tracker = test.getTracker();
             List<GenomeLoc> shards = test.getShards();
 
             for ( TestThread thread : threads )
                 logger.warn(String.format("TestThread ran %d jobs", thread.ran.size()));
 
+            assertAllThreadsFinished(results);
+
             // we ran everything
-            Assert.assertEquals(tracker.getProcessingLocs().size(), shards.size());
+            Assert.assertEquals(tracker.getProcessingLocs().size(), shards.size(), "Not all shards were run");
 
             for ( GenomeLoc shard : shards ) {
                 Assert.assertTrue(tracker.locIsOwned(shard), "Unowned shard");
