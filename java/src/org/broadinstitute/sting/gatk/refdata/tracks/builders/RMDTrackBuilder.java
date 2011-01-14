@@ -73,9 +73,6 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     // a constant we use for marking sequence dictionary entries in the Tribble index property list
     public static final String SequenceDictionaryPropertyPredicate = "DICT:";
 
-    // the input strings we use to create RODs from
-    private final Collection<RMDTriplet> inputs;
-
     private Map<String, Class> classes = null;
 
     // private sequence dictionary we use to set our tracks with
@@ -92,24 +89,6 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     private ValidationExclusion.TYPE validationExclusionType;
 
     /**
-     * Create a new RMDTrackBuilder, predefined to use a given set of reference metadata.
-     * @param referenceMetaDataDescriptors file descriptors to build out during trackbuilder construction.
-     * @param dict Sequence dictionary to use.
-     * @param genomeLocParser Location parser to use.
-     * @param validationExclusionType Types of validations to exclude, for sequence dictionary verification.
-     */
-    public RMDTrackBuilder(Collection<RMDTriplet> referenceMetaDataDescriptors,
-                           SAMSequenceDictionary dict,
-                           GenomeLocParser genomeLocParser,
-                           ValidationExclusion.TYPE validationExclusionType) {
-        super(FeatureCodec.class, "Codecs", "Codec");
-        this.inputs = referenceMetaDataDescriptors;
-        this.dict = dict;
-        this.genomeLocParser = genomeLocParser;
-        this.validationExclusionType = validationExclusionType;
-    }
-
-    /**
      * Construct an RMDTrackerBuilder, allowing the user to define tracks to build after-the-fact.  This is generally
      * used when walkers want to directly manage the ROD system for whatever reason.  Before using this constructor,
      * please talk through your approach with the SE team.
@@ -120,16 +99,19 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
     public RMDTrackBuilder(SAMSequenceDictionary dict,
                            GenomeLocParser genomeLocParser,
                            ValidationExclusion.TYPE validationExclusionType) {
-        this(Collections.<RMDTriplet>emptyList(),dict,genomeLocParser,validationExclusionType);
-    }
+        super(FeatureCodec.class, "Codecs", "Codec");
+        this.dict = dict;
+        this.genomeLocParser = genomeLocParser;
+        this.validationExclusionType = validationExclusionType;
 
-    /** @return a list of all available track types we currently have access to create */
-    public Map<String, Class> getAvailableTrackNamesAndTypes() {
         classes = new HashMap<String, Class>();
         for (String name: this.getPluginsByName().keySet()) {
             classes.put(name.toUpperCase(), getPluginsByName().get(name));
-        }
-        return classes;
+        }    }
+
+    /** @return a list of all available track types we currently have access to create */
+    public Map<String, Class> getAvailableTrackNamesAndTypes() {
+        return Collections.unmodifiableMap(classes);
     }
 
     /** @return a list of all available track record types we currently have access to create */

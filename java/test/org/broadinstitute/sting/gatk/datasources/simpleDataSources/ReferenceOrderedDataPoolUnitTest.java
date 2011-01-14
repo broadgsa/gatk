@@ -76,7 +76,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         if (indexFileName.exists()) indexFileName.delete();  
 
         triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE);
-        builder = new RMDTrackBuilder(Collections.singletonList(triplet),seq.getSequenceDictionary(),genomeLocParser,null);
+        builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
     }
 
     @Test

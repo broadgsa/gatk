@@ -871,7 +871,7 @@ public class GenomeAnalysisEngine {
                                                                             SAMSequenceDictionary sequenceDictionary,
                                                                             GenomeLocParser genomeLocParser,
                                                                             ValidationExclusion.TYPE validationExclusionType) {
-        RMDTrackBuilder builder = new RMDTrackBuilder(referenceMetaDataFiles,sequenceDictionary,genomeLocParser,validationExclusionType);
+        RMDTrackBuilder builder = new RMDTrackBuilder(sequenceDictionary,genomeLocParser,validationExclusionType);
         // try and make the tracks given their requests
         // create of live instances of the tracks
         List<RMDTrack> tracks = new ArrayList<RMDTrack>();
