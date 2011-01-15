@@ -43,6 +43,7 @@ import java.io.OutputStream;
  *          single and variable length genotype calls using the provided functions.  When you've finished
  *          generating GLF records, make sure you close the file.
  */
+// TODO -- DELETE ME GLF
 public class GLFWriter {
     // our output codec
     private final BinaryCodec outputBinaryCodec;

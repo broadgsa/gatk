@@ -33,6 +33,7 @@ package org.broadinstitute.sting.utils.genotype;
  *         <p/>
  *         The representation of an indel allele.
  */
+// TODO -- DELETE ME GLF
 public class IndelLikelihood {
 
     protected double loglikelihood;

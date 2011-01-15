@@ -43,6 +43,8 @@ import java.util.HashMap;
  *         This allows the consumer to make an empty LikelihoodObject, and just set
  *         those values which have associated likelihood values.
  */
+
+// TODO -- DELETE ME GLF
 public class LikelihoodObject {
 
 

@@ -38,6 +38,7 @@ import java.util.Iterator;
  */
 
 /** an object for reading in GLF files */
+// TODO -- DELETE ME GLF
 public class GLFReader implements Iterator<GLFRecord> {
 
     // our next record

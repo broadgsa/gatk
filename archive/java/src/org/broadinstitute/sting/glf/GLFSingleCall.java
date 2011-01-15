@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.Utils;
  *         <p/>
  *         This class represents a single point geneotype call in GLF vernacular
  */
+// TODO -- DELETE ME GLF
 public class GLFSingleCall extends GLFRecord {
 
     // our likelihoods array

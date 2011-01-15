@@ -36,6 +36,7 @@ import net.sf.samtools.util.BinaryCodec;
  *         Currently a lot of parameters need to be provided, but we may be able to thin
  *         those down as we understand what we have to specify and what we can infer.
  */
+// TODO -- DELETE ME GLF
 public class GLFVariableLengthCall extends GLFRecord {
     // our fields, corresponding to the glf spec
     private short lkHom1 = 0;

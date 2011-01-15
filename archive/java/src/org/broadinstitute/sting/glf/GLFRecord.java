@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
  *         which represents the accepted FASTA nucleotide symbols and their assocated GLF
  *         field values.
  */
+// TODO -- DELETE ME GLF
 public abstract class GLFRecord {
     public final static double LIKELIHOOD_SCALE_FACTOR = 10;
 
