@@ -28,6 +28,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -39,6 +40,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import java.io.File;
 import java.util.*;
 
+import net.sf.picard.PicardException;
 import net.sf.picard.liftover.LiftOver;
 import net.sf.picard.util.Interval;
 import net.sf.samtools.SAMFileHeader;
@@ -71,8 +73,12 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
         liftOver = new LiftOver(CHAIN);
         liftOver.setLiftOverMinMatch(LiftOver.DEFAULT_LIFTOVER_MINMATCH);
 
-        final SAMFileHeader toHeader = new SAMFileReader(NEW_SEQ_DICT).getFileHeader();
-        liftOver.validateToSequences(toHeader.getSequenceDictionary());
+        try {
+            final SAMFileHeader toHeader = new SAMFileReader(NEW_SEQ_DICT).getFileHeader();
+            liftOver.validateToSequences(toHeader.getSequenceDictionary());
+        } catch (PicardException e) {
+            throw new UserException.BadInput("the chain file you are using is not compatible with the reference you are trying to lift over to; please use the appropriate chain file for the given reference");    
+        }
 
         Set<String> samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList("variant"));
         Map<String, VCFHeader> vcfHeaders = VCFUtils.getVCFHeadersFromRods(getToolkit(), Arrays.asList("variant"));
