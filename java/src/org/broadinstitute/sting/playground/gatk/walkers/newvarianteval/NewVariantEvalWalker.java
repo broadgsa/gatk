@@ -59,7 +59,7 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
     @Argument(shortName="selectName", doc="Names to use for the list of stratifications (must be a 1-to-1 mapping)", required=false)
     protected ArrayList<String> SELECT_NAMES = new ArrayList<String>();
 
-    @Argument(shortName="sample", doc="Derive eval and comp contexts using only these sample genotypes, when genotypes are available in the original context", required=false)
+    @Argument(fullName="sample", shortName="sn", doc="Derive eval and comp contexts using only these sample genotypes, when genotypes are available in the original context", required=false)
     protected Set<String> SAMPLE_EXPRESSIONS;
 
     @Argument(shortName="knownName", doc="Name of ROD bindings containing variant sites that should be treated as known when splitting eval rods into known and novel subsets", required=false)
@@ -330,6 +330,11 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
             }
         }
 
+        // Barf if we don't have any eval tracks.
+        if (evalNames.size() == 0) {
+            throw new UserException("No evaluation tracks were specified.  Please bind one or more callsets to evaluate using the -B argument with a trackname that starts with the word 'eval'.");
+        }
+
         // Set up set of known names
         knownNames.addAll(Arrays.asList(KNOWN_NAMES));
 
@@ -380,6 +385,33 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         return allowableTypes;
     }
 
+    private VariantContext getSubsetOfVariantContext(VariantContext vc, String sampleName) {
+        ArrayList<String> sampleNames = new ArrayList<String>();
+        sampleNames.add(sampleName);
+
+        return getSubsetOfVariantContext(vc, sampleNames);
+    }
+
+    private VariantContext getSubsetOfVariantContext(VariantContext vc, Collection<String> sampleNames) {
+        VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values());
+
+        HashMap<String,Object> newAts = new HashMap<String,Object>(vcsub.getAttributes());
+
+        int originalAlleleCount = vc.getHetCount() + 2*vc.getHomVarCount();
+        int newAlleleCount = vcsub.getHetCount() + 2*vcsub.getHomVarCount();
+
+        if (originalAlleleCount == newAlleleCount && newAlleleCount == 1) {
+            newAts.put("ISSINGLETON", true);
+        }
+
+        VariantContextUtils.calculateChromosomeCounts(vcsub, newAts, true);
+        vcsub = VariantContext.modifyAttributes(vcsub,newAts);
+
+        logger.debug(String.format("VC %s subset to %s AC%n", vc.getSource(), vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
+
+        return vcsub;
+    }
+
     /**
      * For a list of track names, bind the variant contexts to a trackName->sampleName->VariantContext mapping.
      * Additional variant contexts per sample are automatically generated and added to the map unless the
@@ -403,20 +435,24 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
             HashMap<String, VariantContext> vcs = new HashMap<String, VariantContext>();
 
             if ( vc != null ) {
-                for ( String sample : sampleNames ) {
+                ArrayList<String> sampleNamesMinusAll = new ArrayList<String>();
+
+                for ( String sampleName : sampleNames ) {
                     VariantContext vcsub = vc;
 
-                    if (!sample.equals(ALL_SAMPLE_NAME)) {
-                        vcsub = vcsub.subContextFromGenotypes(vcsub.getGenotype(sample));
-
-                        HashMap<String,Object> newAts = new HashMap<String,Object>(vcsub.getAttributes());
-                        VariantContextUtils.calculateChromosomeCounts(vcsub,newAts,true);
-                        vcsub = VariantContext.modifyAttributes(vcsub,newAts);
-
-                        logger.debug(String.format("VC %s subset to %s AC%n", vc.getSource(), vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY)));
+                    if (!sampleName.equals(ALL_SAMPLE_NAME)) {
+                        vcsub = getSubsetOfVariantContext(vc, sampleName);
+                        sampleNamesMinusAll.add(sampleName);
                     }
 
-                    vcs.put(sample, vcsub);
+                    vcs.put(sampleName, vcsub);
+                }
+
+                if ( trackName.contains("eval") ) {
+                    //logger.info(sampleNamesMinusAll);
+                    vc = getSubsetOfVariantContext(vc, sampleNamesMinusAll);
+                    //logger.info(vc);
+                    vcs.put(ALL_SAMPLE_NAME, vc);
                 }
 
                 bindings.put(trackName, vcs);
