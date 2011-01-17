@@ -90,7 +90,7 @@ public class IntervalSharder {
             // If the next section of the BAM to be processed is unmapped, handle this region separately.
             while(locusIterator.hasNext() && nextBatch.isEmpty()) {
                 contig = null;
-                while(locusIterator.hasNext() && (contig == null || (locusIterator.peek() != GenomeLoc.UNMAPPED && locusIterator.peek().getContig().equals(contig)))) {
+                while(locusIterator.hasNext() && (contig == null || (!GenomeLoc.isUnmapped(locusIterator.peek()) && locusIterator.peek().getContig().equals(contig)))) {
                     GenomeLoc nextLocus = locusIterator.next();
                     contig = nextLocus.getContig();
                     nextBatch.add(nextLocus);
@@ -387,7 +387,7 @@ class FilePointer {
         this.referenceSequence = location.getContig();
         this.overlap = null;
         this.locations = Collections.singletonList(location);
-        this.isRegionUnmapped = location == GenomeLoc.UNMAPPED;
+        this.isRegionUnmapped = GenomeLoc.isUnmapped(location);
     }
 
     public FilePointer(final String referenceSequence,final BAMOverlap overlap) {

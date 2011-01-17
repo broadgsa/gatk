@@ -36,7 +36,12 @@ public interface Shard extends Serializable {
         READ, LOCUS
     }
 
-    /** @return the genome location represented by this shard */
+    /**
+     * If isUnmapped is true, than getGenomeLocs by
+     * definition will return a singleton list with a GenomeLoc.UNMAPPED
+     *
+     * @return the genome location represented by this shard
+     */
     public List<GenomeLoc> getGenomeLocs();
 
     /**

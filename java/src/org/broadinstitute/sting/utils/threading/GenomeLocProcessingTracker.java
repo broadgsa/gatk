@@ -1,22 +1,21 @@
 package org.broadinstitute.sting.utils.threading;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
- * Created by IntelliJ IDEA.
- * User: depristo
- * Date: 1/13/11
- * Time: 9:38 AM
- * To change this template use File | Settings | File Templates.
+ *
  */
 public abstract class GenomeLocProcessingTracker {
     /**
      * Information about processing locations and their owners
      */
-    public static final class ProcessingLoc {
+    public static final class ProcessingLoc implements Comparable<ProcessingLoc> {
         private final GenomeLoc loc;
         private final String owner;
 
@@ -55,6 +54,9 @@ public abstract class GenomeLocProcessingTracker {
                 return false;
         }
 
+        public int compareTo(ProcessingLoc other) {
+            return this.getLoc().compareTo(other.getLoc());
+        }
     }
 
     // --------------------------------------------------------------------------------
@@ -73,13 +75,23 @@ public abstract class GenomeLocProcessingTracker {
         return findOwner(loc) != null;
     }
 
-    public ProcessingLoc findOwner(GenomeLoc loc) {
-        for ( ProcessingLoc l : getProcessingLocs() ) {
+    // in general this isn't true for the list of locs, as they definitely can occur out of order
+    protected static ProcessingLoc findOwnerInSortedList(GenomeLoc loc, List<ProcessingLoc> locs) {
+        int i = Collections.binarySearch(locs, new ProcessingLoc(loc, "ignore"));
+        return i < 0 ? null : locs.get(i);
+    }
+
+    protected static ProcessingLoc findOwnerInUnsortedList(GenomeLoc loc, List<ProcessingLoc> locs) {
+        for ( ProcessingLoc l : locs ) {
             if ( l.getLoc().equals(loc) )
                 return l;
         }
 
         return null;
+    }
+
+    public ProcessingLoc findOwner(GenomeLoc loc) {
+        return findOwnerInUnsortedList(loc, getProcessingLocs());
     }
 
     /**
@@ -96,6 +108,33 @@ public abstract class GenomeLocProcessingTracker {
     public abstract ProcessingLoc claimOwnership(GenomeLoc loc, String myName);
 
     /**
+     * A higher-level, and more efficient, interface to obtain the next location we own.  Takes an
+     * iterator producing objects that support the getLocation() interface, and returns the next
+     * object in that stream that we can claim ownership of.  Returns null if we run out of elements
+     * during the iteration.
+     *
+     * Can be more efficiently implemented in subclasses to avoid multiple unlocking
+     *
+     * @param iterator
+     * @param myName
+     * @return
+     */
+    public <T extends HasGenomeLocation> T claimOwnershipOfNextAvailable(Iterator<T> iterator, String myName) {
+        while ( iterator.hasNext() ) {
+            T elt = iterator.next();
+            GenomeLoc loc = elt.getLocation();
+            ProcessingLoc proc = claimOwnership(loc, myName);
+
+            if ( proc.isOwnedBy(myName) )
+                return elt;
+            // if not, we continue our search
+        }
+
+        // we never found an object, just return it.
+        return null;
+    }
+
+    /**
      * Returns the list of currently owned locations, updating the database as necessary.
      * DO NOT MODIFY THIS LIST! As with all parallelizing data structures, the list may be
      * out of date immediately after the call returns, or may be updating on the fly.
@@ -105,4 +144,8 @@ public abstract class GenomeLocProcessingTracker {
      * @return
      */
     protected abstract List<ProcessingLoc> getProcessingLocs();
+
+    protected void close() {
+        // by default we don't do anything
+    }
 }

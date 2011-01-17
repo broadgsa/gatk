@@ -135,6 +135,11 @@ public class GenomeAnalysisEngine {
     private Collection<SamRecordFilter> filters;
 
     /**
+     * A currently hacky unique name for this GATK instance
+     */
+    private String myName = "GATK_" + Math.abs(new Random().nextInt());
+
+    /**
      * our walker manager
      */
     private final WalkerManager walkerManager = new WalkerManager();
@@ -234,6 +239,10 @@ public class GenomeAnalysisEngine {
      */
     public String getWalkerName(Class<? extends Walker> walkerType) {
         return walkerManager.getName(walkerType);
+    }
+
+    public String getName() {
+        return myName;
     }
 
     /**

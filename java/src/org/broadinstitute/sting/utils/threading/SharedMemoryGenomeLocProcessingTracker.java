@@ -12,24 +12,27 @@ import java.util.List;
  */
 public class SharedMemoryGenomeLocProcessingTracker extends GenomeLocProcessingTracker {
     private static Logger logger = Logger.getLogger(SharedMemoryGenomeLocProcessingTracker.class);
-    private List<ProcessingLoc> processingLocs = new ArrayList<ProcessingLoc>();
+    protected List<ProcessingLoc> processingLocs = new ArrayList<ProcessingLoc>();
 
-    public synchronized ProcessingLoc claimOwnership(GenomeLoc loc, String myName) {
+    public ProcessingLoc claimOwnership(GenomeLoc loc, String myName) {
         // processingLocs is a shared memory synchronized object, and this
         // method is synchronized, so we can just do our processing
-        ProcessingLoc owner = super.findOwner(loc);
+        synchronized (processingLocs) {
+            ProcessingLoc owner = super.findOwner(loc);
 
-        if ( owner == null ) { // we are unowned
-            owner = new ProcessingLoc(loc, myName);
-            processingLocs.add(owner);
+            if ( owner == null ) { // we are unowned
+                owner = new ProcessingLoc(loc, myName);
+                processingLocs.add(owner);
+            }
+
+            return owner;
+            //logger.warn(String.format("%s.claimOwnership(%s,%s) => %s", this, loc, myName, owner));
         }
-
-        //logger.warn(String.format("%s.claimOwnership(%s,%s) => %s", this, loc, myName, owner));
-
-        return owner;
     }
 
-    protected synchronized List<ProcessingLoc> getProcessingLocs() {
-        return processingLocs;
+    protected List<ProcessingLoc> getProcessingLocs() {
+        synchronized (processingLocs) {
+            return processingLocs;
+        }
     }
 }

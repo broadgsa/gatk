@@ -33,7 +33,11 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
      * the object may be used to refer to the region, as '==' comparisons are used
      * in comparators, etc.
      */
+    // TODO - WARNING WARNING WARNING code somehow depends on the name of the contig being null!
     public static final GenomeLoc UNMAPPED = new GenomeLoc(null,-1,0,0);
+    public static final boolean isUnmapped(GenomeLoc loc) {
+        return loc == UNMAPPED;
+    }
     
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -72,7 +76,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     public final int getStart()    { return this.start; }
     public final int getStop()     { return this.stop; }
     public final String toString()  {
-        if(this == UNMAPPED) return "unmapped";
+        if(GenomeLoc.isUnmapped(this)) return "unmapped";
         if ( throughEndOfContigP() && atBeginningOfContigP() )
             return getContig();
         else if ( throughEndOfContigP() || getStart() == getStop() )
@@ -100,8 +104,8 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     }
 
     public GenomeLoc merge( GenomeLoc that ) throws ReviewedStingException {
-        if(this == UNMAPPED || that == UNMAPPED) {
-            if(this != UNMAPPED || that != UNMAPPED)
+        if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {
+            if(! GenomeLoc.isUnmapped(this) || !GenomeLoc.isUnmapped(that))
                 throw new ReviewedStingException("Tried to merge a mapped and an unmapped genome loc");
             return UNMAPPED;
         }
@@ -116,8 +120,8 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     }
 
     public GenomeLoc intersect( GenomeLoc that ) throws ReviewedStingException {
-        if(this == UNMAPPED || that == UNMAPPED) {
-            if(this != UNMAPPED || that != UNMAPPED)
+        if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {
+            if(! GenomeLoc.isUnmapped(this) || !GenomeLoc.isUnmapped(that))
                 throw new ReviewedStingException("Tried to intersect a mapped and an unmapped genome loc");
             return UNMAPPED;
         }
@@ -238,9 +242,9 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
         if ( this == that ) {
             result = 0;
         }
-        else if(this == UNMAPPED)
+        else if(GenomeLoc.isUnmapped(this))
             result = 1;
-        else if(that == UNMAPPED)
+        else if(GenomeLoc.isUnmapped(that))
             result = -1;
         else {
             final int cmpContig = compareContigs(that);

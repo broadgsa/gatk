@@ -50,23 +50,25 @@ public class LinearMicroScheduler extends MicroScheduler {
         Accumulator accumulator = Accumulator.create(engine,walker);
 
         for (Shard shard : shardStrategy) {
-            // New experimental code for managing locus intervals.
-            if(shard.getShardType() == Shard.ShardType.LOCUS) {
-                LocusWalker lWalker = (LocusWalker)walker;
-                WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(), getReadIterator(shard), shard.getGenomeLocs(), lWalker.getDiscards(), engine.getSampleMetadata());
-                for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
-                    ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),iterator.getLocus(),iterator,reference,rods);
+            if ( claimShard(shard) ) {
+                // New experimental code for managing locus intervals.
+                if(shard.getShardType() == Shard.ShardType.LOCUS) {
+                    LocusWalker lWalker = (LocusWalker)walker;
+                    WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(), getReadIterator(shard), shard.getGenomeLocs(), lWalker.getDiscards(), engine.getSampleMetadata());
+                    for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
+                        ShardDataProvider dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),iterator.getLocus(),iterator,reference,rods);
+                        Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
+                        accumulator.accumulate(dataProvider,result);
+                        dataProvider.close();
+                    }
+                    windowMaker.close();
+                }
+                else {
+                    ShardDataProvider dataProvider = new ReadShardDataProvider(shard,engine.getGenomeLocParser(),getReadIterator(shard),reference,rods);
                     Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
                     accumulator.accumulate(dataProvider,result);
                     dataProvider.close();
                 }
-                windowMaker.close();
-            }
-            else {
-                ShardDataProvider dataProvider = new ReadShardDataProvider(shard,engine.getGenomeLocParser(),getReadIterator(shard),reference,rods);
-                Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
-                accumulator.accumulate(dataProvider,result);
-                dataProvider.close();
             }
         }
 

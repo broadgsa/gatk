@@ -217,6 +217,16 @@ public class GATKArgumentCollection {
     @Hidden
     public RMDTriplet.RMDStorageType rodInputType = null;
 
+    @Element(required=false)
+    @Argument(fullName="processingTracker",shortName="C",doc="A lockable, shared file for coordinating distributed GATK runs",required=false)
+    @Hidden
+    public File processingTrackerFile = null;
+
+    @Element(required=false)
+    @Argument(fullName="restartProcessingTracker",shortName="RPT",doc="Should we delete the processing tracker file at startup?",required=false)
+    @Hidden
+    public boolean restartProcessingTracker = false;
+
     /**
      * marshal the data out to a object
      *
@@ -378,7 +388,14 @@ public class GATKArgumentCollection {
                 (other.performanceLog != null && !other.performanceLog.equals(this.performanceLog)))
             return false;
 
+        if ((other.processingTrackerFile == null && this.processingTrackerFile != null) ||
+                (other.processingTrackerFile != null && !other.processingTrackerFile.equals(this.processingTrackerFile)))
+            return false;
+
         if(rodInputType != other.rodInputType)
+            return false;
+
+        if ( restartProcessingTracker != other.restartProcessingTracker )
             return false;
 
         return true;

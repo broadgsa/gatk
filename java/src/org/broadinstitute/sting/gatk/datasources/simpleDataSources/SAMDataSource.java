@@ -866,9 +866,9 @@ public class SAMDataSource implements SimpleDataSource {
             // If we find a mix of mapped/unmapped intervals, throw an exception.
             boolean foundMappedIntervals = false;
             for(GenomeLoc location: intervals) {
-                if(location != GenomeLoc.UNMAPPED)
+                if(! GenomeLoc.isUnmapped(location))
                     foundMappedIntervals = true;
-                keepOnlyUnmappedReads |= (location == GenomeLoc.UNMAPPED);
+                keepOnlyUnmappedReads |= GenomeLoc.isUnmapped(location);
             }
 
 
