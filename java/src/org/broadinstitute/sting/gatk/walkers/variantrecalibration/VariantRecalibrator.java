@@ -164,20 +164,10 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             ignoreInputFilterSet = new TreeSet<String>(Arrays.asList(IGNORE_INPUT_FILTERS));
         }
 
-        switch (OPTIMIZATION_MODEL) {
-            case GAUSSIAN_MIXTURE_MODEL:
-                theModel = new VariantGaussianMixtureModel( TARGET_TITV, CLUSTER_FILE, BACKOFF_FACTOR );
-                if ( SINGLETON_FP_RATE != -1 ) {
-                    theModel.setSingletonFPRate(SINGLETON_FP_RATE);
-                }
-                break;
-            //case K_NEAREST_NEIGHBORS:
-            //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
-            //    break;
-            default:
-                throw new UserException.BadArgumentValue("OPTIMIZATION_MODEL", "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
+        theModel = new VariantGaussianMixtureModel( TARGET_TITV, CLUSTER_FILE, BACKOFF_FACTOR );
+        if ( SINGLETON_FP_RATE != -1 ) {
+            theModel.setSingletonFPRate(SINGLETON_FP_RATE);
         }
-
 
         // deal with annotations
         if ( USE_ANNOTATIONS  != null ) {
@@ -265,9 +255,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
         nTruthSites += isAtTruthSite ? 1 : 0;
 
-        //final VariantContext vcTruth = ( vcsTruth.size() != 0 ? vcsTruth.iterator().next() : null );
-        //nTruthSites += vcTruth != null && vcTruth.isVariant() ? 1 : 0;
-
         for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
             if( vc != null && vc.isSNP() ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
@@ -345,7 +332,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                         variantDatum.lod = round4(lod);
 
                         // deal with the truth calculation
-                        variantDatum.atTruthSite = isAtTruthSite; //vcTruth != null && vcTruth.isVariant();
+                        variantDatum.atTruthSite = isAtTruthSite; 
 
                         mapList.add( variantDatum );
                         final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());

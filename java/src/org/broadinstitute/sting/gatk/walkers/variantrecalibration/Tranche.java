@@ -170,7 +170,7 @@ public class Tranche implements Comparable<Tranche> {
                     header = vals;
                     if ( header.length == 5 )
                         // old style tranches file, throw an error
-                        throw new UserException.MalformedFile(f, "Unfortuanately, your tranches file is from a previous version of this tool and cannot be used with the latest code.  Please rerun VariantRecalibrator");
+                        throw new UserException.MalformedFile(f, "Unfortunately, your tranches file is from a previous version of this tool and cannot be used with the latest code.  Please rerun VariantRecalibrator");
                     if ( header.length != 8 && header.length != 11 )
                         throw new UserException.MalformedFile(f, "Expected 8 elements in header line " + line);
                 } else {

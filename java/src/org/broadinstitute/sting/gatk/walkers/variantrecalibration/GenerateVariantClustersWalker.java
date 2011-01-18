@@ -242,18 +242,8 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
         dataManager.normalizeData(); // Each data point is now [ (x - mean) / standard deviation ]
 
-        // Create either the Gaussian Mixture Model or the Nearest Neighbors model and run it
-        switch (OPTIMIZATION_MODEL) {
-            case GAUSSIAN_MIXTURE_MODEL:
-                theModel = new VariantGaussianMixtureModel( dataManager, MAX_GAUSSIANS, MAX_ITERATIONS, FORCE_INDEPENDENT,
-                                                            STD_THRESHOLD, SHRINKAGE, DIRICHLET_PARAMETER );
-                break;
-            //case K_NEAREST_NEIGHBORS:
-            //    theModel = new VariantNearestNeighborsModel( dataManager, TARGET_TITV, NUM_KNN );
-            //    break;
-            default:
-                throw new UserException.BadArgumentValue("OPTIMIZATION_MODEL", "Variant Optimization Model is unrecognized. Implemented options are GAUSSIAN_MIXTURE_MODEL and K_NEAREST_NEIGHBORS" );
-        }
+        // Create the Gaussian Mixture Model model and run it
+        theModel = new VariantGaussianMixtureModel( dataManager, MAX_GAUSSIANS, MAX_ITERATIONS, FORCE_INDEPENDENT, STD_THRESHOLD, SHRINKAGE, DIRICHLET_PARAMETER );
 
         theModel.run( CLUSTER_FILE );
     }

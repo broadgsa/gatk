@@ -34,8 +34,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 public abstract class VariantOptimizationModel implements VariantOptimizationInterface {
 
     public enum Model {
-        GAUSSIAN_MIXTURE_MODEL,
-        K_NEAREST_NEIGHBORS
+        GAUSSIAN_MIXTURE_MODEL
     }
 
     protected final double targetTITV;
@@ -53,8 +52,6 @@ public abstract class VariantOptimizationModel implements VariantOptimizationInt
         if( titv > targetTITV ) { titv -= 2.0f*(titv-targetTITV); }
         if( titv < 0.5 ) { titv = 0.5; }
         return ( (titv - 0.5) / (targetTITV - 0.5) );
-        //if( titv < 0.0 ) { titv = 0.0; }
-        //return ( titv / targetTITV );
     }
 
     public final double calcTruePositiveRateFromKnownTITV( final double knownTITV, final double _novelTITV, final double overallTITV, final double knownAlphaFactor ) {
