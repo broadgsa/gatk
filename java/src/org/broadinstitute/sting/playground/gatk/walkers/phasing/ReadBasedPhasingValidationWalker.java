@@ -175,9 +175,12 @@ public class ReadBasedPhasingValidationWalker extends RodWalker<Integer, Integer
             buildReads.updateBases(1, readBases);
 
             List<PhasingRead> reads = new LinkedList<PhasingRead>();
-            for (PhasingRead rd : buildReads) {
-                if (rd.getNonNullIndices().length == NUM_IN_PAIR) // only want reads with BOTH bases called [possibly as deleted ("D")]
+            for (Map.Entry<String, PhasingRead> readEntry : buildReads.entrySet()) {
+                PhasingRead rd = readEntry.getValue();
+                if (rd.getNonNullIndices().length == NUM_IN_PAIR) { // only want reads with BOTH bases called [possibly as deleted ("D")]
                     reads.add(rd);
+                    logger.debug("Read name: " + readEntry.getKey() + "\trd: " + rd);
+                }
             }
 
             // Count the occurence of each "haplotype":
@@ -339,7 +342,7 @@ class SiteGenotypeAndReads {
     }
 }
 
-class PhasingReadList implements Iterable<PhasingRead> {
+class PhasingReadList {
     private Map<String, PhasingRead> readsAtSites = null;
     private int numSites;
 
@@ -366,8 +369,8 @@ class PhasingReadList implements Iterable<PhasingRead> {
         }
     }
 
-    public Iterator<PhasingRead> iterator() {
-        return readsAtSites.values().iterator();
+    public Set<Map.Entry<String, PhasingRead>> entrySet() {
+        return readsAtSites.entrySet();
     }
 
     public int size() {
