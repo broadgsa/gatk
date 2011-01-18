@@ -178,7 +178,7 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
     vr.analysisName = "VariantQualityRecalibration"
     vr.rodBind :+= new RodBind("input","VCF",raw_vcf)
     vr.cluster_file = cluster
-    vr.target_titv = target_titv
+    vr.target_titv = Some(target_titv)
     vr.out = out_vcf
     vr.tranches_file = out_tranches
     vr.tranche :+= "0.1"

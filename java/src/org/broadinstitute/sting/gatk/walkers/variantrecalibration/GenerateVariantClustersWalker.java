@@ -196,13 +196,13 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
                     final VariantContext vcHapMap = ( vcsHapMap.size() != 0 ? vcsHapMap.iterator().next() : null );
                     final VariantContext vc1KG = ( vcs1KG.size() != 0 ? vcs1KG.iterator().next() : null );
 
-                    variantDatum.isKnown = ( vcDbsnp != null );
+                    variantDatum.isKnown = ( vcDbsnp != null && vcDbsnp.isVariant() && !vcDbsnp.isFiltered() );
                     variantDatum.weight = WEIGHT_NOVELS;
-                    if( vcHapMap != null ) {
+                    if( vcHapMap != null && vcHapMap.isVariant() && !vcHapMap.isFiltered() && (!vcHapMap.hasGenotypes() || vcHapMap.isPolymorphic()) ) {
                         variantDatum.weight = WEIGHT_HAPMAP;
-                    } else if( vc1KG != null ) {
+                    } else if( vc1KG != null && vc1KG.isVariant() && !vc1KG.isFiltered() && (!vc1KG.hasGenotypes() || vc1KG.isPolymorphic()) ) {
                         variantDatum.weight = WEIGHT_1KG;
-                    } else if( vcDbsnp != null ) {
+                    } else if( vcDbsnp != null && vcDbsnp.isVariant() && !vcDbsnp.isFiltered() ) {
                         variantDatum.weight = WEIGHT_DBSNP;
                     }
 

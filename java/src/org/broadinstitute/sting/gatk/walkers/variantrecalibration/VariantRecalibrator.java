@@ -59,7 +59,6 @@ import java.util.*;
 
 public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> {
     public static final String VQS_LOD_KEY = "VQSLOD";
-    public static final double SMALLEST_LOG10_PVAR = -1e6;
 
     /////////////////////////////
     // Inputs
@@ -78,7 +77,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName="target_titv", shortName="titv", doc="The expected novel Ti/Tv ratio to use when calculating FDR tranches and for display on optimization curve output figures. (~~2.07 for whole genome experiments)", required=true)
+    @Argument(fullName="target_titv", shortName="titv", doc="The expected novel Ti/Tv ratio to use when calculating FDR tranches and for display on optimization curve output figures. (~~2.07 for whole genome experiments)", required=false)
     private double TARGET_TITV = 2.07;
     @Argument(fullName="backOff", shortName="backOff", doc="The Gaussian back off factor, used to prevent overfitting by enlarging the Gaussians.", required=false)
     private double BACKOFF_FACTOR = 1.3;
@@ -139,6 +138,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     private VariantGaussianMixtureModel theModel = null;
     private Set<String> ignoreInputFilterSet = null;
     private Set<String> inputNames = new HashSet<String>();
+    private Set<String> truthNames = new HashSet<String>();
     private NestedHashMap priorCache = new NestedHashMap();
     private boolean trustACField = false;
     private PrintStream tranchesStream = null;
@@ -202,6 +202,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             if( d.getName().startsWith("input") ) {
                 inputNames.add(d.getName());
                 logger.info("Found input variant track with name " + d.getName());
+            } else if( d.getName().startsWith("truth") ) {
+                truthNames.add(d.getName());
+                logger.info("Found truth variant track with name " + d.getName());
             } else if ( d.getName().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
                 logger.info("Found dbSNP track with prior probability = Q" + PRIOR_DBSNP);
                 foundDBSNP = true;
@@ -221,7 +224,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         if( inputNames.size() == 0 ) {
             throw new UserException.BadInput( "No input variant tracks found. Input variant binding names must begin with 'input'." );
         }
-
 
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
@@ -253,9 +255,18 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             return mapList;
         }
 
-        final Collection<VariantContext> vcsTruth = tracker.getVariantContexts(ref, "truth", null, context.getLocation(), false, true);
-        final VariantContext vcTruth = ( vcsTruth.size() != 0 ? vcsTruth.iterator().next() : null );
-        nTruthSites += vcTruth != null && vcTruth.isVariant() ? 1 : 0;
+        final Collection<VariantContext> vcsTruth = tracker.getVariantContexts(ref, truthNames, null, context.getLocation(), false, true);
+        boolean isAtTruthSite = false;
+        for( final VariantContext vcTruth : vcsTruth ) {
+            if( vcTruth != null && vcTruth.isVariant() && !vcTruth.isFiltered() && (!vcTruth.hasGenotypes() || vcTruth.isPolymorphic()) ) {
+                isAtTruthSite = true;
+                break;
+            }
+        }
+        nTruthSites += isAtTruthSite ? 1 : 0;
+
+        //final VariantContext vcTruth = ( vcsTruth.size() != 0 ? vcsTruth.iterator().next() : null );
+        //nTruthSites += vcTruth != null && vcTruth.isVariant() ? 1 : 0;
 
         for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
             if( vc != null && vc.isSNP() ) {
@@ -271,13 +282,13 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                         final VariantContext vcHapMap = ( vcsHapMap.size() != 0 ? vcsHapMap.iterator().next() : null );
                         final VariantContext vc1KG = ( vcs1KG.size() != 0 ? vcs1KG.iterator().next() : null );
 
-                        variantDatum.isKnown = ( vcDbsnp != null );
+                        variantDatum.isKnown = ( vcDbsnp != null && vcDbsnp.isVariant() && !vcDbsnp.isFiltered() );
                         double knownPrior_qScore = PRIOR_NOVELS;
-                        if( vcHapMap != null ) {
+                        if( vcHapMap != null && vcHapMap.isVariant() && !vcHapMap.isFiltered() && (!vcHapMap.hasGenotypes() || vcHapMap.isPolymorphic()) ) {
                             knownPrior_qScore = PRIOR_HAPMAP;
-                        } else if( vc1KG != null ) {
+                        } else if( vc1KG != null && vc1KG.isVariant() && !vc1KG.isFiltered() && (!vc1KG.hasGenotypes() || vc1KG.isPolymorphic()) ) {
                             knownPrior_qScore = PRIOR_1KG;
-                        } else if( vcDbsnp != null ) {
+                        } else if( vcDbsnp != null && vcDbsnp.isVariant() && !vcDbsnp.isFiltered() ) {
                             knownPrior_qScore = PRIOR_DBSNP;
                         }
 
@@ -334,7 +345,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                         variantDatum.lod = round4(lod);
 
                         // deal with the truth calculation
-                        variantDatum.atTruthSite = vcTruth != null && vcTruth.isVariant();
+                        variantDatum.atTruthSite = isAtTruthSite; //vcTruth != null && vcTruth.isVariant();
 
                         mapList.add( variantDatum );
                         final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
