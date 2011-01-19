@@ -43,7 +43,7 @@ public abstract class BaseTest {
     public static final Logger logger = CommandLineUtils.getStingLogger();
 
     public static final String hg18Reference = "/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta";
-    public static final String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.fasta";
+    public static final String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta";
     public static final String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
     public static final String b37KGReference = "/humgen/1kg/reference/human_g1k_v37.fasta";
     public static final String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
@@ -62,6 +62,7 @@ public abstract class BaseTest {
     public static final String hg18dbSNP129 = dbsnpDataLocation + "dbsnp_129_hg18.rod";
     public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.rod";
     public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.rod";
+    public static final String b37dbSNP132 = dbsnpDataLocation + "dbsnp_132_b37.vcf";
 
     public final String testDir = "testdata/";
 
