@@ -6,10 +6,7 @@
 ##change layouts so that it looks better
 ##get sample numbers in correctly
 
-
-
-.libPaths('~/Sting/R/') #but make sure this is universal
-#put use scripts here
+.libPaths('/humgen/gsa-firehose2/pipeline/repositories/StingProduction/R/') 
 
 suppressMessages(library(gplots));
 suppressMessages(library(ReadImages));
@@ -21,7 +18,7 @@ cmdargs = gsa.getargs(
     list(
         bamlist = list(value=NA, doc="list of BAM files"),
         evalroot = list(value=NA, doc="VariantEval root"),
-        tearxsout = list(value=NA, doc="Output path for tearsheet PDF"),
+        tearout = list(value=NA, doc="Output path for tearsheet PDF"),
         plotout = list(value=NA, doc="Output path for PDF")
     ),
     doc="Creates a tearsheet"
@@ -44,7 +41,7 @@ for (bam in bamlist$V1) {
             fclanes = c(fclanes, id);
         }
     } else {
-        cat(sprintf("Could not load '%s'\n", bam));
+        Print(sprintf("Could not load '%s'\n", bam));
     }
 }
 
@@ -74,7 +71,7 @@ tearsheetdrop <- "tearsheetdrop.jpg" #put the path to the tearsheet backdrop her
 
 tearsheet<-function(){
 	
-	pdf(file= cmdargs$statsout, width=22, height=15, pagecentre=TRUE, pointsize=24) 
+	pdf(file= cmdargs$tearout, width=22, height=15, pagecentre=TRUE, pointsize=24) 
 	
 	#define layout
 	layout(matrix(c(1,1,2,4,3,5), ncol=2, nrow=3, byrow=TRUE), heights=c(1, 2.5,2.5), respect=FALSE)
@@ -94,7 +91,7 @@ tearsheet<-function(){
 	# Project summary
 	projects = paste(unique(dproj$"Project"), collapse=", ");
 
-	used_samples = length(unique(dproj$"External ID"));
+	used_samples = length(bamlist$V1);
 
 	unused_samples = 0;
 
@@ -170,12 +167,18 @@ tearsheet<-function(){
 	par(mar=c(4,4,4,4))
 	textplot(table2, rmar=1, col.rownames="dark blue", cex=1.25)
 	title(main="Bases Summary", family="sans", cex.main=1.75)
-cat("\nSequencing summary\n", file=cmdargs$statsout, append=TRUE);
 
 
 # Sequencing summary
 
-	instrument = "Illumina GA2";#Can we get this?
+	instrument <- c();
+	if(length(grep("AAXX", dproj$Flowcell))>0){
+		instrument <- c(instrument, "Illumina GA2")
+		}
+	if(length(grep("ABXX", dproj$Flowcell))>0){
+		instrument <- c(instrument, "Illumina HiSeq")
+		}
+
 	used_lanes = nrow(dproj);
 	unused_lanes_by_sequencing = 0; #can we get this?
 	unused_lanes_by_analysis = 0;
@@ -211,7 +214,7 @@ cat("\nSequencing summary\n", file=cmdargs$statsout, append=TRUE);
 	end_date = date[length(date)];
 
 	
-	table3<-rbind(instrument, used_lanes, sprintf("%s rejected by sequencing, %s by analysis\n", unused_lanes_by_sequencing, unused_lanes_by_analysis), sprintf("%0.1f +/- %0.1f lanes (median=%0.1f)\n", lanes_per_sample_mean, lanes_per_sample_sd, lanes_per_sample_median), sprintf("%s paired, %s widowed, %s single\n", lanes_paired, lanes_widowed, lanes_single), sprintf("%0.1f +/- %0.1f bases (median=%0.1f)\n", read_length_mean, read_length_sd, read_length_median), sprintf("\tSequencing dates: %s to %s\n", start_date, end_date))
+	table3<-rbind(paste(instrument), used_lanes, sprintf("%s rejected by sequencing, %s by analysis\n", unused_lanes_by_sequencing, unused_lanes_by_analysis), sprintf("%0.1f +/- %0.1f lanes (median=%0.1f)\n", lanes_per_sample_mean, lanes_per_sample_sd, lanes_per_sample_median), sprintf("%s paired, %s widowed, %s single\n", lanes_paired, lanes_widowed, lanes_single), sprintf("%0.1f +/- %0.1f bases (median=%0.1f)\n", read_length_mean, read_length_sd, read_length_median), sprintf("\tSequencing dates: %s to %s\n", start_date, end_date))
 		print(nrow(table3))
 
   	rownames(table3)<-c("Sequencer", "Used lanes", "Unused lanes","Used lanes/sample", "Lane pariteies", "Read legnths", "Sequencing dates")
