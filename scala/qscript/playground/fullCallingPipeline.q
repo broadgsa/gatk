@@ -1,3 +1,5 @@
+
+import java.io.PrintWriter
 import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
@@ -30,9 +32,6 @@ class fullCallingPipeline extends QScript {
   @Input(doc="path to GATK jar")
   var gatkJar: File = _
 
-  @Input(doc="target Ti/Tv ratio for recalibration", shortName="titv", required=true)
-  var target_titv: Float = _
-
   @Input(doc="per-sample downsampling level",shortName="dcov",required=false)
   var downsampling_coverage = 600
 
@@ -48,8 +47,8 @@ class fullCallingPipeline extends QScript {
   @Input(doc="Skip indel-cleaning for BAM files (for testing only)", shortName="skipCleaning", required=false)
   var skip_cleaning = false
 
-  //@Input(doc="ADPR script")
-  //var adprScript: File = _
+  @Input(doc="ADPR script", shortName ="tearScript", required=true)
+  var adprthing: File = _
 
   //@Input(doc="Sequencing maching name (for use by adpr)")
   //var machine: String = _
@@ -206,6 +205,13 @@ class fullCallingPipeline extends QScript {
 
     val samples = qscript.pipeline.getSamples.filter(_.getBamFiles.contains(bamType)).toList
     val bamFiles = samples.map(_.getBamFiles.get(bamType))
+    val listOfBams =  new File(base +".BamFiles.list")
+
+    val writer = new PrintWriter(listOfBams)
+      for (bamFile <- bamFiles){
+        writer.println(bamFile.toString)
+      }
+      writer.close()
 
     // step through the un-indel-cleaned graph:
     // 1a. call snps and indels
@@ -367,7 +373,7 @@ class fullCallingPipeline extends QScript {
     eval.jobOutputFile = new File(".queue/logs/SNPCalling/VariantEval.out")
    // eval.rodBind :+= RodBind("evalOptimized", "VCF", cut.out)
     eval.rodBind :+= RodBind("eval", "VCF", handFilter.out)
-    eval.evalModule ++= List("SimpleMetricsBySample", "CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
+    eval.evalModule ++= List("FunctionalClassBySample", "SimpleMetricsBySample", "CountFunctionalClasses", "CompOverlap", "CountVariants", "TiTvVariantEvaluator")
     eval.reportLocation = new File("SnpCalls", base+".eval")
     eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.R)
     eval.analysisName = base+"_VariantEval"
@@ -381,35 +387,35 @@ class fullCallingPipeline extends QScript {
 
     // 5. Run the ADPR and make pretty stuff
 
-//    val adpr = new CommandLineFunction{
-//     @Input(doc="Dependent files") var dependents: File = _
-//     @Output(doc="Automated Data processing report") var out: File = _
-//      var setname: String
-//      var protocol: String
-//      var sequencer: String
-//      var scriptloc: File
-//      def commandLine = "Rscript %s %s %s %s"
-//        .format(scriptloc, setname, protocol, sequencer)
-//    }
-//
-//    adpr.setname = base
-//    adpr.scriptloc = adprthing
-//    adpr.sequencer = seqinfo
-//    adpr.protocol = exptype
-//    adpr.dependents = eval.reportLocation
-//    adpr.jobOutputFile = new File(".queue/logs/Reporting/ADPR.out")
-//    adpr.out = new File("Reporting", base + "_adpr.pdf")
-//    adpr.analysisName = base + "_ADPR"
-    //In order for ADPR to finish successfully, a squid file for both the lane and sample level data needs to be
-    // produced, reformatted and named <projectBase>_lanes.txt or <projectBase>_samps.txt, respectively. These files
-    // to be in the working directory. When database access is ready, this and the protocol and sequencer parameters of
-    //the r script will go away.
+    class rCommand extends CommandLineFunction{
+      @Argument(doc="R script")
+      var  script: File = _
+      @Argument(doc="list of bams")
+        var bamlist: File =_
+      @Input(doc="Eval files root")
+      var evalroot: File =_
+      @Output(doc="plot pdf loc")
+      var plots: File =_
+      @Output(doc="tearsheet loc")
+      var tearsheet: File =_
+      def commandLine = "Rscript %s -bamlist %s -evalroot %s -tearout %s -plotout %s"
+        .format(script, bamlist, evalroot, tearsheet, plots)
+    }
+
+    val adpr = new rCommand
+     adpr.bamlist = listOfBams
+     adpr.script = adprthing
+     adpr.evalroot = eval.reportLocation
+     adpr.jobOutputFile = new File(".queue/logs/SNPCalling/adpr.out")
+     adpr.tearsheet = new File("SnpCalls", base + ".tearsheet.pdf")
+     adpr.plots = new File("SnpCalls", base + ".plots.pdf")
+     adpr.analysisName = base + "_ADPR"
+
 
     for ( igv2 <- indelGenotypers ) {
       add(igv2)
     }
 
-//    add(mergeIndels,annotated,masker,handFilter,clusters,recalibrate,cut,eval,adpr)
-    add(mergeIndels,annotated,masker,handFilter,eval)
+    add(mergeIndels,annotated,masker,handFilter,eval,adpr)
   }
 }
