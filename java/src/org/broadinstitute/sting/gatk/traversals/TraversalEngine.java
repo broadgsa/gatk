@@ -116,7 +116,9 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 
     // How long can we go without printing some progress info?
     private long lastProgressPrintTime = -1;                       // When was the last time we printed progress log?
-    private long PROGRESS_PRINT_FREQUENCY = 10 * 1000;             // in seconds
+    private long PROGRESS_PRINT_FREQUENCY = 10 * 1000;             // in milliseconds
+    private final double TWO_HOURS_IN_SECONDS = 2.0 * 60.0 * 60.0;
+    private final double TWELVE_HOURS_IN_SECONDS = 12.0 * 60.0 * 60.0;
 
     // for performance log
     private static final boolean PERFORMANCE_LOG_ENABLED = true;
@@ -124,7 +126,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     private File performanceLogFile;
     private PrintStream performanceLog = null;
     private long lastPerformanceLogPrintTime = -1;                   // When was the last time we printed to the performance log?
-    private final long PERFORMANCE_LOG_PRINT_FREQUENCY = PROGRESS_PRINT_FREQUENCY;  // in seconds
+    private final long PERFORMANCE_LOG_PRINT_FREQUENCY = PROGRESS_PRINT_FREQUENCY;  // in milliseconds
 
     /** Size, in bp, of the area we are processing.  Updated once in the system in initial for performance reasons */
     long targetSize = -1;
@@ -265,6 +267,14 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
                 final double fractionGenomeTargetCompleted = calculateFractionGenomeTargetCompleted(last);
                 final MyTime estTotalRuntime = new MyTime(elapsed.t / fractionGenomeTargetCompleted);
                 final MyTime timeToCompletion = new MyTime(estTotalRuntime.t - elapsed.t);
+
+                // dynamically change the update rate so that short running jobs receive frequent updates while longer jobs receive fewer updates
+                if ( estTotalRuntime.t > TWELVE_HOURS_IN_SECONDS )
+                    PROGRESS_PRINT_FREQUENCY = 60 * 1000; // in milliseconds
+                else if ( estTotalRuntime.t > TWO_HOURS_IN_SECONDS )
+                    PROGRESS_PRINT_FREQUENCY = 30 * 1000; // in milliseconds    
+                else
+                    PROGRESS_PRINT_FREQUENCY = 10 * 1000; // in milliseconds
 
                 if ( printProgress ) {
 //                    String common = String.format("%4.1e %s in %s, %s per 1M %s, %4.1f%% complete, est. runtime %s, %s remaining",
