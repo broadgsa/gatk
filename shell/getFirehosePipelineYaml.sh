@@ -27,7 +27,7 @@ PIPELINE_YAML_FILE=$ENTITY_SET_ID.yaml
 
 # Annotations to pull down from Firehose
 
-FIREHOSE_ANNOTATIONS=(reference_file dbsnp_file interval_list \
+FIREHOSE_ANNOTATIONS=(reference_file interval_list \
   sample_id recalibrated_bam_file squid_project collaborator_id)
 
 # YAML templates
@@ -37,8 +37,9 @@ PROJECT_YAML_TEMPLATE='"\n\
     name: '"$ENTITY_SET_ID"',\n\
     referenceFile: %s,\n\
     dbsnpFile: %s,\n\
+    refseqTable: %s,\n\
     intervalList: %s\n\
-  },", $1, $2, $3'
+  },", $1, dbsnp, refseq, $2'
 
 SAMPLE_YAML_TEMPLATE='"\n\
     {\n\
@@ -48,7 +49,7 @@ SAMPLE_YAML_TEMPLATE='"\n\
         SQUIDProject: %s,\n\
         CollaboratorID: %s\n\
       }\n\
-    }", $4, $5, $6, $7'
+    }", $3, $4, $5, $6'
 
 TEST_AWK_COUNT=`echo '\n' | awk '{print $0}' | wc -c`
 if [ "$TEST_AWK_COUNT" -eq 2 ]; then
@@ -82,12 +83,27 @@ $FIREHOSE_TEST_HARNESS \
 # Generate yaml from firehose output
 . firehose-populated-commands.sh | awk '
 BEGIN {
+    refseq_dir = "/humgen/gsa-hpprojects/GATK/data/Annotations/refseq/";
+    dbsnp_dir = "/humgen/gsa-hpprojects/GATK/data/";
+
+    dbsnps["Homo_sapiens_assembly18.fasta"] = dbsnp_dir "dbsnp_129_hg18.rod";
+    refseqs["Homo_sapiens_assembly18.fasta"] = refseq_dir "refGene-big-table-hg18.txt";
+
+    dbsnps["Homo_sapiens_assembly19.fasta"] = dbsnp_dir "dbsnp_132_b37.vcf";
+    refseqs["Homo_sapiens_assembly19.fasta"] = refseq_dir "refGene-big-table-hg19.txt";
+
     printf "{"
 }
 {
     if (NR == 1) {
-      printf '"$PROJECT_YAML_TEMPLATE"'
-      printf "\n  samples: ["
+        reference_part_count = split($1, reference_parts, "/")
+        reference_name = reference_parts[reference_part_count];
+
+        dbsnp = dbsnps[reference_name];
+        refseq = refseqs[reference_name];
+
+        printf '"$PROJECT_YAML_TEMPLATE"'
+        printf "\n  samples: ["
     } else {
         printf ","
     }

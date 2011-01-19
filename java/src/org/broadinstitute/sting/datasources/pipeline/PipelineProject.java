@@ -36,6 +36,7 @@ public class PipelineProject {
     private File referenceFile;
     private File intervalList;
     private File dbsnpFile;
+    private File refseqTable;
     private Map<String, String> tags = new TreeMap<String, String>();
 
     public String getName() {
@@ -68,6 +69,14 @@ public class PipelineProject {
 
     public void setDbsnpFile(File dbsnpFile) {
         this.dbsnpFile = dbsnpFile;
+    }
+
+    public File getRefseqTable() {
+        return refseqTable;
+    }
+
+    public void setRefseqTable(File refseqTable) {
+        this.refseqTable = refseqTable;
     }
 
     public Map<String, String> getTags() {
