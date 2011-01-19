@@ -90,7 +90,7 @@ class FullCallingPipelineTest extends BaseTest {
     var cleanType = "cleaned"
 
     // Run the pipeline with the expected inputs.
-    var pipelineCommand = ("-retry 1 -S scala/qscript/fullCallingPipeline.q" +
+    var pipelineCommand = ("-retry 1 -S scala/qscript/playground/fullCallingPipeline.q" +
             " -jobProject %s -Y %s -refseqTable %s" +
             " --gatkjar %s/dist/GenomeAnalysisTK.jar")
             .format(projectName, yamlFile, dataset.refseq, new File(".").getAbsolutePath)
