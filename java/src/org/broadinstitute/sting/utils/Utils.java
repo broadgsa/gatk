@@ -620,9 +620,9 @@ public class Utils {
             seqOut[i] = (byte)seqIn[i];
         }
         return seqOut;
-    }    
+    }
+
+    public static boolean isFlagSet(int value, int flag) {
+        return ((value & flag) == flag);
+    }
 }
-
-
-
-

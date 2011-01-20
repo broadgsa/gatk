@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.jna.clibrary;
 
 import com.sun.jna.*;
+import com.sun.jna.ptr.NativeLongByReference;
 
 /**
  * Sparse port of the Standard C Library libc -lc.
@@ -176,4 +177,20 @@ public class LibC {
         public NativeLong tv_sec;
         public NativeLong tv_usec;
     }
+
+    /**
+     * The time() function returns the value of time in seconds since 0 hours, 0 minutes, 0 seconds, January 1, 1970, Coordinated Universal Time, without including leap seconds.  If an error occurs, time() returns the value (time_t)-1.
+     * The return value is also stored in *tloc, provided that t is non-null.
+     * @param t the value of time in seconds,  provided that t is non-null.
+     * @return the value of time in seconds
+     */
+    public static native NativeLong time(NativeLongByReference t);
+
+    /**
+     * Returns the difference between two calendar times, (time1 - time0), expressed in seconds.
+     * @param time1 Time 1
+     * @param time0 Time 0
+     * @return the difference between two calendar times, (time1 - time0), expressed in seconds.
+     */
+    public static native double difftime(NativeLong time1, NativeLong time0);
 }

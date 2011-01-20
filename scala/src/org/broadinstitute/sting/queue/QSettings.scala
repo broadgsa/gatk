@@ -29,6 +29,9 @@ class QSettings {
   @Argument(fullName="temp_directory", shortName="tempDir", doc="Temp directory to pass to functions.", required=false)
   var tempDirectory = new File(System.getProperty("java.io.tmpdir"))
 
+  @Argument(fullName="mount_directory", shortName="mountDir", doc="Extra directory to automount via 'cd <dir>' before running functions.", required=false)
+  var mountDirectories: Set[File] = Set.empty[File]
+
   @ArgumentCollection
   val emailSettings = new EmailSettings
 }

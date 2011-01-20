@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.jna.clibrary;
 
+import com.sun.jna.NativeLong;
+import com.sun.jna.ptr.NativeLongByReference;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -39,5 +41,29 @@ public class LibCUnitTest extends BaseTest {
         Assert.assertEquals(LibC.getenv(testProperty), testValue);
         Assert.assertEquals(LibC.unsetenv(testProperty), 0);
         Assert.assertEquals(LibC.getenv(testProperty), null);
+    }
+
+    @Test
+    public void testDifftime() throws Exception {
+        // Pointer to hold the times
+        NativeLongByReference ref = new NativeLongByReference();
+
+        // time() returns -1 on error.
+        NativeLong err = new NativeLong(-1L);
+
+        LibC.time(ref);
+        NativeLong time0 = ref.getValue();
+        Assert.assertNotSame(time0, err, "Time 0 returned an error (-1).");
+
+        Thread.sleep(5000L);
+
+        LibC.time(ref);
+        NativeLong time1 = ref.getValue();
+        Assert.assertNotSame(time1, err, "Time 1 returned an error (-1).");
+
+        Assert.assertNotSame(time1, time0, "Time 1 returned same time as Time 0.");
+
+        double diff = LibC.difftime(time1, time0);
+        Assert.assertTrue(diff >= 5, "Time difference was not greater than 5 seconds: " + diff);
     }
 }

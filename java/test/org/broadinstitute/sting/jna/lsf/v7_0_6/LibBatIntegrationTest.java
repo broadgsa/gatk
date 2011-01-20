@@ -26,6 +26,7 @@ package org.broadinstitute.sting.jna.lsf.v7_0_6;
 
 import com.sun.jna.ptr.IntByReference;
 import org.apache.commons.io.FileUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
@@ -74,7 +75,7 @@ public class LibBatIntegrationTest extends BaseTest {
 
         System.out.println("Waiting for job to run: " + jobId);
         int jobStatus = LibBat.JOB_STAT_PEND;
-        while (isSet(jobStatus, LibBat.JOB_STAT_PEND) || isSet(jobStatus, LibBat.JOB_STAT_RUN)) {
+        while (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_PEND) || Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_RUN)) {
             Thread.sleep(30 * 1000L);
 
             int numJobs = LibBat.lsb_openjobinfo(jobId, null, null, null, null, LibBat.ALL_JOB);
@@ -92,15 +93,11 @@ public class LibBatIntegrationTest extends BaseTest {
                 LibBat.lsb_closejobinfo();
             }
         }
-        Assert.assertTrue(isSet(jobStatus, LibBat.JOB_STAT_DONE), String.format("Unexpected job status: 0x%02x", jobStatus));
+        Assert.assertTrue(Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_DONE), String.format("Unexpected job status: 0x%02x", jobStatus));
 
         Assert.assertTrue(FileUtils.waitFor(outFile, 120), "File not found: " + outFile.getAbsolutePath());
         Assert.assertTrue(outFile.delete(), "Unable to delete " + outFile.getAbsolutePath());
         Assert.assertEquals(reply.queue, req.queue, "LSF reply queue does not match requested queue.");
         System.out.println("Validating that we reached the end of the test without exit.");
-    }
-
-    private static boolean isSet(int value, int flag) {
-        return ((value & flag) == flag);
     }
 }

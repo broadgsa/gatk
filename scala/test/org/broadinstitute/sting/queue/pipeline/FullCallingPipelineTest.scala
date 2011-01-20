@@ -14,6 +14,14 @@ class FullCallingPipelineTest extends BaseTest {
 
   private final val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
 
+  // Explicit directories known to cause problems due to automount failures, and not detected by @Input / @Outputs
+  private final val mountDirectories = Set("/broad/software")
+
+  // In fullCallingPipeline.q VariantEval is always compared against 129.
+  // Until the newvarianteval is finalized which will allow java import of the prior results,
+  // we re-run VariantEval to validate the run, and replicate that behavior here.
+  private final val variantEvalDbsnpFile = new File(BaseTest.b37dbSNP129)
+
   val k1gChr20Dataset = {
     val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20")
     dataset.pipeline.getProject.setIntervalList(new File(BaseTest.GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list"))
@@ -42,7 +50,6 @@ class FullCallingPipelineTest extends BaseTest {
     dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.novel.titv.tiTvRatio", 3.0340)
 
     dataset.jobQueue = "gsa"
-    dataset.bigMemQueue = "gsa"
 
     dataset
   }
@@ -51,7 +58,8 @@ class FullCallingPipelineTest extends BaseTest {
     val project = new PipelineProject
     project.setName(projectName)
     project.setReferenceFile(new File(BaseTest.hg19Reference))
-    project.setDbsnpFile(new File(BaseTest.b37dbSNP129))
+    project.setDbsnpFile(new File(BaseTest.b37dbSNP132))
+    project.setRefseqTable(new File(BaseTest.hg19Refseq))
 
     val squid = "C426"
     val ids = List(
@@ -72,8 +80,6 @@ class FullCallingPipelineTest extends BaseTest {
 
     val dataset = new PipelineDataset
     dataset.pipeline = pipeline
-    dataset.refseq = BaseTest.hg19Refseq
-    dataset.targetTiTv = "3.0"
 
     dataset
   }
@@ -92,10 +98,10 @@ class FullCallingPipelineTest extends BaseTest {
     // Run the pipeline with the expected inputs.
     val currentDir = new File(".").getAbsolutePath
     var pipelineCommand = ("-retry 1 -S scala/qscript/playground/fullCallingPipeline.q" +
-            " -jobProject %s -Y %s -refseqTable %s" +
+            " -jobProject %s -Y %s" +
             " -tearScript %s/R/DataProcessingReport/GetTearsheetStats.R" +
             " --gatkjar %s/dist/GenomeAnalysisTK.jar")
-            .format(projectName, yamlFile, dataset.refseq, currentDir, currentDir)
+            .format(projectName, yamlFile, currentDir, currentDir)
 
     if (!dataset.runIndelRealigner) {
       pipelineCommand += " -skipCleaning"
@@ -105,8 +111,8 @@ class FullCallingPipelineTest extends BaseTest {
     if (dataset.jobQueue != null)
       pipelineCommand += " -jobQueue " + dataset.jobQueue
 
-    if (dataset.bigMemQueue != null)
-      pipelineCommand += " -bigMemQueue " + dataset.bigMemQueue
+    for (dir <- mountDirectories)
+      pipelineCommand += " -mountDir " + dir
 
     // Run the test, at least checking if the command compiles
     PipelineTest.executeTest(testName, pipelineCommand, null)
@@ -128,7 +134,7 @@ class FullCallingPipelineTest extends BaseTest {
       var walkerCommand = ("-T VariantEval -R %s -D %s -B:eval,VCF %s" +
               " -E %s -reportType R -reportLocation %s -L %s")
               .format(
-        dataset.pipeline.getProject.getReferenceFile, dataset.pipeline.getProject.getDbsnpFile, handFilteredVcf,
+        dataset.pipeline.getProject.getReferenceFile, variantEvalDbsnpFile, handFilteredVcf,
         evalModules.mkString(" -E "), reportLocation, dataset.pipeline.getProject.getIntervalList)
 
       for (validation <- dataset.validations) {
@@ -143,11 +149,8 @@ class FullCallingPipelineTest extends BaseTest {
 
   class PipelineDataset(
           var pipeline: Pipeline = null,
-          var refseq: String = null,
-          var targetTiTv: String = null,
           var validations: List[PipelineValidation] = Nil,
           var jobQueue: String = null,
-          var bigMemQueue: String = null,
           var runIndelRealigner: Boolean = false) {
     override def toString = pipeline.getProject.getName
   }

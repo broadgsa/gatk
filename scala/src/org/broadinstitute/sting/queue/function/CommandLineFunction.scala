@@ -14,9 +14,6 @@ trait CommandLineFunction extends QFunction with Logging {
   /** Upper memory limit */
   var memoryLimit: Option[Int] = None
 
-  /** Whether a job is restartable */
-  var jobRestartable = true
-
   /** Job project to run the command */
   var jobProject: String = _
 

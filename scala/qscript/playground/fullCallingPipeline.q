@@ -10,6 +10,7 @@ import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, Cl
 import org.broadinstitute.sting.queue.util.IOUtils
 import org.broadinstitute.sting.queue.QScript
 import collection.JavaConversions._
+import org.broadinstitute.sting.utils.exceptions.UserException
 import org.broadinstitute.sting.utils.interval.IntervalUtils
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
@@ -23,7 +24,8 @@ class fullCallingPipeline extends QScript {
   @Input(doc="path to trigger track (for UnifiedGenotyper)", shortName="trigger", required=false)
   var trigger: File = _
 
-  @Input(doc="path to refseqTable (for GenomicAnnotator)", shortName="refseqTable")
+  // TODO: Fix command lines that pass -refseqTable
+  @Input(doc="path to refseqTable (for GenomicAnnotator) if not present in the YAML", shortName="refseqTable", required=false)
   var refseqTable: File = _
 
   @Input(doc="path to Picard FixMateInformation.jar.  See http://picard.sourceforge.net/ .", required=false)
@@ -56,7 +58,8 @@ class fullCallingPipeline extends QScript {
   //@Input(doc="Sequencing experiement type (for use by adpr)--Whole_Exome, Whole_Genome, or Hybrid_Selection")
   //var protocol: String = _
 
-  @Argument(doc="Job queue for large memory jobs (>4 to 16GB)", shortName="bigMemQueue", required=false)
+  // TODO: Fix command lines that pass -bigMemQueue
+  @Argument(doc="Unused", shortName="bigMemQueue", required=false)
   var big_mem_queue: String = _
 
   @Argument(doc="Job queue for short run jobs (<1hr)", shortName="shortJobQueue", required=false)
@@ -86,8 +89,10 @@ class fullCallingPipeline extends QScript {
         dbsnpType = "VCF"
       }
 
-
     val projectBase: String = qscript.pipeline.getProject.getName
+    // TODO: Fix command lines that pass -refseqTable
+    if (qscript.refseqTable != null)
+      qscript.pipeline.getProject.setRefseqTable(qscript.refseqTable)
     if (qscript.skip_cleaning) {
       //endToEnd(projectBase + ".uncleaned", "recalibrated", adprRscript, seq, expKind)
 
@@ -288,13 +293,12 @@ class fullCallingPipeline extends QScript {
     mergeIndels.rodBind = indelCallFiles
     mergeIndels.analysisName = base+"_MergeIndels"
     mergeIndels.memoryLimit = Some(4)
-    mergeIndels.jobQueue = qscript.big_mem_queue
 
     // 1b. genomically annotate SNPs -- no longer slow
     val annotated = new GenomicAnnotator with CommandLineGATKArgs
     annotated.jobOutputFile = new File(".queue/logs/SNPCalling/GenomicAnnotator.out")
     annotated.rodBind :+= RodBind("variant", "VCF", snps.out)
-    annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.refseqTable)
+    annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.pipeline.getProject.getRefseqTable)
     //annotated.rodBind :+= RodBind("dbsnp", "AnnotatorInputTable", qscript.dbsnpTable)
     annotated.out = swapExt("SnpCalls",snps.out,".vcf",".annotated.vcf")
     //annotated.select :+= "dbsnp.name,dbsnp.refUCSC,dbsnp.strand,dbsnp.observed,dbsnp.avHet"

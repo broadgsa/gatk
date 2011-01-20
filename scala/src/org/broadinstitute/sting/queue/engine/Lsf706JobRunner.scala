@@ -1,12 +1,15 @@
 package org.broadinstitute.sting.queue.engine
 
 import java.io.File
-import com.sun.jna.Memory
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.queue.QException
 import org.broadinstitute.sting.jna.lsf.v7_0_6.{LibLsf, LibBat}
 import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{signalBulkJobs, submitReply, submit}
+import org.broadinstitute.sting.utils.Utils
+import com.sun.jna.{NativeLong, Memory}
+import org.broadinstitute.sting.jna.clibrary.LibC
+import java.util.Date
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -70,14 +73,6 @@ class Lsf706JobRunner(function: CommandLineFunction) extends LsfJobRunner(functi
       writeExec()
       request.command = "sh " + exec
 
-      writePreExec()
-      request.preExecCmd = "sh " + preExec
-      request.options |= LibBat.SUB_PRE_EXEC
-
-      writePostExec()
-      request.postExecCmd = "sh " + postExec
-      request.options3 |= LibBat.SUB3_POST_EXEC
-
       // Allow advanced users to update the request.
       updateJobRun(request)
 
@@ -98,7 +93,6 @@ class Lsf706JobRunner(function: CommandLineFunction) extends LsfJobRunner(functi
         if (jobId < 0)
           throw new QException(LibBat.lsb_sperror("Unable to submit job"))
       }, 1, 5, 10)
-      jobStatusPath = IOUtils.absolute(new File(jobStatusDir, "." + jobId)).toString
       logger.info("Submitted LSF job id: " + jobId)
     } catch {
       case e =>
@@ -113,6 +107,111 @@ class Lsf706JobRunner(function: CommandLineFunction) extends LsfJobRunner(functi
         logger.error("Error: " + bsubCommand, e)
     }
   }
+
+  /**
+   * Updates and returns the status.
+   */
+  def status = {
+    try {
+      var jobStatus = LibBat.JOB_STAT_NULL
+      var exitStatus = 0
+      var exitInfo = 0
+      var endTime: NativeLong = null
+
+      LibBat.lsb_openjobinfo(jobId, null, null, null, null, LibBat.ALL_JOB)
+      try {
+        val jobInfo = LibBat.lsb_readjobinfo(null)
+        if (jobInfo == null) {
+          jobStatus = LibBat.JOB_STAT_UNKWN
+          exitStatus = 0
+          exitInfo = 0
+          endTime = null
+        } else {
+          jobStatus = jobInfo.status
+          exitStatus = jobInfo.exitStatus
+          exitInfo = jobInfo.exitInfo
+          endTime = jobInfo.endTime
+        }
+      } finally {
+        LibBat.lsb_closejobinfo()
+      }
+
+      logger.debug("Job Id %s status / exitStatus / exitInfo: 0x%02x / 0x%02x / 0x%02x".format(jobId, jobStatus, exitStatus, exitInfo))
+
+      if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_UNKWN)) {
+        val now = new Date().getTime
+
+        if (firstUnknownTime.isEmpty) {
+          firstUnknownTime = Some(now)
+          logger.debug("First unknown status for job id: " + jobId)
+        }
+
+        if ((firstUnknownTime.get - now) >= (unknownStatusMaxSeconds * 1000L)) {
+          // Unknown status has been returned for a while now.
+          runStatus = RunnerStatus.FAILED
+          try {
+            removeTemporaryFiles()
+            function.failOutputs.foreach(_.createNewFile())
+          } catch {
+            case _ => /* ignore errors in the error handler */
+          }
+          logger.error("Error: " + bsubCommand + ", unknown status for " + unknownStatusMaxSeconds + " seconds.")
+        }
+      } else {
+        // Reset the last time an unknown status was seen.
+        firstUnknownTime = None
+
+        if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_EXIT) && !willRetry(exitInfo, endTime)) {
+          // Exited function that (probably) won't be retried.
+          runStatus = RunnerStatus.FAILED
+          try {
+            removeTemporaryFiles()
+            function.failOutputs.foreach(_.createNewFile())
+          } catch {
+            case _ => /* ignore errors in the error handler */
+          }
+          logger.error("Error: " + bsubCommand)
+          tailError()
+        } else if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_DONE)) {
+          // Done successfully.
+          removeTemporaryFiles()
+          function.doneOutputs.foreach(_.createNewFile())
+          runStatus = RunnerStatus.DONE
+          logger.info("Done: " + bsubCommand)
+        }
+      }
+    } catch {
+      case e =>
+        runStatus = RunnerStatus.FAILED
+        try {
+          removeTemporaryFiles()
+          function.failOutputs.foreach(_.createNewFile())
+          writeStackTrace(e)
+        } catch {
+          case _ => /* ignore errors in the exception handler */
+        }
+        logger.error("Error: " + bsubCommand, e)
+    }
+
+    runStatus
+  }
+
+  /**
+   * Returns true if LSF is expected to retry running the function.
+   * @param exitInfo The reason the job exited.
+   * @param endTime THe time the job exited.
+   * @return true if LSF is expected to retry running the function.
+   */
+  private def willRetry(exitInfo: Int, endTime: NativeLong) = {
+    exitInfo match {
+      case LibBat.EXIT_NORMAL => false
+      case _ => {
+        val seconds = LibC.difftime(LibC.time(null), endTime)
+        (seconds <= retryExpiredSeconds)
+      }
+    }
+  }
+
 }
 
 object Lsf706JobRunner extends Logging {

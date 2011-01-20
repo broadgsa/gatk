@@ -34,6 +34,9 @@ trait QFunction extends Logging {
   /** Temporary directory to write any files */
   var jobTempDir: File = null
 
+  /** Directories to mount via 'cd <dir>' before running the command. */
+  var mountDirectories: Set[File] = Set.empty[File]
+
   /** Order the function was added to the graph. */
   var addOrder: List[Int] = Nil
 
@@ -43,6 +46,9 @@ trait QFunction extends Logging {
    * TODO: Replace with full resource specifications.
    */
   var jobLimitSeconds: Option[Int] = None
+
+  /** Whether a job is restartable */
+  var jobRestartable = true
 
   /**
    * A callback for modifying the run.
@@ -301,6 +307,8 @@ trait QFunction extends Logging {
 
     // Do not set the temp dir relative to the command directory
     jobTempDir = IOUtils.absolute(jobTempDir)
+
+    mountDirectories ++= qSettings.mountDirectories
 
     absoluteCommandDirectory()
   }
