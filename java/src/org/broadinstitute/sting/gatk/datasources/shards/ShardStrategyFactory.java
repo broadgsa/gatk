@@ -70,7 +70,7 @@ public class ShardStrategyFactory {
             case LOCUS_EXPERIMENTAL:
                 return new LocusShardStrategy(readsDataSource,referenceDataSource,genomeLocParser,null);
             case READS_EXPERIMENTAL:
-                return new ReadShardStrategy(readsDataSource,null);
+                return new ReadShardStrategy(genomeLocParser,readsDataSource,null);
             default:
                 throw new ReviewedStingException("Strategy: " + strat + " isn't implemented for this type of shatter request");
         }
@@ -108,7 +108,7 @@ public class ShardStrategyFactory {
             case LOCUS_EXPERIMENTAL:
                 return new LocusShardStrategy(readsDataSource,referenceDataSource,genomeLocParser,lst);
             case READS_EXPERIMENTAL:
-                return new ReadShardStrategy(readsDataSource,lst);
+                return new ReadShardStrategy(genomeLocParser, readsDataSource,lst);
             default:
                 throw new ReviewedStingException("Strategy: " + strat + " isn't implemented");
         }

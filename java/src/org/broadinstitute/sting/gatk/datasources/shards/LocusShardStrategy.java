@@ -49,6 +49,11 @@ public class LocusShardStrategy implements ShardStrategy {
     private final SAMDataSource reads;
 
     /**
+     * the parser for creating shards
+     */
+    private GenomeLocParser genomeLocParser;
+
+    /**
      * An iterator through the available file pointers.
      */
     private final Iterator<FilePointer> filePointerIterator;
@@ -60,6 +65,8 @@ public class LocusShardStrategy implements ShardStrategy {
      */
     LocusShardStrategy(SAMDataSource reads, IndexedFastaSequenceFile reference, GenomeLocParser genomeLocParser, GenomeLocSortedSet locations) {
         this.reads = reads;
+        this.genomeLocParser = genomeLocParser;
+
         if(!reads.isEmpty()) {
             GenomeLocSortedSet intervals;
             if(locations == null) {
@@ -124,7 +131,7 @@ public class LocusShardStrategy implements ShardStrategy {
     public LocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
         Map<SAMReaderID,SAMFileSpan> fileSpansBounding = nextFilePointer.fileSpans != null ? nextFilePointer.fileSpans : null;
-        return new LocusShard(reads,nextFilePointer.locations,fileSpansBounding);
+        return new LocusShard(genomeLocParser, reads,nextFilePointer.locations,fileSpansBounding);
     }
 
     /** we don't support the remove command */

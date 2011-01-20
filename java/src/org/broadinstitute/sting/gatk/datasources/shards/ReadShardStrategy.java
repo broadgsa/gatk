@@ -31,6 +31,7 @@ import java.util.*;
 
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 /**
@@ -84,13 +85,16 @@ public class ReadShardStrategy implements ShardStrategy {
      */
     private boolean isIntoUnmappedRegion = false;
 
+    private final GenomeLocParser parser;
+
     /**
      * Create a new read shard strategy, loading read shards from the given BAM file.
      * @param dataSource Data source from which to load shards.
      * @param locations intervals to use for sharding.
      */
-    public ReadShardStrategy(SAMDataSource dataSource, GenomeLocSortedSet locations) {
+    public ReadShardStrategy(GenomeLocParser parser, SAMDataSource dataSource, GenomeLocSortedSet locations) {
         this.dataSource = dataSource;
+        this.parser = parser;
         this.position = this.dataSource.getCurrentPosition();
         this.locations = locations;
 
@@ -155,7 +159,7 @@ public class ReadShardStrategy implements ShardStrategy {
                 }
 
                 if(selectedReaders.size() > 0) {
-                    BAMFormatAwareShard shard = new ReadShard(dataSource,selectedReaders,currentFilePointer.locations,currentFilePointer.isRegionUnmapped);
+                    BAMFormatAwareShard shard = new ReadShard(parser, dataSource,selectedReaders,currentFilePointer.locations,currentFilePointer.isRegionUnmapped);
                     dataSource.fillShard(shard);
 
                     if(!shard.isBufferEmpty()) {
@@ -169,7 +173,9 @@ public class ReadShardStrategy implements ShardStrategy {
             }
         }
         else {
-            BAMFormatAwareShard shard = new ReadShard(dataSource,position,null,false);
+            // todo -- this nulling of intervals is a bit annoying since readwalkers without
+            // todo -- any -L values need to be special cased throughout the code.
+            BAMFormatAwareShard shard = new ReadShard(parser,dataSource,position,null,false);
             dataSource.fillShard(shard);
             nextShard = !shard.isBufferEmpty() ? shard : null;
         }
