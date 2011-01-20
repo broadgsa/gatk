@@ -40,6 +40,9 @@ import java.util.Collections;
  */
 public class MockLocusShard extends LocusShard {
     public MockLocusShard(final GenomeLocParser genomeLocParser,final List<GenomeLoc> intervals) {
-        super(new SAMDataSource(Collections.<SAMReaderID>emptyList(),genomeLocParser),intervals,null);
+        super(  genomeLocParser,
+                new SAMDataSource(Collections.<SAMReaderID>emptyList(),genomeLocParser),
+                intervals,
+                null);
     }
 }

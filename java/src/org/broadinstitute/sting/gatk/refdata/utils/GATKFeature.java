@@ -27,6 +27,7 @@ import org.broad.tribble.Feature;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -40,7 +41,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
  * This wraps a Tribble feature or a RODatum so that both present the same interface: a genome loc for position and a
  * way of retrieving the track name.
  */
-public abstract class GATKFeature implements Feature {
+public abstract class GATKFeature implements Feature, HasGenomeLocation {
 
     public GATKFeature(String name) {
         this.name = name;

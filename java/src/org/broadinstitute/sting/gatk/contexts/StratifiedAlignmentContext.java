@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.contexts;
 
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -39,7 +40,7 @@ import java.util.*;
  * User: ebanks
  * Modified: chartl (split by read group)
  */
-public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> {
+public class StratifiedAlignmentContext<RBP extends ReadBackedPileup> implements HasGenomeLocation {
 
     // Definitions:
     //   COMPLETE = full alignment context

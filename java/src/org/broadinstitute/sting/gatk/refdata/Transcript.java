@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 
 import java.util.List;
 
@@ -11,7 +12,7 @@ import java.util.List;
  * Time: 5:22:30 PM
  * To change this template use File | Settings | File Templates.
  */
-public interface Transcript {
+public interface Transcript extends HasGenomeLocation {
 
     /** Returns id of the transcript (RefSeq NM_* id) */
     public String getTranscriptId();

@@ -25,6 +25,7 @@ package org.broadinstitute.sting.gatk.refdata.utils;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -190,7 +191,7 @@ public class FlashBackIterator implements LocationAwareSeekableRODIterator {
 /**
  * a list that buffers the location for this rod
  */
-class ComparableList implements Comparator<ComparableList> {
+class ComparableList implements Comparator<ComparableList>, HasGenomeLocation {
     private RODRecordList list;
     private GenomeLoc location = null;
     public ComparableList(RODRecordList list) {

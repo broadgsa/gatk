@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.utils.pileup;
 
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.BaseUtils;

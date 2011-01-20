@@ -17,7 +17,7 @@ import java.io.Serializable;
  *
  *
  */
-public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable {
+public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable, HasGenomeLocation {
     /**
      * the basic components of a genome loc, its contig index,
      * start and stop position, and (optionally) the contig name
@@ -38,7 +38,8 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     public static final boolean isUnmapped(GenomeLoc loc) {
         return loc == UNMAPPED;
     }
-    
+    public static final GenomeLoc WHOLE_GENOME = new GenomeLoc("all",-1,0,0);
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // constructors
@@ -68,6 +69,8 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     //
     // Accessors and setters
     //
+    public final GenomeLoc getLocation() { return this; }
+
     public final String getContig() {
         return this.contigName;
     }

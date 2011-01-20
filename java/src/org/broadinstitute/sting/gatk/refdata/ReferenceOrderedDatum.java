@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -13,7 +14,7 @@ import java.io.IOException;
  * Time: 10:49:47 AM
  * To change this template use File | Settings | File Templates.
  */
-public interface ReferenceOrderedDatum extends Comparable<ReferenceOrderedDatum> {
+public interface ReferenceOrderedDatum extends Comparable<ReferenceOrderedDatum>, HasGenomeLocation {
     public String getName();
     public boolean parseLine(final Object header, final String[] parts) throws IOException;
     public String toString();

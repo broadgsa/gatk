@@ -24,6 +24,7 @@
 package org.broadinstitute.sting.gatk.refdata.utils;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 
 import java.util.List;
 
@@ -36,7 +37,7 @@ import java.util.List;
  *         make the RODRecord list an interface, so we can stub in other implementations
  *         during testing.
  */
-public interface RODRecordList extends List<GATKFeature>, Comparable<RODRecordList> {
+public interface RODRecordList extends List<GATKFeature>, Comparable<RODRecordList>, HasGenomeLocation {
     public GenomeLoc getLocation();
     public String getName();
 }

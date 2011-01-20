@@ -1086,7 +1086,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
 
     // COULD replace with MutableVariantContext if it worked [didn't throw exceptions when trying to call its set() methods]...
 
-    private class UnfinishedVariantContext {
+    private class UnfinishedVariantContext implements HasGenomeLocation {
         private String name;
         private String contig;
         private int start;

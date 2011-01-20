@@ -1494,7 +1494,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private class ReadBin {
+    private class ReadBin implements HasGenomeLocation {
 
         private final ArrayList<SAMRecord> reads = new ArrayList<SAMRecord>();
         private byte[] reference = null;

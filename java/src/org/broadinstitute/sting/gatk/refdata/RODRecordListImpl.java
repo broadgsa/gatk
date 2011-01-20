@@ -2,6 +2,7 @@ package org.broadinstitute.sting.gatk.refdata;
 
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -14,7 +15,7 @@ import java.util.*;
  * Time: 6:10:48 PM
  * To change this template use File | Settings | File Templates.
  */
-public class RODRecordListImpl extends AbstractList<GATKFeature> implements Comparable<RODRecordList>, Cloneable, RODRecordList {
+public class RODRecordListImpl extends AbstractList<GATKFeature> implements Comparable<RODRecordList>, Cloneable, RODRecordList, HasGenomeLocation {
     private List<GATKFeature> records;
     private GenomeLoc location = null;
     private String name = null;

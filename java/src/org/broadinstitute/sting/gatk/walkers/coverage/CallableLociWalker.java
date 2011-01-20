@@ -99,7 +99,7 @@ public class CallableLociWalker extends LocusWalker<CallableLociWalker.CallableB
         CallableBaseState state = null;
     }
 
-    public static class CallableBaseState {
+    public static class CallableBaseState implements HasGenomeLocation {
         public GenomeLocParser genomeLocParser;
         public GenomeLoc loc;
         public CalledState state;

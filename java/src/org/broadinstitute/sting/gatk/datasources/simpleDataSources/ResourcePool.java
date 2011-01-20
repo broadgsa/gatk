@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.datasources.simpleDataSources;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -189,7 +190,7 @@ class EntireStream implements DataStreamSegment {
 /**
  * Models a mapped position within a stream of GATK input data.
  */
-class MappedStreamSegment implements DataStreamSegment {
+class MappedStreamSegment implements DataStreamSegment, HasGenomeLocation {
     public final GenomeLoc locus;
 
     /**

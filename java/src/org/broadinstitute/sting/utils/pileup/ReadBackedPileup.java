@@ -28,6 +28,7 @@ import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.iterators.IterableIterator;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.HasGenomeLocation;
 
 import java.util.List;
 import java.util.Collection;
@@ -38,7 +39,7 @@ import java.util.Collection;
  * @author mhanna
  * @version 0.1
  */
-public interface ReadBackedPileup extends Iterable<PileupElement> {
+public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLocation {
     /**
      * Returns a new ReadBackedPileup that is free of deletion spanning reads in this pileup.  Note that this
      * does not copy the data, so both ReadBackedPileups should not be changed.  Doesn't make an unnecessary copy
