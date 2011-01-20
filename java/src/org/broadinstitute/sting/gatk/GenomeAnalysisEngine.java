@@ -410,7 +410,7 @@ public class GenomeAnalysisEngine {
                     region.add(getGenomeLocParser().createGenomeLoc(sequenceRecord.getSequenceName(),1,sequenceRecord.getSequenceLength()));
             }
 
-            return new MonolithicShardStrategy(readsDataSource,shardType,region);
+            return new MonolithicShardStrategy(getGenomeLocParser(), readsDataSource,shardType,region);
         }
 
         ShardStrategy shardStrategy = null;

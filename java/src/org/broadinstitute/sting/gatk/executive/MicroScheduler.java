@@ -26,9 +26,6 @@
 package org.broadinstitute.sting.gatk.executive;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.datasources.providers.LocusShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
@@ -41,7 +38,6 @@ import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 
-import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.*;
 
@@ -50,8 +46,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.threading.GenomeLocProcessingTracker;
-import org.broadinstitute.sting.utils.threading.NoOpGenomeLocProcessingTracker;
-import org.broadinstitute.sting.utils.threading.SharedFileGenomeLocProcessingTracker;
+import org.broadinstitute.sting.utils.threading.ProcessingLoc;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -63,7 +58,8 @@ import javax.management.ObjectName;
  * User: mhanna
  * Date: Apr 26, 2009
  * Time: 12:37:23 PM
- * To change this template use File | Settings | File Templates.
+ *
+ * General base class for all scheduling algorithms
  */
 
 /** Shards and schedules data in manageable chunks. */
@@ -89,7 +85,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
     private final MBeanServer mBeanServer;
     private final ObjectName mBeanName;
 
-    private GenomeLocProcessingTracker processingTracker;
+    protected GenomeLocProcessingTracker processingTracker;
 
     /**
      * MicroScheduler factory function.  Create a microscheduler appropriate for reducing the
@@ -104,6 +100,11 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return The best-fit microscheduler.
      */
     public static MicroScheduler create(GenomeAnalysisEngine engine, Walker walker, SAMDataSource reads, IndexedFastaSequenceFile reference, Collection<ReferenceOrderedDataSource> rods, int nThreadsToUse) {
+        if (engine.getArguments().processingTrackerFile != null) {
+            if ( walker instanceof ReadWalker )
+                throw new UserException.BadArgumentValue("C", String.format("Distributed GATK processing not enabled for read walkers"));
+        }
+
         if (walker instanceof TreeReducible && nThreadsToUse > 1) {
             if(walker.isReduceByInterval())
                 throw new UserException.BadArgumentValue("nt", String.format("The analysis %s aggregates results by interval.  Due to a current limitation of the GATK, analyses of this type do not currently support parallel execution.  Please run your analysis without the -nt option.", engine.getWalkerName(walker.getClass())));
@@ -166,10 +167,10 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
                 logger.info("Deleting ProcessingTracker file " + engine.getArguments().processingTrackerFile);
             }
 
-            processingTracker = new SharedFileGenomeLocProcessingTracker(engine.getArguments().processingTrackerFile, engine.getGenomeLocParser());
+            processingTracker = GenomeLocProcessingTracker.createFileBackedDistributed(engine.getArguments().processingTrackerFile, engine.getGenomeLocParser());
             logger.info("Creating ProcessingTracker using shared file " + engine.getArguments().processingTrackerFile);
         } else {
-            processingTracker = new NoOpGenomeLocProcessingTracker();
+            processingTracker = GenomeLocProcessingTracker.createNoOp();
         }
     }
 
@@ -182,79 +183,6 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * @return the return type of the walker
      */
     public abstract Object execute(Walker walker, ShardStrategy shardStrategy);
-
-    protected boolean claimShard(Shard shard) {
-        if ( shard.getGenomeLocs() == null ) {
-            if ( engine.getArguments().processingTrackerFile != null )
-                throw new UserException.BadArgumentValue("processingTrackerFile", "Cannot use processing tracking with unindexed data");
-            return true;
-        } else {
-            GenomeLoc shardSpan = shardSpan(shard);
-
-            GenomeLocProcessingTracker.ProcessingLoc proc = processingTracker.claimOwnership(shardSpan, engine.getName());
-            boolean actuallyProcess = proc.isOwnedBy(engine.getName());
-            //logger.debug(String.format("Shard %s claimed by %s => owned by me %b", shard, proc.getOwner(), actuallyProcess));
-
-            if ( ! actuallyProcess )
-                logger.info(String.format("DISTRIBUTED GATK: Shard %s already processed by %s", shard, proc.getOwner()));
-
-            return actuallyProcess;
-        }
-    }
-
-    private GenomeLoc shardSpan(Shard shard) {
-        if ( shard == null ) throw new ReviewedStingException("Shard is null!");
-        int start = Integer.MAX_VALUE;
-        int stop = Integer.MIN_VALUE;
-        String contig = null;
-
-        for ( GenomeLoc loc : shard.getGenomeLocs() ) {
-            if ( GenomeLoc.isUnmapped(loc) )
-                // special case the unmapped region marker, just abort out
-                return loc;
-            contig = loc.getContig();
-            if ( loc.getStart() < start ) start = loc.getStart();
-            if ( loc.getStop() > stop ) stop = loc.getStop();
-        }
-        return engine.getGenomeLocParser().createGenomeLoc(contig, start, stop);
-    }
-
-    // todo -- the execution code in the schedulers is duplicated and slightly different -- should be merged
-//    protected boolean executeShard(Walker walker, Shard shard, Accumulator accumulator) {
-//        if(shard.getShardType() == Shard.ShardType.LOCUS) {
-//            LocusWalker lWalker = (LocusWalker)walker;
-//
-//            WindowMaker windowMaker = new WindowMaker(shard, engine.getGenomeLocParser(), getReadIterator(shard), shard.getGenomeLocs(), lWalker.getDiscards(), engine.getSampleMetadata());
-//
-//            // ShardTraverser
-//
-//            ShardDataProvider dataProvider = null;
-//            for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
-//                dataProvider = new LocusShardDataProvider(shard,iterator.getSourceInfo(),engine.getGenomeLocParser(),iterator.getLocus(),iterator,reference,rods);
-//                Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
-//                accumulator.accumulate(dataProvider,result);
-//                dataProvider.close();
-//            }
-//            if (dataProvider != null) dataProvider.close();
-//            windowMaker.close();
-//        }
-//        else {
-//            ShardDataProvider dataProvider = new ReadShardDataProvider(shard,engine.getGenomeLocParser(),getReadIterator(shard),reference,rods);
-//            Object result = traversalEngine.traverse(walker, dataProvider, accumulator.getReduceInit());
-//            accumulator.accumulate(dataProvider,result);
-//            dataProvider.close();
-//        }
-//
-//
-//        // ShardTraverser
-//
-//        for(WindowMaker.WindowMakerIterator iterator: windowMaker) {
-//            accumulator = traversalEngine.traverse( walker, dataProvider, accumulator );
-//            dataProvider.close();
-//        }
-//
-//        return true;
-//    }
 
     /**
      * Retrieves the object responsible for tracking and managing output.

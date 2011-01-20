@@ -7,6 +7,7 @@ package org.broadinstitute.sting.utils.threading;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -17,7 +18,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -27,13 +28,11 @@ import java.util.concurrent.*;
 public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
     IndexedFastaSequenceFile fasta = null;
     GenomeLocParser genomeLocParser = null;
-    File sharedFile = new File("synchronizationFile.txt");
-    static final boolean USE_FILE_LOCK = false;
     String chr1 = null;
+    private final static String FILE_ROOT = "testdata/GLPTFile";
 
     @BeforeTest
     public void before() {
-        logger.warn("SharedFile is " + sharedFile.getAbsolutePath());
         File referenceFile = new File(hg18Reference);
         try {
             fasta = new IndexedFastaSequenceFile(referenceFile);
@@ -46,19 +45,24 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         }
     }
 
-    @AfterMethod
-    public void cleanup(Object[] data) {
-        if ( sharedFile.exists() ) {
-            sharedFile.delete();
-        }
+    @BeforeMethod
+    public void beforeMethod(Object[] data) {
+        if ( data.length > 0 )
+            ((TestTarget)data[0]).init();
+    }
 
-        ((TestTarget)data[0]).getTracker().close();
+    @AfterMethod
+    public void afterMethod(Object[] data) {
+        if ( data.length > 0 )
+            ((TestTarget)data[0]).getTracker().close();
     }
 
     abstract private class TestTarget {
         String name;
         int nShards;
         int shardSize;
+
+        public void init() {}
 
         protected TestTarget(String name, int nShards, int shardSize) {
             this.name = name;
@@ -83,37 +87,44 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         }
     }
 
-    private class SharedFileTest extends TestTarget {
-        protected SharedFileTest(int nShards, int shardSize) {
-            super("SharedFile", nShards, shardSize);
-        }
-
-        GenomeLocProcessingTracker tracker = null;
-        public GenomeLocProcessingTracker getTracker() {
-            if ( tracker == null )
-                //tracker = new SharedMemoryGenomeLocProcessingTracker();
-                tracker = new SharedFileGenomeLocProcessingTracker(sharedFile, genomeLocParser, USE_FILE_LOCK);
-            return tracker;
-        }
+    @DataProvider(name = "threadData")
+    public Object[][] createThreadData() {
+        return createData(Arrays.asList(10, 100, 1000, 10000), Arrays.asList(10));
     }
 
-
-    @DataProvider(name = "data")
-    public Object[][] createData1() {
+    public Object[][] createData(List<Integer> nShards, List<Integer> shardSizes) {
         List<TestTarget> params = new ArrayList<TestTarget>();
 
-        for ( int nShard : Arrays.asList(10, 100, 1000) ) {
-            for ( int shardSize : Arrays.asList(10) ) {
-//        for ( int nShard : Arrays.asList(10, 100, 1000, 10000) ) {
-//            for ( int shardSize : Arrays.asList(10, 100) ) {
+        int counter = 0;
+//        for ( int nShard : Arrays.asList(10,100,1000) ) {
+//            for ( int shardSize : Arrays.asList(10) ) {
+        for ( int nShard : nShards ) {
+            for ( int shardSize : shardSizes ) {
                 // shared mem -- canonical implementation
-                params.add(new TestTarget("SharedMem", nShard, shardSize) {
-                    SharedMemoryGenomeLocProcessingTracker tracker = new SharedMemoryGenomeLocProcessingTracker();
+                params.add(new TestTarget("ThreadSafeSharedMemory", nShard, shardSize) {
+                    SharedMemoryGenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createSharedMemory();
                     public GenomeLocProcessingTracker getTracker() { return tracker; }
                 });
 
-//                // shared file -- working implementation
-//                params.add(new SharedFileTest(nShard, shardSize));
+                final File file1 = new File(String.format("%s_ThreadSafeFileBacked_%d_%d", FILE_ROOT, counter++, nShard, shardSize));
+                params.add(new TestTarget("ThreadSafeFileBacked", nShard, shardSize) {
+                    GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createFileBackedThreaded(file1, genomeLocParser);
+                    public GenomeLocProcessingTracker getTracker() { return tracker; }
+                    public void init() {
+                        if ( file1.exists() )
+                            file1.delete();
+                    }
+                });
+
+                final File file2 = new File(String.format("%s_ThreadSafeFileLockingFileBacked_%d_%d", FILE_ROOT, counter++, nShard, shardSize));
+                params.add(new TestTarget("ThreadSafeFileLockingFileBacked", nShard, shardSize) {
+                    GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createFileBackedDistributed(file2, genomeLocParser);
+                    public GenomeLocProcessingTracker getTracker() { return tracker; }
+                    public void init() {
+                        if ( file2.exists() )
+                            file2.delete();
+                    }
+                });
             }
         }
 
@@ -122,10 +133,28 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         return params2.toArray(new Object[][]{});
     }
 
+    @DataProvider(name = "simpleData")
+    public Object[][] createSimpleData() {
+        return createData(Arrays.asList(1000), Arrays.asList(100));
+    }
+
     private static final String NAME_ONE   = "name1";
     private static final String NAME_TWO   = "name2";
 
-    @Test(dataProvider = "data", enabled = true)
+    @Test(enabled = true)
+    public void testNoop() {
+        GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createNoOp();
+        for ( int start = 1; start < 100; start++ ) {
+            for ( int n = 0; n < 2; n++ ) {
+                GenomeLoc loc = genomeLocParser.createGenomeLoc(chr1, start, start +1);
+                ProcessingLoc ploc = tracker.claimOwnership(loc, NAME_ONE);
+                Assert.assertTrue(ploc.isOwnedBy(NAME_ONE));
+                Assert.assertEquals(tracker.getProcessingLocs().size(), 0);
+            }
+        }
+    }
+
+    @Test(dataProvider = "simpleData", enabled = true)
     public void testSingleProcessTracker(TestTarget test) {
         GenomeLocProcessingTracker tracker = test.getTracker();
         List<GenomeLoc> shards = test.getShards();
@@ -138,24 +167,60 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
             Assert.assertNull(tracker.findOwner(shard));
             Assert.assertFalse(tracker.locIsOwned(shard));
 
-            GenomeLocProcessingTracker.ProcessingLoc proc = tracker.claimOwnership(shard,NAME_ONE);
+            ProcessingLoc proc = tracker.claimOwnership(shard,NAME_ONE);
             Assert.assertNotNull(proc);
-            Assert.assertNotNull(proc.getLoc());
+            Assert.assertNotNull(proc.getLocation());
             Assert.assertNotNull(proc.getOwner());
-            Assert.assertEquals(proc.getLoc(), shard);
+            Assert.assertEquals(proc.getLocation(), shard);
             Assert.assertEquals(proc.getOwner(), NAME_ONE);
             Assert.assertEquals(tracker.findOwner(shard), proc);
             Assert.assertTrue(tracker.locIsOwned(shard));
             Assert.assertNotNull(tracker.getProcessingLocs());
             Assert.assertEquals(tracker.getProcessingLocs().size(), counter);
 
-            GenomeLocProcessingTracker.ProcessingLoc badClaimAttempt = tracker.claimOwnership(shard,NAME_TWO);
+            ProcessingLoc badClaimAttempt = tracker.claimOwnership(shard,NAME_TWO);
             Assert.assertFalse(badClaimAttempt.getOwner().equals(NAME_TWO));
             Assert.assertEquals(badClaimAttempt.getOwner(), NAME_ONE);
         }
     }
 
-    @Test(dataProvider = "data", enabled = true)
+    @Test(dataProvider = "simpleData", enabled = true)
+    public void testIterator(TestTarget test) {
+        GenomeLocProcessingTracker tracker = test.getTracker();
+        List<GenomeLoc> shards = test.getShards();
+        logger.warn("testIterator " + test);
+
+        List<GenomeLoc> markedShards = new ArrayList<GenomeLoc>();
+        List<GenomeLoc> toFind = new ArrayList<GenomeLoc>();
+
+        for ( int i = 0; i < shards.size(); i++ ) {
+            if ( ! (i % 10 == 0) ) {
+                markedShards.add(shards.get(i));
+                tracker.claimOwnership(shards.get(i), NAME_TWO);
+            } else {
+                toFind.add(shards.get(i));
+            }
+        }
+
+        int nFound = 0;
+        Iterator<GenomeLoc> it = shards.iterator();
+        while ( it.hasNext() ) {
+            GenomeLoc shard = tracker.claimOwnershipOfNextAvailable(it, NAME_ONE);
+
+            if ( shard == null ) { // everything to get is done
+                Assert.assertEquals(nFound, toFind.size(), "Didn't find all of the available shards");
+            } else {
+                nFound++;
+                ProcessingLoc proc = tracker.findOwner(shard);
+
+                Assert.assertTrue(proc.isOwnedBy(NAME_ONE));
+                Assert.assertTrue(! markedShards.contains(shard), "Ran process was already marked!");
+                Assert.assertTrue(toFind.contains(shard), "Claimed shard wasn't one of the unmarked!");
+            }
+        }
+    }
+
+    @Test(dataProvider = "simpleData", enabled = true)
     public void testMarkedProcesses(TestTarget test) {
         GenomeLocProcessingTracker tracker = test.getTracker();
         List<GenomeLoc> shards = test.getShards();
@@ -171,7 +236,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         }
 
         for ( GenomeLoc shard : shards ) {
-            GenomeLocProcessingTracker.ProcessingLoc proc = tracker.claimOwnership(shard,NAME_ONE);
+            ProcessingLoc proc = tracker.claimOwnership(shard,NAME_ONE);
 
             Assert.assertTrue(proc.isOwnedBy(NAME_ONE) || proc.isOwnedBy(NAME_TWO));
 
@@ -190,24 +255,39 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         public TestTarget test;
         public String name;
         public List<GenomeLoc> ran, toRun;
+        boolean useIterator;
 
-        public TestThread(TestTarget test, int count, List<GenomeLoc> toRun) {
+        public TestThread(TestTarget test, int count, List<GenomeLoc> toRun, boolean useIterator) {
             this.test = test;
             this.toRun = toRun;
             this.name = "thread" + count;
             this.ran = new ArrayList<GenomeLoc>();
+            this.useIterator = useIterator;
         }
 
         public Integer call() {
-            logger.warn(String.format("Call() Thread %s", name));
-            for ( GenomeLoc shard : toRun ) {
-                //System.out.printf("Claiming ownership in %s on %s%n", name, shard);
-                GenomeLocProcessingTracker.ProcessingLoc proc = test.getTracker().claimOwnership(shard,name);
-                //System.out.printf("  => ownership of %s is %s (I own? %b)%n", shard, proc.getOwner(), proc.isOwnedBy(name));
-                if ( proc.isOwnedBy(name) ) {
-                    ran.add(proc.getLoc());
+            //logger.warn(String.format("Call() Thread %s", name));
+            if ( useIterator ) {
+                for ( GenomeLoc shard : test.getTracker().onlyOwned(toRun.iterator(), name) ) {
+                    if ( shard != null ) { // ignore the unclaimable end of the stream
+                        ran.add(shard);
+                        // do some work here
+                        for ( int sum =0, i = 0; i < 100000; i++) sum += i;
+                    }
                 }
-                //logger.warn(String.format("Thread %s on %s -> owned by %s", name, shard, proc.getOwner()));
+
+            } else {
+                for ( GenomeLoc shard : toRun ) {
+                    //System.out.printf("Claiming ownership in %s on %s%n", name, shard);
+                    ProcessingLoc proc = test.getTracker().claimOwnership(shard,name);
+                    //System.out.printf("  => ownership of %s is %s (I own? %b)%n", shard, proc.getOwner(), proc.isOwnedBy(name));
+                    if ( proc.isOwnedBy(name) ) {
+                        ran.add(proc.getLocation());
+                        // do some work here
+                        for ( int sum =0, i = 0; i < 100000; i++) sum += i;
+                    }
+                    //logger.warn(String.format("Thread %s on %s -> owned by %s", name, shard, proc.getOwner()));
+                }
             }
 
             return 1;
@@ -245,14 +325,23 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         return r;
     }
 
-    @Test(dataProvider = "data", enabled = true)
-    public void testThreadedProcesses(TestTarget test) {
+    @Test(dataProvider = "threadData", enabled = true)
+    public void testThreadedProcessesLowLevelFunctions(TestTarget test) {
+        testThreading(test, false);
+    }
+
+    @Test(dataProvider = "threadData", enabled = true)
+    public void testThreadedProcessesIterator(TestTarget test) {
+        testThreading(test, true);
+    }
+
+    private void testThreading(TestTarget test, boolean useIterator) {
         // start up 3 threads
-        logger.warn("ThreadedTesting " + test);
+        logger.warn("ThreadedTesting " + test + " using iterator " + useIterator);
         List<TestThread> threads = new ArrayList<TestThread>();
         for ( int i = 0; i < 4; i++) {
             List<GenomeLoc> toRun = subList(test.getShards(), i+1);
-            TestThread thread = new TestThread(test, i, toRun);
+            TestThread thread = new TestThread(test, i, toRun, useIterator);
             threads.add(thread);
         }
         ExecutorService exec = java.util.concurrent.Executors.newFixedThreadPool(threads.size());
@@ -273,11 +362,11 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
             for ( GenomeLoc shard : shards ) {
                 Assert.assertTrue(tracker.locIsOwned(shard), "Unowned shard");
 
-                GenomeLocProcessingTracker.ProcessingLoc proc = tracker.findOwner(shard);
+                ProcessingLoc proc = tracker.findOwner(shard);
                 Assert.assertNotNull(proc, "Proc was null");
 
                 Assert.assertNotNull(proc.getOwner(), "Owner was null");
-                Assert.assertEquals(proc.getLoc(), shard, "Shard loc doesn't make ProcessingLoc");
+                Assert.assertEquals(proc.getLocation(), shard, "Shard loc doesn't make ProcessingLoc");
 
                 TestThread owner = findOwner(proc.getOwner(), threads);
                 Assert.assertNotNull(owner, "Couldn't find owner");

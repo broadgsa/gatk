@@ -5,34 +5,27 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * For algorithmic testing purposes only.  Uses synchronization to keep a consistent
- * processing list in shared memory.
+ * Thread-safe shared memory only implementation
  */
 public class SharedMemoryGenomeLocProcessingTracker extends GenomeLocProcessingTracker {
-    private static Logger logger = Logger.getLogger(SharedMemoryGenomeLocProcessingTracker.class);
-    protected List<ProcessingLoc> processingLocs = new ArrayList<ProcessingLoc>();
+    private List<ProcessingLoc> newPLocs = new ArrayList<ProcessingLoc>();
 
-    public ProcessingLoc claimOwnership(GenomeLoc loc, String myName) {
-        // processingLocs is a shared memory synchronized object, and this
-        // method is synchronized, so we can just do our processing
-        synchronized (processingLocs) {
-            ProcessingLoc owner = super.findOwner(loc);
-
-            if ( owner == null ) { // we are unowned
-                owner = new ProcessingLoc(loc, myName);
-                processingLocs.add(owner);
-            }
-
-            return owner;
-            //logger.warn(String.format("%s.claimOwnership(%s,%s) => %s", this, loc, myName, owner));
-        }
+    protected SharedMemoryGenomeLocProcessingTracker(ClosableReentrantLock lock) {
+        super(lock);
     }
 
-    protected List<ProcessingLoc> getProcessingLocs() {
-        synchronized (processingLocs) {
-            return processingLocs;
-        }
+    @Override
+    protected void registerNewLoc(ProcessingLoc loc) {
+        newPLocs.add(loc);
+    }
+
+    @Override
+    protected List<ProcessingLoc> readNewLocs() {
+        List<ProcessingLoc> r = newPLocs;
+        newPLocs = new ArrayList<ProcessingLoc>();
+        return r;
     }
 }
