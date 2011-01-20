@@ -556,7 +556,7 @@ class TooManyValuesForArgumentException extends ArgumentException {
     private static String formatArguments( Collection<ArgumentMatch> arguments ) {
         StringBuilder sb = new StringBuilder();
         for( ArgumentMatch argument: arguments )
-            sb.append( String.format("%nArgument '%s' has to many values: %s.", argument.label, Arrays.deepToString(argument.values().toArray())) );
+            sb.append( String.format("%nArgument '%s' has too many values: %s.", argument.label, Arrays.deepToString(argument.values().toArray())) );
         return sb.toString();
     }
 }
