@@ -48,7 +48,7 @@ class fullCallingPipeline extends QScript {
   var skip_cleaning = false
 
   @Input(doc="ADPR script", shortName ="tearScript", required=true)
-  var adprthing: File = _
+  var tearScript: File = _
 
   //@Input(doc="Sequencing maching name (for use by adpr)")
   //var machine: String = _
@@ -200,18 +200,10 @@ class fullCallingPipeline extends QScript {
     }
   }
 
-  //def endToEnd(base: String, bamType: String, adprthing: File, seqinfo: String, exptype: String) = {
   def endToEnd(base: String, bamType: String) = {
 
     val samples = qscript.pipeline.getSamples.filter(_.getBamFiles.contains(bamType)).toList
     val bamFiles = samples.map(_.getBamFiles.get(bamType))
-    val listOfBams =  new File(base +".BamFiles.list")
-
-    val writer = new PrintWriter(listOfBams)
-      for (bamFile <- bamFiles){
-        writer.println(bamFile.toString)
-      }
-      writer.close()
 
     // step through the un-indel-cleaned graph:
     // 1a. call snps and indels
@@ -385,7 +377,28 @@ class fullCallingPipeline extends QScript {
     }
     add(snps)
 
-    // 5. Run the ADPR and make pretty stuff
+    // 5. Make the bam list
+    val listOfBams =  new File(base +".BamFiles.list")
+
+    class BamListWriter extends InProcessFunction {
+      @Input(doc="bamFiles") var bamFiles: List[File] = Nil
+      @Output(doc="bamList") var bamList: File = _
+
+      def run {
+        val writer = new PrintWriter(bamList)
+        for (bamFile <- bamFiles)
+          writer.println(bamFile.toString)
+        writer.close()
+      }
+    }
+
+    val writeBamList = new BamListWriter
+    writeBamList.bamFiles = bamFiles
+    writeBamList.bamList = listOfBams
+    writeBamList.analysisName = base + "_BamList"
+    writeBamList.jobOutputFile = new File(".queue/logs/SNPCalling/bamlist.out")
+
+    // 6. Run the ADPR and make pretty stuff
 
     class rCommand extends CommandLineFunction{
       @Argument(doc="R script")
@@ -404,7 +417,7 @@ class fullCallingPipeline extends QScript {
 
     val adpr = new rCommand
      adpr.bamlist = listOfBams
-     adpr.script = adprthing
+     adpr.script = tearScript
      adpr.evalroot = eval.reportLocation
      adpr.jobOutputFile = new File(".queue/logs/SNPCalling/adpr.out")
      adpr.tearsheet = new File("SnpCalls", base + ".tearsheet.pdf")
@@ -416,6 +429,6 @@ class fullCallingPipeline extends QScript {
       add(igv2)
     }
 
-    add(mergeIndels,annotated,masker,handFilter,eval,adpr)
+    add(mergeIndels,annotated,masker,handFilter,eval,writeBamList,adpr)
   }
 }

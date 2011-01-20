@@ -90,10 +90,12 @@ class FullCallingPipelineTest extends BaseTest {
     var cleanType = "cleaned"
 
     // Run the pipeline with the expected inputs.
+    val currentDir = new File(".").getAbsolutePath
     var pipelineCommand = ("-retry 1 -S scala/qscript/playground/fullCallingPipeline.q" +
             " -jobProject %s -Y %s -refseqTable %s" +
+            " -tearScript %s/R/DataProcessingReport/GetTearsheetStats.R" +
             " --gatkjar %s/dist/GenomeAnalysisTK.jar")
-            .format(projectName, yamlFile, dataset.refseq, new File(".").getAbsolutePath)
+            .format(projectName, yamlFile, dataset.refseq, currentDir, currentDir)
 
     if (!dataset.runIndelRealigner) {
       pipelineCommand += " -skipCleaning"
