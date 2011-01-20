@@ -55,6 +55,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val goldStandardClusterFile = new File(goldStandardName + ".clusters")
   }
 
+  val hg19 = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")  
   val hg18 = new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta")
   val b36 = new File("/humgen/1kg/reference/human_b36_both.fasta")
   val b37 = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
@@ -111,52 +112,11 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass),
     "WExTrio" -> new Target("NA12878Trio.WEx", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
-        new File("/humgen/gsa-scr1/carneiro/prj/trio/NA12878Trio.WEx.hg19.bam"),
+        new File("/humgen/gsa-scr1/carneiro/prj/trio/data/NA12878Trio.WEx.hg19.recal.bam"),
         new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
         "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
   )
 
-  /*
-  // OLD TARGET DATABASES -- TO BE REMOVED.
-
-  val HiSeq = new Target("NA12878.HiSeq", hg18, "hg18", // BUGBUG: cut down to chr1
-        new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
-        new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
-        "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.07, !lowPass)
-  val WEx = new Target("NA12878.WEx", hg18, "hg18",
-        new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
-        new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.vcf"),
-        "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 2.6, !lowPass)
-  val LowPassN60 = new Target("lowpass.N60", b36, "b36",                                                              // which reference the data is aligned to
-        new File("/humgen/1kg/analysis/bamsForDataProcessingPapers/lowpass_b36/lowpass.chr20.cleaned.matefixed.bam"), // the bam list to call from
-        new File("/home/radon01/depristo/work/oneOffProjects/VQSRCutByNRS/lowpass.N60.chr20.filtered.vcf"),           // the gold standard VCF file to run through the VQSR
-        "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.b36.intervals", 2.3, lowPass)           // chunked interval list to use with Queue's scatter/gather functionality
-  val LowPassAugust = new Target("ALL.august.v4", b37, "b37", // BUGBUG: kill this, it is too large
-        new File("/humgen/1kg/processing/allPopulations_chr20_august_release.cleaned.merged.bams/ALL.cleaned.merged.list"),
-        new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),
-        "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass)
-  val LowPassEUR363Nov = new Target("EUR.nov2010", b37, "b37",
-        new File("/humgen/1kg/processing/pipeline_test_bams/EUR.363sample.Nov2010.chr20.bam"),
-        new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-        "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass)
-  val LowPassFIN79Nov = new Target("FIN.nov2010", b37, "b37",
-        new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
-        new File("/broad/shptmp/rpoplin/pipeline_newHS7/FIN.nov2010.filtered.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-        "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass)
-  val TGPWExGdA = new Target("1000G.WEx.GdA", b37, "b37",
-        new File("/humgen/1kg/processing/pipeline_test_bams/Barcoded_1000G_WEx_Reduced_Plate_1.cleaned.list"), // BUGBUG: reduce from 60 to 20 people
-        new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-        "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
-  val WExTrio = new Target("NA12878Trio.WEx", b37, "b37",
-        new File("/humgen/gsa-scr1/carneiro/prj/trio/NA12878Trio.WEx.hg19.bam"),
-        new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-        "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
-
-  //val targets = List(HiSeq, WEx, LowPassN60, LowPassAugust, LowPassEUR363Nov, LowPassFIN79Nov, TGPWExGdA)
-  //val targets = List(HiSeq, WEx, LowPassEUR363Nov, LowPassFIN79Nov)
-  //val targets = List(LowPassFIN79Nov)
-
-  */
 
   def script = {
 
