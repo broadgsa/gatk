@@ -55,11 +55,11 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         inputStream.close();
 
         WalkerTestSpec spec = new WalkerTestSpec(
-            "-T SelectVariants " +
-                    "-R " + b36KGReference +
-                    "-B:variant,vcf " + tmpFifo.getAbsolutePath() +
-                    " -rit STREAM --NO_HEADER " + 
-                    "-o %s",
+            "-T SelectVariants" +
+                    " -R " + b36KGReference +
+                    " -B:variant,vcf " + tmpFifo.getAbsolutePath() +
+                    " -rit STREAM --NO_HEADER" + 
+                    " -o %s",
             1,
             Arrays.asList("2cae3d16f9ed00b07d87e9c49272d877")
         );
