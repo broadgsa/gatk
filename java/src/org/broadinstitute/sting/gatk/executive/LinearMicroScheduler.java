@@ -49,6 +49,7 @@ public class LinearMicroScheduler extends MicroScheduler {
         walker.initialize();
         Accumulator accumulator = Accumulator.create(engine,walker);
 
+        int counter = 0;
         for (Shard shard : processingTracker.onlyOwned(shardStrategy, engine.getName())) {
             if ( shard == null ) // we ran out of shards that aren't owned
                 break;
@@ -70,6 +71,12 @@ public class LinearMicroScheduler extends MicroScheduler {
                 accumulator.accumulate(dataProvider,result);
                 dataProvider.close();
             }
+
+
+            counter++;
+            logger.debug(String.format("Processing shard %s, used %d locks for %d shards processed, %.2e sec / lock, %.2e sec / read, %.2f sec / write",
+                    shard.getLocation(), processingTracker.getNLocks(), counter,
+                    processingTracker.getTimePerLock(), processingTracker.getTimePerRead(), processingTracker.getTimePerWrite()));
         }
 
         Object result = accumulator.finishTraversal();

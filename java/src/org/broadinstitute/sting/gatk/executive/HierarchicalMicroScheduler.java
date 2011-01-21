@@ -284,6 +284,8 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
 
         Shard shard = traverseTasks.remove();
 
+        // todo -- add ownership claim here
+
         ShardTraverser traverser = new ShardTraverser(this,
                 traversalEngine,
                 walker,

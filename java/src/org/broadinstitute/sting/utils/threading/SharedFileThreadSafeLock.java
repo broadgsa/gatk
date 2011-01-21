@@ -6,7 +6,6 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.IOException;
 import java.nio.channels.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * User: depristo

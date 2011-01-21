@@ -102,7 +102,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
             for ( int shardSize : shardSizes ) {
                 // shared mem -- canonical implementation
                 params.add(new TestTarget("ThreadSafeSharedMemory", nShard, shardSize) {
-                    SharedMemoryGenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createSharedMemory();
+                    GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createSharedMemory();
                     public GenomeLocProcessingTracker getTracker() { return tracker; }
                 });
 
