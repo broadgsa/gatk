@@ -258,7 +258,6 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
             boolean printLog = performanceLog != null && maxElapsedIntervalForPrinting(curTime, lastPerformanceLogPrintTime, PERFORMANCE_LOG_PRINT_FREQUENCY);
 
             if ( printProgress || printLog ) {
-                lastProgressPrintTime = curTime;
                 ProcessingHistory last = updateHistory(loc, metrics);
 
                 final MyTime elapsed = new MyTime(last.elapsedSeconds);
@@ -268,15 +267,17 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
                 final MyTime estTotalRuntime = new MyTime(elapsed.t / fractionGenomeTargetCompleted);
                 final MyTime timeToCompletion = new MyTime(estTotalRuntime.t - elapsed.t);
 
-                // dynamically change the update rate so that short running jobs receive frequent updates while longer jobs receive fewer updates
-                if ( estTotalRuntime.t > TWELVE_HOURS_IN_SECONDS )
-                    PROGRESS_PRINT_FREQUENCY = 60 * 1000; // in milliseconds
-                else if ( estTotalRuntime.t > TWO_HOURS_IN_SECONDS )
-                    PROGRESS_PRINT_FREQUENCY = 30 * 1000; // in milliseconds    
-                else
-                    PROGRESS_PRINT_FREQUENCY = 10 * 1000; // in milliseconds
-
                 if ( printProgress ) {
+                    lastProgressPrintTime = curTime;
+                    
+                    // dynamically change the update rate so that short running jobs receive frequent updates while longer jobs receive fewer updates
+                    if ( estTotalRuntime.t > TWELVE_HOURS_IN_SECONDS )
+                        PROGRESS_PRINT_FREQUENCY = 60 * 1000; // in milliseconds
+                    else if ( estTotalRuntime.t > TWO_HOURS_IN_SECONDS )
+                        PROGRESS_PRINT_FREQUENCY = 30 * 1000; // in milliseconds
+                    else
+                        PROGRESS_PRINT_FREQUENCY = 10 * 1000; // in milliseconds
+
 //                    String common = String.format("%4.1e %s in %s, %s per 1M %s, %4.1f%% complete, est. runtime %s, %s remaining",
 //                            nRecords*1.0, getTraversalType(), elapsed, unitRate,
 //                            getTraversalType(), 100*fractionGenomeTargetCompleted,
