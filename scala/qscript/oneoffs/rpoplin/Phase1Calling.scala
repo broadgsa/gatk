@@ -39,10 +39,11 @@ class Phase1Calling extends QScript {
   val g1k = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/ALL.low_coverage.2010_07.hg19.vcf"
   val omni = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/764samples.deduped.b37.annot.vcf"
   val chromosomeLength = List(249250621,243199373,198022430,191154276,180915260,171115067,159138663,146364022,141213431,135534747,135006516,133851895,115169878,107349540,102531392,90354753,81195210,78077248,59128983,63025520,48129895,51304566)
-  val populations = List("ASW","CEU","CHB","CHS","CLM","FIN","GBR","JPT","LWK","MXL","PUR","TSI","YRI")
+  val populations = List("ASW","CEU","CHB","CHS","CLM","FIN","GBR","JPT","LWK","MXL","PUR","TSI","YRI")    
+  //val populations = List("JPT","ASN","AMR")
   //val populations = List("EUR","AMR","ASN","AFR")
   //val populations = List("FIN", "LWK")
-  private val intervals: String = "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.500Kb.hg19.intervals"
+  private val intervals: String = "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals"
   //val populations = List("ZZZ") // small set used for debugging
 
   private var pipeline: Pipeline = _
@@ -64,7 +65,10 @@ class Phase1Calling extends QScript {
     val interval = "%d".format(qscript.chr)
     for( population <- qscript.populations ) {
       val baseName: String = qscript.outputDir + "/" + population + ".phase1.chr" + qscript.chr.toString
-      val bamList: File = new File("/humgen/1kg/processing/allPopulations_chr20_phase1_release/perPop.bam.lists/%s.chr%d.list".format(population, qscript.chr))
+      var bamList: File = new File("/humgen/1kg/processing/allPopulations_chr20_phase1_release/perPop.cleaned.BAQed.bams/%s.phase1.chr%d.cleaned.bam".format(population, qscript.chr))
+      if( population == "ASN" || population == "EUR" || population == "AFR" || population == "AMR" ) {
+        bamList = new File("/humgen/1kg/processing/allPopulations_chr20_phase1_release/perPop.cleaned.BAQed.bams/%s.chr%d.cleaned.list".format(population, qscript.chr))
+      }
 
       val rawCalls = new File(baseName + ".raw.vcf")
       val filteredCalls = new File(baseName + ".filtered.vcf")
@@ -80,7 +84,7 @@ class Phase1Calling extends QScript {
       call.stand_emit_conf = Some( 4.0 )
       call.input_file :+= bamList
       call.out = rawCalls
-      call.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE)
+      call.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
       call.analysisName = baseName + "_UG"
 
       var filter = new VariantFiltration with CommandLineGATKArgs
@@ -91,8 +95,8 @@ class Phase1Calling extends QScript {
       filter.filterName ++= List("HARD_TO_VALIDATE")
       filter.filterExpression ++= List("\"MQ0 >= 4 && (MQ0 / (1.0 * DP)) > 0.1\"")
       filter.analysisName = baseName + "_VF"
-      filter.rodBind :+= RodBind("mask", "Bed", qscript.dindelMask)
-      filter.maskName = "InDel"
+      //filter.rodBind :+= RodBind("mask", "Bed", qscript.dindelMask)
+      //filter.maskName = "InDel"
 
       var gvc = new GenerateVariantClusters with CommandLineGATKArgs
       gvc.rodBind :+= RodBind("hapmap", "VCF", qscript.hapmap)
