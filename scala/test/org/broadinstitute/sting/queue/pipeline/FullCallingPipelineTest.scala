@@ -111,8 +111,10 @@ class FullCallingPipelineTest extends BaseTest {
     if (dataset.jobQueue != null)
       pipelineCommand += " -jobQueue " + dataset.jobQueue
 
-    for (dir <- mountDirectories)
-      pipelineCommand += " -mountDir " + dir
+    //for (dir <- mountDirectories)
+    //  pipelineCommand += " -mountDir " + dir
+    if (PipelineTest.run)
+      System.getenv.foreach{case (name, value) => println("DEBUG_ENVIRONMENT: %s=%s".format(name, value))}
 
     // Run the test, at least checking if the command compiles
     PipelineTest.executeTest(testName, pipelineCommand, null)
