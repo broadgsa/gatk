@@ -60,6 +60,14 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName = "validationType", shortName = "type", doc = "which validation type to run", required = false)
     protected ValidationType type = ValidationType.ALL;
 
+    @Argument(fullName = "doNotValidateFilteredRecords", shortName = "doNotValidateFilteredRecords", doc = "should we skip validation on filtered records?", required = false)
+    protected Boolean DO_NOT_VALIDATE_FILTERED = false;
+
+    @Argument(fullName = "warnOnErrors", shortName = "warnOnErrors", doc = "should we just emit warnings on errors instead of terminating the run?", required = false)
+    protected Boolean WARN_ON_ERROR = false;
+
+    private long numErrors = 0;
+
     private File file = null;
 
     public void initialize() {
@@ -87,10 +95,16 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
     public Integer reduce(Integer value, Integer sum) { return sum+value; }
 
     public void onTraversalDone(Integer result) {
-        System.out.println("Successfully validated the input file.  Checked " + result + " records with no failures.");
+        if ( numErrors == 0 )
+            System.out.println("Successfully validated the input file.  Checked " + result + " records with no failures.");
+        else
+            System.out.println("Found " + numErrors + " records with failures.");                     
     }
 
     private void validate(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref) {
+        if ( DO_NOT_VALIDATE_FILTERED && vc.isFiltered() )
+            return;
+
         // get the true reference allele
         Allele reportedRefAllele = vc.getReference();
         Allele observedRefAllele;
@@ -149,7 +163,12 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
                     break;
             }
         } catch (TribbleException e) {
-            throw new UserException.MalformedFile(file, e.getMessage());
+            if ( WARN_ON_ERROR ) {
+                numErrors++;
+                logger.warn("***** " + e.getMessage() + " *****");
+            } else {
+                throw new UserException.MalformedFile(file, e.getMessage());
+            }
         }
     }
 }
