@@ -29,7 +29,7 @@ trait CommandLineJobRunner extends JobRunner[CommandLineFunction] with Logging {
   protected def writeExec() {
     var exec = new StringBuilder
     
-    var dirs = function.mountDirectories
+    var dirs = Set.empty[File]
     for (dir <- function.jobDirectories)
       dirs += IOUtils.dirLevel(dir, 2)
     if (dirs.size > 0) {

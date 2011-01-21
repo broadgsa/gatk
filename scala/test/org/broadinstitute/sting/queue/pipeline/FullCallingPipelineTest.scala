@@ -14,9 +14,6 @@ class FullCallingPipelineTest extends BaseTest {
 
   private final val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
 
-  // Explicit directories known to cause problems due to automount failures, and not detected by @Input / @Outputs
-  private final val mountDirectories = Set("/broad/software")
-
   // In fullCallingPipeline.q VariantEval is always compared against 129.
   // Until the newvarianteval is finalized which will allow java import of the prior results,
   // we re-run VariantEval to validate the run, and replicate that behavior here.
@@ -110,11 +107,6 @@ class FullCallingPipelineTest extends BaseTest {
     
     if (dataset.jobQueue != null)
       pipelineCommand += " -jobQueue " + dataset.jobQueue
-
-    //for (dir <- mountDirectories)
-    //  pipelineCommand += " -mountDir " + dir
-    if (PipelineTest.run)
-      System.getenv.foreach{case (name, value) => println("DEBUG_ENVIRONMENT: %s=%s".format(name, value))}
 
     // Run the test, at least checking if the command compiles
     PipelineTest.executeTest(testName, pipelineCommand, null)
