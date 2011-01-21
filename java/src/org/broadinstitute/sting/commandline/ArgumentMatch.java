@@ -51,7 +51,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
     /**
      * An ordered, freeform collection of tags.
      */
-    public final List<String> tags;
+    public final Tags tags;
 
     /**
      * Create a new argument match, defining its properties later.  Used to create invalid arguments.
@@ -65,10 +65,10 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
      * @param label Label of the argument match.  Must not be null.
      * @param definition The associated definition, if one exists.  May be null.
      */
-    private ArgumentMatch(String label,ArgumentDefinition definition) {
+    private ArgumentMatch(final String label, final ArgumentDefinition definition) {
         this.label = label;
         this.definition = definition;
-        this.tags = Collections.emptyList();
+        this.tags = new Tags();
     }
 
     /**
@@ -78,7 +78,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
      * @param index Position of the argument.  Must not be null.
      * @param tags ordered freeform text tags associated with this argument.
      */
-    public ArgumentMatch( String label, ArgumentDefinition definition, int index, List<String> tags ) {
+    public ArgumentMatch(final String label, final ArgumentDefinition definition, final int index, final Tags tags) {
         this( label, definition, index, null, tags );
     }
 
@@ -90,7 +90,7 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
      * @param value Value for the argument at this position.
      * @param tags ordered freeform text tags associated with this argument.
      */
-    private ArgumentMatch( String label, ArgumentDefinition definition, int index, String value, List<String> tags ) {
+    private ArgumentMatch(final String label, final ArgumentDefinition definition, final int index, final String value, final Tags tags) {
         this.label = label;
         this.definition = definition;
 
@@ -101,6 +101,26 @@ public class ArgumentMatch implements Iterable<ArgumentMatch> {
 
         this.tags = tags;
     }
+
+    /**
+     * Check to see whether two ArgumentMatch objects are equal.
+     * @param other Object to which this should be compared.
+     * @return True if objects are equal, false if objects are not equal or incomparable.
+     */
+    @Override
+    public boolean equals(Object other) {
+        // this clearly isn't null, since this.equals() when this == null would result in an NPE.
+        if(other == null)
+            return false;
+        if(!(other instanceof ArgumentMatch))
+            return false;
+        ArgumentMatch otherArgumentMatch = (ArgumentMatch)other;
+        return this.definition.equals(otherArgumentMatch.definition) &&
+                this.label.equals(otherArgumentMatch.label) &&
+                this.indices.equals(otherArgumentMatch.indices) &&
+                this.tags.equals(otherArgumentMatch.tags);
+    }
+
 
     /**
      * Reformat the given entries with the given multiplexer and key.

@@ -72,7 +72,7 @@ public class ParsingEngine {
     /**
      * List of tags associated with the given instantiation of the command-line argument.
      */
-    private final Map<Object,List<String>> tags = new IdentityHashMap<Object,List<String>>();    
+    private final Map<Object,Tags> tags = new IdentityHashMap<Object,Tags>();    
 
     /**
      * our log, which we want to capture anything from org.broadinstitute.sting
@@ -291,7 +291,7 @@ public class ParsingEngine {
      * @param key The key created.
      * @param tags List of tags, or empty list if no tags are present.
      */
-    public void addTags(Object key, List<String> tags) {
+    public void addTags(Object key, final Tags tags) {
         this.tags.put(key,tags);        
     }
 
@@ -300,9 +300,9 @@ public class ParsingEngine {
      * @param key Key for which to find a tag.
      * @return List of tags associated with this key.
      */
-    public List<String> getTags(Object key)  {
+    public Tags getTags(Object key)  {
         if(!tags.containsKey(key))
-            return Collections.emptyList();
+            return new Tags();
         return tags.get(key);
     }    
 

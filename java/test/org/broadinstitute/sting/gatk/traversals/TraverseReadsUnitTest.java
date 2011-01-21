@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.traversals;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
@@ -61,7 +62,7 @@ import java.util.Collections;
 public class TraverseReadsUnitTest extends BaseTest {
 
     private ReferenceSequenceFile seq;
-    private SAMReaderID bam = new SAMReaderID(new File(validationDataLocation + "index_test.bam"),Collections.<String>emptyList()); // TCGA-06-0188.aligned.duplicates_marked.bam");
+    private SAMReaderID bam = new SAMReaderID(new File(validationDataLocation + "index_test.bam"),new Tags()); // TCGA-06-0188.aligned.duplicates_marked.bam");
     private File refFile = new File(validationDataLocation + "Homo_sapiens_assembly17.fasta");
     private List<SAMReaderID> bamList;
     private Walker countReadWalker;

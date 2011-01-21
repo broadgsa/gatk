@@ -30,6 +30,7 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
@@ -272,13 +273,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         int nNorm = 0;
         int nTum = 0;
         for ( SAMReaderID rid : getToolkit().getReadsDataSource().getReaderIDs() ) {
-             List<String> tags = rid.getTags() ;
-             if ( tags.isEmpty() && call_somatic )
+             Tags tags = rid.getTags() ;
+             if ( tags.getPositionalTags().isEmpty() && call_somatic )
                  throw new UserException.BadInput("In somatic mode all input bam files must be tagged as either 'normal' or 'tumor'. Untagged file: "+
                          getToolkit().getSourceFileForReaderID(rid));
              boolean normal = false;
              boolean tumor = false;
-             for ( String s : tags ) { // we allow additional unrelated tags (and we do not use them), but we REQUIRE one of Tumor/Normal to be present if --somatic is on
+             for ( String s : tags.getPositionalTags() ) { // we allow additional unrelated tags (and we do not use them), but we REQUIRE one of Tumor/Normal to be present if --somatic is on
                  if ( "NORMAL".equals(s.toUpperCase()) ) {
                      normal = true;
                      nNorm++;
@@ -469,9 +470,9 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
             if ( call_somatic ) {
 
-                List<String> tags =  getToolkit().getReaderIDForRead(read).getTags();
+                Tags tags =  getToolkit().getReaderIDForRead(read).getTags();
                 boolean assigned = false;
-                for ( String s : tags ) {
+                for ( String s : tags.getPositionalTags() ) {
                     if ( "NORMAL".equals(s.toUpperCase()) ) {
                         normal_context.add(read,ref.getBases());
                         assigned = true;

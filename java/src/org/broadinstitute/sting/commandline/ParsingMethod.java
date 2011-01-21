@@ -80,16 +80,31 @@ public abstract class ParsingMethod {
 
         String argument = matcher.group(1).trim();
 
-        List<String> tags = new ArrayList<String>();
-        if(matcher.group(2) != null)
-            tags.addAll(Utils.split(matcher.group(2),","));
+        Tags tags = new Tags();
+        if(matcher.group(2) != null) {
+            for(String tag: Utils.split(matcher.group(2),",")) {
+                // Check for presence of an '=' sign, indicating a key-value pair in the tag line.
+                int equalDelimiterPos = tag.indexOf('=');
+                if(equalDelimiterPos >= 0) {
+                    // Sanity check; ensure that there aren't multiple '=' in this key-value pair.
+                    if(tag.indexOf('=',equalDelimiterPos+1) >= 0)
+                        throw new ArgumentException(String.format("Tag %s passed to argument %s is malformed.  Please ensure that " +
+                                                                  "key-value tags are of the form <key>=<value>, and neither key " +
+                                                                  "nor value contain the '=' character", tag, argument));
+                    tags.addKeyValueTag(tag.substring(0,equalDelimiterPos),tag.substring(equalDelimiterPos+1));
+                }
+                else
+                    tags.addPositionalTag(tag);
+
+            }
+        }
 
         // Find the most appropriate argument definition for the given argument.
         ArgumentDefinition argumentDefinition = definitions.findArgumentDefinition( argument, definitionMatcher );
 
         // Try to find a matching argument.  If found, label that as the match.  If not found, add the argument
         // with a null definition.
-        ArgumentMatch argumentMatch = new ArgumentMatch( argument, argumentDefinition, position, tags );
+        ArgumentMatch argumentMatch = new ArgumentMatch(argument,argumentDefinition,position,tags);
 
         return argumentMatch;
     }
@@ -102,7 +117,7 @@ public abstract class ParsingMethod {
     /**
      * Tags, on the other hand, can start with any word character.
      */
-    private static final String TAG_TEXT = "[\\w\\-\\.]*";
+    private static final String TAG_TEXT = "[\\w\\-\\.\\=]*";
 
     public static ParsingMethod FullNameParsingMethod = new ParsingMethod(Pattern.compile(String.format("\\s*--(%1$s)(?:\\:(%2$s(?:,%2$s)*))?\\s*",ARGUMENT_TEXT,TAG_TEXT)),
                                                                           ArgumentDefinitions.FullNameDefinitionMatcher) {};

@@ -4,6 +4,7 @@ import static org.testng.Assert.fail;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.BaseTest;
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.shards.Shard;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
@@ -87,7 +88,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         logger.warn("Executing testLinearBreakIterateAll");
 
         // setup the data
-        readers.add(new SAMReaderID(new File(validationDataLocation+"/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
+        readers.add(new SAMReaderID(new File(validationDataLocation+"/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),new Tags()));
 
         // the sharding strat.
         SAMDataSource data = new SAMDataSource(readers,genomeLocParser);
@@ -131,7 +132,7 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
         logger.warn("Executing testMergingTwoBAMFiles");
 
         // setup the test files
-        readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
+        readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),new Tags()));
 
         // the sharding strat.
         SAMDataSource data = new SAMDataSource(readers,genomeLocParser);
@@ -171,8 +172,8 @@ public class SAMBAMDataSourceUnitTest extends BaseTest {
 
         // setup the data and the counter before our second run
         readers.clear();
-        readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
-        readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),Collections.<String>emptyList()));
+        readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),new Tags()));
+        readers.add(new SAMReaderID(new File(validationDataLocation + "/NA12878.chrom6.SLX.SRP000032.2009_06.selected.bam"),new Tags()));
 
         count = 0;
         // the sharding strat.

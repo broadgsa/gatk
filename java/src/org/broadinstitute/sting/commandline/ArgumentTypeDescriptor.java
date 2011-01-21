@@ -213,10 +213,12 @@ public abstract class ArgumentTypeDescriptor {
      * @param matches The matches for the given argument.
      * @return The value of the argument if available, or null if not present.
      */
-    protected List<String> getArgumentTags(ArgumentMatches matches) {
-        List<String> tags = new ArrayList<String>();
-        for( ArgumentMatch match: matches ) {
-                tags.addAll(match.tags);
+    protected Tags getArgumentTags(ArgumentMatches matches) {
+        Tags tags = new Tags();
+        for(ArgumentMatch match: matches) {
+            if(!tags.isEmpty() && !match.tags.isEmpty())
+                throw new ReviewedStingException("BUG: multiple conflicting sets of tags are available, and the type descriptor specifies no way of resolving the conflict.");
+            tags = match.tags;
         }
         return tags;
     }
@@ -303,7 +305,7 @@ class SimpleArgumentTypeDescriptor extends ArgumentTypeDescriptor {
         ArgumentDefinition defaultDefinition = createDefaultArgumentDefinition(source);
         String value = getArgumentValue( defaultDefinition, matches );
         Object result;
-        List<String> tags = getArgumentTags( matches );
+        Tags tags = getArgumentTags(matches);
 
         // lets go through the types we support
         try {
@@ -383,7 +385,7 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
     public Object parse(ParsingEngine parsingEngine,ArgumentSource source, Class type, ArgumentMatches matches) {
         Class componentType;
         Object result;
-        List<String> tags = new ArrayList<String>();
+        Tags tags;
 
         if( Collection.class.isAssignableFrom(type) ) {
 
@@ -414,8 +416,10 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
             for( ArgumentMatch match: matches ) {
                 for( ArgumentMatch value: match ) {
-                    collection.add( componentArgumentParser.parse(parsingEngine,source,componentType,new ArgumentMatches(value)) );
-                    tags.addAll(value.tags);
+                    Object object = componentArgumentParser.parse(parsingEngine,source,componentType,new ArgumentMatches(value));
+                    collection.add( object );
+                    // WARNING: Side effect!
+                    parsingEngine.addTags(object,value.tags);
                 }
             }
 
@@ -436,15 +440,14 @@ class CompoundArgumentTypeDescriptor extends ArgumentTypeDescriptor {
 
             int i = 0;
             for( ArgumentMatch value: values ) {
-                Array.set( result,i++,componentArgumentParser.parse(parsingEngine,source,componentType,new ArgumentMatches(value)));
-                tags.addAll(value.tags);
+                Object object = componentArgumentParser.parse(parsingEngine,source,componentType,new ArgumentMatches(value));
+                Array.set(result,i++,object);
+                // WARNING: Side effect!
+                parsingEngine.addTags(object,value.tags);
             }
         }
         else
             throw new ReviewedStingException("Unsupported compound argument type: " + type);
-
-        // WARNING: Side effect!
-        parsingEngine.addTags(result,tags);
 
         return result;
     }

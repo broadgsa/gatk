@@ -54,11 +54,11 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
         inputStream.close();
 
         WalkerTestSpec spec = new WalkerTestSpec(
-            "-T SelectVariants " +
-                    "-R " + b36KGReference + " " + 
-                    "-B:variant,vcf " + tmpFifo.getAbsolutePath() + " " +
-                    "-rit STREAM --NO_HEADER " + 
-                    "-o %s",
+            "-T SelectVariants" +
+                    " -R " + b36KGReference +
+                    " -B:variant,vcf,storage=STREAM " + tmpFifo.getAbsolutePath() +
+                    " --NO_HEADER" +
+                    " -o %s",
             1,
             Arrays.asList("2cae3d16f9ed00b07d87e9c49272d877")
         );
@@ -78,12 +78,12 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
 
         // Output select to FIFO
         WalkerTestSpec selectTestSpec = new WalkerTestSpec(
-            "-T SelectVariants " +
-            "-R " + b36KGReference + " " +
-            "-B:variant,vcf " + testFile + " " +
-            "--NO_HEADER " +
-            "-select 'QD > 2.0' " +
-            "-o " + tmpFifo.getAbsolutePath(),
+            "-T SelectVariants" +
+            " -R " + b36KGReference +
+            " -B:variant,vcf,storage=STREAM " + testFile +
+            " --NO_HEADER" +
+            " -select 'QD > 2.0'" +
+            " -o " + tmpFifo.getAbsolutePath(),
             0,
             Collections.<String>emptyList()
         );
@@ -91,13 +91,12 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
 
         // Eval compare the full set to the subselection.
         selectTestSpec = new WalkerTestSpec(
-            "-T VariantEval " +
-            "-R " + b36KGReference + " " +
-            "-B:eval,vcf " + testFile + " " +
-            "-B:comp,vcf " + tmpFifo.getAbsolutePath() + " " +
-            "-E CompOverlap -noStandard " +
-            "-rit STREAM " +
-            "-reportType CSV -o %s",
+            "-T VariantEval" +
+            " -R " + b36KGReference +
+            " -B:eval,vcf " + testFile +
+            " -B:comp,vcf,storage=STREAM " + tmpFifo.getAbsolutePath() +
+            " -E CompOverlap -noStandard" +
+            " -reportType CSV -o %s",
             1,
             Arrays.asList("f7df3ac0777b1a45aa7a58228a290600")
         );

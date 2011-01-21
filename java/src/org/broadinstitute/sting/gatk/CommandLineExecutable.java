@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk;
 
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
@@ -206,7 +207,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     private List<SAMReaderID> unpackBAMFileList(GATKArgumentCollection argCollection) {
         List<SAMReaderID> unpackedReads = new ArrayList<SAMReaderID>();
         for( String inputFileName: argCollection.samFiles ) {
-            List<String> inputFileNameTags = parser.getTags(inputFileName);
+            Tags inputFileNameTags = parser.getTags(inputFileName);
             inputFileName = expandFileName(inputFileName);
             if (inputFileName.toLowerCase().endsWith(".list") ) {
                 try {
@@ -239,27 +240,28 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     private Collection<RMDTriplet> unpackRODBindings(GATKArgumentCollection argCollection) {
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
 
-
         for (String fileName: argCollection.RODBindings) {
-            List<String> parameters = parser.getTags(fileName);
+            Tags tags = parser.getTags(fileName);
             fileName = expandFileName(fileName);
 
-            RMDStorageType storageType = null;
-            if(argCollection.rodInputType != null)
-                storageType = argCollection.rodInputType;
-            else if(fileName.toLowerCase().endsWith("stdin"))
-                storageType = RMDStorageType.STREAM;
-            else
-                storageType = RMDStorageType.FILE;
-
-            if(parameters.size() != 2)
+            List<String> positionalTags = tags.getPositionalTags();
+            if(positionalTags.size() != 2)
                 throw new UserException("Invalid syntax for -B (reference-ordered data) input flag.  " +
                         "Please use the following syntax when providing reference-ordered " +
                         "data: -B:<name>,<type> <filename>.");
             // Assume that if tags are present, those tags are name and type.
             // Name is always first, followed by type.
-            String name = parameters.get(0);
-            String type = parameters.get(1);
+            String name = positionalTags.get(0);
+            String type = positionalTags.get(1);
+
+            RMDStorageType storageType = null;
+            if(tags.getValue("storage") != null)
+                storageType = Enum.valueOf(RMDStorageType.class,tags.getValue("storage"));
+            else if(fileName.toLowerCase().endsWith("stdin"))
+                storageType = RMDStorageType.STREAM;
+            else
+                storageType = RMDStorageType.FILE;
+
             rodBindings.add(new RMDTriplet(name,type,fileName,storageType));
         }
 

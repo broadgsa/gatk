@@ -213,11 +213,6 @@ public class GATKArgumentCollection {
     public List<String> readGroupBlackList = null;
 
     @Element(required=false)
-    @Argument(fullName="rod_input_type",shortName="rit",doc="Indicates whether to use a file approach or a streaming approach to loading ROD data",required=false)
-    @Hidden
-    public RMDTriplet.RMDStorageType rodInputType = null;
-
-    @Element(required=false)
     @Argument(fullName="processingTracker",shortName="C",doc="A lockable, shared file for coordinating distributed GATK runs",required=false)
     @Hidden
     public File processingTrackerFile = null;
@@ -390,9 +385,6 @@ public class GATKArgumentCollection {
 
         if ((other.processingTrackerFile == null && this.processingTrackerFile != null) ||
                 (other.processingTrackerFile != null && !other.processingTrackerFile.equals(this.processingTrackerFile)))
-            return false;
-
-        if(rodInputType != other.rodInputType)
             return false;
 
         if ( restartProcessingTracker != other.restartProcessingTracker )
