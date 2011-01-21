@@ -19,11 +19,10 @@ class DistributedGATKPerformance extends QScript {
   @Argument(shortName="long", doc="runs long calculations", required=false)
   var long: Boolean = false
 
-
   //@Argument(shortName="noBAQ", doc="turns off BAQ calculation", required=false)
   var noBAQ: Boolean = false
 
-  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(3); }
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(2); }
 
   class Target(
           val baseName: String,
@@ -69,13 +68,14 @@ class DistributedGATKPerformance extends QScript {
   // produce Kiran's Venn plots based on comparison between new VCF and gold standard produced VCF
 
   val lowPass: Boolean = true
+  val CHROMOSOME: String = "chr1"
 
   val targetDataSets: Map[String, Target] = Map(
     "HiSeq" -> new Target("NA12878.HiSeq", hg18, dbSNP_hg18, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
-              "chr1", 2.07, !lowPass),
+              "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/distributedGATK/whole_genome_chunked.hg18.intervals", 2.07, !lowPass),
     "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
@@ -118,33 +118,51 @@ class DistributedGATKPerformance extends QScript {
       for (targetDS <- targetDataSets.valuesIterator)   // for Scala 2.7 or older, use targetDataSets.values
         targets ::= targetDS
 
-    val nWays = if (long) List(1, 2, 5, 10) else List(25, 50, 100)
+    val nWays = if (long) List(1, 2, 4) else List(8, 16, 32, 64, 96)
+    //val nWays = List(2)
 
     for (target <- targets) {
+      for ( scatterP <- List(true, false) )
         for (nWaysParallel <- nWays) {
-//        for (nWaysParallel <- List(2, 5)) {
-            val aname = "distN" + nWaysParallel;
-            val coordinationFile = new File(target.name + "." + aname + ".distributed.txt")
+          val aname = "ptype_%s.nways_%d".format(if ( scatterP ) "sg" else "dist", nWaysParallel)
+
+          def addUG(ug: UnifiedGenotyper) = {
+            if ( ! long )
+              ug.jobLimitSeconds = Some(60 * 60 * 4)
+            add(ug);
+          }
+
+          // add scatter/gather or distributed parallelism
+          if ( scatterP ) {
+            var ug: UnifiedGenotyper = new UnifiedGenotyper(target, aname)
+            ug.scatterCount = nWaysParallel
+            ug.intervalsString ++= List(target.intervals)
+            addUG(ug)
+          } else {
             for ( part <- 1 to nWaysParallel) {
-                add(new UnifiedGenotyper(target, coordinationFile, part, aname + ".part" + part))
+              var ug: UnifiedGenotyper = new UnifiedGenotyper(target, aname + ".part" + part)
+              ug.intervalsString ++= List(CHROMOSOME)
+              ug.processingTracker = new File(target.name + "." + aname + ".distributed.txt")
+              if ( part == 1 )
+                ug.performanceLog = new File("%s.%s.pf.log".format(target.name, aname))
+              addUG(ug)
             }
+          }
+
         }
     }
   }
 
   // 1.) Call SNPs with UG
-  class UnifiedGenotyper(t: Target, coordinationFile: File, i: Int, part: String) extends org.broadinstitute.sting.queue.extensions.gatk.UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
+  class UnifiedGenotyper(t: Target, aname: String) extends org.broadinstitute.sting.queue.extensions.gatk.UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
-    this.processingTracker = coordinationFile
-    this.intervalsString ++= List(t.intervals)
     this.dcov = Some( if ( t.isLowpass ) { 50 } else { 250 } )
     this.stand_call_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
     this.stand_emit_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
     this.input_file :+= t.bamList
-    this.out = t.rawVCF(part)
+    this.out = t.rawVCF(aname)
     this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE})
-    this.analysisName = t.name + "_UG." + part
-    if ( i == 1 ) this.performanceLog = new File(coordinationFile.getAbsolutePath + "." + part + ".pf.log")
+    this.analysisName = t.name + "_UG." + aname
     if (t.dbsnpFile.endsWith(".rod"))
       this.DBSNP = new File(t.dbsnpFile)
     else if (t.dbsnpFile.endsWith(".vcf"))
