@@ -149,7 +149,7 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     private String getReferenceOrderedData( RefMetaDataTracker tracker ) {
         ArrayList<String> rodStrings = new ArrayList<String>();
         for ( GATKFeature datum : tracker.getAllRods() ) {
-            if ( datum != null && ! (datum.getUnderlyingObject() instanceof DbSNPFeature)) {
+            if ( datum != null && datum.getUnderlyingObject() instanceof ReferenceOrderedDatum ) {
                 rodStrings.add(((ReferenceOrderedDatum)datum.getUnderlyingObject()).toSimpleString()); // TODO: Aaron: this line still survives, try to remove it
             }
         }
