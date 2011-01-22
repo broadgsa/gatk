@@ -67,7 +67,7 @@ dproj = d[which(squid_fclanes %in% fclanes),];
 d2proj = d2[which(d2$"Project" %in% unique(dproj$"Project") & d2$"Sample" %in% dproj$"External ID"),];
 #}
 
-tearsheetdrop <- "tearsheetdrop.jpg" #put the path to the tearsheet backdrop here
+tearsheetdrop <- "data/tearsheetdrop.jpg" #put the path to the tearsheet backdrop here
 
 tearsheet<-function(){
 	
