@@ -70,6 +70,8 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
     private int MAX_QUALITY_SCORE = 50;
     @Argument(fullName="max_histogram_value", shortName="maxHist", required = false, doc="If supplied, this value will be the max value of the histogram plots")
     private int MAX_HISTOGRAM_VALUE = 0;
+    @Argument(fullName="do_indel_quality", shortName="indels", required = false, doc="If supplied, this value will be the max value of the histogram plots")
+    private boolean DO_INDEL_QUALITY = false;
 
 
     /////////////////////////////
@@ -274,17 +276,26 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
                 for( int iii = 1; iii < requestedCovariates.size(); iii++ ) {
                     Covariate cov = requestedCovariates.get(iii);
                     try {
+
+                        if (DO_INDEL_QUALITY) {
+                            p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_indelQuality.R" + " " +
+                                         OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
+                                         cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
+                             p.waitFor();
+                            
+                        }   else {
                         if( iii == 1 ) {
-                            // Analyze reported quality
-                            p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
-                                        OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                        IGNORE_QSCORES_LESS_THAN + " " + MAX_QUALITY_SCORE + " " + MAX_HISTOGRAM_VALUE); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
-                            p.waitFor();
-                        } else { // Analyze all other covariates
-                            p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
-                                        OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
-                                        cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
-                            p.waitFor();
+                                // Analyze reported quality
+                                p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_QualityScoreCovariate.R" + " " +
+                                            OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
+                                            IGNORE_QSCORES_LESS_THAN + " " + MAX_QUALITY_SCORE + " " + MAX_HISTOGRAM_VALUE); // The third argument is the Q scores that should be turned pink in the plot because they were ignored
+                                p.waitFor();
+                            } else { // Analyze all other covariates
+                                p = Runtime.getRuntime().exec(PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_residualError_OtherCovariate.R" + " " +
+                                            OUTPUT_DIR + readGroup + "." + cov.getClass().getSimpleName()+ ".dat" + " " +
+                                            cov.getClass().getSimpleName().split("Covariate")[0]); // The third argument is the name of the covariate in order to make the plots look nice
+                                p.waitFor();
+                            }
                         }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
