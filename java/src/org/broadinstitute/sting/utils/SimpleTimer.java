@@ -46,10 +46,7 @@ public class SimpleTimer {
     }
 
     public double getElapsedTime() {
-        if ( running )
-            return (currentTime() - startTime) / 1000.0;
-        else
-            return elapsed;
+        return (running ? (currentTime() - startTime) : elapsed) / 1000.0;
     }
 
 
