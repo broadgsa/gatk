@@ -32,6 +32,8 @@ def main():
         print file, dataset, parallelType, nWays, formatTime(startTime), formatTime(endTime), endToEnd(endTime, startTime), perMSites, runtime
     
 def endToEnd(endTime, startTime):
+    if endTime < startTime:
+        endTime = endTime + datetime.timedelta(1)
     #print 'endToEnd', endTime, startTime
     return total_minutes(endTime - startTime)
     
