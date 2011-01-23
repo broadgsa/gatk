@@ -36,8 +36,10 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.io.PrintStream;
 
@@ -104,9 +106,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-        List<SAMRecord> reads = context.getReads();
-        if(reads.size() > 0 ) {
-            List<Integer> offsets = context.getOffsets();
+        if(context.size() > 0 ) {
 
             int numAs = 0, numCs = 0, numGs = 0, numTs = 0;
             //if (DEBUG){
@@ -115,19 +115,16 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
 
             //Calculate posterior probabilities
             DiploidSNPGenotypeLikelihoods G = new DiploidSNPGenotypeLikelihoods();
-            SAMRecord read; int offset; char base; byte qual; int mapquality; String readname;
 
-            //Check for bad bases and ensure mapping quality
-            for (int i = 0; i < reads.size(); i++) {
-                read = reads.get(i);
-                offset = offsets.get(i);
-                base = (char)read.getReadBases()[offset];
-                qual = read.getBaseQualities()[offset];
-                //mapquality = read.getMappingQuality();
-                if (!ReadsToDiscard.contains(read.getReadName()) && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
-                    
-                    //consider base in likelihood calculations if it looks good and has high mapping score
-                    G.add((byte)base, qual, read, offset);
+
+            for ( PileupElement p : context.getBasePileup() ) {
+                byte base = p.getBase();
+                if (!ReadsToDiscard.contains(p.getRead().getReadName()) && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
+
+                    // TODO-- move this outside, e.g. to ReadBackedPileup
+                    HashSet<PileupElement> fragment = new HashSet<PileupElement>();
+                    fragment.add(p);
+                    G.add(new PerFragmentPileupElement(fragment), true, false);
                     //if (DEBUG){
                         if (base == 'A'){numAs++;}
                         else if (base == 'C'){numCs++;}
@@ -146,7 +143,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
             //}
             
         }
-        return context.getReads().size();
+        return context.size();
     }
 
     public Pair<Long, Long> reduce(Integer value, Pair<Long, Long> sum) {

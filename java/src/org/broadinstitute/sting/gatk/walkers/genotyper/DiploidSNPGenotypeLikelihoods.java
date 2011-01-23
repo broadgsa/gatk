@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -33,6 +32,10 @@ import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
@@ -69,6 +72,8 @@ import static java.lang.Math.pow;
  * model.
  */
 public class DiploidSNPGenotypeLikelihoods implements Cloneable {
+    public final static double DEFAULT_PCR_ERROR_RATE = 1e-4;
+
     protected final static int FIXED_PLOIDY = 2;
     protected final static int MAX_PLOIDY = FIXED_PLOIDY + 1;
     protected final static double ploidyAdjustment = log10(FIXED_PLOIDY);
@@ -84,22 +89,31 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
 
     protected DiploidSNPGenotypePriors priors = null;
 
+    // TODO: don't calculate this each time through
+    protected double log10_PCR_error_3;
+    protected double log10_1_minus_PCR_error;
+
     /**
      * Create a new GenotypeLikelhoods object with flat priors for each diploid genotype
      *
      */
     public DiploidSNPGenotypeLikelihoods() {
         this.priors = new DiploidSNPGenotypePriors();
+        log10_PCR_error_3 = log10(DEFAULT_PCR_ERROR_RATE) - log10_3;
+        log10_1_minus_PCR_error = log10(1.0 - DEFAULT_PCR_ERROR_RATE);
         setToZero();
     }
 
     /**
-     * Create a new GenotypeLikelhoods object with given priors for each diploid genotype
+     * Create a new GenotypeLikelhoods object with given priors and PCR error rate for each diploid genotype
      *
-     * @param priors priors
+     * @param priors          priors
+     * @param PCR_error_rate  the PCR error rate
      */
-    public DiploidSNPGenotypeLikelihoods(DiploidSNPGenotypePriors priors) {
+    public DiploidSNPGenotypeLikelihoods(DiploidSNPGenotypePriors priors, double PCR_error_rate) {
         this.priors = priors;
+        log10_PCR_error_3 = log10(PCR_error_rate) - log10_3;
+        log10_1_minus_PCR_error = log10(1.0 - PCR_error_rate);
         setToZero();
     }
 
@@ -242,45 +256,62 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     public int add(ReadBackedPileup pileup, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
         int n = 0;
 
-        // todo: first validate that my changes were good by passing in fragments representing just a single read...
-        //Set<PerFragmentPileupElement> fragments = new HashSet<PerFragmentPileupElement>();
+        // TODO-- move this outside the UG, e.g. to ReadBackedPileup
+        // combine paired reads into a single fragment
+        HashMap<String, PerFragmentPileupElement> fragments = new HashMap<String, PerFragmentPileupElement>();
         for ( PileupElement p : pileup ) {
-            if ( usableBase(p, ignoreBadBases) ) {
+            Set<PileupElement> fragment = new HashSet<PileupElement>();
+            String readName = p.getRead().getReadName();
 
-                /****
-                Set<PileupElement> fragment = new HashSet<PileupElement>();
-                fragment.add(p);
-                fragments.add(new PerFragmentPileupElement(fragment));
-            }
+            if ( fragments.containsKey(readName) )
+                fragment.addAll(fragments.get(readName).getPileupElements());
+
+            fragment.add(p);
+            fragments.put(readName, new PerFragmentPileupElement(fragment));
         }
 
         // for each fragment, add to the likelihoods
-        for ( PerFragmentPileupElement fragment : fragments ) {
-            n += add(fragment, capBaseQualsAtMappingQual);
-        }
-        ****/
-
-                byte qual = capBaseQualsAtMappingQual ? (byte)Math.min((int)p.getQual(), p.getMappingQual()) : p.getQual();
-                n += add(p.getBase(), qual, p.getRead(), p.getOffset());
-            }
+        for ( PerFragmentPileupElement fragment : fragments.values() ) {
+            n += add(fragment, ignoreBadBases, capBaseQualsAtMappingQual);
         }
 
         return n;
     }
 
-    // public int add(PerFragmentPileupElement fragment, boolean capBaseQualsAtMappingQual) {
+    public int add(PerFragmentPileupElement fragment, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
+        // TODO-- Right now we assume that there are at most 2 reads per fragment.  This assumption is fine
+        // TODO--   given the current state of next-gen sequencing, but may need to be fixed in the future.
+        // TODO--   However, when that happens, we'll need to be a lot smarter about the caching we do here.
+        byte observedBase1 = 0, observedBase2 = 0, qualityScore1 = 0, qualityScore2 = 0;
+        for ( PileupElement p : fragment ) {
+            if ( !usableBase(p, ignoreBadBases) )
+                continue;
 
-    public int add(byte observedBase, byte qualityScore, SAMRecord read, int offset) {
-        if ( qualityScore == 0 ) { // zero quals are wrong
-            return 0;
+            byte qual = p.getQual();
+            if ( qual > SAMUtils.MAX_PHRED_SCORE )
+                throw new UserException.MalformedBam(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
+            if ( capBaseQualsAtMappingQual )
+                qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
+
+            if ( qualityScore1 == 0 ) {
+                observedBase1 = p.getBase();
+                qualityScore1 = qual;
+            } else {
+                observedBase2 = p.getBase();
+                qualityScore2 = qual;
+            }
         }
+
+        // abort early if we didn't see any good bases
+        if ( observedBase1 == 0 && observedBase2 == 0 )
+            return 0;
 
         // Just look up the cached result if it's available, or compute and store it
         DiploidSNPGenotypeLikelihoods gl;
-        if ( ! inCache( observedBase, qualityScore, FIXED_PLOIDY, read) ) {
-            gl = calculateCachedGenotypeLikelihoods(observedBase, qualityScore, FIXED_PLOIDY, read, offset);
+        if ( ! inCache(observedBase1, qualityScore1, observedBase2, qualityScore2, FIXED_PLOIDY) ) {
+            gl = calculateCachedGenotypeLikelihoods(observedBase1, qualityScore1, observedBase2, qualityScore2, FIXED_PLOIDY);
         } else {
-            gl = getCachedGenotypeLikelihoods(observedBase, qualityScore, FIXED_PLOIDY, read);
+            gl = getCachedGenotypeLikelihoods(observedBase1, qualityScore1, observedBase2, qualityScore2, FIXED_PLOIDY);
         }
 
         // for bad bases, there are no likelihoods
@@ -292,11 +323,10 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         for ( DiploidGenotype g : DiploidGenotype.values() ) {
             double likelihood = likelihoods[g.ordinal()];
             
-            if ( VERBOSE ) {
-                boolean fwdStrand = ! read.getReadNegativeStrandFlag();
-                System.out.printf("  L(%c | G=%s, Q=%d, S=%s) = %f / %f%n",
-                        observedBase, g, qualityScore, fwdStrand ? "+" : "-", pow(10,likelihood) * 100, likelihood);
-            }
+            //if ( VERBOSE ) {
+            //    System.out.printf("  L(%c | G=%s, Q=%d, S=%s) = %f / %f%n",
+            //            observedBase, g, qualityScore, pow(10,likelihood) * 100, likelihood);
+            //}
 
             log10Likelihoods[g.ordinal()] += likelihood;
             log10Posteriors[g.ordinal()] += likelihood;
@@ -305,52 +335,50 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         return 1;
     }
 
-    static DiploidSNPGenotypeLikelihoods[][][][] CACHE = new DiploidSNPGenotypeLikelihoods[BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE+1][MAX_PLOIDY][2];
+    static DiploidSNPGenotypeLikelihoods[][][][][] CACHE = new DiploidSNPGenotypeLikelihoods[BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE+1][BaseUtils.BASES.length+1][QualityUtils.MAX_QUAL_SCORE+1][MAX_PLOIDY];
 
-    protected boolean inCache( byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
-        return getCache(CACHE, observedBase, qualityScore, ploidy, read) != null;
+    protected boolean inCache(byte observedBase1, byte qualityScore1, byte observedBase2, byte qualityScore2, int ploidy) {
+        return getCache(CACHE, observedBase1, qualityScore1, observedBase2, qualityScore2, ploidy) != null;
     }
 
-    protected DiploidSNPGenotypeLikelihoods getCachedGenotypeLikelihoods( byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
-        DiploidSNPGenotypeLikelihoods gl = getCache(CACHE, observedBase, qualityScore, ploidy, read);
+    protected DiploidSNPGenotypeLikelihoods getCachedGenotypeLikelihoods(byte observedBase1, byte qualityScore1, byte observedBase2, byte qualityScore2, int ploidy) {
+        DiploidSNPGenotypeLikelihoods gl = getCache(CACHE, observedBase1, qualityScore1, observedBase2, qualityScore2, ploidy);
         if ( gl == null )
-            throw new RuntimeException(String.format("BUG: trying to fetch an unset cached genotype likelihood at base=%c, qual=%d, ploidy=%d, read=%s",
-                    observedBase, qualityScore, ploidy, read));
+            throw new RuntimeException(String.format("BUG: trying to fetch an unset cached genotype likelihood at base1=%c, qual1=%d, base2=%c, qual2=%d, ploidy=%d",
+                    observedBase1, qualityScore1, observedBase2, qualityScore2, ploidy));
         return gl;
     }
 
-    protected DiploidSNPGenotypeLikelihoods calculateCachedGenotypeLikelihoods(byte observedBase, byte qualityScore, int ploidy, SAMRecord read, int offset) {
-        DiploidSNPGenotypeLikelihoods gl = calculateGenotypeLikelihoods(observedBase, qualityScore, read, offset);
-        setCache(CACHE, observedBase, qualityScore, ploidy, read, gl);
+    protected DiploidSNPGenotypeLikelihoods calculateCachedGenotypeLikelihoods(byte observedBase1, byte qualityScore1, byte observedBase2, byte qualityScore2, int ploidy) {
+        DiploidSNPGenotypeLikelihoods gl = calculateGenotypeLikelihoods(observedBase1, qualityScore1, observedBase2, qualityScore2);
+        setCache(CACHE, observedBase1, qualityScore1, observedBase2, qualityScore2, ploidy, gl);
         return gl;
     }
 
-    protected void setCache( DiploidSNPGenotypeLikelihoods[][][][] cache,
-                             byte observedBase, byte qualityScore, int ploidy,
-                             SAMRecord read, DiploidSNPGenotypeLikelihoods val ) {
-        int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
-        int j = qualityScore;
-        if ( j > SAMUtils.MAX_PHRED_SCORE )
-            throw new UserException.MalformedBam(read, String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, j, read.getReadName()));
-        int k = ploidy;
-        int x = strandIndex(! read.getReadNegativeStrandFlag() );
+    protected void setCache( DiploidSNPGenotypeLikelihoods[][][][][] cache,
+                             byte observedBase1, byte qualityScore1, byte observedBase2, byte qualityScore2, int ploidy,
+                             DiploidSNPGenotypeLikelihoods val ) {
+        int i = BaseUtils.simpleBaseToBaseIndex(observedBase1);
+        int j = qualityScore1;
+        int k = qualityScore2 != 0 ? BaseUtils.simpleBaseToBaseIndex(observedBase2) : BaseUtils.BASES.length;
+        int l = qualityScore2;
+        int m = ploidy;
 
-        cache[i][j][k][x] = val;
+        cache[i][j][k][l][m] = val;
     }
 
-    protected DiploidSNPGenotypeLikelihoods getCache( DiploidSNPGenotypeLikelihoods[][][][] cache,
-                                            byte observedBase, byte qualityScore, int ploidy, SAMRecord read) {
-        int i = BaseUtils.simpleBaseToBaseIndex(observedBase);
-        int j = qualityScore;
-        if ( j > SAMUtils.MAX_PHRED_SCORE )
-            throw new UserException.MalformedBam(read, String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, j, read.getReadName()));
-        int k = ploidy;
-        int x = strandIndex(! read.getReadNegativeStrandFlag() );
-        return cache[i][j][k][x];
+    protected DiploidSNPGenotypeLikelihoods getCache(DiploidSNPGenotypeLikelihoods[][][][][] cache,
+                                            byte observedBase1, byte qualityScore1, byte observedBase2, byte qualityScore2, int ploidy) {
+        int i = BaseUtils.simpleBaseToBaseIndex(observedBase1);
+        int j = qualityScore1;
+        int k = qualityScore2 != 0 ? BaseUtils.simpleBaseToBaseIndex(observedBase2) : BaseUtils.BASES.length;
+        int l = qualityScore2;
+        int m = ploidy;
+        return cache[i][j][k][l][m];
     }
 
-    protected DiploidSNPGenotypeLikelihoods calculateGenotypeLikelihoods(byte observedBase, byte qualityScore, SAMRecord read, int offset) {
-        double[] log10FourBaseLikelihoods = computeLog10Likelihoods(observedBase, qualityScore, read);
+    protected DiploidSNPGenotypeLikelihoods calculateGenotypeLikelihoods(byte observedBase1, byte qualityScore1, byte observedBase2, byte qualityScore2) {
+        double[] log10FourBaseLikelihoods = computeLog10Likelihoods(observedBase1, qualityScore1, observedBase2, qualityScore2);
 
         try {
 
@@ -388,24 +416,36 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
      * Updates likelihoods and posteriors to reflect an additional observation of observedBase with
      * qualityScore.
      *
-     * @param observedBase observed base
-     * @param qualityScore base quality
-     * @param read         SAM read
+     * @param observedBase1  the base observed on the 1st read of the fragment
+     * @param qualityScore1  the qual of the base on the 1st read of the fragment, or zero if NA
+     * @param observedBase2  the base observed on the 2nd read of the fragment
+     * @param qualityScore2  the qual of the base on the 2nd read of the fragment, or zero if NA
      * @return likelihoods for this observation or null if the base was not considered good enough to add to the likelihoods (Q0 or 'N', for example)
      */
-    protected double[] computeLog10Likelihoods(byte observedBase, byte qualityScore, SAMRecord read) {
+    protected double[] computeLog10Likelihoods(byte observedBase1, byte qualityScore1, byte observedBase2, byte qualityScore2) {
         double[] log10FourBaseLikelihoods = baseZeros.clone();
 
-        for ( byte base : BaseUtils.BASES ) {
-            double likelihood = log10PofObservingBaseGivenChromosome(observedBase, base, qualityScore);
+        for ( byte trueBase : BaseUtils.BASES ) {
+            double likelihood = 0.0;
 
-            if ( VERBOSE ) {
-                boolean fwdStrand = ! read.getReadNegativeStrandFlag();
-                System.out.printf("  L(%c | b=%s, Q=%d, S=%s) = %f / %f%n",
-                        observedBase, base, qualityScore, fwdStrand ? "+" : "-", pow(10,likelihood) * 100, likelihood);
+            for ( byte fragmentBase : BaseUtils.BASES ) {
+                double log10FragmentLikelihood = (trueBase == fragmentBase ? log10_1_minus_PCR_error : log10_PCR_error_3);
+                if ( qualityScore1 != 0 ) {
+                    log10FragmentLikelihood += log10PofObservingBaseGivenChromosome(observedBase1, fragmentBase, qualityScore1);
+                }
+                if ( qualityScore2 != 0 ) {
+                    log10FragmentLikelihood += log10PofObservingBaseGivenChromosome(observedBase2, fragmentBase, qualityScore2);
+                }
+
+                //if ( VERBOSE ) {
+                //    System.out.printf("  L(%c | b=%s, Q=%d) = %f / %f%n",
+                //            observedBase, trueBase, qualityScore, pow(10,likelihood) * 100, likelihood);
+                //}
+
+                likelihood += pow(10, log10FragmentLikelihood);
             }
 
-            log10FourBaseLikelihoods[BaseUtils.simpleBaseToBaseIndex(base)] = likelihood;
+            log10FourBaseLikelihoods[BaseUtils.simpleBaseToBaseIndex(trueBase)] = log10(likelihood);
         }
 
         return log10FourBaseLikelihoods;
@@ -444,19 +484,16 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     //
     // -----------------------------------------------------------------------------------------------------------------
 
-    public static int strandIndex(boolean fwdStrand) {
-        return fwdStrand ? 0 : 1;
-    }
-
     /**
      * Returns true when the observedBase is considered usable.
-     * @param p          pileup element
-     * @param ignoreBadBases should we ignore bad bases?
+     * @param p                pileup element
+     * @param ignoreBadBases   should we ignore bad bases?
      * @return true if the base is a usable base
      */
     protected static boolean usableBase(PileupElement p, boolean ignoreBadBases) {
-        // ignore deletions and filtered bases
+        // ignore deletions, Q0 bases, and filtered bases
         if ( p.isDeletion() ||
+                p.getQual() == 0 ||
                 (p.getRead() instanceof GATKSAMRecord &&
                  !((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) )
             return false;

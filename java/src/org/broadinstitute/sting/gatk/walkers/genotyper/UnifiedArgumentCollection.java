@@ -41,6 +41,9 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "heterozygosity", shortName = "hets", doc = "Heterozygosity value used to compute prior likelihoods for any locus", required = false)
     public Double heterozygosity = DiploidSNPGenotypePriors.HUMAN_HETEROZYGOSITY;
 
+    @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
+    public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
+
     // control the output
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
     public boolean GENOTYPE_MODE = false;
@@ -86,6 +89,8 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
 
+
+    // indel-related arguments
     @Argument(fullName = "get_indel_alleles_from_vcf", shortName = "getIndelAllelesFromVCF", doc = "Get reference/alt alleles for indel genotyping from VCF", required = false)
     public boolean GET_ALLELES_FROM_VCF = false;
 
@@ -100,6 +105,7 @@ public class UnifiedArgumentCollection {
 
         uac.GLmodel = GLmodel;
         uac.heterozygosity = heterozygosity;
+        uac.PCR_error = PCR_error;
         uac.GENOTYPE_MODE = GENOTYPE_MODE;
         uac.ALL_BASES_MODE = ALL_BASES_MODE;
         uac.NO_SLOD = NO_SLOD;

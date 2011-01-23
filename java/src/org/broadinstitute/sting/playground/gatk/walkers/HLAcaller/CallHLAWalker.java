@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.commandline.Argument;
@@ -41,6 +42,7 @@ import org.broadinstitute.sting.commandline.Output;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -340,7 +342,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
         ReadBackedPileup pileup = context.getPileup();
 
         long loc = context.getPosition();
-        if( context.getReads().size() > 0 ) {
+        if( context.size() > 0 ) {
             //out.printf("RG for first read: %s%n",context.getReads().get(0).getReadName());
             int numAs = 0, numCs = 0, numGs = 0, numTs = 0,depth = 0;
             String c1 = "", c2 = "";
@@ -354,25 +356,23 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
 
             //Calculate posterior probabilities
             DiploidSNPGenotypeLikelihoods G = new DiploidSNPGenotypeLikelihoods();
-            SAMRecord read; int offset; char base; byte qual; int mapquality; String readname;
 
-            //Check for bad bases and ensure mapping quality myself. This works.
-            for (int i = 0; i < reads.size(); i++) {
-                read = reads.get(i);
-                offset = offsets.get(i);
-                base = (char)read.getReadBases()[offset];
-                qual = read.getBaseQualities()[offset];
-                mapquality = read.getMappingQuality();
+            for ( PileupElement p : context.getBasePileup() ) {
+                byte base = p.getBase();
+                int mapquality = p.getMappingQual();
                 if (mapquality >= 5 && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
-                    if (ReadsToFilter.contains(read.getReadName())){
+                    String readname = p.getRead().getReadName();
+                    if (ReadsToFilter.contains(readname)){
                         if (DEBUG){
-                            out.printf("\n%s %s %s %s\n",read.getReadName(),read.getAlignmentStart(),read.getAlignmentEnd(),base);
+                            out.printf("\n%s %s %s %s\n",readname,p.getRead().getAlignmentStart(),p.getRead().getAlignmentEnd(),base);
                         }
                     }else{
                         //consider base in likelihood calculations if it looks good and has high mapping score
-                        G.add((byte)base, qual, read, offset);
-                        readname = read.getReadName();
-                        if (!AllReadNames.contains(readname)){AllReadNames.add(readname); AllReads.add(read);}
+                        // TODO-- move this outside, e.g. to ReadBackedPileup
+                        HashSet<PileupElement> fragment = new HashSet<PileupElement>();
+                        fragment.add(p);
+                        G.add(new PerFragmentPileupElement(fragment), true, false);
+                        if (!AllReadNames.contains(readname)){AllReadNames.add(readname); AllReads.add(p.getRead());}
                         if (base == 'A'){numAs++; depth++;}
                         else if (base == 'C'){numCs++; depth++;}
                         else if (base == 'T'){numTs++; depth++;}

@@ -87,7 +87,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             ReadBackedPileup pileup = sample.getValue().getContext(contextType).getBasePileup();
 
             // create the GenotypeLikelihoods object
-            DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods((DiploidSNPGenotypePriors)priors);
+            DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods((DiploidSNPGenotypePriors)priors, UAC.PCR_error);
             int nGoodBases = GL.add(pileup, true, true);
             if ( nGoodBases == 0 )
                 continue;
