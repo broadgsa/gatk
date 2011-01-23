@@ -34,7 +34,7 @@ import java.util.Collections;
  * Test the GATK core interval parsing mechanism.
  */
 public class IntervalIntegrationTest extends WalkerTest {
-    @Test
+    @Test(enabled = true)
     public void testAllImplicitIntervalParsing() {
         String md5 = "7821db9e14d4f8e07029ff1959cd5a99";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -47,7 +47,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         executeTest("testAllIntervalsImplicit",spec);
     }
 
-    @Test
+    @Test(enabled = true)
     public void testAllExplicitIntervalParsing() {
         String md5 = "7821db9e14d4f8e07029ff1959cd5a99";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -76,7 +76,7 @@ public class IntervalIntegrationTest extends WalkerTest {
         executeTest("testUnmappedReadInclusion",spec);
     }
 
-    @Test
+    @Test(enabled = true)
     public void testUnmappedReadExclusion() {
         String md5 = "3153593c9f9ff80a8551fff5655e65ec";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(

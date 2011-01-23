@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -18,8 +19,8 @@ public class SharedMemoryGenomeLocProcessingTracker extends GenomeLocProcessingT
     }
 
     @Override
-    protected void registerNewLoc(ProcessingLoc loc) {
-        newPLocs.add(loc);
+    protected void registerNewLocs(Collection<ProcessingLoc> plocs) {
+        newPLocs.addAll(plocs);
     }
 
     @Override

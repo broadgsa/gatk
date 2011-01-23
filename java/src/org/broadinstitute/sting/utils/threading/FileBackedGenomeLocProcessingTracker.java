@@ -11,6 +11,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -75,13 +77,15 @@ public class FileBackedGenomeLocProcessingTracker extends GenomeLocProcessingTra
     }
 
     @Override
-    protected void registerNewLoc(ProcessingLoc proc) {
+    protected void registerNewLocs(Collection<ProcessingLoc> plocs) {
         try {
-            String packet = String.format("%s %s%n", proc.getLocation(), proc.getOwner());
             long startPos = raFile.getFilePointer();
             raFile.seek(raFile.length());
-            raFile.write(packet.getBytes());
-            if ( DEBUG ) logger.warn(String.format("Wrote loc %s to file: %d + %d bytes ending at %d", proc, startPos, packet.length(), raFile.getFilePointer()));
+            for ( ProcessingLoc ploc : plocs ) {
+                String packet = String.format("%s %s%n", ploc.getLocation(), ploc.getOwner());
+                raFile.write(packet.getBytes());
+                if ( DEBUG ) logger.warn(String.format("Wrote loc %s to file: %d + %d bytes ending at %d", ploc, startPos, packet.length(), raFile.getFilePointer()));
+            }
         } catch (FileNotFoundException e) {
             throw new UserException.CouldNotCreateOutputFile(sharedFile, e);
         } catch (IOException e) {
