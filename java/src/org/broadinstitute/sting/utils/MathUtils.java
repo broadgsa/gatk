@@ -342,7 +342,7 @@ public class MathUtils {
     }
 
     /**
-     * normalizes the log10-based array
+     * normalizes the log10-based array.  ASSUMES THAT ALL ARRAY ENTRIES ARE <= 0 (<= 1 IN REAL-SPACE).
      *
      * @param array  the array to be normalized
      * @param takeLog10OfOutput if true, the output will be transformed back into log10 units
@@ -371,6 +371,13 @@ public class MathUtils {
         return normalized;
     }
 
+    /**
+     * normalizes the log10-based array.  ASSUMES THAT ALL ARRAY ENTRIES ARE <= 0 (<= 1 IN REAL-SPACE).
+     *
+     * @param array  the array to be normalized
+     *
+     * @return a newly allocated array corresponding the normalized values in array
+    */
     public static double[] normalizeFromLog10(double[] array) {
         return normalizeFromLog10(array, false);
     }
