@@ -105,8 +105,8 @@ public class
     @Test
     public void testParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-genotype", "683ce57f2fd3acd5f6fe7599c1ace169" );
-        e.put( "-all_bases", "2ddf763c208602693cad942c9ccb804c" );
+        e.put( "-genotype", "4ffcb1e1f20ce175783c32c30deef8db" );
+        e.put( "-all_bases", "3d98205a31a133c11e518e095dc7ab65" );
         e.put( "--min_base_quality_score 26", "5f1cfb9c7f82e6414d5db7aa344813ac" );
         e.put( "--min_mapping_quality_score 26", "6c3ad441f3a23ade292549b1dea80932" );
         e.put( "--max_mismatches_in_40bp_window 5", "5ecaf4281410b67e8e2e164f2ea0d58a" );

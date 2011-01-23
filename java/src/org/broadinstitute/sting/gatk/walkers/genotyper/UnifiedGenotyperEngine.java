@@ -378,8 +378,14 @@ public class UnifiedGenotyperEngine {
 
         int endLoc = calculateEndPos(vc.getAlleles(), vc.getReference(), loc);
 
+        Set<Allele> myAlleles = vc.getAlleles();
+        // strip out the alternate allele if it's a ref call
+        if ( bestAFguess == 0 ) {
+            myAlleles = new HashSet<Allele>(1);
+            myAlleles.add(vc.getReference());
+        }
         VariantContext vcCall = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
-                vc.getAlleles(), genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
+                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
 
         if ( annotationEngine != null ) {
             // first off, we want to use the *unfiltered* context for the annotations
