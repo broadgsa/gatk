@@ -70,7 +70,12 @@ public class LiftoverVariants extends RodWalker<Integer, Integer> {
     private long successfulIntervals = 0, failedIntervals = 0;
 
     public void initialize() {
-        liftOver = new LiftOver(CHAIN);
+        try {
+            liftOver = new LiftOver(CHAIN);
+        } catch (PicardException e) {
+            throw new UserException.BadInput("there is a problem with the chain file you are using: " + e.getMessage());
+        }
+
         liftOver.setLiftOverMinMatch(LiftOver.DEFAULT_LIFTOVER_MINMATCH);
 
         try {
