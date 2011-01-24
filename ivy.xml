@@ -39,6 +39,9 @@
     <dependency org="commons-logging" name="commons-logging" rev="1.1.1"/>
     <dependency org="commons-io" name="commons-io" rev="2.0"/>
 
+    <!-- Lucene core utilities -->
+    <dependency org="org.apache.lucene" name="lucene-core" rev="3.0.3"/>
+
     <!-- Dependencies for LSF library -->
     <dependency org="net.java.dev.jna" name="jna" rev="3.2.7"/>
 
