@@ -245,7 +245,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             return mapList;
         }
 
-        final Collection<VariantContext> vcsTruth = tracker.getVariantContexts(ref, truthNames, null, context.getLocation(), false, true);
+        final Collection<VariantContext> vcsTruth = tracker.getVariantContexts(ref, truthNames, null, context.getLocation(), true, true);
         boolean isAtTruthSite = false;
         for( final VariantContext vcTruth : vcsTruth ) {
             if( vcTruth != null && vcTruth.isVariant() && !vcTruth.isFiltered() && (!vcTruth.hasGenotypes() || vcTruth.isPolymorphic()) ) {
@@ -255,12 +255,14 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
         nTruthSites += isAtTruthSite ? 1 : 0;
 
-        for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
-            if( vc != null && vc.isSNP() ) {
+        for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
+            if( vc != null  ) {
                 if( !vc.isFiltered() || IGNORE_ALL_INPUT_FILTERS || (ignoreInputFilterSet != null && ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     if( vc.getPhredScaledQual() >= QUAL_THRESHOLD ) {
                         final VariantDatum variantDatum = new VariantDatum();
-                        variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
+
+                        if (vc.isSNP())
+                            variantDatum.isTransition = VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0;
 
                         final Collection<VariantContext> vcsDbsnp = tracker.getVariantContexts(ref, "dbsnp", null, context.getLocation(), false, true);
                         final Collection<VariantContext> vcsHapMap = tracker.getVariantContexts(ref, "hapmap", null, context.getLocation(), false, true);
