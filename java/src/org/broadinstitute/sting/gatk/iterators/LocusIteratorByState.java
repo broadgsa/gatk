@@ -117,10 +117,6 @@ public class LocusIteratorByState extends LocusIterator {
             //System.out.printf("Creating a SAMRecordState: %s%n", this);
         }
 
-        public SAMRecordState(SAMRecord read) {
-            this(read,false);
-        }
-
         public SAMRecord getRead() { return read; }
 
         /**
@@ -179,9 +175,14 @@ public class LocusIteratorByState extends LocusIterator {
                     // we reenter in order to re-check cigarElementCounter against curElement's length
                     return stepForwardOnGenome();
                 } else {
+                    // Reads that contain indels model the genomeOffset as the following base in the reference.  Because
+                    // we fall into this else block only when indels end the read, increment genomeOffset  such that the
+                    // current offset of this read is the next ref base after the end of the indel.  This position will
+                    // model a point on the reference somewhere after the end of the read.
+                    genomeOffset++; // extended events need that. Logically, it's legal to advance the genomic offset here:
+                                    // we do step forward on the ref, and by returning null we also indicate that we are past the read end.
+
                     if ( generateExtendedEvents && eventDelayedFlag > 0 ) {
-                        genomeOffset++; // extended events need that. Logically, it's legal to advance the genomic offset here:
-                                        // we do step forward on the ref, and by returning null we also indicate that we are past the read end.
 
                         // if we had an indel right before the read ended (i.e. insertion was the last cigar element),
                         // we keep it until next reference base; then we discard it and this will allow the LocusIterator to
@@ -193,6 +194,7 @@ public class LocusIteratorByState extends LocusIterator {
                             eventStart = -1;
                         }
                     }
+
                     return null;
                 }
             }
@@ -366,10 +368,9 @@ public class LocusIteratorByState extends LocusIterator {
                 Map<Sample,ReadBackedExtendedEventPileupImpl> fullExtendedEventPileup =
                         new HashMap<Sample,ReadBackedExtendedEventPileupImpl>();
 
-                SAMRecordState our1stState = readStates.getFirst();
                 // get current location on the reference and decrement it by 1: the indels we just stepped over
                 // are associated with the *previous* reference base
-                GenomeLoc loc = genomeLocParser.incPos(our1stState.getLocation(genomeLocParser),-1);
+                GenomeLoc loc = genomeLocParser.incPos(getLocation(),-1);
 
                 boolean hasBeenSampled = false;
                 for(Sample sample: samples) {

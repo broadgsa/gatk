@@ -5,6 +5,8 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.ReadProperties;
@@ -134,6 +136,161 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
         }
 
         Assert.assertTrue(foundExtendedEventPileup,"Extended event pileup not found");
+    }
+
+    @Test
+    public void testWholeIndelReadInIsolation() {
+        final int firstLocus = 44367789;
+
+        // create a test version of the Reads object
+        ReadProperties readAttributes = createTestReadProperties();
+
+        SAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header,"indelOnly",0,firstLocus,76);
+        indelOnlyRead.setReadBases(Utils.dupBytes((byte)'A',76));
+        indelOnlyRead.setBaseQualities(Utils.dupBytes((byte)'@',76));
+        indelOnlyRead.setCigarString("76I");
+
+        List<SAMRecord> reads = Arrays.asList(indelOnlyRead);
+
+        // create the iterator by state with the fake reads and fake records
+        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser,new SampleDataSource());
+
+        // Traditionally, reads that end with indels bleed into the pileup at the following locus.  Verify that the next pileup contains this read
+        // and considers it to be an indel-containing read.
+        Assert.assertTrue(li.hasNext(),"Should have found a whole-indel read in the normal base pileup without extended events enabled");
+        AlignmentContext alignmentContext = li.next();
+        Assert.assertEquals(alignmentContext.getLocation().getStart(),firstLocus,"Base pileup is at incorrect location.");
+        ReadBackedPileup basePileup = alignmentContext.getBasePileup();
+        Assert.assertEquals(basePileup.getReads().size(),1,"Pileup is of incorrect size");
+        Assert.assertSame(basePileup.getReads().get(0),indelOnlyRead,"Read in pileup is incorrect");
+
+        // Turn on extended events, and make sure the event is found.
+        JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"generateExtendedEvents"),readAttributes,true);
+        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser,new SampleDataSource());
+
+        Assert.assertTrue(li.hasNext(),"LocusIteratorByState with extended events should contain exactly one pileup");
+        alignmentContext = li.next();
+        Assert.assertEquals(alignmentContext.getLocation().getStart(),firstLocus-1,"Extended event pileup is at incorrect location.");
+        ReadBackedExtendedEventPileup extendedEventPileup = alignmentContext.getExtendedEventPileup();
+        Assert.assertEquals(extendedEventPileup.getReads().size(),1,"Pileup is of incorrect size");
+        Assert.assertSame(extendedEventPileup.getReads().get(0),indelOnlyRead,"Read in pileup is incorrect");
+    }
+
+    /**
+     * Test to make sure that reads supporting only an indel (example cigar string: 76I) do
+     * not negatively influence the ordering of the pileup.
+     */
+    @Test
+    public void testWholeIndelReadWithoutExtendedEvents() {
+        final int firstLocus = 44367788, secondLocus = firstLocus + 1;
+
+        SAMRecord leadingRead = ArtificialSAMUtils.createArtificialRead(header,"leading",0,firstLocus,76);
+        leadingRead.setReadBases(Utils.dupBytes((byte)'A',76));
+        leadingRead.setBaseQualities(Utils.dupBytes((byte)'@',76));
+        leadingRead.setCigarString("1M75I");
+
+        SAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header,"indelOnly",0,secondLocus,76);
+        indelOnlyRead.setReadBases(Utils.dupBytes((byte)'A',76));
+        indelOnlyRead.setBaseQualities(Utils.dupBytes((byte)'@',76));
+        indelOnlyRead.setCigarString("76I");
+
+        SAMRecord fullMatchAfterIndel = ArtificialSAMUtils.createArtificialRead(header,"fullMatch",0,secondLocus,76);
+        fullMatchAfterIndel.setReadBases(Utils.dupBytes((byte)'A',76));
+        fullMatchAfterIndel.setBaseQualities(Utils.dupBytes((byte)'@',76));
+        fullMatchAfterIndel.setCigarString("75I1M");
+
+        List<SAMRecord> reads = Arrays.asList(leadingRead,indelOnlyRead,fullMatchAfterIndel);
+
+        // create the iterator by state with the fake reads and fake records
+        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),createTestReadProperties(),genomeLocParser,new SampleDataSource());
+        int currentLocus = firstLocus;
+        int numAlignmentContextsFound = 0;
+
+        while(li.hasNext()) {
+            AlignmentContext alignmentContext = li.next();
+            Assert.assertEquals(alignmentContext.getLocation().getStart(),currentLocus,"Current locus returned by alignment context is incorrect");
+
+            if(currentLocus == firstLocus) {
+                List<SAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
+                Assert.assertEquals(readsAtLocus.size(),1,"Wrong number of reads at locus " + currentLocus);
+                Assert.assertSame(readsAtLocus.get(0),leadingRead,"leadingRead absent from pileup at locus " + currentLocus);
+            }
+            else if(currentLocus == secondLocus) {
+                List<SAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
+                Assert.assertEquals(readsAtLocus.size(),2,"Wrong number of reads at locus " + currentLocus);
+                Assert.assertSame(readsAtLocus.get(0),indelOnlyRead,"indelOnlyRead absent from pileup at locus " + currentLocus);
+                Assert.assertSame(readsAtLocus.get(1),fullMatchAfterIndel,"fullMatchAfterIndel absent from pileup at locus " + currentLocus);
+            }
+
+            currentLocus++;
+            numAlignmentContextsFound++;
+        }
+
+        Assert.assertEquals(numAlignmentContextsFound,2,"Found incorrect number of alignment contexts");
+    }
+
+    /**
+     * Test to make sure that reads supporting only an indel (example cigar string: 76I) do
+     * not negatively influence the ordering of the pileup.
+     */
+    @Test
+    public void testWholeIndelReadWithExtendedEvents() {
+        final int firstLocus = 44367788, secondLocus = firstLocus + 1;
+
+        // create a test version of the Reads object
+        ReadProperties readAttributes = createTestReadProperties();
+        JVMUtils.setFieldValue(JVMUtils.findField(ReadProperties.class,"generateExtendedEvents"),readAttributes,true);
+
+        SAMRecord leadingRead = ArtificialSAMUtils.createArtificialRead(header,"leading",0,firstLocus,76);
+        leadingRead.setReadBases(Utils.dupBytes((byte)'A',76));
+        leadingRead.setBaseQualities(Utils.dupBytes((byte)'@',76));
+        leadingRead.setCigarString("1M75I");
+
+        SAMRecord indelOnlyRead = ArtificialSAMUtils.createArtificialRead(header,"indelOnly",0,secondLocus,76);
+        indelOnlyRead.setReadBases(Utils.dupBytes((byte)'A',76));
+        indelOnlyRead.setBaseQualities(Utils.dupBytes((byte)'@',76));
+        indelOnlyRead.setCigarString("76I");
+
+        SAMRecord fullMatchAfterIndel = ArtificialSAMUtils.createArtificialRead(header,"fullMatch",0,secondLocus,1);
+        fullMatchAfterIndel.setReadBases(Utils.dupBytes((byte)'A',1));
+        fullMatchAfterIndel.setBaseQualities(Utils.dupBytes((byte)'@',1));
+        fullMatchAfterIndel.setCigarString("1M");
+
+        List<SAMRecord> reads = Arrays.asList(leadingRead,indelOnlyRead,fullMatchAfterIndel);
+
+        // create the iterator by state with the fake reads and fake records
+        li = new LocusIteratorByState(new FakeCloseableIterator<SAMRecord>(reads.iterator()),readAttributes,genomeLocParser,new SampleDataSource());
+
+        Assert.assertTrue(li.hasNext(),"Missing first locus at " + firstLocus);
+        AlignmentContext alignmentContext = li.next();
+        Assert.assertEquals(alignmentContext.getLocation().getStart(),firstLocus,"Incorrect locus at this position; should be " + firstLocus);
+        List<SAMRecord> readsAtLocus = alignmentContext.getBasePileup().getReads();
+        Assert.assertEquals(readsAtLocus.size(),1,"Wrong number of reads at locus " + firstLocus);
+        Assert.assertSame(readsAtLocus.get(0),leadingRead,"leadingRead absent from pileup at locus " + firstLocus);
+
+        Assert.assertTrue(li.hasNext(),"Missing extended event at " + firstLocus);
+        alignmentContext = li.next();        
+        Assert.assertEquals(alignmentContext.getLocation().getStart(),firstLocus,"Incorrect extended event locus at this position; should be " + firstLocus);
+        readsAtLocus = alignmentContext.getExtendedEventPileup().getReads();
+        Assert.assertEquals(readsAtLocus.size(),3,"Wrong number of reads at extended event locus " + firstLocus);
+        Assert.assertSame(readsAtLocus.get(0),leadingRead,"leadingRead absent from pileup at extended event locus " + firstLocus);
+        Assert.assertSame(readsAtLocus.get(1),indelOnlyRead,"indelOnlyRead absent from pileup at extended event locus " + firstLocus);
+        // Weird, but as above, reads immediately after the indel are included in the extended event pileup
+        Assert.assertSame(readsAtLocus.get(2),fullMatchAfterIndel,"fullMatchAfterIndel absent from pileup at extended event locus " + firstLocus);
+
+        // Traditionally, reads that end with indels bleed into the pileup at the following locus.  Verify that the next pileup contains this read
+        // and considers it to be an indel-containing read.        
+        Assert.assertTrue(li.hasNext(),"Missing base pileup at " + secondLocus);
+        alignmentContext = li.next();
+        Assert.assertEquals(alignmentContext.getLocation().getStart(),secondLocus,"Incorrect extended event locus at this position; should be " + secondLocus);
+        readsAtLocus = alignmentContext.getBasePileup().getReads();
+        Assert.assertEquals(readsAtLocus.size(),3,"Wrong number of reads at extended event locus " + secondLocus);
+        Assert.assertSame(readsAtLocus.get(0),leadingRead,"leadingRead absent from pileup at extended event locus " + secondLocus);
+        Assert.assertSame(readsAtLocus.get(1),indelOnlyRead,"indelOnlyRead absent from pileup at extended event locus " + secondLocus);
+        // Weird, but as above, reads immediately after the indel are included in the extended event pileup
+        Assert.assertSame(readsAtLocus.get(2),fullMatchAfterIndel,"fullMatchAfterIndel absent from pileup at extended event locus " + secondLocus);
+
+        Assert.assertFalse(li.hasNext(),"Too many alignment contexts");
     }
 
     private static ReadProperties createTestReadProperties() {
