@@ -212,6 +212,11 @@ public class GATKArgumentCollection {
     @Input(fullName = "read_group_black_list", shortName="rgbl", doc="Filters out read groups matching <TAG>:<STRING> or a .txt file containing the filter strings one per line.", required = false)
     public List<String> readGroupBlackList = null;
 
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // distributed GATK arguments
+    //
+    // --------------------------------------------------------------------------------------------------------------
     @Element(required=false)
     @Argument(fullName="processingTracker",shortName="C",doc="A lockable, shared file for coordinating distributed GATK runs",required=false)
     @Hidden
@@ -221,6 +226,17 @@ public class GATKArgumentCollection {
     @Argument(fullName="restartProcessingTracker",shortName="RPT",doc="Should we delete the processing tracker file at startup?",required=false)
     @Hidden
     public boolean restartProcessingTracker = false;
+
+    @Element(required=false)
+    @Argument(fullName="processingTrackerStatusFile",shortName="CSF",doc="If provided, a detailed accounting of the state of the process tracker is written to this file.  For debugging, only",required=false)
+    @Hidden
+    public File processingTrackerStatusFile = null;
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // methods
+    //
+    // --------------------------------------------------------------------------------------------------------------
 
     /**
      * marshal the data out to a object
@@ -385,6 +401,10 @@ public class GATKArgumentCollection {
 
         if ((other.processingTrackerFile == null && this.processingTrackerFile != null) ||
                 (other.processingTrackerFile != null && !other.processingTrackerFile.equals(this.processingTrackerFile)))
+            return false;
+
+        if ((other.processingTrackerStatusFile == null && this.processingTrackerStatusFile != null) ||
+                (other.processingTrackerStatusFile != null && !other.processingTrackerStatusFile.equals(this.processingTrackerStatusFile)))
             return false;
 
         if ( restartProcessingTracker != other.restartProcessingTracker )

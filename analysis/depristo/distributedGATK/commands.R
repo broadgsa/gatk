@@ -1,8 +1,8 @@
-# todo -- add replicate number to system
-# tood -- add scatter gather comparison
-d <- read.table("results.dat", header=T)
+d <- read.table("results.new.dat", header=T)
 require("lattice")
 
+plot1 <- function(d, name) {
+	d = subset(d, dataset == name)
 subd = data.frame(parallel.type=d$parallel.type, nWaysParallel=d$nWaysParallel, end.to.end.time=d$end.to.end.time,per.1M.sites = d$per.1M.sites, job.run.time = d$job.run.time)
 
 nways = unique(subd$nWaysParallel)
@@ -18,5 +18,8 @@ subd = rbind(subd, theo)
 
 print(summary(subd))
 
-print(xyplot(end.to.end.time + per.1M.sites + job.run.time ~ nWaysParallel, data=subd[order(subd$nWaysParallel),], group=parallel.type, type="b", outer=T, scale=list(relation="free"), auto.key=T, lwd=c(2,2,1)))
+print(xyplot(log10(end.to.end.time) + per.1M.sites + log10(job.run.time) ~ log2(nWaysParallel), data=subd[order(subd$nWaysParallel),], group=parallel.type, type="b", outer=T, scale=list(relation="free"), auto.key=T, lwd=c(2,2,1), main=name))
+}
 
+plot1(d, "NA12878Trio.WEx")
+plot1(d, "NA12878.HiSeq")

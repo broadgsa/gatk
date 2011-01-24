@@ -96,8 +96,6 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         List<TestTarget> params = new ArrayList<TestTarget>();
 
         int counter = 0;
-//        for ( int nShard : Arrays.asList(10,100,1000) ) {
-//            for ( int shardSize : Arrays.asList(10) ) {
         for ( int nShard : nShards ) {
             for ( int shardSize : shardSizes ) {
                 // shared mem -- canonical implementation
@@ -108,7 +106,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
 
                 final File file1 = new File(String.format("%s_ThreadSafeFileBacked_%d_%d", FILE_ROOT, counter++, nShard, shardSize));
                 params.add(new TestTarget("ThreadSafeFileBacked", nShard, shardSize) {
-                    GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createFileBackedThreaded(file1, genomeLocParser);
+                    GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createFileBackedThreaded(file1, genomeLocParser, null);
                     public GenomeLocProcessingTracker getTracker() { return tracker; }
                     public void init() {
                         if ( file1.exists() )
@@ -116,15 +114,17 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
                     }
                 });
 
-                final File file2 = new File(String.format("%s_ThreadSafeFileLockingFileBacked_%d_%d", FILE_ROOT, counter++, nShard, shardSize));
-                params.add(new TestTarget("ThreadSafeFileLockingFileBacked", nShard, shardSize) {
-                    GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createFileBackedDistributed(file2, genomeLocParser);
-                    public GenomeLocProcessingTracker getTracker() { return tracker; }
-                    public void init() {
-                        if ( file2.exists() )
-                            file2.delete();
-                    }
-                });
+                for ( final boolean blocking : Arrays.asList(true, false) ) {
+                    final File file2 = new File(String.format("%s_ThreadSafeFileLockingFile_blocking%b_%d_%d", FILE_ROOT, blocking, counter++, nShard, shardSize));
+                    params.add(new TestTarget("ThreadSafeFileLockingFileBackedBlocking" + blocking, nShard, shardSize) {
+                        GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createFileBackedDistributed(file2, genomeLocParser, blocking, null);
+                        public GenomeLocProcessingTracker getTracker() { return tracker; }
+                        public void init() {
+                            if ( file2.exists() )
+                                file2.delete();
+                        }
+                    });
+                }
             }
         }
 
@@ -149,7 +149,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
                 GenomeLoc loc = genomeLocParser.createGenomeLoc(chr1, start, start +1);
                 ProcessingLoc ploc = tracker.claimOwnership(loc, NAME_ONE);
                 Assert.assertTrue(ploc.isOwnedBy(NAME_ONE));
-                Assert.assertEquals(tracker.getProcessingLocs().size(), 0);
+                Assert.assertEquals(tracker.getProcessingLocs(NAME_ONE).size(), 0);
             }
         }
     }
@@ -164,8 +164,8 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         for ( GenomeLoc shard : shards ) {
             counter++;
 
-            Assert.assertNull(tracker.findOwner(shard));
-            Assert.assertFalse(tracker.locIsOwned(shard));
+            Assert.assertNull(tracker.findOwner(shard, NAME_ONE));
+            Assert.assertFalse(tracker.locIsOwned(shard, NAME_ONE));
 
             ProcessingLoc proc = tracker.claimOwnership(shard,NAME_ONE);
             Assert.assertNotNull(proc);
@@ -173,10 +173,10 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
             Assert.assertNotNull(proc.getOwner());
             Assert.assertEquals(proc.getLocation(), shard);
             Assert.assertEquals(proc.getOwner(), NAME_ONE);
-            Assert.assertEquals(tracker.findOwner(shard), proc);
-            Assert.assertTrue(tracker.locIsOwned(shard));
-            Assert.assertNotNull(tracker.getProcessingLocs());
-            Assert.assertEquals(tracker.getProcessingLocs().size(), counter);
+            Assert.assertEquals(tracker.findOwner(shard, NAME_ONE), proc);
+            Assert.assertTrue(tracker.locIsOwned(shard, NAME_ONE));
+            Assert.assertNotNull(tracker.getProcessingLocs(NAME_ONE));
+            Assert.assertEquals(tracker.getProcessingLocs(NAME_ONE).size(), counter);
 
             ProcessingLoc badClaimAttempt = tracker.claimOwnership(shard,NAME_TWO);
             Assert.assertFalse(badClaimAttempt.getOwner().equals(NAME_TWO));
@@ -211,7 +211,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
                 Assert.assertEquals(nFound, toFind.size(), "Didn't find all of the available shards");
             } else {
                 nFound++;
-                ProcessingLoc proc = tracker.findOwner(shard);
+                ProcessingLoc proc = tracker.findOwner(shard, NAME_ONE);
 
                 Assert.assertTrue(proc.isOwnedBy(NAME_ONE));
                 Assert.assertTrue(! markedShards.contains(shard), "Ran process was already marked!");
@@ -246,7 +246,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
                 Assert.assertTrue(markedShards.contains(shard), "Unran process wasn't marked");
 
             if ( ! markedShards.contains(shard) ) {
-                Assert.assertEquals(tracker.findOwner(shard), proc);
+                Assert.assertEquals(tracker.findOwner(shard, NAME_ONE), proc);
             }
         }
     }
@@ -357,12 +357,12 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
             assertAllThreadsFinished(results);
 
             // we ran everything
-            Assert.assertEquals(tracker.getProcessingLocs().size(), shards.size(), "Not all shards were run");
+            Assert.assertEquals(tracker.getProcessingLocs(NAME_ONE).size(), shards.size(), "Not all shards were run");
 
             for ( GenomeLoc shard : shards ) {
-                Assert.assertTrue(tracker.locIsOwned(shard), "Unowned shard");
+                Assert.assertTrue(tracker.locIsOwned(shard, NAME_ONE), "Unowned shard");
 
-                ProcessingLoc proc = tracker.findOwner(shard);
+                ProcessingLoc proc = tracker.findOwner(shard, NAME_ONE);
                 Assert.assertNotNull(proc, "Proc was null");
 
                 Assert.assertNotNull(proc.getOwner(), "Owner was null");

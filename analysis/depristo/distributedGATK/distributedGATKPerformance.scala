@@ -13,16 +13,22 @@ class DistributedGATKPerformance extends QScript {
   @Argument(shortName="outputDir", doc="output directory", required=false)
   var outputDir: String = ""
 
-  @Argument(shortName="dataset", doc="selects the datasets to run. If not provided, all datasets will be used", required=false)
+  @Argument(shortName="dataset", doc="selects the datasets to run. If not provided, all datasets will be used", required=true)
   var datasets: List[String] = Nil
+
+  @Argument(shortName="waysParallel", doc="selects the datasets to run. If not provided, all datasets will be used", required=false)
+  var waysParallelArg: List[Int] = Nil
 
   @Argument(shortName="long", doc="runs long calculations", required=false)
   var long: Boolean = false
 
+  @Argument(shortName="test", doc="runs long calculations", required=false)
+  var test: Boolean = false
+
   //@Argument(shortName="noBAQ", doc="turns off BAQ calculation", required=false)
   var noBAQ: Boolean = false
 
-  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(2); }
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "DEBUG"; jarFile = gatkJarFile; memoryLimit = Some(2); }
 
   class Target(
           val baseName: String,
@@ -102,7 +108,7 @@ class DistributedGATKPerformance extends QScript {
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass),
     "WExTrio" -> new Target("NA12878Trio.WEx", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
-        new File("/humgen/gsa-scr1/carneiro/prj/trio/NA12878Trio.WEx.hg19.bam"),
+        new File("/humgen/gsa-scr1/carneiro/prj/trio/data/NA12878Trio.WEx.hg19.recal.bam"),
         new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
         "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
   )
@@ -111,24 +117,25 @@ class DistributedGATKPerformance extends QScript {
 
     // Selects the datasets in the -dataset argument and adds them to targets.
     var targets: List[Target] = List()
-    if (!datasets.isEmpty)
-      for (ds <- datasets)
-        targets ::= targetDataSets(ds)                  // Could check if ds was mispelled, but this way an exception will be thrown, maybe it's better this way?
-    else                                                // If -dataset is not specified, all datasets are used.
-      for (targetDS <- targetDataSets.valuesIterator)   // for Scala 2.7 or older, use targetDataSets.values
-        targets ::= targetDS
+    for (ds <- datasets)
+      targets ::= targetDataSets(ds)                  // Could check if ds was mispelled, but this way an exception will be thrown, maybe it's better this way?
 
-    val nWays = if (long) List(1, 2, 4) else List(8, 16, 32, 64, 96)
+    var nWays = if (long) List(1, 2, 4, 8) else List(16, 32, 64, 96)
+    if ( ! waysParallelArg.isEmpty )
+      nWays = waysParallelArg
+
     //val nWays = List(2)
 
     for (target <- targets) {
-      for ( scatterP <- List(true, false) )
-        for (nWaysParallel <- nWays) {
+      for ( scatterP <- if ( test ) List(false) else List(true, false) )
+        for (nWaysParallel <- if ( test ) List(32) else nWays) {
           val aname = "ptype_%s.nways_%d".format(if ( scatterP ) "sg" else "dist", nWaysParallel)
 
           def addUG(ug: UnifiedGenotyper) = {
             if ( ! long )
               ug.jobLimitSeconds = Some(60 * 60 * 4)
+            if ( test )
+              ug.jobLimitSeconds = Some(60 * 30)
             add(ug);
           }
 
@@ -141,10 +148,14 @@ class DistributedGATKPerformance extends QScript {
           } else {
             for ( part <- 1 to nWaysParallel) {
               var ug: UnifiedGenotyper = new UnifiedGenotyper(target, aname + ".part" + part)
-              ug.intervalsString ++= List(CHROMOSOME)
+              if ( target.name.equals("NA12878.HiSeq"))
+                ug.intervalsString ++= List(CHROMOSOME)
+              else
+                ug.intervalsString ++= List(target.intervals)
               ug.processingTracker = new File(target.name + "." + aname + ".distributed.txt")
               if ( part == 1 )
                 ug.performanceLog = new File("%s.%s.pf.log".format(target.name, aname))
+              ug.processingTrackerStatusFile = new File("%s.%s.%d.ptstatus.log".format(target.name, aname, part))
               addUG(ug)
             }
           }

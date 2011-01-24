@@ -10,7 +10,9 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.io.RandomAccessFile;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -18,9 +20,17 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  */
 public abstract class GenomeLocProcessingTracker {
-    private static Logger logger = Logger.getLogger(FileBackedGenomeLocProcessingTracker.class);
-    private Map<GenomeLoc, ProcessingLoc> processingLocs;
-    private ClosableReentrantLock lock;
+    private final static Logger logger = Logger.getLogger(FileBackedGenomeLocProcessingTracker.class);
+    private final static SimpleDateFormat STATUS_FORMAT = new SimpleDateFormat("HH:mm:ss,SSS");
+    private final static int DEFAULT_OWNERSHIP_ITERATOR_SIZE = 100;
+
+    private final static String GOING_FOR_LOCK = "going_for_lock";
+    private final static String HAVE_LOCK = "have_lock";
+    private final static String RUNNING = "running";
+
+    private final Map<GenomeLoc, ProcessingLoc> processingLocs;
+    private final ClosableReentrantLock lock;
+    private final PrintStream status;
 
     protected SimpleTimer writeTimer = new SimpleTimer("writeTimer");
     protected SimpleTimer readTimer = new SimpleTimer("readTimer");
@@ -41,24 +51,18 @@ public abstract class GenomeLocProcessingTracker {
         return new SharedMemoryGenomeLocProcessingTracker(new ClosableReentrantLock());
     }
 
-    public static GenomeLocProcessingTracker createFileBackedThreaded(File sharedFile, GenomeLocParser parser) {
-        return createFileBacked(sharedFile, parser, false);
+    public static GenomeLocProcessingTracker createFileBackedThreaded(File sharedFile, GenomeLocParser parser, PrintStream status) {
+        return createFileBacked(sharedFile, parser, false, false, status);
     }
 
-    public static GenomeLocProcessingTracker createFileBackedDistributed(File sharedFile, GenomeLocParser parser) {
-        return createFileBacked(sharedFile, parser, true);
+    public static GenomeLocProcessingTracker createFileBackedDistributed(File sharedFile, GenomeLocParser parser, boolean blockingP, PrintStream status) {
+        return createFileBacked(sharedFile, parser, blockingP, true, status);
     }
 
-    private static FileBackedGenomeLocProcessingTracker createFileBacked(File sharedFile, GenomeLocParser parser, boolean useFileLockToo) {
-        try {
-            //logger.warn("Creating file backed GLPT at " + sharedFile);
-            RandomAccessFile raFile = new RandomAccessFile(sharedFile, "rws");
-            ClosableReentrantLock lock = useFileLockToo ? new SharedFileThreadSafeLock(raFile.getChannel()) : new ClosableReentrantLock();
-            return new FileBackedGenomeLocProcessingTracker(sharedFile, raFile, parser, lock);
-        }
-        catch (FileNotFoundException e) {
-            throw new UserException.CouldNotCreateOutputFile(sharedFile, e);
-        }
+    private static FileBackedGenomeLocProcessingTracker createFileBacked(File sharedFile, GenomeLocParser parser, boolean blockP, boolean useFileLockToo, PrintStream status) {
+        //logger.warn("Creating file backed GLPT at " + sharedFile);
+        ClosableReentrantLock lock = useFileLockToo ? new SharedFileThreadSafeLock(sharedFile, blockP) : new ClosableReentrantLock();
+        return new FileBackedGenomeLocProcessingTracker(sharedFile, parser, lock, status);
     }
 
     // --------------------------------------------------------------------------------
@@ -66,9 +70,11 @@ public abstract class GenomeLocProcessingTracker {
     // Creating ProcessingTrackers
     //
     // --------------------------------------------------------------------------------
-    public GenomeLocProcessingTracker(ClosableReentrantLock lock) {
-        processingLocs = new HashMap<GenomeLoc, ProcessingLoc>();
+    public GenomeLocProcessingTracker(ClosableReentrantLock lock, PrintStream status) {
+        this.processingLocs = new HashMap<GenomeLoc, ProcessingLoc>();
+        this.status = status;
         this.lock = lock;
+        printStatusHeader();
     }
 
     // --------------------------------------------------------------------------------
@@ -84,16 +90,16 @@ public abstract class GenomeLocProcessingTracker {
      * @param loc
      * @return
      */
-    public final boolean locIsOwned(GenomeLoc loc) {
-        return findOwner(loc) != null;
+    public final boolean locIsOwned(GenomeLoc loc, String id) {
+        return findOwner(loc, id) != null;
     }
 
-    public final ProcessingLoc findOwner(GenomeLoc loc) {
+    protected final ProcessingLoc findOwner(GenomeLoc loc, String id) {
         // fast path to check if we already have the existing genome loc in memory for ownership claims
         // getProcessingLocs() may be expensive [reading from disk, for example] so we shouldn't call it
         // unless necessary
         ProcessingLoc x = findOwnerInMap(loc, processingLocs);
-        return x == null ? findOwnerInMap(loc, updateLocs()) : x;
+        return x == null ? findOwnerInMap(loc, updateLocs(id)) : x;
     }
 
     /**
@@ -110,19 +116,19 @@ public abstract class GenomeLocProcessingTracker {
     public final ProcessingLoc claimOwnership(GenomeLoc loc, String myName) {
         // processingLocs is a shared memory synchronized object, and this
         // method is synchronized, so we can just do our processing
-        lock();
+        lock(myName);
         try {
-            ProcessingLoc owner = findOwner(loc);
+            ProcessingLoc owner = findOwner(loc, myName);
 
             if ( owner == null ) { // we are unowned
                 owner = new ProcessingLoc(loc, myName);
-                registerNewLocsWithTimers(Arrays.asList(owner));
+                registerNewLocsWithTimers(Arrays.asList(owner), myName);
             }
 
             return owner;
             //logger.warn(String.format("%s.claimOwnership(%s,%s) => %s", this, loc, myName, owner));
         } finally {
-            unlock();
+            unlock(myName);
         }
     }
 
@@ -154,7 +160,7 @@ public abstract class GenomeLocProcessingTracker {
         private final int cacheSize;
 
         public OwnershipIterator(Iterator<T> subit, String myName) {
-            this(subit, myName, 10);
+            this(subit, myName, DEFAULT_OWNERSHIP_ITERATOR_SIZE);
         }
 
         public OwnershipIterator(Iterator<T> subit, String myName, int cacheSize) {
@@ -185,10 +191,11 @@ public abstract class GenomeLocProcessingTracker {
                 return elt;
             else {
                 // cache is empty, we need to fill up the cache and return the first element of the queue
-                lock();
+                lock(myName);
                 try {
+
                     // read once the database of owners at the start
-                    updateLocs();
+                    updateLocs(myName);
 
                     boolean done = false;
                     Queue<ProcessingLoc> pwns = new LinkedList<ProcessingLoc>(); // ;-)
@@ -208,7 +215,7 @@ public abstract class GenomeLocProcessingTracker {
                         // if not, we continue our search
                     }
 
-                    registerNewLocsWithTimers(pwns);
+                    registerNewLocsWithTimers(pwns, myName);
 
                     // we've either filled up the cache or run out of elements.  Either way we return
                     // the first element of the cache. If the cache is empty, we return null here.
@@ -217,7 +224,7 @@ public abstract class GenomeLocProcessingTracker {
 
                     return cache.poll();
                 } finally {
-                    unlock();
+                    unlock(myName);
                 }
             }
         }
@@ -240,12 +247,12 @@ public abstract class GenomeLocProcessingTracker {
      *
      * @return
      */
-    protected final Collection<ProcessingLoc> getProcessingLocs() {
-        return updateLocs().values();
+    protected final Collection<ProcessingLoc> getProcessingLocs(String myName) {
+        return updateLocs(myName).values();
     }
 
-    private final Map<GenomeLoc, ProcessingLoc> updateLocs() {
-        lock();
+    private final Map<GenomeLoc, ProcessingLoc> updateLocs(String myName) {
+        lock(myName);
         try {
             readTimer.restart();
             for ( ProcessingLoc p : readNewLocs() )
@@ -254,11 +261,11 @@ public abstract class GenomeLocProcessingTracker {
             nReads++;
             return processingLocs;
         } finally {
-            unlock();
+            unlock(myName);
         }
     }
 
-    protected final void registerNewLocsWithTimers(Collection<ProcessingLoc> plocs) {
+    protected final void registerNewLocsWithTimers(Collection<ProcessingLoc> plocs, String myName) {
         writeTimer.restart();
         registerNewLocs(plocs);
         nWrites++;
@@ -270,17 +277,37 @@ public abstract class GenomeLocProcessingTracker {
     // Low-level accessors / manipulators and utility functions
     //
     // --------------------------------------------------------------------------------
-
-    private final void lock() {
-        lockWaitTimer.restart();
-        if ( ! lock.isHeldByCurrentThread() )
-            nLocks++;
-        lock.lock();
-        lockWaitTimer.stop();
+    private final boolean hasStatus() {
+        return status != null;
     }
 
-    private final void unlock() {
+    private final void printStatusHeader() {
+        if ( hasStatus() ) status.printf("process.id\thr.time\ttime\tstate%n");
+    }
+
+    private final void printStatus(String id, long machineTime, String state) {
+        // prints a line like processID human-readable-time machine-time state
+        if ( hasStatus() ) {
+            status.printf("%s\t%s\t%d\t%s%n", id, STATUS_FORMAT.format(machineTime), machineTime, state);
+            status.flush();
+        }
+    }
+
+    private final void lock(String id) {
+        lockWaitTimer.restart();
+        boolean hadLock = lock.ownsLock();
+        if ( ! hadLock ) {
+            nLocks++;
+            printStatus(id, lockWaitTimer.currentTime(), GOING_FOR_LOCK);
+        }
+        lock.lock();
+        lockWaitTimer.stop();
+        if ( ! hadLock ) printStatus(id, lockWaitTimer.currentTime(), HAVE_LOCK);
+    }
+
+    private final void unlock(String id) {
         lock.unlock();
+        if ( ! lock.ownsLock() ) printStatus(id, lockWaitTimer.currentTime(), RUNNING);
     }
 
     protected final static ProcessingLoc findOwnerInCollection(GenomeLoc loc, Collection<ProcessingLoc> locs) {
@@ -312,8 +339,8 @@ public abstract class GenomeLocProcessingTracker {
 
     protected void close() {
         lock.close();
-        logger.warn("Locking events: " + nLocks);
-        // by default we don't do anything
+        if ( hasStatus() ) status.close();
+        //logger.warn("Locking events: " + nLocks);
     }
 
     protected abstract void registerNewLocs(Collection<ProcessingLoc> plocs);

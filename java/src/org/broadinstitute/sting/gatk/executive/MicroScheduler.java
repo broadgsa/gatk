@@ -38,6 +38,10 @@ import org.broadinstitute.sting.gatk.iterators.NullSAMIterator;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.util.*;
 
@@ -167,8 +171,17 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
                 logger.info("Deleting ProcessingTracker file " + engine.getArguments().processingTrackerFile);
             }
 
-            processingTracker = GenomeLocProcessingTracker.createFileBackedDistributed(engine.getArguments().processingTrackerFile, engine.getGenomeLocParser());
-            logger.info("Creating ProcessingTracker using shared file " + engine.getArguments().processingTrackerFile);
+            PrintStream statusStream = null;
+            if ( engine.getArguments().processingTrackerStatusFile != null ) {
+                try {
+                    statusStream = new PrintStream(new FileOutputStream(engine.getArguments().processingTrackerStatusFile));
+                } catch ( FileNotFoundException e) {
+                    throw new UserException.CouldNotCreateOutputFile(engine.getArguments().processingTrackerStatusFile, e);
+                }
+            }
+
+            processingTracker = GenomeLocProcessingTracker.createFileBackedDistributed(engine.getArguments().processingTrackerFile, engine.getGenomeLocParser(), false, statusStream);
+            logger.info("Creating ProcessingTracker using shared file " + engine.getArguments().processingTrackerFile + " process.id = " + engine.getName());
         } else {
             processingTracker = GenomeLocProcessingTracker.createNoOp();
         }

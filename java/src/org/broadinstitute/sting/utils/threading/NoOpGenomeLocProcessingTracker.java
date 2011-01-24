@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class NoOpGenomeLocProcessingTracker extends GenomeLocProcessingTracker {
     protected NoOpGenomeLocProcessingTracker() {
-        super(new ClosableReentrantLock());          // todo -- should be lighter weight
+        super(new ClosableReentrantLock(), null);          // todo -- should be lighter weight
     }
 
 //    @Override

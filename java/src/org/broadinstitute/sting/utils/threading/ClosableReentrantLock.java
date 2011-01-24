@@ -11,5 +11,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * Simple extension of a ReentrantLock that supports a close method
  */
 public class ClosableReentrantLock extends ReentrantLock {
+    public boolean ownsLock() { return super.isHeldByCurrentThread(); }
     public void close() {}
 }
