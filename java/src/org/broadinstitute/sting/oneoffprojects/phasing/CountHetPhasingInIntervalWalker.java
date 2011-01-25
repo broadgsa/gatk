@@ -26,6 +26,7 @@ package org.broadinstitute.sting.oneoffprojects.phasing;
 
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -59,11 +60,14 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
     @Output
     protected PrintStream out;
 
+    @Argument(fullName = "perIntervalOut", shortName = "perIntervalOut", doc = "File to which to write per-sample, per-interval phased het statistics", required = false)
+    protected PrintStream perIntervalOut = null;
+
     public void initialize() {
         rodNames = new LinkedList<String>();
         rodNames.add("variant");
 
-        intervalStats = new MultiSampleIntervalStats();
+        intervalStats = new MultiSampleIntervalStats(perIntervalOut);
     }
 
     public boolean generateExtendedEvents() {
@@ -100,7 +104,7 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
 
         boolean isNewInterval = (prevInterval == null || !curInterval.equals(prevInterval));
         if (isNewInterval)
-            intervalStats.startNewInterval();
+            intervalStats.startNewInterval(curInterval);
 
         boolean requireStartHere = true; // only see each VariantContext once
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
@@ -142,9 +146,13 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
         private Map<String, SingleSampleIntervalStats> sampleToStat;
         protected int numIntervals;
 
-        public MultiSampleIntervalStats() {
+        private PrintStream perIntervalOut;
+        private GenomeLoc curInterval;
+
+        public MultiSampleIntervalStats(PrintStream perIntervalOut) {
             this.sampleToStat = new HashMap<String, SingleSampleIntervalStats>();
             this.numIntervals = 0;
+            this.perIntervalOut = perIntervalOut;
         }
 
         public void processHetSiteInInterval(String sample, boolean isHet, boolean isPhased) {
@@ -158,17 +166,27 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
         }
 
         public void finalizeStats() {
-            for (SingleSampleIntervalStats stats : sampleToStat.values())
-                stats.finalizeStats();
+            if (curInterval == null)
+                return;
+
+            for (Map.Entry<String, SingleSampleIntervalStats> sampleStatEntry : sampleToStat.entrySet()) {
+                SingleSampleIntervalStats stats = sampleStatEntry.getValue();
+                if (perIntervalOut != null) {
+                    String sample = sampleStatEntry.getKey();
+                    perIntervalOut.print(sample + "\t" + curInterval + "\t" + stats.numPhasedInCurrentInterval + "\t" + stats.numHetsInCurrentInterval + "\t" + stats.firstHetIsPhased);
+                }
+                stats.finalizeStats(); // now, can reset the counters [after print-out]
+            }
+        }
+
+        public void startNewInterval(GenomeLoc curInterval) {
+            finalizeStats();
+            numIntervals++;
+            this.curInterval = curInterval;
         }
 
         public Set<Map.Entry<String, SingleSampleIntervalStats>> entrySet() {
             return sampleToStat.entrySet();
-        }
-
-        public void startNewInterval() {
-            finalizeStats();
-            numIntervals++;
         }
 
         private class SingleSampleIntervalStats {
