@@ -173,7 +173,7 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
                 SingleSampleIntervalStats stats = sampleStatEntry.getValue();
                 if (perIntervalOut != null && stats.numHetsInCurrentInterval > 0) {
                     String sample = sampleStatEntry.getKey();
-                    perIntervalOut.println(sample + "\t" + curInterval + "\t" + stats.numPhasedInCurrentInterval + "\t" + stats.numHetsInCurrentInterval + "\t" + stats.firstHetIsPhased);
+                    perIntervalOut.println(sample + "\t" + curInterval + "\t" + stats.numPhasedInCurrentInterval + "\t" + stats.numHetsInCurrentInterval + "\t" + stats.firstHetIsPhasedInCurrentInterval);
                 }
                 stats.finalizeStats(); // now, can reset the counters [after print-out]
             }
@@ -191,17 +191,23 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
 
         private class SingleSampleIntervalStats {
             public Map<PhasedHetsStat, Integer> hetStatInIntervalToCount;
-            public int firstHetIsPhased;
+            public int firstHetIsPhasedCount;
 
             private int numHetsInCurrentInterval;
             private int numPhasedInCurrentInterval;
+            private boolean firstHetIsPhasedInCurrentInterval;
 
             public SingleSampleIntervalStats() {
                 this.hetStatInIntervalToCount = new TreeMap<PhasedHetsStat, Integer>(); // implemented PhasedHetsStat.compareTo()
-                this.firstHetIsPhased = 0;
+                this.firstHetIsPhasedCount = 0;
 
+                resetCurrentIntervalCounters();
+            }
+
+            private void resetCurrentIntervalCounters() {
                 this.numHetsInCurrentInterval = 0;
                 this.numPhasedInCurrentInterval = 0;
+                this.firstHetIsPhasedInCurrentInterval = false;
             }
 
             public void updateHetStats(boolean isHet, boolean isPhased) {
@@ -212,7 +218,7 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
                         numPhasedInCurrentInterval++;
 
                         if (numHetsInCurrentInterval == 1)
-                            firstHetIsPhased++;
+                            firstHetIsPhasedInCurrentInterval = true;
                     }
                 }
             }
@@ -227,15 +233,17 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
                     cnt = 0;
                 hetStatInIntervalToCount.put(hetsAndPhased, cnt + 1);
 
-                numHetsInCurrentInterval = 0;
-                numPhasedInCurrentInterval = 0;
+                if (firstHetIsPhasedInCurrentInterval)
+                    firstHetIsPhasedCount++;
+
+                resetCurrentIntervalCounters();
             }
 
             public String toString() {
                 StringBuilder sb = new StringBuilder();
 
                 sb.append("# of intervals: " + numIntervals + "\n");
-                sb.append("First het is phased: " + firstHetIsPhased + "\n");
+                sb.append("First het is phased: " + firstHetIsPhasedCount + "\n");
 
                 sb.append("Distribution of number of phased / hets per interval:" + "\n");
                 for (Map.Entry<PhasedHetsStat, Integer> hetStatEntry : hetStatInIntervalToCount.entrySet())
