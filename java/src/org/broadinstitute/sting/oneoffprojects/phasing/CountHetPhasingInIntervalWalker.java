@@ -171,9 +171,9 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
 
             for (Map.Entry<String, SingleSampleIntervalStats> sampleStatEntry : sampleToStat.entrySet()) {
                 SingleSampleIntervalStats stats = sampleStatEntry.getValue();
-                if (perIntervalOut != null) {
+                if (perIntervalOut != null && stats.numHetsInCurrentInterval > 0) {
                     String sample = sampleStatEntry.getKey();
-                    perIntervalOut.print(sample + "\t" + curInterval + "\t" + stats.numPhasedInCurrentInterval + "\t" + stats.numHetsInCurrentInterval + "\t" + stats.firstHetIsPhased);
+                    perIntervalOut.println(sample + "\t" + curInterval + "\t" + stats.numPhasedInCurrentInterval + "\t" + stats.numHetsInCurrentInterval + "\t" + stats.firstHetIsPhased);
                 }
                 stats.finalizeStats(); // now, can reset the counters [after print-out]
             }
