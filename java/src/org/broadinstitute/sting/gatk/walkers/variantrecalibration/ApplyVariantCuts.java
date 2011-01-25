@@ -142,8 +142,8 @@ public class ApplyVariantCuts extends RodWalker<Integer, Integer> {
             return 1;
         }
 
-        for( VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), false, false) ) {
-            if( vc != null && vc.isSNP() ) {
+        for( VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
+            if( vc != null ) {
                 String filterString = null;
                 if( !vc.isFiltered() ) {
                     try {
