@@ -79,13 +79,12 @@ tearsheet<-function(){
     #prep for title bar
     full<-strsplit(cmdargs$evalroot, "/")
     name<-strsplit(full[[1]][length(full[[1]])], ".",fixed=TRUE)[[1]][1]
-    title=paste(name, ": TEAR SHEET", sep="")
     drop<-read.jpeg(system.file(tearsheetdrop, package="gsalib"))
     
     #plot title bar
     par(mar=c(0,0,0,0))
     plot(drop)
-    text(110, 45, title, family="serif", adj=c(0,0), cex=3, col=gray(.25))
+    text(110, 45, name, family="serif", adj=c(0,0), cex=3, col=gray(.25))
     
 
 	# Project summary
@@ -97,7 +96,15 @@ tearsheet<-function(){
 
 	sequencing_protocol = "Hybrid selection"; #can this be extracted?
 
-	bait_design = paste(unique(dproj$"Bait Set"), collapse=", ");
+	bait_design = paste(dimnames(table(dproj$"Bait Set"))[[1]][order(table(dproj$"Bait Set"), decreasing=TRUE)], collapse=", ");
+
+	if(nchar(bait_design)>50){
+		bait_design<-strsplit(bait_design, ", ")[[1]][1]	
+		}
+
+	if(nchar(bait_design)>50){
+		bait_design<-strsplit(bait_design, ".Homo")[[1]][1]
+		}
 
 	callable_target = paste(unique(dproj$"Target Territory"), collapse=", ");
 
@@ -179,6 +186,10 @@ tearsheet<-function(){
 		instrument <- c(instrument, "Illumina HiSeq")
 		}
 
+	if(length(instrument)>1){
+		instrument<-paste(instrument[1], instrument[2], sep=" and ")
+		}	
+
 	used_lanes = nrow(dproj);
 	unused_lanes_by_sequencing = 0; #can we get this?
 	unused_lanes_by_analysis = 0;
@@ -196,28 +207,31 @@ tearsheet<-function(){
 	read_length_median = median(dproj$"Mean Read Length (P)");
 
 	date = dproj$"Run Date";
-	date = sub("JAN", "01", date);
-	date = sub("FEB", "02", date);
-	date = sub("MAR", "03", date);
-	date = sub("APR", "04", date);
-	date = sub("MAY", "05", date);
-	date = sub("JUN", "06", date);
-	date = sub("JUL", "07", date);
-	date = sub("AUG", "08", date);
-	date = sub("SEP", "09", date);
-	date = sub("OCT", "10", date);
-	date = sub("NOV", "11", date);
-	date = sub("DEC", "12", date);
+#	date = sub("JAN", "01", date);
+#	date = sub("FEB", "02", date);
+#	date = sub("MAR", "03", date);
+#	date = sub("APR", "04", date);
+#	date = sub("MAY", "05", date);
+#	date = sub("JUN", "06", date);
+#	date = sub("JUL", "07", date);
+#	date = sub("AUG", "08", date);
+#	date = sub("SEP", "09", date);
+#	date = sub("OCT", "10", date);
+#	date = sub("NOV", "11", date);
+#	date = sub("DEC", "12", date);
 	date = date[order(as.Date(date, format="%d-%m-%Y"))];
 
 	start_date = date[1];
 	end_date = date[length(date)];
-
+	
 	
 	table3<-rbind(paste(instrument), used_lanes, sprintf("%s rejected by sequencing, %s by analysis\n", unused_lanes_by_sequencing, unused_lanes_by_analysis), sprintf("%0.1f +/- %0.1f lanes (median=%0.1f)\n", lanes_per_sample_mean, lanes_per_sample_sd, lanes_per_sample_median), sprintf("%s paired, %s widowed, %s single\n", lanes_paired, lanes_widowed, lanes_single), sprintf("%0.1f +/- %0.1f bases (median=%0.1f)\n", read_length_mean, read_length_sd, read_length_median), sprintf("\tSequencing dates: %s to %s\n", start_date, end_date))
 		print(nrow(table3))
+		print(ncol(table3))
+		print(used_lanes)
+		print(instrument)
 
-  	rownames(table3)<-c("Sequencer", "Used lanes", "Unused lanes","Used lanes/sample", "Lane pariteies", "Read legnths", "Sequencing dates")
+  	rownames(table3)<-c("Sequencer", "Used lanes", "Unused lanes","Used lanes/sample", "Lane parities", "Read lengths", "Sequencing dates")
 	par(mar=c(4,4,4,4))
 	textplot(table3, rmar=1, col.rownames="dark blue", show.colnames=FALSE, cex=1.25)
 	title(main="Sequencing Summary", family="sans", cex.main=1.75)
