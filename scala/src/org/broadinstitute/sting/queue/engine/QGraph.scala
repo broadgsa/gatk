@@ -290,7 +290,7 @@ class QGraph extends Logging {
 
         readyJobs.foreach(f => {
           f.runner = newRunner(f.function)
-          f.runner.start()
+          f.start()
           f.status match {
             case RunnerStatus.RUNNING => runningJobs += f
             case RunnerStatus.FAILED => failedJobs :+= f
