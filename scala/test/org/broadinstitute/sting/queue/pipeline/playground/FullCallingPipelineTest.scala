@@ -1,18 +1,15 @@
-package org.broadinstitute.sting.queue.pipeline
+package org.broadinstitute.sting.queue.pipeline.playground
 
 import org.testng.annotations.{DataProvider, Test}
 import collection.JavaConversions._
 import java.io.File
 import org.broadinstitute.sting.datasources.pipeline.{PipelineSample, PipelineProject, Pipeline}
 import org.broadinstitute.sting.utils.yaml.YamlUtils
-import org.broadinstitute.sting.{WalkerTest, BaseTest}
-import java.text.SimpleDateFormat
-import java.util.Date
+import org.broadinstitute.sting.BaseTest
+import org.broadinstitute.sting.queue.pipeline._
 
-class FullCallingPipelineTest extends BaseTest {
+class FullCallingPipelineTest {
   def datasets = List(k1gChr20Dataset, k1gExomeDataset)
-
-  private final val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
 
   // In fullCallingPipeline.q VariantEval is always compared against 129.
   // Until the newvarianteval is finalized which will allow java import of the prior results,
@@ -93,12 +90,11 @@ class FullCallingPipelineTest extends BaseTest {
     var cleanType = "cleaned"
 
     // Run the pipeline with the expected inputs.
-    val currentDir = new File(".").getAbsolutePath
     var pipelineCommand = ("-retry 1 -S scala/qscript/playground/fullCallingPipeline.q" +
             " -jobProject %s -Y %s" +
             " -tearScript %s/R/DataProcessingReport/GetTearsheetStats.R" +
             " --gatkjar %s/dist/GenomeAnalysisTK.jar")
-            .format(projectName, yamlFile, currentDir, currentDir)
+            .format(projectName, yamlFile, PipelineTest.currentDir, PipelineTest.currentDir)
 
     if (!dataset.runIndelRealigner) {
       pipelineCommand += " -skipCleaning"
@@ -108,37 +104,18 @@ class FullCallingPipelineTest extends BaseTest {
     if (dataset.jobQueue != null)
       pipelineCommand += " -jobQueue " + dataset.jobQueue
 
+    val pipelineSpec = new PipelineTestSpec
+    pipelineSpec.args = pipelineCommand
+
+    pipelineSpec.evalSpec = new PipelineTestEvalSpec
+    pipelineSpec.evalSpec.vcf = new File(PipelineTest.runDir(testName) + "SnpCalls/%s.%s.annotated.handfiltered.vcf".format(projectName, cleanType))
+    pipelineSpec.evalSpec.reference = dataset.pipeline.getProject.getReferenceFile
+    pipelineSpec.evalSpec.intervals = dataset.pipeline.getProject.getIntervalList
+    pipelineSpec.evalSpec.dbsnp = variantEvalDbsnpFile
+    pipelineSpec.evalSpec.validations = dataset.validations
+
     // Run the test, at least checking if the command compiles
-    PipelineTest.executeTest(testName, pipelineCommand, null)
-
-    // If actually running, evaluate the output validating the expressions.
-    if (PipelineTest.run) {
-      // path where the pipeline should have output the handfiltered vcf
-      val handFilteredVcf = PipelineTest.runDir(testName) + "SnpCalls/%s.%s.annotated.handfiltered.vcf".format(projectName, cleanType)
-
-      // eval modules to record in the validation directory
-      val evalModules = List("CompOverlap", "CountFunctionalClasses", "CountVariants", "SimpleMetricsBySample", "TiTvVariantEvaluator")
-
-      // write the report to the shared validation data location
-      val formatter = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
-      val reportLocation = "%s%s/validation.%s.eval".format(validationReportsDataLocation, testName, formatter.format(new Date))
-      new File(reportLocation).getParentFile.mkdirs
-
-      // Run variant eval generating the report and validating the pipeline vcfs.
-      var walkerCommand = ("-T VariantEval -R %s -D %s -B:eval,VCF %s" +
-              " -E %s -reportType R -reportLocation %s -L %s")
-              .format(
-        dataset.pipeline.getProject.getReferenceFile, variantEvalDbsnpFile, handFilteredVcf,
-        evalModules.mkString(" -E "), reportLocation, dataset.pipeline.getProject.getIntervalList)
-
-      for (validation <- dataset.validations) {
-        walkerCommand += " -summary %s".format(validation.metric)
-        walkerCommand += " -validate '%1$s >= %2$s' -validate '%1$s <= %3$s'".format(
-          validation.metric, validation.min, validation.max)
-      }
-
-      WalkerTest.executeTest("fullCallingPipelineValidate-" + projectName, walkerCommand, null)
-    }
+    PipelineTest.executeTest(testName, pipelineSpec)
   }
 
   class PipelineDataset(
@@ -149,22 +126,8 @@ class FullCallingPipelineTest extends BaseTest {
     override def toString = pipeline.getProject.getName
   }
 
-  class PipelineValidation(val metric: String, val min: String, val max: String) {
-  }
-
-  class IntegerValidation(metric: String, target: Int)
-          extends PipelineValidation(metric,
-            (target * .99).floor.toInt.toString, (target * 1.01).ceil.toInt.toString) {
-  }
-
-  class DoubleValidation(metric: String, target: Double)
-          extends PipelineValidation(metric,
-            "%.2f".format((target * 99).floor / 100), "%.2f".format((target * 101).ceil / 100)) {
-  }
-
   private def writeTempYaml(pipeline: Pipeline) = {
-    val tempFile = File.createTempFile(pipeline.getProject.getName + "-", ".yaml")
-    tempFile.deleteOnExit
+    val tempFile = BaseTest.createTempFile(pipeline.getProject.getName + "-", ".yaml")
     YamlUtils.dump(pipeline, tempFile)
     tempFile
   }

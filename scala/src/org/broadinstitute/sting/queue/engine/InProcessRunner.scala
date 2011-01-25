@@ -1,43 +1,20 @@
 package org.broadinstitute.sting.queue.engine
 
 import org.broadinstitute.sting.queue.function.InProcessFunction
-import org.broadinstitute.sting.queue.util.Logging
+import org.broadinstitute.sting.queue.util.IOUtils
 
 /**
  * Runs a function that executes in process and does not fork out an external process.
  */
-class InProcessRunner(val function: InProcessFunction) extends JobRunner[InProcessFunction] with Logging {
+class InProcessRunner(val function: InProcessFunction) extends JobRunner[InProcessFunction] {
   private var runStatus: RunnerStatus.Value = _
 
   def start() = {
-    try {
-      if (logger.isDebugEnabled) {
-        logger.debug("Starting: " + function.commandDirectory + " > " + function.description)
-      } else {
-        logger.info("Starting: " + function.description)
-      }
-
-      function.deleteLogs()
-      function.deleteOutputs()
-      function.mkOutputDirectories()
-      runStatus = RunnerStatus.RUNNING
-      function.run()
-      function.doneOutputs.foreach(_.createNewFile())
-      writeDone()
-      runStatus = RunnerStatus.DONE
-      logger.info("Done: " + function.description)
-    } catch {
-      case e => {
-        runStatus = RunnerStatus.FAILED
-        try {
-          function.failOutputs.foreach(_.createNewFile())
-          writeStackTrace(e)
-        } catch {
-          case _ => /* ignore errors in the exception handler */
-        }
-        logger.error("Error: " + function.description, e)
-      }
-    }
+    runStatus = RunnerStatus.RUNNING
+    function.run()
+    val content = "%s%nDone.".format(function.description)
+    IOUtils.writeContents(function.jobOutputFile, content)
+    runStatus = RunnerStatus.DONE
   }
 
   def status = runStatus

@@ -8,6 +8,7 @@ import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
  * Runs a command line function.
  */
 trait CommandLineJobRunner extends JobRunner[CommandLineFunction] with Logging {
+
   /** A generated exec shell script. */
   protected var exec: File = _
 
@@ -42,24 +43,8 @@ trait CommandLineJobRunner extends JobRunner[CommandLineFunction] with Logging {
     this.exec = IOUtils.writeTempFile(exec.toString, ".exec", "", jobStatusDir)
   }
 
-  /**
-   * Removes all temporary files used for this LSF job.
-   */
-  def removeTemporaryFiles() = {
+  override def removeTemporaryFiles() {
+    super.removeTemporaryFiles()
     IOUtils.tryDelete(exec)
-  }
-
-  /**
-   * Outputs the last lines of the error logs.
-   */
-  protected def tailError() = {
-    val errorFile = functionErrorFile
-    if (IOUtils.waitFor(errorFile, 120)) {
-      val tailLines = IOUtils.tail(errorFile, 100)
-      val nl = "%n".format()
-      logger.error("Last %d lines of %s:%n%s".format(tailLines.size, errorFile, tailLines.mkString(nl)))
-    } else {
-      logger.error("Unable to access log file: %s".format(errorFile))
-    }
   }
 }

@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.utils.interval;
 
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
@@ -14,7 +13,6 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -362,16 +360,10 @@ public class IntervalUtilsUnitTest extends BaseTest {
     }
 
     private List<File> testFiles(String prefix, int count, String suffix) {
-        try {
-            ArrayList<File> files = new ArrayList<File>();
-            for (int i = 1; i <= count; i++) {
-                File tmpFile = File.createTempFile(prefix + i, suffix);
-                tmpFile.deleteOnExit();
-                files.add(tmpFile);
-            }
-            return files;
-        } catch (IOException e) {
-            throw new UserException.BadTmpDir("Unable to create temp file: " + e);
+        ArrayList<File> files = new ArrayList<File>();
+        for (int i = 1; i <= count; i++) {
+            files.add(createTempFile(prefix + i, suffix));
         }
+        return files;
     }
 }

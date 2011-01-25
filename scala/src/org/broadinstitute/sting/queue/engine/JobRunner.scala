@@ -1,7 +1,5 @@
 package org.broadinstitute.sting.queue.engine
 
-import org.broadinstitute.sting.queue.util.IOUtils
-import java.io.{PrintWriter, StringWriter}
 import org.broadinstitute.sting.queue.function.QFunction
 
 /**
@@ -29,30 +27,9 @@ trait JobRunner[TFunction <: QFunction] {
   def function: TFunction
 
   /**
-   * Writes the basic function description to the job done file.
+   * Removes all temporary files used for this job.
    */
-  protected def writeDone() {
-    val content = "%s%nDone.".format(function.description)
-    IOUtils.writeContents(function.jobOutputFile, content)
-  }
-
-  /**
-   * Writes the contents of the error to the error file.
-   */
-  protected def writeError(content: String) {
-    IOUtils.writeContents(functionErrorFile, content)
-  }
-
-  /**
-   * Writes the stack trace to the error file.
-   */
-  protected def writeStackTrace(e: Throwable) {
-    val stackTrace = new StringWriter
-    val printWriter = new PrintWriter(stackTrace)
-    printWriter.println(function.description)
-    e.printStackTrace(printWriter)
-    printWriter.close
-    IOUtils.writeContents(functionErrorFile, stackTrace.toString)
+  def removeTemporaryFiles() {
   }
 
   /**
@@ -65,10 +42,4 @@ trait JobRunner[TFunction <: QFunction] {
       if (updater.isDefinedAt(value))
         updater(value)
   }
-
-  /**
-   * Returns the path to the file to use for logging errors.
-   * @return the path to the file to use for logging errors.
-   */
-  protected def functionErrorFile = if (function.jobErrorFile != null) function.jobErrorFile else function.jobOutputFile
 }

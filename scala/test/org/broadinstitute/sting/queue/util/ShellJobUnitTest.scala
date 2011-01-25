@@ -2,10 +2,9 @@ package org.broadinstitute.sting.queue.util
 
 import org.broadinstitute.sting.BaseTest
 import org.testng.annotations.Test
-import java.io.File
 import org.testng.Assert
 
-class ShellJobUnitTest extends BaseTest {
+class ShellJobUnitTest {
   @Test
   def testEcho {
     val job = new ShellJob
@@ -33,19 +32,19 @@ class ShellJobUnitTest extends BaseTest {
 
     job = new ShellJob
     job.shellScript = writeScript("echo #")
-    job.outputFile = File.createTempFile("temp", "")
+    job.outputFile = BaseTest.createTempFile("temp", "")
     job.run()
     Assert.assertEquals(IOUtils.readContents(job.outputFile).trim, "")
 
     job = new ShellJob
     job.shellScript = writeScript("""echo \#""")
-    job.outputFile = File.createTempFile("temp", "")
+    job.outputFile = BaseTest.createTempFile("temp", "")
     job.run()
     Assert.assertEquals(IOUtils.readContents(job.outputFile).trim, "#")
 
     job = new ShellJob
     job.shellScript = writeScript("""echo \\#""")
-    job.outputFile = File.createTempFile("temp", "")
+    job.outputFile = BaseTest.createTempFile("temp", "")
     job.run()
     Assert.assertEquals(IOUtils.readContents(job.outputFile).trim, """\#""")
   }
@@ -66,11 +65,9 @@ class ShellJobUnitTest extends BaseTest {
     job.run()
   }
 
-  private val tempDir = new File(System.getProperty("java.io.tmpdir"))
-
   private def writeScript(contents: String) = {
-    val script = IOUtils.writeTempFile(contents, "temp", "", tempDir)
-    script.deleteOnExit
-    script
+    val file = BaseTest.createTempFile("temp", "")
+    IOUtils.writeContents(file, contents)
+    file
   }
 }
