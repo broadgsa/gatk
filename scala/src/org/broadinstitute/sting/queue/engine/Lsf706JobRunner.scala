@@ -182,32 +182,24 @@ object Lsf706JobRunner extends Logging {
    * Tries to stop any running jobs.
    * @param runners Runners to stop.
    */
-  def tryStop(runners: List[JobRunner[_]]) = {
-    val lsfJobRunners = runners.filter(_.isInstanceOf[Lsf706JobRunner]).map(_.asInstanceOf[Lsf706JobRunner])
-    if (lsfJobRunners.size > 0) {
-      for (jobRunners <- lsfJobRunners.filterNot(_.jobId < 0).grouped(10)) {
-        try {
-          val njobs = jobRunners.size
-          val signalJobs = new signalBulkJobs
-          signalJobs.jobs = {
-            val p = new Memory(8 * njobs)
-            p.write(0, jobRunners.map(_.jobId).toArray, 0, njobs)
-            p
-          }
-          signalJobs.njobs = njobs
-          signalJobs.signal = 9
+  def tryStop(runners: List[Lsf706JobRunner]) {
+    for (jobRunners <- runners.filterNot(_.jobId < 0).grouped(10)) {
+      try {
+        val njobs = jobRunners.size
+        val signalJobs = new signalBulkJobs
+        signalJobs.jobs = {
+          val jobIds = new Memory(8 * njobs)
+          jobIds.write(0, jobRunners.map(_.jobId).toArray, 0, njobs)
+          jobIds
+        }
+        signalJobs.njobs = njobs
+        signalJobs.signal = 9
 
-          if (LibBat.lsb_killbulkjobs(signalJobs) < 0)
-            throw new QException(LibBat.lsb_sperror("lsb_killbulkjobs failed"))
-        } catch {
-          case e =>
-            logger.error("Unable to kill all jobs.", e)
-        }
-        try {
-          jobRunners.foreach(_.removeTemporaryFiles())
-        } catch {
-          case e => /* ignore */
-        }
+        if (LibBat.lsb_killbulkjobs(signalJobs) < 0)
+          throw new QException(LibBat.lsb_sperror("lsb_killbulkjobs failed"))
+      } catch {
+        case e =>
+          logger.error("Unable to kill all jobs.", e)
       }
     }
   }

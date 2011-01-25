@@ -177,14 +177,14 @@ class QGraph extends Logging {
       case f: FunctionEdge =>
         this.previousFunctions(f).forall(_.status == RunnerStatus.DONE) && f.status == RunnerStatus.PENDING
       case _ => false
-    }.map(_.asInstanceOf[FunctionEdge]).toList.sortWith(compare(_,_))
+    }.toList.asInstanceOf[List[FunctionEdge]].sortWith(compare(_,_))
   }
 
   private def getRunningJobs = {
     jobGraph.edgeSet.filter{
       case f: FunctionEdge => f.status == RunnerStatus.RUNNING
       case _ => false
-    }.map(_.asInstanceOf[FunctionEdge]).toList.sortWith(compare(_,_))
+    }.toList.asInstanceOf[List[FunctionEdge]].sortWith(compare(_,_))
   }
 
   /**
@@ -238,7 +238,14 @@ class QGraph extends Logging {
    */
   private def dryRunJobs() = {
     updateGraphStatus(false)
-    traverseFunctions(edge => logEdge(edge))
+    var readyJobs = getReadyJobs
+    while (!shuttingDown && readyJobs.size > 0) {
+      readyJobs.foreach(edge => {
+        logEdge(edge)
+        edge.markAsDone
+      })
+      readyJobs = getReadyJobs
+    }
   }
 
   private def logEdge(edge: FunctionEdge) = {
@@ -390,7 +397,7 @@ class QGraph extends Logging {
   private def checkRetryJobs(failed: List[FunctionEdge]) = {
     if (settings.retries > 0) {
       for (failedJob <- failed) {
-        if (failedJob.retries < settings.retries) {
+        if (failedJob.function.jobRestartable && failedJob.retries < settings.retries) {
           failedJob.retries += 1
           failedJob.resetToPending(true)
           logger.info("Reset for retry attempt %d of %d: %s".format(
@@ -660,10 +667,10 @@ class QGraph extends Logging {
    */
   private def foreachFunction(f: (FunctionEdge) => Unit) = {
     jobGraph.edgeSet.toList
-            .filter(_.isInstanceOf[FunctionEdge])
-            .map(_.asInstanceOf[FunctionEdge])
-            .sortWith(compare(_,_))
-            .foreach(f(_))
+      .filter(_.isInstanceOf[FunctionEdge])
+      .asInstanceOf[List[FunctionEdge]]
+      .sortWith(compare(_,_))
+      .foreach(f(_))
   }
 
   private def compare(f1: FunctionEdge, f2: FunctionEdge): Boolean =
@@ -759,8 +766,25 @@ class QGraph extends Logging {
    */
   def shutdown() {
     shuttingDown = true
-    val runningJobs = getRunningJobs
-    if (commandLineManager != null && !runningJobs.isEmpty)
-      commandLineManager.tryStop(runningJobs.map(_.runner))
+    val runners = getRunningJobs.map(_.runner)
+    val manager = commandLineManager.asInstanceOf[JobManager[QFunction,JobRunner[QFunction]]]
+    if (manager != null) {
+      val managerRunners = runners
+        .filter(runner => manager.runnerType.isAssignableFrom(runner.getClass))
+        .asInstanceOf[List[JobRunner[QFunction]]]
+      if (managerRunners.size > 0)
+        try {
+          manager.tryStop(managerRunners)
+        } catch {
+          case e => /* ignore */
+        }
+    }
+    runners.foreach(runner =>
+      try {
+        runner.removeTemporaryFiles()
+      } catch {
+        case e => /* ignore */
+      }
+    )
   }
 }
