@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import java.util.ArrayList;
 import java.util.Set;
 
-public class Filter extends VariantStratifier implements StandardStratification {
+public class Filter extends VariantStratifier {
     // needs to know the variant context
     private ArrayList<String> states;
 

@@ -4,6 +4,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.NewVariantEvalWalker;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.stratifications.VariantStratifier;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -26,13 +27,17 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
         return value;
     }
 
-    public void addEvaluationClassList(Set<Class<? extends VariantEvaluator>> evaluationClasses) {
+    public void addEvaluationClassList(NewVariantEvalWalker walker, StateKey stateKey, Set<Class<? extends VariantEvaluator>> evaluationClasses) {
         evaluationInstances = new TreeMap<String, VariantEvaluator>();
 
         for ( Class<? extends VariantEvaluator> c : evaluationClasses ) {
             try {
                 VariantEvaluator eval = c.newInstance();
-                evaluationInstances.put(c.getSimpleName(), eval);
+                eval.initialize(walker);
+
+                if (eval.stateIsApplicable(stateKey)) {
+                    evaluationInstances.put(c.getSimpleName(), eval);
+                }
             } catch (InstantiationException e) {
                 throw new StingException("Unable to instantiate eval module '" + c.getSimpleName() + "'");
             } catch (IllegalAccessException e) {

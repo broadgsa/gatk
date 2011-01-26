@@ -4,9 +4,13 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.NewVariantEvalWalker;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.util.NewEvaluationContext;
+import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.util.StateKey;
 
 public abstract class VariantEvaluator {
+    public void initialize(NewVariantEvalWalker walker) {}
+
     public abstract boolean enabled();
 
     // Should return the number of VariantContexts expected as inputs to update.  Can be 1 or 2
@@ -44,6 +48,10 @@ public abstract class VariantEvaluator {
 
     protected double ratio(long num, long denom) {
         return ((double)num) / (Math.max(denom, 1));
+    }
+
+    public boolean stateIsApplicable(StateKey stateKey) {
+        return true;
     }
 
 }

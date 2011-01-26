@@ -4,14 +4,14 @@ package org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.evaluato
  * Created by IntelliJ IDEA. User: kiran Date: Nov 29, 2010 Time: 3:25:59 PM To change this template use File | Settings
  * | File Templates.
  */
-class PhaseStats {
+class NewPhaseStats {
     public int neitherPhased;
     public int onlyCompPhased;
     public int onlyEvalPhased;
     public int phasesAgree;
     public int phasesDisagree;
 
-    public PhaseStats() {
+    public NewPhaseStats() {
         this.neitherPhased = 0;
         this.onlyCompPhased = 0;
         this.onlyEvalPhased = 0;

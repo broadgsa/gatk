@@ -7,7 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import java.util.ArrayList;
 import java.util.Set;
 
-public class CpG extends VariantStratifier {
+public class CpG extends VariantStratifier implements StandardStratification {
     private ArrayList<String> states;
 
     @Override

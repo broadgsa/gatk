@@ -9,10 +9,10 @@ import java.util.HashMap;
  * Created by IntelliJ IDEA. User: kiran Date: Nov 29, 2010 Time: 3:25:59 PM To change this template use File | Settings
  * | File Templates.
  */
-class SamplePreviousGenotypes {
+class NewSamplePreviousGenotypes {
     private HashMap<String, CompEvalGenotypes> sampleGenotypes = null;
 
-    public SamplePreviousGenotypes() {
+    public NewSamplePreviousGenotypes() {
         this.sampleGenotypes = new HashMap<String, CompEvalGenotypes>();
     }
 

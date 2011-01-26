@@ -132,7 +132,7 @@ public class GATKReportTable {
     }
 
     /**
-     * Add a primary key column.  This becomes the unique identifier for every column in the table, and will always be printed as the first column.
+     * Add a primary key column.  This becomes the unique identifier for every column in the table.
      *
      * @param primaryKeyName  the name of the primary key column
      */

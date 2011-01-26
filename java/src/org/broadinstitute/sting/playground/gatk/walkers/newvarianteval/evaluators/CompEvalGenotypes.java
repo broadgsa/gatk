@@ -3,12 +3,12 @@ package org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.evaluato
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-class CompEvalGenotypes {
+class NewCompEvalGenotypes {
     private GenomeLoc loc;
     private Genotype compGt;
     private Genotype evalGt;
 
-    public CompEvalGenotypes(GenomeLoc loc, Genotype compGt, Genotype evalGt) {
+    public NewCompEvalGenotypes(GenomeLoc loc, Genotype compGt, Genotype evalGt) {
         this.loc = loc;
         this.compGt = compGt;
         this.evalGt = evalGt;

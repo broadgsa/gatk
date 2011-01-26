@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.PrintStream;
@@ -78,6 +79,10 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
 
     @Argument(fullName="doNotUseAllStandardModules", shortName="noEV", doc="Do not use the standard modules by default (instead, only those that are specified with the -E option)")
     protected Boolean NO_STANDARD_MODULES = false;
+
+    // Other arguments
+    @Argument(fullName="minPhaseQuality", shortName="mpq", doc="Minimum phasing quality", required=false)
+    protected double MIN_PHASE_QUALITY = 10.0;
 
     // Variables
     private Set<VariantContextUtils.JexlVCMatchExp> jexlExpressions = new TreeSet<VariantContextUtils.JexlVCMatchExp>();
@@ -258,16 +263,16 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         } else {
             HashMap<StateKey, NewEvaluationContext> necs = new HashMap<StateKey, NewEvaluationContext>();
 
-            StateKey statekey = new StateKey();
+            StateKey stateKey = new StateKey();
             for ( VariantStratifier vs : ec.keySet() ) {
                 String state = ec.get(vs);
 
-                statekey.put(vs.getClass().getSimpleName(), state);
+                stateKey.put(vs.getClass().getSimpleName(), state);
             }
 
-            ec.addEvaluationClassList(evaluationObjects);
+            ec.addEvaluationClassList(this, stateKey, evaluationObjects);
 
-            necs.put(statekey, ec);
+            necs.put(stateKey, ec);
 
             return necs;
         }
@@ -301,11 +306,31 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
                 table.addColumn(columnName, "unknown");
             }
 
-            AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
-            Map<Field, DataPoint> datamap = scanner.getData();
+            try {
+                VariantEvaluator vei = ve.newInstance();
+                vei.initialize(this);
 
-            for (Field field : datamap.keySet()) {
-                table.addColumn(field.getName(), 0.0);
+                AnalysisModuleScanner scanner = new AnalysisModuleScanner(vei);
+                Map<Field, DataPoint> datamap = scanner.getData();
+
+                for (Field field : datamap.keySet()) {
+                    field.setAccessible(true);
+
+                    if (field.get(vei) instanceof TableType) {
+                        TableType t = (TableType) field.get(vei);
+
+                        for ( Object o : t.getColumnKeys() ) {
+                            String c = (String) o;
+                            table.addColumn(c, 0.0);
+                        }
+                    } else {
+                        table.addColumn(field.getName(), 0.0);
+                    }
+                }
+            } catch (InstantiationException e) {
+                throw new StingException("InstantiationException: " + e);
+            } catch (IllegalAccessException e) {
+                throw new StingException("IllegalAccessException: " + e);
             }
         }
 
@@ -385,6 +410,13 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         return allowableTypes;
     }
 
+    /**
+     * Subset a VariantContext to a single sample
+     *
+     * @param vc  the VariantContext object containing multiple samples
+     * @param sampleName  the sample to pull out of the VariantContext
+     * @return  a new VariantContext with just the requested sample
+     */
     private VariantContext getSubsetOfVariantContext(VariantContext vc, String sampleName) {
         ArrayList<String> sampleNames = new ArrayList<String>();
         sampleNames.add(sampleName);
@@ -392,6 +424,13 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         return getSubsetOfVariantContext(vc, sampleNames);
     }
 
+    /**
+     * Subset a VariantContext to a set of samples
+     *
+     * @param vc  the VariantContext object containing multiple samples
+     * @param sampleNames  the samples to pull out of the VariantContext
+     * @return  a new VariantContext with just the requested samples
+     */
     private VariantContext getSubsetOfVariantContext(VariantContext vc, Collection<String> sampleNames) {
         VariantContext vcsub = vc.subContextFromGenotypes(vc.getGenotypes(sampleNames).values());
 
@@ -424,7 +463,7 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
      * @param allowableTypes  a set of allowable variation types
      * @return  a mapping of track names to a list of VariantContext objects
      */
-    private HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, Set<String> sampleNames, EnumSet<VariantContext.Type> allowableTypes) {
+    private HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, Set<String> sampleNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter) {
         HashMap<String, HashMap<String, VariantContext>> bindings = new HashMap<String, HashMap<String, VariantContext>>();
 
         for ( String trackName : trackNames ) {
@@ -445,14 +484,17 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
                         sampleNamesMinusAll.add(sampleName);
                     }
 
-                    vcs.put(sampleName, vcsub);
+                    if (byFilter || !vcsub.isFiltered()) {
+                        vcs.put(sampleName, vcsub);
+                    }
                 }
 
                 if ( trackName.contains("eval") ) {
-                    //logger.info(sampleNamesMinusAll);
                     vc = getSubsetOfVariantContext(vc, sampleNamesMinusAll);
-                    //logger.info(vc);
-                    vcs.put(ALL_SAMPLE_NAME, vc);
+
+                    if (byFilter || !vc.isFiltered()) {
+                        vcs.put(ALL_SAMPLE_NAME, vc);
+                    }
                 }
 
                 bindings.put(trackName, vcs);
@@ -481,23 +523,24 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
 
         EnumSet<VariantContext.Type> allowableTypes = getAllowableVariationTypes(tracker, ref, evalNames);
 
-        HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allSamplesList, allowableTypes);
-
-        HashMap<String, HashMap<String, VariantContext>> evalBindings;
-
         boolean perSampleIsEnabled = false;
+        boolean byFilter = false;
         for (VariantStratifier vs : stratificationObjects) {
             if (vs.getClass().getSimpleName().equals("Sample")) {
                 perSampleIsEnabled = true;
-                break;
+            } else if (vs.getClass().getSimpleName().equals("Filter")) {
+                byFilter = true;
             }
         }
 
+        HashMap<String, HashMap<String, VariantContext>> evalBindings;
         if (perSampleIsEnabled) {
-            evalBindings = bindVariantContexts(tracker, ref, evalNames, sampleNames, allowableTypes);
+            evalBindings = bindVariantContexts(tracker, ref, evalNames, sampleNames, allowableTypes, byFilter);
         } else {
-            evalBindings = bindVariantContexts(tracker, ref, evalNames, allSamplesList, allowableTypes);
+            evalBindings = bindVariantContexts(tracker, ref, evalNames, allSamplesList, allowableTypes, byFilter);
         }
+
+        HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allSamplesList, allowableTypes, byFilter);
 
         vcs.putAll(compBindings);
         vcs.putAll(evalBindings);
@@ -550,6 +593,22 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         }
 
         return stateKeys;
+    }
+
+    /**
+     * Return the number of samples being used
+     * @return the number of samples
+     */
+    public int getNumSamples() {
+        return sampleNames.size();
+    }
+
+    /**
+     * Return the minimum phasing quality to be used with the GenotypePhasingEvaluator module
+     * @return  the minimum phasing quality
+     */
+    public double getMinPhaseQuality() {
+        return MIN_PHASE_QUALITY;
     }
 
     /**
@@ -638,11 +697,40 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
 
             for ( VariantEvaluator ve : nec.getEvaluationClassList().values() ) {
                 ve.finalizeEvaluation();
+                GATKReportTable table = report.getTable(ve.getClass().getSimpleName());
 
                 AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
                 Map<Field, DataPoint> datamap = scanner.getData();
 
-                GATKReportTable table = report.getTable(ve.getClass().getSimpleName());
+                // handle TableTypes
+                for (Field field : datamap.keySet()) {
+                    try {
+                        field.setAccessible(true);
+
+                        if (field.get(ve) instanceof TableType) {
+                            TableType t = (TableType) field.get(ve);
+
+                            for (int row = 0; row < t.getRowKeys().length; row++) {
+                                String r = (String) t.getRowKeys()[row];
+
+                                for ( VariantStratifier vs : stratificationObjects ) {
+                                    String columnName = vs.getClass().getSimpleName();
+
+                                    table.set(stateKey.toString() + r, columnName, stateKey.get(vs.getClass().getSimpleName()));
+                                }
+
+                                for (int col = 0; col < t.getColumnKeys().length; col++) {
+                                    String c = (String) t.getColumnKeys()[col];
+
+                                    String newStateKey = stateKey.toString() + r;
+                                    table.set(newStateKey, c, t.getCell(row, col));
+                                }
+                            }
+                        }
+                    } catch (IllegalAccessException e) {
+                        throw new StingException("IllegalAccessException: " + e);
+                    }
+                }
 
                 for ( VariantStratifier vs : stratificationObjects ) {
                     String columnName = vs.getClass().getSimpleName();
@@ -653,7 +741,10 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
                 for (Field field : datamap.keySet()) {
                     try {
                         field.setAccessible(true);
-                        table.set(stateKey.toString(), field.getName(), field.get(ve));
+
+                        if ( !(field.get(ve) instanceof TableType) ) {
+                            table.set(stateKey.toString(), field.getName(), field.get(ve));
+                        }
                     } catch (IllegalAccessException e) {
                         throw new ReviewedStingException("Unable to access a data field in a VariantEval analysis module: " + e);
                     }
