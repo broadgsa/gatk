@@ -1,22 +1,26 @@
 package org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.evaluators;
 
+import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFConstants;
-import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.phasing.*;
-import org.broadinstitute.sting.gatk.walkers.varianteval.*;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.phasing.AllelePair;
+import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.NewVariantEvalWalker;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.tags.Analysis;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.tags.DataPoint;
-import org.broadinstitute.sting.utils.report.utils.TableType;
+import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.util.NewEvaluationContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.report.utils.TableType;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /*
  * Copyright (c) 2010 The Broad Institute
@@ -44,7 +48,7 @@ import java.util.*;
  */
 
 @Analysis(name = "Genotype Phasing Evaluation", description = "Evaluates the phasing of genotypes in different tracks")
-public class GenotypePhasingEvaluator extends org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluator {
+public class GenotypePhasingEvaluator extends VariantEvaluator {
     protected final static Logger logger = Logger.getLogger(GenotypePhasingEvaluator.class);
 
     // a mapping from sample to stats
@@ -76,7 +80,8 @@ public class GenotypePhasingEvaluator extends org.broadinstitute.sting.gatk.walk
         return getName() + ": <table>";
     }
 
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
+    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, NewEvaluationContext group) {
+    //public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
         Reasons interesting = new Reasons();
         if (ref == null)
             return interesting.toString();
@@ -153,11 +158,11 @@ public class GenotypePhasingEvaluator extends org.broadinstitute.sting.gatk.walk
                         if (compSampIsPhased || evalSampIsPhased) {
                             if (!evalSampIsPhased) {
                                 ps.onlyCompPhased++;
-                                interesting.addReason("ONLY_COMP", samp, group, prevLocus, "");
+                                //interesting.addReason("ONLY_COMP", samp, group, prevLocus, "");
                             }
                             else if (!compSampIsPhased) {
                                 ps.onlyEvalPhased++;
-                                interesting.addReason("ONLY_EVAL", samp, group, prevLocus, "");
+                                //interesting.addReason("ONLY_EVAL", samp, group, prevLocus, "");
                             }
                             else { // both comp and eval are phased:                        
                                 AllelePair prevCompAllelePair = new AllelePair(prevCompAndEval.getCompGenotpye());
@@ -172,13 +177,14 @@ public class GenotypePhasingEvaluator extends org.broadinstitute.sting.gatk.walk
 
                                     Double compPQ = getPQ(compSampGt);
                                     Double evalPQ = getPQ(evalSampGt);
-                                    if (compPQ != null && evalPQ != null && MathUtils.compareDoubles(compPQ, evalPQ) != 0)
-                                        interesting.addReason("PQ_CHANGE", samp, group, prevLocus, compPQ + " -> " + evalPQ);
+                                    if (compPQ != null && evalPQ != null && MathUtils.compareDoubles(compPQ, evalPQ) != 0) {
+                                        //interesting.addReason("PQ_CHANGE", samp, group, prevLocus, compPQ + " -> " + evalPQ);
+                                    }
                                 }
                                 else {
                                     ps.phasesDisagree++;
                                     logger.debug("SWITCHED locus: " + curLocus);
-                                    interesting.addReason("SWITCH", samp, group, prevLocus, toString(prevCompAllelePair, compAllelePair) + " -> " + toString(prevEvalAllelePair, evalAllelePair));
+                                    //interesting.addReason("SWITCH", samp, group, prevLocus, toString(prevCompAllelePair, compAllelePair) + " -> " + toString(prevEvalAllelePair, evalAllelePair));
                                 }
                             }
                         }

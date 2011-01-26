@@ -7,8 +7,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.gatk.contexts.*;
 import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.walkers.varianteval.*;
-import org.broadinstitute.sting.gatk.walkers.varianteval.StandardEval;
+import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.util.NewEvaluationContext;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.tags.Analysis;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.tags.DataPoint;
@@ -45,7 +44,7 @@ import java.util.*;
  */
 
 @Analysis(name = "Genotype Concordance", description = "Determine the genotype concordance between the genotypes in difference tracks")
-public class GenotypeConcordance extends org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluator implements StandardEval {
+public class GenotypeConcordance extends VariantEvaluator implements StandardEval {
     private static final boolean PRINT_INTERESTING_SITES = true;
 
     protected final static Logger logger = Logger.getLogger(GenotypeConcordance.class);
@@ -74,9 +73,7 @@ public class GenotypeConcordance extends org.broadinstitute.sting.gatk.walkers.v
 
     private static final int MAX_MISSED_VALIDATION_DATA = 100;
 
-		private boolean discordantInteresting = false;
-
-    private VariantEvalWalker.EvaluationContext group = null;
+    private boolean discordantInteresting = false;
 
     static class FrequencyStats implements TableType {
         class Stats {
@@ -249,9 +246,7 @@ public class GenotypeConcordance extends org.broadinstitute.sting.gatk.walkers.v
 
     private boolean warnedAboutValidationData = false;
 
-    public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
-        this.group = group;
-
+    public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, NewEvaluationContext group) {
         String interesting = null;
 
         // sanity check that we at least have either eval or validation data
