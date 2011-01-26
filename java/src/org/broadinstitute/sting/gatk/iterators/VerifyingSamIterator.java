@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
-import net.sf.samtools.util.RuntimeIOException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Iterator;
 
@@ -35,7 +35,7 @@ public class VerifyingSamIterator implements StingSAMIterator {
     private void verifyRecord( final SAMRecord last, final SAMRecord cur ) {
         if ( checkOrderP && isOutOfOrder(last, cur) ) {
             this.last = null;
-            throw new RuntimeIOException(String.format("Reads are out of order:%nlast:%n%s%ncurrent:%n%s%n", last.format(), cur.format()) );
+            throw new UserException.MissortedBAM(String.format("reads are out of order:%nlast:%n%s%ncurrent:%n%s%n", last.format(), cur.format()) );
         }
     }
 
