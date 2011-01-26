@@ -461,6 +461,7 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
      * @param trackNames      the list of track names to process
      * @param sampleNames     the list of samples to include
      * @param allowableTypes  a set of allowable variation types
+     * @param byFilter        if false, only accept PASSing VariantContexts.  Otherwise, accept both PASSing and filtered sites
      * @return  a mapping of track names to a list of VariantContext objects
      */
     private HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, Set<String> sampleNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter) {

@@ -32,8 +32,7 @@ public class JexlExpression extends VariantStratifier implements StandardStratif
         relevantStates.add("none");
 
         for ( VariantContextUtils.JexlVCMatchExp jexlExpression : jexlExpressions ) {
-            System.out.println(jexlExpression.name + " " + jexlExpression.exp.getExpression());
-            if (VariantContextUtils.match(eval, jexlExpression)) {
+            if (eval != null && VariantContextUtils.match(eval, jexlExpression)) {
                 relevantStates.add(jexlExpression.name);
             }
         }
