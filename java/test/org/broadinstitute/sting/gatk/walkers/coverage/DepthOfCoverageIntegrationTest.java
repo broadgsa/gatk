@@ -94,10 +94,4 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
 
         execute("testNoCoverageDueToFiltering",spec);
     }
-
-    public File createTempFileFromBase(String name) {
-        File fl = new File(name);
-        fl.deleteOnExit();
-        return fl;
-    }
 }

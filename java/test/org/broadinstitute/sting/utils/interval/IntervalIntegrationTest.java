@@ -27,6 +27,7 @@ package org.broadinstitute.sting.utils.interval;
 import org.broadinstitute.sting.WalkerTest;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -63,31 +64,41 @@ public class IntervalIntegrationTest extends WalkerTest {
 
     @Test
     public void testUnmappedReadInclusion() {
-        String md5 = "fcd11cfa8474472c617d400623a30fcd";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T PrintReads" +
                         " -I " + validationDataLocation + "MV1994.bam" +
                         " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                         " -L unmapped" +
-                        " -o %s" +
-                        " -U",
-                        1, // just one output file
-                        Arrays.asList(md5));
+                        " -U --index_output_bam_on_the_fly",
+                        0, // two output files
+                        Collections.<String>emptyList());
+
+        // our base file
+        File baseOutputFile = createTempFile("testUnmappedReadInclusion",".bam");
+        this.setOutputFileLocation(baseOutputFile);
+        spec.addAuxFile("fcd11cfa8474472c617d400623a30fcd",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("3d1f077727e6b68e20a2095d034e56d7", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
+
         executeTest("testUnmappedReadInclusion",spec);
     }
 
     @Test(enabled = true)
     public void testUnmappedReadExclusion() {
-        String md5 = "3153593c9f9ff80a8551fff5655e65ec";
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T PrintReads" +
                         " -I " + validationDataLocation + "MV1994.bam" +
                         " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                         " -XL unmapped" +
-                        " -o %s" +
-                        " -U",
-                        1, // just one output file
-                        Arrays.asList(md5));
+                        " -U --index_output_bam_on_the_fly",
+                        0, // two output files
+                        Collections.<String>emptyList());
+
+        // our base file
+        File baseOutputFile = createTempFile("testUnmappedReadExclusion",".bam");
+        this.setOutputFileLocation(baseOutputFile);
+        spec.addAuxFile("3153593c9f9ff80a8551fff5655e65ec",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
+        spec.addAuxFile("7fc574ac72211623e4df74d9f75a4e48", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
+
         executeTest("testUnmappedReadExclusion",spec);
     }
 

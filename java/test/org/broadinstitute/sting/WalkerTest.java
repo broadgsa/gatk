@@ -247,4 +247,11 @@ public class WalkerTest extends BaseTest {
             }
         }
     }
+
+
+    protected File createTempFileFromBase(String name) {
+        File fl = new File(name);
+        fl.deleteOnExit();
+        return fl;
+    }    
 }
