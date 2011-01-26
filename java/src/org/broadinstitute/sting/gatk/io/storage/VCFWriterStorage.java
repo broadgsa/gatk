@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.io.storage;
 
-import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.vcf.*;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -11,7 +10,6 @@ import java.io.*;
 
 import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.XReadLines;
 
 /**
  * Provides temporary and permanent storage for genotypes in VCF format.
@@ -37,7 +35,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         else if ( stub.getOutputStream() != null ) {
             this.file = null;
             this.stream = stub.getOutputStream();
-            writer = new StandardVCFWriter(stream);
+            writer = new StandardVCFWriter(stream, stub.doNotWriteGenotypes());
         }
         else
             throw new ReviewedStingException("Unable to create target to which to write; storage was provided with neither a file nor a stream.");
@@ -62,7 +60,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
         }
 
         // The GATK/Tribble can't currently index block-compressed files on the fly.  Disable OTF indexing even if the user explicitly asked for it.
-        return new StandardVCFWriter(file, this.stream, indexOnTheFly && !stub.isCompressed());
+        return new StandardVCFWriter(file, this.stream, indexOnTheFly && !stub.isCompressed(), stub.doNotWriteGenotypes());
     }
 
 

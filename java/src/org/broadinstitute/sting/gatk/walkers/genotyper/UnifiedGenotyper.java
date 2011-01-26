@@ -129,9 +129,6 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         annotationEngine = new VariantAnnotatorEngine(getToolkit(), Arrays.asList(annotationClassesToUse), annotationsToUse);
         UG_engine = new UnifiedGenotyperEngine(getToolkit(), UAC, logger, verboseWriter, annotationEngine, samples);
 
-        if ( UAC.SITES_ONLY )
-            samples.clear();
-
         // initialize the header
         writer.writeHeader(new VCFHeader(getHeaderInfo(), samples)) ;
     }

@@ -44,10 +44,6 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
     public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
 
-    // control the output
-    @Argument(fullName = "sites_only", shortName = "sites_only", doc = "Should we output just sites without genotypes (i.e. only the first 8 columns of the VCF)?", required = false)
-    public boolean SITES_ONLY = false;
-
     @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
     public boolean GENOTYPE_MODE = false;
 
@@ -109,7 +105,6 @@ public class UnifiedArgumentCollection {
         uac.GLmodel = GLmodel;
         uac.heterozygosity = heterozygosity;
         uac.PCR_error = PCR_error;
-        uac.SITES_ONLY = SITES_ONLY;
         uac.GENOTYPE_MODE = GENOTYPE_MODE;
         uac.ALL_BASES_MODE = ALL_BASES_MODE;
         uac.NO_SLOD = NO_SLOD;

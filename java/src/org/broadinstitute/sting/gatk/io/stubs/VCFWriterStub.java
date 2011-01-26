@@ -28,15 +28,12 @@ package org.broadinstitute.sting.gatk.io.stubs;
 import java.io.File;
 import java.io.PrintStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.TreeSet;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFWriter;
-import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
@@ -88,6 +85,11 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
     private final boolean skipWritingHeader;
 
     /**
+     * Should we not write genotypes even when provided?
+     */
+    private final boolean doNotWriteGenotypes;
+
+    /**
      * Connects this stub with an external stream capable of serving the
      * requests of the consumer of this stub.
      */
@@ -98,13 +100,14 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * @param genotypeFile  file to (ultimately) create.
      * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader) {
+    public VCFWriterStub(GenomeAnalysisEngine engine, File genotypeFile, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
         this.engine = engine;
         this.genotypeFile = genotypeFile;
         this.genotypeStream = null;
         this.isCompressed = isCompressed;
         this.argumentSources = argumentSources;
         this.skipWritingHeader = skipWritingHeader;
+        this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
     /**
@@ -112,13 +115,14 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      * @param genotypeStream  stream to (ultimately) write.
      * @param isCompressed  should we compress the output stream?
      */
-    public VCFWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader) {
+    public VCFWriterStub(GenomeAnalysisEngine engine, OutputStream genotypeStream, boolean isCompressed, Collection<Object> argumentSources, boolean skipWritingHeader, boolean doNotWriteGenotypes) {
         this.engine = engine;
         this.genotypeFile = null;
         this.genotypeStream = new PrintStream(genotypeStream);
         this.isCompressed = isCompressed;
         this.argumentSources = argumentSources;
         this.skipWritingHeader = skipWritingHeader;
+        this.doNotWriteGenotypes = doNotWriteGenotypes;
     }
 
     /**
@@ -143,6 +147,14 @@ public class VCFWriterStub implements Stub<VCFWriter>, VCFWriter {
      */
     public boolean isCompressed() {
         return isCompressed;
+    }
+
+    /**
+     * Should we tell the VCF writer not to write genotypes?
+     * @return true if the writer should not write genotypes.
+     */
+    public boolean doNotWriteGenotypes() {
+        return doNotWriteGenotypes;
     }
 
     /**

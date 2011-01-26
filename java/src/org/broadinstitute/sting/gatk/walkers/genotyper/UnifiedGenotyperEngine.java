@@ -400,9 +400,6 @@ public class UnifiedGenotyperEngine {
             vcCall = variantContexts.iterator().next(); // we know the collection will always have exactly 1 element.
         }
 
-        if ( UAC.SITES_ONLY )
-            vcCall = VariantContext.modifyGenotypes(vcCall, null);
-
         VariantCallContext call = new VariantCallContext(vcCall, passesCallThreshold(phredScaledConfidence, atTriggerTrack));
         call.setRefBase(refContext.getBase());
         return call;
