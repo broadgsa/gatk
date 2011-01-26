@@ -106,6 +106,7 @@ public class
     public void testParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "-genotype", "4ffcb1e1f20ce175783c32c30deef8db" );
+        e.put( "-sites_only", "71e561ba6fc66bd8b84907252f71ea55" );
         e.put( "-all_bases", "3d98205a31a133c11e518e095dc7ab65" );
         e.put( "--min_base_quality_score 26", "5f1cfb9c7f82e6414d5db7aa344813ac" );
         e.put( "--min_mapping_quality_score 26", "6c3ad441f3a23ade292549b1dea80932" );
