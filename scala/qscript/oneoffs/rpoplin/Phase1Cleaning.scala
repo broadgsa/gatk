@@ -29,7 +29,7 @@ class Phase1Cleaning extends QScript {
 
   private val tmpDir: File = new File("/broad/shptmp/rpoplin/tmp/")
   private val reference: File = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
-  private val dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.vcf")
+  private val dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
   private val dindelPilotCalls: String = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg.pilot_release.merged.indels.sites.hg19.vcf"
   private val dindelAFRCalls: String = "/humgen/1kg/DCC/ftp/technical/working/20110111_august_dindel_indel_calls/AFR.dindel_august_release.20110110.sites.vcf.gz"
   private val dindelASNCalls: String = "/humgen/1kg/DCC/ftp/technical/working/20110111_august_dindel_indel_calls/ASN.dindel_august_release.20110110.sites.vcf.gz"
