@@ -29,6 +29,7 @@ import java.io.File;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.broadinstitute.sting.playground.utils.GenomicMap;
@@ -154,9 +155,9 @@ public class RemapAlignments extends CommandLineProgram {
 			}
 			if ( AlignmentUtils.isReadUnmapped(read) ) totalUnmappedReads++;
 
-                        // destroy mate pair mapping information, if any (we will need to reconstitute pairs after remapping both ends):
-                        read.setMateReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
-                        read.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+            // destroy mate pair mapping information, if any (we will need to reconstitute pairs after remapping both ends):
+            read.setMateReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
+            read.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
 //				if ( read.getReadPairedFlag() ) System.out.println("PAIRED READ!!");
 
 			totalRecords++;
@@ -243,29 +244,54 @@ public class RemapAlignments extends CommandLineProgram {
     		// need to figure out how many best vs inferior alignments are there:
     		int minNM = 1000000;
     		int cnt = 0; // count of best alignments
-    		for ( SAMRecord r : reads ) {
+            Iterator<SAMRecord> it = reads.iterator();
+            int n = reads.size(); // total number of (alternative) alignments for the given read.
+            boolean canComputeMapQ = true;
+    		while ( it.hasNext() ) {
+                SAMRecord r = it.next();
+                if ( AlignmentUtils.isReadUnmapped(r) && n > 1) {
+                    // we do not want to keep unmapped records in the set unless it's the last and only record!
+                    it.remove();
+                    n--; // one less alignment left in the current group of alignments
+                    continue;
+                }
+                if ( ! canComputeMapQ ) continue; // some reads were missing NM attribute, so do not bother - we can not compute MapQ
                 Object attr = r.getAttribute("NM");
                 if ( attr == null ) {
-                    return; // can not recompute qualities!
+                    canComputeMapQ = false; // can not recompute qualities!
+                    continue;
+                } else {
+    			    int nm;
+                    if ( attr instanceof Short ) nm = ((Short)attr).intValue();
+                    else if ( attr instanceof Integer ) nm = ((Integer)attr).intValue();
+                    else throw new RuntimeException("NM attribute is neither Short nor Integer, don't know what to do.");
+    			    if ( nm < minNM  ) {
+    				    minNM = nm;
+    				    cnt = 1;
+    			    } else if ( nm == minNM ) cnt++;
                 }
-    			int nm;
-                if ( attr instanceof Short ) nm = ((Short)attr).intValue();
-                else if ( attr instanceof Integer ) nm = ((Integer)attr).intValue();
-                else throw new RuntimeException("NM attribute is neither Short nor Integer, don't know what to do.");
-    			if ( nm < minNM  ) { 
-    				minNM = nm;
-    				cnt = 1;
-    			} else if ( nm == minNM ) cnt++;
     		}
 
-    		// now reset counts and quals:
+            if ( n == 1 ) {
+                SAMRecord r = reads.iterator().next() ;
+                if (AlignmentUtils.isReadUnmapped(r) ) {
+                // special case: we are left with a single unmapped alignment
+                    r.setAttribute("X0", new Integer(0));
+                    r.setAttribute("X1", new Integer(0));
+                    return;
+                }
+            }
+
+    		// now reset counts of available alignments and mapping quals (if we can) in every alignment record:
     		for ( SAMRecord r : reads ) {
     			
     			int cnt2 = reads.size() - cnt; // count of inferior alignments
     			
     	   		r.setAttribute("X0", new Integer(cnt));   
         		r.setAttribute("X1", new Integer(cnt2));
-    			
+
+                if ( ! canComputeMapQ ) continue; // not all reads had NM field, so we can not recompute MapQ
+
         		if ( cnt2 > 255 ) cnt2 = 255; // otherwise we will be out of bounds in g_log_n
 
                 int nm_attr;
