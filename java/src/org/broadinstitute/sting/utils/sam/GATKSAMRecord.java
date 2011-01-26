@@ -443,4 +443,20 @@ public class GATKSAMRecord extends SAMRecord {
     public String toString() { return mRecord.toString(); }
 
     public SAMFileSource getFileSource() { return mRecord.getFileSource(); }
+
+    /**
+     * Sets a marker providing the source reader for this file and the position in the file from which the read originated.
+     * @param fileSource source of the given file.
+     */
+    @Override
+    protected void setFileSource(final SAMFileSource fileSource) {
+        try {
+            Method method = SAMRecord.class.getDeclaredMethod("setFileSource",SAMFileSource.class);
+            method.setAccessible(true);
+            method.invoke(mRecord,fileSource);
+        }
+        catch(Exception ex) {
+            throw new ReviewedStingException("Unable to invoke setFileSource method",ex);
+        }
+    }
 }
