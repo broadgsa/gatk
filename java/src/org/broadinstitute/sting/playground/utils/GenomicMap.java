@@ -232,6 +232,17 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
             // remapped bam
             r.setReferenceIndex(SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX);
             r.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+
+            // these are required because current santools jdk is over-validating and requiring MAPQ, CIGAR etc be
+            // set to 0/null for unmapped reads. In principle, it should not matter.
+            r.setMappingQuality(0);
+            r.setCigar(new Cigar());
+            r.setNotPrimaryAlignmentFlag(false);
+            if ( r.getReadNegativeStrandFlag() ) {
+                r.setReadBases(BaseUtils.simpleReverseComplement(r.getReadBases()));
+                r.setBaseQualities(Utils.reverse(r.getBaseQualities()));
+                r.setReadNegativeStrandFlag(false);
+            }
             return r; // nothing to do if read is unmapped
         }
 		
