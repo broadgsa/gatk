@@ -22,9 +22,10 @@ import java.util.concurrent.locks.ReentrantLock;
 public abstract class GenomeLocProcessingTracker {
     private final static Logger logger = Logger.getLogger(FileBackedGenomeLocProcessingTracker.class);
     private final static SimpleDateFormat STATUS_FORMAT = new SimpleDateFormat("HH:mm:ss,SSS");
-    private final static int DEFAULT_OWNERSHIP_ITERATOR_SIZE = 100;
+    private final static int DEFAULT_OWNERSHIP_ITERATOR_SIZE = 20;
 
     private final static String GOING_FOR_LOCK = "going_for_lock";
+    private final static String RELEASING_LOCK = "releasing_lock";
     private final static String HAVE_LOCK = "have_lock";
     private final static String RUNNING = "running";
 
@@ -37,33 +38,7 @@ public abstract class GenomeLocProcessingTracker {
     protected SimpleTimer lockWaitTimer = new SimpleTimer("lockWaitTimer");
     protected long nLocks = 0, nWrites = 0, nReads = 0;
 
-    // --------------------------------------------------------------------------------
-    //
-    // Factory methods for creating ProcessingTrackers
-    //
-    // --------------------------------------------------------------------------------
-
-    public static GenomeLocProcessingTracker createNoOp() {
-        return new NoOpGenomeLocProcessingTracker();
-    }
-
-    public static GenomeLocProcessingTracker createSharedMemory() {
-        return new SharedMemoryGenomeLocProcessingTracker(new ClosableReentrantLock());
-    }
-
-    public static GenomeLocProcessingTracker createFileBackedThreaded(File sharedFile, GenomeLocParser parser, PrintStream status) {
-        return createFileBacked(sharedFile, parser, false, false, status);
-    }
-
-    public static GenomeLocProcessingTracker createFileBackedDistributed(File sharedFile, GenomeLocParser parser, boolean blockingP, PrintStream status) {
-        return createFileBacked(sharedFile, parser, blockingP, true, status);
-    }
-
-    private static FileBackedGenomeLocProcessingTracker createFileBacked(File sharedFile, GenomeLocParser parser, boolean blockP, boolean useFileLockToo, PrintStream status) {
-        //logger.warn("Creating file backed GLPT at " + sharedFile);
-        ClosableReentrantLock lock = useFileLockToo ? new SharedFileThreadSafeLock(sharedFile, blockP) : new ClosableReentrantLock();
-        return new FileBackedGenomeLocProcessingTracker(sharedFile, parser, lock, status);
-    }
+    // TODO -- LOCK / UNLOCK OPERATIONS NEEDS TO HAVE MORE INTELLIGENT TRY / CATCH
 
     // --------------------------------------------------------------------------------
     //
@@ -113,24 +88,27 @@ public abstract class GenomeLocProcessingTracker {
      * @param myName
      * @return
      */
-    public final ProcessingLoc claimOwnership(GenomeLoc loc, String myName) {
+    public final ProcessingLoc claimOwnership(final GenomeLoc loc, final String myName) {
         // processingLocs is a shared memory synchronized object, and this
         // method is synchronized, so we can just do our processing
-        lock(myName);
-        try {
-            ProcessingLoc owner = findOwner(loc, myName);
-
-            if ( owner == null ) { // we are unowned
-                owner = new ProcessingLoc(loc, myName);
-                registerNewLocsWithTimers(Arrays.asList(owner), myName);
+        return new WithLock<ProcessingLoc>(myName) {
+            public ProcessingLoc doBody() {
+                ProcessingLoc owner = findOwner(loc, myName);
+                if ( owner == null ) { // we are unowned
+                    owner = new ProcessingLoc(loc, myName);
+                    registerNewLocsWithTimers(Arrays.asList(owner), myName);
+                }
+                return owner;
             }
-
-            return owner;
-            //logger.warn(String.format("%s.claimOwnership(%s,%s) => %s", this, loc, myName, owner));
-        } finally {
-            unlock(myName);
-        }
+        }.run();
     }
+
+
+    // --------------------------------------------------------------------------------
+    //
+    // High-level iterator-style interface to claiming ownership
+    //
+    // --------------------------------------------------------------------------------
 
     /**
      * A higher-level, and more efficient, interface to obtain the next location we own.  Takes an
@@ -153,7 +131,7 @@ public abstract class GenomeLocProcessingTracker {
         return new OwnershipIterator<T>(iterator, myName);
     }
 
-    protected final class OwnershipIterator<T extends HasGenomeLocation> implements Iterator<T>, Iterable<T> {
+    private final class OwnershipIterator<T extends HasGenomeLocation> implements Iterator<T>, Iterable<T> {
         private final Iterator<T> subit;
         private final String myName;
         private final Queue<T> cache;
@@ -186,46 +164,42 @@ public abstract class GenomeLocProcessingTracker {
          * @return an object of type T owned by this thread, or null if none of the remaining object could be claimed
          */
         public final T next() {
-            T elt = cache.poll();
-            if ( elt != null)
-                return elt;
+            if ( cache.peek() != null)
+                return cache.poll();
             else {
                 // cache is empty, we need to fill up the cache and return the first element of the queue
-                lock(myName);
-                try {
+                return new WithLock<T>(myName) {
+                    public T doBody() {
+                        // read once the database of owners at the start
+                        updateLocs(myName);
 
-                    // read once the database of owners at the start
-                    updateLocs(myName);
+                        boolean done = false;
+                        Queue<ProcessingLoc> pwns = new LinkedList<ProcessingLoc>(); // ;-)
+                        while ( !done && cache.size() < cacheSize && subit.hasNext() ) {
+                            final T elt = subit.next();
+                            //logger.warn("Checking elt for ownership " + elt);
+                            GenomeLoc loc = elt.getLocation();
 
-                    boolean done = false;
-                    Queue<ProcessingLoc> pwns = new LinkedList<ProcessingLoc>(); // ;-)
-                    while ( !done && cache.size() < cacheSize && subit.hasNext() ) {
-                        elt = subit.next();
-                        //logger.warn("Checking elt for ownership " + elt);
-                        GenomeLoc loc = elt.getLocation();
+                            ProcessingLoc owner = findOwnerInMap(loc, processingLocs);
 
-                        ProcessingLoc owner = findOwnerInMap(loc, processingLocs);
-
-                        if ( owner == null ) { // we are unowned
-                            owner = new ProcessingLoc(loc, myName);
-                            pwns.offer(owner);
-                            if ( ! cache.offer(elt) ) throw new ReviewedStingException("Cache offer unexpectedly failed");
-                            if ( GenomeLoc.isUnmapped(loc) ) done = true;
+                            if ( owner == null ) { // we are unowned
+                                owner = new ProcessingLoc(loc, myName);
+                                pwns.offer(owner);
+                                if ( ! cache.offer(elt) ) throw new ReviewedStingException("Cache offer unexpectedly failed");
+                                if ( GenomeLoc.isUnmapped(loc) ) done = true;
+                            }
+                            // if not, we continue our search
                         }
-                        // if not, we continue our search
+
+                        registerNewLocsWithTimers(pwns, myName);
+
+                        // we've either filled up the cache or run out of elements.  Either way we return
+                        // the first element of the cache. If the cache is empty, we return null here.
+                        //logger.warn("Cache size is " + cache.size());
+                        //logger.warn("Cache contains " + cache);
+                        return cache.poll();
                     }
-
-                    registerNewLocsWithTimers(pwns, myName);
-
-                    // we've either filled up the cache or run out of elements.  Either way we return
-                    // the first element of the cache. If the cache is empty, we return null here.
-                    //logger.warn("Cache size is " + cache.size());
-                    //logger.warn("Cache contains " + cache);
-
-                    return cache.poll();
-                } finally {
-                    unlock(myName);
-                }
+                }.run();
             }
         }
 
@@ -252,17 +226,16 @@ public abstract class GenomeLocProcessingTracker {
     }
 
     private final Map<GenomeLoc, ProcessingLoc> updateLocs(String myName) {
-        lock(myName);
-        try {
-            readTimer.restart();
-            for ( ProcessingLoc p : readNewLocs() )
-                processingLocs.put(p.getLocation(), p);
-            readTimer.stop();
-            nReads++;
-            return processingLocs;
-        } finally {
-            unlock(myName);
-        }
+        return new WithLock<Map<GenomeLoc, ProcessingLoc>>(myName) {
+            public Map<GenomeLoc, ProcessingLoc> doBody() {
+                readTimer.restart();
+                for ( ProcessingLoc p : readNewLocs() )
+                    processingLocs.put(p.getLocation(), p);
+                readTimer.stop();
+                nReads++;
+                return processingLocs;
+            }
+        }.run();
     }
 
     protected final void registerNewLocsWithTimers(Collection<ProcessingLoc> plocs, String myName) {
@@ -306,18 +279,11 @@ public abstract class GenomeLocProcessingTracker {
     }
 
     private final void unlock(String id) {
+        if ( lock.getHoldCount() == 1 ) printStatus(id, lockWaitTimer.currentTime(), RELEASING_LOCK);
         lock.unlock();
         if ( ! lock.ownsLock() ) printStatus(id, lockWaitTimer.currentTime(), RUNNING);
     }
 
-    protected final static ProcessingLoc findOwnerInCollection(GenomeLoc loc, Collection<ProcessingLoc> locs) {
-        for ( ProcessingLoc l : locs ) {
-            if ( l.getLocation().equals(loc) )
-                return l;
-        }
-
-        return null;
-    }
 
     protected final static ProcessingLoc findOwnerInMap(GenomeLoc loc, Map<GenomeLoc,ProcessingLoc> locs) {
         return locs.get(loc);
@@ -330,6 +296,33 @@ public abstract class GenomeLocProcessingTracker {
     public final double getTimePerLock() { return lockWaitTimer.getElapsedTime() / Math.max(nLocks, 1); }
     public final double getTimePerRead() { return readTimer.getElapsedTime() / Math.max(nReads,1); }
     public final double getTimePerWrite() { return writeTimer.getElapsedTime() / Math.max(nWrites,1); }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Java-style functional form for with lock do { x };
+    //
+    // --------------------------------------------------------------------------------
+
+    public abstract class WithLock<T> {
+        private final String myName;
+
+        public WithLock(String myName) {
+            this.myName = myName;
+        }
+
+        protected abstract T doBody();
+
+        public T run() {
+            boolean locked = false;
+            try {
+                lock(myName);
+                locked = true;
+                return doBody();
+            } finally {
+                if (locked) unlock(myName);
+            }
+        }
+    }
 
     // --------------------------------------------------------------------------------
     //

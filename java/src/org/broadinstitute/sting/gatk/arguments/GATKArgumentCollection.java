@@ -232,6 +232,11 @@ public class GATKArgumentCollection {
     @Hidden
     public File processingTrackerStatusFile = null;
 
+    @Element(required=false)
+    @Argument(fullName="processingTrackerID",shortName="CID",doc="If provided, an integer ID (starting at 1) indicating a unique id for this process within the distributed GATK group",required=false)
+    @Hidden
+    public int processTrackerID = -1;
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // methods
@@ -408,6 +413,9 @@ public class GATKArgumentCollection {
             return false;
 
         if ( restartProcessingTracker != other.restartProcessingTracker )
+            return false;
+
+        if ( processTrackerID != other.processTrackerID )
             return false;
 
         return true;

@@ -53,21 +53,32 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
 
     @AfterMethod
     public void afterMethod(Object[] data) {
-        if ( data.length > 0 )
+        if ( data.length > 0 ) {
             ((TestTarget)data[0]).getTracker().close();
+            ((TestTarget)data[0]).cleanup();
+        }
     }
 
     abstract private class TestTarget {
         String name;
         int nShards;
         int shardSize;
+        File file;
 
-        public void init() {}
+        public void init() { cleanup(); }
 
-        protected TestTarget(String name, int nShards, int shardSize) {
+        public void cleanup() {
+            if ( file != null && file.exists() )
+                file.delete();
+        }
+
+        public boolean isThreadSafe() { return true; }
+
+        protected TestTarget(String name, int nShards, int shardSize, File file) {
             this.name = name;
             this.nShards = nShards;
             this.shardSize = shardSize;
+            this.file = file;
         }
 
         public abstract GenomeLocProcessingTracker getTracker();
@@ -96,35 +107,35 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
         List<TestTarget> params = new ArrayList<TestTarget>();
 
         int counter = 0;
+        String name = null;
         for ( int nShard : nShards ) {
             for ( int shardSize : shardSizes ) {
                 // shared mem -- canonical implementation
-                params.add(new TestTarget("ThreadSafeSharedMemory", nShard, shardSize) {
-                    GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createSharedMemory();
+                params.add(new TestTarget("ThreadSafeSharedMemory", nShard, shardSize, null) {
+                    GenomeLocProcessingTracker tracker = new SharedMemoryGenomeLocProcessingTracker(new ClosableReentrantLock());
                     public GenomeLocProcessingTracker getTracker() { return tracker; }
                 });
 
                 final File file1 = new File(String.format("%s_ThreadSafeFileBacked_%d_%d", FILE_ROOT, counter++, nShard, shardSize));
-                params.add(new TestTarget("ThreadSafeFileBacked", nShard, shardSize) {
-                    GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createFileBackedThreaded(file1, genomeLocParser, null);
+                params.add(new TestTarget("ThreadSafeFileBacked", nShard, shardSize, file1) {
+                    GenomeLocProcessingTracker tracker = new FileBackedGenomeLocProcessingTracker(file1, genomeLocParser, new ClosableReentrantLock(), null);
                     public GenomeLocProcessingTracker getTracker() { return tracker; }
-                    public void init() {
-                        if ( file1.exists() )
-                            file1.delete();
-                    }
                 });
 
-                for ( final boolean blocking : Arrays.asList(true, false) ) {
-                    final File file2 = new File(String.format("%s_ThreadSafeFileLockingFile_blocking%b_%d_%d", FILE_ROOT, blocking, counter++, nShard, shardSize));
-                    params.add(new TestTarget("ThreadSafeFileLockingFileBackedBlocking" + blocking, nShard, shardSize) {
-                        GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createFileBackedDistributed(file2, genomeLocParser, blocking, null);
-                        public GenomeLocProcessingTracker getTracker() { return tracker; }
-                        public void init() {
-                            if ( file2.exists() )
-                                file2.delete();
-                        }
-                    });
-                }
+                name = "FileBackedSharedFileThreadSafe";
+                final File file2 = new File(String.format("%s_%s_%d_%d", FILE_ROOT, name, counter++, nShard, shardSize));
+                params.add(new TestTarget(name, nShard, shardSize, file2) {
+                    GenomeLocProcessingTracker tracker = new FileBackedGenomeLocProcessingTracker(file2, genomeLocParser, new SharedFileThreadSafeLock(file2, -1), null);
+                    public GenomeLocProcessingTracker getTracker() { return tracker; }
+                });
+
+                name = "FileBackedSharedFile";
+                final File file3 = new File(String.format("%s_%s_%d_%d", FILE_ROOT, name, counter++, nShard, shardSize));
+                params.add(new TestTarget(name, nShard, shardSize, file3) {
+                    GenomeLocProcessingTracker tracker = new FileBackedGenomeLocProcessingTracker(file3, genomeLocParser, new SharedFileLock(file3, -1), null);
+                    public GenomeLocProcessingTracker getTracker() { return tracker; }
+                    public boolean isThreadSafe() { return false; }
+                });
             }
         }
 
@@ -143,7 +154,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
 
     @Test(enabled = true)
     public void testNoop() {
-        GenomeLocProcessingTracker tracker = GenomeLocProcessingTracker.createNoOp();
+        GenomeLocProcessingTracker tracker = new NoOpGenomeLocProcessingTracker();
         for ( int start = 1; start < 100; start++ ) {
             for ( int n = 0; n < 2; n++ ) {
                 GenomeLoc loc = genomeLocParser.createGenomeLoc(chr1, start, start +1);
@@ -336,6 +347,10 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
     }
 
     private void testThreading(TestTarget test, boolean useIterator) {
+        if ( ! test.isThreadSafe() )
+            // skip tests that aren't thread safe
+            return;
+
         // start up 3 threads
         logger.warn("ThreadedTesting " + test + " using iterator " + useIterator);
         List<TestThread> threads = new ArrayList<TestThread>();

@@ -14,7 +14,7 @@ import java.util.List;
  * etc.  ReadShards can differ in their contents but have the same "unmapped" genome loc
  */
 public class NoOpGenomeLocProcessingTracker extends GenomeLocProcessingTracker {
-    protected NoOpGenomeLocProcessingTracker() {
+    public NoOpGenomeLocProcessingTracker() {
         super(new ClosableReentrantLock(), null);          // todo -- should be lighter weight
     }
 

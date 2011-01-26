@@ -49,8 +49,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.threading.GenomeLocProcessingTracker;
-import org.broadinstitute.sting.utils.threading.ProcessingLoc;
+import org.broadinstitute.sting.utils.threading.*;
 
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -180,10 +179,11 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
                 }
             }
 
-            processingTracker = GenomeLocProcessingTracker.createFileBackedDistributed(engine.getArguments().processingTrackerFile, engine.getGenomeLocParser(), false, statusStream);
-            logger.info("Creating ProcessingTracker using shared file " + engine.getArguments().processingTrackerFile + " process.id = " + engine.getName());
+            ClosableReentrantLock lock = new SharedFileThreadSafeLock(engine.getArguments().processingTrackerFile, engine.getArguments().processTrackerID);
+            processingTracker = new FileBackedGenomeLocProcessingTracker(engine.getArguments().processingTrackerFile, engine.getGenomeLocParser(), lock, statusStream) ;
+            logger.info("Creating ProcessingTracker using shared file " + engine.getArguments().processingTrackerFile + " process.id = " + engine.getName() + " CID = " + engine.getArguments().processTrackerID);
         } else {
-            processingTracker = GenomeLocProcessingTracker.createNoOp();
+            processingTracker = new NoOpGenomeLocProcessingTracker();
         }
     }
 

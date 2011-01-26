@@ -27,7 +27,7 @@ public class FileBackedGenomeLocProcessingTracker extends GenomeLocProcessingTra
     private final GenomeLocParser parser;
     private long lastReadPosition = 0;
 
-    protected FileBackedGenomeLocProcessingTracker(File sharedFile, GenomeLocParser parser, ClosableReentrantLock lock, PrintStream status) {
+    public FileBackedGenomeLocProcessingTracker(File sharedFile, GenomeLocParser parser, ClosableReentrantLock lock, PrintStream status) {
         super(lock, status);
 
         this.sharedFile = sharedFile;
