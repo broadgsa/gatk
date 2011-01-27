@@ -100,7 +100,9 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
 
     @DataProvider(name = "threadData")
     public Object[][] createThreadData() {
-        return createData(Arrays.asList(10, 100, 1000, 10000), Arrays.asList(10));
+        // gotta keep the tests small...
+        return createData(Arrays.asList(10, 100), Arrays.asList(10));
+        //return createData(Arrays.asList(10, 100, 1000, 10000), Arrays.asList(10));
     }
 
     public Object[][] createData(List<Integer> nShards, List<Integer> shardSizes) {
