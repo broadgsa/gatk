@@ -27,6 +27,10 @@ package org.broadinstitute.sting.oneoffprojects.phasing;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFHeader;
+import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broad.tribble.vcf.VCFWriter;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -34,14 +38,17 @@ import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
+import org.broadinstitute.sting.gatk.walkers.phasing.WriteVCF;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.PrintStream;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.TreeSet;
+import java.util.*;
+
+import static org.broadinstitute.sting.utils.vcf.VCFUtils.getVCFHeadersFromRods;
 
 /**
  * Walks along all variant ROD loci and verifies the phasing from the reads for user-defined pairs of sites.
@@ -52,14 +59,19 @@ import java.util.TreeSet;
 @ReadFilters({ZeroMappingQualityReadFilter.class})
 // Filter out all reads with zero mapping quality
 
-public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<Integer, Integer> {
+public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<CompareResult, CompareToTrioPhasingStats> {
     public final static String TRIO_ROD_NAME = "trio";
     public final static String PHASING_ROD_NAME = "phasing";
 
     private final static int NUM_IN_TRIO = 3;
 
+    private final static int DIPLOID = 2;
+
     @Output
     protected PrintStream out;
+
+    @Argument(fullName = "trioAugmentedPhasing", shortName = "trioAugmentedPhasing", doc = "File to which trio-phased variants should be written", required = false)
+    protected VCFWriter writer = null;
 
     private String phasingSample = null;
 
@@ -68,18 +80,38 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
     }
 
     private GenomeLoc prevLoc = null;
+    private VariantContext prevTrioVc = null;
     private TrioStatus prevTrioStatus = TrioStatus.MISSING;
+
+    private Genotype prevPhasingGt = null;
 
 
     public void initialize() {
+        initializeVcfWriter();
+    }
+
+    private void initializeVcfWriter() {
+        if (writer == null)
+            return;
+
+        // setup the header fields:
+        Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
+        hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
+        hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
+
+        List<String> rodNames = new LinkedList<String>();
+        rodNames.add(PHASING_ROD_NAME);
+        Map<String, VCFHeader> rodNameToHeader = getVCFHeadersFromRods(getToolkit(), rodNames);
+        Set<String> samples = new TreeSet<String>(rodNameToHeader.get(PHASING_ROD_NAME).getGenotypeSamples());
+        writer.writeHeader(new VCFHeader(hInfo, samples));
     }
 
     public boolean generateExtendedEvents() {
         return false;
     }
 
-    public Integer reduceInit() {
-        return 0;
+    public CompareToTrioPhasingStats reduceInit() {
+        return new CompareToTrioPhasingStats();
     }
 
     /**
@@ -88,14 +120,18 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
      * @param context the context for the given locus
      * @return statistics of and list of all phased VariantContexts and their base pileup that have gone out of cacheWindow range.
      */
-    public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public CompareResult map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (tracker == null)
             return null;
 
         GenomeLoc curLoc = ref.getLocus();
         VariantContext phasingVc = tracker.getVariantContext(ref, PHASING_ROD_NAME, curLoc);
+
+        CompareToTrioPhasingStats stats = new CompareToTrioPhasingStats();
+        CompareResult result = new CompareResult(phasingVc, stats);
+
         if (phasingVc == null || phasingVc.isFiltered())
-            return null;
+            return result;
 
         Map<String, Genotype> phasingSampleToGt = phasingVc.getGenotypes();
         if (phasingSampleToGt.size() != 1)
@@ -106,24 +142,24 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
             phasingSample = sample;
         if (!sample.equals(phasingSample))
             throw new UserException("Must provide EXACTLY one sample!");
-        Genotype phasingGt = phasingSampGt.getValue();
-        if (!phasingGt.isHet())
-            return null;
+        Genotype curPhasingGt = phasingSampGt.getValue();
+        if (!curPhasingGt.isHet())
+            return result;
 
-        VariantContext trioVc = tracker.getVariantContext(ref, TRIO_ROD_NAME, curLoc);
-        boolean useTrioVc = (trioVc != null && !trioVc.isFiltered());
+        VariantContext curTrioVc = tracker.getVariantContext(ref, TRIO_ROD_NAME, curLoc);
+        boolean useTrioVc = (curTrioVc != null && !curTrioVc.isFiltered());
 
-        Genotype sampleGtInTrio = null;
+        Genotype sampleCurGtInTrio = null;
         if (useTrioVc) {
-            sampleGtInTrio = trioVc.getGenotype(phasingSample);
+            sampleCurGtInTrio = curTrioVc.getGenotype(phasingSample);
 
-            if (trioVc.getNSamples() > NUM_IN_TRIO || sampleGtInTrio == null)
+            if (curTrioVc.getNSamples() > NUM_IN_TRIO || sampleCurGtInTrio == null)
                 throw new UserException("Must provide trio data for sample: " + phasingSample);
 
-            if (!new TreeSet<Allele>(phasingGt.getAlleles()).equals(new TreeSet<Allele>(sampleGtInTrio.getAlleles()))) {
+            if (!new TreeSet<Allele>(curPhasingGt.getAlleles()).equals(new TreeSet<Allele>(sampleCurGtInTrio.getAlleles()))) {
                 logger.warn("Locus " + curLoc + " breaks phase, since " + PHASING_ROD_NAME + " and " + TRIO_ROD_NAME + " tracks have different genotypes for " + phasingSample + "!");
                 prevLoc = null;
-                return null;
+                return result;
             }
         }
 
@@ -131,10 +167,10 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
         int processed = 1;
 
         TrioStatus currentTrioStatus = TrioStatus.MISSING;
-        if (useTrioVc && trioVc.getNSamples() == NUM_IN_TRIO) {
+        if (useTrioVc && curTrioVc.getNSamples() == NUM_IN_TRIO) {
             boolean allHet = true;
             for (int i = 0; i < NUM_IN_TRIO; i++) {
-                if (!trioVc.getGenotype(i).isHet()) {
+                if (!curTrioVc.getGenotype(i).isHet()) {
                     allHet = false;
                     break;
                 }
@@ -148,6 +184,8 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
 
         if (prevLoc != null && curLoc.onSameContig(prevLoc)) {
             String trioPhaseStatus;
+            stats.comparedSites++;
+            String addToOutput = "";
 
             if (prevTrioStatus == TrioStatus.TRIPLE_HET || currentTrioStatus == TrioStatus.TRIPLE_HET) {
                 trioPhaseStatus = "Het3";
@@ -160,28 +198,218 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
                     throw new ReviewedStingException("LOGICAL error: prevTrioStatus != TrioStatus.PRESENT || currentTrioStatus != TrioStatus.PRESENT");
 
                 trioPhaseStatus = "trio_phased";
+                stats.trioPhaseableSites++;
+
+                if (writer != null) { // Phase the genotypes using the trio information:
+                    String parent1 = null;
+                    String parent2 = null;
+                    for (Map.Entry<String, Genotype> trioEntry : curTrioVc.getGenotypes().entrySet()) {
+                        String trioSample = trioEntry.getKey();
+                        if (trioEntry.getValue().getPloidy() != DIPLOID)
+                            throw new UserException("Each sample in trio must be diploid!");
+                        if (trioSample.equals(phasingSample))
+                            continue;
+
+                        if (parent1 == null)
+                            parent1 = trioSample;
+                        else if (parent2 == null)
+                            parent2 = trioSample;
+                        else
+                            throw new ReviewedStingException("Cannot be more than 2 parents in TRIO!");
+                    }
+                    if (parent1 == null || parent2 == null)
+                        throw new ReviewedStingException("Must have 2 parents in TRIO!");
+
+                    Genotype samplePrevGtInTrio = prevTrioVc.getGenotype(phasingSample);
+
+                    Genotype parent1PrevGt = prevTrioVc.getGenotype(parent1);
+                    Genotype parent1CurGt = curTrioVc.getGenotype(parent1);
+
+                    Genotype parent2PrevGt = prevTrioVc.getGenotype(parent2);
+                    Genotype parent2CurGt = curTrioVc.getGenotype(parent2);
+
+                    int prevHomIndex, prevOtherIndex;
+                    Allele prevHomAllele;
+                    Set<Allele> prevOtherAlleles;
+                    if (parent1PrevGt.isHom()) {
+                        prevHomIndex = 1;
+                        prevOtherIndex = 2;
+                        prevHomAllele = parent1PrevGt.getAllele(0);
+                        prevOtherAlleles = new TreeSet<Allele>(parent2PrevGt.getAlleles());
+                    }
+                    else if (parent2PrevGt.isHom()) {
+                        prevHomIndex = 2;
+                        prevOtherIndex = 1;
+                        prevHomAllele = parent2PrevGt.getAllele(0);
+                        prevOtherAlleles = new TreeSet<Allele>(parent1PrevGt.getAlleles());
+                    }
+                    else
+                        throw new ReviewedStingException("LOGICAL ERROR: at least one parent is hom!");
+
+                    int curHomIndex, curOtherIndex;
+                    Allele curHomAllele;
+                    Set<Allele> curOtherAlleles;
+                    if (parent1CurGt.isHom()) {
+                        curHomIndex = 1;
+                        curOtherIndex = 2;
+                        curHomAllele = parent1CurGt.getAllele(0);
+                        curOtherAlleles = new TreeSet<Allele>(parent2CurGt.getAlleles());
+                    }
+                    else if (parent2CurGt.isHom()) {
+                        curHomIndex = 2;
+                        curOtherIndex = 1;
+                        curHomAllele = parent2CurGt.getAllele(0);
+                        curOtherAlleles = new TreeSet<Allele>(parent1CurGt.getAlleles());
+                    }
+                    else
+                        throw new ReviewedStingException("LOGICAL ERROR: at least one parent is hom!");
+
+                    boolean phased = true;
+
+                    Map<Allele, Integer> prevAlleleToParent = new TreeMap<Allele, Integer>();
+                    for (Allele prevAllele : samplePrevGtInTrio.getAlleles()) {
+                        if (prevAllele.equals(prevHomAllele))
+                            prevAlleleToParent.put(prevAllele, prevHomIndex);
+                        else if (prevOtherAlleles.contains(prevAllele))
+                            prevAlleleToParent.put(prevAllele, prevOtherIndex);
+                        else {
+                            logger.warn("CANNOT phase, due to inconsistent inheritance of alleles!");
+                            phased = false;
+                            break;
+                        }
+                    }
+
+                    Map<Integer, Allele> parentToCurAllele = new HashMap<Integer, Allele>();
+                    for (Allele curAllele : sampleCurGtInTrio.getAlleles()) {
+                        if (curAllele.equals(curHomAllele))
+                            parentToCurAllele.put(curHomIndex, curAllele);
+                        else if (curOtherAlleles.contains(curAllele))
+                            parentToCurAllele.put(curOtherIndex, curAllele);
+                        else {
+                            logger.warn("CANNOT phase, due to inconsistent inheritance of alleles!");
+                            phased = false;
+                            break;
+                        }
+                    }
+
+                    if (phased) {
+                        List<Allele> phasedCurAlleles = new LinkedList<Allele>();
+                        for (Allele prevAllele : prevPhasingGt.getAlleles()) {
+                            Integer prevIndex = prevAlleleToParent.get(prevAllele);
+                            if (prevIndex == null)
+                                throw new ReviewedStingException("LOGICAL error: expecting to find prev allele in trio parents");
+                            Allele curAllele = parentToCurAllele.get(prevIndex);
+                            if (curAllele == null)
+                                throw new ReviewedStingException("LOGICAL error: expecting to find cur allele in trio parents");
+                            phasedCurAlleles.add(curAllele);
+                        }
+
+                        boolean useTrioPhase = true;
+                        Genotype phasedGt = new Genotype(phasingSample, phasedCurAlleles, curPhasingGt.getNegLog10PError(), curPhasingGt.getFilters(), curPhasingGt.getAttributes(), phased);
+
+                        if (curPhasingGt.isPhased()) {
+                            stats.bothCanPhase++;
+                            useTrioPhase = false;
+
+                            if (!phasedCurAlleles.equals(curPhasingGt.getAlleles())) {
+                                String contradictMessage = "Phase from " + PHASING_ROD_NAME + " track at " + curLoc + " contradicts the trio-based phasing.";
+                                stats.contradictoryPhaseSites++;
+                                addToOutput += "\tcontradictory";
+
+                                if (phasingVc.hasAttribute(ReadBackedPhasingWalker.PHASING_INCONSISTENT_KEY)) {
+                                    stats.contradictoryPhaseSitesWithPhaseInconsistency++;
+                                    addToOutput += "\tphaseInconsistent";                                    
+                                    useTrioPhase = true;
+                                    contradictMessage += " Ignoring " + PHASING_ROD_NAME + " phase due to phase-inconsistency.";
+                                }
+                                else {
+                                    contradictMessage += " Maintaining phase from " + PHASING_ROD_NAME + ".";
+                                }
+                                logger.warn(contradictMessage);
+                            }
+                        }
+
+                        if (useTrioPhase) { // trio phasing adds PREVIOUSLY UNKNOWN phase information:
+                            Map<String, Genotype> genotypes = new HashMap<String, Genotype>();
+                            genotypes.put(phasingSample, phasedGt);
+
+                            phasingVc = VariantContext.modifyGenotypes(phasingVc, genotypes);
+                            result.phasedVc = phasingVc;
+                        }
+                    }
+                }
             }
 
-            out.println(prevLoc + "\t" + curLoc + "\t" + trioPhaseStatus + "\t" + phasingGt.isPhased());
+            out.println(prevLoc + "\t" + curLoc + "\t" + trioPhaseStatus + "\t" + curPhasingGt.isPhased() + addToOutput);
         }
 
         prevLoc = curLoc;
+        prevTrioVc = curTrioVc;
         prevTrioStatus = currentTrioStatus;
+        prevPhasingGt = curPhasingGt;
 
-        return processed;
+        return result;
     }
 
-    public Integer reduce(Integer addIn, Integer runningCount) {
+    public CompareToTrioPhasingStats reduce(CompareResult addIn, CompareToTrioPhasingStats runningCount) {
         if (addIn == null)
-            addIn = 0;
+            addIn = new CompareResult();
 
-        return runningCount + addIn;
+        if (writer != null && addIn.phasedVc != null)
+            WriteVCF.writeVCF(addIn.phasedVc, writer, logger);
+
+        return runningCount.addIn(addIn.stats);
     }
 
     /**
      * @param result the number of reads and VariantContexts seen.
      */
-    public void onTraversalDone(Integer result) {
-        System.out.println("Processed " + result + " sites.");
+    public void onTraversalDone(CompareToTrioPhasingStats result) {
+        System.out.println("Compared " + result.comparedSites + " sites.");
+        System.out.println("Trio can phase " + result.trioPhaseableSites + " sites.");
+        System.out.println("Trio and " + PHASING_ROD_NAME + " track can both phase " + result.bothCanPhase + " sites.");
+        System.out.println("Contradiction between phase inferred from " + TRIO_ROD_NAME + " and phase present in " + PHASING_ROD_NAME + " tracks at " + result.contradictoryPhaseSites + " sites.");
+        System.out.println("Of those, " + PHASING_ROD_NAME + " track is phase-inconsistent at " + result.contradictoryPhaseSitesWithPhaseInconsistency + " sites.");
+    }
+}
+
+class CompareToTrioPhasingStats {
+    public int comparedSites;
+    public int trioPhaseableSites;
+    public int contradictoryPhaseSites;
+    public int contradictoryPhaseSitesWithPhaseInconsistency;
+    public int bothCanPhase;
+
+    public CompareToTrioPhasingStats() {
+        this.comparedSites = 0;
+        this.trioPhaseableSites = 0;
+        this.contradictoryPhaseSites = 0;
+        this.contradictoryPhaseSitesWithPhaseInconsistency = 0;
+        this.bothCanPhase = 0;
+    }
+
+    public CompareToTrioPhasingStats addIn(CompareToTrioPhasingStats other) {
+        this.comparedSites += other.comparedSites;
+        this.trioPhaseableSites += other.trioPhaseableSites;
+        this.contradictoryPhaseSites += other.contradictoryPhaseSites;
+        this.contradictoryPhaseSitesWithPhaseInconsistency += other.contradictoryPhaseSitesWithPhaseInconsistency;
+        this.bothCanPhase += other.bothCanPhase;
+
+        return this;
+    }
+}
+
+class CompareResult {
+    public VariantContext phasedVc;
+    public CompareToTrioPhasingStats stats;
+
+    public CompareResult() {
+        this.phasedVc = null;
+        this.stats = new CompareToTrioPhasingStats();
+    }
+
+    public CompareResult(VariantContext phasedVc, CompareToTrioPhasingStats stats) {
+        this.phasedVc = phasedVc;
+        this.stats = stats;
     }
 }
