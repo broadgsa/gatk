@@ -126,7 +126,7 @@ public abstract class Accumulator {
          * The result of the traversal is the list of accumulated intervals.
          */
         public Object finishTraversal() {
-            walker.onTraversalDone(accumulator);
+            walker.onTraversalDone(getReduceInit());  // must call getReduceInit to ensure that we get the accumulator value or the reduceInit value
             return this.accumulator;
         }
     }
