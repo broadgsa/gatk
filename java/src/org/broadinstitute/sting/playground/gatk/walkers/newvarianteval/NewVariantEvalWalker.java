@@ -17,6 +17,8 @@ import org.broadinstitute.sting.gatk.walkers.Reference;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
+import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
+import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.evaluators.StandardEval;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.stratifications.RequiredStratification;
@@ -30,12 +32,12 @@ import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.util.Stat
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -83,6 +85,15 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
     // Other arguments
     @Argument(fullName="minPhaseQuality", shortName="mpq", doc="Minimum phasing quality", required=false)
     protected double MIN_PHASE_QUALITY = 10.0;
+
+    @Argument(shortName="family", doc="If provided, genotypes in will be examined for mendelian violations: this argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+    protected String FAMILY_STRUCTURE;
+
+    @Argument(shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
+    protected double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 50;
+
+    @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=false)
+    private String TRANCHE_FILENAME = null;
 
     // Variables
     private Set<VariantContextUtils.JexlVCMatchExp> jexlExpressions = new TreeSet<VariantContextUtils.JexlVCMatchExp>();
@@ -317,14 +328,7 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
                 for (Field field : datamap.keySet()) {
                     field.setAccessible(true);
 
-                    if (field.get(vei) instanceof TableType) {
-                        TableType t = (TableType) field.get(vei);
-
-                        for ( Object o : t.getColumnKeys() ) {
-                            String c = (String) o;
-                            table.addColumn(c, 0.0);
-                        }
-                    } else {
+                    if (! (field.get(vei) instanceof TableType) ) {
                         table.addColumn(field.getName(), 0.0);
                     }
                 }
@@ -380,6 +384,16 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
 
         // Initialize select expressions
         jexlExpressions.addAll(VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS));
+
+        // Add select expressions for anything in the tranches file
+        if ( TRANCHE_FILENAME != null ) {
+            // we are going to build a few select names automatically from the tranches file
+            for ( Tranche t : Tranche.readTraches(new File(TRANCHE_FILENAME)) ) {
+                logger.info("Adding select for all variant above the pCut of : " + t);
+                SELECT_EXPS.add(String.format(VariantRecalibrator.VQS_LOD_KEY + " >= %.2f", t.minVQSLod));
+                SELECT_NAMES.add(String.format("FDR-%.2f", t.fdr));
+            }
+        }
 
         // Initialize the set of stratifications and evaluations to use
         stratificationObjects = initializeStratificationObjects(NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
@@ -618,6 +632,22 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
     }
 
     /**
+     * Return the family structure to be used with the MendelianViolationEvaluator module
+     * @return  the family structure string
+     */
+    public String getFamilyStructure() {
+        return FAMILY_STRUCTURE;
+    }
+
+    /**
+     * Return the mendelian violation qual threshold to be used with the MendelianViolationEvaluator module
+     * @return   the mendelian violation qual threshold
+     */
+    public double getMendelianViolationQualThreshold() {
+        return MENDELIAN_VIOLATION_QUAL_THRESHOLD;
+    }
+
+    /**
      * Collect relevant information from each variant in the supplied VCFs
      */
     @Override
@@ -703,18 +733,36 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
 
             for ( VariantEvaluator ve : nec.getEvaluationClassList().values() ) {
                 ve.finalizeEvaluation();
-                GATKReportTable table = report.getTable(ve.getClass().getSimpleName());
 
                 AnalysisModuleScanner scanner = new AnalysisModuleScanner(ve);
                 Map<Field, DataPoint> datamap = scanner.getData();
 
-                // handle TableTypes
                 for (Field field : datamap.keySet()) {
                     try {
                         field.setAccessible(true);
 
                         if (field.get(ve) instanceof TableType) {
                             TableType t = (TableType) field.get(ve);
+
+                            String subTableName = ve.getClass().getSimpleName() + "." + field.getName();
+                            String subTableDesc = datamap.get(field).description();
+
+                            report.addTable(subTableName, subTableDesc);
+                            GATKReportTable table = report.getTable(subTableName);
+
+                            table.addPrimaryKey("entry", false);
+                            table.addColumn(subTableName, subTableName);
+
+                            for ( VariantStratifier vs : stratificationObjects ) {
+                                String columnName = vs.getClass().getSimpleName();
+
+                                table.addColumn(columnName, "unknown");
+                            }
+
+                            for ( Object o : t.getColumnKeys() ) {
+                                String c = (String) o;
+                                table.addColumn(c, 0.0);
+                            }
 
                             for (int row = 0; row < t.getRowKeys().length; row++) {
                                 String r = (String) t.getRowKeys()[row];
@@ -732,27 +780,19 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
                                     table.set(newStateKey, c, t.getCell(row, col));
                                 }
                             }
-                        }
-                    } catch (IllegalAccessException e) {
-                        throw new StingException("IllegalAccessException: " + e);
-                    }
-                }
+                        } else {
+                            GATKReportTable table = report.getTable(ve.getClass().getSimpleName());
 
-                for ( VariantStratifier vs : stratificationObjects ) {
-                    String columnName = vs.getClass().getSimpleName();
+                            for ( VariantStratifier vs : stratificationObjects ) {
+                                String columnName = vs.getClass().getSimpleName();
 
-                    table.set(stateKey.toString(), columnName, stateKey.get(vs.getClass().getSimpleName()));
-                }
+                                table.set(stateKey.toString(), columnName, stateKey.get(vs.getClass().getSimpleName()));
+                            }
 
-                for (Field field : datamap.keySet()) {
-                    try {
-                        field.setAccessible(true);
-
-                        if ( !(field.get(ve) instanceof TableType) ) {
                             table.set(stateKey.toString(), field.getName(), field.get(ve));
                         }
                     } catch (IllegalAccessException e) {
-                        throw new ReviewedStingException("Unable to access a data field in a VariantEval analysis module: " + e);
+                        throw new StingException("IllegalAccessException: " + e);
                     }
                 }
             }

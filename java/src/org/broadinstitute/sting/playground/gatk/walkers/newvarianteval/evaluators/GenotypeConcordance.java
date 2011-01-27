@@ -246,7 +246,7 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     private boolean warnedAboutValidationData = false;
 
-    public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, NewEvaluationContext group) {
+    public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         String interesting = null;
 
         // sanity check that we at least have either eval or validation data
@@ -321,7 +321,10 @@ public class GenotypeConcordance extends VariantEvaluator {
                 sampleStats.incrValue(sample, truth, called);
                 if ( evalAC != null && validationAC != null) {
                     alleleCountStats.incrValue(evalAC,truth,called);
-                    alleleCountStats.incrValue(validationAC,truth,called);
+
+                    //System.err.println(evalAC + " " + validationAC);
+
+                    //alleleCountStats.incrValue(validationAC,truth,called);
                 }
             }
         }
@@ -461,12 +464,18 @@ class SampleStats implements TableType {
      * @return a list of objects, in this case strings, that are the column names
      */
     public Object[] getColumnKeys() {
-        return new String[]{"total_true_ref","%_ref/ref","n_ref/no-call",
-                            "n_ref/ref","n_ref/het","n_ref/hom",
-                            "total_true_het","%_het/het","n_het/no-call",
-                            "n_het/ref","n_het/het","n_het/hom",
-                            "total_true_hom","%_hom/hom","n_hom/no-call",
-                            "n_hom/ref","n_hom/het","n_hom/hom"};
+//        return new String[]{"total_true_ref","%_ref/ref","n_ref/no-call",
+//                            "n_ref/ref","n_ref/het","n_ref/hom",
+//                            "total_true_het","%_het/het","n_het/no-call",
+//                            "n_het/ref","n_het/het","n_het/hom",
+//                            "total_true_hom","%_hom/hom","n_hom/no-call",
+//                            "n_hom/ref","n_hom/het","n_hom/hom"};
+        return new String[]{"total_true_ref","pct_ref_vs_ref","n_ref_vs_no-call",
+                "n_ref_vs_ref","n_ref_vs_het","n_ref_vs_hom",
+                "total_true_het","pct_het_vs_het","n_het_vs_no-call",
+                "n_het_vs_ref","n_het_vs_het","n_het_vs_hom",
+                "total_true_hom","pct_hom_vs_hom","n_hom_vs_no-call",
+                "n_hom_vs_ref","n_hom_vs_het","n_hom_vs_hom"};
     }
 
 

@@ -108,7 +108,7 @@ public class GATKReportTable {
      * @return  true if the name is valid, false if otherwise
      */
     private boolean isValidName(String name) {
-        Pattern p = Pattern.compile("[^a-zA-Z0-9_]");
+        Pattern p = Pattern.compile("[^a-zA-Z0-9_\\-\\.]");
         Matcher m = p.matcher(name);
 
         return !m.find();
@@ -546,7 +546,7 @@ public class GATKReportTable {
                     Object obj = columns.get(columnName).getWithoutSideEffects(primaryKey);
 
                     if (needsPadding) { out.printf("  "); }
-                    out.printf(columnWidths.get(columnName), obj.toString());
+                    out.printf(columnWidths.get(columnName), obj == null ? "null" : obj.toString());
 
                     needsPadding = true;
                 }

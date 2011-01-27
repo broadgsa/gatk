@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.NewVariantEvalWalker;
+import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.stratifications.Degeneracy;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.stratifications.Sample;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.tags.Analysis;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.tags.DataPoint;
@@ -171,8 +172,19 @@ public class SimpleMetricsByAC extends VariantEvaluator implements StandardEval 
 
     @Override
     public boolean stateIsApplicable(StateKey stateKey) {
-        String className = Sample.class.getSimpleName();
+        String sampleClassName = Sample.class.getSimpleName();
+        String degeneracyClassName = Degeneracy.class.getSimpleName();
 
-        return !(stateKey.containsKey(className) && !stateKey.get(className).equalsIgnoreCase("all"));
+        //return !(stateKey.containsKey(sampleClassName) && !stateKey.get(sampleClassName).equalsIgnoreCase("all"));
+
+        if (stateKey.containsKey(sampleClassName) && !stateKey.get(sampleClassName).equalsIgnoreCase("all")) {
+            return false;
+        }
+
+        if (stateKey.containsKey(degeneracyClassName) && !stateKey.get(degeneracyClassName).equalsIgnoreCase("all")) {
+            return false;
+        }
+
+        return true;
     }
 }

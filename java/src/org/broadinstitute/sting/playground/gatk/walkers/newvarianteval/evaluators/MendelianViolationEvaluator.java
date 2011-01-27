@@ -6,6 +6,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.NewVariantEvalWalker;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.tags.Analysis;
 import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.tags.DataPoint;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -60,6 +61,7 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     long KidHomVar_ParentHomRef;
 
     TrioStructure trio;
+    double mendelianViolationQualThreshold;
 
     private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
 
@@ -82,25 +84,21 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     }
 
     // todo: fix
+    public void initialize(NewVariantEvalWalker walker) {
+        trio = parseTrioDescription(walker.getFamilyStructure());
+        mendelianViolationQualThreshold = walker.getMendelianViolationQualThreshold();
+    }
 
-    //public MendelianViolationEvaluator(VariantEvalWalker parent) {
-        //super(parent);
-
-        //if (enabled()) {
-            //trio = parseTrioDescription(parent.FAMILY_STRUCTURE);
-            //parent.getLogger().debug(String.format("Found a family pattern: %s mom=%s dad=%s child=%s",
-                    //parent.FAMILY_STRUCTURE, trio.mom, trio.dad, trio.child));
-        //}
-    //}
 
     public boolean enabled() {
         //return getVEWalker().FAMILY_STRUCTURE != null;
-        return false;
+        return true;
     }
 
     private double getQThreshold() {
         //return getVEWalker().MENDELIAN_VIOLATION_QUAL_THRESHOLD / 10;  // we aren't 10x scaled in the GATK a la phred
-        return 0.0;
+        return mendelianViolationQualThreshold / 10;  // we aren't 10x scaled in the GATK a la phred
+        //return 0.0;
     }
 
     public String getName() {

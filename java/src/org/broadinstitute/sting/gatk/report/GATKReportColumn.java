@@ -66,10 +66,12 @@ public class GATKReportColumn extends TreeMap<Object, Object> {
         int maxWidth = columnName.length();
 
         for (Object obj : this.values()) {
-            int width = obj.toString().length();
+            if (obj != null) {
+                int width = obj.toString().length();
 
-            if (width > maxWidth) {
-                maxWidth = width;
+                if (width > maxWidth) {
+                    maxWidth = width;
+                }
             }
         }
 
