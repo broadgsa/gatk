@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.threading;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -11,10 +13,8 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.io.RandomAccessFile;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
@@ -338,4 +338,58 @@ public abstract class GenomeLocProcessingTracker {
 
     protected abstract void registerNewLocs(Collection<ProcessingLoc> plocs);
     protected abstract Collection<ProcessingLoc> readNewLocs();
+
+    // --------------------------------------------------------------------------------
+    //
+    // main function for testing performance
+    //
+    // --------------------------------------------------------------------------------
+    public static void main(String[] args) {
+        //BasicConfigurator.configure();
+
+        final String ref = args[0];
+        final File file = new File(args[1]);
+        final int cycles = Integer.valueOf(args[2]);
+
+        File referenceFile = new File(ref);
+        try {
+            final IndexedFastaSequenceFile fasta = new IndexedFastaSequenceFile(referenceFile);
+            final String chr1 = fasta.getSequenceDictionary().getSequence(1).getSequenceName();
+            final GenomeLocParser genomeLocParser = new GenomeLocParser(fasta);
+
+            final class MyTest {
+                String name;
+                GenomeLocProcessingTracker tracker;
+
+                MyTest(String name, GenomeLocProcessingTracker tracker) {
+                    this.name = name;
+                    this.tracker = tracker;
+                }
+
+                public void execute(int cycles) {
+                    SimpleTimer delta = new SimpleTimer("delta");
+                    SimpleTimer timer = new SimpleTimer("none");
+
+                    if ( file.exists() ) file.delete();
+                    timer.start();
+                    delta.start();
+                    for ( int i = 1; i < cycles; i++ ) {
+                        tracker.claimOwnership(genomeLocParser.createGenomeLoc(chr1, i, i+1), "ABCDEFGHIJKL");
+                        if ( i % 1000 == 0 ) {
+                            System.out.printf("%s\t%d\t%d\t%.4f\t%.4f%n", name, i, timer.currentTime(), timer.getElapsedTime(), delta.getElapsedTime() );
+                            delta.restart();
+                        }
+                    }
+                }
+            }
+
+            System.out.printf("name\tcycle\tcurrent.time\telapsed.time\tdelta%n");
+            new MyTest("in-memory", new SharedMemoryGenomeLocProcessingTracker(new ClosableReentrantLock())).execute(cycles);
+            new MyTest("nio", new FileBackedGenomeLocProcessingTracker(file, genomeLocParser, new ClosableReentrantLock(), null)).execute(cycles);
+            new MyTest("nio-file-lock", new FileBackedGenomeLocProcessingTracker(file, genomeLocParser, new SharedFileThreadSafeLock(file,1), null)).execute(cycles);
+        }
+        catch(FileNotFoundException ex) {
+            throw new UserException.CouldNotReadInputFile(referenceFile,ex);
+        }
+    }
 }

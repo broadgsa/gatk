@@ -27,9 +27,9 @@ public class SharedFileLock extends ClosableReentrantLock { // todo -- kinda gro
     private static final boolean VERIFY = false;
     private static final int VERIFY_PORT = 5050;
 
-    // 100 seconds of trying -> failure
+    // 5 minutes => 360 seconds of trying -> failure
     protected static final int DEFAULT_N_TRIES = 1000;
-    protected static final long DEFAULT_MILLISECONDS_PER_TRY = 100;
+    protected static final long DEFAULT_MILLISECONDS_PER_TRY = 360;
 
     /** The file we are locking */
     private final File file;
