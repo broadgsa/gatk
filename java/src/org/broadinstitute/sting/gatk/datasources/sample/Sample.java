@@ -3,6 +3,7 @@ package org.broadinstitute.sting.gatk.datasources.sample;
 
 import org.broadinstitute.sting.utils.exceptions.StingException;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,6 +50,9 @@ public class Sample implements java.io.Serializable {
         this.properties = (HashMap) properties;
     }
 
+    public Map<String,Sample> getRelationships() {
+        return Collections.unmodifiableMap(this.relationships);
+    }
 
     public void setSampleFileEntry(boolean value) {
         this.hasSampleFileEntry = value;
