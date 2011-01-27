@@ -90,6 +90,7 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
     private Set<String> knownNames = new TreeSet<String>();
     private Set<String> evalNames = new TreeSet<String>();
     private Set<String> sampleNames = new TreeSet<String>();
+    private int numSamples = 0;
 
     // The list of stratifiers and evaluators to use
     private TreeSet<VariantStratifier> stratificationObjects = null;
@@ -366,12 +367,16 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
         // Now that we have all the rods categorized, determine the sample list from the eval rods.
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), evalNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
-        sampleNames.add(ALL_SAMPLE_NAME);
 
         // If we're not using the per-sample stratification, don't bother loading the sample list
         if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample")) {
             sampleNames.addAll(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS));
+            numSamples = sampleNames.size();
+        } else {
+            numSamples = vcfSamples.size();
         }
+
+        sampleNames.add(ALL_SAMPLE_NAME);
 
         // Initialize select expressions
         jexlExpressions.addAll(VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS));
@@ -491,10 +496,10 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
                 }
 
                 if ( trackName.contains("eval") ) {
-                    vc = getSubsetOfVariantContext(vc, sampleNamesMinusAll);
+                    VariantContext vcsub = (sampleNamesMinusAll.size() > 0) ? getSubsetOfVariantContext(vc, sampleNamesMinusAll) : vc;
 
-                    if (byFilter || !vc.isFiltered()) {
-                        vcs.put(ALL_SAMPLE_NAME, vc);
+                    if (byFilter || !vcsub.isFiltered()) {
+                        vcs.put(ALL_SAMPLE_NAME, vcsub);
                     }
                 }
 
@@ -601,7 +606,7 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
      * @return the number of samples
      */
     public int getNumSamples() {
-        return sampleNames.size();
+        return numSamples;
     }
 
     /**
