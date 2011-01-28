@@ -120,6 +120,11 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             logger.debug("  "+VCs.size()+ " variants at the locus");
         }
 
+//        System.out.print("At locus "+ref.getLocus()+": ");
+//        for ( VariantContext vc :  VCs ) {
+//            System.out.println(vc.toString());
+//        }
+        
         // little optimization: since we may have few events at the current site on the reference,
         // we are going to make sure we compute the mask and ref bases only once for each location and only if we need to
         boolean haveMaskForWindow = false;
@@ -199,9 +204,9 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             else if ( vc.getType() == VariantContext.Type.MNP )
                 assay_sequence = leading_bases + "[" + new String(vc.getReference().getBases()) + "/" + new String(vc.getAlternateAllele(0).getBases())+"]"+trailing_bases.substring(vc.getReference().length()-1);
             else if ( vc.isInsertion() )
-                assay_sequence = leading_bases + "[-/" + vc.getAlternateAllele(0).toString() + "]" + (char)ref.getBase() + trailing_bases;
+                assay_sequence = leading_bases + (char)ref.getBase() + "[-/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
             else if ( vc.isDeletion() )
-                assay_sequence = leading_bases + "[" + new String(vc.getReference().getBases()) + "/-]" + trailing_bases.substring(vc.getReference().length()-1);
+                assay_sequence = leading_bases + (char)ref.getBase() + "[" + new String(vc.getReference().getBases()) + "/-]" + trailing_bases.substring(vc.getReference().length());
             else
                 continue;
 
