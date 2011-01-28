@@ -162,7 +162,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
                 GenomeLoc loc = genomeLocParser.createGenomeLoc(chr1, start, start +1);
                 ProcessingLoc ploc = tracker.claimOwnership(loc, NAME_ONE);
                 Assert.assertTrue(ploc.isOwnedBy(NAME_ONE));
-                Assert.assertEquals(tracker.getProcessingLocs(NAME_ONE).size(), 0);
+                Assert.assertEquals(tracker.updateAndGetProcessingLocs(NAME_ONE).size(), 0);
             }
         }
     }
@@ -188,8 +188,8 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
             Assert.assertEquals(proc.getOwner(), NAME_ONE);
             Assert.assertEquals(tracker.findOwner(shard, NAME_ONE), proc);
             Assert.assertTrue(tracker.locIsOwned(shard, NAME_ONE));
-            Assert.assertNotNull(tracker.getProcessingLocs(NAME_ONE));
-            Assert.assertEquals(tracker.getProcessingLocs(NAME_ONE).size(), counter);
+            Assert.assertNotNull(tracker.updateAndGetProcessingLocs(NAME_ONE));
+            Assert.assertEquals(tracker.updateAndGetProcessingLocs(NAME_ONE).size(), counter);
 
             ProcessingLoc badClaimAttempt = tracker.claimOwnership(shard,NAME_TWO);
             Assert.assertFalse(badClaimAttempt.getOwner().equals(NAME_TWO));
@@ -374,7 +374,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
             assertAllThreadsFinished(results);
 
             // we ran everything
-            Assert.assertEquals(tracker.getProcessingLocs(NAME_ONE).size(), shards.size(), "Not all shards were run");
+            Assert.assertEquals(tracker.updateAndGetProcessingLocs(NAME_ONE).size(), shards.size(), "Not all shards were run");
 
             for ( GenomeLoc shard : shards ) {
                 Assert.assertTrue(tracker.locIsOwned(shard, NAME_ONE), "Unowned shard");

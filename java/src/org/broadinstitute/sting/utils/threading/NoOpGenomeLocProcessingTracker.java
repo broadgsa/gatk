@@ -15,18 +15,8 @@ import java.util.List;
  */
 public class NoOpGenomeLocProcessingTracker extends GenomeLocProcessingTracker {
     public NoOpGenomeLocProcessingTracker() {
-        super(new ClosableReentrantLock(), null);          // todo -- should be lighter weight
+        super(new ClosableReentrantLock(), null);
     }
-
-//    @Override
-//    public ProcessingLoc claimOwnership(GenomeLoc loc, String myName) {
-//        return new ProcessingLoc(loc, myName);
-//    }
-
-//    @Override
-//    protected List<ProcessingLoc> getProcessingLocs() {
-//        return Collections.emptyList();
-//    }
 
     @Override
     protected void registerNewLocs(Collection<ProcessingLoc> loc) {

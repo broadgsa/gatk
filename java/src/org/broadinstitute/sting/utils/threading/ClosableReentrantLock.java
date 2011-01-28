@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Date: 1/19/11
  * Time: 9:50 AM
  *
- * Simple extension of a ReentrantLock that supports a close method
+ * Simple extension of a ReentrantLock that supports a close method.
  */
 public class ClosableReentrantLock extends ReentrantLock {
     public boolean ownsLock() { return super.isHeldByCurrentThread(); }

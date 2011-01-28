@@ -16,11 +16,10 @@ import java.nio.channels.*;
  * Date: 1/19/11
  * Time: 8:24 AM
  *
- * A reentrant lock that supports multi-threaded locking as well as a shared file lock on a common
- * file in the file system.  It itself a shared memory reenterant lock to managed thread safety and a
- * FileChannel FileLock to handle the file integrity
+ * A reentrant lock for a shared file common file in the file system.  Relies on a a Lucene SimpleFSLock
+ * to manage on disk file locking.
  */
-public class SharedFileLock extends ClosableReentrantLock { // todo -- kinda gross inheritance
+public class SharedFileLock extends ClosableReentrantLock { // todo -- kinda gross inheritance.  The super lock is never used
     private static Logger logger = Logger.getLogger(SharedFileLock.class);
 
     private static final String VERIFY_HOST = System.getProperty("verify.host", "gsa1");

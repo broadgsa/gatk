@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.utils.threading;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -17,28 +16,77 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
+ * Abstract base class to coordinating data processing by a collecting for processes / threads.
  *
+ * Conceptually, the genome is viewed as a collection of non-overlapping genome location:
+ *
+ * chr1:1-10
+ * chr1:11-20
+ * chr1:21-30
+ * etc.
+ *
+ * This class, and it's concrete derived classes, provide the ability to claim individual locations
+ * as "mine", and exclude other processes / threads from processing them.  At the lowest-level this
+ * is implemented by the claimOwnership(loc, name) function, that returns true if loc free (unclaimed)
+ * and makes name the owner of loc.  High-level, and more efficient operations provide claiming
+ * iterators over streams of objects implementing the HasGenomeLocation interface, so that you can
+ * write code that looks like:
+ *
+ * for ( GenomeLoc ownedLoc : onlyOwned(allLocsToProcess.iterator) ) {
+ *   doSomeWork(ownedLoc)
+ *
+ * Much of the code in this class is actually surrounding debugging and performance metrics code.
+ * The actual synchronization code is separated out into the ClosableReentrantLock() system
+ * and the two abstract functions:
+ *
+ *  protected abstract void registerNewLocs(Collection<ProcessingLoc> plocs);
+ *  protected abstract Collection<ProcessingLoc> readNewLocs();
+ *
+ * That maintain the state of the tracker.
+ *
+ * That is, the ProcessingTracker is made of two components: a thread / process locking system and
+ * a subclass that implements the methods to record new claimed state changes and to read out updates
+ * that may have occurred by another thread or process.
+ *
+ * NOTE: this class assumes that all threads / processes are working with the same set of potential
+ * GenomeLocs to own.  Claiming chr1:1-10 and then chr1:5-6 is allowed by the system.  Basically,
+ * you only can stake claim to GenomeLocs that are .equal().
  */
 public abstract class GenomeLocProcessingTracker {
     private final static Logger logger = Logger.getLogger(FileBackedGenomeLocProcessingTracker.class);
     private final static SimpleDateFormat STATUS_FORMAT = new SimpleDateFormat("HH:mm:ss,SSS");
     private final static int DEFAULT_OWNERSHIP_ITERATOR_SIZE = 20;
 
+    /**
+     * Useful state strings for printing status
+     */
     private final static String GOING_FOR_LOCK = "going_for_lock";
     private final static String RELEASING_LOCK = "releasing_lock";
     private final static String HAVE_LOCK = "have_lock";
     private final static String RUNNING = "running";
 
+    /**
+     * A map, for efficiency, that allows quick lookup of the processing loc for a
+     * given GenomeLoc.  The map points from loc -> loc / owner as a ProcessingLoc
+     */
     private final Map<GenomeLoc, ProcessingLoc> processingLocs;
+
+    /**
+     * The locking object used to protect data from simulatanous access by multiple
+     * threads or processes.
+     */
     private final ClosableReentrantLock lock;
+
+    /** A stream for writing status messages.  Can be null if we aren't writing status */
     private final PrintStream status;
 
-    protected SimpleTimer writeTimer = new SimpleTimer("writeTimer");
-    protected SimpleTimer readTimer = new SimpleTimer("readTimer");
-    protected SimpleTimer lockWaitTimer = new SimpleTimer("lockWaitTimer");
+    //
+    // Timers for recording performance information
+    //
+    protected final SimpleTimer writeTimer = new SimpleTimer("writeTimer");
+    protected final SimpleTimer readTimer = new SimpleTimer("readTimer");
+    protected final SimpleTimer lockWaitTimer = new SimpleTimer("lockWaitTimer");
     protected long nLocks = 0, nWrites = 0, nReads = 0;
-
-    // TODO -- LOCK / UNLOCK OPERATIONS NEEDS TO HAVE MORE INTELLIGENT TRY / CATCH
 
     // --------------------------------------------------------------------------------
     //
@@ -51,6 +99,45 @@ public abstract class GenomeLocProcessingTracker {
         this.lock = lock;
         printStatusHeader();
     }
+
+    // --------------------------------------------------------------------------------
+    //
+    // Code to override to change the dynamics of the the GenomeLocProcessingTracker
+    //
+    // --------------------------------------------------------------------------------
+
+    protected void close() {
+        lock.close();
+        if ( status != null ) status.close();
+    }
+
+    /**
+     * Takes a collection of newly claimed (i.e., previous unclaimed) genome locs
+     * and the name of their owner and "registers" this data in some persistent way that's
+     * visible to all threads / processes communicating via this GenomeLocProcessingTracker.
+     *
+     * Could be a in-memory data structure (a list) if we are restricting ourselves to intra-memory
+     * parallelism, a locked file on a shared file system, or a server we communicate with.
+     *
+     * @param plocs
+     */
+    protected abstract void registerNewLocs(Collection<ProcessingLoc> plocs);
+
+    /**
+     * The inverse of the registerNewLocs() function.  Looks at the persistent data store
+     * shared by all threads / processes and returns the ones that have appeared since the last
+     * call to readNewLocs().  Note that we expect the pair of registerNewLocs and readNewLocs to
+     * include everything, even locs registered by this thread / process.  For example:
+     *
+     * readNewLocs() => List()
+     * registerNewLocs(List(x, y,)) => void
+     * readNewLocs() => List(x,y))
+     *
+     * even for this thread or process.
+     * @return
+     */
+    protected abstract Collection<ProcessingLoc> readNewLocs();
+
 
     // --------------------------------------------------------------------------------
     //
@@ -67,14 +154,6 @@ public abstract class GenomeLocProcessingTracker {
      */
     public final boolean locIsOwned(GenomeLoc loc, String id) {
         return findOwner(loc, id) != null;
-    }
-
-    protected final ProcessingLoc findOwner(GenomeLoc loc, String id) {
-        // fast path to check if we already have the existing genome loc in memory for ownership claims
-        // getProcessingLocs() may be expensive [reading from disk, for example] so we shouldn't call it
-        // unless necessary
-        ProcessingLoc x = findOwnerInMap(loc, processingLocs);
-        return x == null ? findOwnerInMap(loc, updateLocs(id)) : x;
     }
 
     /**
@@ -171,16 +250,15 @@ public abstract class GenomeLocProcessingTracker {
                 return new WithLock<T>(myName) {
                     public T doBody() {
                         // read once the database of owners at the start
-                        updateLocs(myName);
+                        updateAndGetProcessingLocs(myName);
 
                         boolean done = false;
                         Queue<ProcessingLoc> pwns = new LinkedList<ProcessingLoc>(); // ;-)
                         while ( !done && cache.size() < cacheSize && subit.hasNext() ) {
                             final T elt = subit.next();
-                            //logger.warn("Checking elt for ownership " + elt);
                             GenomeLoc loc = elt.getLocation();
 
-                            ProcessingLoc owner = findOwnerInMap(loc, processingLocs);
+                            ProcessingLoc owner = processingLocs.get(loc);
 
                             if ( owner == null ) { // we are unowned
                                 owner = new ProcessingLoc(loc, myName);
@@ -195,8 +273,6 @@ public abstract class GenomeLocProcessingTracker {
 
                         // we've either filled up the cache or run out of elements.  Either way we return
                         // the first element of the cache. If the cache is empty, we return null here.
-                        //logger.warn("Cache size is " + cache.size());
-                        //logger.warn("Cache contains " + cache);
                         return cache.poll();
                     }
                 }.run();
@@ -212,20 +288,34 @@ public abstract class GenomeLocProcessingTracker {
         }
     }
 
+    // --------------------------------------------------------------------------------
+    //
+    // private / protected low-level accessors / manipulators and utility functions
+    //
+    // --------------------------------------------------------------------------------
+
     /**
-     * Returns the list of currently owned locations, updating the database as necessary.
-     * DO NOT MODIFY THIS LIST! As with all parallelizing data structures, the list may be
-     * out of date immediately after the call returns, or may be updating on the fly.
-     *
-     * This is really useful for printing, counting, etc. operations that aren't mission critical
-     *
+     * Useful debugging function that returns the ProcessingLoc who owns loc.  ID
+     * is provided for debugging purposes
+     * @param loc
+     * @param id
      * @return
      */
-    protected final Collection<ProcessingLoc> getProcessingLocs(String myName) {
-        return updateLocs(myName).values();
+    protected final ProcessingLoc findOwner(GenomeLoc loc, String id) {
+        // fast path to check if we already have the existing genome loc in memory for ownership claims
+        // getProcessingLocs() may be expensive [reading from disk, for example] so we shouldn't call it
+        // unless necessary
+        ProcessingLoc x = processingLocs.get(loc);
+        return x == null ? updateAndGetProcessingLocs(id).get(loc) : x;
     }
 
-    private final Map<GenomeLoc, ProcessingLoc> updateLocs(String myName) {
+    /**
+     * Returns the list of currently owned locations, updating the database as necessary.
+     * DO NOT MODIFY THIS MAP! As with all parallelizing data structures, the list may be
+     * out of date immediately after the call returns, or may be updating on the fly.
+     * @return
+     */
+    protected final Map<GenomeLoc, ProcessingLoc> updateAndGetProcessingLocs(String myName) {
         return new WithLock<Map<GenomeLoc, ProcessingLoc>>(myName) {
             public Map<GenomeLoc, ProcessingLoc> doBody() {
                 readTimer.restart();
@@ -238,6 +328,12 @@ public abstract class GenomeLocProcessingTracker {
         }.run();
     }
 
+    /**
+     * Wrapper around registerNewLocs that also times the operation
+     *
+     * @param plocs
+     * @param myName
+     */
     protected final void registerNewLocsWithTimers(Collection<ProcessingLoc> plocs, String myName) {
         writeTimer.restart();
         registerNewLocs(plocs);
@@ -245,27 +341,24 @@ public abstract class GenomeLocProcessingTracker {
         writeTimer.stop();
     }
 
-    // --------------------------------------------------------------------------------
-    //
-    // Low-level accessors / manipulators and utility functions
-    //
-    // --------------------------------------------------------------------------------
-    private final boolean hasStatus() {
-        return status != null;
-    }
-
     private final void printStatusHeader() {
-        if ( hasStatus() ) status.printf("process.id\thr.time\ttime\tstate%n");
+        if ( status != null ) status.printf("process.id\thr.time\ttime\tstate%n");
     }
 
     private final void printStatus(String id, long machineTime, String state) {
         // prints a line like processID human-readable-time machine-time state
-        if ( hasStatus() ) {
+        if ( status != null  ) {
             status.printf("%s\t%s\t%d\t%s%n", id, STATUS_FORMAT.format(machineTime), machineTime, state);
             status.flush();
         }
     }
 
+
+    /**
+     * Lock the data structure, preventing other threads / processes from reading and writing to the
+     * common store
+     * @param id the name of the process doing the locking
+     */
     private final void lock(String id) {
         lockWaitTimer.restart();
         boolean hadLock = lock.ownsLock();
@@ -278,15 +371,14 @@ public abstract class GenomeLocProcessingTracker {
         if ( ! hadLock ) printStatus(id, lockWaitTimer.currentTime(), HAVE_LOCK);
     }
 
+    /**
+     * Unlock the data structure, allowing other threads / processes to read and write to the common store
+     * @param id the name of the process doing the unlocking
+     */
     private final void unlock(String id) {
         if ( lock.getHoldCount() == 1 ) printStatus(id, lockWaitTimer.currentTime(), RELEASING_LOCK);
         lock.unlock();
         if ( ! lock.ownsLock() ) printStatus(id, lockWaitTimer.currentTime(), RUNNING);
-    }
-
-
-    protected final static ProcessingLoc findOwnerInMap(GenomeLoc loc, Map<GenomeLoc,ProcessingLoc> locs) {
-        return locs.get(loc);
     }
 
     // useful code for getting
@@ -303,7 +395,18 @@ public abstract class GenomeLocProcessingTracker {
     //
     // --------------------------------------------------------------------------------
 
-    public abstract class WithLock<T> {
+    /**
+     * Private utility class that executes doBody() method with the lock() acquired and
+     * handles property unlock()ing the system, even if an error occurs.  Allows one to write
+     * clean code like:
+     *
+     * new WithLock<Integer>(name) {
+     *   public Integer doBody() { doSomething(); return 1; }
+     * }.run()
+     *
+     * @param <T> the return type of the doBody() method
+     */
+    private abstract class WithLock<T> {
         private final String myName;
 
         public WithLock(String myName) {
@@ -323,21 +426,6 @@ public abstract class GenomeLocProcessingTracker {
             }
         }
     }
-
-    // --------------------------------------------------------------------------------
-    //
-    // Code to override to change the dynamics of the the GenomeLocProcessingTracker
-    //
-    // --------------------------------------------------------------------------------
-
-    protected void close() {
-        lock.close();
-        if ( hasStatus() ) status.close();
-        //logger.warn("Locking events: " + nLocks);
-    }
-
-    protected abstract void registerNewLocs(Collection<ProcessingLoc> plocs);
-    protected abstract Collection<ProcessingLoc> readNewLocs();
 
     // --------------------------------------------------------------------------------
     //

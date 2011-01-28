@@ -28,6 +28,15 @@ class DistributedGATKPerformance extends QScript {
   @Argument(shortName="limitTo30Min", doc="runs long calculations", required=false)
   var limitTo30Min: Boolean = false
 
+  @Argument(shortName="huge", doc="runs long calculations", required=false)
+  var huge: Int = -1
+
+  @Argument(shortName="justDist", doc="runs long calculations", required=false)
+  var justDist: Boolean = false
+
+  @Argument(shortName="justSG", doc="runs long calculations", required=false)
+  var justSG: Boolean = false
+
   @Argument(shortName="trackerDir", doc="root directory for distributed tracker files", required=false)
   var trackerDir: String = "" // "/humgen/gsa-scr1/depristo/tmp/"
 
@@ -88,7 +97,7 @@ class DistributedGATKPerformance extends QScript {
     "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass, true),
+              "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/distributedGATK/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass, true),
     "WEx" -> new Target("NA12878.WEx", hg18, dbSNP_hg18, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
@@ -102,14 +111,14 @@ class DistributedGATKPerformance extends QScript {
               new File("/humgen/1kg/analysis/bamsForDataProcessingPapers/lowpass_b36/lowpass.chr20.cleaned.matefixed.bam"), // the bam list to call from
               new File("/home/radon01/depristo/work/oneOffProjects/VQSRCutByNRS/lowpass.N60.chr20.filtered.vcf"),           // the gold standard VCF file to run through the VQSR
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.b36.intervals", 2.3, lowPass,true),          // chunked interval list to use with Queue's scatter/gather functionality
-//    "LowPassAugust" -> new Target("ALL.august.v4", b37, dbSNP_b37, hapmap_b37, indelMask_b37,                               // BUGBUG: kill this, it is too large
-//              new File("/humgen/1kg/processing/allPopulations_chr20_august_release.cleaned.merged.bams/ALL.cleaned.merged.list"),
-//              new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),
-//              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass, false),
+    "LowPassAugust" -> new Target("ALL.august.v4", b37, dbSNP_b37, hapmap_b37, indelMask_b37,                               // BUGBUG: kill this, it is too large
+              new File("/humgen/1kg/processing/allPopulations_chr20_august_release.cleaned.merged.bams/ALL.cleaned.merged.list"),
+              new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass, true),
     "LowPassEUR363Nov" -> new Target("EUR.nov2010", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/EUR.363sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass,false),
+              "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/distributedGATK/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass,false),
     "WExTrio" -> new Target("NA12878Trio.WEx", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
         new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bams.list"),
         new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
@@ -119,6 +128,8 @@ class DistributedGATKPerformance extends QScript {
   def getTargetInterval(target: Target): List[String] = target.name match {
     case "NA12878.HiSeq" =>  List("chr1")
     case "FIN" => List("20")
+    case "ALL.august.v4" => List("20")
+    case "EUR.nov2010" => List("20")
     case _ => List(target.intervals)
   }
 
@@ -133,11 +144,11 @@ class DistributedGATKPerformance extends QScript {
       for (targetDS <- targetDataSets.valuesIterator)   // for Scala 2.7 or older, use targetDataSets.values
         targets ::= targetDS
 
-    val nWays = if ( test ) List(32) else { if ( long ) List(1,2,4,8) else List(16,32,64,128) }
+    val nWays = if ( test ) List(32) else { if ( long ) List(1,2,4,8) else if ( huge != -1 ) List(huge) else List(16,32,64,128) }
     //val nWays = List(2)
 
     for (target <- targets) {
-      for ( scatterP <- if ( test ) List(false) else List(true, false) )
+      for ( scatterP <- if ( test ) List(false) else if ( justSG ) List(true) else if ( justDist ) List(false) else List(true, false) )
         for (nWaysParallel <- nWays ) {
           val aname = "ptype_%s.nways_%d".format(if ( scatterP ) "sg" else "dist", nWaysParallel)
 

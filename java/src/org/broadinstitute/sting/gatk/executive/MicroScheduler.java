@@ -163,7 +163,9 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             throw new ReviewedStingException("Unable to register microscheduler with JMX", ex);
         }
 
+        //
         // create the processing tracker
+        //
         if ( engine.getArguments().processingTrackerFile != null ) {
             if ( engine.getArguments().restartProcessingTracker && engine.getArguments().processingTrackerFile.exists() ) {
                 engine.getArguments().processingTrackerFile.delete();
@@ -183,6 +185,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
             processingTracker = new FileBackedGenomeLocProcessingTracker(engine.getArguments().processingTrackerFile, engine.getGenomeLocParser(), lock, statusStream) ;
             logger.info("Creating ProcessingTracker using shared file " + engine.getArguments().processingTrackerFile + " process.id = " + engine.getName() + " CID = " + engine.getArguments().processTrackerID);
         } else {
+            // create a NoOp version that doesn't do anything but say "yes"
             processingTracker = new NoOpGenomeLocProcessingTracker();
         }
     }

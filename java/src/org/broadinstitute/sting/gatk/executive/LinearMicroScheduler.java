@@ -72,13 +72,14 @@ public class LinearMicroScheduler extends MicroScheduler {
                 dataProvider.close();
             }
 
-
-            counter++;
-            logger.debug(String.format("At %s: processed %d shards.  %.2e s / lock (n=%d), %.2e s / read (n=%d), %.2e s / write (n=%d)",
-                    shard.getLocation(), counter,
-                    processingTracker.getTimePerLock(), processingTracker.getNLocks(),
-                    processingTracker.getTimePerRead(), processingTracker.getNReads(),
-                    processingTracker.getTimePerWrite(), processingTracker.getNWrites()));
+            if ( logger.isDebugEnabled() ) {
+                counter++;
+                logger.debug(String.format("At %s: processed %d shards.  %.2e s / lock (n=%d), %.2e s / read (n=%d), %.2e s / write (n=%d)",
+                        shard.getLocation(), counter,
+                        processingTracker.getTimePerLock(), processingTracker.getNLocks(),
+                        processingTracker.getTimePerRead(), processingTracker.getNReads(),
+                        processingTracker.getTimePerWrite(), processingTracker.getNWrites()));
+            }
         }
 
         Object result = accumulator.finishTraversal();

@@ -10,7 +10,14 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
  * Date: 1/19/11
  * Time: 8:06 AM
  *
- * Information about processing locations and their owners
+ * Information about processing locations and their owners.  Contains two basic data, associated
+ * together.  The first is a genome loc, and the second is the name of the owner, as a string.
+ *
+ * chr1:1-10 Mark
+ * chr2:11-20 DePristo
+ *
+ * would be two ProcessingLocs that first indicate that the first 10 bp of chr1 are owned by Mark,
+ * and the second is owned by DePristo.
  */
 public class ProcessingLoc implements HasGenomeLocation {
     private final GenomeLoc loc;
@@ -27,7 +34,7 @@ public class ProcessingLoc implements HasGenomeLocation {
         }
 
         this.loc = loc;
-        this.owner = owner;
+        this.owner = owner.intern();    // reduce memory consumption by interning the string
     }
 
     public GenomeLoc getLocation() {
@@ -38,6 +45,13 @@ public class ProcessingLoc implements HasGenomeLocation {
         return owner;
     }
 
+    /**
+     * Returns true iff the owner of this processing loc is name.  Can be used to determine
+     * the owner of this processing location.
+     *
+     * @param name
+     * @return
+     */
     public boolean isOwnedBy(String name) {
         return getOwner().equals(name);
     }

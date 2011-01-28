@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Keeps a copy of the processing locks in a file, in addition to tracking in memory via the base class
+ * Keeps a copy of the processing locks in a file
  */
 public class FileBackedGenomeLocProcessingTracker extends GenomeLocProcessingTracker {
     private static final Logger logger = Logger.getLogger(FileBackedGenomeLocProcessingTracker.class);
@@ -49,10 +49,6 @@ public class FileBackedGenomeLocProcessingTracker extends GenomeLocProcessingTra
             throw new UserException.CouldNotCreateOutputFile(sharedFile, e);
         }
     }
-
-//    protected void close() {
-//        super.close();
-//    }
 
     @Override
     protected List<ProcessingLoc> readNewLocs() {

@@ -1,16 +1,13 @@
 package org.broadinstitute.sting.utils.threading;
 
-import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.GenomeLoc;
-
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Thread-safe shared memory only implementation
+ * Thread-safe shared memory only implementation.  Uses a simple list to manage the newly
+ * added processing locations.
  */
 public class SharedMemoryGenomeLocProcessingTracker extends GenomeLocProcessingTracker {
     private List<ProcessingLoc> newPLocs = new ArrayList<ProcessingLoc>();
