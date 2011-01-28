@@ -52,7 +52,7 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
 
     public void apply(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantContext comp, VariantContext eval) {
         for ( VariantEvaluator evaluation : evaluationInstances.values() ) {
-            synchronized ( evaluation ) {
+            //synchronized ( evaluation ) {
                 // we always call update0 in case the evaluation tracks things like number of bases covered
                 //evaluation.update0(tracker, ref, context);
 
@@ -77,7 +77,7 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
                     default:
                         throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
                 }
-            }
+            //}
         }
     }
 

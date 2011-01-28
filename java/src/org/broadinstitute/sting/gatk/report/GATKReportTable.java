@@ -546,7 +546,20 @@ public class GATKReportTable {
                     Object obj = columns.get(columnName).getWithoutSideEffects(primaryKey);
 
                     if (needsPadding) { out.printf("  "); }
-                    out.printf(columnWidths.get(columnName), obj == null ? "null" : obj.toString());
+
+                    String value = "null";
+                    if (obj != null) {
+                        if (obj instanceof Float) {
+                            value = String.format("%.8f", (Float) obj);
+                        } else if (obj instanceof Double) {
+                            value = String.format("%.8f", (Double) obj);
+                        } else {
+                            value = obj.toString();
+                        }
+                    }
+
+                    //out.printf(columnWidths.get(columnName), obj == null ? "null" : obj.toString());
+                    out.printf(columnWidths.get(columnName), value);
 
                     needsPadding = true;
                 }
