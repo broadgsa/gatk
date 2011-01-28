@@ -79,7 +79,9 @@ public class PickSequenomProbes extends RodWalker<String, String> {
     private GenomeLoc positionOfLastVariant = null;
 
     private int cnt = 0;
+    private int discarded = 0;
 
+    VariantCollection VCs ;  // will keep a set of distinct variants at a given site
     private List<GenomeLoc> processedVariantsInScope = new LinkedList<GenomeLoc>();
 
     public void initialize() {
@@ -101,6 +103,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             }
 
 		}
+        VCs = new VariantCollection();
     }
 
 
@@ -110,7 +113,11 @@ public class PickSequenomProbes extends RodWalker<String, String> {
 
         logger.debug("Probing " + ref.getLocus() + " " + ref.getWindow());
 
-        Collection<VariantContext> VCs = tracker.getAllVariantContexts(ref);
+        VCs.clear();
+        VCs.addAll( tracker.getAllVariantContexts(ref), ref.getLocus() );
+
+        discarded += VCs.discarded();
+
         if ( VCs.size() == 0 )  {
             logger.debug("  Context empty");
             return "";
@@ -228,8 +235,8 @@ public class PickSequenomProbes extends RodWalker<String, String> {
                 assay_id.append("_");
                 assay_id.append(ref.getWindow().toString().replace(':', '_'));
             }
-
-            if ( addCounter ) assay_id.append("_"+(++cnt));
+            ++cnt;
+            if ( addCounter ) assay_id.append("_"+cnt);
 
             assaysForLocus.append(assay_id);
             assaysForLocus.append('\t');
@@ -269,5 +276,58 @@ public class PickSequenomProbes extends RodWalker<String, String> {
         return max+window-1;
     }
 
-    public void onTraversalDone(String sum) {}
+    public void onTraversalDone(String sum) {
+        logger.info(cnt+" assay seqences generated");
+        logger.info(discarded+" events were found to be duplicates and discarded (no redundant assays generated)");
+    }
+
+    static class EventComparator implements Comparator<VariantContext> {
+
+        public int compare(VariantContext o1, VariantContext o2) {
+            // if variants start at different positions, they are different. All we actually
+            // care about is detecting the variants that are strictly the same; the actual ordering of distinct variants
+            // (which one we deem less and which one greater) is utterly unimportant. We just need to be consistent.
+            if ( o1.getStart() < o2.getStart() ) return -1;
+            if ( o1.getStart() > o2.getStart() ) return 1;
+
+            if ( o1.getType() != o2.getType() ) return o1.getType().compareTo(o2.getType());
+
+            int refComp = o1.getReference().compareTo(o2.getReference());
+            if ( refComp != 0 ) return refComp;
+
+            return o1.getAlternateAllele(0).compareTo(o2.getAlternateAllele(0));
+
+        }
+    }
+
+    static class VariantCollection implements Iterable<VariantContext> {
+        TreeSet<VariantContext> variants = new TreeSet(new EventComparator());
+        int discarded = 0;
+
+        public void add(VariantContext vc, GenomeLoc current) {
+            if ( vc.getStart() != current.getStart() ) return; // we add only variants that start at current locus
+            // note that we do not check chr here, since the way this class is used, the mathod is always called with
+            // VCs coming from the same metadata tracker, so they simply can not be on different chrs!
+            if ( !vc.isBiallelic() ) {
+                logger.info("   Non-biallelic variant encountered; skipped");
+                return;
+            }
+            if ( variants.add(vc) == false ) discarded++;
+        }
+
+        public void addAll(Collection<VariantContext> c, GenomeLoc current) {
+            for ( VariantContext vc : c ) add(vc,current);
+        }
+
+        public void clear() {
+            variants.clear();
+            discarded = 0;
+        }
+
+        public int discarded() { return discarded; }
+
+        public int size() { return variants.size(); }
+
+        public Iterator<VariantContext> iterator() { return variants.iterator(); }
+    }
 }
