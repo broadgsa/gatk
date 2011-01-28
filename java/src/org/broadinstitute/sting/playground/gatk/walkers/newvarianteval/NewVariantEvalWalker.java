@@ -747,21 +747,26 @@ public class NewVariantEvalWalker extends RodWalker<Integer, Integer> implements
                             String subTableName = ve.getClass().getSimpleName() + "." + field.getName();
                             String subTableDesc = datamap.get(field).description();
 
-                            report.addTable(subTableName, subTableDesc);
-                            GATKReportTable table = report.getTable(subTableName);
+                            GATKReportTable table;
+                            if (!report.hasTable(subTableName)) {
+                                report.addTable(subTableName, subTableDesc);
+                                table = report.getTable(subTableName);
 
-                            table.addPrimaryKey("entry", false);
-                            table.addColumn(subTableName, subTableName);
+                                table.addPrimaryKey("entry", false);
+                                table.addColumn(subTableName, subTableName);
 
-                            for ( VariantStratifier vs : stratificationObjects ) {
-                                String columnName = vs.getClass().getSimpleName();
+                                for ( VariantStratifier vs : stratificationObjects ) {
+                                    String columnName = vs.getClass().getSimpleName();
 
-                                table.addColumn(columnName, "unknown");
-                            }
+                                    table.addColumn(columnName, "unknown");
+                                }
 
-                            for ( Object o : t.getColumnKeys() ) {
-                                String c = (String) o;
-                                table.addColumn(c, 0.0);
+                                for ( Object o : t.getColumnKeys() ) {
+                                    String c = (String) o;
+                                    table.addColumn(c, 0.0);
+                                }
+                            } else {
+                                table = report.getTable(subTableName);
                             }
 
                             for (int row = 0; row < t.getRowKeys().length; row++) {

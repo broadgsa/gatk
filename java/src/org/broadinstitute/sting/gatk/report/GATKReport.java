@@ -25,10 +25,20 @@ public class GATKReport {
     }
 
     /**
+     * Return true if table with a given name exists
+     *
+     * @param tableName  the name of the table
+     * @return true if the table exists, false otherwise
+     */
+    public boolean hasTable(String tableName) {
+        return tables.containsKey(tableName);
+    }
+
+    /**
      * Return a table with a given name
      *
      * @param tableName  the name of the table
-     * @return  the name of the table
+     * @return  the table object
      */
     public GATKReportTable getTable(String tableName) {
         return tables.get(tableName);

@@ -258,9 +258,16 @@ public class GenotypeConcordance extends VariantEvaluator {
             qualityScoreHistograms = new QualityScoreHistograms();
         }
 
-        if ( alleleCountStats == null && eval != null && validation != null ) {
+        if ( alleleCountStats == null && eval != null && validation != null && validation.getSampleNames().size() > 0) {
             alleleCountStats = new ACStats(eval,validation,Genotype.Type.values().length);
             alleleCountSummary = new ACSummaryStats(eval, validation);
+        }
+
+        if ( alleleCountStats != null ) {
+//            for ( int i = 0; i <= 2*validation.getGenotypes().size(); i++ ) {
+//                concordanceStats.put(String.format("compAC%d",i), new long[nGenotypeTypes][nGenotypeTypes]);
+//                rowKeys[1+2*evalvc.getGenotypes().size()+i] = String.format("compAC%d",i);
+//            }
         }
 
         if (sampleStats == null) {
@@ -321,10 +328,7 @@ public class GenotypeConcordance extends VariantEvaluator {
                 sampleStats.incrValue(sample, truth, called);
                 if ( evalAC != null && validationAC != null) {
                     alleleCountStats.incrValue(evalAC,truth,called);
-
-                    //System.err.println(evalAC + " " + validationAC);
-
-                    //alleleCountStats.incrValue(validationAC,truth,called);
+                    alleleCountStats.incrValue(validationAC,truth,called);
                 }
             }
         }
