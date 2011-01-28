@@ -8,8 +8,9 @@ class status:
         self.yaml = yaml
         self.project = os.path.basename(self.yaml).split(".")[0]
         self.directory = os.path.dirname(self.yaml)
+        self.version = self.directory.split("/")[4].split("v")[1]
         self.dirkey = self.directory.split("/")[3]
-        if len(glob.glob(self.directory + "/SnpCalls/*.pdf")) >= 2:
+        if len(glob.glob(self.directory + "/SnpCalls/*.pdf")) >= 1:
             self.edate=max([os.path.getmtime(i) for i in glob.iglob(self.directory + "/SnpCalls/*.pdf")])
             self.status = "In Review"
         elif len(glob.glob(self.directory + "/*/*.vcf")) >= 5:
@@ -29,9 +30,9 @@ class update:
            Update = status(each)
            self.updates.append(Update)
        self.updates=sorted(self.updates, key=lambda update: update.edate)
-       print '{0:60} {1:15} {2:20} {3:7}'.format("Project","status","date","dirkey") # waht is this expecting for these valuse?
+       print '{0:60} {1:15} {2:20} {3:7}'.format("Project (version)","status","date","dirkey") # waht is this expecting for these valuse?
        for s in self.updates:
-          print '{0:60} {1:15} {2:20} {3:7}'.format(s.project, s.status, s.date, s.dirkey)
+          print '{0:60} {1:15} {2:20} {3:7}'.format(s.project+ " ("+ s.version + ")", s.status, s.date, s.dirkey)
 
 if __name__ == "__main__":
     go = update()
