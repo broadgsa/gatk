@@ -6,7 +6,7 @@
 ##change layouts so that it looks better
 ##get sample numbers in correctly
 
-.libPaths('~/Documents/trunk/R/') 
+.libPaths('/humgen/gsa-firehose2/pipeline/repositories/StingProduction/R/') 
 
 suppressMessages(library(gplots));
 suppressMessages(library(ReadImages));
@@ -24,7 +24,7 @@ cmdargs = gsa.getargs(
     doc="Creates a tearsheet"
 );
 
-bamgetter<-function(){
+
 bamlist = read.table(cmdargs$bamlist);
 
 fclanes = c();
@@ -65,13 +65,12 @@ squid_fclanes = gsub("A.XX", "", squid_fclanes);
 
 dproj = d[which(squid_fclanes %in% fclanes),];
 d2proj = d2[which(d2$"Project" %in% unique(dproj$"Project") & d2$"Sample" %in% dproj$"External ID"),];
-}
 
 
 tearsheet<-function(){
 	tearsheetdrop <- "data/tearsheetdrop.jpg" #put the path to the tearsheet backdrop here
 
-	pdf(file= "tester.pdf", width=22, height=17, pagecentre=TRUE, pointsize=24) 
+	pdf(file= cmdargs$tearout, width=22, height=17, pagecentre=TRUE, pointsize=24) 
 	
 	#define layout
 	postable<-matrix(c(1, 1, 1, 1, 1, 1, rep(c(2, 2, 2, 4, 4, 4), 5), rep(c(3, 3, 3, 4, 4, 4), 3), rep(c(3,3,3,5,5,5), 5), 6,6,6,7,7,7), nrow=15, ncol=6, byrow=TRUE)
@@ -261,6 +260,7 @@ tearsheet<-function(){
 	title(main="Variant Summary", family="sans", cex.main=1.25, line=-2)
 	
 #plots
+
 	eval.bysample = read.csv(paste(cmdargs$evalroot, ".SimpleMetricsBySample.csv", sep=""), header=TRUE, comment.char="#");
 	eval.bysample.called = subset(eval.bysample, evaluation_name == "eval" & comparison_name == "dbsnp" & jexl_expression == "none" & filter_name == "called");
 	eval.bysample.called.all = subset(eval.bysample.called, novelty_name == "all");
@@ -282,13 +282,15 @@ tearsheet<-function(){
 
 	#boxplot(eval.bysample.called.all$CountVariants, eval.bysample.called.known$CountVariants, eval.bysample.called.novel$CountVariants, names=c("All", "Known", "Novel"), ylab="Variants per sample", main="", cex=1.3, cex.lab=1.3, cex.axis=1.3);
 
+	par(mar=c(5, 4, 4, 2) + 0.1)
 	ind = order(eval.bysample.called.all$CountVariants);
-	plot(c(1:length(eval.bysample.called.all$CountVariants)), eval.bysample.called.all$CountVariants[ind], col="black", cex=1.3, cex.lab=1.3, cex.axis=1.3, main="Varients per Sample" xlab="Sample", ylab="Number of variants", bty="n", ylim=c(0, max(eval.bysample.called.all$CountVariants)));
+	plot(c(1:length(eval.bysample.called.all$CountVariants)), eval.bysample.called.all$CountVariants[ind], col="black", cex=1.1, cex.lab=1.1, cex.axis=1.1, main="Varients per Sample", xlab="Sample", ylab="Number of variants", bty="n", ylim=c(0, max(eval.bysample.called.all$CountVariants)));
 	points(c(1:length(eval.bysample.called.known$CountVariants)), eval.bysample.called.known$CountVariants[ind], col="blue", cex=1.3);
 	points(c(1:length(eval.bysample.called.novel$CountVariants)), eval.bysample.called.novel$CountVariants[ind], col="red", cex=1.3);
-	legend(0, max(eval.bysample.called.all$CountVariants)/2, c("All", "Known", "Novel"), col=c("black", "blue", "red"), pt.cex=1.3, pch=21);
+	legend("right", max(eval.bysample.called.all$CountVariants)/2, c("All", "Known", "Novel"), col=c("black", "blue", "red"), pt.cex=1.3, pch=21);
 
-	plot(eval.ac.called.all$AC, eval.ac.called.all$n, col="black", type="l", lwd=2, cex=1.3, cex.lab=1.3, cex.axis=1.3, xlab="Allele count", ylab="Number of variants", main="Varients by Allele Count", log="xy", bty="n");
+	par(mar=c(5, 4, 4, 2) + 0.1)
+	plot(eval.ac.called.all$AC, eval.ac.called.all$n, col="black", type="l", lwd=2, cex=1.1, cex.lab=1.1, cex.axis=1.1, xlab="Allele count", ylab="Number of variants", main="Varients by Allele Count", log="xy", bty="n");
 	points(eval.ac.called.known$AC, eval.ac.called.known$n, col="blue", type="l", lwd=2);
 	points(eval.ac.called.novel$AC, eval.ac.called.novel$n, col="red", type="l", lwd=2);
 	legend("topright", c("All", "Known", "Novel"), col=c("black", "blue", "red"), lwd=2);
