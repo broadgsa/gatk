@@ -102,20 +102,21 @@ public class MafCodec implements FeatureCodec {
         if (line.startsWith("#")) return null;
 
         // split the line
-        String[] tokens = line.split("\\t");
+        String[] tokens = line.split("\\t",-1);
 
         if ( expectedTokenCount == -1 ) { // do this only when we receive the first line and do not know the number of columns yet
              // we have not seen a single line yet, let's initialize the number of fields from the first line:
              expectedTokenCount = tokens.length;
+             log.info("MAF: line has "+expectedTokenCount+" fields (columns)");
              if ( expectedTokenCount == 9 ) {
                 mafType = MAF_TYPE.LITE;
                 log.info("MAF file appears to be MAF Lite");
              } else {
-                 if ( expectedTokenCount == 63 ) {
+                 if ( expectedTokenCount >= 63 ) {
                      mafType = MAF_TYPE.ANNOTATED;
                      log.info("MAF file appears to be MAF-Annotated");
                  } else {
-                     log.info("MAF file has "+expectedTokenCount +" columns, unknown file type");
+                     log.info("MAF file has "+expectedTokenCount +" columns in first line, unknown file type");
                  }
              }
              if ( line.contains("Chromosome") && line.contains("Start") && line.contains("Build")) {
@@ -135,11 +136,15 @@ public class MafCodec implements FeatureCodec {
         }
 
 
-        if (tokens.length != expectedTokenCount) {
-            log.error("MAF line contains wrong number of columns");   
+        if (tokens.length < expectedTokenCount) {
+            log.error("MAF line contains too few columns ("+tokens.length+")");
             return null;
         }
+        if (tokens.length > expectedTokenCount) {
+            log.warn("MAF line contains more columns than expected ("+tokens.length+"); extra columns discarded");
+        }
 
+        if ( tokens[CHR_COL].equals("Chromosome") ) return null; // if someone uses this codec manually and feeds it the header line multiple times...
         // create a new feature from the line:
 
         int start = Integer.valueOf(tokens[START_COL]);
