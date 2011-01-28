@@ -411,12 +411,10 @@ class fullCallingPipeline extends QScript {
         var bamlist: File =_
       @Input(doc="Eval files root")
       var evalroot: File =_
-      @Output(doc="plot pdf loc")
-      var plots: File =_
       @Output(doc="tearsheet loc")
       var tearsheet: File =_
-      def commandLine = "Rscript %s -bamlist %s -evalroot %s -tearout %s -plotout %s"
-        .format(script, bamlist, evalroot, tearsheet, plots)
+      def commandLine = "Rscript %s -bamlist %s -evalroot %s -tearout %s"
+        .format(script, bamlist, evalroot, tearsheet)
     }
 
     val adpr = new rCommand
@@ -425,7 +423,6 @@ class fullCallingPipeline extends QScript {
      adpr.evalroot = eval.reportLocation
      adpr.jobOutputFile = new File(".queue/logs/SNPCalling/adpr.out")
      adpr.tearsheet = new File("SnpCalls", base + ".tearsheet.pdf")
-     adpr.plots = new File("SnpCalls", base + ".plots.pdf")
      adpr.analysisName = base + "_ADPR"
 
 
