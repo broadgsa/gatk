@@ -11,7 +11,7 @@ public class PickSequenomProbesIntegrationTest extends WalkerTest {
         String testVCF = validationDataLocation + "complexExample.vcf4";
         String testArgs = "-R " + b36KGReference + " -T PickSequenomProbes -L 1:10,000,000-11,000,000 -B:input,VCF "+testVCF+" -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
-                Arrays.asList("0f356354a4a78ff62b2848431ec11262"));
+                Arrays.asList("6b5409cc78960f1be855536ed89ea9dd"));
         executeTest("Test probes", spec);
     }
 
@@ -23,7 +23,7 @@ public class PickSequenomProbesIntegrationTest extends WalkerTest {
                 + "-project_id 1kgp3_s4_lf -T PickSequenomProbes -L " + validationDataLocation +
                 "pickSeqIntegrationTest.interval_list -B:input,VCF "+testVCF+" -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
-                Arrays.asList("0ab37fe4db3fef345815c56e57e75cec"));
+                Arrays.asList("e50162490d0597c8f00d2d20b1463661"));
         executeTest("Test probes", spec);
     }
 
@@ -35,7 +35,7 @@ public class PickSequenomProbesIntegrationTest extends WalkerTest {
                 + "-nmw 1 -project_id 1kgp3_s4_lf -T PickSequenomProbes -L " + validationDataLocation +
 	    "pickSeqIntegrationTest.interval_list -B:input,VCF "+testVCF+" -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(testArgs, 1,
-						 Arrays.asList("8f0bc8954069c659c203cbb53d4dbad2"));
+						 Arrays.asList("e50162490d0597c8f00d2d20b1463661"));
         executeTest("Test probes", spec);
     }
 }
