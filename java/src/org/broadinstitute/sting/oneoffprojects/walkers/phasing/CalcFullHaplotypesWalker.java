@@ -27,6 +27,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers.phasing;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -34,6 +35,7 @@ import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -51,8 +53,14 @@ import static org.broadinstitute.sting.utils.vcf.VCFUtils.getVCFHeadersFromRods;
 public class CalcFullHaplotypesWalker extends RodWalker<Integer, Integer> {
     private Map<String, Haplotype> waitingHaplotypes = null;
 
-    @Output
+    @Output(doc = "File to which results should be written", required = true)
     protected PrintStream out;
+
+    @Argument(doc="sample to emit", required = false)
+    protected String sample = null;
+
+    @Argument(doc="only include physically-phased results", required = false)
+    protected boolean requirePQ = false;
 
     public void initialize() {
         this.waitingHaplotypes = new HashMap<String, Haplotype>();
@@ -104,6 +112,9 @@ public class CalcFullHaplotypesWalker extends RodWalker<Integer, Integer> {
             if (vc.isFiltered())
                 continue;
 
+            if (sample != null)
+                vc = vc.subContextFromGenotypes(vc.getGenotype(sample));
+
             for (Map.Entry<String, Genotype> sampleGtEntry : vc.getGenotypes().entrySet()) {
                 String sample = sampleGtEntry.getKey();
                 Genotype gt = sampleGtEntry.getValue();
@@ -114,7 +125,8 @@ public class CalcFullHaplotypesWalker extends RodWalker<Integer, Integer> {
                         throw new ReviewedStingException("EVERY sample should have a haplotype [by code above and getToolkit().getSamples()]");
                     sampleHap.incrementHetCount();
 
-                    if (!gt.isPhased()) { // Terminate the haplotype here:
+                    // Terminate the haplotype here:
+                    if (!gt.isPhased() || (requirePQ && !gt.hasAttribute(ReadBackedPhasingWalker.PQ_KEY))) {
                         outputHaplotype(sampleHap);
 
                         // Start a new haplotype from the next position [if it exists]:
