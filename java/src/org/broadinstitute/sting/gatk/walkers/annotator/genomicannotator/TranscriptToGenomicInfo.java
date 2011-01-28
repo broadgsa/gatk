@@ -294,7 +294,7 @@ public class TranscriptToGenomicInfo extends RodWalker<Integer, Integer> {
     }
 
     private static boolean isChrM(final TranscriptTableRecord record) {
-        return record.txChrom.equals("chrM") || record.txChrom.equals("MT");
+        return record.txChrom.equals("chrM") || record.txChrom.equals("MT")|| record.txChrom.equals("CRS");
     }
     
     private void generateOutputRecordsForROD(TranscriptTableRecord parsedTranscriptRod) throws IOException {
