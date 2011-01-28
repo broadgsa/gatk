@@ -223,19 +223,19 @@ public class GenotypePhasingEvaluator extends VariantEvaluator {
         return gt.getAttributeAsDoubleNoException(ReadBackedPhasingWalker.PQ_KEY);
     }
 
-    public boolean topMatchesTop(AllelePair b1, AllelePair b2) {
+    public static boolean topMatchesTop(AllelePair b1, AllelePair b2) {
         return b1.getTopAllele().equals(b2.getTopAllele());
     }
 
-    public boolean topMatchesBottom(AllelePair b1, AllelePair b2) {
+    public static boolean topMatchesBottom(AllelePair b1, AllelePair b2) {
         return b1.getTopAllele().equals(b2.getBottomAllele());
     }
 
-    public boolean bottomMatchesTop(AllelePair b1, AllelePair b2) {
+    public static boolean bottomMatchesTop(AllelePair b1, AllelePair b2) {
         return topMatchesBottom(b2, b1);
     }
 
-    public boolean bottomMatchesBottom(AllelePair b1, AllelePair b2) {
+    public static boolean bottomMatchesBottom(AllelePair b1, AllelePair b2) {
         return b1.getBottomAllele().equals(b2.getBottomAllele());
     }
 

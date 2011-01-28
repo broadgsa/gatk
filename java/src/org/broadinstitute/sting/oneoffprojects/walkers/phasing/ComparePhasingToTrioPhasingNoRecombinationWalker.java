@@ -38,9 +38,12 @@ import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
+import org.broadinstitute.sting.gatk.walkers.phasing.AllelePair;
 import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.gatk.walkers.phasing.WriteVCF;
+import org.broadinstitute.sting.playground.gatk.walkers.newvarianteval.evaluators.GenotypePhasingEvaluator;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -72,6 +75,11 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
 
     @Argument(fullName = "trioAugmentedPhasing", shortName = "trioAugmentedPhasing", doc = "File to which trio-phased variants should be written", required = false)
     protected VCFWriter writer = null;
+    
+    @Argument(fullName = "diffTrioAndPhasingTracks", shortName = "diffTrioAndPhasingTracks", doc = "File to which comparisons of phasing information in 'trio' and 'phasing' tracks should be written", required = false)
+    protected PrintStream diffTrioAndPhasingTracks = null;
+
+    private CompareTrioAndPhasingTracks diffTrioAndPhasingCounts = null;
 
     private String phasingSample = null;
 
@@ -88,6 +96,10 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
 
     public void initialize() {
         initializeVcfWriter();
+
+        // Will compare the phasing ALREADY present in the trio track [without regards to what this trio phasing mechanism (without recombination) would do]:
+        if (diffTrioAndPhasingTracks != null)
+            diffTrioAndPhasingCounts = new CompareTrioAndPhasingTracks();
     }
 
     private void initializeVcfWriter() {
@@ -339,8 +351,26 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
                     }
                 }
             }
-
             out.println(prevLoc + "\t" + curLoc + "\t" + trioPhaseStatus + "\t" + curPhasingGt.isPhased() + addToOutput);
+            
+            if (diffTrioAndPhasingTracks != null && prevTrioStatus != TrioStatus.MISSING && currentTrioStatus != TrioStatus.MISSING && sampleCurGtInTrio.isPhased() && curPhasingGt.isPhased()) {
+                AllelePair prevTrioAll = new AllelePair(prevTrioVc.getGenotype(phasingSample));
+                AllelePair curTrioAll = new AllelePair(sampleCurGtInTrio);
+                
+                AllelePair prevPhasingAll = new AllelePair(prevPhasingGt);
+                AllelePair curPhasingAll = new AllelePair(curPhasingGt);
+                
+                boolean topsMatch = (GenotypePhasingEvaluator.topMatchesTop(prevTrioAll, prevPhasingAll) && GenotypePhasingEvaluator.topMatchesTop(curTrioAll, curPhasingAll));
+                boolean bottomsMatch = (GenotypePhasingEvaluator.bottomMatchesBottom(prevTrioAll, prevPhasingAll) && GenotypePhasingEvaluator.bottomMatchesBottom(curTrioAll, curPhasingAll));
+
+                boolean topMatchesBottom = (GenotypePhasingEvaluator.topMatchesBottom(prevTrioAll, prevPhasingAll) && GenotypePhasingEvaluator.topMatchesBottom(curTrioAll, curPhasingAll));
+                boolean bottomMatchesTop = (GenotypePhasingEvaluator.bottomMatchesTop(prevTrioAll, prevPhasingAll) && GenotypePhasingEvaluator.bottomMatchesTop(curTrioAll, curPhasingAll));
+
+                boolean phasesAgree = ((topsMatch && bottomsMatch) || (topMatchesBottom && bottomMatchesTop));
+
+                diffTrioAndPhasingTracks.println(prevLoc + "\t" + curLoc + "\t" + trioPhaseStatus + "\t" + phasesAgree);
+                diffTrioAndPhasingCounts.addComparison(trioPhaseStatus, phasesAgree);
+            }
         }
 
         prevLoc = curLoc;
@@ -370,6 +400,11 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
         System.out.println("Trio and " + PHASING_ROD_NAME + " track can both phase " + result.bothCanPhase + " sites.");
         System.out.println("Contradiction between phase inferred from " + TRIO_ROD_NAME + " and phase present in " + PHASING_ROD_NAME + " tracks at " + result.contradictoryPhaseSites + " sites.");
         System.out.println("Of those, " + PHASING_ROD_NAME + " track is phase-inconsistent at " + result.contradictoryPhaseSitesWithPhaseInconsistency + " sites.");
+
+        if (diffTrioAndPhasingCounts != null) {
+            System.out.println("");
+            diffTrioAndPhasingCounts.printSummary(System.out);
+        }
     }
 }
 
@@ -411,5 +446,86 @@ class CompareResult {
     public CompareResult(VariantContext phasedVc, CompareToTrioPhasingStats stats) {
         this.phasedVc = phasedVc;
         this.stats = stats;
+    }
+}
+
+class CompareTrioAndPhasingTracks {
+    private Map<String, AgreeDisagreeCounts> trioStatusToAgreement;
+
+    public CompareTrioAndPhasingTracks() {
+        this.trioStatusToAgreement = new HashMap<String, AgreeDisagreeCounts>();
+    }
+
+    public void addComparison(String trioStatus, boolean agree) {
+        AgreeDisagreeCounts counts = trioStatusToAgreement.get(trioStatus);
+        if (counts == null) {
+            counts = new AgreeDisagreeCounts();
+            trioStatusToAgreement.put(trioStatus, counts);
+        }
+
+        if (agree)
+            counts.incrementAgree();
+        else
+            counts.incrementDisagree();
+    }
+
+    public void printSummary(PrintStream out) {
+        out.println("--------------------------------------------");
+        out.println("Summary of trio vs. phasing tracks' phasing:");
+        out.println("--------------------------------------------");        
+
+        int globalAgree = 0;
+        int globalDisagree = 0;
+        for (AgreeDisagreeCounts counts : trioStatusToAgreement.values()) {
+            globalAgree += counts.agree;
+            globalDisagree += counts.disagree;
+        }
+        int globalTotal = globalAgree + globalDisagree;
+
+        out.println("Concordant phase:\t" + percentString(globalAgree, globalTotal));
+        out.println("Discordant phase:\t" + percentString(globalDisagree, globalTotal));
+
+        for (Map.Entry<String, AgreeDisagreeCounts> statusCounts : trioStatusToAgreement.entrySet()) {
+            String status = statusCounts.getKey();
+            AgreeDisagreeCounts counts = statusCounts.getValue();
+
+            out.println("");
+            out.println("'" + status + "'" + " Concordant phase:\t" + percentString(counts.agree, counts.total()));
+            out.println("'" + status + "'" + " Discordant phase:\t" + percentString(counts.disagree, counts.total()));
+        }
+        out.println("--------------------------------------------");
+        out.println("");
+    }
+
+    private static String percentString(double numerator, double denominator) {        
+        int NUM_DECIMAL_PLACES = 1;
+        String percent = new Formatter().format("%." + NUM_DECIMAL_PLACES + "f", MathUtils.percentage(numerator, denominator)).toString();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(numerator).append(" (").append(percent).append("%)");
+
+        return sb.toString();
+    }
+}
+
+class AgreeDisagreeCounts {
+    protected int agree;
+    protected int disagree;
+
+    public AgreeDisagreeCounts() {
+        this.agree = 0;
+        this.disagree = 0;
+    }
+
+    public void incrementAgree() {
+        agree++;
+    }
+
+    public void incrementDisagree() {
+        disagree++;
+    }
+
+    public int total() {
+        return agree + disagree;
     }
 }
