@@ -11,6 +11,7 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
+import org.broadinstitute.sting.playground.gatk.features.maf.MafFeature;
 
 import java.util.*;
 
@@ -42,6 +43,7 @@ public class VariantContextAdaptors {
         adaptors.put(HapMapFeature.class, new HapMapAdaptor());
         adaptors.put(GeliTextFeature.class, new GeliTextAdaptor());
         adaptors.put(VariantContext.class, new VariantContextAdaptor());
+        adaptors.put(MafFeature.class, new MafAdaptor());
     }
 
     public static boolean canBeConvertedToVariantContext(Object variantContainingObject) {
@@ -279,4 +281,83 @@ public class VariantContextAdaptors {
             return vc;
        }
     }
+
+    private static class MafAdaptor extends VCAdaptor {
+              /**
+             * convert to a Variant Context, given:
+             * @param name the name of the ROD
+             * @param input the Rod object, in this case a MafFeature
+             * @return a VariantContext object
+             */
+//        VariantContext convert(String name, Object input) {
+//            return convert(name, input, null);
+//        }
+
+            /**
+             * convert to a Variant Context, given:
+             * @param name  the name of the ROD
+             * @param input the Rod object, in this case a MafFeature
+             * @param ref   the reference context
+             * @return a VariantContext object
+             */
+            VariantContext convert(String name, Object input, ReferenceContext ref) {
+
+                if ( ref == null )
+                    throw new UnsupportedOperationException("Conversion from MAF to VariantContext requires a reference context, null received");
+
+                MafFeature maf = (MafFeature)input;
+                if ( ! Allele.acceptableAlleleBases(maf.getRefBases(),true) )
+                    return null;
+
+                List<Allele> alleles = new ArrayList<Allele>();
+
+                Allele refAllele = Allele.create(maf.getRefBases(), true);
+                // add the reference allele:
+                alleles.add(refAllele);
+
+                // add all of the alt alleles
+                for ( String alt : maf.getAllNonRefAlleleList() ) {
+                    if ( ! Allele.acceptableAlleleBases(alt,false) ) {
+                        //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
+                        return null;
+                    }
+                    alleles.add(Allele.create(alt, false));
+                }
+
+                // make a mapping from sample to genotype
+
+                String normalSample = maf.getNormalSampleId();
+                String tumorSample = maf.getTumorSampleId();
+
+//                String[] genotypeStrings = hapmap.getGenotypes();
+
+                Map<String, Genotype> genotypes = new HashMap<String, Genotype>(2);
+                                                                                                    
+                addGenotype(genotypes, normalSample, maf.getObservedNormalAlleleList(),maf.getRefBases());
+                addGenotype(genotypes,tumorSample,maf.getObservedTumorAlleleList(),maf.getRefBases());
+
+
+                HashMap<String, Object> attrs = new HashMap<String, Object>(1);
+//                attrs.put(VariantContext.ID_KEY, hapmap.getName());
+                int end = maf.getEnd();
+                VariantContext vc = new VariantContext(name, maf.getChr(), maf.getStart(), end, alleles, 
+                        genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs);
+                return vc;
+           }
+
+            private void addGenotype(Map<String,Genotype> dest, String sampleId, List<String> alleles, String refAllele) {
+                List<Allele> myAlleles = new ArrayList<Allele>(2);
+
+                boolean success = true;
+
+                for ( String a : alleles ) {
+                    if ( a.isEmpty() || a.contains("N") || a.contains(".")) return; // bad allele found
+                    myAlleles.add(Allele.create(a,refAllele.equals(a)));
+                }
+                dest.put(sampleId, new Genotype(sampleId,myAlleles));
+            }
+
+        }
+
+
 }
