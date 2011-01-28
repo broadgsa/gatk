@@ -1,10 +1,12 @@
 package org.broadinstitute.sting.utils.baq;
 
+import net.sf.samtools.Cigar;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -158,8 +160,6 @@ public class BAQ {
     //
     // NOTE -- THIS CODE IS SYNCHRONIZED WITH CODE IN THE SAMTOOLS REPOSITORY.  CHANGES TO THIS CODE SHOULD BE
     // NOTE -- PUSHED BACK TO HENG LI
-    //
-    // Note that _ref and _query are in the special 0-4 encoding [see above for docs]
     //
     // ####################################################################################################
     public int hmm_glocal(final byte[] ref, final byte[] query, int qstart, int l_query, final byte[] _iqual, int[] state, byte[] q) {
@@ -491,6 +491,10 @@ public class BAQ {
 
     public static int MAG = 1; // todo -- remove me for performance testing only
     public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals, int queryStart, int queryEnd ) {
+        if ( queryStart < 0 ) throw new ReviewedStingException("BUG: queryStart < 0: " + queryStart);
+        if ( queryEnd < 0 ) throw new ReviewedStingException("BUG: queryEnd < 0: " + queryEnd);
+        if ( queryEnd < queryStart ) throw new ReviewedStingException("BUG: queryStart < queryEnd : " + queryStart + " end =" + queryEnd);
+
         // note -- assumes ref is offset from the *CLIPPED* start
         BAQCalculationResult baqResult = new BAQCalculationResult(query, quals, ref);
         int queryLen = queryEnd - queryStart;
@@ -499,11 +503,65 @@ public class BAQ {
         return baqResult;
     }
 
+
+    /**
+     * Determine the appropriate start and stop offsets in the reads for the bases given the cigar string
+     * @param read
+     * @return
+     */
+    private final Pair<Integer,Integer> calculateQueryRange(SAMRecord read) {
+        return calculateQueryRangeCigar(read);
+        // comparison of old and new way of doing it
+//        Pair<Integer, Integer> cigarResult = calculateQueryRangeCigar(read);
+//        Pair<Integer, Integer> prevResult = calculateQueryRangeAlignment(read);
+//
+//        if ( ! cigarResult.equals(prevResult) ) {
+//            throw new ReviewedStingException("BUG: cigar and prev results differ at read " + read + ", aligment start " + read.getAlignmentStart());
+//        }
+//
+//        return true ? cigarResult : prevResult;
+    }
+
+    private final Pair<Integer,Integer> calculateQueryRangeCigar(SAMRecord read) {
+        int queryStart = -1, queryStop = -1;
+        int readI = 0;
+
+        for ( CigarElement elt : read.getCigar().getCigarElements() ) {
+            switch (elt.getOperator()) {
+                case N:  return null; // cannot handle these
+                case H : case P : case D: break; // ignore pads, hard clips, and deletions
+                case I : case S: case M:
+                    int prev = readI;
+                    readI += elt.getLength();
+                    if ( includeClippedBases || elt.getOperator() != CigarOperator.S) {
+                        if ( queryStart == -1 )
+                            queryStart = prev;
+                        queryStop = readI;
+                    }
+                    // in the else case we aren't including soft clipped bases, so we don't update
+                    // queryStart or queryStop
+                    break;
+                default: throw new ReviewedStingException("BUG: Unexpected CIGAR element " + elt + " in read " + read.getReadName());
+            }
+        }
+        return new Pair<Integer, Integer>(queryStart, queryStop);
+    }
+
+    private final Pair<Integer,Integer> calculateQueryRangeAlignment(SAMRecord read) {
+        int queryStart = includeClippedBases ? 0 : read.getAlignmentStart() - read.getUnclippedStart();
+        int queryEnd = read.getReadLength() - (includeClippedBases ? 0 : read.getUnclippedEnd() - read.getAlignmentEnd());
+        return new Pair<Integer, Integer>(queryStart, queryEnd);
+    }
+
     // we need to bad ref by at least the bandwidth / 2 on either side
     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, byte[] ref, int refOffset) {
         // todo -- need to handle the case where the cigar sum of lengths doesn't cover the whole read
-        int queryStart = includeClippedBases ? 0 : read.getAlignmentStart() - read.getUnclippedStart();
-        int queryEnd = read.getReadLength() - (includeClippedBases ? 0 : read.getUnclippedEnd() - read.getAlignmentEnd());
+        Pair<Integer, Integer> queryRange = calculateQueryRange(read);
+        if ( queryRange == null ) return null; // read has Ns
+
+        int queryStart = queryRange.getFirst();
+        int queryEnd = queryRange.getSecond();
+
         BAQCalculationResult baqResult = calcBAQFromHMM(ref, read.getReadBases(), read.getBaseQualities(), queryStart, queryEnd);
 
         // cap quals
