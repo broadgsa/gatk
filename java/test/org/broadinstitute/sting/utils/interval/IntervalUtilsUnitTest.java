@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -115,6 +116,16 @@ public class IntervalUtilsUnitTest extends BaseTest {
         Assert.assertEquals(IntervalUtils.distinctContigs(reference, Arrays.asList(BaseTest.validationDataLocation + "TCGA-06-0188.interval_list")), chrs);
         Assert.assertEquals(IntervalUtils.distinctContigs(reference, Arrays.asList("chr1:1-1", "chr2:1-1", "chr3:2-2")), Arrays.asList("chr1","chr2","chr3"));
         Assert.assertEquals(IntervalUtils.distinctContigs(reference, Arrays.asList("chr2:1-1", "chr1:1-1", "chr3:2-2")), Arrays.asList("chr1","chr2","chr3"));
+    }
+
+    @Test
+    public void testCountIntervals() {
+        Assert.assertEquals(IntervalUtils.countIntervalArguments(reference, Collections.<String>emptyList(), false), 45);
+        Assert.assertEquals(IntervalUtils.countIntervalArguments(reference, Collections.<String>emptyList(), true), 45);
+        Assert.assertEquals(IntervalUtils.countIntervalArguments(reference, Arrays.asList("chr1", "chr2", "chr3"), false), 3);
+        Assert.assertEquals(IntervalUtils.countIntervalArguments(reference, Arrays.asList("chr1", "chr2", "chr3"), true), 3);
+        Assert.assertEquals(IntervalUtils.countIntervalArguments(reference, Arrays.asList("chr1:1-2", "chr1:4-5", "chr2:1-1", "chr3:2-2"), false), 4);
+        Assert.assertEquals(IntervalUtils.countIntervalArguments(reference, Arrays.asList("chr1:1-2", "chr1:4-5", "chr2:1-1", "chr3:2-2"), true), 3);
     }
 
     @Test

@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.queue.extensions.gatk
 
-import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.utils.interval.IntervalUtils
 import java.io.File
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.util.IOUtils
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, ScatterGatherableFunction, ScatterFunction}
 import org.broadinstitute.sting.queue.function.{QFunction, InProcessFunction}
+import org.broadinstitute.sting.commandline.{Output, ArgumentSource}
 
 /**
  * An interval scatter function.
@@ -15,7 +15,7 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
   var splitByContig = false
 
   /** The total number of clone jobs that will be created. */
-  private var scatterCount: Int = _
+  var scatterCount: Int = _
 
   /** The reference sequence for the GATK function. */
   private var referenceSequence: File = _
@@ -31,6 +31,9 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
 
   /** Whether the laster scatter job should also include any unmapped reads. */
   private var includeUnmapped: Boolean = _
+
+  @Output(doc="Scattered intervals")
+  var scatterParts: List[File] = Nil
 
   /**
    * Checks if the function is scatter gatherable.
@@ -54,7 +57,6 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
     val gatk = originalFunction.asInstanceOf[CommandLineGATK]
     this.intervalsField = QFunction.findField(originalFunction.getClass, "intervals")
     this.intervalsStringField = QFunction.findField(originalFunction.getClass, "intervalsString")
-    this.scatterCount = originalFunction.scatterCount
     this.referenceSequence = gatk.reference_sequence
     if (gatk.intervals.isEmpty && gatk.intervalsString.isEmpty) {
       this.intervals ++= IntervalUtils.distinctContigs(this.referenceSequence).toList
@@ -64,11 +66,14 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
       this.intervals ++= gatk.intervalsString.filterNot(interval => IntervalUtils.isUnmapped(interval))
       this.includeUnmapped = gatk.intervalsString.exists(interval => IntervalUtils.isUnmapped(interval))
     }
+
+    val maxScatterCount = IntervalUtils.countIntervalArguments(this.referenceSequence, this.intervals, this.splitByContig)
+    this.scatterCount = maxScatterCount min originalFunction.scatterCount
   }
 
   def initCloneInputs(cloneFunction: CloneFunction, index: Int) = {
     cloneFunction.setFieldValue(this.intervalsField, List(new File("scatter.intervals")))
-    if (index == scatterCount && includeUnmapped)
+    if (index == this.scatterCount && this.includeUnmapped)
       cloneFunction.setFieldValue(this.intervalsStringField, List("unmapped"))
     else
       cloneFunction.setFieldValue(this.intervalsStringField, List.empty[String])

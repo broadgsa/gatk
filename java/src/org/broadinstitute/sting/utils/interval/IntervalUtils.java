@@ -124,7 +124,7 @@ public class IntervalUtils {
             }
 
         //if we have an empty list, throw an exception.  If they specified intersection and there are no items, this is bad.
-        if (retList == null || retList.size() == 0)
+        if (retList.size() == 0)
                 throw new UserException.BadInput("The INTERSECTION of your -BTI and -L options produced no intervals.");
 
         // we don't need to add the rest of remaining locations, since we know they don't overlap. return what we have
@@ -225,6 +225,31 @@ public class IntervalUtils {
             }
         }
         return contigs;
+    }
+
+    /**
+     * Counts the number of interval files an interval list can be split into using scatterIntervalArguments.
+     * @param reference The reference for the intervals.
+     * @param intervals The interval as strings or file paths.
+     * @param splitByContig If true then one contig will not be written to multiple files.
+     * @return The maximum number of parts the intervals can be split into.
+     */
+    public static int countIntervalArguments(File reference, List<String> intervals, boolean splitByContig) {
+        ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
+        List<GenomeLoc> locs = parseIntervalArguments(referenceSource, intervals);
+        int maxFiles = 0;
+        if (splitByContig) {
+            String contig = null;
+            for (GenomeLoc loc: locs) {
+                if (contig == null || !contig.equals(loc.getContig())) {
+                    maxFiles++;
+                    contig = loc.getContig();
+                }
+            }
+        } else {
+            maxFiles = locs.size();
+        }
+        return maxFiles;
     }
 
     /**

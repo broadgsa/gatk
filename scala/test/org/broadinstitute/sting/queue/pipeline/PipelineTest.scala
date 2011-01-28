@@ -11,6 +11,43 @@ import java.text.SimpleDateFormat
 import org.broadinstitute.sting.{WalkerTest, BaseTest}
 
 object PipelineTest {
+
+  /** The path to the current Sting directory.  Useful when specifying Sting resources. */
+  val currentStingDir = new File(".").getAbsolutePath
+
+  /** The path to the current build of the GATK jar in the currentStingDir. */
+  val currentGATK = new File(currentStingDir, "dist/GenomeAnalysisTK.jar")
+
+  /**
+   * Returns the top level output path to this test.
+   * @param testName The name of the test passed to PipelineTest.executeTest()
+   * @return the top level output path to this test.
+   */
+  def testDir(testName: String) = "pipelinetests/%s/".format(testName)
+
+  /**
+   * Returns the directory where relative output files will be written for this test.
+   * @param testName The name of the test passed to PipelineTest.executeTest()
+   * @return the directory where relative output files will be written for this test.
+   */
+  def runDir(testName: String) = testDir(testName) + "run/"
+
+  /**
+   * Returns the directory where temp files will be written for this test.
+   * @param testName The name of the test passed to PipelineTest.executeTest()
+   * @return the directory where temp files will be written for this test.
+   */
+  def tempDir(testName: String) = testDir(testName) + "temp/"
+
+  /**
+   * Encapsulates a file MD5
+   * @param testName The name of the test also passed to PipelineTest.executeTest().
+   * @param filePath The file path of the output file, relative to the directory the pipeline is run in.
+   * @param md5 The expected MD5
+   * @return a file md5 that can be appended to the PipelineTestSpec.fileMD5s
+   */
+  def fileMD5(testName: String, filePath: String, md5: String) = (new File(runDir(testName) + filePath), md5)
+
   private var runningCommandLines = Set.empty[QCommandLine]
 
   private val validationReportsDataLocation = "/humgen/gsa-hpprojects/GATK/validationreports/submitted/"
@@ -34,10 +71,11 @@ object PipelineTest {
     var failed = 0
     for ((file, expectedMD5) <- fileMD5s) {
       val calculatedMD5 = BaseTest.testFileMD5(name, file, expectedMD5, false)
-      failed += 1
+      if (expectedMD5 != "" && expectedMD5 != calculatedMD5)
+        failed += 1
     }
     if (failed > 0)
-      Assert.fail("%d MD5%s did not match.".format(failed, TextFormatUtils.plural(failed)))
+      Assert.fail("%d of %d MD5%s did not match.".format(failed, fileMD5s.size, TextFormatUtils.plural(failed)))
   }
 
   private def validateEval(name: String, evalSpec: PipelineTestEvalSpec) {
@@ -123,11 +161,6 @@ object PipelineTest {
         throw new RuntimeException("Error running the GATK with arguments: " + args)
     }
   }
-
-  val currentDir = new File(".").getAbsolutePath
-  def testDir(testName: String) = "pipelinetests/%s/".format(testName)
-  def runDir(testName: String) = testDir(testName) + "run/"
-  def tempDir(testName: String) = testDir(testName) + "temp/"
 
   Runtime.getRuntime.addShutdownHook(new Thread {
     /** Cleanup as the JVM shuts down. */

@@ -1,19 +1,14 @@
 
-import java.io.PrintWriter
 import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
-import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
+import org.broadinstitute.sting.queue.function.ListWriterFunction
 import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, CloneFunction, ScatterFunction}
-import org.broadinstitute.sting.queue.util.IOUtils
 import org.broadinstitute.sting.queue.QScript
 import collection.JavaConversions._
-import org.broadinstitute.sting.utils.exceptions.UserException
-import org.broadinstitute.sting.utils.interval.IntervalUtils
 import org.broadinstitute.sting.utils.yaml.YamlUtils
-import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
 
 class fullCallingPipeline extends QScript {
   qscript =>
@@ -105,9 +100,6 @@ class fullCallingPipeline extends QScript {
       //val seq = qscript.machine
       //val expKind = qscript.protocol
 
-      // get max num contigs for indel cleaning parallelism, plus 1 for -L unmapped
-      val numContigs = IntervalUtils.distinctContigs(qscript.pipeline.getProject.getReferenceFile).size + 1
-
       for ( sample <- recalibratedSamples ) {
         val sampleId = sample.getId
         // put unclean bams in unclean genotypers in advance, create the extension files
@@ -136,7 +128,7 @@ class fullCallingPipeline extends QScript {
         realigner.targetIntervals = targetCreator.out
         realigner.intervals = Nil
         realigner.intervalsString = Nil
-        realigner.scatterCount = num_cleaner_scatter_jobs min numContigs
+        realigner.scatterCount = num_cleaner_scatter_jobs
         realigner.rodBind :+= RodBind("dbsnp", dbsnpType, qscript.pipeline.getProject.getDbsnpFile)
         realigner.rodBind :+= RodBind("indels", "VCF", swapExt(realigner.reference_sequence.getParentFile, realigner.reference_sequence, "fasta", "1kg_pilot_indels.vcf"))
 
@@ -384,21 +376,9 @@ class fullCallingPipeline extends QScript {
     // 5. Make the bam list
     val listOfBams =  new File(base +".BamFiles.list")
 
-    class BamListWriter extends InProcessFunction {
-      @Input(doc="bamFiles") var bamFiles: List[File] = Nil
-      @Output(doc="bamList") var bamList: File = _
-
-      def run {
-        val writer = new PrintWriter(bamList)
-        for (bamFile <- bamFiles)
-          writer.println(bamFile.toString)
-        writer.close()
-      }
-    }
-
-    val writeBamList = new BamListWriter
-    writeBamList.bamFiles = bamFiles
-    writeBamList.bamList = listOfBams
+    val writeBamList = new ListWriterFunction
+    writeBamList.inputFiles = bamFiles
+    writeBamList.listFile = listOfBams
     writeBamList.analysisName = base + "_BamList"
     writeBamList.jobOutputFile = new File(".queue/logs/SNPCalling/bamlist.out")
 

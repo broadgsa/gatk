@@ -11,7 +11,7 @@ import org.broadinstitute.sting.queue.QException
  */
 trait ScatterGatherableFunction extends CommandLineFunction {
 
-  /** Number of parts to scatter the function into" */
+  /** Maximum number of parts to scatter the function into. */
   var scatterCount: Int = 1
 
   /** scatter gather directory */
@@ -79,10 +79,13 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     initScatterFunction(scatterFunction)
     functions :+= scatterFunction
 
+    // Ask the scatter function how many clones to create.
+    val numClones = scatterFunction.scatterCount
+
     // Create the gather functions for each output field
     var gatherFunctions = Map.empty[ArgumentSource, GatherFunction]
     var gatherOutputs = Map.empty[ArgumentSource, File]
-    var gatherAddOrder = this.scatterCount + 2
+    var gatherAddOrder = numClones + 2
     for (gatherField <- outputFieldsWithValues) {
       val gatherFunction = this.newGatherFunction(gatherField)
       val gatherOutput = getFieldFile(gatherField)
@@ -100,7 +103,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
     // Create the clone functions for running the parallel jobs
     var cloneFunctions = List.empty[CloneFunction]
-    for (i <- 1 to this.scatterCount) {
+    for (i <- 1 to numClones) {
       val cloneFunction = this.newCloneFunction()
 
       syncFunction(cloneFunction)

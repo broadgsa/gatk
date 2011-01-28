@@ -93,8 +93,8 @@ class FullCallingPipelineTest {
     var pipelineCommand = ("-retry 1 -S scala/qscript/playground/fullCallingPipeline.q" +
             " -jobProject %s -Y %s" +
             " -tearScript %s/R/DataProcessingReport/GetTearsheetStats.R" +
-            " --gatkjar %s/dist/GenomeAnalysisTK.jar")
-            .format(projectName, yamlFile, PipelineTest.currentDir, PipelineTest.currentDir)
+            " --gatkjar %s")
+            .format(projectName, yamlFile, PipelineTest.currentStingDir, PipelineTest.currentGATK)
 
     if (!dataset.runIndelRealigner) {
       pipelineCommand += " -skipCleaning"

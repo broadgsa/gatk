@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
 import java.io.File
-import org.broadinstitute.sting.commandline.{Input, Output}
+import org.broadinstitute.sting.commandline.Input
 import org.broadinstitute.sting.queue.function.QFunction
 
 /**
@@ -10,9 +10,6 @@ import org.broadinstitute.sting.queue.function.QFunction
 trait ScatterFunction extends QFunction {
   @Input(doc="Original inputs to scatter")
   var originalInputs: Set[File] = _
-
-  @Output(doc="Scattered parts of the original inputs, one set per temp directory")
-  var scatterParts: List[File] = Nil
 
   /**
    * Returns true if the scatter function can scatter this original function.
@@ -26,6 +23,11 @@ trait ScatterFunction extends QFunction {
    * @param originalFunction The original function to with inputs bind to this scatter function.
    */
   def setScatterGatherable(originalFunction: ScatterGatherableFunction)
+
+  /**
+   * After a call to setScatterGatherable(), returns the number of clones that should be created.
+   */
+  def scatterCount: Int
 
   /**
    * Initializes the input fields for the clone function.
