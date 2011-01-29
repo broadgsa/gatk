@@ -135,7 +135,9 @@ class FullCallingPipelineTest {
   }
 
   private def writeYaml(testName: String, pipeline: Pipeline) = {
-    val yamlFile = new File(PipelineTest.runDir(testName), pipeline.getProject.getName + ".yaml")
+    val runDir = PipelineTest.runDir(testName)
+    new File(runDir).mkdirs
+    val yamlFile = new File(runDir, pipeline.getProject.getName + ".yaml")
     YamlUtils.dump(pipeline, yamlFile)
     yamlFile
   }
