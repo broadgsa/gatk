@@ -25,19 +25,22 @@ cmdargs = gsa.getargs(
 );
 
 
-bamlist = read.table(cmdargs$bamlist);
-
+bamlist = scan(cmdargs$bamlist, "character");
+squids <- c()
 fclanes = c();
-for (bam in bamlist$V1) {
+for (bam in bamlist) {
     bamheader = system(paste("samtools view -H", bam), intern=TRUE);
+    squids<-c(squids, strsplit(bam, "/")[[1]][4])
 
     if (length(bamheader) > 0) {
         rgs = bamheader[grep("^@RG", bamheader)];
 
         for (rg in rgs) {
-            id = grep("ID:", unlist(strsplit(rg, "\t")), value=TRUE);
-            id = sub("ID:", "", id);
-
+            id = grep("PU:", unlist(strsplit(rg, "\t")), value=TRUE);
+            id = sub("PU:", "", id);
+            id = gsub("A.XX......", "", id)
+	       	 ##change this so that it pulls out the flowcell and lane properly from old samples
+		 	       ##change this so that it pulls out only samples which are in the right project for new samples
             fclanes = c(fclanes, id);
         }
     } else {
@@ -63,8 +66,10 @@ oraCloseDriver(drv);
 squid_fclanes = sprintf("%s.%s", d$"Flowcell", d$"Lane");
 squid_fclanes = gsub("A.XX", "", squid_fclanes);
 
+
 dproj = d[which(squid_fclanes %in% fclanes),];
-d2proj = d2[which(d2$"Project" %in% unique(dproj$"Project") & d2$"Sample" %in% dproj$"External ID"),];
+dproj = dproj[which(dproj$"Project" %in% unique(squids)),]
+d2proj = d2[which(d2$"Project" %in% unique(squids) & d2$"Sample" %in% dproj$"External ID"),];
 
 
 tearsheet<-function(){
@@ -91,7 +96,7 @@ tearsheet<-function(){
 	# Project summary
 	projects = paste(unique(dproj$"Project"), collapse=", ");
 
-	used_samples = length(bamlist$V1);
+	used_samples = length(bamlist);
 
 	unused_samples = 0;
 
@@ -107,7 +112,7 @@ tearsheet<-function(){
 		bait_design<-strsplit(bait_design, ".Homo")[[1]][1]
 		}
 
-	callable_target = paste(unique(dproj$"Target Territory"), collapse=", ");
+	callable_target = paste(na.omit(unique(dproj$"Target Territory")), collapse=", ");
 
 	table1<-rbind(paste(used_samples," used samples/", unused_samples + used_samples," total samples", sep=""), sequencing_protocol, bait_design, callable_target)
 	print(nrow(table1))
@@ -117,12 +122,12 @@ tearsheet<-function(){
     title(main=sprintf("Project Summary (%s)\n", projects), family="sans", cex.main=1.25, line=-1)	
     # Bases summary 
 
-	reads_per_lane_mean = format(mean(dproj$"PF Reads (HS)"), 8, 3,1, scientific=TRUE);
-	reads_per_lane_sd = format(sd(dproj$"PF Reads (HS)"), 8, 3,1, scientific=TRUE);
+	reads_per_lane_mean = format(mean(dproj$"PF Reads (HS)", na.rm=TRUE), 8, 3,1, scientific=TRUE);
+	reads_per_lane_sd = format(sd(dproj$"PF Reads (HS)", na.rm=TRUE), 8, 3,1, scientific=TRUE);
 	lanes<-sprintf("%s +/- %s\n", reads_per_lane_mean, reads_per_lane_sd)
 
-	used_bases_per_lane_mean = format(mean(dproj$"PF HQ Aligned Q20 Bases"),8, 3,1, scientific=TRUE);
-	used_bases_per_lane_sd = format(sd(dproj$"PF HQ Aligned Q20 Bases"), 8, 3,1, scientific=TRUE);
+	used_bases_per_lane_mean = format(mean(dproj$"PF HQ Aligned Q20 Bases", na.rm=TRUE),8, 3,1, scientific=TRUE);
+	used_bases_per_lane_sd = format(sd(dproj$"PF HQ Aligned Q20 Bases", na.rm=TRUE), 8, 3,1, scientific=TRUE);
 	lanes<-c(lanes, sprintf("%s +/- %s\n", used_bases_per_lane_mean, used_bases_per_lane_sd));
 
 	target_coverage_mean = mean(na.omit(dproj$"Mean Target Coverage"));
@@ -142,12 +147,12 @@ tearsheet<-function(){
 	lanes<-c(lanes,sprintf("%0.2f%% +/- %0.2f%%\n", pct_loci_gt_30x_mean, pct_loci_gt_30x_sd));
 
 
-	reads_per_sample_mean = format(mean(d2proj$"PF Reads"), 8, 3,1, scientific=TRUE);
-	reads_per_sample_sd = format(sd(d2proj$"PF Reads"), 8, 3,1, scientific=TRUE);
+	reads_per_sample_mean = format(mean(d2proj$"PF Reads", na.rm=TRUE), 8, 3,1, scientific=TRUE);
+	reads_per_sample_sd = format(sd(d2proj$"PF Reads",na.rm=TRUE), 8, 3,1, scientific=TRUE);
 	samps<-sprintf("%s +/- %s\n", reads_per_sample_mean, reads_per_sample_sd);
 
-	used_bases_per_sample_mean = format(mean(d2proj$"PF HQ Aligned Q20 Bases"),8, 3,1, scientific=TRUE);
-	used_bases_per_sample_sd = format(sd(d2proj$"PF HQ Aligned Q20 Bases"), 8, 3,1, scientific=TRUE);
+	used_bases_per_sample_mean = format(mean(d2proj$"PF HQ Aligned Q20 Bases", na.rm=TRUE),8, 3,1, scientific=TRUE);
+	used_bases_per_sample_sd = format(sd(d2proj$"PF HQ Aligned Q20 Bases", na.rm=TRUE), 8, 3,1, scientific=TRUE);
 	samps<-c(samps, sprintf("%s +/- %s\n", used_bases_per_sample_mean, 	used_bases_per_sample_sd));
 
 	target_coverage_mean = mean(na.omit(d2proj$"Mean Target Coverage"));
@@ -195,8 +200,8 @@ tearsheet<-function(){
 	unused_lanes_by_analysis = 0;
 
 
-	lanes_per_sample_mean = mean(table(dproj$"External ID"));
-	lanes_per_sample_sd = sd(table(dproj$"External ID"));
+	lanes_per_sample_mean = mean(table(dproj$"External ID"), na.rm=TRUE);
+	lanes_per_sample_sd = sd(table(dproj$"External ID"), na.rm=TRUE);
 	lanes_per_sample_median = median(table(dproj$"External ID"));
 	lanes_paired = nrow(subset(dproj, dproj$"Lane Type" == "Paired"));
 	lanes_widowed = nrow(subset(dproj, dproj$"Lane Type" == "Widowed"));
@@ -249,7 +254,7 @@ tearsheet<-function(){
 
 	table4 = matrix(c(eval.counts.called.all, eval.counts.called.known, eval.counts.called.novel, eval.titv.called.all, eval.titv.called.known, eval.titv.called.novel, "3.0 - 3.2", "3.2 - 3.4", "2.7 - 3.0"), nrow=3);
 		print(nrow(table4))
-
+		print(paste("columns should be three, actually are:", ncol(table4)))
 	rownames(table4) = c("All", "Known", "Novel");
 	colnames(table4) = c("Found", "Ti/Tv ratio", "Expected Ti/Tv ratio");
 
