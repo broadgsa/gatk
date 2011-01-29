@@ -27,8 +27,6 @@ class FullCallingPipelineTest {
     dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.known.titv.tiTvRatio", 3.7426)
     dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.novel.titv.tiTvRatio", 3.3077)
 
-    dataset.jobQueue = "hour"
-
     dataset
   }
 
@@ -101,11 +99,10 @@ class FullCallingPipelineTest {
       cleanType = "uncleaned"
     }
     
-    if (dataset.jobQueue != null)
-      pipelineCommand += " -jobQueue " + dataset.jobQueue
-
     val pipelineSpec = new PipelineTestSpec
+    pipelineSpec.name = testName
     pipelineSpec.args = pipelineCommand
+    pipelineSpec.jobQueue = dataset.jobQueue
 
     pipelineSpec.evalSpec = new PipelineTestEvalSpec
     pipelineSpec.evalSpec.vcf = new File(PipelineTest.runDir(testName) + "SnpCalls/%s.%s.annotated.handfiltered.vcf".format(projectName, cleanType))
@@ -115,7 +112,7 @@ class FullCallingPipelineTest {
     pipelineSpec.evalSpec.validations = dataset.validations
 
     // Run the test, at least checking if the command compiles
-    PipelineTest.executeTest(testName, pipelineSpec)
+    PipelineTest.executeTest(pipelineSpec)
   }
 
   class PipelineDataset(

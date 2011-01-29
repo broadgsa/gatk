@@ -2,13 +2,16 @@ package org.broadinstitute.sting.queue.pipeline
 
 import java.io.File
 
-class PipelineTestSpec {
+class PipelineTestSpec(var name: String = null) {
 
   /** The arguments to pass to the Queue test, ex: "-S scala/qscript/examples/HelloWorld.scala" */
   var args: String = _
 
+  /** Job Queue to run the test.  Default is null which means use hour. */
+  var jobQueue: String = _
+
   /** Expected MD5 results for each file path. */
-  var fileMD5s = Map.empty[File, String]
+  var fileMD5s = Map.empty[String, String]
 
   /** VariantEval validations to run on a VCF after the pipeline has completed. */
   var evalSpec: PipelineTestEvalSpec = _
@@ -16,7 +19,7 @@ class PipelineTestSpec {
   /** Expected exception from the test. */
   var expectedException: Class[_ <: Exception] = null
 
-  def this(args: String, fileMD5s: Traversable[(File, String)]) = {
+  def this(args: String, fileMD5s: Traversable[(String, String)]) = {
     this()
     this.args = args
     this.fileMD5s = fileMD5s.toMap

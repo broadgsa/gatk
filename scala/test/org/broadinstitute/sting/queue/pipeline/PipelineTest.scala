@@ -3,12 +3,12 @@ package org.broadinstitute.sting.queue.pipeline
 import org.broadinstitute.sting.utils.Utils
 import org.testng.Assert
 import org.broadinstitute.sting.commandline.CommandLineProgram
-import org.broadinstitute.sting.queue.QCommandLine
 import java.io.File
 import org.broadinstitute.sting.queue.util.{TextFormatUtils, ProcessController}
 import java.util.Date
 import java.text.SimpleDateFormat
 import org.broadinstitute.sting.{WalkerTest, BaseTest}
+import org.broadinstitute.sting.queue.{QException, QCommandLine}
 
 object PipelineTest {
 
@@ -54,11 +54,14 @@ object PipelineTest {
 
   val run = System.getProperty("pipeline.run") == "run"
 
-  def executeTest(name: String, pipelineTest: PipelineTestSpec) {
+  def executeTest(pipelineTest: PipelineTestSpec) {
+    val name = pipelineTest.name
+    if (name == null)
+      throw new QException("PipelineTestSpec.name is null.")
     println(Utils.dupString('-', 80));
-    executeTest(name, pipelineTest.args, pipelineTest.expectedException)
+    executeTest(name, pipelineTest.args, pipelineTest.jobQueue, pipelineTest.expectedException)
     if (run) {
-      assertMatchingMD5s(name, pipelineTest.fileMD5s)
+      assertMatchingMD5s(name, pipelineTest.fileMD5s.map{case (file, md5) => new File(runDir(name), file) -> md5})
       if (pipelineTest.evalSpec != null)
         validateEval(name, pipelineTest.evalSpec)
       println("  => %s PASSED".format(name))
@@ -109,14 +112,21 @@ object PipelineTest {
    * execute the test
    * @param name the name of the test
    * @param args the argument list
+   * @param jobQueue the queue to run the job on.  Defaults to hour if jobQueue is null.
    * @param expectedException the expected exception or null if no exception is expected.
    */
-  def executeTest(name: String, args: String, expectedException: Class[_]) {
+  def executeTest(name: String, args: String, jobQueue: String, expectedException: Class[_]) {
     var command = Utils.escapeExpressions(args)
 
     // add the logging level to each of the integration test commands
 
     command = Utils.appendArray(command, "-bsub", "-l", "WARN", "-startFromScratch", "-tempDir", tempDir(name), "-runDir", runDir(name))
+
+    if (jobQueue == null)
+      command = Utils.appendArray(command, "-jobQueue", "hour")
+    else
+      command = Utils.appendArray(command, "-jobQueue", jobQueue)
+
     if (run)
       command = Utils.appendArray(command, "-run")
 
