@@ -11,6 +11,18 @@ import org.broadinstitute.sting.queue.pipeline._
 class FullCallingPipelineTest {
   def datasets = List(k1gChr20Dataset, k1gExomeDataset)
 
+  val k1gBams = List(
+    new K1gBam("C474", "NA19651", 1),
+    new K1gBam("C474", "NA19655", 1),
+    new K1gBam("C474", "NA19669", 1),
+    new K1gBam("C454", "NA19834", 1),
+    new K1gBam("C460", "HG01440", 1),
+    new K1gBam("C456", "NA12342", 1),
+    new K1gBam("C456", "NA12748", 1),
+    new K1gBam("C474", "NA19649", 1),
+    new K1gBam("C474", "NA19652", 1),
+    new K1gBam("C474", "NA19654", 1))
+
   // In fullCallingPipeline.q VariantEval is always compared against 129.
   // Until the newvarianteval is finalized which will allow java import of the prior results,
   // we re-run VariantEval to validate the run, and replicate that behavior here.
@@ -46,6 +58,8 @@ class FullCallingPipelineTest {
     dataset
   }
 
+  class K1gBam(val squidId: String, val sampleId: String, val version: Int)
+
   def newK1gDataset(projectName: String) = {
     val project = new PipelineProject
     project.setName(projectName)
@@ -53,16 +67,13 @@ class FullCallingPipelineTest {
     project.setDbsnpFile(new File(BaseTest.b37dbSNP132))
     project.setRefseqTable(new File(BaseTest.hg19Refseq))
 
-    val squid = "C426"
-    val ids = List(
-      "NA19651","NA19655","NA19669","NA19834","HG01440",
-      "NA12342","NA12748","NA19649","NA19652","NA19654")
     var samples = List.empty[PipelineSample]
-    for (id <- ids) {
+    for (k1gBam <- k1gBams) {
       val sample = new PipelineSample
-      sample.setId(projectName + "_" + id)
-      sample.setBamFiles(Map("recalibrated" -> new File("/seq/picard_aggregation/%1$s/%2$s/v6/%2$s.bam".format(squid,id))))
-      sample.setTags(Map("SQUIDProject" -> squid, "CollaboratorID" -> id))
+      sample.setId(projectName + "_" + k1gBam.sampleId)
+      sample.setBamFiles(Map("recalibrated" -> new File("/seq/picard_aggregation/%1$s/%2$s/v%3$s/%2$s.bam"
+                                                        .format(k1gBam.squidId, k1gBam.sampleId, k1gBam.version))))
+      sample.setTags(Map("SQUIDProject" -> k1gBam.squidId, "CollaboratorID" -> k1gBam.sampleId))
       samples :+= sample
     }
 
@@ -80,7 +91,7 @@ class FullCallingPipelineTest {
   final def convertDatasets: Array[Array[AnyRef]] =
     datasets.map(dataset => Array(dataset.asInstanceOf[AnyRef])).toArray
 
-  @Test(dataProvider="datasets", enabled=false)
+  @Test(dataProvider="datasets")
   def testFullCallingPipeline(dataset: PipelineDataset) = {
     val projectName = dataset.pipeline.getProject.getName
     val testName = "fullCallingPipeline-" + projectName
