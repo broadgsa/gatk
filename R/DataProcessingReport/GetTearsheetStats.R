@@ -26,11 +26,12 @@ cmdargs = gsa.getargs(
 
 
 bamlist = scan(cmdargs$bamlist, "character");
-squids <- c()
+print(paste("grep SQUID ", sub("cleaned.BamFiles.list", "yaml",cmdargs$bamlist) , ' |grep "C..." -o',  sep=""))
+squids <- system(paste("grep SQUID ", sub("cleaned.BamFiles.list", "yaml",cmdargs$bamlist) , ' |grep "C..." -o',  sep=""), intern=TRUE)
 fclanes = c();
 for (bam in bamlist) {
     bamheader = system(paste("samtools view -H", bam), intern=TRUE);
-    squids<-c(squids, strsplit(bam, "/")[[1]][4])
+    
 
     if (length(bamheader) > 0) {
         rgs = bamheader[grep("^@RG", bamheader)];
@@ -68,8 +69,11 @@ squid_fclanes = gsub("A.XX", "", squid_fclanes);
 
 
 dproj = d[which(squid_fclanes %in% fclanes),];
+
 dproj = dproj[which(dproj$"Project" %in% unique(squids)),]
-d2proj = d2[which(d2$"Project" %in% unique(squids) & d2$"Sample" %in% dproj$"External ID"),];
+
+d2proj = d2[which(d2$"Project" %in% unique(dproj$Project) & d2$"Sample" %in% dproj$"External ID"),];
+
 
 
 tearsheet<-function(){
@@ -231,7 +235,8 @@ tearsheet<-function(){
 	
 	
 	table3<-rbind(paste(instrument), used_lanes, sprintf("%s rejected by sequencing, %s by analysis\n", unused_lanes_by_sequencing, unused_lanes_by_analysis), sprintf("%0.1f +/- %0.1f lanes (median=%0.1f)\n", lanes_per_sample_mean, lanes_per_sample_sd, lanes_per_sample_median), sprintf("%s paired, %s widowed, %s single\n", lanes_paired, lanes_widowed, lanes_single), sprintf("%0.1f +/- %0.1f bases (median=%0.1f)\n", read_length_mean, read_length_sd, read_length_median), sprintf("\tSequencing dates: %s to %s\n", start_date, end_date))
-		
+	print(nrow(table3))
+	print(table3)	
 
   	rownames(table3)<-c("Sequencer", "Used lanes", "Unused lanes","Used lanes/sample", "Lane parities", "Read lengths", "Sequencing dates")
 	par(mar=c(0,0,1,0))
