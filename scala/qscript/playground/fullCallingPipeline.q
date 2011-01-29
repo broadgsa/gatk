@@ -385,20 +385,23 @@ class fullCallingPipeline extends QScript {
     // 6. Run the ADPR and make pretty stuff
 
     class rCommand extends CommandLineFunction{
-      @Argument(doc="R script")
-      var  script: File = _
-      @Argument(doc="list of bams")
-        var bamlist: File =_
+      @Input(doc="R script")
+      var script: File = _
+      @Input(doc="pipeline yaml")
+      var yaml: File = _
+      @Input(doc="list of bams")
+      var bamlist: File =_
       @Input(doc="Eval files root")
       var evalroot: File =_
       @Output(doc="tearsheet loc")
       var tearsheet: File =_
-      def commandLine = "Rscript %s -bamlist %s -evalroot %s -tearout %s"
-        .format(script, bamlist, evalroot, tearsheet)
+      def commandLine = "Rscript %s -yaml %s -bamlist %s -evalroot %s -tearout %s"
+        .format(script, yaml, bamlist, evalroot, tearsheet)
     }
 
     val adpr = new rCommand
      adpr.bamlist = listOfBams
+     adpr.yaml = qscript.yamlFile.getAbsoluteFile
      adpr.script = tearScript
      adpr.evalroot = eval.reportLocation
      adpr.jobOutputFile = new File(".queue/logs/SNPCalling/adpr.out")

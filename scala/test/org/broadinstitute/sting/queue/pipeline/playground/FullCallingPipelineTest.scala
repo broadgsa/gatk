@@ -95,7 +95,7 @@ class FullCallingPipelineTest {
   def testFullCallingPipeline(dataset: PipelineDataset) = {
     val projectName = dataset.pipeline.getProject.getName
     val testName = "fullCallingPipeline-" + projectName
-    val yamlFile = writeTempYaml(dataset.pipeline)
+    val yamlFile = writeYaml(testName, dataset.pipeline)
     var cleanType = "cleaned"
 
     // Run the pipeline with the expected inputs.
@@ -134,9 +134,9 @@ class FullCallingPipelineTest {
     override def toString = pipeline.getProject.getName
   }
 
-  private def writeTempYaml(pipeline: Pipeline) = {
-    val tempFile = BaseTest.createTempFile(pipeline.getProject.getName + "-", ".yaml")
-    YamlUtils.dump(pipeline, tempFile)
-    tempFile
+  private def writeYaml(testName: String, pipeline: Pipeline) = {
+    val yamlFile = new File(PipelineTest.runDir(testName), pipeline.getProject.getName + ".yaml")
+    YamlUtils.dump(pipeline, yamlFile)
+    yamlFile
   }
 }

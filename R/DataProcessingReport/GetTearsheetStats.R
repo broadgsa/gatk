@@ -16,6 +16,7 @@ suppressMessages(library(ROracle));
 
 cmdargs = gsa.getargs(
     list(
+        yaml = list(value=NA, doc="pipeline YAML file"),
         bamlist = list(value=NA, doc="list of BAM files"),
         evalroot = list(value=NA, doc="VariantEval root"),
         tearout = list(value=NA, doc="Output path for tearsheet PDF")#,
@@ -26,8 +27,8 @@ cmdargs = gsa.getargs(
 
 
 bamlist = scan(cmdargs$bamlist, "character");
-print(paste("grep SQUID ", sub("cleaned.BamFiles.list", "yaml",cmdargs$bamlist) , ' |grep "C..." -o',  sep=""))
-squids <- system(paste("grep SQUID ", sub("cleaned.BamFiles.list", "yaml",cmdargs$bamlist) , ' |grep "C..." -o',  sep=""), intern=TRUE)
+print(paste("grep SQUID ", cmdargs$yaml, ' |grep "C..." -o',  sep=""))
+squids <- system(paste("grep SQUID ", cmdargs$yaml, ' |grep "C..." -o',  sep=""), intern=TRUE)
 fclanes = c();
 for (bam in bamlist) {
     bamheader = system(paste("samtools view -H", bam), intern=TRUE);

@@ -120,7 +120,7 @@ object PipelineTest {
 
     // add the logging level to each of the integration test commands
 
-    command = Utils.appendArray(command, "-bsub", "-l", "WARN", "-startFromScratch", "-tempDir", tempDir(name), "-runDir", runDir(name))
+    command = Utils.appendArray(command, "-bsub", "-l", "WARN", "-tempDir", tempDir(name), "-runDir", runDir(name))
 
     if (jobQueue == null)
       command = Utils.appendArray(command, "-jobQueue", "hour")
