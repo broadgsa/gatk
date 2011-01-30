@@ -8,9 +8,6 @@ import org.broadinstitute.sting.queue.util._
 trait CommandLineFunction extends QFunction with Logging {
   def commandLine: String
 
-  /* Is it a gather function? */
-  var isGather: Boolean = true
-
   /** Upper memory limit */
   var memoryLimit: Option[Int] = None
 
@@ -19,6 +16,24 @@ trait CommandLineFunction extends QFunction with Logging {
 
   /** Job queue to run the command */
   var jobQueue: String = _
+
+  override def copySettingsTo(function: QFunction) {
+    super.copySettingsTo(function)
+    function match {
+      case commandLineFunction: CommandLineFunction =>
+        if (commandLineFunction.memoryLimit.isEmpty)
+          commandLineFunction.memoryLimit = this.memoryLimit
+
+        if (commandLineFunction.jobProject == null)
+          commandLineFunction.jobProject = this.jobProject
+
+        if (commandLineFunction.jobQueue == null)
+          commandLineFunction.jobQueue = this.jobQueue
+
+        commandLineFunction.jobQueue = this.jobQueue
+      case _ => /* ignore */
+    }
+  }
 
   /**
    * Returns set of directories required to run the command.
@@ -38,7 +53,7 @@ trait CommandLineFunction extends QFunction with Logging {
     if (jobProject == null)
       jobProject = qSettings.jobProject
 
-    if (memoryLimit.isEmpty && qSettings.memoryLimit.isDefined)
+    if (memoryLimit.isEmpty)
       memoryLimit = qSettings.memoryLimit
 
     super.freezeFieldValues

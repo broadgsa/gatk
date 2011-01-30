@@ -70,7 +70,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     val outputFieldsWithValues = this.outputFields.filter(hasFieldValue(_))
 
     // Create the scatter function based on @Scatter
-    syncFunction(scatterFunction)
+    this.copySettingsTo(scatterFunction)
     scatterFunction.addOrder = this.addOrder :+ 1
     scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter")
     scatterFunction.originalInputs = this.inputs
@@ -89,11 +89,10 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     for (gatherField <- outputFieldsWithValues) {
       val gatherFunction = this.newGatherFunction(gatherField)
       val gatherOutput = getFieldFile(gatherField)
-      syncFunction(gatherFunction)
+      this.copySettingsTo(gatherFunction)
       gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
       gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
       gatherFunction.originalOutput = this.getFieldFile(gatherField)
-      gatherFunction.isIntermediate = this.isIntermediate
       initGatherFunction(gatherFunction, gatherField)
       functions :+= gatherFunction
       gatherFunctions += gatherField -> gatherFunction
@@ -106,11 +105,10 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     for (i <- 1 to numClones) {
       val cloneFunction = this.newCloneFunction()
 
-      syncFunction(cloneFunction)
+      this.copySettingsTo(cloneFunction)
       cloneFunction.originalFunction = this
       cloneFunction.index = i
       cloneFunction.addOrder = this.addOrder :+ (i+1)
-      cloneFunction.memoryLimit = this.memoryLimit
       cloneFunction.isIntermediate = true
 
       // Setup the fields on the clone function, outputting each as a relative file in the sg directory.
@@ -222,23 +220,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     if (this.setupCloneFunction != null)
       if (this.setupCloneFunction.isDefinedAt(cloneFunction, index))
         this.setupCloneFunction(cloneFunction, index)
-  }
-
-  /**
-   * Copies standard values from this function to the just created function.
-   * @param newFunction newly created function.
-   */
-  protected def syncFunction(newFunction: QFunction) = {
-    newFunction.analysisName = this.analysisName
-    newFunction.qSettings = this.qSettings
-    newFunction.jobTempDir = this.jobTempDir
-    newFunction.jobName = this.jobName
-    newFunction match {
-      case newCLFFunction: CommandLineFunction =>
-        newCLFFunction.jobQueue = this.jobQueue
-        newCLFFunction.jobProject = this.jobProject
-      case _ => /* ignore */
-    }
   }
 
   /**

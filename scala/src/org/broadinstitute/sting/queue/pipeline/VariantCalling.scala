@@ -92,7 +92,6 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
    */
   private def StandardIndelGenotyper(bam : File, output: File, gather: Boolean) : IndelGenotyperV2 = {
     var ig = StandardIndelGenotyper(bam,output)
-    ig.isGather = gather
     return ig
   }
 
@@ -106,7 +105,6 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
     cv.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNIQUIFY)
     cv.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
     cv.analysisName = "IndelGenotyper"
-    cv.isGather = true
     cv.priority = (igList.map[String,List[String]](ig => swapExt(ig.out,".vcf","").getAbsolutePath)).mkString(",")
     //cv.priority = (igList.foldLeft[List[String]](Nil)( (prLs, ig) =>  prLs ::: List(swapExt(ig.out,".vcf","").getAbsolutePath))).mkString(",")
     cv.rodBind = igList.map[RodBind,List[RodBind]](ig => new RodBind(swapExt(ig.out,".vcf","").getName,"VCF",ig.out))

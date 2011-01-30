@@ -53,6 +53,29 @@ trait QFunction extends Logging {
    */
   var updateJobRun: PartialFunction[Any,Unit] = null
 
+  /**
+   * If true, unless another unfinished function is dependent on this function,
+   * this function will NOT be run even if the outputs have not been created.
+   */
+  var isIntermediate = false
+
+  /**
+   * Copies settings from this function to another function.
+   * @param function QFunction to copy values to.
+   */
+  def copySettingsTo(function: QFunction) {
+    function.analysisName = this.analysisName
+    function.jobName = this.jobName
+    function.qSettings = this.qSettings
+    function.commandDirectory = this.commandDirectory
+    function.jobTempDir = this.jobTempDir
+    function.addOrder = this.addOrder
+    function.jobLimitSeconds = this.jobLimitSeconds
+    function.jobRestartable = this.jobRestartable
+    function.updateJobRun = this.updateJobRun
+    function.isIntermediate = this.isIntermediate
+  }
+
   /** File to redirect any output.  Defaults to <jobName>.out */
   @Output(doc="File to redirect any output", required=false)
   @Gather(classOf[SimpleTextGatherFunction])
@@ -138,12 +161,6 @@ trait QFunction extends Logging {
   /** The @Argument fields on this CommandLineFunction. */
   def argumentFields = QFunction.classFields(this.functionFieldClass).argumentFields
 
-  /**
-   * If true, unless another unfinished function is dependent on this function,
-   * this function will NOT be run even if the outputs have not been created.
-   */
-  var isIntermediate = false
-  
   /**
    * Returns the class that should be used for looking up fields.
    */
