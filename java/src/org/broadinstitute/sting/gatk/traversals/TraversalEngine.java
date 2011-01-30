@@ -246,7 +246,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     private void printProgress(GenomeLoc loc, ReadMetrics metrics, boolean mustPrint) {
         final long nRecords = metrics.getNumIterations();
 
-        if ( nRecords == 1 ) {
+        if ( nRecords == 1 && mustPrint == false ) {
             logger.info("[INITIALIZATION COMPLETE; TRAVERSAL STARTING]");
             logger.info(String.format("%15s processed.%s  runtime per.1M.%s completed total.runtime remaining",
                     "Location", getTraversalType(), getTraversalType()));
