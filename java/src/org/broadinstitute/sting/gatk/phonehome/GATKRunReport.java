@@ -32,7 +32,14 @@ import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.jets3t.service.S3Service;
+import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.impl.rest.httpclient.RestS3Service;
+import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3Object;
+import org.jets3t.service.security.AWSCredentials;
 import org.simpleframework.xml.Element;
 import org.simpleframework.xml.ElementList;
 import org.simpleframework.xml.Serializer;
@@ -42,6 +49,7 @@ import org.simpleframework.xml.stream.HyphenStyle;
 
 import java.io.*;
 import java.net.InetAddress;
+import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -66,6 +74,8 @@ public class GATKRunReport {
      * The root file system directory where we keep common report data
      */
     private static File REPORT_DIR = new File("/humgen/gsa-hpprojects/GATK/reports");
+
+    private static final String REPORT_BUCKET_NAME = "GATK_Run_Reports";
 
     /**
      * The full path to the direct where submitted (and uncharacterized) report files are written
@@ -145,18 +155,18 @@ public class GATKRunReport {
     @Element(required = true, name = "reads")
     private long nReads;
 
-//    @Element(required = true, name = "read_metrics")
-//    private String readMetrics;
-
     // TODO
     // todo md5 all filenames
     // todo size of filenames
+
+    private String S3SecretKey = null;
 
     public enum PhoneHomeOption {
         NO_ET,
         STANDARD,
         DEV,
-        STDOUT
+        STDOUT,
+        AWS_S3
     }
 
     private static final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH.mm.ss");
@@ -210,7 +220,7 @@ public class GATKRunReport {
 
         // user and hostname -- information about the runner of the GATK
         userName = System.getProperty("user.name");
-        hostName = resolveHostname();
+        hostName = "unknown"; // resolveHostname();
 
         // basic java information
         java = Utils.join("-", Arrays.asList(System.getProperty("java.vendor"), System.getProperty("java.version")));
@@ -218,6 +228,8 @@ public class GATKRunReport {
 
         // if there was an exception, capture it
         this.mException = e == null ? null : new ExceptionToXML(e);
+
+        this.S3SecretKey = engine.getArguments().S3SecretKey;
     }
 
     public String getID() {
@@ -232,14 +244,36 @@ public class GATKRunReport {
      * @return
      */
     private String resolveHostname() {
-        return "unknown";
-//        try {
-//            return InetAddress.getLocalHost().getCanonicalHostName();
-//        }
-//        catch (java.net.UnknownHostException uhe) { // [beware typo in code sample -dmw]
-//            return "unresolvable";
-//            // handle exception
-//        }
+        try {
+            return InetAddress.getLocalHost().getCanonicalHostName();
+        }
+        catch (java.net.UnknownHostException uhe) { // [beware typo in code sample -dmw]
+            return "unresolvable";
+            // handle exception
+        }
+    }
+
+    public void postReport(PhoneHomeOption type) {
+        switch (type) {
+            case NO_ET: // don't do anything
+                break;
+            case STANDARD: case DEV:
+                if ( repositoryIsOnline() ) {
+                    postReportToLocalDisk(REPORT_SUBMIT_DIR);
+                } else {
+                    logger.debug("Not writing report: sentinel " + REPORT_SENTINEL + " doesn't exist");
+                }
+                break;
+            case STDOUT:
+                postReportToStream(System.out);
+                break;
+            case AWS_S3:
+                postReportToAWSS3();
+                break;
+            default:
+                exceptDuringRunReport("BUG: unexcepted PhoneHomeOption ");
+                break;
+        }
     }
 
     /**
@@ -248,7 +282,7 @@ public class GATKRunReport {
      *
      * @param stream
      */
-    public void postReport(OutputStream stream) {
+    private void postReportToStream(OutputStream stream) {
         Serializer serializer = new Persister(new Format(new HyphenStyle()));
         try {
             serializer.write(this, stream);
@@ -264,13 +298,13 @@ public class GATKRunReport {
      * @param destination
      * @throws IOException
      */
-    public void postReport(File destination) throws IOException {
+    private void postReportToFile(File destination) throws IOException {
         BufferedOutputStream out =
                 new BufferedOutputStream(
                         new GZIPOutputStream(
                                 new FileOutputStream(destination)));
         try {
-            postReport(out);
+            postReportToStream(out);
         } finally {
             out.close();
         }
@@ -281,21 +315,73 @@ public class GATKRunReport {
      * If this process fails for any reason, all exceptions are handled and this routine merely prints a warning.
      * That is, postReport() is guarenteed not to fail for any reason.
      */
-    public void postReport() {
+    private File postReportToLocalDisk(File rootDir) {
         try {
-            if ( repositoryIsOnline() ) {
-                String filename = getID() + ".report.xml.gz";
-                File file = new File(REPORT_SUBMIT_DIR, filename);
-                postReport(file);
-                logger.info("Wrote report to " + file);
-            } else {
-                logger.debug("Not writing report: sentinel " + REPORT_SENTINEL + " doesn't exist");
-            }
+            String filename = getID() + ".report.xml.gz";
+            File file = new File(rootDir, filename);
+            postReportToFile(file);
+            logger.info("Wrote report to " + file);
+            return file;
         } catch ( Exception e ) {
             // we catch everything, and no matter what eat the error
-            logger.warn("Received error while posting report.  GATK continuing on but no run report has been generated because: " + e.getMessage());
+            exceptDuringRunReport("Couldn't read report file", e);
+            return null;
         }
     }
+
+    private void postReportToAWSS3() {
+        // modifying example code from http://jets3t.s3.amazonaws.com/toolkit/code-samples.html
+        if ( S3SecretKey == null )
+            exceptDuringRunReport("Cannot upload run reports to AWS S3 without providing a secret key on the command line");
+        else {
+            this.hostName = resolveHostname(); // we want to fill in the host name
+            File localFile = postReportToLocalDisk(new File("./"));
+            logger.info("Generating GATK report to AWS S3 based on local file " + localFile);
+            if ( localFile != null ) {
+                try {
+                    // we succeeded in creating the local file
+
+                    // Your Amazon Web Services (AWS) login credentials are required to manage S3 accounts. These credentials
+                    // are stored in an AWSCredentials object:
+                    String awsAccessKey = "AKIAJQQEIHTAHSM333EQ";
+                    AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, S3SecretKey);
+
+                    // To communicate with S3, create a class that implements an S3Service. We will use the REST/HTTP
+                    // implementation based on HttpClient, as this is the most robust implementation provided with JetS3t.
+                    S3Service s3Service = new RestS3Service(awsCredentials);
+
+                    // grab the reports bucket
+                    S3Bucket reportsBucket = s3Service.getBucket(REPORT_BUCKET_NAME);
+                    logger.info("Uploading to bucket: " + reportsBucket);
+
+                    // Create an S3Object based on a file, with Content-Length set automatically and
+                    // Content-Type set based on the file's extension (using the Mimetypes utility class)
+                    S3Object fileObject = new S3Object(localFile);
+                    logger.info("Created S3Object" + fileObject);
+                    logger.info("Uploading " + localFile + " to AWS bucket");
+                    s3Service.putObject(reportsBucket, fileObject);
+                    //logger.info("Done.  File hash value: " + fileObject.getMd5HashAsHex());
+                } catch ( S3ServiceException e ) {
+                    exceptDuringRunReport("S3 exception occurred", e);
+                } catch ( NoSuchAlgorithmException e ) {
+                    exceptDuringRunReport("Couldn't calculate MD5", e);
+                } catch ( IOException e ) {
+                    exceptDuringRunReport("Couldn't read report file", e);
+                } finally {
+                    localFile.delete();
+                }
+            }
+        }
+    }
+
+    private void exceptDuringRunReport(String msg, Throwable e) {
+        logger.warn("An occurred during GATK run reporting [everything is fine, but no report could be generated].  Message is: " + msg + ".  Error message is: " + e.getMessage() + ".  Stack track follows" + e.getStackTrace());
+    }
+
+    private void exceptDuringRunReport(String msg) {
+        logger.warn("An occurred during GATK run reporting [everything is fine, but no report could be generated].  Message is " + msg);
+    }
+
 
     /**
      * Returns true if and only if the common run report repository is available and online to receive reports
