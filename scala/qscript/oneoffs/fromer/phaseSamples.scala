@@ -122,7 +122,7 @@ class CombineVariants(vcfsToCombine: List[File]) extends org.broadinstitute.stin
 
     this.variantMergeOptions = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
 
-    this.out = new File(outputPhased)
+    this.out = outputPhased
 }
 
 }
