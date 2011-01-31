@@ -6,9 +6,9 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluator;
-import org.broadinstitute.sting.utils.report.tags.Analysis;
-import org.broadinstitute.sting.utils.report.tags.DataPoint;
+import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
+import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.utils.TableType;
 import org.broadinstitute.sting.utils.analysis.AminoAcid;
 import org.broadinstitute.sting.utils.analysis.AminoAcidTable;
@@ -53,7 +53,7 @@ public class AminoAcidTransition extends VariantEvaluator {
     ////////////////////////////////////////////////////////////
 
     // a mapping from amino acid transition score histogram bin to Ti/Tv ratio
-    @DataPoint(name="Amino Acid Table", description = "TiTv counts by amino acid change")
+    @DataPoint(description = "TiTv counts by amino acid change")
     AminoAcidTiTvTable acidTable = null;
 
     class TiTvCount {
@@ -129,8 +129,9 @@ public class AminoAcidTransition extends VariantEvaluator {
     private AminoAcidTable lookup;
 
     public AminoAcidTransition(VariantEvalWalker parent) {
-        super(parent);
-        enabled = parent.aminoAcidTransitionKey != null;
+        //super(parent);
+        //enabled = parent.aminoAcidTransitionKey != null;
+        enabled = true;
         if ( enabled ) {
             getParsingInformation(parent);
             lookup = new AminoAcidTable();
@@ -140,9 +141,14 @@ public class AminoAcidTransition extends VariantEvaluator {
 
     private void getParsingInformation(VariantEvalWalker parent) {
         if ( enabled() ) {
-            infoKey = parent.aminoAcidTransitionKey;
-            infoValueSplit = parent.aminoAcidTransitionSplit;
-            useCodons = parent.aatUseCodons;
+//            infoKey = parent.aminoAcidTransitionKey;
+//            infoValueSplit = parent.aminoAcidTransitionSplit;
+//            useCodons = parent.aatUseCodons;
+
+            infoKey = null;
+            infoValueSplit = null;
+            useCodons = false;
+            
             if ( infoKey == null ) {
                 throw new UserException.CommandLineException("No info-field key provided for amino acid tabulation. Please provide the appropriate key with -aatk.");
             }
@@ -180,7 +186,7 @@ public class AminoAcidTransition extends VariantEvaluator {
                 first = parsedNames [0];
                 second = parsedNames [1];
             } catch (ArrayIndexOutOfBoundsException e) {
-                getLogger().warn("Error parsing variant context with value "+eval.getAttribute(infoKey));
+                //getLogger().warn("Error parsing variant context with value "+eval.getAttribute(infoKey));
             }
             AminoAcid reference;
             AminoAcid alternate;

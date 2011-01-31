@@ -6,9 +6,9 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluator;
-import org.broadinstitute.sting.utils.report.tags.Analysis;
-import org.broadinstitute.sting.utils.report.tags.DataPoint;
+import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
+import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.utils.TableType;
 
 import java.util.Arrays;
@@ -31,7 +31,7 @@ public class PrivatePermutations extends VariantEvaluator {
     private boolean initialized = false;
     private long skipped = 0l;
 
-    @DataPoint(name="Marginal Number of Mutations",description="Number of additional mutations from each new sample; random permutations")
+    @DataPoint(description="Number of additional mutations from each new sample; random permutations")
     AdditionalBySample permuteCounts = null;
 
     String[][] permutations;
@@ -50,7 +50,7 @@ public class PrivatePermutations extends VariantEvaluator {
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( eval != null && ! initialized ) {
-            this.veWalker.getLogger().warn("Initializing...");
+            //this.veWalker.getLogger().warn("Initializing...");
             initialize(eval);
             initialized = true;
         }
@@ -100,13 +100,13 @@ public class PrivatePermutations extends VariantEvaluator {
     }
 
     public PrivatePermutations(VariantEvalWalker parent) {
-        super(parent);
+        //super(parent);
     }
 
     public void initialize(VariantContext vc) {
         Set<String> permuteSamples = vc.getSampleNames();
         permutations = new String[NUM_PERMUTATIONS][permuteSamples.size()];
-        veWalker.getLogger().warn(String.format("Num samples: %d",permuteSamples.size()));
+        //veWalker.getLogger().warn(String.format("Num samples: %d",permuteSamples.size()));
         int offset = 0;
         for ( String s : permuteSamples ) {
             permutations[0][offset] = s;
@@ -164,6 +164,6 @@ public class PrivatePermutations extends VariantEvaluator {
     }
 
     public void finalizeEvaluation() {
-        veWalker.getLogger().info(String.format("Skipped: %d",skipped));    
+        //veWalker.getLogger().info(String.format("Skipped: %d",skipped));    
     }
 }
