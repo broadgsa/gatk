@@ -7,9 +7,9 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.report.tags.Analysis;
 import org.broadinstitute.sting.utils.report.tags.DataPoint;
 import org.broadinstitute.sting.utils.report.utils.TableType;
 
@@ -38,10 +38,11 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
     public String getName() { return "Allele Frequency Comparison"; }
 
     public AlleleFrequencyComparison(VariantEvalWalker parent) {
-        super(parent);
+        //super(parent);
     }
 
-    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
+    //public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
+    public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if ( ! (isValidVC(eval) && isValidVC(comp))  ) {
             return null;
         } else {
@@ -73,7 +74,7 @@ public class AlleleFrequencyComparison extends VariantEvaluator {
         Map<String,Object> attributes = new HashMap<String,Object>();
         VariantContextUtils.calculateChromosomeCounts(vc,attributes,false);
         vc = VariantContext.modifyAttributes(vc,attributes);
-        getLogger().debug(String.format("%s %s | %s %s",attributes.get("AC"),attributes.get("AF"),vc.getAttribute("AC"),vc.getAttribute("AF")));
+        //getLogger().debug(String.format("%s %s | %s %s",attributes.get("AC"),attributes.get("AF"),vc.getAttribute("AC"),vc.getAttribute("AF")));
         if ( attributes.size() == 2 && missingField(vc) ) {
             throw new org.broadinstitute.sting.utils.exceptions.StingException("VariantContext should have had attributes modified but did not");
         }

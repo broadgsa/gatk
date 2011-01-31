@@ -18,7 +18,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
-import org.broadinstitute.sting.gatk.walkers.varianteval.MendelianViolationEvaluator;
+import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.MendelianViolationEvaluator;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
