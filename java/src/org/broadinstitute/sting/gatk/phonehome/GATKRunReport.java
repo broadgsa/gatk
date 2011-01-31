@@ -159,8 +159,6 @@ public class GATKRunReport {
     // todo md5 all filenames
     // todo size of filenames
 
-    private String S3SecretKey = null;
-
     public enum PhoneHomeOption {
         NO_ET,
         STANDARD,
@@ -228,8 +226,6 @@ public class GATKRunReport {
 
         // if there was an exception, capture it
         this.mException = e == null ? null : new ExceptionToXML(e);
-
-        this.S3SecretKey = engine.getArguments().S3SecretKey;
     }
 
     public String getID() {
@@ -331,51 +327,47 @@ public class GATKRunReport {
 
     private void postReportToAWSS3() {
         // modifying example code from http://jets3t.s3.amazonaws.com/toolkit/code-samples.html
-        if ( S3SecretKey == null )
-            exceptDuringRunReport("Cannot upload run reports to AWS S3 without providing a secret key on the command line");
-        else {
-            this.hostName = resolveHostname(); // we want to fill in the host name
-            File localFile = postReportToLocalDisk(new File("./"));
-            logger.info("Generating GATK report to AWS S3 based on local file " + localFile);
-            if ( localFile != null ) {
-                try {
-                    // we succeeded in creating the local file
+        this.hostName = resolveHostname(); // we want to fill in the host name
+        File localFile = postReportToLocalDisk(new File("./"));
+        logger.info("Generating GATK report to AWS S3 based on local file " + localFile);
+        if ( localFile != null ) {
+            try {
+                // we succeeded in creating the local file
 
-                    // Your Amazon Web Services (AWS) login credentials are required to manage S3 accounts. These credentials
-                    // are stored in an AWSCredentials object:
-                    String awsAccessKey = "AKIAJQQEIHTAHSM333EQ";
-                    AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, S3SecretKey);
+                // Your Amazon Web Services (AWS) login credentials are required to manage S3 accounts. These credentials
+                // are stored in an AWSCredentials object:
 
-                    // To communicate with S3, create a class that implements an S3Service. We will use the REST/HTTP
-                    // implementation based on HttpClient, as this is the most robust implementation provided with JetS3t.
-                    S3Service s3Service = new RestS3Service(awsCredentials);
+                // IAM GATK user credentials -- only right is to PutObject into GATK_Run_Report bucket
+                String awsAccessKey = "AKIAJXU7VIHBPDW4TDSQ"; // GATK AWS user
+                String awsSecretKey = "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"; // GATK AWS user
+                AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
 
-                    // grab the reports bucket
-                    S3Bucket reportsBucket = s3Service.getBucket(REPORT_BUCKET_NAME);
-                    logger.info("Uploading to bucket: " + reportsBucket);
+                // To communicate with S3, create a class that implements an S3Service. We will use the REST/HTTP
+                // implementation based on HttpClient, as this is the most robust implementation provided with JetS3t.
+                S3Service s3Service = new RestS3Service(awsCredentials);
 
-                    // Create an S3Object based on a file, with Content-Length set automatically and
-                    // Content-Type set based on the file's extension (using the Mimetypes utility class)
-                    S3Object fileObject = new S3Object(localFile);
-                    logger.info("Created S3Object" + fileObject);
-                    logger.info("Uploading " + localFile + " to AWS bucket");
-                    s3Service.putObject(reportsBucket, fileObject);
-                    //logger.info("Done.  File hash value: " + fileObject.getMd5HashAsHex());
-                } catch ( S3ServiceException e ) {
-                    exceptDuringRunReport("S3 exception occurred", e);
-                } catch ( NoSuchAlgorithmException e ) {
-                    exceptDuringRunReport("Couldn't calculate MD5", e);
-                } catch ( IOException e ) {
-                    exceptDuringRunReport("Couldn't read report file", e);
-                } finally {
-                    localFile.delete();
-                }
+                // Create an S3Object based on a file, with Content-Length set automatically and
+                // Content-Type set based on the file's extension (using the Mimetypes utility class)
+                S3Object fileObject = new S3Object(localFile);
+                logger.info("Created S3Object" + fileObject);
+                logger.info("Uploading " + localFile + " to AWS bucket");
+                S3Object s3Object = s3Service.putObject(REPORT_BUCKET_NAME, fileObject);
+                logger.info("Uploaded: " + s3Object);
+            } catch ( S3ServiceException e ) {
+                exceptDuringRunReport("S3 exception occurred", e);
+            } catch ( NoSuchAlgorithmException e ) {
+                exceptDuringRunReport("Couldn't calculate MD5", e);
+            } catch ( IOException e ) {
+                exceptDuringRunReport("Couldn't read report file", e);
+            } finally {
+                localFile.delete();
             }
         }
     }
 
     private void exceptDuringRunReport(String msg, Throwable e) {
-        logger.warn("An occurred during GATK run reporting [everything is fine, but no report could be generated].  Message is: " + msg + ".  Error message is: " + e.getMessage() + ".  Stack track follows" + e.getStackTrace());
+        logger.warn("An occurred during GATK run reporting [everything is fine, but no report could be generated].  Message is: " + msg + ".  Error message is: " + e.getMessage() + ".  Stack track follows");
+        e.printStackTrace();
     }
 
     private void exceptDuringRunReport(String msg) {

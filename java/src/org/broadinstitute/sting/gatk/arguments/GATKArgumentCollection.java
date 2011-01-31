@@ -86,11 +86,6 @@ public class GATKArgumentCollection {
     @Argument(fullName = "phone_home", shortName = "et", doc="What kind of GATK run report should we generate?  Standard is the default, can be verbose or NO_ET so nothing is posted to the run repository", required = false)
     public GATKRunReport.PhoneHomeOption phoneHomeType = GATKRunReport.PhoneHomeOption.STANDARD;
 
-    @Element(required = false)
-    @Argument(fullName = "S3SecretKey", shortName = "s3sk", doc="Secret key to be used for AWS S3 interactions", required = false)
-    public String S3SecretKey = null;
-
-
     @ElementList(required = false)
     @Argument(fullName = "read_filter", shortName = "rf", doc = "Specify filtration criteria to apply to each read individually.", required = false)
     public List<String> readFilters = new ArrayList<String>();
@@ -398,10 +393,6 @@ public class GATKArgumentCollection {
         }
 
         if (other.phoneHomeType != this.phoneHomeType) {
-            return false;
-        }
-        if ((other.S3SecretKey == null && this.S3SecretKey != null) ||
-                (other.S3SecretKey != null && !other.S3SecretKey.equals(this.S3SecretKey))) {
             return false;
         }
 

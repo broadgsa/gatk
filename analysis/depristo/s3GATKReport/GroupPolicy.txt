@@ -1,0 +1,8 @@
+{
+   "Statement":[{
+      "Effect":"Allow",
+      "Action":"*",
+      "Resource":"*"
+      }
+   ]
+}
