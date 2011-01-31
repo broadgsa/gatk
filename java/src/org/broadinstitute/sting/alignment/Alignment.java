@@ -195,6 +195,12 @@ public class Alignment {
         if(newSAMHeader != null)
             read.setHeader(newSAMHeader);
 
+        // If we're realigning a previously aligned record, strip out the placement of the alignment.
+        read.setReferenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
+        read.setAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
+        read.setMateReferenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
+        read.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);        
+
         if(alignment != null) {
             read.setReadUmappedFlag(false);
             read.setReferenceIndex(alignment.getContigIndex());

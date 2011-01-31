@@ -19,7 +19,7 @@ public class AlignerIntegrationTest extends WalkerTest {
                 "-R /humgen/gsa-scr1/GATK_Data/bwa/human_b36_both.fasta" +
                         " -T Align" +
                         " -I " + validationDataLocation + "NA12878_Pilot1_20.trimmed.unmapped.bam" +
-                        " -ob %s",
+                        " -o %s",
                 1, // just one output file
                 Arrays.asList(md5));
         executeTest("testBasicAlignment", spec);
