@@ -129,6 +129,22 @@ public class IntervalUtilsUnitTest extends BaseTest {
     }
 
     @Test
+    public void testIsIntervalFile() {
+        Assert.assertTrue(IntervalUtils.isIntervalFile(BaseTest.validationDataLocation + "empty_intervals.list"));
+        Assert.assertTrue(IntervalUtils.isIntervalFile(BaseTest.validationDataLocation + "empty_intervals.list", true));
+
+        List<String> extensions = Arrays.asList("bed", "interval_list", "intervals", "list", "picard");
+        for (String extension: extensions) {
+            Assert.assertTrue(IntervalUtils.isIntervalFile("test_intervals." + extension, false), "Tested interval file extension: " + extension);
+        }
+    }
+
+    @Test(expectedExceptions = UserException.CouldNotReadInputFile.class)
+    public void testMissingIntervalFile() {
+        IntervalUtils.isIntervalFile(BaseTest.validationDataLocation + "no_such_intervals.list");
+    }
+
+    @Test
     public void testBasicScatter() {
         GenomeLoc chr1 = genomeLocParser.parseGenomeInterval("chr1");
         GenomeLoc chr2 = genomeLocParser.parseGenomeInterval("chr2");

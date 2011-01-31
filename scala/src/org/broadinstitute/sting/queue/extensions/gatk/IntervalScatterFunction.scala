@@ -67,8 +67,18 @@ class IntervalScatterFunction extends ScatterFunction with InProcessFunction {
       this.includeUnmapped = gatk.intervalsString.exists(interval => IntervalUtils.isUnmapped(interval))
     }
 
-    val maxScatterCount = IntervalUtils.countIntervalArguments(this.referenceSequence, this.intervals, this.splitByContig)
-    this.scatterCount = maxScatterCount min originalFunction.scatterCount
+    this.scatterCount = originalFunction.scatterCount
+    if (this.intervalFilesExist) {
+      val maxScatterCount = IntervalUtils.countIntervalArguments(this.referenceSequence, this.intervals, this.splitByContig)
+      this.scatterCount = this.scatterCount min maxScatterCount
+    }
+  }
+
+  /**
+   * Returns true if all interval files exist.
+   */
+  private def intervalFilesExist = {
+    !intervals.exists(interval => IntervalUtils.isIntervalFile(interval, false) && !new File(interval).exists)
   }
 
   def initCloneInputs(cloneFunction: CloneFunction, index: Int) = {

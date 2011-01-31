@@ -157,13 +157,26 @@ public class IntervalUtils {
      * @return true if the token looks like a filename, or false otherwise.
      */
     public static boolean isIntervalFile(String str) {
+        return isIntervalFile(str, true);
+    }
+
+    /**
+     * Check if string argument was intented as a file
+     * Accepted file extensions: .bed .list, .picard, .interval_list, .intervals.
+     * @param str token to identify as a filename.
+     * @param checkExists if true throws an exception if the file doesn't exist.
+     * @return true if the token looks like a filename, or false otherwise.
+     */
+    public static boolean isIntervalFile(String str, boolean checkExists) {
         // should we define list of file extensions as a public array somewhere?
         // is regex or endsiwth better?
         File file = new File(str);
         if (str.toUpperCase().endsWith(".BED") || str.toUpperCase().endsWith(".LIST") ||
                 str.toUpperCase().endsWith(".PICARD") || str.toUpperCase().endsWith(".INTERVAL_LIST")
                 || str.toUpperCase().endsWith(".INTERVALS")) {
-            if (file.exists())
+            if (!checkExists)
+                return true;
+            else if (file.exists())
                 return true;
             else
                 throw new UserException.CouldNotReadInputFile(file, "The interval file does not exist.");
