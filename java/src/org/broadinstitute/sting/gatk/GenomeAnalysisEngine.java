@@ -387,7 +387,7 @@ public class GenomeAnalysisEngine {
         if(readsDataSource != null && !readsDataSource.hasIndex() ) { 
             if(!exclusions.contains(ValidationExclusion.TYPE.ALLOW_UNINDEXED_BAM))
                 throw new UserException.CommandLineException("Cannot process the provided BAM file(s) because they were not indexed.  The GATK does offer limited processing of unindexed BAMs in --unsafe mode, but this GATK feature is currently unsupported.");
-            if(intervals != null)
+            if(intervals != null && !argCollection.allowIntervalsWithUnindexedBAM)
                 throw new UserException.CommandLineException("Cannot perform interval processing when reads are present but no index is available.");
 
             Shard.ShardType shardType;

@@ -237,6 +237,11 @@ public class GATKArgumentCollection {
     @Hidden
     public int processTrackerID = -1;
 
+    @Element(required = false)
+    @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM.  NO INTEGRATION TESTS are available.  Use at your own risk.")
+    @Hidden
+    public boolean allowIntervalsWithUnindexedBAM = false;
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // methods
@@ -418,6 +423,9 @@ public class GATKArgumentCollection {
             return false;
 
         if ( processTrackerID != other.processTrackerID )
+            return false;
+
+        if (allowIntervalsWithUnindexedBAM != other.allowIntervalsWithUnindexedBAM)
             return false;
 
         return true;
