@@ -29,7 +29,8 @@ cmdargs = gsa.getargs(
 bamlist = scan(cmdargs$bamlist, "character");
 print(paste("grep SQUID ", cmdargs$yaml, ' |grep "C..." -o',  sep=""))
 squids <- system(paste("grep SQUID ", cmdargs$yaml, ' |grep "C..." -o',  sep=""), intern=TRUE)
-fclanes = c();
+indexed = c();
+nonindexed = c();
 for (bam in bamlist) {
     bamheader = system(paste("samtools view -H", bam), intern=TRUE);
     
@@ -40,13 +41,21 @@ for (bam in bamlist) {
         for (rg in rgs) {
             id = grep("PU:", unlist(strsplit(rg, "\t")), value=TRUE);
             id = sub("PU:", "", id);
-            id = gsub("A.XX......", "", id)
-	       	 ##change this so that it pulls out the flowcell and lane properly from old samples
-		 	       ##change this so that it pulls out only samples which are in the right project for new samples
-            fclanes = c(fclanes, id);
-        }
+            id = gsub("XX......", "XX", id)
+	    if (length(unlist(strsplit(id, "\\.")))==3){
+	       indexed<-c(indexed, id)
+	       }
+	       else{
+		if(length(unlist(strsplit(id, "\\.")))==2){
+		   nonindexed<-c(nonindexed, id)
+		   }
+		   else{
+		      print(id + " is a strange PU and will result in odd searches")
+		      }
+		}
+	    }
     } else {
-        Print(sprintf("Could not load '%s'\n", bam));
+        print(sprintf("Could not load '%s'\n", bam));
     }
 }
 
@@ -66,10 +75,11 @@ dbClearResult(rs2);
 oraCloseDriver(drv);
 
 squid_fclanes = sprintf("%s.%s", d$"Flowcell", d$"Lane");
-squid_fclanes = gsub("A.XX", "", squid_fclanes);
+squid_fclanes_indexed = sprintf("%s.%s.%s", d$"Flowcell", d$"Lane", d$"Barcode");
 
 
-dproj = d[which(squid_fclanes %in% fclanes),];
+dproj = d[which(squid_fclanes %in% nonindexed),];
+dproj = rbind(dproj, d[which(squid_fclanes_indexed %in% indexed),])
 
 dproj = dproj[which(dproj$"Project" %in% unique(squids)),]
 
@@ -295,13 +305,13 @@ tearsheet<-function(){
 
 	par(mar=c(5, 4, 4, 2) + 0.1)
 	ind = order(eval.bysample.called.all$CountVariants);
-	plot(c(1:length(eval.bysample.called.all$CountVariants)), eval.bysample.called.all$CountVariants[ind], col="black", cex=1.1, cex.lab=1.1, cex.axis=1.1, main="Varients per Sample", xlab="Sample", ylab="Number of variants", bty="n", ylim=c(0, max(eval.bysample.called.all$CountVariants)));
+	plot(c(1:length(eval.bysample.called.all$CountVariants)), eval.bysample.called.all$CountVariants[ind], col="black", cex=1.1, cex.lab=1.1, cex.axis=1.1, main="Variants per Sample", xlab="Sample", ylab="Number of variants", bty="n", ylim=c(0, max(eval.bysample.called.all$CountVariants)));
 	points(c(1:length(eval.bysample.called.known$CountVariants)), eval.bysample.called.known$CountVariants[ind], col="blue", cex=1.3);
 	points(c(1:length(eval.bysample.called.novel$CountVariants)), eval.bysample.called.novel$CountVariants[ind], col="red", cex=1.3);
 	legend("right", max(eval.bysample.called.all$CountVariants)/2, c("All", "Known", "Novel"), col=c("black", "blue", "red"), pt.cex=1.3, pch=21);
 
 	par(mar=c(5, 4, 4, 2) + 0.1)
-	plot(eval.ac.called.all$AC, eval.ac.called.all$n, col="black", type="l", lwd=2, cex=1.1, cex.lab=1.1, cex.axis=1.1, xlab="Allele count", ylab="Number of variants", main="Varients by Allele Count", log="xy", bty="n");
+	plot(eval.ac.called.all$AC, eval.ac.called.all$n, col="black", type="l", lwd=2, cex=1.1, cex.lab=1.1, cex.axis=1.1, xlab="Allele count", ylab="Number of variants", main="Variants by Allele Count", log="xy", bty="n");
 	points(eval.ac.called.known$AC, eval.ac.called.known$n, col="blue", type="l", lwd=2);
 	points(eval.ac.called.novel$AC, eval.ac.called.novel$n, col="red", type="l", lwd=2);
 	legend("topright", c("All", "Known", "Novel"), col=c("black", "blue", "red"), lwd=2);
