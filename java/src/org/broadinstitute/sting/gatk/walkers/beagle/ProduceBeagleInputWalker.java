@@ -206,7 +206,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             /**
              * Use likelihoods if: is validation, prior is negative; or: is not validation, has genotype key
              */
-            if ( (isValidation && prior < 0.0) || genotype.isCalled() && genotype.hasLikelihoods()) {
+            if ( (isValidation && prior < 0.0) || genotype.hasLikelihoods() ) {
                 double[] likeArray = genotype.getLikelihoods().getAsVector();
                 if( isMaleOnChrX ) {
                     likeArray[1] = -255;
@@ -228,7 +228,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                     }
                 }
 
-                if (beagleGenotypesWriter != null) {
+                if ( beagleGenotypesWriter != null && genotype.isCalled() ) {
                     char a = genotype.getAllele(0).toString().charAt(0);
                     char b = genotype.getAllele(0).toString().charAt(0);
 
