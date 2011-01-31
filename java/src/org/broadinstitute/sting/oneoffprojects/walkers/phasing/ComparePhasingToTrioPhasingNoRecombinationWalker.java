@@ -497,7 +497,7 @@ class CompareTrioAndPhasingTracks {
         out.println("");
     }
 
-    private static String percentString(double numerator, double denominator) {        
+    private static String percentString(int numerator, int denominator) {
         int NUM_DECIMAL_PLACES = 1;
         String percent = new Formatter().format("%." + NUM_DECIMAL_PLACES + "f", MathUtils.percentage(numerator, denominator)).toString();
 

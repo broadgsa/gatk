@@ -316,70 +316,8 @@ public class VariantContextUtils {
     }
 
     public enum VariantMergeType {
-        UNION, INTERSECT, MASTER
+        UNION, INTERSECT
     }
-
-    /**
-     * Performs a master merge on the VCs.  Here there is a master input [contains all of the information] and many
-     * VCs containing partial, extra genotype information which should be added to the master.  For example,
-     * we scatter out the phasing algorithm over some samples in the master, producing a minimal VCF with phasing
-     * information per genotype.  The master merge will add the PQ information from each genotype record, where
-     * appropriate, to the master VC.
-     *
-     * @param genomeLocParser
-     * @param unsortedVCs
-     * @param masterName
-     * @param refBase
-     * @return
-     */
-    public static VariantContext masterMerge(Collection<VariantContext> unsortedVCs, String masterName) {
-        VariantContext master = findMaster(unsortedVCs, masterName);
-        Map<String, Genotype> genotypes = master.getGenotypes();
-        for ( Genotype g : genotypes.values() ) {
-            genotypes.put(g.getSampleName(), new MutableGenotype(g));
-        }
-
-        for ( VariantContext vc : unsortedVCs ) {
-            if ( ! vc.getSource() .equals(masterName) ) {
-                for ( Genotype g : vc.getGenotypes().values() ) {
-                    MutableGenotype masterG = (MutableGenotype)genotypes.get(g.getSampleName());
-                    for ( Map.Entry<String, Object> attr : g.getAttributes().entrySet() ) {
-                        if ( ! masterG.hasAttribute(attr.getKey()) ) {
-                            //System.out.printf("Adding attribute %s to masterG %s, new %s%n", attr, masterG, g);
-                            masterG.putAttribute(attr.getKey(), attr.getValue());
-                        }
-                    }
-
-                    if ( masterG.isPhased() != g.isPhased() ) {
-                        // System.out.printf("Updating phasing %s to masterG %s, new %s%n", g.isPhased(), masterG, g);
-                        masterG.setPhase(g.isPhased());
-                    }
-
-//                    if ( MathUtils.compareDoubles(masterG.getNegLog10PError(), g.getNegLog10PError()) != 0 ) {
-//                        System.out.printf("Updating GQ %s to masterG %s, new %s%n", g.getNegLog10PError(), masterG, g);
-//                        masterG.setNegLog10PError(g.getNegLog10PError());
-//                    }
-
-                    // TODO -- WARNING -- THIS CODE DOES NOT ACTUALLY LOOK AT ALL OF THE GENOTYPE ATTRIBUTES, ONLY THOSE
-                    // TODO -- WARNING -- IMMEDIATELY USEFUL TO PHASING.  A COMPLETE IMPLEMENTATION WILL NEED TO HANDLE
-                    // TODO -- WARNING -- ALL OF THE FIELDS LIKE ALLELES, ETC
-                }
-            }
-        }
-
-        return new VariantContext(master.getSource(), master.getChr(), master.getStart(), master.getEnd(), master.getAlleles(), genotypes, master.getNegLog10PError(), master.getFilters(), master.getAttributes());
-    }
-
-    private static final VariantContext findMaster(Collection<VariantContext> unsortedVCs, String masterName) {
-        for ( VariantContext vc : unsortedVCs ) {
-            if ( vc.getSource() .equals(masterName) ) {
-                return vc;
-            }
-        }
-
-        throw new ReviewedStingException(String.format("Couldn't find master VCF %s at %s", masterName, unsortedVCs.iterator().next()));
-    }
-
 
     public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, byte refBase) {
         return simpleMerge(genomeLocParser, unsortedVCs, null, VariantMergeType.INTERSECT, GenotypeMergeType.UNSORTED, false, false, refBase);
