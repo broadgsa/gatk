@@ -66,6 +66,9 @@ public abstract class BaseTest {
     public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.rod";
     public static final String b37dbSNP132 = dbsnpDataLocation + "dbsnp_132_b37.vcf";
 
+    public static final String networkTempDir = "/broad/shptmp/";
+    public static final File networkTempDirFile = new File(networkTempDir);
+
     /**
      * Subdirectory under the ant build directory where we store integration test md5 results
      */
@@ -333,6 +336,22 @@ public abstract class BaseTest {
     public static File createTempFile(String name, String extension) {
         try {
             File file = File.createTempFile(name, extension);
+            file.deleteOnExit();
+            return file;
+        } catch (IOException ex) {
+            throw new ReviewedStingException("Cannot create temp file: " + ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Creates a temp file that will be deleted on exit after tests are complete.
+     * @param name Prefix of the file.
+     * @param extension Extension to concat to the end of the file.
+     * @return A file in the network temporary directory starting with name, ending with extension, which will be deleted after the program exits.
+     */
+    public static File createNetworkTempFile(String name, String extension) {
+        try {
+            File file = File.createTempFile(name, extension, networkTempDirFile);
             file.deleteOnExit();
             return file;
         } catch (IOException ex) {

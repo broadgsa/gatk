@@ -24,10 +24,12 @@
 
 package org.broadinstitute.sting.jna.lsf.v7_0_6;
 
+import com.sun.jna.StringArray;
 import com.sun.jna.ptr.IntByReference;
 import org.apache.commons.io.FileUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.*;
@@ -35,9 +37,14 @@ import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.*;
 import java.io.File;
 
 /**
- * Really a unit test, but this test will only run on systems with LSF setup.
+ * Really unit tests, but these test will only run on systems with LSF setup.
  */
 public class LibBatIntegrationTest extends BaseTest {
+    @BeforeClass
+    public void initLibBat() {
+        Assert.assertFalse(LibBat.lsb_init("LibBatIntegrationTest") < 0, LibBat.lsb_sperror("lsb_init() failed"));
+    }
+
     @Test
     public void testClusterName() {
         String clusterName = LibLsf.ls_getclustername();
@@ -46,11 +53,24 @@ public class LibBatIntegrationTest extends BaseTest {
     }
 
     @Test
+    public void testReadQueueLimits() {
+        String queue = "hour";
+        StringArray queues = new StringArray(new String[] {queue});
+        IntByReference numQueues = new IntByReference(1);
+        queueInfoEnt queueInfo = LibBat.lsb_queueinfo(queues, numQueues, null, null, 0);
+
+        Assert.assertEquals(numQueues.getValue(), 1);
+        Assert.assertNotNull(queueInfo);
+        Assert.assertEquals(queueInfo.queue, queue);
+
+        int runLimit = queueInfo.rLimits[LibLsf.LSF_RLIMIT_RUN];
+        Assert.assertTrue(runLimit > 0, "LSF run limit is not greater than zero: " + runLimit);
+    }
+
+    @Test
     public void testSubmitEcho() throws InterruptedException {
         String queue = "hour";
-        File outFile = new File("LibBatIntegrationTest.out");
-
-        Assert.assertFalse(LibBat.lsb_init("LibBatIntegrationTest") < 0, LibBat.lsb_sperror("lsb_init() failed"));
+        File outFile = createNetworkTempFile("LibBatIntegrationTest-", ".out");
 
         submit req = new submit();
 

@@ -91,7 +91,7 @@ class FullCallingPipelineTest {
   final def convertDatasets: Array[Array[AnyRef]] =
     datasets.map(dataset => Array(dataset.asInstanceOf[AnyRef])).toArray
 
-  @Test(dataProvider="datasets")
+  @Test(dataProvider="datasets", enabled=false)
   def testFullCallingPipeline(dataset: PipelineDataset) = {
     val projectName = dataset.pipeline.getProject.getName
     val testName = "fullCallingPipeline-" + projectName

@@ -5,11 +5,12 @@ import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.queue.QException
 import org.broadinstitute.sting.jna.lsf.v7_0_6.{LibLsf, LibBat}
-import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{signalBulkJobs, submitReply, submit}
 import org.broadinstitute.sting.utils.Utils
-import com.sun.jna.{NativeLong, Memory}
 import org.broadinstitute.sting.jna.clibrary.LibC
 import java.util.Date
+import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{signalBulkJobs, submitReply, submit}
+import com.sun.jna.ptr.IntByReference
+import com.sun.jna.{StringArray, NativeLong, Memory}
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -73,6 +74,8 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
 
     if (function.jobLimitSeconds.isDefined) {
       request.rLimits(LibLsf.LSF_RLIMIT_RUN) = function.jobLimitSeconds.get
+    } else {
+      request.rLimits(LibLsf.LSF_RLIMIT_RUN) = Lsf706JobRunner.getRlimitRun(function.jobQueue)
     }
 
     writeExec()
@@ -170,12 +173,56 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
 object Lsf706JobRunner extends Logging {
   init()
 
+  /** The name of the default queue. */
+  private var defaultQueue: String = _
+
+  /** The run limits for each queue. */
+  private var queueRlimitRun = Map.empty[String,Int]
+
   /**
    * Initialize the Lsf library.
    */
   private def init() = {
     if (LibBat.lsb_init("Queue") < 0)
       throw new QException(LibBat.lsb_sperror("lsb_init() failed"))
+  }
+
+  /**
+   * Returns the run limit in seconds for the queue.
+   * If the queue name is null returns the length of the default queue.
+   * @param queue Name of the queue or null for the default queue.
+   * @return the run limit in seconds for the queue.
+   */
+  def getRlimitRun(queue: String) = {
+    if (queue == null) {
+      if (defaultQueue != null) {
+        queueRlimitRun(defaultQueue)
+      } else {
+        // Get the info on the default queue.
+        val numQueues = new IntByReference(1)
+        val queueInfo = LibBat.lsb_queueinfo(null, numQueues, null, null, 0)
+        if (queueInfo == null)
+          throw new QException("Unable to get LSF queue info for the default queue.")
+        defaultQueue = queueInfo.queue
+        val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
+        queueRlimitRun += defaultQueue -> limit
+        limit
+      }
+    } else {
+      queueRlimitRun.get(queue) match {
+        case Some(limit) => limit
+        case None =>
+          // Cache miss.  Go get the run limits from LSF.
+          val queues = new StringArray(Array[String](queue))
+          val numQueues = new IntByReference(1)
+          val queueInfo = LibBat.lsb_queueinfo(queues, numQueues, null, null, 0)
+          if (queueInfo == null)
+            throw new QException("Unable to get LSF queue info for queue: " + queue)
+          val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
+          queueRlimitRun += queue -> limit
+          limit
+      }
+    }
   }
 
   /**
