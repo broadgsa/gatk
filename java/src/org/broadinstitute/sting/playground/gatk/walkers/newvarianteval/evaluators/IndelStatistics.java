@@ -75,9 +75,9 @@ public class IndelStatistics extends VariantEvaluator {
             COLUMN_KEYS[4] = "number_homozygous_insertions";
             COLUMN_KEYS[5] = "number_het_deletions";
             COLUMN_KEYS[6] = "number_homozygous_deletions";
-            COLUMN_KEYS[7] = "number of homozygous reference sites";
-            COLUMN_KEYS[8] = "number of complex events";
-            COLUMN_KEYS[9] = "number of long indels";
+            COLUMN_KEYS[7] = "number_of_homozygous_reference_sites";
+            COLUMN_KEYS[8] = "number_of_complex_events";
+            COLUMN_KEYS[9] = "number_of_long_indels";
 
             for (int k=NUM_SCALAR_COLUMNS; k < NUM_SCALAR_COLUMNS+ 2*INDEL_SIZE_LIMIT+1; k++)
                 COLUMN_KEYS[k] = "indel_size_len"+Integer.valueOf(index2len(k));
