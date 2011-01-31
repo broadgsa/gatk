@@ -36,6 +36,9 @@ class PhaseSamples extends QScript {
   @Input(doc="Samples to phase together.   By default is set to 1 [one job per sample].", shortName="samplesPerJob", required=false)
   var samplesPerJob = 1
 
+  @Input(doc="Phased file to output", shortName="o", required=true)
+  var outputPhased: File = _
+
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.intervalsString = List(qscript.intervals)
     this.jarFile = qscript.gatkJarFile
@@ -46,7 +49,7 @@ class PhaseSamples extends QScript {
 
 // A target has a list of samples and bam files to use for phasing
 class Target(val name: String, val samples: List[String], val bams: List[File]) {
-    def phasedVCFFile = new File(name + ".phased.vcf")
+    def phasedVCFFile = new File(name + "." + outputPhased)
     
     override def toString(): String = String.format("[Target %s with samples %s against bams %s]", name, samples, bams)
 }
@@ -119,7 +122,7 @@ class CombineVariants(vcfsToCombine: List[File]) extends org.broadinstitute.stin
 
     this.variantMergeOptions = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
 
-    this.out = new File("phased.vcf")
+    this.out = new File(outputPhased)
 }
 
 }
