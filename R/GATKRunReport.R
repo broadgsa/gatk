@@ -1,3 +1,4 @@
+require("plotrix")
 args = commandArgs(TRUE);
 
 onCMDLine = ! is.na(args[1])
@@ -9,6 +10,9 @@ if ( onCMDLine ) {
    #d$start.time = as.Date(d$start.time)
    d$end.time = as.Date(d$end.time)
 } # only read into d if its' available, otherwise assume the data is already loaded
+
+# The unknown records are from the Broad
+d$domain.name[d$domain.name == "unknown"] = "broadinstitute.org"
 
 noRecords <- function(name) {
     print(paste("No records", name))
@@ -127,7 +131,6 @@ generateOneReport <- function(d, header, includeByWeek = T) {
     reportConditionalCountingPlot(d$user.name, d$walker.name, head("Walker invocations by user"))
     reportCountingPlot(d$svn.version, head("SVN version"))
 	reportConditionalCountingPlot(d$svn.version, d$user.name, head("SVN by user"))
-
     
     # cuts by time
     if ( includeByWeek ) {
@@ -170,6 +173,7 @@ generateOneReport <- function(d, header, includeByWeek = T) {
     reportHist(log10(d$run.time / min), head("Run time (log10[min])"))
 
     reportCountingPlot(d$user.name, head("user"))
+    reportCountingPlot(d$domain.name, head("Domain name"))
     #reportCountingPlot(d$host.name, head("host"))
 
     reportCountingPlot(d$java, head("Java version"))
@@ -177,7 +181,7 @@ generateOneReport <- function(d, header, includeByWeek = T) {
     #reportCountingPlot(d$working.directory, head("Working directory"))
 }
 
-RUNME = T
+RUNME = F
 if ( RUNME ) {
     lastWeek = levels(cut(d$end.time, "weeks"))[-1]
     generateOneReport(d, "Overall")
