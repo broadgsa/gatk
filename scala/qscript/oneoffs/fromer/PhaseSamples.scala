@@ -136,7 +136,9 @@ class CombineVariants(vcfsToCombine: List[File]) extends org.broadinstitute.stin
         this.rodBind :+= RodBind(vcf.getName, "VCF", vcf)
     }
 
-    this.variantMergeOptions = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
+    // add the master call:
+    this.rodBind :+= RodBind("master", "VCF", masterCalls)
+    this.variantMergeOptions = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.MASTER)
 
     this.out = outputPhased
 }

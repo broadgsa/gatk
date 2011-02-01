@@ -168,7 +168,7 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
             if (curTrioVc.getNSamples() > NUM_IN_TRIO || sampleCurGtInTrio == null)
                 throw new UserException("Must provide trio data for sample: " + phasingSample);
 
-            if (!new TreeSet<Allele>(curPhasingGt.getAlleles()).equals(new TreeSet<Allele>(sampleCurGtInTrio.getAlleles()))) {
+            if (!curPhasingGt.sameGenotype(sampleCurGtInTrio)) {
                 logger.warn("Locus " + curLoc + " breaks phase, since " + PHASING_ROD_NAME + " and " + TRIO_ROD_NAME + " tracks have different genotypes for " + phasingSample + "!");
                 prevLoc = null;
                 return result;
@@ -323,7 +323,8 @@ public class ComparePhasingToTrioPhasingNoRecombinationWalker extends RodWalker<
                             stats.bothCanPhase++;
                             useTrioPhase = false;
 
-                            if (!phasedCurAlleles.equals(curPhasingGt.getAlleles())) {
+                            boolean ignorePhase = false;
+                            if (!phasedGt.sameGenotype(curPhasingGt, ignorePhase)) {
                                 String contradictMessage = "Phase from " + PHASING_ROD_NAME + " track at " + curLoc + " contradicts the trio-based phasing.";
                                 stats.contradictoryPhaseSites++;
                                 addToOutput += "\tcontradictory";
