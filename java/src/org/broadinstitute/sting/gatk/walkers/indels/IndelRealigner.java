@@ -184,7 +184,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     // the reads and known indels that fall into the current interval
     private final ReadBin readsToClean = new ReadBin();
     private final ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
-    private final IdentityHashMap<Object, VariantContext> knownIndelsToTry = new IdentityHashMap<Object, VariantContext>();
+    private final ArrayList<VariantContext> knownIndelsToTry = new ArrayList<VariantContext>();
+    private final HashSet<Object> indelRodsSeen = new HashSet<Object>();
 
     private static final int MAX_QUAL = 99;
 
@@ -366,7 +367,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( !NO_PG_TAG ) {
             final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
             final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
-            programRecord.setProgramVersion(headerInfo.getString("org.broadinstitute.sting.gatk.version"));
+            try {
+                final String version = headerInfo.getString("org.broadinstitute.sting.gatk.version");
+                programRecord.setProgramVersion(version);
+            } catch (MissingResourceException e) {}
             programRecord.setCommandLine(getToolkit().createApproximateCommandLineArgumentString(getToolkit(), this));
 
             List<SAMProgramRecord> oldRecords = header.getProgramRecords();
@@ -475,6 +479,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
         clean(readsToClean);
         knownIndelsToTry.clear();
+        indelRodsSeen.clear();
 
         emit(readsNotToClean);
         emit(readsToClean.getReads());
@@ -507,6 +512,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( readsToClean.size() > 0 || readsNotToClean.size() > 0 ) {
             clean(readsToClean);
             knownIndelsToTry.clear();
+            indelRodsSeen.clear();
 
             // merge the two sets for emission
             readsNotToClean.addAll(readsToClean.getReads());
@@ -557,12 +563,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             Iterator<GATKFeature> rodIter = rods.iterator();
             while ( rodIter.hasNext() ) {
                 Object rod = rodIter.next().getUnderlyingObject();
-                if ( knownIndelsToTry.containsKey(rod) )
+                if ( indelRodsSeen.contains(rod) )
                     continue;
+                indelRodsSeen.add(rod);
                 if ( VariantContextAdaptors.canBeConvertedToVariantContext(rod))
-                    knownIndelsToTry.put(rod, VariantContextAdaptors.toVariantContext("", rod, ref));
-                else
-                    knownIndelsToTry.put(rod, null);
+                    knownIndelsToTry.add(VariantContextAdaptors.toVariantContext("", rod, ref));
             }
         }
     }
@@ -794,7 +799,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private void generateAlternateConsensesFromKnownIndels(final Set<Consensus> altConsensesToPopulate, final int leftmostIndex, final byte[] reference) {
-        for ( VariantContext knownIndel : knownIndelsToTry.values() ) {
+        for ( VariantContext knownIndel : knownIndelsToTry ) {
             if ( knownIndel == null || !knownIndel.isIndel() )
                 continue;
             byte[] indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
