@@ -19,7 +19,7 @@ rm -f report.txt
 cd $DIR
 
 echo "\n####################\nArchiving recently submitted jobs" >> report.txt
-#python $GATK/python/analyzeRunReports.py archive $DIR/submitted -o $ARCHIVE.gz -D >> report.txt
+python $GATK/python/analyzeRunReports.py archive $DIR/submitted -o $ARCHIVE.gz -D >> report.txt
 
 echo "Released version, all runs" >> report.txt
 #python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --rev $GATK_RELEASE_VERSION >> report.txt
