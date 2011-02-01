@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class VariantEvalIntegrationTest extends WalkerTest {
-    private static String cmdRoot = "-T NewVariantEval" +
+    private static String cmdRoot = "-T VariantEval" +
             " -R " + b36KGReference;
 
     private static String root = cmdRoot +
@@ -104,7 +104,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
 //    @Test
 //    public void testVEGenomicallyAnnotated() {
-//        String vecmd = "-T NewVariantEval" +
+//        String vecmd = "-T VariantEval" +
 //                       " -R " + b36KGReference +
 //                       " -L 21" +
 //                       " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
@@ -132,7 +132,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testCompVsEvalAC() {
-        String extraArgs = "-T NewVariantEval -R "+b36KGReference+" -o %s -EV GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf";
+        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -EV GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("929e4ec46fb6957c29803531322bb35e"));
         //executeTestParallel("testACDiscordanceAtAC1EvalAC2Comp",spec);
         executeTest("testCompVsEvalAC",spec);
@@ -144,7 +144,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testTranches() {
-        String extraArgs = "-T NewVariantEval -R "+ hg18Reference +" -B:eval,vcf " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -tf " + testDir + "tranches.6.txt";
+        String extraArgs = "-T VariantEval -R "+ hg18Reference +" -B:eval,vcf " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -tf " + testDir + "tranches.6.txt";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("68044a69f03ba4cc11d2061cc96e9eb5"));
         //executeTestParallel("testTranches",spec);
         executeTest("testTranches",spec);
