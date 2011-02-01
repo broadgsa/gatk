@@ -363,17 +363,22 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
     }
 
     private void printGeneStats(List<Pair<GenomeLoc, CoveragePartitioner>> statsByTarget) {
+        logger.debug("statsByTarget size is "+Integer.toString(statsByTarget.size()));
+        logger.debug("Initializing refseq...");
         LocationAwareSeekableRODIterator refseqIterator = initializeRefSeq();
+        logger.debug("Refseq init done.");
         List<Pair<String,DepthOfCoverageStats>> statsByGene = new ArrayList<Pair<String,DepthOfCoverageStats>>();// maintains order
         Map<String,DepthOfCoverageStats> geneNamesToStats = new HashMap<String,DepthOfCoverageStats>(); // allows indirect updating of objects in list
 
         for ( Pair<GenomeLoc, CoveragePartitioner> targetStats : statsByTarget ) {
             String gene = getGeneName(targetStats.first,refseqIterator);
             if ( geneNamesToStats.keySet().contains(gene) ) {
+                logger.debug("Merging "+geneNamesToStats.get(gene).toString()+" and "+targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample).toString());
                 geneNamesToStats.get(gene).merge(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
             } else {
-                geneNamesToStats.put(gene,new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample)));
-                statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample))));
+                DepthOfCoverageStats merger = new DepthOfCoverageStats(targetStats.second.getCoverageByAggregationType(DoCOutputType.Partition.sample));
+                geneNamesToStats.put(gene,merger);
+                statsByGene.add(new Pair<String,DepthOfCoverageStats>(gene,merger));
             }
         }
 
@@ -386,15 +391,19 @@ public class DepthOfCoverageWalker extends LocusWalker<Map<DoCOutputType.Partiti
 
     //blatantly stolen from Andrew Kernytsky
     private String getGeneName(GenomeLoc target, LocationAwareSeekableRODIterator refseqIterator) {
+        logger.debug("Examining "+target.toString());
         if (refseqIterator == null) { return "UNKNOWN"; }
 
         RODRecordList annotationList = refseqIterator.seekForward(target);
+        logger.debug("Annotation list is " + (annotationList == null ? "null" : annotationList.getName()));
         if (annotationList == null) { return "UNKNOWN"; }
 
         for(GATKFeature rec : annotationList) {
             if ( ((RefSeqFeature)rec.getUnderlyingObject()).overlapsExonP(target) ) {
+                logger.debug("We do overlap "+ rec.getUnderlyingObject().toString());
                 return ((RefSeqFeature)rec.getUnderlyingObject()).getGeneName();
             }
+            logger.debug("No overlap");
         }
 
         return "UNKNOWN";
