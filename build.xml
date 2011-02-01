@@ -472,7 +472,7 @@
             <include name="**/*.scala"/>
             <classpath>
                 <path refid="scala.dependencies"/>
-                <pathelement location="${scala.classes}"/>
+                <pathelement location="${scala.test.classes}"/>
                 <pathelement location="${java.test.classes}"/>
                 <pathelement location="lib/testng-5.14.1.jar"/>
             </classpath>
