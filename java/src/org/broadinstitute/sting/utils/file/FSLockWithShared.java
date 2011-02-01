@@ -51,6 +51,7 @@ public class FSLockWithShared {
      * Get a shared (read) lock on a file
      * Cannot get shared lock if it does not exist
      * @return boolean true if we obtained a lock
+     * @throws FileSystemInabilityToLockException in cases of unexpected failure to capture lock.
      */
     public boolean sharedLock() throws FileSystemInabilityToLockException {
 
@@ -59,27 +60,27 @@ public class FSLockWithShared {
             channel = new RandomAccessFile(file, "r").getChannel();
         }
         catch (IOException e) {
-            logger.debug("Unable to lock file (could not open read only file channel)");
+            logger.warn(String.format("WARNING: Unable to lock file %s (could not open read only file channel)",file.getAbsolutePath()));
             return false;
         }
         // get shared lock (third argument is true)
         try {
             lock = channel.tryLock(0, Long.MAX_VALUE, true);
             if (lock == null) {
-                logger.debug("Unable to lock file because there is already a lock active.");
+                logger.warn(String.format("WARNING: Unable to lock file %s because there is already a lock active.",file.getAbsolutePath()));
                 return false;
             }
         }
         catch (ClosedChannelException e) {
-            logger.debug("Unable to lock file because the file channel is closed.");
+            logger.warn(String.format("WARNING: Unable to lock file %s because the file channel is closed.",file.getAbsolutePath()));
             return false;
         }
         catch (OverlappingFileLockException e) {
-            logger.debug("Unable to lock file because you already have a lock on this file.");
+            logger.warn(String.format("WARNING: Unable to lock file %s because you already have a lock on this file.",file.getAbsolutePath()));
             return false;
         }
         catch (IOException e) {
-            logger.debug("Unable to lock file: " + e.getMessage());
+            logger.warn(String.format("WARNING: Unable to lock file %s: %s.",file.getAbsolutePath(),e.getMessage()));
             if(throwExceptionOnUnknownFailure)
                 throw new FileSystemInabilityToLockException(e.getMessage(),e);
             else
@@ -91,6 +92,7 @@ public class FSLockWithShared {
     /**
      * Get an exclusive lock on a file
      * @return boolean true if we obtained a lock
+     * @throws FileSystemInabilityToLockException in cases of unexpected failure to capture lock.
      */
     public boolean exclusiveLock() throws FileSystemInabilityToLockException {
 
@@ -99,7 +101,7 @@ public class FSLockWithShared {
             channel = new RandomAccessFile(file, "rw").getChannel();
         }
         catch (Exception e) {
-            logger.debug("Unable to lock file (could not open read/write file channel)");
+            logger.warn(String.format("WARNING: Unable to lock file %s (could not open read/write file channel)",file.getAbsolutePath()));
             // do we need to worry about deleting file here? Does RandomAccessFile will only create file if successful?
             return false;
         }
@@ -108,21 +110,21 @@ public class FSLockWithShared {
         try {
             lock = channel.tryLock(0, Long.MAX_VALUE, false);
             if (lock == null) {
-                logger.debug("Unable to lock file because there is already a lock active.");
+                logger.warn(String.format("WARNING: Unable to lock file %s because there is already a lock active.",file.getAbsolutePath()));
                 return false;
             }
             else return true;
         }
         catch (ClosedChannelException e) {
-            logger.debug("Unable to lock file because the file channel is closed.");
+            logger.warn(String.format("WARNING: Unable to lock file %s because the file channel is closed.",file.getAbsolutePath()));
             return false;
         }
         catch (OverlappingFileLockException e) {
-            logger.debug("Unable to lock file because you already have a lock on this file.");
+            logger.warn(String.format("WARNING: Unable to lock file %s because you already have a lock on this file.",file.getAbsolutePath()));
             return false;
         }
         catch (IOException e) {
-            logger.debug("Unable to lock file: " + e.getMessage());
+            logger.warn(String.format("WARNING: ßUnable to lock file %s: %s.",file.getAbsolutePath(),e.getMessage()));
             if(throwExceptionOnUnknownFailure)
                 throw new FileSystemInabilityToLockException(e.getMessage(),e);
             else
