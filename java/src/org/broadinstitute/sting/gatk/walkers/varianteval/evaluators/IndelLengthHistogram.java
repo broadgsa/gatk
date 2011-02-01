@@ -17,7 +17,7 @@ import org.broadinstitute.sting.utils.report.utils.TableType;
  */
 @Analysis(name = "Indel length histograms", description = "Shows the distrbution of insertion/deletion event lengths (negative for deletion, positive for insertion)")
 public class IndelLengthHistogram extends VariantEvaluator {
-    private static final int SIZE_LIMIT = 50;
+    private static final int SIZE_LIMIT = 100;
     @DataPoint(description="Histogram of indel lengths")
     IndelHistogram indelHistogram = new IndelHistogram(SIZE_LIMIT);
 
@@ -83,21 +83,19 @@ public class IndelLengthHistogram extends VariantEvaluator {
         }
     }
 
-    public boolean enabled() { return false; }
+    public boolean enabled() { return true; }
 
     public String getName() { return "IndelLengthHistogram"; }
 
     public int getComparisonOrder() { return 1; } // need only the evals
 
     public String update1(VariantContext vc1, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        //System.out.println("Update1 called");        
         if ( ! vc1.isBiallelic() && vc1.isIndel() ) {
             //veWalker.getLogger().warn("[IndelLengthHistogram] Non-biallelic indel at "+ref.getLocus()+" ignored.");
             return vc1.toString(); // biallelic sites are output
         }
 
         if ( vc1.isIndel() ) {
-            //System.out.println("Is indel");
             if ( vc1.isInsertion() ) {
                 indelHistogram.update(vc1.getAlternateAllele(0).length());
             } else if ( vc1.isDeletion() ) {

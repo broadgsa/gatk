@@ -762,7 +762,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                 }
 
                                 for ( Object o : t.getColumnKeys() ) {
-                                    String c = (String) o;
+                                    String c;
+
+                                    if (o instanceof String) {
+                                        c = (String) o;
+                                    } else {
+                                        c = o.toString();
+                                    }
+
                                     table.addColumn(c, 0.0);
                                 }
                             } else {
@@ -779,7 +786,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                 }
 
                                 for (int col = 0; col < t.getColumnKeys().length; col++) {
-                                    String c = (String) t.getColumnKeys()[col];
+                                    String c;
+                                    if (t.getColumnKeys()[col] instanceof String) {
+                                        c = (String) t.getColumnKeys()[col];
+                                    } else {
+                                        c = t.getColumnKeys()[col].toString();
+                                    }
 
                                     String newStateKey = stateKey.toString() + r;
                                     table.set(newStateKey, c, t.getCell(row, col));
