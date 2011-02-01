@@ -13,7 +13,7 @@ assert(table.getn(arg) > 0, "\n\nMissing input file\n\nUsage:\n\tlua MergeInterv
 local intervals = {}
 local intervalKeys = {}
 for l in io.lines(arg[1]) do
-	local chr, a, b = l:match("([%l%d]+):(%d+)-(%d+)")
+	local chr, a, b = l:match("([%a%d]+):(%d+)-(%d+)")
 	a,b = tonumber(a), tonumber(b)
 	if not intervals[chr] then 
 		intervals[chr] = {}
