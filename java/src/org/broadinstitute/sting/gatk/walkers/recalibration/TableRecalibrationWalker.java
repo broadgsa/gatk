@@ -259,7 +259,10 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         if( !NO_PG_TAG ) {
             final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
             final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
-            programRecord.setProgramVersion( headerInfo.getString("org.broadinstitute.sting.gatk.version") );
+            try {
+                final String version = headerInfo.getString("org.broadinstitute.sting.gatk.version");
+                programRecord.setProgramVersion(version);
+            } catch (MissingResourceException e) {}
 
             StringBuffer sb = new StringBuffer();
             sb.append(getToolkit().createApproximateCommandLineArgumentString(getToolkit(), this));
