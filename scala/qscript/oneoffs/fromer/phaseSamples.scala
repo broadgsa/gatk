@@ -90,9 +90,25 @@ def bamsToTargets(samples: List[String], bamsIn: File): List[Target] = {
 // these files
 def findBamsForSamples( samples: List[String], bams: List[File] ): List[File] = bams match {
     case x :: Nil => return bams
-    case _ => 
-        // todo -- implement me
-        throw new RuntimeException("bam input lists not enabled")
+    case _ =>
+      return findBamsForSamplesHelper(samples, bams)
+}
+
+def findBamsForSamplesHelper( samples: List[String], bams: List[File] ): List[File] = bams match {
+    case Nil => Nil
+    case x :: y =>
+          val line: File = matchSamplesInSingleBam(x, samples)
+          val restOfList: List[File] = findBamsForSamplesHelper(samples, y)
+          if (line != null)
+            line :: restOfList
+          else
+            restOfList
+}
+
+// If the line (bam file name) contains ANY sample match, we use it:
+def matchSamplesInSingleBam( line : File, samples: List[String] ) : File = samples match {
+  case Nil => null
+  case x :: y => if (line.getName().contains(x)) line else matchSamplesInSingleBam(line, y)
 }
 
 // todo -- allow us to get the master list of samples from the VCF for convenience
