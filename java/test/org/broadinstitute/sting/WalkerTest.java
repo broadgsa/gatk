@@ -40,13 +40,7 @@ import java.io.File;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
-    // the default output path for the integration test
-    private File outputFileLocation = null;
     private static final boolean ENABLE_REPORTING = false;
-
-    public void setOutputFileLocation(File outputFileLocation) {
-        this.outputFileLocation = outputFileLocation;
-    }
 
     public String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
         return assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
@@ -84,6 +78,9 @@ public class WalkerTest extends BaseTest {
         List<String> exts = null;
         Class expectedException = null;
 
+        // the default output path for the integration test
+        private File outputFileLocation = null;
+
         protected Map<String, File> auxillaryFiles = new HashMap<String, File>();
 
         public WalkerTestSpec(String args, List<String> md5s) {
@@ -113,6 +110,14 @@ public class WalkerTest extends BaseTest {
             this.expectedException = expectedException;
         }
 
+        public void setOutputFileLocation(File outputFileLocation) {
+            this.outputFileLocation = outputFileLocation;
+        }        
+
+        protected File getOutputFileLocation() {
+            return outputFileLocation;
+        }
+        
         public boolean expectsException() {
             return expectedException != null;
         }
@@ -125,6 +130,7 @@ public class WalkerTest extends BaseTest {
         public void addAuxFile(String expectededMD5sum, File outputfile) {
             auxillaryFiles.put(expectededMD5sum, outputfile);
         }
+
     }
 
     protected boolean parameterize() {
@@ -163,7 +169,7 @@ public class WalkerTest extends BaseTest {
 
         if ( spec.expectsException() ) {
             // this branch handles the case were we are testing that a walker will fail as expected
-            return executeTest(name, null, tmpFiles, args, spec.getExpectedException());
+            return executeTest(name, spec.getOutputFileLocation(), null, tmpFiles, args, spec.getExpectedException());
         } else {
             List<String> md5s = new LinkedList<String>();
             md5s.addAll(spec.md5s);
@@ -173,7 +179,7 @@ public class WalkerTest extends BaseTest {
                 md5s.add(md5);
                 tmpFiles.add(spec.auxillaryFiles.get(md5));
             }
-            return executeTest(name, md5s, tmpFiles, args, null);
+            return executeTest(name, spec.getOutputFileLocation(), md5s, tmpFiles, args, null);
         }
     }
 
@@ -186,9 +192,9 @@ public class WalkerTest extends BaseTest {
      * @param expectedException the expected exception or null
      * @return a pair of file and string lists
      */
-    private Pair<List<File>, List<String>> executeTest(String name, List<String> md5s, List<File> tmpFiles, String args, Class expectedException) {
+    private Pair<List<File>, List<String>> executeTest(String name, File outputFileLocation, List<String> md5s, List<File> tmpFiles, String args, Class expectedException) {
         if (outputFileLocation != null)
-            args += " -o " + this.outputFileLocation.getAbsolutePath();
+            args += " -o " + outputFileLocation.getAbsolutePath();
         executeTest(name, args, expectedException);
 
         if ( expectedException != null ) {

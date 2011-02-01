@@ -44,15 +44,15 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
 
     @Test
     public void testBaseOutputNoFiltering() {
-        // our base file
-        File baseOutputFile = this.createTempFile("depthofcoveragenofiltering",".tmp");
-        this.setOutputFileLocation(baseOutputFile);
-
         String[] intervals = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/fhs_jhs_30_targts.interval_list"};
         String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/FHS_indexed_subset.bam"};
 
         String cmd = buildRootCmd(hg18Reference,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 0 -dels -baseCounts -pt readgroup -pt sample -pt library --outputFormat csv -ct 10 -ct 15 -ct 20 -ct 25";
         WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
+
+        // our base file
+        File baseOutputFile = this.createTempFile("depthofcoveragenofiltering",".tmp");
+        spec.setOutputFileLocation(baseOutputFile);
 
         // now add the expected files that get generated
         spec.addAuxFile("423571e4c05e7934322172654ac6dbb7", baseOutputFile);
@@ -80,14 +80,14 @@ public class DepthOfCoverageIntegrationTest extends WalkerTest {
 
     @Test
     public void testNoCoverageDueToFiltering() {
-        File baseOutputFile = this.createTempFile("depthofcoveragenofiltering",".tmp");
-        this.setOutputFileLocation(baseOutputFile);
-
         String[] intervals = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/fhs_jhs_30_targts.interval_list"};
         String[] bams = {"/humgen/gsa-hpprojects/GATK/data/Validation_Data/FHS_indexed_subset.bam"};
 
         String cmd = buildRootCmd(hg18Reference,new ArrayList<String>(Arrays.asList(bams)),new ArrayList<String>(Arrays.asList(intervals))) + " -mmq 0 -mbq 5 --maxBaseQuality 4 -dels -baseCounts -pt readgroup -pt sample -pt library --outputFormat csv";
         WalkerTestSpec spec = new WalkerTestSpec(cmd,0, new ArrayList<String>());
+
+        File baseOutputFile = this.createTempFile("depthofcoveragenofiltering",".tmp");
+        spec.setOutputFileLocation(baseOutputFile);
 
         spec.addAuxFile("6ccd7d8970ba98cb95fe41636a070c1c",baseOutputFile);
         spec.addAuxFile("0ee40f3e5091536c14e077b77557083a",createTempFileFromBase(baseOutputFile.getAbsolutePath()+".library_interval_summary"));

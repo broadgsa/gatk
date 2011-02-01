@@ -75,7 +75,7 @@ public class IntervalIntegrationTest extends WalkerTest {
 
         // our base file
         File baseOutputFile = createTempFile("testUnmappedReadInclusion",".bam");
-        this.setOutputFileLocation(baseOutputFile);
+        spec.setOutputFileLocation(baseOutputFile);
         spec.addAuxFile("fcd11cfa8474472c617d400623a30fcd",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
         spec.addAuxFile("3d1f077727e6b68e20a2095d034e56d7", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
 
@@ -95,7 +95,7 @@ public class IntervalIntegrationTest extends WalkerTest {
 
         // our base file
         File baseOutputFile = createTempFile("testUnmappedReadExclusion",".bam");
-        this.setOutputFileLocation(baseOutputFile);
+        spec.setOutputFileLocation(baseOutputFile);
         spec.addAuxFile("3153593c9f9ff80a8551fff5655e65ec",createTempFileFromBase(baseOutputFile.getAbsolutePath()));
         spec.addAuxFile("7fc574ac72211623e4df74d9f75a4e48", createTempFileFromBase(baseOutputFile.getAbsolutePath().substring(0,baseOutputFile.getAbsolutePath().indexOf(".bam"))+".bai"));
 
