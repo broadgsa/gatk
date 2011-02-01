@@ -95,10 +95,10 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
             " -R " + b36KGReference +
             " -B:eval,vcf " + testFile +
             " -B:comp,vcf,storage=STREAM " + tmpFifo.getAbsolutePath() +
-            " -E CompOverlap -noStandard" +
-            " -reportType CSV -o %s",
+            " -EV CompOverlap -noEV" +
+            " -o %s",
             1,
-            Arrays.asList("f7df3ac0777b1a45aa7a58228a290600")
+            Arrays.asList("99b4edbd70e6540f39c929b435ecd8e7")
         );
         executeTest("testVCFStreamingChain", selectTestSpec);
 
