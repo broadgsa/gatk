@@ -124,7 +124,7 @@ public class FSLockWithShared {
             return false;
         }
         catch (IOException e) {
-            logger.warn(String.format("WARNING: ßUnable to lock file %s: %s.",file.getAbsolutePath(),e.getMessage()));
+            logger.warn(String.format("WARNING: Unable to lock file %s: %s.",file.getAbsolutePath(),e.getMessage()));
             if(throwExceptionOnUnknownFailure)
                 throw new FileSystemInabilityToLockException(e.getMessage(),e);
             else
