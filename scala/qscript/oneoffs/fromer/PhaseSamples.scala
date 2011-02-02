@@ -34,7 +34,7 @@ class PhaseSamples extends QScript {
   @Input(doc = "Samples to phase together.   By default is set to 1 [one job per sample].", shortName = "samplesPerJob", required = false)
   var samplesPerJob = 1
 
-  @Input(doc = "Phased file to output", shortName = "o", required = true)
+  @Output(doc = "Phased file to output", shortName = "o", required = true)
   var outputPhased: File = _
 
   trait CommandLineGATKArgs extends CommandLineGATK {
@@ -153,6 +153,8 @@ class PhaseSamples extends QScript {
 
   class PhasingByACeval() extends org.broadinstitute.sting.queue.extensions.gatk.PhasingEval with CommandLineGATKArgs {
     this.analysis = org.broadinstitute.sting.oneoffprojects.walkers.phasing.PhasingEval.Analysis.PHASING_BY_AC
+
+    this.rodBind :+= RodBind(outputPhased.getName, "VCF", outputPhased)
 
     this.out = new File("phasing_by_ac." + outputPhased + ".txt")
   }
