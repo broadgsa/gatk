@@ -30,8 +30,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
                     1, Arrays.asList("0087b2a096aa99135b065aa9a0fff34c"));
-            //executeTestParallel("testSelect1", spec);
-            executeTest("testSelect1", spec);
+            executeTestParallel("testSelect1", spec);
+            //executeTest("testSelect1", spec);
         }
     }
 
@@ -51,8 +51,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
             WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B:eval,VCF " + validationDataLocation + vcfFile + " -B:comp,VCF " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
                     1,
                     Arrays.asList("bb16335f9510bcab2bd14a4299afd879"));
-            //executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
-            executeTest("testVEGenotypeConcordance" + vcfFile, spec);
+            executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
+            //executeTest("testVEGenotypeConcordance" + vcfFile, spec);
         }
 
     }
@@ -70,8 +70,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 WalkerTestSpec spec = new WalkerTestSpec( tests + " " + extraArgs + " -o %s",
                     1, // just one output file
                     Arrays.asList(md5));
-                //executeTestParallel("testVESimple", spec);
-                executeTest("testVESimple", spec);
+                executeTestParallel("testVESimple", spec);
+                //executeTest("testVESimple", spec);
             }
         }
     }
@@ -96,8 +96,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 WalkerTestSpec spec = new WalkerTestSpec(tests + " " + extraArgs1 + extraArgs2 + " -o %s",
                         1, // just one output file
                         Arrays.asList(md5));
-                //executeTestParallel("testVEComplex", spec);
-                executeTest("testVEComplex", spec);
+                executeTestParallel("testVEComplex", spec);
+                //executeTest("testVEComplex", spec);
             }
         }
     }
@@ -134,8 +134,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -EV GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("113228ffa35e0f67b8e067860c04171f"));
-        //executeTestParallel("testACDiscordanceAtAC1EvalAC2Comp",spec);
-        executeTest("testCompVsEvalAC",spec);
+        executeTestParallel("testCompVsEvalAC",spec);
+        //executeTest("testCompVsEvalAC",spec);
     }
 
     private static String withSelect(String cmd, String select, String name) {
@@ -146,16 +146,16 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     public void testTranches() {
         String extraArgs = "-T VariantEval -R "+ hg18Reference +" -B:eval,vcf " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -tf " + testDir + "tranches.6.txt";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("68044a69f03ba4cc11d2061cc96e9eb5"));
-        //executeTestParallel("testTranches",spec);
-        executeTest("testTranches",spec);
+        executeTestParallel("testTranches",spec);
+        //executeTest("testTranches",spec);
     }
 
     @Test
     public void testCompOverlap() {
         String extraArgs = "-T VariantEval -R " + b37KGReference + " -L " + validationDataLocation + "VariantEval/pacbio.hg19.intervals -B:comphapmap,vcf " + comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf -B:eval,vcf " + validationDataLocation + "VariantEval/pacbio.ts.recalibrated.vcf -noEV -EV CompOverlap -sn NA12878 -noST -ST Novelty -o %s";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("81377be26bf8fa32339d01c173428f7d"));
-        //executeTestParallel("testTranches",spec);
-        executeTest("testCompOverlap",spec);
+        executeTestParallel("testCompOverlap",spec);
+        //executeTest("testCompOverlap",spec);
     }
 
 //    @Test

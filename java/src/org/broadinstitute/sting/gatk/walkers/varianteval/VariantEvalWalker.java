@@ -652,7 +652,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         for ( NewEvaluationContext nec : evaluationContexts.values() ) {
-            nec.update0(tracker, ref, context);
+            synchronized (nec) {
+                nec.update0(tracker, ref, context);
+            }
         }
 
         //      track           sample  vc
@@ -679,7 +681,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                     for ( StateKey stateKey : stateKeysHash ) {
                         NewEvaluationContext nec = evaluationContexts.get(stateKey);
 
-                        nec.apply(tracker, ref, context, comp, eval);
+                        synchronized (nec) {
+                            nec.apply(tracker, ref, context, comp, eval);
+                        }
                     }
                 }
             }
