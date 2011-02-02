@@ -111,9 +111,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               new File("/humgen/1kg/processing/pipeline_test_bams/EUR.363sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass),
-    "WExTrio" -> new Target("NA12878Trio.WEx", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
+    "WExTrio" -> new Target("CEUTrio.WEx", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
         new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
-        new File("/humgen/gsa-scr1/carneiro/prj/trio/snps/NA12878Trio.WEx.filtered.vcf"), 
+        new File("/humgen/gsa-scr1/carneiro/prj/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
         "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
   )
 
@@ -247,20 +247,18 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   // 5.) Variant Evaluation (OPTIONAL!) based on the sensitivity recalibrated vcf
-  class VariantEvaluation(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.VariantEval with UNIVERSAL_GATK_ARGS {
+  class VariantEvaluation(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
       val name: String = t.name
       this.reference_sequence = t.reference
-      this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
+      this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
       this.rodBind :+= RodBind("eval", "VCF", t.tsRecalibratedVCF)
       this.analysisName = name + "_VR"
       this.intervalsString ++= List(t.intervals)
-      this.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.R)
-      this.reportLocation = new File(t.name + ".eval")
-      this.noStandard = true
-      this.evalModule ++= List("TiTvVariantEvaluator", "CountVariants", "GenotypeConcordance")
+      this.EV ++= List("GenotypeConcordance", "PrintMissingComp")
+      this.out =  new File(this.name + ".eval")
       if (t.dbsnpFile.endsWith(".rod"))
         this.DBSNP = new File(t.dbsnpFile)
-	    else if (t.dbsnpFile.endsWith(".vcf"))
+	  else if (t.dbsnpFile.endsWith(".vcf"))
         this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
   }
 }
