@@ -52,7 +52,7 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
 
     public void apply(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantContext comp, VariantContext eval) {
         for ( VariantEvaluator evaluation : evaluationInstances.values() ) {
-            //synchronized ( evaluation ) {
+            //synchronized ( this ) {
                 // we always call update0 in case the evaluation tracks things like number of bases covered
                 //evaluation.update0(tracker, ref, context);
 
@@ -69,9 +69,9 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
 
                         break;
                     case 2:
-                        if (eval != null) {
+                        //if (eval != null) {
                             evaluation.update2(eval, comp, tracker, ref, context);
-                        }
+                        //}
 
                         break;
                     default:
@@ -82,8 +82,10 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
     }
 
     public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        for ( VariantEvaluator evaluation : evaluationInstances.values() ) {
-            evaluation.update0(tracker, ref, context);
-        }
+        //synchronized (this) {
+            for ( VariantEvaluator evaluation : evaluationInstances.values() ) {
+                evaluation.update0(tracker, ref, context);
+            }
+        //}
     }
 }

@@ -100,7 +100,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     private Set<String> compNames = new TreeSet<String>();
     private Set<String> knownNames = new TreeSet<String>();
     private Set<String> evalNames = new TreeSet<String>();
-    private Set<String> sampleNames = new TreeSet<String>();
+
+    private Set<String> sampleNamesForEvaluation = new TreeSet<String>();
+    private Set<String> sampleNamesForStratification = new TreeSet<String>();
     private int numSamples = 0;
 
     // The list of stratifiers and evaluators to use
@@ -186,7 +188,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
                 try {
                     VariantStratifier vs = c.newInstance();
-                    vs.initialize(jexlExpressions, compNames, knownNames, evalNames, sampleNames);
+                    vs.initialize(jexlExpressions, compNames, knownNames, evalNames, sampleNamesForStratification);
 
                     strats.add(vs);
                 } catch (InstantiationException e) {
@@ -372,15 +374,14 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), evalNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
-        // If we're not using the per-sample stratification, don't bother loading the sample list
-        if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample")) {
-            sampleNames.addAll(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS));
-            numSamples = sampleNames.size();
-        } else {
-            numSamples = vcfSamples.size();
-        }
+        // Load the sample list
+        sampleNamesForEvaluation.addAll(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS));
+        numSamples = sampleNamesForEvaluation.size();
 
-        sampleNames.add(ALL_SAMPLE_NAME);
+        if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample")) {
+            sampleNamesForStratification.addAll(sampleNamesForEvaluation);
+        }
+        sampleNamesForStratification.add(ALL_SAMPLE_NAME);
 
         // Initialize select expressions
         jexlExpressions.addAll(VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS));
@@ -411,21 +412,30 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      *
      * @param tracker    the reference metadata tracker
      * @param ref        the reference context
+     * @param compNames  the comp track names
      * @param evalNames  the evaluation track names
      * @return  the set of allowable variation types
      */
-    private EnumSet<VariantContext.Type> getAllowableVariationTypes(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> evalNames) {
+    private EnumSet<VariantContext.Type> getAllowableVariationTypes(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> compNames, Set<String> evalNames) {
         EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.NO_VARIATION);
 
         if (tracker != null) {
-            Collection<VariantContext> vcs = tracker.getVariantContexts(ref, evalNames, null, ref.getLocus(), true, false);
+            Collection<VariantContext> evalvcs = tracker.getVariantContexts(ref, evalNames, null, ref.getLocus(), true, false);
 
-            for ( VariantContext vc : vcs ) {
+            for ( VariantContext vc : evalvcs ) {
                 allowableTypes.add(vc.getType());
             }
-        } else {
-            allowableTypes.add(VariantContext.Type.SNP);
+
+            if (allowableTypes.size() == 1) {
+                // We didn't find any variation in the eval track, so now let's look at the comp track for allowable types
+                Collection<VariantContext> compvcs = tracker.getVariantContexts(ref, compNames, null, ref.getLocus(), true, false);
+
+                for ( VariantContext vc : compvcs ) {
+                    allowableTypes.add(vc.getType());
+                }
+            }
         }
+
         return allowableTypes;
     }
 
@@ -478,42 +488,41 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      * @param tracker         the metadata tracker
      * @param ref             the reference context
      * @param trackNames      the list of track names to process
-     * @param sampleNames     the list of samples to include
      * @param allowableTypes  a set of allowable variation types
      * @param byFilter        if false, only accept PASSing VariantContexts.  Otherwise, accept both PASSing and filtered sites
+     * @param trackPerSample  if false, don't stratify per sample (and don't cut up the VariantContext like we would need to do this)
+     * @param allowNoCalls    if false, don't accept no-call loci from a variant track
      * @return  a mapping of track names to a list of VariantContext objects
      */
-    private HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, Set<String> sampleNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter) {
+    private HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter, boolean trackPerSample, boolean allowNoCalls) {
         HashMap<String, HashMap<String, VariantContext>> bindings = new HashMap<String, HashMap<String, VariantContext>>();
 
         for ( String trackName : trackNames ) {
-            Collection<VariantContext> contexts = tracker == null ? null : tracker.getVariantContexts(ref, trackName, allowableTypes, ref.getLocus(), true, true);
-
-            VariantContext vc = contexts != null && contexts.size() == 1 ? contexts.iterator().next() : null;
-
             HashMap<String, VariantContext> vcs = new HashMap<String, VariantContext>();
 
+            Collection<VariantContext> contexts = tracker == null ? null : tracker.getVariantContexts(ref, trackName, allowableTypes, ref.getLocus(), true, true);
+            VariantContext vc = contexts != null && contexts.size() == 1 ? contexts.iterator().next() : null;
+
+            // First, filter the VariantContext to represent only the samples for evaluation
             if ( vc != null ) {
-                ArrayList<String> sampleNamesMinusAll = new ArrayList<String>();
+                VariantContext vcsub = vc;
 
-                for ( String sampleName : sampleNames ) {
-                    VariantContext vcsub = vc;
-
-                    if (!sampleName.equals(ALL_SAMPLE_NAME)) {
-                        vcsub = getSubsetOfVariantContext(vc, sampleName);
-                        sampleNamesMinusAll.add(sampleName);
-                    }
-
-                    if (byFilter || !vcsub.isFiltered()) {
-                        vcs.put(sampleName, vcsub);
-                    }
+                if (vc.hasGenotypes(sampleNamesForEvaluation)) {
+                    vcsub = getSubsetOfVariantContext(vc, sampleNamesForEvaluation);
                 }
 
-                if ( trackName.contains("eval") ) {
-                    VariantContext vcsub = (sampleNamesMinusAll.size() > 0) ? getSubsetOfVariantContext(vc, sampleNamesMinusAll) : vc;
+                if ((byFilter || !vcsub.isFiltered()) && (allowNoCalls || vcsub.getType() != VariantContext.Type.NO_VARIATION)) {
+                    vcs.put(ALL_SAMPLE_NAME, vcsub);
+                }
 
-                    if (byFilter || !vcsub.isFiltered()) {
-                        vcs.put(ALL_SAMPLE_NAME, vcsub);
+                // Now, if stratifying, split the subsetted vc per sample and add each as a new context
+                if ( trackPerSample ) {
+                    for ( String sampleName : sampleNamesForEvaluation ) {
+                        VariantContext samplevc = getSubsetOfVariantContext(vc, sampleName);
+    
+                        if ((byFilter || !samplevc.isFiltered()) && (allowNoCalls || samplevc.getType() != VariantContext.Type.NO_VARIATION)) {
+                            vcs.put(sampleName, samplevc);
+                        }
                     }
                 }
 
@@ -532,35 +541,25 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      * @param ref          the reference context
      * @param compNames    the list of comp names to process
      * @param evalNames    the list of eval names to process
-     * @param sampleNames  the list of samples to include
      * @return  a mapping of track names to a list of VariantContext objects
      */
-    private HashMap<String, HashMap<String, VariantContext>> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> compNames, Set<String> evalNames, Set<String> sampleNames) {
+    private HashMap<String, HashMap<String, VariantContext>> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> compNames, Set<String> evalNames) {
         HashMap<String, HashMap<String, VariantContext>> vcs = new HashMap<String, HashMap<String, VariantContext>>();
 
-        Set<String> allSamplesList = new HashSet<String>();
-        allSamplesList.add(ALL_SAMPLE_NAME);
+        EnumSet<VariantContext.Type> allowableTypes = getAllowableVariationTypes(tracker, ref, compNames, evalNames);
 
-        EnumSet<VariantContext.Type> allowableTypes = getAllowableVariationTypes(tracker, ref, evalNames);
-
-        boolean perSampleIsEnabled = false;
         boolean byFilter = false;
+        boolean perSampleIsEnabled = false;
         for (VariantStratifier vs : stratificationObjects) {
-            if (vs.getClass().getSimpleName().equals("Sample")) {
-                perSampleIsEnabled = true;
-            } else if (vs.getClass().getSimpleName().equals("Filter")) {
+            if (vs.getClass().getSimpleName().equals("Filter")) {
                 byFilter = true;
+            } else if (vs.getClass().getSimpleName().equals("Sample")) {
+                perSampleIsEnabled = true;
             }
         }
 
-        HashMap<String, HashMap<String, VariantContext>> evalBindings;
-        if (perSampleIsEnabled) {
-            evalBindings = bindVariantContexts(tracker, ref, evalNames, sampleNames, allowableTypes, byFilter);
-        } else {
-            evalBindings = bindVariantContexts(tracker, ref, evalNames, allSamplesList, allowableTypes, byFilter);
-        }
-
-        HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allSamplesList, allowableTypes, byFilter);
+        HashMap<String, HashMap<String, VariantContext>> evalBindings = bindVariantContexts(tracker, ref, evalNames, allowableTypes, byFilter, perSampleIsEnabled, true);
+        HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allowableTypes, byFilter, false, false);
 
         vcs.putAll(compBindings);
         vcs.putAll(evalBindings);
@@ -657,13 +656,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
 
         //      track           sample  vc
-        HashMap<String, HashMap<String, VariantContext>> vcs = getVariantContexts(tracker, ref, compNames, evalNames, sampleNames);
+        HashMap<String, HashMap<String, VariantContext>> vcs = getVariantContexts(tracker, ref, compNames, evalNames);
 
         for ( String compName : compNames ) {
             VariantContext comp = vcs.containsKey(compName) && vcs.get(compName) != null && vcs.get(compName).containsKey(ALL_SAMPLE_NAME) ? vcs.get(compName).get(ALL_SAMPLE_NAME) : null;
 
             for ( String evalName : evalNames ) {
-                for ( String sampleName : sampleNames ) {
+                for ( String sampleName : sampleNamesForStratification ) {
                     VariantContext eval = vcs.containsKey(evalName) && vcs.get(evalName) != null ? vcs.get(evalName).get(sampleName) : null;
 
                     HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();

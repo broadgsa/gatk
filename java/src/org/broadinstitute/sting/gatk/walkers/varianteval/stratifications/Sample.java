@@ -15,7 +15,6 @@ public class Sample extends VariantStratifier {
     @Override
     public void initialize(Set<VariantContextUtils.JexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
         samples = new ArrayList<String>();
-        samples.add(VariantEvalWalker.ALL_SAMPLE_NAME);
         samples.addAll(sampleNames);
     }
 

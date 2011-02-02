@@ -76,10 +76,13 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
     }
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        boolean expectingIndels = false;
+        //boolean expectingIndels = false;
 
-        boolean compIsGood = expectingIndels ? comp != null && comp.isNotFiltered() && comp.isIndel() : comp != null && comp.isNotFiltered() && comp.isSNP() ;
-        boolean evalIsGood = expectingIndels ? eval != null && eval.isIndel() : eval != null && eval.isSNP() ;
+        //boolean compIsGood = expectingIndels ? comp != null && comp.isNotFiltered() && comp.isIndel() : comp != null && comp.isNotFiltered() && comp.isSNP() ;
+        //boolean evalIsGood = expectingIndels ? eval != null && eval.isIndel() : eval != null && eval.isSNP() ;
+
+        boolean compIsGood = comp != null && comp.isNotFiltered() && comp.isSNP() ;
+        boolean evalIsGood = eval != null && eval.isSNP() ;
 
         if (compIsGood) nCompSNPs++;           // count the number of comp events
         if (evalIsGood) nEvalSNPs++;           // count the number of eval events
@@ -87,8 +90,9 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
         if (compIsGood && evalIsGood) {
             nSNPsAtComp++;
 
-            if (!discordantP(eval, comp))     // count whether we're concordant or not with the comp value
+            if (!discordantP(eval, comp)) {     // count whether we're concordant or not with the comp value
                 nConcordant++;
+            }
         }
 
         return null; // we don't capture any interesting sites
