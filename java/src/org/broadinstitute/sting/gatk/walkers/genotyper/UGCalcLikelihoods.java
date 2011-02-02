@@ -111,7 +111,7 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
     }
 
     public Integer reduce(VariantCallContext value, Integer sum) {
-        if ( value == null )
+        if ( value == null || value.vc == null )
             return sum;
 
         try {
