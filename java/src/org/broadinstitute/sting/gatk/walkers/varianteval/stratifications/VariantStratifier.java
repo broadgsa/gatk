@@ -15,7 +15,7 @@ public abstract class VariantStratifier implements Comparable {
         return new ArrayList<String>();
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         return null;
     }
 

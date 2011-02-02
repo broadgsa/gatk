@@ -23,7 +23,7 @@ public class Filter extends VariantStratifier {
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
         relevantStates.add("raw");

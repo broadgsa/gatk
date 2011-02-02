@@ -83,6 +83,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     protected Boolean NO_STANDARD_MODULES = false;
 
     // Other arguments
+    @Argument(fullName="numSamples", shortName="ns", doc="Number of samples (used if no samples are available in the VCF file", required=false)
+    protected Integer NUM_SAMPLES = 0;
+
     @Argument(fullName="minPhaseQuality", shortName="mpq", doc="Minimum phasing quality", required=false)
     protected double MIN_PHASE_QUALITY = 10.0;
 
@@ -376,7 +379,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         // Load the sample list
         sampleNamesForEvaluation.addAll(SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS));
-        numSamples = sampleNamesForEvaluation.size();
+        numSamples = NUM_SAMPLES > 0 ? NUM_SAMPLES : sampleNamesForEvaluation.size();
 
         if (Arrays.asList(STRATIFICATIONS_TO_USE).contains("Sample")) {
             sampleNamesForStratification.addAll(sampleNamesForEvaluation);
@@ -507,7 +510,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             if ( vc != null ) {
                 VariantContext vcsub = vc;
 
-                if (vc.hasGenotypes(sampleNamesForEvaluation)) {
+                if (vc.hasGenotypes() && vc.hasGenotypes(sampleNamesForEvaluation)) {
                     vcsub = getSubsetOfVariantContext(vc, sampleNamesForEvaluation);
                 }
 
@@ -516,7 +519,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                 }
 
                 // Now, if stratifying, split the subsetted vc per sample and add each as a new context
-                if ( trackPerSample ) {
+                if ( vc.hasGenotypes() && trackPerSample ) {
                     for ( String sampleName : sampleNamesForEvaluation ) {
                         VariantContext samplevc = getSubsetOfVariantContext(vc, sampleName);
     
@@ -669,7 +672,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
                     HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();
                     for ( VariantStratifier vs : stratificationObjects ) {
-                        ArrayList<String> states = vs.getRelevantStates(ref, comp, compName, eval, sampleName);
+                        ArrayList<String> states = vs.getRelevantStates(ref, comp, compName, eval, evalName, sampleName);
                         stateMap.put(vs, states);
                     }
 

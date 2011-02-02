@@ -123,8 +123,9 @@ public class SimpleMetricsByAC extends VariantEvaluator implements StandardEval 
                 ac = Integer.valueOf(eval.getAttributeAsString("AC"));
             }
 
-            if ( ac != -1 )
+            if ( ac != -1 ) {
                 metrics.get(ac).update(eval);
+            }
         }
     }
 
@@ -150,19 +151,22 @@ public class SimpleMetricsByAC extends VariantEvaluator implements StandardEval 
     }
 
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+        if (numSamples == 0) {
+            return null;
+        }
+
         final String interesting = null;
 
-        if (eval != null ) {
+        if (eval != null) {
             if ( metrics == null ) {
                 int nSamples = numSamples;
 
-                if ( nSamples != -1 )
+                if ( nSamples != -1 ) {
                     metrics = new MetricsByAc(2 * nSamples);
+                }
             }
 
-            if ( eval.isSNP() &&
-                    eval.isBiallelic() &&
-                    metrics != null ) {
+            if ( eval.isSNP() && eval.isBiallelic() && metrics != null ) {
                 metrics.incrValue(eval);
             }
         }

@@ -17,17 +17,17 @@ public class EvalRod extends VariantStratifier implements RequiredStratification
         this.evalNames = evalNames;
 
         states = new ArrayList<String>();
-        states.add("eval");
+        states.addAll(evalNames);
     }
 
     public ArrayList<String> getAllStates() {
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
-        relevantStates.add("eval");
+        relevantStates.add(evalName);
 
         return relevantStates;
     }

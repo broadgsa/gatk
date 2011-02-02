@@ -22,7 +22,7 @@ public class CpG extends VariantStratifier implements StandardStratification {
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         boolean isCpG = false;
         if (ref != null && ref.getBases() != null) {
             String fwRefBases = new String(ref.getBases());
