@@ -96,7 +96,9 @@ public class PhasingEval extends RodWalker<Integer, Integer> {
                 int homalt = vc.getHomVarCount();
                 int het = vc.getHetCount();
                 int ac = 2 * homalt + het;
+
                 //int an = 2 * (homref + homalt + het);
+
                 PhasingByAC data = phasingByACs.get(ac);
                 data.nHets += het > 0 ? 1 : 0;
                 data.nHetsPhased += isPhysicallyPhased(vc.getGenotypes().values()) ? 1 : 0;
@@ -125,9 +127,9 @@ public class PhasingEval extends RodWalker<Integer, Integer> {
 
     public void onTraversalDone(Integer sum) {
         if (analysis == Analysis.PHASING_BY_AC) {
-            out.println(Utils.join("\t", Arrays.asList("ac", "nhets", "nhetphased")));
+            out.println(Utils.join("\t", Arrays.asList("ac", "an", "nhets", "nhetphased")));
             for (PhasingByAC pac : phasingByACs) {
-                out.printf("%d\t%d\t%d%n", pac.myAC, pac.nHets, pac.nHetsPhased);
+                out.printf("%d\t%d\t%d\t%d%n", pac.myAC, pac.myAN, pac.nHets, pac.nHetsPhased);
             }
         }
     }
