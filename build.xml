@@ -263,13 +263,27 @@
         </scalac>
     </target>
 
-    <target name="init.extracthelp" depends="init,gatk.compile">
+    <target name="init.extracthelp" depends="gatk.compile">
+        <loadfile property="properties.version" srcfile="${basedir}/${resource.path}" failonerror="false" quiet="true">
+            <filterchain>
+                <linecontains>
+                    <contains value="org.broadinstitute.sting.gatk.CommandLineGATK.version"/>
+                </linecontains>
+                <tokenfilter>
+                    <replaceregex pattern="^.*\.(.*?)$" replace="\1"/>
+                </tokenfilter>
+                <striplinebreaks/>
+            </filterchain>
+        </loadfile>
         <condition property="uptodate.extracthelp">
             <or>
                 <isset property="disable.help"/>
-                <uptodate targetfile="${basedir}/${resource.path}">
-                    <srcfiles refid="java.class.files"/>
-                </uptodate>
+                <and>
+                    <uptodate targetfile="${basedir}/${resource.path}">
+                        <srcfiles refid="java.class.files"/>
+                    </uptodate>
+                    <equals arg1="${properties.version}" arg2="${build.version}" />
+                </and>
             </or>
         </condition>
     </target>
