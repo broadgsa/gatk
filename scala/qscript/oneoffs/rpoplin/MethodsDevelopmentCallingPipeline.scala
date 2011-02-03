@@ -1,8 +1,5 @@
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 import org.broadinstitute.sting.queue.QScript
-import org.apache.commons.io.FilenameUtils;
 
 class MethodsDevelopmentCallingPipeline extends QScript {
   qscript =>
@@ -31,6 +28,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="eval", doc="adds the VariantEval walker to the pipeline", required=false)
   var eval: Boolean = false
 
+  @Argument(shortName="cut", doc="adds the ApplyVariantCut walker to the pipeline", required=false)
+  var cut: Boolean = false
 
   trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(3); }
 
@@ -50,7 +49,11 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val rawVCF = new File(name + ".raw.vcf")
     val filteredVCF = new File(name + ".filtered.vcf")
     val titvRecalibratedVCF = new File(name + ".titv.recalibrated.vcf")
+    val titvTranchesFile = new File(name + ".titv.tranches")
     val tsRecalibratedVCF = new File(name + ".ts.recalibrated.vcf")
+    val tsTranchesFile = new File(name + ".ts.tranches")
+    val cutVCF = new File(name + ".cut.vcf")
+    val evalFile = new File(name + ".eval")
     val goldStandardName = qscript.outputDir + "goldStandard/" + baseName
     val goldStandardClusterFile = new File(goldStandardName + ".clusters")
   }
@@ -111,10 +114,10 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               new File("/humgen/1kg/processing/pipeline_test_bams/EUR.363sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass),
-    "WExTrio" -> new Target("CEUTrio.WEx", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
-        new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
-        new File("/humgen/gsa-scr1/carneiro/prj/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
-        "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
+    "WExTrio" -> new Target("CEUTrio.WEx", hg19, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
+              new File("/humgen/gsa-scr1/carneiro/prj/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
   )
 
 
@@ -137,6 +140,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         add(new GenerateVariantClusters(target, !goldStandard))
         add(new VariantRecalibratorTiTv(target, !goldStandard))
         add(new VariantRecalibratorNRS(target, !goldStandard))
+        if (cut) add (new VariantCut(target))
         if (eval) add(new VariantEvaluation(target))
       }
       if ( !skipGoldStandard ) {
@@ -231,31 +235,46 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // 4a.) Choose VQSR tranches based on novel ti/tv
   class VariantRecalibratorTiTv(t: Target, goldStandard: Boolean) extends VariantRecalibratorBase(t, goldStandard) {
       this.tranche ++= List("0.1", "1.0", "10.0", "100.0")
-      this.out = new File(this.name + ".titv.recalibrated.vcf")
-      this.tranchesFile = new File(this.name + ".titv.tranches")
+      this.out = t.titvRecalibratedVCF
+      this.tranchesFile = t.titvTranchesFile
   }
 
   // 4b.) Choose VQSR tranches based on sensitivity to truth set
   class VariantRecalibratorNRS(t: Target, goldStandard: Boolean) extends VariantRecalibratorBase(t, goldStandard) {
       this.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
       this.tranche ++= List("0.1", "1.0", "10.0", "100.0")
-      this.out = new File(this.name + ".ts.recalibrated.vcf")
+      this.out = t.tsRecalibratedVCF
       this.priorDBSNP = Some(2.0)
       this.priorHapMap = Some(2.0)
       this.prior1KG = Some(2.0)    
-      this.tranchesFile = new File(this.name + ".ts.tranches")
+      this.tranchesFile = t.tsTranchesFile
   }
 
-  // 5.) Variant Evaluation (OPTIONAL!) based on the sensitivity recalibrated vcf
+   // 5.) Variant Cut (OPTIONAL!) filter out the variants marked by recalibration to the 99% tranche
+  class VariantCut(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.ApplyVariantCuts with UNIVERSAL_GATK_ARGS {
+      this.reference_sequence = t.reference
+      this.rodBind :+= RodBind("input", "VCF",  t.tsRecalibratedVCF )
+      this.analysisName = t.name + "_VC"
+      this.intervalsString ++= List(t.intervals)
+      this.out = t.cutVCF
+      this.tranchesFile = t.tsTranchesFile
+      this.fdr_filter_level = Some(1.0)
+      if (t.dbsnpFile.endsWith(".rod"))
+        this.DBSNP = new File(t.dbsnpFile)
+	    else if (t.dbsnpFile.endsWith(".vcf"))
+        this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+  }
+
+  // 6.) Variant Evaluation (OPTIONAL!) based on the sensitivity recalibrated vcf
   class VariantEvaluation(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
       val name: String = t.name
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
-      this.rodBind :+= RodBind("eval", "VCF", t.tsRecalibratedVCF)
-      this.analysisName = name + "_VR"
+      this.rodBind :+= RodBind("eval", "VCF", if (cut) {t.cutVCF} else {t.tsRecalibratedVCF} )
+      this.analysisName = name + "_VE"
       this.intervalsString ++= List(t.intervals)
-      this.EV ++= List("GenotypeConcordance", "PrintMissingComp")
-      this.out =  new File(this.name + ".eval")
+      this.EV ++= List("GenotypeConcordance")
+      this.out =  t.evalFile
       if (t.dbsnpFile.endsWith(".rod"))
         this.DBSNP = new File(t.dbsnpFile)
 	  else if (t.dbsnpFile.endsWith(".vcf"))
