@@ -33,11 +33,9 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
@@ -134,7 +132,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     public Integer reduceInit() { return 0; }
 
     /**
-     * For each site of interest, rescore the genotype likelihoods by applying the specified feature set.
      *
      * @param tracker  the meta-data tracker
      * @param ref      the reference base
@@ -145,30 +142,24 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        List<Object> rods = tracker.getReferenceMetaData( INPUT_VARIANT_ROD_BINDING_NAME );
-        // ignore places where we don't have a variant
-        if ( rods.size() == 0 )
+        Collection<VariantContext> VCs = tracker.getVariantContexts(ref, INPUT_VARIANT_ROD_BINDING_NAME, null, context.getLocation(), true, false);
+        if ( VCs.size() == 0 )
             return 0;
 
-        
-        //VariantContext vc = VariantContextAdaptors.toVariantContext( INPUT_VARIANT_ROD_BINDING_NAME, rods.get(0), ref );
-        VariantContext vc = tracker.getVariantContext( ref, INPUT_VARIANT_ROD_BINDING_NAME, null, context.getLocation(), true );
-        // protect against case where we have a variant in context but we're not at the beginning of location
-        if (vc == null)
-            return 0;
+        for ( VariantContext vc : VCs ) {
+            FiltrationContext varContext = new FiltrationContext(tracker, ref, vc);
 
-        FiltrationContext varContext = new FiltrationContext(tracker, ref, vc);
-
-        // if we're still initializing the context, do so
-        if ( windowInitializer != null ) {
-            windowInitializer.add(varContext);
-            if ( windowInitializer.size() == windowSize ) {
-                variantContextWindow = new FiltrationContextWindow(windowInitializer);
-                windowInitializer = null;
+            // if we're still initializing the context, do so
+            if ( windowInitializer != null ) {
+                windowInitializer.add(varContext);
+                if ( windowInitializer.size() == windowSize ) {
+                    variantContextWindow = new FiltrationContextWindow(windowInitializer);
+                    windowInitializer = null;
+                }
+            } else {
+                variantContextWindow.moveWindow(varContext);
+                filter();
             }
-        } else {
-            variantContextWindow.moveWindow(varContext);
-            filter();
         }
 
         return 1;
