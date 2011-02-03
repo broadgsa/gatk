@@ -28,8 +28,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="eval", doc="adds the VariantEval walker to the pipeline", required=false)
   var eval: Boolean = false
 
-  @Argument(shortName="cut", doc="adds the ApplyVariantCut walker to the pipeline", required=false)
-  var cut: Boolean = false
+  @Argument(shortName="noCut", doc="adds the ApplyVariantCut walker to the pipeline", required=false)
+  var noCut: Boolean = false
 
   trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(3); }
 
@@ -140,7 +140,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         add(new GenerateVariantClusters(target, !goldStandard))
         add(new VariantRecalibratorTiTv(target, !goldStandard))
         add(new VariantRecalibratorNRS(target, !goldStandard))
-        if (cut) add (new VariantCut(target))
+        if (!noCut) add (new VariantCut(target))
         if (eval) add(new VariantEvaluation(target))
       }
       if ( !skipGoldStandard ) {
@@ -270,7 +270,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       val name: String = t.name
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
-      this.rodBind :+= RodBind("eval", "VCF", if (cut) {t.cutVCF} else {t.tsRecalibratedVCF} )
+      this.rodBind :+= RodBind("eval", "VCF", if (!noCut) {t.cutVCF} else {t.tsRecalibratedVCF} )
       this.analysisName = name + "_VE"
       this.intervalsString ++= List(t.intervals)
       this.EV ++= List("GenotypeConcordance")
