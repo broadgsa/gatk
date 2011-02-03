@@ -27,7 +27,7 @@ package net.sf.picard.reference;
 
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSourceProgressListener;
+import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSourceProgressListener;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 

@@ -1,18 +1,16 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
+import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.executive.WindowMaker;
 import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
-import org.broadinstitute.sting.gatk.datasources.shards.LocusShard;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.shards.MockLocusShard;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.reads.LocusShard;
+import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.utils.GenomeLoc;

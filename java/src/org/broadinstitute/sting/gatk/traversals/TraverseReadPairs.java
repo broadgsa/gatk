@@ -5,7 +5,7 @@ import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadPairWalker;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
+import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.apache.log4j.Logger;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordCoordinateComparator;

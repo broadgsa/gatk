@@ -2,7 +2,7 @@ package org.broadinstitute.sting.utils.interval;
 
 import net.sf.picard.util.IntervalList;
 import net.sf.samtools.SAMFileHeader;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSource;
+import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;

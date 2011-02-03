@@ -36,16 +36,16 @@ import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
+import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.datasources.reads.Shard;
+import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
+import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
-import org.broadinstitute.sting.gatk.datasources.shards.MonolithicShardStrategy;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
-import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.gatk.datasources.reads.MonolithicShardStrategy;
+import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
+import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategyFactory;
+import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
 import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
@@ -66,10 +66,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.*;
 
 /**

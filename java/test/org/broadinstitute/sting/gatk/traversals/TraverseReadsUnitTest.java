@@ -8,11 +8,11 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
-import org.broadinstitute.sting.gatk.datasources.shards.Shard;
-import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategy;
-import org.broadinstitute.sting.gatk.datasources.shards.ShardStrategyFactory;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.simpleDataSources.SAMReaderID;
+import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
+import org.broadinstitute.sting.gatk.datasources.reads.Shard;
+import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
+import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategyFactory;
+import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.walkers.qc.CountReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -31,7 +31,6 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Collections;
 
 /**
  *
@@ -119,7 +118,7 @@ public class TraverseReadsUnitTest extends BaseTest {
     @Test
     public void testUnmappedReadCount() {
         SAMDataSource dataSource = new SAMDataSource(bamList,genomeLocParser);
-        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref,ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
+        ShardStrategy shardStrategy = ShardStrategyFactory.shatter(dataSource,ref, ShardStrategyFactory.SHATTER_STRATEGY.READS_EXPERIMENTAL,
                 ref.getSequenceDictionary(),
                 readSize,
                 genomeLocParser);
