@@ -265,14 +265,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             Stack<VariantStratifier> newStratStack = new Stack<VariantStratifier>();
             newStratStack.addAll(stratStack);
 
-            NewEvaluationContext nec = new NewEvaluationContext();
-            if (ec != null) {
-                nec.putAll(ec);
-            }
-
             VariantStratifier vs = newStratStack.pop();
 
             for ( String state : vs.getAllStates() ) {
+                NewEvaluationContext nec = new NewEvaluationContext();
+                if (ec != null) {
+                    nec.putAll(ec);
+                }
                 nec.put(vs, state);
 
                 ecs.putAll(initializeEvaluationContexts(stratificationObjects, evaluationObjects, newStratStack, nec));
