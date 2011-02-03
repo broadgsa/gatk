@@ -10,7 +10,7 @@ import org.broadinstitute.sting.utils.{GenomeLocParser, GenomeLoc}
 
 class VCFSimpleMerge extends InProcessFunction {
   @Input(doc="VCFs to be merged") var vcfs: List[File] = Nil
-  @Input(doc="The reference fasta index") var fasta: File = _
+  @Input(doc="The reference fasta index") var fai: File = _
   @Output(doc="The final VCF to write to") var outVCF : File = _
 
   class PeekableXRL(f : File ) {
@@ -49,7 +49,7 @@ class VCFSimpleMerge extends InProcessFunction {
 
   def run = {
     var ssd : SAMSequenceDictionary = new SAMSequenceDictionary
-    for ( line <- (new XReadLines(fasta)).readLines ) {
+    for ( line <- (new XReadLines(fai)).readLines ) {
       val spl = line.split("\\s+")
       val ctig = spl(0)
       val pos = Integer.parseInt(spl(1))
