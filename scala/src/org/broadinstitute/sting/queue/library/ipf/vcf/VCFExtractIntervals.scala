@@ -19,6 +19,7 @@ class VCFExtractIntervals(inVCF: File, outList: File, useFilterSites: Boolean) e
   def run = {
     out = new PrintWriter(new PrintStream(listOut))
     asScalaIterator(new XReadLines(vcfIn)).foreach(vcf2int)
+    out.close
   }
 
   def vcf2int( vcfLine: String ) : Unit = {

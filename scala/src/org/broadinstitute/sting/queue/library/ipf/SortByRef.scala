@@ -14,24 +14,44 @@ class SortByRef( input: File, reference: File, output: File ) extends InProcessF
   @Output(doc="The file to write the sorted file to") var outFile :  File = output
   @Argument(doc="The character or expression that separates entries") var separator : String = "\t"
   @Argument(doc="The position of the contig in the file (1-based)") var pos: Int = 1
-  @Argument(doc="Comment characters (lines will be ignored)") var comment: List[String] = List("#")
+  @Argument(doc="Comment characters (lines will be brought to file head)") var comment: List[String] = List("#")
 
-  var contigMap: HashMap[String,Int] = new HashMap[String,Int];
+  val COMMENT_STRING = "@#!"
 
-  def contigVal( line : String ) : Int = {
-    if ( comment.contains(line.charAt(0)) ) {
-      return -1;
-    }
+  var contigMap: List[(String,PrintWriter,File)] = Nil;
+
+  def entryToTriplet( line : String ) : (String,PrintWriter,File) = {
+    val ctig : String = line.split("\t",2)(0)
+    val tmpf : File = File.createTempFile("sbr",".tmp")
+    val pw : PrintWriter = new PrintWriter(new PrintStream(tmpf))
+    return (ctig,pw,tmpf)
+  }
+
+  def contigVal( line : String ) : PrintWriter = {
 
     if ( contigMap.size < 1 ) { // no contigs
-      ( new XReadLines(fai)).readLines.map( u => u.split("\t").head).zipWithIndex.foreach( u => contigMap += u )
+      contigMap :+= entryToTriplet(COMMENT_STRING+"\t.")
+      contigMap ++= ( new XReadLines(fai)).readLines.map( entryToTriplet(_)).toList
     }
 
-    return contigMap( line.split(separator)(pos-1) )
+    if ( comment.contains(line.charAt(0).toString) ) {
+      return contigMap.find( u => u._1.equals(COMMENT_STRING)).head._2;
+    }
+
+    val matches = contigMap.find( u => u._1.equals(line.split(separator)(pos-1)))
+    if ( matches.isEmpty ) {
+      System.out.println("Empty match for "+line)
+      return contigMap(0)._2
+    } else { return matches.head._2 }
   }
 
   def run = {
     var w : PrintWriter = new PrintWriter(new PrintStream(outFile))
-    ( new XReadLines(inFile) ).readLines.sortBy(contigVal).foreach( u => w.println(u) )    
+    System.out.println("Writing to temp files...")
+    ( new XReadLines(inFile) ).readLines.foreach( u => contigVal(u).println(u) )
+    contigMap.foreach( u => u._2.close )
+    System.out.println("Concatenating...")
+    contigMap.map( u => new XReadLines(u._3) ).foreach( u => asScalaIterator(u).foreach(u => w.println(u)))
+    w.close()
   }
 }

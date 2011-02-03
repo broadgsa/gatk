@@ -6,7 +6,7 @@ import collection.JavaConversions._
 import org.broadinstitute.sting.commandline._
 import java.io.{PrintWriter, PrintStream, File}
 
-class VCFExtractSamples(inVCF: File, outVCF: File, samples: List[String]) extends InProcessFunction {
+class   VCFExtractSamples(inVCF: File, outVCF: File, samples: List[String]) extends InProcessFunction {
   def this(in: File, out: File, samples: File) = this(in,out, (new XReadLines(samples)).readLines.toList)
 
   @Input(doc="VCF from which to extract samples") var inputVCF : File = inVCF
@@ -19,6 +19,7 @@ class VCFExtractSamples(inVCF: File, outVCF: File, samples: List[String]) extend
   def run = {
     out = new PrintWriter(new PrintStream(outputVCF))
     asScalaIterator(new XReadLines(inputVCF)).foreach(subset)
+    out.close
   }
 
   def subset( line : String ) {

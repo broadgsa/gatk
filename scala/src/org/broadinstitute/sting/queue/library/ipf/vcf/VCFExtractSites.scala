@@ -17,6 +17,7 @@ class VCFExtractSites( vcf: File, output: File) extends InProcessFunction {
   def lineMap( line: String ) : String = {
     if ( line.startsWith("##") ) { return line }
     val spline = line.split("\t",9)
+    if ( spline(0).startsWith("#")) { return spline.slice(0,8).reduceLeft( _+"\t"+_) }
 
     if ( spline(6) == "PASS" || keepFilters ) {
       if ( ! keepInfo ) {
@@ -31,9 +32,34 @@ class VCFExtractSites( vcf: File, output: File) extends InProcessFunction {
     return ""
   }
 
+  def lineMapDebug( line: String ) : String = {
+    System.out.printf("Input: %s%n ",line)
+    val o = lineMap(line)
+    System.out.printf("Output: %s%n",o)
+
+    return o
+  }
+
+  def debugFilter ( line : String ) : Boolean = {
+    System.out.printf("Filter In: %s%n",line)
+    if ( line != "" ) {
+      System.out.printf("Not filtered %n")
+      return true
+    } else {
+      System.out.printf("Filtered%n")
+      return false
+    }
+  }
+
+  def debugPrint(line: String, k : PrintWriter) : Unit = {
+    System.out.printf("Into print: %s%n",line)
+    k.println(line)
+  }
+
   def run {
     var w: PrintWriter = new PrintWriter( new PrintStream(outVCF) )
-    ( new XReadLines(inVCF) ).readLines().map(lineMap).view.filter( u => u != "" ).foreach( u => w.println(u) )
+    asScalaIterator[String](new XReadLines(inVCF)).map(lineMap).filter( u => u != "" ).foreach( u => w.println(u) )
+    w.close
   }
 
 }
