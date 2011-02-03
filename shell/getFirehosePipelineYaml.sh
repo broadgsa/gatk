@@ -114,3 +114,13 @@ END {
         printf "\n  ]"
     print "\n}"
 }' > $PIPELINE_YAML_FILE
+
+hg19=`grep "assembly19" -c $PIPELINE_YAML_FILE`
+
+if [ "$hg19" -ne 0 ]; then
+    sed 's/\/humgen.*rod/\/humgen\/gsa-hpprojects\/GATK\/data\/dbsnp_132_b37.vcf/' $PIPELINE_YAML_FILE > yaml2 
+    mv yaml2 $PIPELINE_YAML_FILE
+fi
+
+sed 's/recalibrat/clean/' $PIPELINE_YAML_FILE > yaml2
+mv yaml2 $PIPELINE_YAML_FILE
