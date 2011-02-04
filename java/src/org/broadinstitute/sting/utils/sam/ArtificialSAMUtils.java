@@ -164,7 +164,7 @@ public class ArtificialSAMUtils {
         record.setBaseQualities(q);
 
         if (refIndex == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX) {
-            record.setReadUmappedFlag(true);
+            record.setReadUnmappedFlag(true);
         }
         return record;
     }
@@ -189,7 +189,7 @@ public class ArtificialSAMUtils {
         rec.setReadBases(bases);
         rec.setBaseQualities(qual);
         if (refIndex == -1) {
-            rec.setReadUmappedFlag(true);
+            rec.setReadUnmappedFlag(true);
         }
         return rec;
     }

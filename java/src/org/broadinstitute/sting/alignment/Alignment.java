@@ -202,7 +202,7 @@ public class Alignment {
         read.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);        
 
         if(alignment != null) {
-            read.setReadUmappedFlag(false);
+            read.setReadUnmappedFlag(false);
             read.setReferenceIndex(alignment.getContigIndex());
             read.setAlignmentStart((int)alignment.getAlignmentStart());
             read.setReadNegativeStrandFlag(alignment.isNegativeStrand());
