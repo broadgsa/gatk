@@ -62,13 +62,13 @@ public class ConstrainedMateFixingSAMFileWriterUnitTest extends BaseTest {
     IndexedFastaSequenceFile fasta = null;
     SAMFileReader bamIn;
 
-    File referenceFile = new File("/Users/depristo/Desktop/broadLocal/localData/Homo_sapiens_assembly18.fasta");       // todo -- replace me with network version
-    final File BAM_FILE = new File("/Users/depristo/Desktop/broadLocal/GATK/trunk/HiSeq.test.bam");
-    final File OUTPUT_FILE = new File("/Users/depristo/Desktop/broadLocal/GATK/trunk/HiSeq.1mb.CMF.bam");
+//    File referenceFile = new File("/Users/depristo/Desktop/broadLocal/localData/Homo_sapiens_assembly18.fasta");       // todo -- replace me with network version
+//    final File BAM_FILE = new File("/Users/depristo/Desktop/broadLocal/GATK/trunk/HiSeq.test.bam");
+//    final File OUTPUT_FILE = new File("/Users/depristo/Desktop/broadLocal/GATK/trunk/HiSeq.1mb.CMF.bam");
 
-//    File referenceFile = new File(hg18Reference);
-//    final File BAM_FILE = new File(validationDataLocation + "HiSeq.1mb.bam");
-//    final File OUTPUT_FILE = new File("HiSeq.1mb.CMF.bam");
+    File referenceFile = new File(hg18Reference);
+    final File BAM_FILE = new File(validationDataLocation + "HiSeq.1mb.bam");
+    final File OUTPUT_FILE = new File("HiSeq.1mb.CMF.bam");
 
     final int MAX_ISIZE_FOR_MOVE = 1000;
 
