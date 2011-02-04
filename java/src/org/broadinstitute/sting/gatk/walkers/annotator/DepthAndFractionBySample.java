@@ -182,7 +182,7 @@ public class DepthAndFractionBySample implements GenotypeAnnotation {
 
         public List<VCFFormatHeaderLine> getDescriptions() {
             return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0),
-                            VCFCompoundHeaderLine.UNBOUNDED,
+                            1,
                             VCFHeaderLineType.Integer,
                             "Total read depth per sample"),
                     new VCFFormatHeaderLine(getKeyNames().get(1),
