@@ -5,7 +5,7 @@ import org.broadinstitute.sting.queue.QScript
 import org.apache.commons.io.FilenameUtils;
 import scala.io.Source._
 
-class recalibrate extends QScript {
+class VQSRCutByNRS extends QScript {
   // @Input(doc="bamIn", shortName="I", required=true)
   // var bamList: File = _
   
