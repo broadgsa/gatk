@@ -258,4 +258,25 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
         outputTracker.getStorage(this).close();    
     }
 
+    //
+    // Experimental arguments for the constrained SAMFileWriter
+    //
+    private boolean useConstrainedFileWriter = false;
+    private int maxInsertSizeForMovingReadPairs = -1;
+
+    public int getMaxInsertSizeForMovingReadPairs() {
+        return maxInsertSizeForMovingReadPairs;
+    }
+
+    public void setMaxInsertSizeForMovingReadPairs(int maxInsertSizeForMovingReadPairs) {
+        this.maxInsertSizeForMovingReadPairs = maxInsertSizeForMovingReadPairs;
+    }
+
+    public boolean useConstrainedFileWriter() {
+        return useConstrainedFileWriter;
+    }
+
+    public void setUseConstrainedFileWriter(boolean useConstrainedFileWriter) {
+        this.useConstrainedFileWriter = useConstrainedFileWriter;
+    }
 }

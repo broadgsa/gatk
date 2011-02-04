@@ -51,6 +51,7 @@ import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.interval.NwayIntervalMergingIterator;
+import org.broadinstitute.sting.utils.sam.ConstrainedMateFixingSAMFileWriter;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -171,6 +172,16 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Hidden
     @Output(fullName="SNPsFileForDebugging", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out; FOR DEBUGGING PURPOSES ONLY", required=false)
     protected String OUT_SNPS = null;
+
+    //
+    // Experimental output constraints
+    //
+    // TODO -- eric promised me he'll validate this further and release to the world as the only option to do cleaning
+    //
+    @Hidden
+    @Argument(fullName="constrainMovement", shortName="CM", required=false, doc="If provided, we'll try the experimental constraining output system")
+    protected boolean CONSTRAIN_MOVEMENT = false;
+    protected int MAX_ISIZE_FOR_MOVEMENT = 3000;
 
     // fasta reference reader to supplement the edges of the reference sequence
     private IndexedFastaSequenceFile referenceReader;
@@ -354,7 +365,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private SAMFileHeader setupHeader(SAMFileHeader header) {
         if ( DO_NOT_SORT )
             header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
-        else if ( SORT_IN_COORDINATE_ORDER )
+        else if ( SORT_IN_COORDINATE_ORDER || CONSTRAIN_MOVEMENT )
             header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
         else
             header.setSortOrder(SAMFileHeader.SortOrder.queryname);
@@ -384,8 +395,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         writer.writeHeader(header);
-        writer.setPresorted(false);
+        writer.setPresorted(CONSTRAIN_MOVEMENT);
         writer.setMaxRecordsInRam(MAX_RECORDS_IN_RAM);
+
+        if ( CONSTRAIN_MOVEMENT ) {
+            writer.setUseConstrainedFileWriter(true);
+            writer.setMaxInsertSizeForMovingReadPairs(MAX_ISIZE_FOR_MOVEMENT);
+        }
     }
 
     private void emit(final SAMRecord read) {
@@ -407,9 +423,17 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private void emit(final List<SAMRecord> reads) {
+    private void emit(final Collection<SAMRecord> reads) {
         for ( SAMRecord read : reads )
             emit(read);
+    }
+
+    private void emitReadLists() {
+        // pre-merge lists with priority queue for constrained SAMFileWriter
+        readsNotToClean.addAll(readsToClean.getReads());
+        emit(readsNotToClean);
+        readsToClean.clear();
+        readsNotToClean.clear();
     }
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
@@ -459,21 +483,25 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private void abortCleanForCurrentInterval() {
-        emit(readsNotToClean);
-        emit(readsToClean.getReads());
-        readsToClean.clear();
-        readsNotToClean.clear();
+        emitReadLists();
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
     }
 
     private boolean doNotTryToClean(SAMRecord read) {
-        return read.getReadUnmappedFlag() ||
+        boolean immobileReadForWriting = CONSTRAIN_MOVEMENT && ConstrainedMateFixingSAMFileWriter.iSizeTooBigToMove(read, MAX_ISIZE_FOR_MOVEMENT);
+
+        boolean old = read.getReadUnmappedFlag() ||
                 read.getNotPrimaryAlignmentFlag() ||
                 read.getReadFailsVendorQualityCheckFlag() ||
                 read.getMappingQuality() == 0 ||
                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
                 (!REALIGN_BADLY_MATED_READS && BadMateFilter.hasBadMate(read));
+
+//        if ( immobileReadForWriting && ! old)
+//            logger.warn("Newly skipping read: " + read + " isize = " + read.getInferredInsertSize());
+
+        return old || immobileReadForWriting;
     }
 
     private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
@@ -481,11 +509,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         knownIndelsToTry.clear();
         indelRodsSeen.clear();
 
-        emit(readsNotToClean);
-        emit(readsToClean.getReads());
-        readsToClean.clear();
-        readsNotToClean.clear();
-
+        emitReadLists();
         try {
             do {
                 currentInterval = intervals.hasNext() ? intervals.next() : null;
@@ -514,9 +538,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             knownIndelsToTry.clear();
             indelRodsSeen.clear();
 
-            // merge the two sets for emission
-            readsNotToClean.addAll(readsToClean.getReads());
-            emit(readsNotToClean);
+            emitReadLists();
+            // why was this different than the other emits?
+//            // merge the two sets for emission
+//            readsNotToClean.addAll(readsToClean.getReads());
+//            emit(readsNotToClean);
         }
 
         if ( OUT_INDELS != null ) {

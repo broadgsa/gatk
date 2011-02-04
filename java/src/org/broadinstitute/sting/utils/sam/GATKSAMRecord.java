@@ -132,8 +132,8 @@ public class GATKSAMRecord extends SAMRecord {
         return mUnmappedFlag;
     }
 
-    public void setReadUmappedFlag(boolean b) {
-        mRecord.setReadUmappedFlag(b);
+    public void setReadUnmappedFlag(boolean b) {
+        mRecord.setReadUnmappedFlag(b);
         mUnmappedFlag = b;
     }
 
@@ -432,7 +432,16 @@ public class GATKSAMRecord extends SAMRecord {
 
     public List<SAMValidationError> validateCigar(long l) { return mRecord.validateCigar(l); }
 
-    public boolean equals(Object o) { return mRecord.equals(o); }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        // note -- this forbids a GATKSAMRecord being equal to its underlying SAMRecord
+        if (!(o instanceof GATKSAMRecord)) return false;
+
+        // note that we do not consider the GATKSAMRecord internal state at all
+        return mRecord.equals(((GATKSAMRecord)o).mRecord);
+    }
 
     public int hashCode() { return mRecord.hashCode(); }
 
