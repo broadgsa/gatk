@@ -5050,6 +5050,55 @@ public class LibBat {
     }
 
 
+    /**
+     * HACK: A version of the submit structure without autoread, so that
+     * jobInfoEnt doesn't try to populate the structure on return from lsb_readjobinfo.
+     * There are several reports of kernel crashes in strlen after a call to lsb_readjobinfo during the autoRead().
+     * 
+     * Example:
+
+     Current thread (0x0000000050efd800):  JavaThread "main" [_thread_in_native, id=22268, stack(0x0000000040dbf000,0x0000000040ec0000)]
+
+     siginfo:si_signo=SIGSEGV: si_errno=0, si_code=128 (), si_addr=0x0000000000000000
+
+     Stack: [0x0000000040dbf000,0x0000000040ec0000],  sp=0x0000000040ebc018,  free space=3f40000000000000018k
+     Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+     C  [libc.so.6+0x797c0]  strlen+0x10
+     j  com.sun.jna.Pointer._getString(JZ)Ljava/lang/String;+0
+     j  com.sun.jna.Pointer.getString(JZ)Ljava/lang/String;+7
+     j  com.sun.jna.Pointer.getString(J)Ljava/lang/String;+90
+     j  com.sun.jna.Pointer.getValue(JLjava/lang/Class;Ljava/lang/Object;)Ljava/lang/Object;+630
+     j  com.sun.jna.Structure.readField(Lcom/sun/jna/Structure$StructField;)Ljava/lang/Object;+168
+     j  com.sun.jna.Structure.read()V+82
+     j  com.sun.jna.Structure.autoRead()V+8
+     j  com.sun.jna.Structure.updateStructureByReference(Ljava/lang/Class;Lcom/sun/jna/Structure;Lcom/sun/jna/Pointer;)Lcom/sun/jna/Structure;+68
+     j  com.sun.jna.Pointer.getValue(JLjava/lang/Class;Ljava/lang/Object;)Ljava/lang/Object;+74
+     j  com.sun.jna.Structure.readField(Lcom/sun/jna/Structure$StructField;)Ljava/lang/Object;+168
+     j  com.sun.jna.Structure.read()V+82
+     j  com.sun.jna.Structure.autoRead()V+8
+     v  ~StubRoutines::call_stub
+     V  [libjvm.so+0x3e756d]
+     V  [libjvm.so+0x5f6f59]
+     V  [libjvm.so+0x3e73a5]
+     V  [libjvm.so+0x420904]
+     V  [libjvm.so+0x400ea5]
+     C  [jna1670124220621463742.tmp+0x6feb]  newJavaStructure+0xdb
+     C  [jna1670124220621463742.tmp+0xb919]
+     C  [jna1670124220621463742.tmp+0x11008]  ffi_closure_unix64_inner+0x88
+     C  [jna1670124220621463742.tmp+0x11438]  ffi_closure_unix64+0x46
+     j  org.broadinstitute.sting.queue.engine.Lsf706JobRunner.status()Lscala/Enumeration$Value;+36
+     j  org.broadinstitute.sting.queue.engine.FunctionEdge.status()Lscala/Enumeration$Value;+72
+     j  org.broadinstitute.sting.queue.engine.QGraph$$anonfun$getReadyJobs$1.apply(Lorg/broadinstitute/sting/queue/engine/QEdge;)Z+44
+     j  org.broadinstitute.sting.queue.engine.QGraph$$anonfun$getReadyJobs$1.apply(Ljava/lang/Object;)Ljava/lang/Object;+5
+
+     * Because the error is in the second level call to autoRead(), and also in a structure that has a String, we are assuming
+     * that the error is on the submit structure even though this problem is very hard to reproduce consistently at the moment.
+     */
+    public static class submitWithoutAutoRead extends submit {
+        public submitWithoutAutoRead() {
+            this.setAutoRead(false);
+        }
+    }
 
 
     /**
@@ -6096,6 +6145,7 @@ public class LibBat {
 
     /**
      * \brief  job information entry.
+     * HACK: The submit value in this structure currently has autoRead() set to false as a possible workaround for a SIGSEGV error.
      */
     public static class jobInfoEnt extends Structure {
         public static class ByReference extends jobInfoEnt implements Structure.ByReference {
@@ -6242,8 +6292,9 @@ public class LibBat {
 
         /**
          * < Structure for \ref lsb_submit call.
+         * HACK: Use a structure that has the same size, but has autoRead turned off.  Hopes to work around kernel SIGSEGV.
          */
-        public submit submit;
+        public submitWithoutAutoRead submit;
 
         /**
          * < Job exit status.

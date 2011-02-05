@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.queue.pipeline
 
 import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
 import org.broadinstitute.sting.BaseTest
 
-class IPFLibraryTest {
+class IPFLibraryPipelineTest {
 
   @Test
   def testVCFExtractSites {
