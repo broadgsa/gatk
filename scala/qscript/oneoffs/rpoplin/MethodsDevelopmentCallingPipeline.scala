@@ -1,5 +1,6 @@
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
+import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
 
 class MethodsDevelopmentCallingPipeline extends QScript {
   qscript =>
@@ -31,7 +32,15 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="noCut", doc="adds the ApplyVariantCut walker to the pipeline", required=false)
   var noCut: Boolean = false
 
-  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(3); }
+  @Argument(shortName="LOCAL_ET", doc="Doesn't use the AWS S3 storage for ET option", required=false)
+  var LOCAL_ET: Boolean = false
+
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK {
+    logging_level = "INFO";
+    jarFile = gatkJarFile;
+    memoryLimit = Some(3);
+    phone_home = Some(if ( LOCAL_ET ) GATKRunReport.PhoneHomeOption.STANDARD else GATKRunReport.PhoneHomeOption.AWS_S3)
+  }
 
   class Target(
           val baseName: String,
