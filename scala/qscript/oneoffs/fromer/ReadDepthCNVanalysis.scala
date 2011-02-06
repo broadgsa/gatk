@@ -34,7 +34,7 @@ class ReadDepthCNVanalysis extends QScript {
     this.intervalsString = List(qscript.intervals)
     this.jarFile = qscript.gatkJarFile
     this.reference_sequence = qscript.referenceFile
-    this.memoryLimit = Some(3)
+    //this.memoryLimit = Some(3)
     this.logging_level = "INFO"
   }
 
