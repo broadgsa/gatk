@@ -3,6 +3,8 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +16,7 @@ public class Degeneracy extends VariantStratifier {
     private HashMap<String, String> degeneracies;
 
     @Override
-    public void initialize(Set<VariantContextUtils.JexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
+    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
         states = new ArrayList<String>();
         states.add("1-fold");
         states.add("2-fold");
@@ -52,7 +54,7 @@ public class Degeneracy extends VariantStratifier {
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
         relevantStates.add("all");
@@ -61,10 +63,9 @@ public class Degeneracy extends VariantStratifier {
             String type = null;
             String aa = null;
 
-            if (eval.getAttributeAsString("refseq.functionalClass") != null) {
-                type = eval.getAttributeAsString("refseq.functionalClass");
+            if (eval.hasAttribute("refseq.functionalClass")) {
                 aa = eval.getAttributeAsString("refseq.variantAA");
-            } else if (eval.getAttributeAsString("refseq.functionalClass_1") != null) {
+            } else if (eval.hasAttribute("refseq.functionalClass_1")) {
                 int annotationId = 1;
                 String key;
 
@@ -85,7 +86,7 @@ public class Degeneracy extends VariantStratifier {
                     }
 
                     annotationId++;
-                } while (eval.getAttributeAsString(key) != null);
+                } while (eval.hasAttribute(key));
             }
 
             if (aa != null && degeneracies.containsKey(aa)) {

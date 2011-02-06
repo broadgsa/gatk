@@ -5,9 +5,9 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.report.utils.TableType;
 
 import java.util.ArrayList;
@@ -157,8 +157,7 @@ public class IndelMetricsByAC extends VariantEvaluator {
         }
 
         public String toString() {
-            String returnString = "";
-            return returnString;
+            return "";
         }
 
         public void incrValue( VariantContext eval ) {

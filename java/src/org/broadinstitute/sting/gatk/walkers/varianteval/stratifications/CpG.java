@@ -3,6 +3,8 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -11,7 +13,7 @@ public class CpG extends VariantStratifier implements StandardStratification {
     private ArrayList<String> states;
 
     @Override
-    public void initialize(Set<VariantContextUtils.JexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
+    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
         states = new ArrayList<String>();
         states.add("all");
         states.add("CpG");
@@ -22,7 +24,7 @@ public class CpG extends VariantStratifier implements StandardStratification {
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         boolean isCpG = false;
         if (ref != null && ref.getBases() != null) {
             String fwRefBases = new String(ref.getBases());

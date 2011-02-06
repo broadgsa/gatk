@@ -52,40 +52,35 @@ public class NewEvaluationContext extends HashMap<VariantStratifier, String> {
 
     public void apply(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantContext comp, VariantContext eval) {
         for ( VariantEvaluator evaluation : evaluationInstances.values() ) {
-            //synchronized ( this ) {
-                // we always call update0 in case the evaluation tracks things like number of bases covered
-                //evaluation.update0(tracker, ref, context);
+            // we always call update0 in case the evaluation tracks things like number of bases covered
 
-                // the other updateN methods don't see a null context
-                if ( tracker == null )
-                    continue;
+            // the other updateN methods don't see a null context
+            if ( tracker == null )
+                continue;
 
-                // now call the single or paired update function
-                switch ( evaluation.getComparisonOrder() ) {
-                    case 1:
-                        if (eval != null) {
-                            evaluation.update1(eval, tracker, ref, context);
-                        }
+            // now call the single or paired update function
+            switch ( evaluation.getComparisonOrder() ) {
+                case 1:
+                    if (eval != null) {
+                        evaluation.update1(eval, tracker, ref, context);
+                    }
 
-                        break;
-                    case 2:
-                        //if (eval != null) {
-                            evaluation.update2(eval, comp, tracker, ref, context);
-                        //}
+                    break;
+                case 2:
+                    //if (eval != null) {
+                        evaluation.update2(eval, comp, tracker, ref, context);
+                    //}
 
-                        break;
-                    default:
-                        throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
-                }
-            //}
+                    break;
+                default:
+                    throw new ReviewedStingException("BUG: Unexpected evaluation order " + evaluation);
+            }
         }
     }
 
     public void update0(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        //synchronized (this) {
-            for ( VariantEvaluator evaluation : evaluationInstances.values() ) {
-                evaluation.update0(tracker, ref, context);
-            }
-        //}
+        for ( VariantEvaluator evaluation : evaluationInstances.values() ) {
+            evaluation.update0(tracker, ref, context);
+        }
     }
 }

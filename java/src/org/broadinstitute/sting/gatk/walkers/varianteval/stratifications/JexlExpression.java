@@ -3,22 +3,24 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 
 import java.util.ArrayList;
 import java.util.Set;
 
 public class JexlExpression extends VariantStratifier implements StandardStratification {
     // needs to know the jexl expressions
-    private Set<VariantContextUtils.JexlVCMatchExp> jexlExpressions;
+    private Set<SortableJexlVCMatchExp> jexlExpressions;
     private ArrayList<String> states;
 
     @Override
-    public void initialize(Set<VariantContextUtils.JexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
+    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
         this.jexlExpressions = jexlExpressions;
 
         states = new ArrayList<String>();
         states.add("none");
-        for ( VariantContextUtils.JexlVCMatchExp jexlExpression : jexlExpressions ) {
+        for ( SortableJexlVCMatchExp jexlExpression : jexlExpressions ) {
             states.add(jexlExpression.name);
         }
     }
@@ -27,11 +29,11 @@ public class JexlExpression extends VariantStratifier implements StandardStratif
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
         relevantStates.add("none");
 
-        for ( VariantContextUtils.JexlVCMatchExp jexlExpression : jexlExpressions ) {
+        for ( SortableJexlVCMatchExp jexlExpression : jexlExpressions ) {
             if (eval != null && VariantContextUtils.match(eval, jexlExpression)) {
                 relevantStates.add(jexlExpression.name);
             }

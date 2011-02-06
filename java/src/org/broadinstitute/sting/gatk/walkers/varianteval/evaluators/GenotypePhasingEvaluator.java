@@ -9,7 +9,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.phasing.AllelePair;
 import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.NewEvaluationContext;

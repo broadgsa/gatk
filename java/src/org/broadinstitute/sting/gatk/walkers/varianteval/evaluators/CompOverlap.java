@@ -19,18 +19,17 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
  */
 @Analysis(description = "The overlap between eval and comp sites")
 public class CompOverlap extends VariantEvaluator implements StandardEval {
-
     @DataPoint(description = "number of eval SNP sites")
-    long nEvalSNPs = 0;
+    long nEvalVariants = 0;
 
     @DataPoint(description = "number of comp SNP sites")
-    long nCompSNPs = 0;
+    long nCompVariants = 0;
 
     @DataPoint(description = "number of eval sites outside of comp sites")
     long novelSites = 0;
 
     @DataPoint(description = "number of eval sites at comp sites")
-    long nSNPsAtComp = 0;
+    long nVariantsAtComp = 0;
 
     @DataPoint(description = "percentage of eval sites at comp sites")
     double compRate = 0.0;
@@ -45,9 +44,9 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
         return 2;   // we need to see each eval track and each comp track
     }
 
-    public long nNovelSites() { return nEvalSNPs - nSNPsAtComp; }
-    public double compRate() { return rate(nSNPsAtComp, nEvalSNPs); }
-    public double concordanceRate() { return rate(nConcordant, nSNPsAtComp); }
+    public long nNovelSites() { return nEvalVariants - nVariantsAtComp; }
+    public double compRate() { return rate(nVariantsAtComp, nEvalVariants); }
+    public double concordanceRate() { return rate(nConcordant, nVariantsAtComp); }
 
     public void finalizeEvaluation() {
         compRate = 100 * compRate();
@@ -76,21 +75,18 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
     }
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        //boolean expectingIndels = false;
+        boolean evalIsGood = eval != null;
+        boolean expectingIndels = eval != null && eval.isIndel();
 
-        //boolean compIsGood = expectingIndels ? comp != null && comp.isNotFiltered() && comp.isIndel() : comp != null && comp.isNotFiltered() && comp.isSNP() ;
-        //boolean evalIsGood = expectingIndels ? eval != null && eval.isIndel() : eval != null && eval.isSNP() ;
+        boolean compIsGood = expectingIndels ? comp != null && comp.isNotFiltered() && comp.isIndel() : comp != null && comp.isNotFiltered() && comp.isSNP() ;
 
-        boolean compIsGood = comp != null && comp.isNotFiltered() && comp.isSNP() ;
-        boolean evalIsGood = eval != null && eval.isSNP() ;
-
-        if (compIsGood) nCompSNPs++;           // count the number of comp events
-        if (evalIsGood) nEvalSNPs++;           // count the number of eval events
+        if (compIsGood) nCompVariants++;           // count the number of comp events
+        if (evalIsGood) nEvalVariants++;           // count the number of eval events
 
         if (compIsGood && evalIsGood) {
-            nSNPsAtComp++;
+            nVariantsAtComp++;
 
-            if (!discordantP(eval, comp)) {     // count whether we're concordant or not with the comp value
+            if (!discordantP(eval, comp)) {    // count whether we're concordant or not with the comp value
                 nConcordant++;
             }
         }

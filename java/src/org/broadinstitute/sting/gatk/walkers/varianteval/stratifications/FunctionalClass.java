@@ -3,6 +3,8 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -12,7 +14,7 @@ public class FunctionalClass extends VariantStratifier {
     private ArrayList<String> states;
 
     @Override
-    public void initialize(Set<VariantContextUtils.JexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
+    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
         states = new ArrayList<String>();
         states.add("all");
         states.add("silent");
@@ -24,7 +26,7 @@ public class FunctionalClass extends VariantStratifier {
         return states;
     }
 
-    public ArrayList<String> getRelevantStates(ReferenceContext ref, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
+    public ArrayList<String> getRelevantStates(ReferenceContext ref, RefMetaDataTracker tracker, VariantContext comp, String compName, VariantContext eval, String evalName, String sampleName) {
         ArrayList<String> relevantStates = new ArrayList<String>();
 
         relevantStates.add("all");
@@ -32,9 +34,9 @@ public class FunctionalClass extends VariantStratifier {
         if (eval != null && eval.isVariant()) {
             String type = null;
 
-            if (eval.getAttributeAsString("refseq.functionalClass") != null) {
+            if (eval.hasAttribute("refseq.functionalClass")) {
                 type = eval.getAttributeAsString("refseq.functionalClass");
-            } else if (eval.getAttributeAsString("refseq.functionalClass_1") != null) {
+            } else if (eval.hasAttribute("refseq.functionalClass_1")) {
                 int annotationId = 1;
                 String key;
 
@@ -43,7 +45,7 @@ public class FunctionalClass extends VariantStratifier {
 
                     String newtype = eval.getAttributeAsString(key);
 
-                    if ( newtype != null &&
+                    if ( newtype != null && !newtype.equalsIgnoreCase("null") &&
                          ( type == null ||
                          ( type.equals("silent") && !newtype.equals("silent") ) ||
                          ( type.equals("missense") && newtype.equals("nonsense") ) )
@@ -52,7 +54,7 @@ public class FunctionalClass extends VariantStratifier {
                     }
 
                     annotationId++;
-                } while (eval.getAttributeAsString(key) != null);
+                } while (eval.hasAttribute(key));
             }
 
             if (type != null) {

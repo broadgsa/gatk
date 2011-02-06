@@ -474,10 +474,6 @@ public class IndelStatistics extends VariantEvaluator {
         return getName();
     }
 
-    //public String update2(VariantContext eval, VariantContext validation, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context, VariantEvalWalker.EvaluationContext group) {
-        //return null;
-    //}
-
     public String update1(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
         if (eval != null ) {
@@ -502,13 +498,9 @@ public class IndelStatistics extends VariantEvaluator {
 
         return null; // This module doesn't capture any interesting sites, so return null
     }
-    public String update0(VariantContext eval, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
-        return null;
-    }
     public void finalizeEvaluation() {
-    //
-       int k=0; 
+        int k=0;
     }
 
 }

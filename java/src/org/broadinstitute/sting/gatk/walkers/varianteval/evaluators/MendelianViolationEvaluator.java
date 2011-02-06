@@ -3,18 +3,18 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.List;
 import java.util.Arrays;
-import java.util.regex.Pattern;
+import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Mendelian violation detection and counting
