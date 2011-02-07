@@ -30,6 +30,12 @@ class ReadDepthCNVanalysis extends QScript {
   @Input(doc = "Maximum depth (before GATK down-sampling kicks in...)", shortName = "MAX_DEPTH", required = false)
   var MAX_DEPTH = 20000
 
+  @Input(doc = "Number of read-depth bins", shortName = "NUM_BINS", required = false)
+  var NUM_BINS = 200
+
+  @Input(doc = "Starting value of read-depth bins", shortName = "START_BIN", required = false)
+  var START_BIN = 1
+
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.intervalsString = List(qscript.intervals)
     this.jarFile = qscript.gatkJarFile
@@ -55,6 +61,10 @@ class ReadDepthCNVanalysis extends QScript {
 
     this.dcov = Some(MAX_DEPTH)
     this.downsampling_type = Some(DownsampleType.BY_SAMPLE)
+
+    this.start = Some(START_BIN)
+    this.stop = Some(MAX_DEPTH)
+    this.nBins = Some(NUM_BINS)
 
     this.scatterCount = scatterCountInput
 
