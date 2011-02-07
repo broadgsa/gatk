@@ -139,6 +139,11 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
             throw new UserException("No evaluation tracks were specified.  Please bind one or more callsets to evaluate using the -B argument with a trackname that starts with the word 'eval'.");
         }
 
+        // Add a dummy comp track if none exists
+        if (compNames.size() == 0) {
+            compNames.add("none");
+        }
+
         // Set up set of known names
         knownNames.addAll(Arrays.asList(KNOWN_NAMES));
 
@@ -245,6 +250,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
      * @param result  an integer that doesn't get used for anything
      */
     public void onTraversalDone(Integer result) {
+        logger.info("Finalizing variant report");
+
         for ( StateKey stateKey : evaluationContexts.keySet() ) {
             NewEvaluationContext nec = evaluationContexts.get(stateKey);
 

@@ -311,6 +311,38 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     }
 
     @Test
+    public void testFundamentalsCountVariantsNoCompRod() {
+//        nProcessedLoci = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | awk '{ print length($4) }' | ~kiran/bin/SimpleStats = 38
+//        nCalledLoci    = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep -c PASS = 9
+//        nRefLoci       = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ if ($5 == ".") print $0 }' | wc -l = 4
+//        nVariantLoci   = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ if ($5 != ".") print $0 }' | wc -l = 5
+//        variantRate    = nVariantLoci / nProcessedLoci = 0.131578947
+//        nSNPs          = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ if ($5 != "." && length($4) == 1 && length($5) == 1) print $0 }' | wc -l = 3
+//        nInsertions    = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ if ($5 != "." && length($5) > 1) print $0 }' | wc -l = 1
+//        nDeletions     = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ if ($5 != "." && length($4) > 1) print $0 }' | wc -l = 1
+//        nNoCalls       = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ for (i = 10; i <= 12; i++) if ($i ~ "[[:punct:]]/[[:punct:]]") print $0 }' | wc -l = 4
+//        nHets          = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ for (i = 10; i <= 12; i++) if ($i ~ "0/1" || $i ~ "1/0") print $0 }' | wc -l = 8
+//        nHomRef        = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ for (i = 10; i <= 12; i++) if ($i ~ "0/0") print $0 }' | wc -l = 10
+//        nHomVar        = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ for (i = 10; i <= 12; i++) if ($i ~ "1/1") print $0 }' | wc -l = 5
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                cmdLineBuilder(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-B:eval,VCF " + fundamentalTestVCF,
+                        "-noEV",
+                        "-EV CountVariants",
+                        "-noST",
+                        "-BTI eval",
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("2a6215c86918a2f5c6748dd74057e79e")
+        );
+        executeTest("testFundamentalsCountVariantsNoCompRod", spec);
+    }
+
+    @Test
     public void testSelect1() {
         String extraArgs = "-L 1:1-10,000,000";
         for (String tests : testsEnumerations) {
@@ -402,7 +434,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testTranches() {
         String extraArgs = "-T VariantEval -R "+ hg18Reference +" -B:eval,vcf " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -tf " + testDir + "tranches.6.txt";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("68044a69f03ba4cc11d2061cc96e9eb5"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("b018ca01b374def71fcd1bf164326485"));
         executeTestParallel("testTranches",spec);
         //executeTest("testTranches",spec);
     }
