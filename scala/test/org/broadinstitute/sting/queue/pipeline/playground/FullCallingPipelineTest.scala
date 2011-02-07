@@ -23,11 +23,6 @@ class FullCallingPipelineTest {
     new K1gBam("C474", "NA19652", 1),
     new K1gBam("C474", "NA19654", 1))
 
-  // In fullCallingPipeline.q VariantEval is always compared against 129.
-  // Until the newvarianteval is finalized which will allow java import of the prior results,
-  // we re-run VariantEval to validate the run, and replicate that behavior here.
-  private final val variantEvalDbsnpFile = new File(BaseTest.b37dbSNP129)
-
   val k1gChr20Dataset = {
     val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20")
     dataset.pipeline.getProject.setIntervalList(new File(BaseTest.GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list"))
@@ -64,7 +59,8 @@ class FullCallingPipelineTest {
     val project = new PipelineProject
     project.setName(projectName)
     project.setReferenceFile(new File(BaseTest.hg19Reference))
-    project.setDbsnpFile(new File(BaseTest.b37dbSNP132))
+    project.setGenotypeDbsnp(new File(BaseTest.b37dbSNP132))
+    project.setEvalDbsnp(new File(BaseTest.b37dbSNP129))
     project.setRefseqTable(new File(BaseTest.hg19Refseq))
 
     var samples = List.empty[PipelineSample]
@@ -94,12 +90,12 @@ class FullCallingPipelineTest {
   @Test(dataProvider="datasets", enabled=false)
   def testFullCallingPipeline(dataset: PipelineDataset) = {
     val projectName = dataset.pipeline.getProject.getName
-    val testName = "fullCallingPipeline-" + projectName
+    val testName = "FullCallingPipeline-" + projectName
     val yamlFile = writeYaml(testName, dataset.pipeline)
     var cleanType = "cleaned"
 
     // Run the pipeline with the expected inputs.
-    var pipelineCommand = ("-retry 1 -S scala/qscript/playground/fullCallingPipeline.q" +
+    var pipelineCommand = ("-retry 1 -S scala/qscript/playground/FullCallingPipeline.q" +
             " -jobProject %s -Y %s" +
             " -tearScript %s/R/DataProcessingReport/GetTearsheetStats.R" +
             " --gatkjar %s")
@@ -119,7 +115,7 @@ class FullCallingPipelineTest {
     pipelineSpec.evalSpec.vcf = new File(PipelineTest.runDir(testName) + "SnpCalls/%s.%s.annotated.handfiltered.vcf".format(projectName, cleanType))
     pipelineSpec.evalSpec.reference = dataset.pipeline.getProject.getReferenceFile
     pipelineSpec.evalSpec.intervals = dataset.pipeline.getProject.getIntervalList
-    pipelineSpec.evalSpec.dbsnp = variantEvalDbsnpFile
+    pipelineSpec.evalSpec.dbsnp = dataset.pipeline.getProject.getEvalDbsnp
     pipelineSpec.evalSpec.validations = dataset.validations
 
     // Run the test, at least checking if the command compiles

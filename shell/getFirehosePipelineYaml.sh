@@ -32,19 +32,22 @@ FIREHOSE_ANNOTATIONS=(reference_file interval_list \
 
 # YAML templates
 
+# Project YAML template, once per file.
 PROJECT_YAML_TEMPLATE='"\n\
   project: {\n\
     name: '"$ENTITY_SET_ID"',\n\
     referenceFile: %s,\n\
-    dbsnpFile: %s,\n\
+    genotypeDbsnpFile: %s,\n\
+    evalDbsnpFile: %s,\n\
     refseqTable: %s,\n\
     intervalList: %s\n\
-  },", $1, dbsnp, refseq, $2'
+  },", $1, genotypeDbsnp, evalDbsnp, refseq, $2'
 
+# Project YAML template, once per sample.
 SAMPLE_YAML_TEMPLATE='"\n\
     {\n\
       id: %s,\n\
-      bamFiles: { recalibrated: %s },\n\
+      bamFiles: { cleaned: %s },\n\
       tags: {\n\
         SQUIDProject: %s,\n\
         CollaboratorID: %s\n\
@@ -86,20 +89,27 @@ BEGIN {
     refseq_dir = "/humgen/gsa-hpprojects/GATK/data/Annotations/refseq/";
     dbsnp_dir = "/humgen/gsa-hpprojects/GATK/data/";
 
-    dbsnps["Homo_sapiens_assembly18.fasta"] = dbsnp_dir "dbsnp_129_hg18.rod";
+    # add hg18 specific files to awk associative arrays
+    genotypeDbsnps["Homo_sapiens_assembly18.fasta"] = dbsnp_dir "dbsnp_129_hg18.rod";
+    evalDbsnps["Homo_sapiens_assembly18.fasta"] = dbsnp_dir "dbsnp_129_hg18.rod";
     refseqs["Homo_sapiens_assembly18.fasta"] = refseq_dir "refGene-big-table-hg18.txt";
 
-    dbsnps["Homo_sapiens_assembly19.fasta"] = dbsnp_dir "dbsnp_132_b37.vcf";
+    # add hg19 specific files to awk associative arrays
+    genotypeDbsnps["Homo_sapiens_assembly19.fasta"] = dbsnp_dir "dbsnp_132_b37.vcf";
+    evalDbsnps["Homo_sapiens_assembly19.fasta"] = dbsnp_dir "dbsnp_129_b37.rod";
     refseqs["Homo_sapiens_assembly19.fasta"] = refseq_dir "refGene-big-table-hg19.txt";
 
     printf "{"
 }
 {
     if (NR == 1) {
+        # Based on the reference of the first sample, specify the dbsnps and refseq tables.
+
         reference_part_count = split($1, reference_parts, "/")
         reference_name = reference_parts[reference_part_count];
 
-        dbsnp = dbsnps[reference_name];
+        genotypeDbsnp = genotypeDbsnps[reference_name];
+        evalDbsnp = evalDbsnps[reference_name];
         refseq = refseqs[reference_name];
 
         printf '"$PROJECT_YAML_TEMPLATE"'
@@ -115,12 +125,14 @@ END {
     print "\n}"
 }' > $PIPELINE_YAML_FILE
 
-hg19=`grep "assembly19" -c $PIPELINE_YAML_FILE`
+#hg19=`grep "assembly19" -c $PIPELINE_YAML_FILE`
 
-if [ "$hg19" -ne 0 ]; then
-    sed 's/\/humgen.*rod/\/humgen\/gsa-hpprojects\/GATK\/data\/dbsnp_132_b37.vcf/' $PIPELINE_YAML_FILE > yaml2 
-    mv yaml2 $PIPELINE_YAML_FILE
-fi
+# NOTE: DBSNP's are populated via AWK's BEGIN block above.
+#if [ "$hg19" -ne 0 ]; then
+#    sed 's/\/humgen.*rod/\/humgen\/gsa-hpprojects\/GATK\/data\/dbsnp_132_b37.vcf/' $PIPELINE_YAML_FILE > yaml2
+#    mv yaml2 $PIPELINE_YAML_FILE
+#fi
 
-sed 's/recalibrat/clean/' $PIPELINE_YAML_FILE > yaml2
-mv yaml2 $PIPELINE_YAML_FILE
+# NOTE: Renamed "recalibrated" to "cleaned" in SAMPLE_YAML_TEMPLATE above.
+#sed 's/recalibrat/clean/' $PIPELINE_YAML_FILE > yaml2
+#mv yaml2 $PIPELINE_YAML_FILE

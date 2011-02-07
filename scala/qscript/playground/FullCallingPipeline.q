@@ -10,7 +10,7 @@ import org.broadinstitute.sting.queue.QScript
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 
-class fullCallingPipeline extends QScript {
+class FullCallingPipeline extends QScript {
   qscript =>
 
   @Argument(doc="the YAML file specifying inputs, interval lists, reference sequence, etc.", shortName="Y")
@@ -64,8 +64,6 @@ class fullCallingPipeline extends QScript {
 
   private var pipeline: Pipeline = _
 
-  private var dbsnpType: String = _
-
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.intervals = List(qscript.pipeline.getProject.getIntervalList)
     this.jarFile = qscript.gatkJar
@@ -79,12 +77,6 @@ class fullCallingPipeline extends QScript {
 
   def script = {
     pipeline = YamlUtils.load(classOf[Pipeline], qscript.yamlFile)
-    //var dbsnpType: String = _ //figure out how to get it so this is recognized and the whole thing has access to it.
-      if (qscript.pipeline.getProject.getDbsnpFile.toString.contains("rod")){
-        dbsnpType = "dbSNP"
-      } else  {
-        dbsnpType = "VCF"
-      }
 
     val projectBase: String = qscript.pipeline.getProject.getName
     // TODO: Fix command lines that pass -refseqTable
@@ -131,7 +123,7 @@ class fullCallingPipeline extends QScript {
         realigner.intervals = Nil
         realigner.intervalsString = Nil
         realigner.scatterCount = num_cleaner_scatter_jobs
-        realigner.rodBind :+= RodBind("dbsnp", dbsnpType, qscript.pipeline.getProject.getDbsnpFile)
+        realigner.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
         realigner.rodBind :+= RodBind("indels", "VCF", swapExt(realigner.reference_sequence.getParentFile, realigner.reference_sequence, "fasta", "1kg_pilot_indels.vcf"))
 
         // if scatter count is > 1, do standard scatter gather, if not, explicitly set up fix mates
@@ -214,7 +206,7 @@ class fullCallingPipeline extends QScript {
     snps.group :+= "Standard"
     snps.out = new File("SnpCalls", base+".vcf")
     snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
-    snps.rodBind :+= RodBind("dbsnp", dbsnpType, qscript.pipeline.getProject.getDbsnpFile)
+    snps.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
     snps.memoryLimit = Some(6)
 
     snps.scatterCount = qscript.num_snp_scatter_jobs
@@ -242,7 +234,7 @@ class fullCallingPipeline extends QScript {
     indels.group :+= "Standard"
     indels.out = new File("IndelCalls", base+".vcf")
     indels.downsample_to_coverage = Some(qscript.downsampling_coverage)
-    indels.rodBind :+= RodBind("dbsnp", dbsnpType, qscript.pipeline.getProject.getDbsnpFile)
+    indels.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
     indels.memoryLimit = Some(6)
     indels.genotype_likelihoods_model = Option(org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL)
 
@@ -308,12 +300,7 @@ class fullCallingPipeline extends QScript {
     eval.reportLocation = new File("SnpCalls", base+".eval")
     eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.R)
     eval.analysisName = base+"_VariantEval"
-    if(dbsnpType=="VCF"){
-     eval.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_b37.rod")
-
-    } else{
-      eval.rodBind :+= RodBind("dbsnp", dbsnpType, qscript.pipeline.getProject.getDbsnpFile)
-    }
+    eval.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getEvalDbsnpType, qscript.pipeline.getProject.getEvalDbsnp)
 
     // 5. Make the bam list
     val listOfBams =  new File(base +".BamFiles.list")

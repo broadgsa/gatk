@@ -35,7 +35,8 @@ public class PipelineProject {
     private String name;
     private File referenceFile;
     private File intervalList;
-    private File dbsnpFile;
+    private File genotypeDbsnp;
+    private File evalDbsnp;
     private File refseqTable;
     private Map<String, String> tags = new TreeMap<String, String>();
 
@@ -63,12 +64,40 @@ public class PipelineProject {
         this.referenceFile = referenceFile;
     }
 
+    /** use genotype dbsnp file */
+    @Deprecated
     public File getDbsnpFile() {
-        return dbsnpFile;
+        return getGenotypeDbsnp();
     }
 
+    /** use genotype dbsnp file */
+    @Deprecated
     public void setDbsnpFile(File dbsnpFile) {
-        this.dbsnpFile = dbsnpFile;
+        this.setGenotypeDbsnp(dbsnpFile);
+    }
+
+    public File getGenotypeDbsnp() {
+        return genotypeDbsnp;
+    }
+
+    public void setGenotypeDbsnp(File genotypeDbsnp) {
+        this.genotypeDbsnp = genotypeDbsnp;
+    }
+
+    public String getGenotypeDbsnpType() {
+        return getDbsnpType(genotypeDbsnp);
+    }
+
+    public File getEvalDbsnp() {
+        return evalDbsnp;
+    }
+
+    public void setEvalDbsnp(File evalDbsnp) {
+        this.evalDbsnp = evalDbsnp;
+    }
+
+    public String getEvalDbsnpType() {
+        return getDbsnpType(genotypeDbsnp);
     }
 
     public File getRefseqTable() {
@@ -85,5 +114,14 @@ public class PipelineProject {
 
     public void setTags(Map<String, String> tags) {
         this.tags = tags;
+    }
+
+    private String getDbsnpType(File file) {
+        if (file == null)
+            return null;
+        else if (file.getName().toLowerCase().endsWith(".vcf"))
+            return "vcf";
+        else
+            return "dbsnp";
     }
 }
