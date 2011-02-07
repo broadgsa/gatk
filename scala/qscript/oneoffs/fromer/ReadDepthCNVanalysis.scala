@@ -2,8 +2,8 @@ package oneoffs.fromer
 
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
-
 import org.broadinstitute.sting.gatk.DownsampleType
+import org.broadinstitute.sting.queue.util.BAMutilities
 
 
 class ReadDepthCNVanalysis extends QScript {
@@ -23,6 +23,9 @@ class ReadDepthCNVanalysis extends QScript {
 
   @Input(doc = "level of parallelism for BAM DoC.   By default is set to 0 [no scattering].", shortName = "scatter", required = false)
   var scatterCountInput = 0
+
+  @Input(doc = "Samples to phase together.   By default is set to 1 [one job per sample].", shortName = "samplesPerJob", required = false)
+  var samplesPerJob = 1
 
   @Output(doc = "DoC file to output", shortName = "o", required = true)
   var outputDoC: File = _
@@ -44,11 +47,40 @@ class ReadDepthCNVanalysis extends QScript {
     this.logging_level = "INFO"
   }
 
-  def script = {
-    add(new DepthOfCoverage(bams, outputDoC))
+  // A target has a list of samples and bam files to use for DoC
+  class Target(val name: String, val samples: List[String], val bams: List[File]) {
+    def DoC_output = new File(name + "." + outputDoC)
+
+    override def toString(): String = String.format("[Target %s with samples %s against bams %s]", name, samples, bams)
   }
 
-  class DepthOfCoverage(bam: File, docOutPath: File) extends org.broadinstitute.sting.queue.extensions.gatk.DepthOfCoverage with CommandLineGATKArgs {
+  def script = {
+    val sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]] = BAMutilities.getMapOfBamsForSample(BAMutilities.parseBamsInput(bams))
+    val samples: List[String] = sampleToBams.keys.toList
+    Console.out.printf("Samples are %s%n", samples)
+
+    val targets: List[Target] = buildTargets(samples, sampleToBams)
+
+    for (target <- targets) {
+      Console.out.printf("Target is %s%n", target)
+      add(new DoC(target))
+    }
+  }
+
+  def buildTargets(samples: List[String], sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]]): List[Target] = {
+
+    def buildTargetsHelper(samples: List[String], count: Int): List[Target] = (samples splitAt samplesPerJob) match {
+      case (Nil, y) =>
+        return Nil
+      case (subsamples, remaining) =>
+        return new Target("group" + count, subsamples, BAMutilities.findBamsForSamples(subsamples, sampleToBams)) ::
+                buildTargetsHelper(remaining, count + 1)
+    }
+
+    return buildTargetsHelper(samples, 0)
+  }
+
+  class DoC(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.DepthOfCoverage with CommandLineGATKArgs {
     this.omitIntervalStatistics = false
     this.omitDepthOutputAtEachBase = true
     this.omitLocusTable = true
@@ -56,8 +88,8 @@ class ReadDepthCNVanalysis extends QScript {
     this.minBaseQuality = Some(0)
     this.minMappingQuality = Some(0)
 
-    this.out = docOutPath
-    this.input_file :+= bam
+    this.out = t.DoC_output
+    this.input_file = t.bams
 
     this.dcov = Some(MAX_DEPTH)
     this.downsampling_type = Some(DownsampleType.BY_SAMPLE)
@@ -68,7 +100,7 @@ class ReadDepthCNVanalysis extends QScript {
 
     this.scatterCount = scatterCountInput
 
-    override def dotString = "DOC: " + bam.getName
+    override def dotString = "DOC: " + t.DoC_output
   }
 
 }
