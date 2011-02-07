@@ -144,10 +144,6 @@ public class ReadBasedPhasingValidationWalker extends RodWalker<Integer, Integer
         ReadBackedPileup pileup = context.getBasePileup();
         String nextName = null;
 
-        //
-        // TODO: ASSUMES THAT ALL READS COME FROM A SINGLE SAMPLE:
-        // TODO: CODE SHOULD BE AS FOLLOWS:
-        /*
         Collection<String> sampNames = pileup.getSampleNames();
         if (sampNames.size() != 1)
             throw new UserException("Reads must be for exactly one sample [not multi-sample]");
@@ -161,8 +157,6 @@ public class ReadBasedPhasingValidationWalker extends RodWalker<Integer, Integer
             throw new UserException("Reads must have a single consistent sample name");
 
         pileup = pileup.getPileupForSampleName(sampleName);
-        */
-        //
 
         ReadBasesAtPosition readBases = new ReadBasesAtPosition();
         for (PileupElement p : pileup)
