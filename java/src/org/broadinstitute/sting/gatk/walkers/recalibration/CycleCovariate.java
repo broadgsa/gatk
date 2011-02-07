@@ -160,6 +160,7 @@ public class CycleCovariate implements StandardCovariate {
     */
 
     // todo -- this should be put into a common place in the code base
+    private static List<String> PACBIO_NAMES = Arrays.asList("PACBIO");
     private static List<String> ILLUMINA_NAMES = Arrays.asList("ILLUMINA", "SLX", "SOLEXA");
     private static List<String> SOLID_NAMES = Arrays.asList("SOLID");
     private static List<String> LS454_NAMES = Arrays.asList("454");
@@ -180,7 +181,7 @@ public class CycleCovariate implements StandardCovariate {
         //-----------------------------
 
 
-        if( isPlatform(read, ILLUMINA_NAMES) || isPlatform(read, SOLID_NAMES) ) {
+        if( isPlatform(read, ILLUMINA_NAMES) || isPlatform(read, SOLID_NAMES) || isPlatform(read, PACBIO_NAMES)) {
             final int init;
             final int increment;
             if( !read.getReadNegativeStrandFlag() ) {
