@@ -43,7 +43,6 @@ import java.io.*;
 import java.util.*;
 
 import net.sf.samtools.util.SortingCollection;
-import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
 
@@ -69,7 +68,7 @@ public class SortROD {
      */
     public static void main(String[] args) {
         BasicConfigurator.configure();
-
+        logger.setLevel(org.apache.log4j.Level.INFO);
         // check yourself before you wreck yourself - we require one arg, the input file
         if (args.length != 3 )
             printUsage();
