@@ -99,6 +99,14 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "indel_heterozygosity", shortName = "indelHeterozygosity", doc = "Heterozygosity for indel calling", required = false)
     public double INDEL_HETEROZYGOSITY = 1.0/8000;
 
+    @Argument(fullName = "insertionStartProbability", shortName = "insertionStartProbability", doc = "Heterozygosity for indel calling", required = false)
+    public double INSERTION_START_PROBABILITY = 1e-3;
+    @Argument(fullName = "insertionEndProbability", shortName = "insertionEndProbability", doc = "Heterozygosity for indel calling", required = false)
+    public double INSERTION_END_PROBABILITY = 0.5;
+    @Argument(fullName = "alphaDeletionProbability", shortName = "alphaDeletionProbability", doc = "Heterozygosity for indel calling", required = false)
+    public double ALPHA_DELETION_PROBABILITY = 1e-3;
+
+      
     public UnifiedArgumentCollection clone() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
 
@@ -121,6 +129,9 @@ public class UnifiedArgumentCollection {
         uac.GET_ALLELES_FROM_VCF = GET_ALLELES_FROM_VCF;
         uac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
         uac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
+        uac.INSERTION_START_PROBABILITY = INSERTION_START_PROBABILITY;
+        uac.INSERTION_END_PROBABILITY = INSERTION_END_PROBABILITY;
+        uac.ALPHA_DELETION_PROBABILITY = ALPHA_DELETION_PROBABILITY;
 
         return uac;
     }

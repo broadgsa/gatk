@@ -48,9 +48,6 @@ import java.util.*;
 
 public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
     private final int maxReadDeletionLength = 3;
-    private final double insertionStartProbability = 1e-3;
-    private final double insertionEndProbability = 0.5;
-    private final double alphaDeletionProbability = 1e-3;
     private final int HAPLOTYPE_SIZE = 80;
 
     private final int minIndelCountForGenotyping;
@@ -65,8 +62,8 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
     private List<Allele> alleleList;
     protected DindelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
-        model = new HaplotypeIndelErrorModel(maxReadDeletionLength, insertionStartProbability,
-                insertionEndProbability, alphaDeletionProbability, HAPLOTYPE_SIZE, false, DEBUGOUT);
+        model = new HaplotypeIndelErrorModel(maxReadDeletionLength, UAC.INSERTION_START_PROBABILITY,
+                UAC.INSERTION_END_PROBABILITY, UAC.ALPHA_DELETION_PROBABILITY, HAPLOTYPE_SIZE, false, DEBUGOUT);
         alleleList = new ArrayList<Allele>();
         getAlleleListFromVCF = UAC.GET_ALLELES_FROM_VCF;
         minIndelCountForGenotyping = UAC.MIN_INDEL_COUNT_FOR_GENOTYPING;
