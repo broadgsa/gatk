@@ -64,18 +64,6 @@ public class PipelineProject {
         this.referenceFile = referenceFile;
     }
 
-    /** use genotype dbsnp file */
-    @Deprecated
-    public File getDbsnpFile() {
-        return getGenotypeDbsnp();
-    }
-
-    /** use genotype dbsnp file */
-    @Deprecated
-    public void setDbsnpFile(File dbsnpFile) {
-        this.setGenotypeDbsnp(dbsnpFile);
-    }
-
     public File getGenotypeDbsnp() {
         return genotypeDbsnp;
     }

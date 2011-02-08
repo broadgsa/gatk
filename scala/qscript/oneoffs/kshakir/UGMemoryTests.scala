@@ -40,7 +40,7 @@ class UGMemoryTests extends QScript {
         snps.jarFile = qscript.gatkJar
         snps.reference_sequence = pipeline.getProject.getReferenceFile
         snps.intervals = List(pipeline.getProject.getIntervalList)
-        snps.DBSNP = pipeline.getProject.getDbsnpFile
+        snps.rodBind :+= new RodBind("dbsnp", pipeline.getProject.getGenotypeDbsnpType, pipeline.getProject.getGenotypeDbsnp)
         snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
         snps.annotation ++= List("AlleleBalance")
         snps.group :+= "Standard"

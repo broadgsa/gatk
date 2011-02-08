@@ -73,7 +73,7 @@ object PipelineUtils{
     pipeProject.setName(name)
     pipeProject.setReferenceFile(ref)
     pipeProject.setIntervalList(ivals)
-    pipeProject.setDbsnpFile(dbsnp)
+    pipeProject.setGenotypeDbsnp(dbsnp)
 
     newPipeline.setProject(pipeProject)
     newPipeline.setSamples(pipeSamples)

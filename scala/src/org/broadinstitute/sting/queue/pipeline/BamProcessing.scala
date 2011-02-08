@@ -27,7 +27,7 @@ class BamProcessing(attribs: Pipeline, gatkJar: File, fixMatesJar: File) {
   trait StandardCommandLineGATK extends CommandLineGATK {
     this.reference_sequence = library.attributes.getProject.getReferenceFile
     this.intervals = List(library.attributes.getProject.getIntervalList)
-    this.DBSNP = library.attributes.getProject.getDbsnpFile
+    this.rodBind :+= new RodBind("dbsnp", library.attributes.getProject.getGenotypeDbsnpType, library.attributes.getProject.getGenotypeDbsnp)
     this.memoryLimit = Some(2)
     this.jarFile = library.gatkJar
   }

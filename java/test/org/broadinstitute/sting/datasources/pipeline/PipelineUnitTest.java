@@ -39,7 +39,8 @@ public class PipelineUnitTest {
 
         pipeline.getProject().setName("PRJ_NAME");
         pipeline.getProject().setReferenceFile(new File("my.fasta"));
-        pipeline.getProject().setDbsnpFile(new File("my.dbsnp"));
+        pipeline.getProject().setGenotypeDbsnp(new File("my.vcf"));
+        pipeline.getProject().setEvalDbsnp(new File("my.dbsnp"));
         pipeline.getProject().getTags().put("testProjectTag", "project value here");
 
         PipelineSample sample = new PipelineSample();
@@ -57,7 +58,10 @@ public class PipelineUnitTest {
         Assert.assertEquals(pipelineLoad.getProject().getName(), pipeline.getProject().getName());
         Assert.assertEquals(pipeline.getProject().getReferenceFile(), pipelineLoad.getProject().getReferenceFile());
         Assert.assertEquals(pipeline.getProject().getIntervalList(), pipelineLoad.getProject().getIntervalList());
-        Assert.assertEquals(pipeline.getProject().getDbsnpFile(), pipelineLoad.getProject().getDbsnpFile());
+        Assert.assertEquals(pipeline.getProject().getGenotypeDbsnp(), pipelineLoad.getProject().getGenotypeDbsnp());
+        Assert.assertEquals(pipeline.getProject().getGenotypeDbsnpType(), pipelineLoad.getProject().getGenotypeDbsnpType());
+        Assert.assertEquals(pipeline.getProject().getEvalDbsnp(), pipelineLoad.getProject().getEvalDbsnp());
+        Assert.assertEquals(pipeline.getProject().getEvalDbsnpType(), pipelineLoad.getProject().getEvalDbsnpType());
 
         Assert.assertEquals(pipelineLoad.getProject().getTags().size(), pipeline.getProject().getTags().size());
         for (Map.Entry<String, String> entry : pipeline.getProject().getTags().entrySet())

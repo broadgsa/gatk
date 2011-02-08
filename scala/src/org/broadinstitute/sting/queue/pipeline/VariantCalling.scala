@@ -22,7 +22,7 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
   trait StandardCommandLineGATK extends CommandLineGATK {
     this.reference_sequence = vc.attributes.getProject.getReferenceFile
     this.intervals = List(vc.attributes.getProject.getIntervalList)
-    this.DBSNP = vc.attributes.getProject.getDbsnpFile
+    this.rodBind :+= new RodBind("dbsnp", vc.attributes.getProject.getGenotypeDbsnpType, vc.attributes.getProject.getGenotypeDbsnp)
     // set global memory limit on the low side. Additional input bams will affect it.
     this.memoryLimit = Some(2)
     this.jarFile = vc.gatkJar
@@ -36,7 +36,7 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
   def addTrait[T <: CommandLineGATK](c : T) : T = {
     c.reference_sequence = vc.attributes.getProject.getReferenceFile
     c.intervals = List(vc.attributes.getProject.getIntervalList)
-    c.DBSNP = vc.attributes.getProject.getDbsnpFile
+    c.rodBind :+= new RodBind("dbsnp", vc.attributes.getProject.getGenotypeDbsnpType, vc.attributes.getProject.getGenotypeDbsnp)
     // set global memory limit on the low side. Additional input bams will affect it.
     c.memoryLimit = Some(2)
     c.jarFile = vc.gatkJar
