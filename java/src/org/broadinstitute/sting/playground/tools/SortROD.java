@@ -28,6 +28,8 @@ package org.broadinstitute.sting.playground.tools;
 import org.apache.log4j.BasicConfigurator;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.Feature;
+import org.broad.tribble.completegenomics.CGVarCodec;
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.soapsnp.SoapSNPCodec;
 import org.broad.tribble.gelitext.GeliTextCodec;
 import org.broad.tribble.dbsnp.DbSNPCodec;
@@ -87,7 +89,7 @@ public class SortROD {
         }
 
         String rodType = null;
-        String inputArg = null;
+        String inputArg;
         // our feature file
         int pos = args[1].indexOf(":");
         if ( pos == -1 ) {
@@ -114,12 +116,16 @@ public class SortROD {
         FeatureCodec featureCodec = getFeatureCodec(featureFile,rodType);
         ReferenceSequenceFile ref = ReferenceSequenceFileFactory.getReferenceSequenceFile(refFile);
 
-        XReadLines reader = null;
+        AsciiLineReader reader = null;
         try {
-            reader = new XReadLines(featureFile);
+            reader = new AsciiLineReader(new FileInputStream(featureFile));
         } catch (FileNotFoundException e) {
             System.err.println("File "+featureFile.getAbsolutePath()+" doesn't exist");
+            System.exit(1);
         }
+
+        // read the headers
+        featureCodec.readHeader(reader);
 
         GenomeLocParser parser = new GenomeLocParser(ref.getSequenceDictionary());
 
@@ -128,13 +134,18 @@ public class SortROD {
                 new FeatureComparator(featureCodec,parser),200000);
 
         int nLines = 0;
-        while ( reader.hasNext() ) {
-            String line = reader.next();
-            nLines++;
-            sorter.add(line);
-        }
-
         try {
+            String currentLine = reader.readLine();
+            while ( currentLine != null ) {
+                nLines++;
+
+                // uncomment if null returns should be ignored
+                //if ( featureCodec.decodeLoc(currentLine) != null )
+                sorter.add(currentLine);
+
+                currentLine = reader.readLine();
+            }
+            
             for ( String s : sorter ) {
                 out.write(s);
                 out.write('\n');
@@ -155,14 +166,14 @@ public class SortROD {
      * print usage information
      */
     public static void printUsage() {
-        System.err.println("Usage: java -jar CountRecords.jar <reference> [<rodType>:]<inputFile> <outputFile>");
-        System.err.println("    Where input can be of type: VCF (ends in .vcf or .VCF");
-        System.err.println("                                Bed (ends in .bed or .bed");
-        System.err.println("                                DbSNP (ends in .snp or .rod");
-        System.err.println("                                MAF (ends in .maf");
+        System.err.println("Usage: java -jar SortROD.jar <reference> [<rodType>:]<inputFile> <outputFile>");
+        System.err.println("    Where input can be of type: VCF (ends in .vcf or .VCF)");
+        System.err.println("                                Bed (ends in .bed or .bed)");
+        System.err.println("                                DbSNP (ends in .snp or .rod)");
+        System.err.println("                                MAF (ends in .maf)");
         System.err.println("    If input file has non-standard extension, rodType can be specified");
         System.err.println("    (rodType always takes precedence over file extension, even if the");
-        System.err.println("    latter is otherwise recognizable. rodType can be vcf, bed, dbsnp, or maf");
+        System.err.println("    latter is otherwise recognizable). rodType can be vcf, bed, dbsnp, or maf");
         System.err.println("    Reference is what the input file needs to be sorted against");
 
         /**
@@ -178,6 +189,7 @@ public class SortROD {
         if ( rodType != null ) {
             if (rodType.equals("vcf") ) return new VCFCodec();
             if (rodType.equals("bed") ) return new BEDCodec();
+            if (rodType.equals("cgvar") || rodType.equals("CGVar") ) return new CGVarCodec();
             if (rodType.equals("snp") || rodType.equals("dbsnp") ) return new DbSNPCodec();
             if (rodType.equals("geli.calls") || rodType.equals("geli") ) return new GeliTextCodec();
             if (rodType.equals("txt") ) return new SoapSNPCodec();
@@ -188,6 +200,8 @@ public class SortROD {
             return new VCFCodec();
         if (featureFile.getName().endsWith(".bed") || featureFile.getName().endsWith(".BED") )
             return new BEDCodec();
+        if ( featureFile.getName().endsWith(".tsv") || featureFile.getName().endsWith(".TSV") )
+            return new CGVarCodec();
         if (featureFile.getName().endsWith(".snp") || featureFile.getName().endsWith(".rod") )
             return new DbSNPCodec();
         if (featureFile.getName().endsWith(".geli.calls") || featureFile.getName().endsWith(".geli") )
