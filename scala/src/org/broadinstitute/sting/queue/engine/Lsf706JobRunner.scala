@@ -98,20 +98,20 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
    * Updates and returns the status.
    */
   def status = {
-    var jobStatus = LibBat.JOB_STAT_NULL
+    var jobStatus = LibBat.JOB_STAT_UNKWN
     var exitStatus = 0
     var exitInfo = 0
     var endTime: NativeLong = null
 
-    LibBat.lsb_openjobinfo(jobId, null, null, null, null, LibBat.ALL_JOB)
+    val result = LibBat.lsb_openjobinfo(jobId, null, null, null, null, LibBat.ALL_JOB)
+    if (result < 0)
+      throw new QException(LibBat.lsb_sperror("Unable to open LSF job info for job id: " + jobId))
     try {
-      val jobInfo = LibBat.lsb_readjobinfo(null)
-      if (jobInfo == null) {
-        jobStatus = LibBat.JOB_STAT_UNKWN
-        exitStatus = 0
-        exitInfo = 0
-        endTime = null
-      } else {
+      if (result > 0) {
+        val more = new IntByReference(result)
+        val jobInfo = LibBat.lsb_readjobinfo(more)
+        if (jobInfo == null)
+          throw new QException(LibBat.lsb_sperror("lsb_readjobinfo returned null for job id: " + jobId))
         jobStatus = jobInfo.status
         exitStatus = jobInfo.exitStatus
         exitInfo = jobInfo.exitInfo
@@ -202,7 +202,7 @@ object Lsf706JobRunner extends Logging {
         val numQueues = new IntByReference(1)
         val queueInfo = LibBat.lsb_queueinfo(null, numQueues, null, null, 0)
         if (queueInfo == null)
-          throw new QException("Unable to get LSF queue info for the default queue.")
+          throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for the default queue"))
         defaultQueue = queueInfo.queue
         val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
         queueRlimitRun += defaultQueue -> limit
@@ -217,7 +217,7 @@ object Lsf706JobRunner extends Logging {
           val numQueues = new IntByReference(1)
           val queueInfo = LibBat.lsb_queueinfo(queues, numQueues, null, null, 0)
           if (queueInfo == null)
-            throw new QException("Unable to get LSF queue info for queue: " + queue)
+            throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for queue: " + queue))
           val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
           queueRlimitRun += queue -> limit
           limit
