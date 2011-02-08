@@ -59,7 +59,7 @@ public class IndelMetricsByAC extends VariantEvaluator {
     private static final int INDEL_SIZE_LIMIT = 100;
     private static final int NUM_SCALAR_COLUMNS = 6;
     static int len2Index(int ind) {
-        return ind+INDEL_SIZE_LIMIT+NUM_SCALAR_COLUMNS;
+        return ind+INDEL_SIZE_LIMIT;
     }
 
     static int index2len(int ind) {
