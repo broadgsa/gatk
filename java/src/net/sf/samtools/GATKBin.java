@@ -62,4 +62,9 @@ public class GATKBin extends Bin {
     public void setGATKChunkList(List<GATKChunk> chunks) {
         super.setChunkList(new ArrayList<Chunk>(chunks));
     }
+
+    @Override
+    public String toString() {
+        return String.format("Bin %d in contig %d",getBinNumber(),getReferenceSequence());
+    }
 }

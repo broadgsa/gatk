@@ -56,4 +56,15 @@ public class GATKBAMFileSpan extends BAMFileSpan {
     public GATKBAMFileSpan(final List<GATKChunk> chunks) {
         super(new ArrayList<Chunk>(chunks));
     }
+
+    /**
+     * Gets the constituent chunks stored in this span.
+     * @return An unmodifiable list of chunks.
+     */
+    public List<GATKChunk> getGATKChunks() {
+        List<GATKChunk> gatkChunks = new ArrayList<GATKChunk>();
+        for(Chunk chunk: getChunks())
+            gatkChunks.add(new GATKChunk(chunk));
+        return gatkChunks;
+    }
 }

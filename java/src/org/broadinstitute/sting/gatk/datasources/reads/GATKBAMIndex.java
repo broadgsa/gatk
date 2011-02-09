@@ -126,8 +126,8 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
      * @return The size (number of possible bins) of the given level.
      */
     public int getLevelSize(final int levelNumber) {
-        if(levelNumber == getNumIndexLevels())
-            return MAX_BINS+1-LEVEL_STARTS[levelNumber];
+        if(levelNumber == getNumIndexLevels()-1)
+            return MAX_BINS-LEVEL_STARTS[levelNumber];
         else
             return LEVEL_STARTS[levelNumber+1]-LEVEL_STARTS[levelNumber];
     }
@@ -329,6 +329,31 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
         final int start = getFirstLocusInBin(bin);
         chunkList = optimizeChunkList(chunkList,indexQuery.getLinearIndex().getMinimumOffset(start));
         return new GATKBAMFileSpan(chunkList);
+    }
+
+    public GATKBAMFileSpan getContentsOfBin(final Bin bin) {
+        if(bin == null)
+            return null;
+
+        GATKBin gatkBin = new GATKBin(bin);
+
+        BAMIndexContent indexQuery = getQueryResults(gatkBin.getReferenceSequence());
+
+        if(indexQuery == null)
+            return null;
+
+        GATKBin queriedBin = indexQuery.getBins().getBin(gatkBin.getBinNumber());
+
+        return queriedBin != null ? new GATKBAMFileSpan(queriedBin.getGATKChunkList()) : null;
+    }
+
+    /**
+     * Retrieves the linear index for the given reference sequence.
+     * @param referenceSequence Reference sequence number for which to retrieve the reference.
+     * @return The linear index for the given reference sequence.
+     */
+    public LinearIndex getLinearIndex(int referenceSequence) {
+        return getQueryResults(referenceSequence).getLinearIndex();
     }
 
     /**
