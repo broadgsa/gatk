@@ -2,7 +2,7 @@ package oneoffs.fromer
 
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.util.BAMutilities
+import org.broadinstitute.sting.queue.util.VCF_BAM_utilities
 
 class PhaseSamples extends QScript {
   qscript =>
@@ -44,15 +44,21 @@ class PhaseSamples extends QScript {
 
   // A target has a list of samples and bam files to use for phasing
   class Target(val name: String, val samples: List[String], val bams: List[File]) {
-    def phasedVCFFile = new File(name + "." + outputPhased)
+    var prefix: String = outputPhased.getParent()
+    if (prefix == null)
+      prefix = ""
+    else
+      prefix = prefix + "/"
 
-    override def toString(): String = String.format("[Target %s with samples %s against bams %s]", name, samples, bams)
+    def phasedVCFFile = new File(prefix + name + "." + outputPhased.getName())
+
+    override def toString(): String = String.format("[Target %s [%s] with samples %s against bams %s]", name, phasedVCFFile, samples, bams)
   }
 
   def script = {
     if (qscript.scatterCount > 0) throw new RuntimeException("scatter/gather currently not implemented")
 
-    val samples: List[String] = BAMutilities.getSamplesFromVCF(masterCalls)
+    val samples: List[String] = VCF_BAM_utilities.getSamplesFromVCF(masterCalls)
     Console.out.printf("Samples are %s%n", samples)
 
     val targets: List[Target] = bamsToTargets(samples, bams)
@@ -68,14 +74,14 @@ class PhaseSamples extends QScript {
   }
 
   def bamsToTargets(samples: List[String], bamsIn: File): List[Target] = {
-    val bams: List[File] = BAMutilities.parseBamsInput(bamsIn)
-    val sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]] = BAMutilities.getMapOfBamsForSample(bams)
+    val bams: List[File] = VCF_BAM_utilities.parseBAMsInput(bamsIn)
+    val sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]] = VCF_BAM_utilities.getMapOfBAMsForSample(bams)
 
     def buildTargets(samples: List[String], count: Int): List[Target] = (samples splitAt samplesPerJob) match {
       case (Nil, y) =>
         return Nil
       case (subsamples, remaining) =>
-        return new Target("group" + count, subsamples, BAMutilities.findBamsForSamples(subsamples, sampleToBams)) ::
+        return new Target("group" + count, subsamples, VCF_BAM_utilities.findBAMsForSamples(subsamples, sampleToBams)) ::
                 buildTargets(remaining, count + 1)
     }
 
