@@ -1,3 +1,4 @@
+import org.broadinstitute.sting.gatk.CommandLineGATK
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
@@ -100,8 +101,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.07, !lowPass),
     "HiSeq19" -> new Target("NA12878.hg19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
-              new File("/seq/picard_aggregation/G2946/NA12878/v8/NA12878.bam"),
-              new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
+              new File("/humgen/gsa-scr1/carneiro/prj/hiseq19/analysis/snps/NA12878.hg19.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, !lowPass),                                                                                           // ** we need a chunked hg19 whole genome intervals file **
     "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
@@ -281,7 +282,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   // 6.) Variant Evaluation (OPTIONAL!) based on the sensitivity recalibrated vcf
-  class VariantEvaluation(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
+  class VariantEvaluation(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.VariantEval with UNIVERSAL_GATK_ARGS {
       val name: String = t.name
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
