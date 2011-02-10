@@ -13,39 +13,34 @@ setenv ARCHIVE $ARCHIVE_DIR/$DATE
 setenv SUMMARY $SUMMARY_DIR/$DATE
 setenv GATK ~/dev/GenomeAnalysisTK/trunk
 setenv GATK_RELEASE_VERSION `ls -l /humgen/gsa-hpprojects/GATK/bin/current | sed 's/.*GenomeAnalysisTK-//'`
+setenv REPORT_TXT $DIR/report.txt
 
-rm -f report.txt 
+rm -f $REPORT_TXT 
 
 cd $DIR
 
-echo "\n####################\nArchiving recently submitted jobs" >> report.txt
-python $GATK/python/analyzeRunReports.py archive $DIR/submitted -o $ARCHIVE.gz -D >> report.txt
+echo "\n####################\nArchiving recently submitted jobs" >> $REPORT_TXT
+python $GATK/python/analyzeRunReports.py archive $DIR/submitted -o $ARCHIVE.gz -D >> $REPORT_TXT
 
-echo "Released version, all runs" >> report.txt
-#python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --rev $GATK_RELEASE_VERSION >> report.txt
-#python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE.gz -E sting --rev $GATK_RELEASE_VERSION >> report.txt
-python $GATK/python/analyzeRunReports.py summary $ARCHIVE_DIR/*.gz --rev $GATK_RELEASE_VERSION >> report.txt
-python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE_DIR/*.gz -E sting --rev $GATK_RELEASE_VERSION >> report.txt
+echo "\n####################\nReleased version, all runs" >> $REPORT_TXT
+python $GATK/python/analyzeRunReports.py summary $ARCHIVE_DIR/*.gz --rev $GATK_RELEASE_VERSION >> $REPORT_TXT
+python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE_DIR/*.gz -E sting --rev $GATK_RELEASE_VERSION >> $REPORT_TXT
 
-echo "\n####################\nAll runs" >> report.txt
-python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --max_days 1 >> report.txt
-python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE.gz -E sting --max_days 1 >> report.txt
-
-echo "\n####################\nLast day, all versions" >> report.txt
-python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --max_days 1 --no-dev >> report.txt
-python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE.gz --max_days 1 -E sting --no-dev >> report.txt
+echo "\n####################\nLast day, all versions" >> $REPORT_TXT
+python $GATK/python/analyzeRunReports.py summary $ARCHIVE.gz --max_days 1 --no-dev >> $REPORT_TXT
+python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE.gz --max_days 1 -E sting --no-dev >> $REPORT_TXT
 
 #echo "Archive directory contents"
 #du -sh $ARCHIVE_DIR
 
-if (1 == 1) then
+if (1 == 0) then
 foreach maxDays ( 30 360 ) 
     echo "Creating table"
     setenv table $ARCHIVE.${maxDays}_days.table
     python $GATK/python/analyzeRunReports.py table $ARCHIVE_DIR/*.gz -o $table --max_days $maxDays 
 
     echo "Creating summary"
-    Rscript $GATK/R/GATKRunReport.R $table $SUMMARY.${maxDays}_days.pdf "of previous $maxDays days"
+    Rscript $GATK/R/GATKRunReport.R $table $SUMMARY.${maxDays}_days.pdf "of previous $maxDays days" 
 
     echo "Creating exception report"
     python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE_DIR/*.gz -o $SUMMARY.${maxDays}_days.sting.exceptions.txt --max_days $maxDays -E sting --no-dev
@@ -56,5 +51,5 @@ end
 endif
 
 #echo "GATK daily run report" | mutt -a $SUMMARY.30_days.pdf -a $SUMMARY.360_days.pdf -a $SUMMARY.7_days.pdf -s "GATK Run report PDFs for $DATE" gsamembers
-cat report.txt | mutt -a report.txt -a $SUMMARY.30_days.pdf -a $SUMMARY.360_days.pdf -a $SUMMARY.7_days.pdf -s "GATK run report for $DATE" depristo 
+cat $REPORT_TXT | mutt -a $REPORT_TXT -a $SUMMARY.30_days.pdf -a $SUMMARY.360_days.pdf -s "GATK run report for $DATE" gsamembers
 
