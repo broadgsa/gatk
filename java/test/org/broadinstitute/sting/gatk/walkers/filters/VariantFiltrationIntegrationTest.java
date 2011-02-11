@@ -75,4 +75,12 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
                 Arrays.asList("26e5b4ee954c9e0b5eb044afd4b88ee9"));
         executeTest("test genotype filter #2", spec);
     }
+
+    @Test
+    public void testDeletions() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseTestString() + " --filterExpression 'QUAL < 100' --filterName foo -B:variant,VCF " + validationDataLocation + "twoDeletions.vcf", 1,
+                Arrays.asList("e63b58be33c9126ad6cc55489aac539b"));
+        executeTest("test deletions", spec);
+    }
 }
