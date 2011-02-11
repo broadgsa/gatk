@@ -1,0 +1,86 @@
+/*
+ * Copyright (c) 2010 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package org.broadinstitute.sting.gatk.walkers.annotator;
+
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.vcf.VCFConstants;
+import org.broad.tribble.vcf.VCFHeaderLineType;
+import org.broad.tribble.vcf.VCFFormatHeaderLine;
+
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: asivache
+ * Date: Feb 4, 2011
+ * Time: 6:46:25 PM
+ * To change this template use File | Settings | File Templates.
+ */
+public class MappingQualityZeroBySample implements GenotypeAnnotation {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref,
+                                        StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+        if ( g == null || !g.isCalled() )
+            return null;
+
+        int mq0 = 0;
+        AlignmentContext context = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+        ReadBackedPileup pileup = null;
+        if (vc.isIndel() && context.hasExtendedEventPileup())
+            pileup = context.getExtendedEventPileup();
+        else if (context.hasBasePileup())
+            pileup = context.getBasePileup();
+        else return null;
+
+        if (pileup != null) {
+            for (PileupElement p : pileup ) {
+                if ( p.getMappingQual() == 0 )
+                    mq0++;
+            }
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyNames().get(0), String.format("%d", mq0));
+        return map;
+    }
+
+    public List<String> getKeyNames() { return Arrays.asList(VCFConstants.MAPPING_QUALITY_ZERO_KEY); }
+
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(
+            new VCFFormatHeaderLine(getKeyNames().get(0), 1,
+                    VCFHeaderLineType.Integer, "Number of Mapping Quality Zero Reads per sample")); }
+
+
+}
