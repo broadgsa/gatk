@@ -9,9 +9,17 @@
 
 assert(table.getn(arg) > 0, "\n\nMissing input file\n\nUsage:\n\tlua MergeIntervals.lua raw.intervals > merged.intervals\n\n")
 
+
+local function comp(a, b)
+   if tonumber(a) and tonumber(b) then return tonumber(a) < tonumber(b) end
+   return a<b
+end
+
+
 -- read file and create chromosome tables with raw intervals marked as "x"
 local intervals = {}
 local intervalKeys = {}
+local sortedChrs = {}
 for l in io.lines(arg[1]) do
 	local chr, a, b = l:match("([%a%d]+):(%d+)-(%d+)")
 	a,b = tonumber(a), tonumber(b)
@@ -20,6 +28,7 @@ for l in io.lines(arg[1]) do
 		intervals[chr].min = a
 		intervals[chr].max = b
 		intervalKeys[chr] = {}
+		table.insert(sortedChrs, chr)
 	end
 	for i=a,b do intervals[chr][i] = "x" end
 	intervals[chr].min = math.min(intervals[chr].min, a)
@@ -51,9 +60,10 @@ for c, chrTable in pairs(intervals) do
 	end
 end
 
-for c,v in pairs(intervalsIndex) do
-	table.sort(v)
-	for _,intervalStart in ipairs(v) do
+table.sort(sortedChrs, comp)
+for _,c in pairs(sortedChrs) do
+	table.sort(intervalsIndex[c])
+	for _,intervalStart in ipairs(intervalsIndex[c]) do
 		if intervalSize[c][intervalStart] > 0 then 
 			print(c..":"..intervalStart.."-"..intervalStart + intervalSize[c][intervalStart])
 		end

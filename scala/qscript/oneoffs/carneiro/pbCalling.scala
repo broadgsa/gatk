@@ -1,3 +1,4 @@
+import org.broadinstitute.sting.gatk.CommandLineGATK
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 
@@ -110,16 +111,24 @@ class pbCalling extends QScript {
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass),
     "pacbio" -> new Target("pacbio", b37, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-scr1/carneiro/prj/pacbio/data/pacbio.recal.bam"),
-              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/analisys/snps/amplicon/pacbio.filtered.vcf"),
+              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/analisys/snps/pacbio.filtered.vcf"),
 				      "/humgen/gsa-scr1/carneiro/prj/pacbio/data/pacbio.hg19.intervals", 1.8, !lowPass),
     "pb200" -> new Target("pb200", b37, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-scr1/carneiro/prj/pacbio/data/pb200.recal.bam"),
-              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/analisys/snps/amplicon/pb200.filtered.vcf"),
+              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/analisys/snps/pb200.filtered.vcf"),
 				      "/humgen/gsa-scr1/carneiro/prj/pacbio/data/pb200.hg19.intervals", 1.8, !lowPass),
     "pb2k" -> new Target("pb2k", b37, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-scr1/carneiro/prj/pacbio/data/pb2k.recal.bam"),
-              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/analisys/snps/amplicon/pb2k.filtered.vcf"),
-				      "/humgen/gsa-scr1/carneiro/prj/pacbio/data/pb2k.hg19.intervals", 1.8, !lowPass)
+              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/analisys/snps/pb2k.filtered.vcf"),
+				      "/humgen/gsa-scr1/carneiro/prj/pacbio/data/pb2k.hg19.intervals", 1.8, !lowPass),
+    "cc200" -> new Target("cc200", b37, dbSNP_b37_129, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/data/cc200.recal.bam"),
+              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/analisys/snps/cc200.filtered.vcf"),
+				      "/humgen/gsa-scr1/carneiro/prj/pacbio/data/cc200.hg19.intervals", 1.8, !lowPass),
+    "cc2k" -> new Target("cc2k", b37, dbSNP_b37_129, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/data/cc2k.recal.bam"),
+              new File("/humgen/gsa-scr1/carneiro/prj/pacbio/analisys/snps/cc2k.filtered.vcf"),
+				      "/humgen/gsa-scr1/carneiro/prj/pacbio/data/cc2k.hg19.intervals", 1.8, !lowPass)
   )
 
 
@@ -245,7 +254,7 @@ class pbCalling extends QScript {
       this.tranchesFile = t.tsTranchesFile
   }
 
-  // 5.) Variant Cut (OPTIONAL!) filter out the variants marked by recalibration to the 99% tranche
+  // 5.) Variant Cut filter out the variants marked by recalibration to the 99% tranche
   class VariantCut(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.ApplyVariantCuts with UNIVERSAL_GATK_ARGS {
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("input", "VCF",  t.tsRecalibratedVCF )
@@ -260,8 +269,8 @@ class pbCalling extends QScript {
         this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
   }
 
-  // 6.) Variant Evaluation (OPTIONAL!) based on the sensitivity recalibrated vcf
-  class VariantEvaluation(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
+  // 6.) Variant Evaluation  based on the sensitivity recalibrated vcf
+  class VariantEvaluation(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.VariantEval with UNIVERSAL_GATK_ARGS {
       val name: String = t.name
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
