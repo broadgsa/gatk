@@ -53,7 +53,7 @@ import java.util.Arrays;
  * Time: 3:59:27 PM
  * To change this template use File | Settings | File Templates.
  */
-public class DepthAndFractionBySample implements GenotypeAnnotation {
+public class ReadDepthAndAllelicFractionBySample implements GenotypeAnnotation {
 
         private static String REF_ALLELE = "REF";
 
@@ -88,15 +88,22 @@ public class DepthAndFractionBySample implements GenotypeAnnotation {
 
             if ( totalDepth == 0 ) return map; // done, can not compute FA at 0 coverage!!
 
+            int mq0 = 0; // number of "ref" reads that are acually mq0
             for ( PileupElement p : pileup ) {
-                if ( alleleCounts.containsKey(p.getBase()) ) // it's an alt
+                if ( p.getMappingQual() == 0 ) {
+                    mq0++;
+                    continue;
+                }
+                if ( alleleCounts.containsKey(p.getBase()) ) // non-mq0 read and it's an alt
                     alleleCounts.put(p.getBase(), alleleCounts.get(p.getBase())+1);
             }
+
+            if ( mq0 == totalDepth ) return map; // if all reads are mq0, there is nothing left to do
 
             // we need to add counts in the correct order
             String[] fracs = new String[alleleCounts.size()];
             for (int i = 0; i < vc.getAlternateAlleles().size(); i++) {
-                fracs[i] = String.format("%.3f", ((float)alleleCounts.get(vc.getAlternateAllele(i).getBases()[0]))/totalDepth);
+                fracs[i] = String.format("%.3f", ((float)alleleCounts.get(vc.getAlternateAllele(i).getBases()[0]))/(totalDepth-mq0));
             }
 
             map.put(getKeyNames().get(1), fracs);
@@ -121,6 +128,7 @@ public class DepthAndFractionBySample implements GenotypeAnnotation {
             map.put(getKeyNames().get(0), totalDepth); // put total depth in right away
 
             if ( totalDepth == 0 ) return map;
+            int mq0 = 0; // number of "ref" reads that are acually mq0
 
             HashMap<String, Integer> alleleCounts = new HashMap<String, Integer>();
             Allele refAllele = vc.getReference();
@@ -135,6 +143,12 @@ public class DepthAndFractionBySample implements GenotypeAnnotation {
             }
 
             for ( ExtendedEventPileupElement e : pileup.toExtendedIterable() ) {
+
+                if ( e.getMappingQual() == 0 ) {
+                    mq0++;
+                    continue;
+                }
+
                 if ( e.isInsertion() ) {
 
                     final String b =  e.getEventBases();
@@ -158,9 +172,12 @@ public class DepthAndFractionBySample implements GenotypeAnnotation {
                 }
             }
 
+            if ( mq0 == totalDepth ) return map;
+
             String[] fracs = new String[alleleCounts.size()];
             for (int i = 0; i < vc.getAlternateAlleles().size(); i++)
-                fracs[i] = String.format("%.3f", ((float)alleleCounts.get(getAlleleRepresentation(vc.getAlternateAllele(i))))/totalDepth);
+                fracs[i] = String.format("%.3f",
+                        ((float)alleleCounts.get(getAlleleRepresentation(vc.getAlternateAllele(i))))/(totalDepth-mq0));
 
             map.put(getKeyNames().get(1), fracs);
 
@@ -184,10 +201,10 @@ public class DepthAndFractionBySample implements GenotypeAnnotation {
             return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0),
                             1,
                             VCFHeaderLineType.Integer,
-                            "Total read depth per sample"),
+                            "Total read depth per sample, including MQ0"),
                     new VCFFormatHeaderLine(getKeyNames().get(1),
                             VCFCompoundHeaderLine.UNBOUNDED,
                             VCFHeaderLineType.Float,
-                            "Fractions of reads supporting each reported alternative allele, per sample"));
+                            "Fractions of reads (excluding MQ0 from both ref and alt) supporting each reported alternative allele, per sample"));
         }
 }
