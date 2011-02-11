@@ -3,6 +3,8 @@ local samFile = arg[2]
 local headerFile = io.open(arg[2]:match("(.*).sam")..".header.sam", "w")
 local bodyFile = io.open(arg[2]:match("(.*).sam")..".body.sam", "w")
 
+
+-- These sizes are hardcoded for hg19, but future versions of this script should optionally take a .fai file to build this table.
 chrlength = {}
 chrlength["1"] =249250621
 chrlength["2"] =243199373
@@ -76,7 +78,7 @@ for l in io.lines(samFile) do
   if l:sub(1,1) == "@" then processSamHeaderLine(l, amplicons)
   else
     local before, amp, mapStart, after = l:match("(%d+%s+%d+%s+)ps%d+_([%w%p_]+)%s+(%d+)(.*)")
-    table.insert(reads, before..amplicons[amp].chr.."\t"..amplicons[amp].startPos + mapStart..after)
+    table.insert(reads, before..amplicons[amp].chr.."\t"..amplicons[amp].startPos + mapStart - 1 ..after)
   end
 end
 

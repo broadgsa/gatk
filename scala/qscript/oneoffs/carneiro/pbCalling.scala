@@ -17,8 +17,6 @@ class pbCalling extends QScript {
   @Argument(shortName="noBAQ", doc="turns off BAQ calculation", required=false)
   var noBAQ: Boolean = false
 
-  @Argument(shortName="noMASK", doc="turns off MASK calculation", required=false)
-  var noMASK: Boolean = false
 
 
 
@@ -184,10 +182,6 @@ class pbCalling extends QScript {
     this.filterName ++= List("HARD_TO_VALIDATE")
     this.filterExpression ++= List("\"MQ0 >= 4 && (MQ0 / (1.0 * DP)) > 0.1\"")
     this.analysisName = t.name + "_VF"
-    if (!noMASK) {
-      this.rodBind :+= RodBind("mask", "Bed", t.maskFile)
-      this.maskName = "InDel"
-    }
   }
 
   // 3.) VQSR part1 Generate Gaussian clusters based on truth sites
