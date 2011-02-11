@@ -3,8 +3,9 @@ package oneoffs.fromer
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.gatk.DownsampleType
-import org.broadinstitute.sting.queue.util.BAMutilities
-
+import org.broadinstitute.sting.queue.util.VCF_BAM_utilities
+import java.io.PrintWriter
+import org.apache.commons.io.IOUtils
 
 class ReadDepthCNVanalysis extends QScript {
   qscript =>
@@ -39,6 +40,10 @@ class ReadDepthCNVanalysis extends QScript {
   @Input(doc = "Starting value of read-depth bins", shortName = "START_BIN", required = false)
   var START_BIN = 1
 
+  val DOC_OUTPUT_SUFFIX: String = ".sample_interval_summary"
+
+  val DOC_MEAN_COVERAGE_OUTPUT: String = ".sample_interval.averageCoverage.txt"
+
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.intervalsString = List(qscript.intervals)
     this.jarFile = qscript.gatkJarFile
@@ -49,13 +54,19 @@ class ReadDepthCNVanalysis extends QScript {
 
   // A target has a list of samples and bam files to use for DoC
   class Target(val name: String, val samples: List[String], val bams: List[File]) {
-    def DoC_output = new File(name + "." + outputDoC)
+    var prefix: String = outputDoC.getParent()
+    if (prefix == null)
+      prefix = ""
+    else
+      prefix = prefix + "/"
 
-    override def toString(): String = String.format("[Target %s with samples %s against bams %s]", name, samples, bams)
+    def DoC_output = new File(prefix + name + "." + outputDoC.getName())
+
+    override def toString(): String = String.format("[Target %s [%s] with samples %s against bams %s]", name, DoC_output, samples, bams)
   }
 
   def script = {
-    val sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]] = BAMutilities.getMapOfBamsForSample(BAMutilities.parseBamsInput(bams))
+    val sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]] = VCF_BAM_utilities.getMapOfBAMsForSample(VCF_BAM_utilities.parseBAMsInput(bams))
     val samples: List[String] = sampleToBams.keys.toList
     Console.out.printf("Samples are %s%n", samples)
 
@@ -65,6 +76,8 @@ class ReadDepthCNVanalysis extends QScript {
       Console.out.printf("Target is %s%n", target)
       add(new DoC(target))
     }
+
+    add(new combineDoC(targets.map(u => new File(u.DoC_output.getPath() + DOC_OUTPUT_SUFFIX))))
   }
 
   def buildTargets(samples: List[String], sampleToBams: scala.collection.mutable.Map[String, scala.collection.mutable.Set[File]]): List[Target] = {
@@ -73,34 +86,49 @@ class ReadDepthCNVanalysis extends QScript {
       case (Nil, y) =>
         return Nil
       case (subsamples, remaining) =>
-        return new Target("group" + count, subsamples, BAMutilities.findBamsForSamples(subsamples, sampleToBams)) ::
-                buildTargetsHelper(remaining, count + 1)
+        return new Target("group" + count, subsamples, VCF_BAM_utilities.findBAMsForSamples(subsamples, sampleToBams)) ::
+          buildTargetsHelper(remaining, count + 1)
     }
 
     return buildTargetsHelper(samples, 0)
   }
 
-  class DoC(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.DepthOfCoverage with CommandLineGATKArgs {
-    this.omitIntervalStatistics = false
-    this.omitDepthOutputAtEachBase = true
-    this.omitLocusTable = true
+  class DoC(t: Target) extends CommandLineGATKArgs with ScatterGatherableFunction {
+    this.analysis_type = "DepthOfCoverage"
 
-    this.minBaseQuality = Some(0)
-    this.minMappingQuality = Some(0)
-
-    this.out = t.DoC_output
     this.input_file = t.bams
 
-    this.dcov = Some(MAX_DEPTH)
+    this.downsample_to_coverage = Some(MAX_DEPTH)
     this.downsampling_type = Some(DownsampleType.BY_SAMPLE)
 
-    this.start = Some(START_BIN)
-    this.stop = Some(MAX_DEPTH)
-    this.nBins = Some(NUM_BINS)
-
     this.scatterCount = scatterCountInput
+    this.scatterClass = classOf[IntervalScatterFunction]
+
+    @Output
+    @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
+    var intervalSampleOut: File = new File(t.DoC_output.getPath() + DOC_OUTPUT_SUFFIX)
+
+    override def commandLine = super.commandLine +
+      " --omitDepthOutputAtEachBase --omitLocusTable --minBaseQuality 0 --minMappingQuality 0" +
+      " --start " + START_BIN + " --stop " + MAX_DEPTH + " --nBins " + NUM_BINS +
+      " -o " + new File(intervalSampleOut.getParentFile(), t.DoC_output.getName())
 
     override def dotString = "DOC: " + t.DoC_output
   }
 
+  class combineDoC(DoCsToCombine: List[File]) extends CommandLineFunction {
+    override def description = "Combines DoC outputs for multiple samples (at same loci)"
+
+    @Input(doc = "")
+    var inputDoCfiles: List[File] = DoCsToCombine
+
+    @Output
+    val outputDoCaverageCoverage: File = new File(outputDoC.getPath + DOC_MEAN_COVERAGE_OUTPUT)
+
+    var command: String = "~/CNV/wave1+2/scripts/mergeDoC.pl -gatk " + qscript.gatkJarFile.getPath.replaceFirst("dist/GenomeAnalysisTK.jar", "") + " -ref " + qscript.referenceFile + " -out " + outputDoCaverageCoverage
+    for (input <- inputDoCfiles) {
+      command += " " + input
+    }
+    def commandLine = command
+  }
 }
