@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.io.storage;
 
+import org.apache.log4j.Logger;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.vcf.*;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -18,6 +19,11 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
  * @version 0.1
  */
 public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
+    /**
+     * our log, which we want to capture anything from this class
+     */
+    private static Logger logger = Logger.getLogger(VCFWriterStorage.class);
+
     protected final File file;
     protected OutputStream stream;
     protected final VCFWriter writer;
@@ -70,6 +76,7 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
      * @param tempFile File into which to direct the output data.
      */
     public VCFWriterStorage(VCFWriterStub stub, File tempFile) {
+        logger.debug("Creating temporary VCF file " + tempFile.getAbsolutePath() + " for VCF output.");
         this.file = tempFile;
         this.writer = vcfWriterToFile(stub, file, false);
         writer.writeHeader(stub.getVCFHeader());
@@ -92,12 +99,16 @@ public class VCFWriterStorage implements Storage<VCFWriterStorage>, VCFWriter {
      * Close the VCF storage object.
      */
     public void close() {
+        if(file != null)
+            logger.debug("Closing temporary file " + file.getAbsolutePath());
         writer.close();
     }
 
     public void mergeInto(VCFWriterStorage target) {
         try {
-            //System.out.printf("merging %s%n", file);
+            String sourceFilePath = file.getAbsolutePath();
+            String targetFilePath = target.file != null ? target.file.getAbsolutePath() : "/dev/stdin";
+            logger.debug(String.format("Merging %s into %s",sourceFilePath,targetFilePath));
             BasicFeatureSource<VariantContext> source = BasicFeatureSource.getFeatureSource(file.getAbsolutePath(), new VCFCodec(), false);
             
             for ( VariantContext vc : source.iterator() ) {
