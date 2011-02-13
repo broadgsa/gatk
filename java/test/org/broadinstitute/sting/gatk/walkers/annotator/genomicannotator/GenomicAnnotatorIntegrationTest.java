@@ -6,8 +6,10 @@ import java.util.Arrays;
 import org.broadinstitute.sting.WalkerTest;
 import org.testng.annotations.Test;
 
-public class
-        GenomicAnnotatorIntegrationTest extends WalkerTest {
+public class GenomicAnnotatorIntegrationTest extends WalkerTest {
+    String testFileWithIndels = validationDataLocation + "/GenomicAnnotatorValidation/1KGBroadWEx.cleaned.indels.vcf";
+    String testFileWithSNPsAndIndels = validationDataLocation + "/GenomicAnnotatorValidation/1KGBroadWEx.variants.vcf";
+
     @Test
     public void testGenomicAnnotatorOnDbSNP() {
 
@@ -41,5 +43,39 @@ public class
                  Arrays.asList(md5WithDashSArg));
         executeTest("test with dbSNP and -s arg", specWithSArg);
 
+    }
+
+    @Test
+    public void testGenomicAnnotatorOnIndels() {
+        WalkerTestSpec testOnIndels = new WalkerTestSpec(
+                cmdLineBuilder(
+                        "-T GenomicAnnotator",
+                        "-R " + b37KGReference,
+                        "-L 22:10000000-20000000",
+                        "-B:refseq,AnnotatorInputTable " + b37Refseq,
+                        "-B:variant,VCF " + testFileWithIndels,
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("1f8189433e87cc0b986cddb6a9a74585")
+        );
+        executeTest("testGenomicAnnotatorOnIndels", testOnIndels);
+    }
+
+    @Test
+    public void testGenomicAnnotatorOnSNPsAndIndels() {
+        WalkerTestSpec testOnSNPsAndIndels = new WalkerTestSpec(
+                cmdLineBuilder(
+                        "-T GenomicAnnotator",
+                        "-R " + b37KGReference,
+                        "-L 22:10000000-20000000",
+                        "-B:refseq,AnnotatorInputTable " + b37Refseq,
+                        "-B:variant,VCF " + testFileWithSNPsAndIndels,
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList("e9e93fb1d2700e000bd0e9493524dc4c")
+        );
+        executeTest("testGenomicAnnotatorOnSNPsAndIndels", testOnSNPsAndIndels);
     }
 }

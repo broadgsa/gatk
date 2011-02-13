@@ -63,6 +63,53 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
     /** Replacement for each character in ILLEGAL_INFO_FIELD_VALUES */
     public static final char[] ILLEGAL_INFO_FIELD_VALUE_SUBSTITUTES = {  '_', '-',  '!'  };
 
+
+    private void modifyAnnotationsForIndels(VariantContext vc, String featureName, Map<String, String> annotationsForRecord) {
+        String inCodingRegionKey = featureName + ".inCodingRegion";
+        String referenceCodonKey = featureName + ".referenceCodon";
+        String variantCodonKey = featureName + ".variantCodon";
+        String codingCoordStrKey = featureName + ".codingCoordStr";
+        String proteinCoordStrKey = featureName + ".proteinCoordStr";
+        String haplotypeReferenceKey = featureName + "." + HAPLOTYPE_REFERENCE_COLUMN;
+        String haplotypeAlternateKey = featureName + "." + HAPLOTYPE_ALTERNATE_COLUMN;
+        String functionalClassKey = featureName + ".functionalClass";
+        String startKey = featureName + "." + START_COLUMN;
+        String endKey = featureName + "." + END_COLUMN;
+        String referenceAAKey = featureName + ".referenceAA";
+        String variantAAKey = featureName + ".variantAA";
+        String changesAAKey = featureName + ".changesAA";
+
+        annotationsForRecord.put(variantCodonKey, "unknown");
+        annotationsForRecord.put(codingCoordStrKey, "unknown");
+        annotationsForRecord.put(proteinCoordStrKey, "unknown");
+        annotationsForRecord.put(referenceAAKey, "unknown");
+        annotationsForRecord.put(variantAAKey, "unknown");
+
+        String refAllele = vc.getReference().getDisplayString();
+        if (refAllele.length() == 0) { refAllele = "-"; }
+
+        String altAllele = vc.getAlternateAllele(0).toString();
+        if (altAllele.length() == 0) { altAllele = "-"; }
+
+        annotationsForRecord.put(haplotypeReferenceKey, refAllele);
+        annotationsForRecord.put(haplotypeAlternateKey, altAllele);
+        annotationsForRecord.put(startKey, String.format("%d", vc.getStart()));
+        annotationsForRecord.put(endKey, String.format("%d", vc.getEnd()));
+
+        boolean isCodingRegion = annotationsForRecord.containsKey(inCodingRegionKey) && annotationsForRecord.get(inCodingRegionKey).equalsIgnoreCase("true") ? true : false;
+        boolean isFrameshift = (vc.getIndelLengths().get(0) % 3 == 0) ? false : true;
+
+        String functionalClass;
+        if (isCodingRegion) {
+            functionalClass = isFrameshift ? "frameshift" : "inframe";
+            annotationsForRecord.put(changesAAKey, "true");
+        } else {
+            functionalClass = "noncoding";
+        }
+
+        annotationsForRecord.put(functionalClassKey, functionalClass);
+    }
+
     /**
      * For each -B input file, for each record which overlaps the current locus, generates a
      * set of annotations of the form:
@@ -168,6 +215,10 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
                         continue; //skip record
                     }
                 }
+            }
+
+            if (vc.isIndel()) {
+                modifyAnnotationsForIndels(vc, name, annotationsForRecord);
             }
 
             //filters passed, so add this record.

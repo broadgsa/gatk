@@ -71,6 +71,20 @@ public class WalkerTest extends BaseTest {
         return md5s;
     }
 
+    public String cmdLineBuilder(String ... arguments) {
+        String cmdline = "";
+
+        for ( int argIndex = 0; argIndex < arguments.length; argIndex++ ) {
+            cmdline += arguments[argIndex];
+
+            if (argIndex < arguments.length - 1) {
+                cmdline += " ";
+            }
+        }
+
+        return cmdline;
+    }
+
     public class WalkerTestSpec {
         String args = "";
         int nOutputFiles = -1;

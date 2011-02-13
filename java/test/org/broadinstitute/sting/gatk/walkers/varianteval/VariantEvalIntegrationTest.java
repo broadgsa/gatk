@@ -27,6 +27,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     private static String[] testsEnumerations = {root, rootGZ};
 
+    /*
     private String cmdLineBuilder(String ... arguments) {
         String cmdline = "";
 
@@ -40,6 +41,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
         return cmdline;
     }
+    */
 
     @Test
     public void testFundamentalsCountVariantsSNPsAndIndels() {
