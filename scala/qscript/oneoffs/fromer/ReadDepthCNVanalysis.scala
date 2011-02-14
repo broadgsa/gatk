@@ -130,5 +130,8 @@ class ReadDepthCNVanalysis extends QScript {
       command += " " + input
     }
     def commandLine = command
+
+    // Since loading ALL of the output into the perl script can take significant memory:
+    this.memoryLimit = Some(9)
   }
 }
