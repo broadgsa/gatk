@@ -96,7 +96,7 @@ def neutral(x):
 
 def twoState(x):
 	if ( x < 0.04 ):
-		return -1.5*math.log10(x)
+		return -1.5*math.log10(x) + 0.5*math.log10(0.04)
 	else:
 		return -1.0*math.log10(x)
 
@@ -114,13 +114,80 @@ def resampleProbability(logshape,ic,ac,ns,ac_new,ns_new):
 	newshape = lambda y: math.pow(10,logpost_normed(y) + logbinomial(ac_new, 2*ns_new, y))
 	return adaptiveSimpson(newshape,ic.start,ic.stop,ic.err,ic.num_ints)
 
-sim_ic = IntegrationCollection(4e-7,0.999,1e-200,16)
+def getPost(logshape,ic,ac,ns):
+	global norm_cache
+	logpost = lambda x: logshape(x) + logbinomial(ac,2*ns,x)
+	if ( norm_cache[1] == None or norm_cache[0] != (ac,ns,logshape) ):
+		print("Caching posterior norm")
+		norm_cache = ((ac,ns,logshape),math.log10(adaptiveSimpson(lambda v: math.pow(10,logpost(v)),ic.start,ic.stop,ic.err,ic.num_ints)))
+	return lambda v: logpost(v) - norm_cache[1]
+
+sim_ic = IntegrationCollection(5e-8,0.999,1e-2000,22)
 sys.setrecursionlimit(int(2e6))
-neutral_post = map( lambda v: resampleProbability(neutral,sim_ic,1,900,v,900), range(0,21) ) 
-twostate_post = list(map( lambda v: resampleProbability(twoState,sim_ic,1,900,v,900), range(0,21) ))
-g = open("n_ts.txt",'w')
-idx = 0
-for e in neutral_post:
-	g.write(str(idx))
-	g.write("\t"+str(e)+"\t"+str(twostate_post[idx])+"\n")
-	idx += 1
+#neutral_post = map( lambda v: resampleProbability(neutral,sim_ic,1,900,v,900), range(0,21) ) 
+#twostate_post = list(map( lambda v: resampleProbability(twoState,sim_ic,1,900,v,900), range(0,21) ))
+#g = open("n_ts.txt",'w')
+#idx = 0
+#for e in neutral_post:
+#	g.write(str(idx))
+#	g.write("\t"+str(e)+"\t"+str(twostate_post[idx])+"\n")
+#	idx += 1
+
+DO_1 = False
+if ( DO_1 ):
+	eomiautism_ac_1 = 317763
+	eomiautism_ac_2 = 78844
+	eomiautism_ac_3p = 239526 # all of these go on chip by default
+
+	new_set = 10000-917-998
+
+	num_unseen_sites = 125*new_set
+
+	unseen_unseen = resampleProbability(twoState,sim_ic,0,917+998,0,new_set)
+	unseen_1 = resampleProbability(twoState,sim_ic,0,917+998,1,new_set)/(1-unseen_unseen)
+	unseen_2 = resampleProbability(twoState,sim_ic,0,917+998,2,new_set)/(1-unseen_unseen)
+	ac1_unseen = resampleProbability(twoState,sim_ic,1,917+998,0,new_set)
+	ac1_ac1 = resampleProbability(twoState,sim_ic,1,917+998,1,new_set)
+	ac2_unseen = resampleProbability(twoState,sim_ic,2,917+998,0,new_set)
+
+	total = 636133 + num_unseen_sites
+	ac1 = unseen_1*num_unseen_sites + ac1_unseen*eomiautism_ac_1
+	ac2 = unseen_2*num_unseen_sites + ac1_unseen*eomiautism_ac_1 + ac2_unseen*eomiautism_ac_2
+
+	print("\t".join(map(lambda u: str(u), [unseen_unseen,unseen_1,unseen_2])))
+	print("\t".join(map(lambda u: str(u), [total,ac1,ac2])))
+
+	ea_ns = 343877
+	ea_ns_ac1 = 204223
+	ea_ns_ac2 = 42280
+
+	ns_new_ac1 = ea_ns_ac1*ac1_unseen + unseen_1*num_unseen_sites*(1.7/(1+1.7))
+	ns_new_ac2 = ea_ns_ac2*ac2_unseen + unseen_2*num_unseen_sites*(1.4/(1+1.4))
+	ns_new_total = ea_ns + ns_new_ac1 + ns_new_ac2 + (num_unseen_sites*(1-unseen_1-unseen_2))*(0.6/(1+0.6))
+
+	print("\t".join(map(lambda u: str(u), [ns_new_total,ns_new_ac1,ns_new_ac2])))
+	print(1-resampleProbability(twoState,sim_ic,2,1000,0,10000)-resampleProbability(twoState,sim_ic,2,1000,1,10000))
+	print(1-resampleProbability(twoState,sim_ic,1,100,0,2000)-resampleProbability(twoState,sim_ic,1,100,1,2000))
+	print(1-resampleProbability(twoState,sim_ic,2,100,0,2000)-resampleProbability(twoState,sim_ic,2,100,1,2000))
+	print(1-resampleProbability(twoState,sim_ic,20,1000,0,2000)-resampleProbability(twoState,sim_ic,20,1000,1,2000))
+
+def emitPosterior(ac):
+	post_ac = getPost(twoState,sim_ic,ac,10000)
+	o = open("post_%d.txt" % ac,'w')
+	pt = sim_ic.start
+	while ( pt < 0.2 ):
+		o.write("%e\t%e\n" % (pt,post_ac(pt)))
+		pt = 1.015*pt
+	o.close()
+
+emitPosterior(2)
+emitPosterior(3)
+emitPosterior(10)
+emitPosterior(25)
+
+#o = open("test2s.txt",'w')
+#pt = sim_ic.start
+#while ( pt<0.4 ):
+#	o.write("%e\t%e\n" % (pt,twoState(pt)))
+#	pt = 1.015*pt
+#o.close()
