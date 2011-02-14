@@ -362,13 +362,11 @@ public class VariantContextAdaptors {
                         case Silent: attrs.put("VC","Silent"); break;
                         case Missense: attrs.put("VC","Missense"); break;
                         case Nonsense: attrs.put("VC","Nonsense"); break;
-                        case Splice: attrs.put("VC","Splice_site"); break;
+                        case Splice_site: attrs.put("VC","Splice_site"); break;
                         case miRNA: attrs.put("VC","miRNA"); break;
                         case Frameshift: attrs.put("VC","Frameshift"); break;
                         case Inframe: attrs.put("VC","Inframe"); break;
                         case Stop_deletion: attrs.put("VC","Stop_codon_deletion");
-                        case Splice_site_deletion: attrs.put("VC","Splice_site_deletion");
-                        case Splice_site_insertion: attrs.put("VC","Splice_site_insertion");
                         case Unclassified: attrs.put("VC","Unclassified");
                         default:
                     }

@@ -56,8 +56,8 @@ public class MafFeature implements Feature {
     };
 
     public enum Classification {
-        Unclassified, Intergenic,Intron,Noncoding_transcript,UTR3,UTR5,Flank5,Silent,Missense, Nonsense, Splice, miRNA,
-        Frameshift, Inframe, Stop_deletion, Promoter,De_novo_start,Splice_site_deletion,Splice_site_insertion
+        Unclassified, Intergenic,Intron,Noncoding_transcript,UTR3,UTR5,Flank5,Silent,Missense, Nonsense, Splice_site, miRNA,
+        Frameshift, Inframe, Stop_deletion, Promoter,De_novo_start
     }
 
     private Type type = Type.UNKNOWN;
@@ -221,15 +221,16 @@ public class MafFeature implements Feature {
         if ( s.equals("Non-coding_Transcript")) { classification = Classification.Noncoding_transcript; return; }
         if ( s.equals("Missense") || s.equals("Missense_Mutation") ) { classification = Classification.Missense ; return; }
         if ( s.equals("Nonsense_Mutation") ) { classification = Classification.Nonsense ; return; }
-        if ( s.equals("Splice_Site") ) { classification = Classification.Splice ; return; }
+        if ( s.equals("Splice_Site") ) { classification = Classification.Splice_site ; return; }
         if ( s.equals("miRNA") ) { classification = Classification.miRNA ; return; }
         if ( s.equals("Frame_Shift_Ins") ) { classification = Classification.Frameshift ; return; }
         if ( s.equals("Frame_Shift_Del") ) { classification = Classification.Frameshift ; return; }
         if ( s.equals("In_Frame_Ins") ) { classification = Classification.Inframe ; return; }
         if ( s.equals("In_Frame_Del") ) { classification = Classification.Inframe ; return; }
         if ( s.equals("Stop_Codon_Del") ) { classification = Classification.Stop_deletion ; return; }
-        if ( s.equals("Splice_Site_Del") ) { classification = Classification.Splice_site_deletion ; return; }
-        if ( s.equals("Splice_Site_Ins") ) { classification = Classification.Splice_site_insertion ; return; }
+        if ( s.equals("Splice_Site_Del") ) { classification = Classification.Splice_site ; return; }
+        if ( s.equals("Splice_Site_Ins") ) { classification = Classification.Splice_site ; return; }
+        if ( s.equals("Splice_Site_SNP") ) { classification = Classification.Splice_site ; return; }
         if ( s.equals("Promoter") ) { classification = Classification.Promoter ; return; }
         if ( s.equals("De_novo_Start") ) { classification = Classification.De_novo_start ; return; }
         if ( s.equals("TX-REF-MISMATCH") ) { classification = Classification.Unclassified ; return; }
