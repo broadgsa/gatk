@@ -337,7 +337,45 @@ public class VariantContextAdaptors {
                 addGenotype(genotypes,tumorSample,maf.getObservedTumorAlleleList(),maf.getRefBases());
 
 
-                HashMap<String, Object> attrs = new HashMap<String, Object>(1);
+                HashMap<String, Object> attrs = new HashMap<String, Object>(10);
+                // fill attributes:
+                if ( maf.getHugoGeneSymbol() != null && ! maf.getHugoGeneSymbol().equals("Unknown"))
+                    attrs.put("Gene",maf.getHugoGeneSymbol());
+
+                if ( maf.isSomatic() ) {
+                    attrs.put(VCFConstants.SOMATIC_KEY,true);
+                    attrs.put("SS","Somatic");
+                } else {
+                    attrs.put("SS","Germline");                    
+                }
+
+                if ( maf.getVariantClassification() != null ) {
+                    switch(maf.getVariantClassification()) {
+                        case Intergenic: attrs.put("VC","Genomic"); break;
+                        case Intron: attrs.put("VC","Intron"); break;
+                        case Noncoding_transcript: attrs.put("VC","Noncoding_transcript"); break;
+                        case UTR3: attrs.put("VC","3'UTR"); break;
+                        case UTR5: attrs.put("VC","5'UTR"); break;
+                        case Flank5: attrs.put("VC","5'flank"); break;
+                        case Promoter: attrs.put("VC","5'flank"); break;
+                        case De_novo_start: attrs.put("VC","De_novo_start"); break;
+                        case Silent: attrs.put("VC","Silent"); break;
+                        case Missense: attrs.put("VC","Missense"); break;
+                        case Nonsense: attrs.put("VC","Nonsense"); break;
+                        case Splice: attrs.put("VC","Splice_site"); break;
+                        case miRNA: attrs.put("VC","miRNA"); break;
+                        case Frameshift: attrs.put("VC","Frameshift"); break;
+                        case Inframe: attrs.put("VC","Inframe"); break;
+                        case Stop_deletion: attrs.put("VC","Stop_codon_deletion");
+                        case Splice_site_deletion: attrs.put("VC","Splice_site_deletion");
+                        case Splice_site_insertion: attrs.put("VC","Splice_site_insertion");
+                        case Unclassified: attrs.put("VC","Unclassified");
+                        default:
+                    }
+                }
+
+                attrs.put("VT",maf.getType());
+
 //                attrs.put(VariantContext.ID_KEY, hapmap.getName());
                 int end = maf.getEnd();
                 VariantContext vc = new VariantContext(name, maf.getChr(), maf.getStart(), end, alleles, 

@@ -27,6 +27,7 @@ package org.broadinstitute.sting.playground.gatk.features.maf;
 
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
 
@@ -47,10 +48,17 @@ public class MafFeature implements Feature {
     private String[] observedNormAlleles = null;          // The sequences of the observed alleles in normal
     private String tumorSampleId = null;
     private String normalSampleId = null;
+    private String hugoSymbol = null;
+    private Classification classification = null;
 
     public enum Type {
         UNKNOWN,SNP,MNP,INS,DEL
     };
+
+    public enum Classification {
+        Unclassified, Intergenic,Intron,Noncoding_transcript,UTR3,UTR5,Flank5,Silent,Missense, Nonsense, Splice, miRNA,
+        Frameshift, Inframe, Stop_deletion, Promoter,De_novo_start,Splice_site_deletion,Splice_site_insertion
+    }
 
     private Type type = Type.UNKNOWN;
 
@@ -97,6 +105,14 @@ public class MafFeature implements Feature {
 
     public String getRefBases() {
         return refAllele;
+    }
+
+    public String getHugoGeneSymbol() {
+        return hugoSymbol;
+    }
+
+    public String setHugoGeneSymbol(String genename) {
+        return hugoSymbol = genename;
     }
 
     /**
@@ -185,6 +201,43 @@ public class MafFeature implements Feature {
             default:
                 throw new StingException("Unrecognized event type in Maf record: "+type);
         }
+    }
+
+    public boolean isSomatic() {
+        if ( observedTumAlleles[0].equals(refAllele) && observedTumAlleles[1].equals(refAllele) ) return false; // tumor is ref
+        // we get here only if tumor is non-ref
+        if ( observedNormAlleles == null ) return true; // norm alleles are omitted from maf only if they are all ref
+        if ( observedNormAlleles[0].equals(refAllele) && observedNormAlleles[1].equals(refAllele) ) return true;
+        return false;
+    }
+
+    public void setVariantClassification(String s) {
+        if ( s.equals("IGR") ) { classification = Classification.Intergenic ; return; }
+        if ( s.equals("Intron") ) { classification = Classification.Intron ; return; }
+        if ( s.equals("3'UTR") ) { classification = Classification.UTR3 ; return; }
+        if ( s.equals("5'UTR") ) { classification = Classification.UTR5 ; return; }
+        if ( s.equals("5'-Flank") ) { classification = Classification.Flank5 ; return; }
+        if ( s.equals("Silent") ) { classification = Classification.Silent ; return; }
+        if ( s.equals("Non-coding_Transcript")) { classification = Classification.Noncoding_transcript; return; }
+        if ( s.equals("Missense") || s.equals("Missense_Mutation") ) { classification = Classification.Missense ; return; }
+        if ( s.equals("Nonsense_Mutation") ) { classification = Classification.Nonsense ; return; }
+        if ( s.equals("Splice_Site") ) { classification = Classification.Splice ; return; }
+        if ( s.equals("miRNA") ) { classification = Classification.miRNA ; return; }
+        if ( s.equals("Frame_Shift_Ins") ) { classification = Classification.Frameshift ; return; }
+        if ( s.equals("Frame_Shift_Del") ) { classification = Classification.Frameshift ; return; }
+        if ( s.equals("In_Frame_Ins") ) { classification = Classification.Inframe ; return; }
+        if ( s.equals("In_Frame_Del") ) { classification = Classification.Inframe ; return; }
+        if ( s.equals("Stop_Codon_Del") ) { classification = Classification.Stop_deletion ; return; }
+        if ( s.equals("Splice_Site_Del") ) { classification = Classification.Splice_site_deletion ; return; }
+        if ( s.equals("Splice_Site_Ins") ) { classification = Classification.Splice_site_insertion ; return; }
+        if ( s.equals("Promoter") ) { classification = Classification.Promoter ; return; }
+        if ( s.equals("De_novo_Start") ) { classification = Classification.De_novo_start ; return; }
+        if ( s.equals("TX-REF-MISMATCH") ) { classification = Classification.Unclassified ; return; }
+        throw new UserException.MalformedFile("Unknown variant classification: " + s);
+    }
+
+    public Classification getVariantClassification() {
+        return classification;
     }
 
    /*
