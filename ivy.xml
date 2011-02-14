@@ -38,6 +38,7 @@
     <dependency org="commons-lang" name="commons-lang" rev="2.5"/>
     <dependency org="commons-logging" name="commons-logging" rev="1.1.1"/>
     <dependency org="commons-io" name="commons-io" rev="2.0"/>
+    <dependency org="commons-math" name="commons-math" rev="1.2" />
 
     <!-- Lucene core utilities -->
     <dependency org="org.apache.lucene" name="lucene-core" rev="3.0.3"/>
