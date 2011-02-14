@@ -66,9 +66,13 @@ class VCFSimpleMerge extends InProcessFunction {
 
     val glp : GenomeLocParser = new GenomeLocParser(ssd)
 
+    var last = ""
     while ( ! xrls.forall( u => ! u.hasNext ) ) {
       val first = xrls.filter( u => u.hasNext).reduceLeft( (a,b) => if ( genomeLoc(a,glp).isBefore(genomeLoc(b,glp))) a else b )
-      w.println(first.next)
+      if ( ! first.peek.equals(last) ) {
+        w.println(first.peek)
+      }
+      last = first.next
     }
 
     w.close

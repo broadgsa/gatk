@@ -14,8 +14,8 @@ class VCFExtractIntervals(inVCF: File, outList: File, passOnly: Boolean ) extend
   @Argument(doc="Whether to use all sites, or only the unfiltered sites") var usePFOnly: Boolean = passOnly
 
   def commandLine = {
-    if ( usePFOnly ) "grep PASS %s | awk '{print $1\":\"$2}' > %s".format(inputVCF.getAbsolutePath,outputList.getAbsolutePath)
-    else "grep -v \\\\# %s | awk '{print $1\":\"$2}' > %s".format(inputVCF.getAbsolutePath,outputList.getAbsolutePath)
+    if ( usePFOnly ) "grep PASS %s | awk '{print $1\":\"$2}' | uniq > %s".format(inputVCF.getAbsolutePath,outputList.getAbsolutePath)
+    else "grep -v \\\\# %s | awk '{print $1\":\"$2}' | uniq > %s".format(inputVCF.getAbsolutePath,outputList.getAbsolutePath)
   }
 
 }

@@ -2,11 +2,14 @@ package org.broadinstitute.sting.queue.pipeline
 import org.broadinstitute.sting.commandline._
 import org.broadinstitute.sting.queue.util._
 import java.io.File
+import scala.collection.JavaConversions._
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.sting.utils.text.XReadLines
+import scala.collection.mutable.HashMap
 
 class VariantCalling(attribs: Pipeline,gatkJar: File) {
   vc =>
@@ -369,4 +372,49 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
   def swapExt(file: File, oldExtension: String, newExtension: String) =
     new File(file.getName.stripSuffix(oldExtension) + newExtension)
 
+}
+
+object VariantCalling {
+
+  /**
+   * @Input - a VCF file (presumably with ##UnifiedGenotyper=" ... line
+   * @Doc - Constructs a UG object based on the settings in the header of the input VCF
+   * @Returns an instance of the UG object with all information propagated
+   */
+  def unifiedGenotyperFromVCF( vcf : File ) : UnifiedGenotyper = {
+    var myUG : UnifiedGenotyper = new UnifiedGenotyper
+    var xrl : XReadLines = new XReadLines(vcf)
+    val header_limit = 1000
+    var line = ""
+    var line_no = 1
+    while ( ! line.startsWith("##UnifiedGenotyper=") && line_no < header_limit) {
+      line = xrl.next
+      line_no += 1
+    }
+    var ugLine : String = line
+    if ( ! ugLine.startsWith("##UnifiedGenotyper") ) {
+      return myUG // nothing to add
+    }
+
+    var ugTokens = ugLine.stripPrefix("##UnifiedGenotyper=\"").stripSuffix("\"").split("[^,;:] ")
+    var ugMap = new HashMap[String,String]
+    def addEntry( s : String ) : Unit = {
+      val sps = s.split("=")
+      val k = sps(0)
+      val v = sps(1)
+      val kv = (k,v)
+      ugMap += kv
+    }
+    ugTokens.foreach( addEntry(_) )
+
+    myUG.reference_sequence = new File(ugMap("reference_sequence"))
+    myUG.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.valueOf(ugMap("baq")))
+    myUG.baqGapOpenPenalty = Some(ugMap("baqGapOpenPenalty").toDouble)
+    myUG.DBSNP = new File(ugMap("DBSNP"))
+
+    // todo -- more args
+    
+    return myUG
+
+  }
 }

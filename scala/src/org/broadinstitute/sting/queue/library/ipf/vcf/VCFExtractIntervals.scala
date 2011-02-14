@@ -24,7 +24,7 @@ class VCFExtractIntervals(inVCF: File, outList: File, useFilterSites: Boolean) e
 
   def vcf2int( vcfLine: String ) : Unit = {
     var spline = vcfLine.split("\t")
-    if ( ! vcfLine.startsWith("#") && (spline(6).equals("PASS") || keepFilters) ) {
+    if ( ! vcfLine.startsWith("#") && (spline(6).equals("PASS") || spline(6).equals(".") || keepFilters) ) {
       out.print("%s:%s%n".format(spline(0),spline(1)))
     }
   }

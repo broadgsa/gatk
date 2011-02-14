@@ -16,17 +16,26 @@ class VCFExtractSites( vcf: File, output: File) extends InProcessFunction {
 
   def lineMap( line: String ) : String = {
     if ( line.startsWith("##") ) { return line }
-    val spline = line.split("\t",9)
+    var spline = line.split("\t",9)
     if ( spline(0).startsWith("#")) { return spline.slice(0,8).reduceLeft( _+"\t"+_) }
 
     if ( spline(6) == "PASS" || keepFilters ) {
-      if ( ! keepInfo ) {
-        spline(7) = "."
+      var buf = new StringBuffer(spline.slice(0,5).reduceLeft(_ + "\t" + _ ))
+      if ( keepQual ) {
+        buf.append("\t%s".format(spline(5)))
+      } else {
+        buf.append("\t.")
       }
-      if ( ! keepQual ) {
-        spline(5) = "."
+
+      buf.append("\t.")
+
+      if ( keepInfo ) {
+        buf.append("\t%s".format(spline(7)))
+      } else {
+        buf.append("\t.")
       }
-      return spline.slice(0,8).reduceLeft( _ + "\t" + _ )
+
+      return buf.toString
     }
 
     return ""
