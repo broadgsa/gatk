@@ -27,7 +27,7 @@ class VCFExtractSites( vcf: File, output: File) extends InProcessFunction {
         buf.append("\t.")
       }
 
-      buf.append("\t.")
+      buf.append("\tPASS")
 
       if ( keepInfo ) {
         buf.append("\t%s".format(spline(7)))
