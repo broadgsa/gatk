@@ -69,7 +69,7 @@ if ( ! suppressLegend )
     legend(5, 1.75, c('Cumulative TPs','Tranch-specific TPs', 'Tranch-specific FPs', 'Cumulative FPs' ), fill=cols, density=density, bg='white', cex=1.25)
 
 mtext("Ti/Tv",2,line=2.25,at=length(data2$FDRtranche)*1.2,las=1, cex=1)
-mtext("FDR",2,line=0,at=length(data2$FDRtranche)*1.2,las=1, cex=1)
+mtext("FNR",2,line=0,at=length(data2$FDRtranche)*1.2,las=1, cex=1)
 axis(2,line=-1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=data2$FDRtranche, las=1, cex.axis=1.0)
 axis(2,line=1,at=0.7+(0:(length(data2$FDRtranche)-1))*1.2,tick=FALSE,labels=round(novelTiTv,3), las=1, cex.axis=1.0)
 
