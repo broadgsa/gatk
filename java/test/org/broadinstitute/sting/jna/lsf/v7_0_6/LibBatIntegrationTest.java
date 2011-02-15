@@ -86,6 +86,9 @@ public class LibBatIntegrationTest extends BaseTest {
         req.outFile = outFile.getPath();
         req.options |= LibBat.SUB_OUT_FILE;
 
+        req.userPriority = 100;
+        req.options2 |= LibBat.SUB2_JOB_PRIORITY;
+
         req.command = "echo \"Hello world.\"";
 
         submitReply reply = new submitReply();

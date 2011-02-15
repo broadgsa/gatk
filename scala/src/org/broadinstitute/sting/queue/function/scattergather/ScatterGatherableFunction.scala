@@ -149,9 +149,11 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     super.freezeFieldValues
 
     if (this.scatterGatherDirectory == null) {
-      this.scatterGatherDirectory = qSettings.jobScatterGatherDirectory
-      if (this.scatterGatherDirectory == null)
-        this.scatterGatherDirectory = this.commandDirectory
+      if (qSettings.jobScatterGatherDirectory != null) {
+        this.scatterGatherDirectory = IOUtils.absolute(qSettings.jobScatterGatherDirectory)
+      } else {
+        this.scatterGatherDirectory = IOUtils.absolute(this.commandDirectory, "queueScatterGather")
+      }
     }
   }
 

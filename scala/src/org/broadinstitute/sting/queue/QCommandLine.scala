@@ -48,11 +48,11 @@ class QCommandLine extends CommandLineProgram with Logging {
       logger.info("Added " + script.functions.size + " functions")
     }
 
-    qGraph.run
+    qGraph.run()
 
-    if (qGraph.hasFailed) {
+    if (!qGraph.success) {
       logger.info("Done with errors")
-      qGraph.logFailed
+      qGraph.logFailed()
       1
     } else {
       logger.info("Done")

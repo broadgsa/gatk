@@ -17,6 +17,9 @@ class QSettings {
   @Argument(fullName="job_project", shortName="jobProject", doc="Default project for compute farm jobs.", required=false)
   var jobProject: String = "Queue"
 
+  @Argument(fullName="job_priority", shortName="jobPriority", doc="Default priority for jobs.", required=false)
+  var jobPriority: Option[Int] = None
+
   @Argument(fullName="job_scatter_gather_directory", shortName="jobSGDir", doc="Default directory to place scatter gather output for compute farm jobs.", required=false)
   var jobScatterGatherDirectory: File = _
 

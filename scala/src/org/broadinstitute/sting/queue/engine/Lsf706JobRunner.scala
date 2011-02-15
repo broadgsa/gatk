@@ -31,125 +31,132 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
    * @param function Command to run.
    */
   def start() = {
-    val request = new submit
-    for (i <- 0 until LibLsf.LSF_RLIM_NLIMITS)
+    Lsf706JobRunner.lsfLibLock.synchronized {
+      val request = new submit
+      for (i <- 0 until LibLsf.LSF_RLIM_NLIMITS)
         request.rLimits(i) = LibLsf.DEFAULT_RLIMIT;
 
-    request.outFile = function.jobOutputFile.getPath
-    request.options |= LibBat.SUB_OUT_FILE
+      request.outFile = function.jobOutputFile.getPath
+      request.options |= LibBat.SUB_OUT_FILE
 
-    if (function.jobErrorFile != null) {
-      request.errFile = function.jobErrorFile.getPath
-      request.options |= LibBat.SUB_ERR_FILE
-    }
+      if (function.jobErrorFile != null) {
+        request.errFile = function.jobErrorFile.getPath
+        request.options |= LibBat.SUB_ERR_FILE
+      }
 
-    if (function.jobProject != null) {
-      request.projectName = function.jobProject
-      request.options |= LibBat.SUB_PROJECT_NAME
-    }
+      if (function.jobProject != null) {
+        request.projectName = function.jobProject
+        request.options |= LibBat.SUB_PROJECT_NAME
+      }
 
-    if (function.jobQueue != null) {
-      request.queue = function.jobQueue
-      request.options |= LibBat.SUB_QUEUE
-    }
+      if (function.jobQueue != null) {
+        request.queue = function.jobQueue
+        request.options |= LibBat.SUB_QUEUE
+      }
 
-    if (IOUtils.absolute(new File(".")) != function.commandDirectory) {
-      request.cwd = function.commandDirectory.getPath
-      request.options3 |= LibBat.SUB3_CWD
-    }
+      if (IOUtils.absolute(new File(".")) != function.commandDirectory) {
+        request.cwd = function.commandDirectory.getPath
+        request.options3 |= LibBat.SUB3_CWD
+      }
 
-    if (function.jobRestartable) {
-      request.options |= LibBat.SUB_RERUNNABLE
-    }
+      if (function.jobRestartable) {
+        request.options |= LibBat.SUB_RERUNNABLE
+      }
 
-    if (function.memoryLimit.isDefined) {
-      request.resReq = "rusage[mem=" + function.memoryLimit.get + "]"
-      request.options |= LibBat.SUB_RES_REQ
-    }
+      if (function.memoryLimit.isDefined) {
+        request.resReq = "rusage[mem=" + function.memoryLimit.get + "]"
+        request.options |= LibBat.SUB_RES_REQ
+      }
 
-    if (function.description != null) {
-      request.jobName = function.description.take(1000)
-      request.options |= LibBat.SUB_JOB_NAME
-    }
+      if (function.description != null) {
+        request.jobName = function.description.take(1000)
+        request.options |= LibBat.SUB_JOB_NAME
+      }
 
-    if (function.jobLimitSeconds.isDefined) {
-      request.rLimits(LibLsf.LSF_RLIMIT_RUN) = function.jobLimitSeconds.get
-    } else {
+      if (function.jobPriority.isDefined) {
+        request.userPriority = function.jobPriority.get
+        request.options2 |= LibBat.SUB2_JOB_PRIORITY
+      }
+
       request.rLimits(LibLsf.LSF_RLIMIT_RUN) = Lsf706JobRunner.getRlimitRun(function.jobQueue)
+
+      writeExec()
+      request.command = "sh " + exec
+
+      // Allow advanced users to update the request.
+      updateJobRun(request)
+
+      runStatus = RunnerStatus.RUNNING
+      Retry.attempt(() => {
+        val reply = new submitReply
+        jobId = LibBat.lsb_submit(request, reply)
+        if (jobId < 0)
+          throw new QException(LibBat.lsb_sperror("Unable to submit job"))
+      }, 1, 5, 10)
+      logger.info("Submitted LSF job id: " + jobId)
     }
-
-    writeExec()
-    request.command = "sh " + exec
-
-    // Allow advanced users to update the request.
-    updateJobRun(request)
-
-    runStatus = RunnerStatus.RUNNING
-    Retry.attempt(() => {
-      val reply = new submitReply
-      jobId = LibBat.lsb_submit(request, reply)
-      if (jobId < 0)
-        throw new QException(LibBat.lsb_sperror("Unable to submit job"))
-    }, 1, 5, 10)
-    logger.info("Submitted LSF job id: " + jobId)
   }
 
   /**
    * Updates and returns the status.
    */
   def status = {
-    var jobStatus = LibBat.JOB_STAT_UNKWN
-    var exitStatus = 0
-    var exitInfo = 0
-    var endTime: NativeLong = null
+    Lsf706JobRunner.lsfLibLock.synchronized {
+      var jobStatus = LibBat.JOB_STAT_UNKWN
+      var exitStatus = 0
+      var exitInfo = 0
+      var endTime: NativeLong = null
 
-    val result = LibBat.lsb_openjobinfo(jobId, null, null, null, null, LibBat.ALL_JOB)
-    if (result < 0)
-      throw new QException(LibBat.lsb_sperror("Unable to open LSF job info for job id: " + jobId))
-    try {
-      if (result > 0) {
-        val more = new IntByReference(result)
-        val jobInfo = LibBat.lsb_readjobinfo(more)
-        if (jobInfo == null)
-          throw new QException(LibBat.lsb_sperror("lsb_readjobinfo returned null for job id: " + jobId))
-        jobStatus = jobInfo.status
-        exitStatus = jobInfo.exitStatus
-        exitInfo = jobInfo.exitInfo
-        endTime = jobInfo.endTime
+      val result = LibBat.lsb_openjobinfo(jobId, null, null, null, null, LibBat.ALL_JOB)
+      if (result < 0)
+        throw new QException(LibBat.lsb_sperror("Unable to open LSF job info for job id: " + jobId))
+      try {
+        if (result > 1)
+          throw new QException(LibBat.lsb_sperror("Recieved " + result + " LSF results for job id: " + jobId))
+        else if (result == 1) {
+          val more = new IntByReference(result)
+          val jobInfo = LibBat.lsb_readjobinfo(more)
+          if (jobInfo == null)
+            throw new QException(LibBat.lsb_sperror("lsb_readjobinfo returned null for job id: " + jobId))
+          jobStatus = jobInfo.status
+          exitStatus = jobInfo.exitStatus
+          exitInfo = jobInfo.exitInfo
+          endTime = jobInfo.endTime
+        }
+      } finally {
+        LibBat.lsb_closejobinfo()
       }
-    } finally {
-      LibBat.lsb_closejobinfo()
+
+      logger.debug("Job Id %s status / exitStatus / exitInfo: 0x%02x / 0x%02x / 0x%02x".format(jobId, jobStatus, exitStatus, exitInfo))
+
+      if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_UNKWN)) {
+        val now = new Date().getTime
+
+        if (firstUnknownTime.isEmpty) {
+          firstUnknownTime = Some(now)
+          logger.debug("First unknown status for job id: " + jobId)
+        }
+
+        if ((firstUnknownTime.get - now) >= (unknownStatusMaxSeconds * 1000L)) {
+          // Unknown status has been returned for a while now.
+          runStatus = RunnerStatus.FAILED
+          logger.error("Unknown status for %d seconds: job id %d: %s".format(unknownStatusMaxSeconds, jobId, function.description))
+        }
+      } else {
+        // Reset the last time an unknown status was seen.
+        firstUnknownTime = None
+
+        if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_EXIT) && !willRetry(exitInfo, endTime)) {
+          // Exited function that (probably) won't be retried.
+          runStatus = RunnerStatus.FAILED
+        } else if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_DONE)) {
+          // Done successfully.
+          runStatus = RunnerStatus.DONE
+        }
+      }
+
+      runStatus
     }
-
-    logger.debug("Job Id %s status / exitStatus / exitInfo: 0x%02x / 0x%02x / 0x%02x".format(jobId, jobStatus, exitStatus, exitInfo))
-
-    if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_UNKWN)) {
-      val now = new Date().getTime
-
-      if (firstUnknownTime.isEmpty) {
-        firstUnknownTime = Some(now)
-        logger.debug("First unknown status for job id: " + jobId)
-      }
-
-      if ((firstUnknownTime.get - now) >= (unknownStatusMaxSeconds * 1000L)) {
-        // Unknown status has been returned for a while now.
-        runStatus = RunnerStatus.FAILED
-        logger.error("Unknown status for %d seconds: job id %d: %s".format(unknownStatusMaxSeconds, jobId, function.description))
-      }
-    } else {
-      // Reset the last time an unknown status was seen.
-      firstUnknownTime = None
-
-      if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_EXIT) && !willRetry(exitInfo, endTime)) {
-        // Exited function that (probably) won't be retried.
-        runStatus = RunnerStatus.FAILED
-      } else if (Utils.isFlagSet(jobStatus, LibBat.JOB_STAT_DONE)) {
-        // Done successfully.
-        runStatus = RunnerStatus.DONE
-      }
-    }
-
-    runStatus
   }
 
   /**
@@ -171,6 +178,8 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
 }
 
 object Lsf706JobRunner extends Logging {
+  private val lsfLibLock = new Object
+
   init()
 
   /** The name of the default queue. */
@@ -183,8 +192,10 @@ object Lsf706JobRunner extends Logging {
    * Initialize the Lsf library.
    */
   private def init() = {
-    if (LibBat.lsb_init("Queue") < 0)
-      throw new QException(LibBat.lsb_sperror("lsb_init() failed"))
+    lsfLibLock.synchronized {
+      if (LibBat.lsb_init("Queue") < 0)
+        throw new QException(LibBat.lsb_sperror("lsb_init() failed"))
+    }
   }
 
   /**
@@ -194,33 +205,35 @@ object Lsf706JobRunner extends Logging {
    * @return the run limit in seconds for the queue.
    */
   def getRlimitRun(queue: String) = {
-    if (queue == null) {
-      if (defaultQueue != null) {
-        queueRlimitRun(defaultQueue)
-      } else {
-        // Get the info on the default queue.
-        val numQueues = new IntByReference(1)
-        val queueInfo = LibBat.lsb_queueinfo(null, numQueues, null, null, 0)
-        if (queueInfo == null)
-          throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for the default queue"))
-        defaultQueue = queueInfo.queue
-        val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
-        queueRlimitRun += defaultQueue -> limit
-        limit
-      }
-    } else {
-      queueRlimitRun.get(queue) match {
-        case Some(limit) => limit
-        case None =>
-          // Cache miss.  Go get the run limits from LSF.
-          val queues = new StringArray(Array[String](queue))
+    lsfLibLock.synchronized {
+      if (queue == null) {
+        if (defaultQueue != null) {
+          queueRlimitRun(defaultQueue)
+        } else {
+          // Get the info on the default queue.
           val numQueues = new IntByReference(1)
-          val queueInfo = LibBat.lsb_queueinfo(queues, numQueues, null, null, 0)
+          val queueInfo = LibBat.lsb_queueinfo(null, numQueues, null, null, 0)
           if (queueInfo == null)
-            throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for queue: " + queue))
+            throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for the default queue"))
+          defaultQueue = queueInfo.queue
           val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
-          queueRlimitRun += queue -> limit
+          queueRlimitRun += defaultQueue -> limit
           limit
+        }
+      } else {
+        queueRlimitRun.get(queue) match {
+          case Some(limit) => limit
+          case None =>
+          // Cache miss.  Go get the run limits from LSF.
+            val queues = new StringArray(Array[String](queue))
+            val numQueues = new IntByReference(1)
+            val queueInfo = LibBat.lsb_queueinfo(queues, numQueues, null, null, 0)
+            if (queueInfo == null)
+              throw new QException(LibBat.lsb_sperror("Unable to get LSF queue info for queue: " + queue))
+            val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
+            queueRlimitRun += queue -> limit
+            limit
+        }
       }
     }
   }
@@ -230,23 +243,25 @@ object Lsf706JobRunner extends Logging {
    * @param runners Runners to stop.
    */
   def tryStop(runners: List[Lsf706JobRunner]) {
-    for (jobRunners <- runners.filterNot(_.jobId < 0).grouped(10)) {
-      try {
-        val njobs = jobRunners.size
-        val signalJobs = new signalBulkJobs
-        signalJobs.jobs = {
-          val jobIds = new Memory(8 * njobs)
-          jobIds.write(0, jobRunners.map(_.jobId).toArray, 0, njobs)
-          jobIds
-        }
-        signalJobs.njobs = njobs
-        signalJobs.signal = 9
+    lsfLibLock.synchronized {
+      for (jobRunners <- runners.filterNot(_.jobId < 0).grouped(10)) {
+        try {
+          val njobs = jobRunners.size
+          val signalJobs = new signalBulkJobs
+          signalJobs.jobs = {
+            val jobIds = new Memory(8 * njobs)
+            jobIds.write(0, jobRunners.map(_.jobId).toArray, 0, njobs)
+            jobIds
+          }
+          signalJobs.njobs = njobs
+          signalJobs.signal = 9
 
-        if (LibBat.lsb_killbulkjobs(signalJobs) < 0)
-          throw new QException(LibBat.lsb_sperror("lsb_killbulkjobs failed"))
-      } catch {
-        case e =>
-          logger.error("Unable to kill all jobs.", e)
+          if (LibBat.lsb_killbulkjobs(signalJobs) < 0)
+            throw new QException(LibBat.lsb_sperror("lsb_killbulkjobs failed"))
+        } catch {
+          case e =>
+            logger.error("Unable to kill all jobs.", e)
+        }
       }
     }
   }

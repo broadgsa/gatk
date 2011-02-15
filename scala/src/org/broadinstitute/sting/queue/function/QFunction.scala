@@ -37,12 +37,8 @@ trait QFunction extends Logging {
   /** Order the function was added to the graph. */
   var addOrder: List[Int] = Nil
 
-  /**
-   * EXPERIMENTAL AND NOT SUPPORTED!!
-   * Limits the number of seconds that the job will run.
-   * TODO: Replace with full resource specifications.
-   */
-  var jobLimitSeconds: Option[Int] = None
+  /** Job priority */
+  var jobPriority: Option[Int] = None
 
   /** Whether a job is restartable */
   var jobRestartable = true
@@ -70,7 +66,7 @@ trait QFunction extends Logging {
     function.commandDirectory = this.commandDirectory
     function.jobTempDir = this.jobTempDir
     function.addOrder = this.addOrder
-    function.jobLimitSeconds = this.jobLimitSeconds
+    function.jobPriority = this.jobPriority
     function.jobRestartable = this.jobRestartable
     function.updateJobRun = this.updateJobRun
     function.isIntermediate = this.isIntermediate
@@ -318,6 +314,9 @@ trait QFunction extends Logging {
 
     if (jobTempDir == null)
       jobTempDir = qSettings.tempDirectory
+
+    if (jobPriority.isEmpty)
+      jobPriority = qSettings.jobPriority
 
     // Do not set the temp dir relative to the command directory
     jobTempDir = IOUtils.absolute(jobTempDir)

@@ -10,7 +10,7 @@ import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
  * and then the runner is specified later when the time comes to
  * execute the function in the edge.
  */
-class FunctionEdge(var function: QFunction) extends QEdge with Logging {
+class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNode) extends QEdge with Logging {
   var runner: JobRunner[_] =_
 
   /**
@@ -131,8 +131,6 @@ class FunctionEdge(var function: QFunction) extends QEdge with Logging {
     runner = null
   }
 
-  def inputs = function.inputs
-  def outputs = function.outputs
   override def dotString = function.dotString
 
   /**

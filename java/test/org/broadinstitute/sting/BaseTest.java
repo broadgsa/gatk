@@ -66,6 +66,10 @@ public abstract class BaseTest {
     public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.rod";
     public static final String b37dbSNP132 = dbsnpDataLocation + "dbsnp_132_b37.vcf";
 
+    public static final String intervalsLocation = GATKDataLocation;
+    public static final String hg19Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list";
+    public static final String hg19Chr20Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list";
+
     public static final String networkTempDir = "/broad/shptmp/";
     public static final File networkTempDirFile = new File(networkTempDir);
 

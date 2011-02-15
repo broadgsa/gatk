@@ -1,31 +1,41 @@
+/*
+ * Copyright (c) 2011, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.queue.pipeline.playground
 
 import org.testng.annotations.{DataProvider, Test}
 import collection.JavaConversions._
 import java.io.File
-import org.broadinstitute.sting.datasources.pipeline.{PipelineSample, PipelineProject, Pipeline}
+import org.broadinstitute.sting.datasources.pipeline.{PipelineSample, Pipeline}
 import org.broadinstitute.sting.utils.yaml.YamlUtils
-import org.broadinstitute.sting.BaseTest
 import org.broadinstitute.sting.queue.pipeline._
 
 class FullCallingPipelineTest {
   def datasets = List(k1gChr20Dataset, k1gExomeDataset)
 
-  val k1gBams = List(
-    new K1gBam("C474", "NA19651", 1),
-    new K1gBam("C474", "NA19655", 1),
-    new K1gBam("C474", "NA19669", 1),
-    new K1gBam("C454", "NA19834", 1),
-    new K1gBam("C460", "HG01440", 1),
-    new K1gBam("C456", "NA12342", 1),
-    new K1gBam("C456", "NA12748", 1),
-    new K1gBam("C474", "NA19649", 1),
-    new K1gBam("C474", "NA19652", 1),
-    new K1gBam("C474", "NA19654", 1))
-
   val k1gChr20Dataset = {
-    val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20")
-    dataset.pipeline.getProject.setIntervalList(new File(BaseTest.GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.chr20.interval_list"))
+    val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20", true)
 
     dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.all.counter.nCalledLoci", 1348)
     dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.known.counter.nCalledLoci", 1124)
@@ -38,8 +48,7 @@ class FullCallingPipelineTest {
   }
 
   val k1gExomeDataset = {
-    val dataset = newK1gDataset("Barcoded_1000G_WEx")
-    dataset.pipeline.getProject.setIntervalList(new File(BaseTest.GATKDataLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list"))
+    val dataset = newK1gDataset("Barcoded_1000G_WEx", false)
 
     dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.all.counter.nCalledLoci", 50755)
     dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.known.counter.nCalledLoci", 40894)
@@ -53,34 +62,12 @@ class FullCallingPipelineTest {
     dataset
   }
 
-  class K1gBam(val squidId: String, val sampleId: String, val version: Int)
-
-  def newK1gDataset(projectName: String) = {
-    val project = new PipelineProject
-    project.setName(projectName)
-    project.setReferenceFile(new File(BaseTest.hg19Reference))
-    project.setGenotypeDbsnp(new File(BaseTest.b37dbSNP132))
-    project.setEvalDbsnp(new File(BaseTest.b37dbSNP129))
-    project.setRefseqTable(new File(BaseTest.hg19Refseq))
-
+  def newK1gDataset(projectName: String, chr20: Boolean) = {
+    val project = PipelineTest.createHg19Project(projectName, chr20)
     var samples = List.empty[PipelineSample]
-    for (k1gBam <- k1gBams) {
-      val sample = new PipelineSample
-      sample.setId(projectName + "_" + k1gBam.sampleId)
-      sample.setBamFiles(Map("recalibrated" -> new File("/seq/picard_aggregation/%1$s/%2$s/v%3$s/%2$s.bam"
-                                                        .format(k1gBam.squidId, k1gBam.sampleId, k1gBam.version))))
-      sample.setTags(Map("SQUIDProject" -> k1gBam.squidId, "CollaboratorID" -> k1gBam.sampleId))
-      samples :+= sample
-    }
-
-    val pipeline = new Pipeline
-    pipeline.setProject(project)
-    pipeline.setSamples(samples)
-
-    val dataset = new PipelineDataset
-    dataset.pipeline = pipeline
-
-    dataset
+    for (k1gBam <- PipelineTest.k1gBams)
+      samples :+= PipelineTest.createK1gSample(projectName, k1gBam)
+    new PipelineDataset(PipelineTest.createPipeline(project, samples))
   }
 
   @DataProvider(name="datasets")//, parallel=true)
@@ -92,49 +79,40 @@ class FullCallingPipelineTest {
     val projectName = dataset.pipeline.getProject.getName
     val testName = "FullCallingPipeline-" + projectName
     val yamlFile = writeYaml(testName, dataset.pipeline)
-    var cleanType = "cleaned"
 
     // Run the pipeline with the expected inputs.
-    var pipelineCommand = ("-retry 1 -S scala/qscript/playground/FullCallingPipeline.q" +
+    val pipelineCommand = ("-retry 1 -S scala/qscript/playground/FullCallingPipeline.q" +
             " -jobProject %s -Y %s" +
             " -tearScript %s/R/DataProcessingReport/GetTearsheetStats.R" +
             " --gatkjar %s")
             .format(projectName, yamlFile, PipelineTest.currentStingDir, PipelineTest.currentGATK)
 
-    if (!dataset.runIndelRealigner) {
-      pipelineCommand += " -skipCleaning"
-      cleanType = "uncleaned"
-    }
-    
     val pipelineSpec = new PipelineTestSpec
     pipelineSpec.name = testName
     pipelineSpec.args = pipelineCommand
     pipelineSpec.jobQueue = dataset.jobQueue
 
     pipelineSpec.evalSpec = new PipelineTestEvalSpec
-    pipelineSpec.evalSpec.vcf = new File(PipelineTest.runDir(testName) + "SnpCalls/%s.%s.annotated.handfiltered.vcf".format(projectName, cleanType))
+    pipelineSpec.evalSpec.vcf = new File(PipelineTest.runDir(testName) + "SnpCalls/%s.cleaned.annotated.handfiltered.vcf".format(projectName))
     pipelineSpec.evalSpec.reference = dataset.pipeline.getProject.getReferenceFile
     pipelineSpec.evalSpec.intervals = dataset.pipeline.getProject.getIntervalList
     pipelineSpec.evalSpec.dbsnp = dataset.pipeline.getProject.getEvalDbsnp
     pipelineSpec.evalSpec.validations = dataset.validations
 
-    // Run the test, at least checking if the command compiles
     PipelineTest.executeTest(pipelineSpec)
-  }
-
-  class PipelineDataset(
-          var pipeline: Pipeline = null,
-          var validations: List[PipelineValidation] = Nil,
-          var jobQueue: String = null,
-          var runIndelRealigner: Boolean = false) {
-    override def toString = pipeline.getProject.getName
   }
 
   private def writeYaml(testName: String, pipeline: Pipeline) = {
     val runDir = PipelineTest.runDir(testName)
-    new File(runDir).mkdirs
     val yamlFile = new File(runDir, pipeline.getProject.getName + ".yaml")
+    yamlFile.getParentFile.mkdirs
     YamlUtils.dump(pipeline, yamlFile)
     yamlFile
+  }
+
+  class PipelineDataset(var pipeline: Pipeline = null,
+                        var validations: List[PipelineValidation] = Nil,
+                        var jobQueue: String = null) {
+    override def toString = pipeline.getProject.getName
   }
 }

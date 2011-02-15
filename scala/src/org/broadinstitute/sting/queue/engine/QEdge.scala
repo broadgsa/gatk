@@ -1,23 +1,32 @@
 package org.broadinstitute.sting.queue.engine
 
-import java.io.File
-
 /**
  * An edge in the QGraph
  */
 trait QEdge {
   /**
-   * Set of inputs for this function.
+   * List of inputs for this function sorted by path.
    */
-  def inputs: Set[File]
+  def inputs: QNode
 
   /**
-   * Set of outputs for this function.
+   * List of outputs for this function sorted by path.
    */
-  def outputs: Set[File]
+  def outputs: QNode
 
   /**
    * The function description in .dot files
    */
   def dotString = ""
+
+  override def hashCode = inputs.hashCode + outputs.hashCode
+
+  override def equals(obj: Any) = {
+    obj match {
+      case other: QEdge =>
+        this.inputs == other.inputs &&
+        this.outputs == other.outputs
+      case _ => false
+    }
+  }
 }
