@@ -1,4 +1,4 @@
-import org.broadinstitute.sting.gatk.CommandLineGATK
+import org.broadinstitute.sting.queue.extensions.gatk.CommandLineGATK
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
@@ -285,7 +285,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   class VariantEvaluation(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.VariantEval with UNIVERSAL_GATK_ARGS {
       val name: String = t.name
       this.reference_sequence = t.reference
-      this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
+      this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
+      this.knownName ++= List("hapmap")
       this.rodBind :+= RodBind("eval", "VCF", if (!noCut) {t.cutVCF} else {t.tsRecalibratedVCF} )
       this.analysisName = name + "_VE"
       this.intervalsString ++= List(t.intervals)
@@ -293,7 +294,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.out =  t.evalFile
       if (t.dbsnpFile.endsWith(".rod"))
         this.DBSNP = new File(t.dbsnpFile)
-	  else if (t.dbsnpFile.endsWith(".vcf"))
+	    else if (t.dbsnpFile.endsWith(".vcf"))
         this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
   }
 }
