@@ -155,16 +155,11 @@ public class GATKRunReport {
     @Element(required = true, name = "reads")
     private long nReads;
 
-    // TODO
-    // todo md5 all filenames
-    // todo size of filenames
-
     public enum PhoneHomeOption {
         NO_ET,
         STANDARD,
-        DEV,
         STDOUT,
-        AWS_S3
+        AWS_S3   // todo -- remove me -- really just for testing purposes
     }
 
     private static final DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH.mm.ss");
@@ -250,14 +245,15 @@ public class GATKRunReport {
     }
 
     public void postReport(PhoneHomeOption type) {
+        logger.info("Posting report of type " + type);
         switch (type) {
             case NO_ET: // don't do anything
                 break;
-            case STANDARD: case DEV:
+            case STANDARD:
                 if ( repositoryIsOnline() ) {
                     postReportToLocalDisk(REPORT_SUBMIT_DIR);
                 } else {
-                    logger.debug("Not writing report: sentinel " + REPORT_SENTINEL + " doesn't exist");
+                    postReportToAWSS3();
                 }
                 break;
             case STDOUT:
