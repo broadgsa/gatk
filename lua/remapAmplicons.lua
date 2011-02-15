@@ -53,7 +53,6 @@ local function processSamHeaderLine(l, amplicons)
     if not header.sq then header.sq = {} end
     local ampName = l:match("@SQ%s+SN:ps%d+_([%w%p_]+).*")
     local chr = amplicons[ampName].chr
-print("DEBUG: ", ampName, chr)
     header.sq[chr] = chrlength[chr]
   end
 end
