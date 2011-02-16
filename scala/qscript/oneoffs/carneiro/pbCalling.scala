@@ -15,10 +15,6 @@ class pbCalling extends QScript {
   @Argument(shortName="dataset", doc="selects the datasets to run. If not provided, all datasets will be used", required=false)
   var datasets: List[String] = Nil
 
-  @Argument(shortName="noBAQ", doc="turns off BAQ calculation", required=false)
-  var noBAQ: Boolean = false
-
-
 
   class Target(
           val baseName: String,
@@ -169,7 +165,7 @@ class pbCalling extends QScript {
     this.stand_emit_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
     this.input_file :+= t.bamList
     this.out = t.rawVCF
-    this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE})
+    this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
     this.analysisName = t.name + "_UG"
     if (t.dbsnpFile.endsWith(".rod"))
       this.DBSNP = new File(t.dbsnpFile)

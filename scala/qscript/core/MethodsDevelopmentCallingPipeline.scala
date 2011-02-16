@@ -1,4 +1,4 @@
-import org.broadinstitute.sting.queue.extensions.gatk.CommandLineGATK
+import org.broadinstitute.sting.gatk.CommandLineGATK
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
