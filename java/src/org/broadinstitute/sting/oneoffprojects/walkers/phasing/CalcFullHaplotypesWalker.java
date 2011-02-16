@@ -31,8 +31,6 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.sample.Sample;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
@@ -56,10 +54,10 @@ public class CalcFullHaplotypesWalker extends RodWalker<Integer, Integer> {
     @Output(doc = "File to which results should be written", required = true)
     protected PrintStream out;
 
-    @Argument(doc="sample to emit", required = false)
+    @Argument(doc = "sample to emit", required = false)
     protected String sample = null;
 
-    @Argument(doc="only include physically-phased results", required = false)
+    @Argument(doc = "only include physically-phased results", required = false)
     protected boolean requirePQ = false;
 
     public void initialize() {
@@ -93,18 +91,23 @@ public class CalcFullHaplotypesWalker extends RodWalker<Integer, Integer> {
         GenomeLoc curLocus = ref.getLocus();
         outputDoneHaplotypes(curLocus);
 
-        // Extend the haplotypes to include this position:
+        int curPosition = curLocus.getStop();
+        int prevPosition = curPosition - 1;
+
+        // Extend the haplotypes to include up to this position (BUT EXCLUSIVE OF THIS POSITION):
         for (Map.Entry<String, Haplotype> sampleHapEntry : waitingHaplotypes.entrySet()) {
             Haplotype waitingHaplotype = sampleHapEntry.getValue();
 
             if (waitingHaplotype == null) {// changed to a new contig:
-                // Set the new haplotype to extend from [1, curLocus]
-                GenomeLoc startInterval = getToolkit().getGenomeLocParser().parseGenomeLoc(curLocus.getContig(), 1, curLocus.getStop());
-                waitingHaplotype = new Haplotype(startInterval, sampleHapEntry.getKey());
-                sampleHapEntry.setValue(waitingHaplotype);
+                // Set the new haplotype to extend from [1, prevPosition]
+                if (prevPosition >= 1) {
+                    GenomeLoc startInterval = getToolkit().getGenomeLocParser().parseGenomeLoc(curLocus.getContig(), 1, prevPosition);
+                    waitingHaplotype = new Haplotype(startInterval, sampleHapEntry.getKey());
+                    sampleHapEntry.setValue(waitingHaplotype);
+                }
             }
             else
-                waitingHaplotype.extend(curLocus.getStop());
+                waitingHaplotype.extend(prevPosition);
         }
 
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
@@ -123,22 +126,20 @@ public class CalcFullHaplotypesWalker extends RodWalker<Integer, Integer> {
                     Haplotype sampleHap = waitingHaplotypes.get(sample);
                     if (sampleHap == null)
                         throw new ReviewedStingException("EVERY sample should have a haplotype [by code above and getToolkit().getSamples()]");
-                    sampleHap.incrementHetCount();
 
-                    // Terminate the haplotype here:
+                    // Terminate the haplotype before here:
                     if (!gt.isPhased() || (requirePQ && !gt.hasAttribute(ReadBackedPhasingWalker.PQ_KEY))) {
                         outputHaplotype(sampleHap);
 
-                        // Start a new haplotype from the next position [if it exists]:
-                        Haplotype nextHaplotype = null;
-                        int startNext = sampleHap.interval.getStop() + 1;
-                        if (startNext <= getContigLength(curLocus.getContig())) {
-                            GenomeLoc nextInterval = getToolkit().getGenomeLocParser().parseGenomeLoc(curLocus.getContig(), startNext, startNext);
-                            nextHaplotype = new Haplotype(nextInterval, sample);
-                        }
-
-                        waitingHaplotypes.put(sample, nextHaplotype);
+                        // Start a new haplotype from the current position:
+                        sampleHap = new Haplotype(curLocus, sample);
+                        waitingHaplotypes.put(sample, sampleHap);
                     }
+                    else {
+                        sampleHap.extend(curPosition);
+                    }
+
+                    sampleHap.incrementHetCount();
                 }
             }
         }
