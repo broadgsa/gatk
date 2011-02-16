@@ -1,4 +1,3 @@
-
 import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.queue.extensions.gatk._
@@ -6,6 +5,7 @@ import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, CloneFunction, ScatterFunction}
+import org.broadinstitute.sting.queue.library.ipf.intervals.ExpandIntervals
 import org.broadinstitute.sting.queue.QScript
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
@@ -16,41 +16,26 @@ class FullCallingPipeline extends QScript {
   @Argument(doc="the YAML file specifying inputs, interval lists, reference sequence, etc.", shortName="Y")
   var yamlFile: File = _
 
-  @Input(doc="path to trigger track (for UnifiedGenotyper)", shortName="trigger", required=false)
-  var trigger: File = _
-
-  @Input(doc="path to refseqTable (for GenomicAnnotator) if not present in the YAML", shortName="refseqTable", required=false)
-  var refseqTable: File = _
-
-  @Input(doc="path to Picard FixMateInformation.jar.  See http://picard.sourceforge.net/ .", required=false)
+  @Input(doc="path to Picard FixMateInformation.jar.  See http://picard.sourceforge.net/ .", shortName="P", required=false)
   var picardFixMatesJar: File = new java.io.File("/seq/software/picard/current/bin/FixMateInformation.jar")
 
-  @Input(doc="path to GATK jar")
+  @Input(doc="path to GATK jar", shortName="G")
   var gatkJar: File = _
-
-  @Input(doc="per-sample downsampling level",shortName="dcov",required=false)
-  var downsampling_coverage = 600
 
   @Input(doc="level of parallelism for IndelRealigner.  By default is set to 1.", shortName="cleanerScatter", required=false)
   var num_cleaner_scatter_jobs = 1
 
-  @Input(doc="level of parallelism for UnifiedGenotyper (both for Snps and Indels).   By default is set to 20.", shortName="varScatter", required=false)
+  @Input(doc="level of parallelism for UnifiedGenotyper (both for SNPs and indels).  By default is set to 20.", shortName="varScatter", required=false)
   var num_var_scatter_jobs = 20
+
+  @Argument(doc="expand each target in input intervals by the specified number of bases (50 bases by default)", shortName="expand", required=false)
+  var expandIntervals = 50
 
   @Input(doc="Skip indel-cleaning for BAM files (for testing only)", shortName="skipCleaning", required=false)
   var skip_cleaning = false
 
   @Input(doc="ADPR script", shortName ="tearScript", required=false)
   var tearScript: File = _
-
-  // TODO: Fix command lines that pass -bigMemQueue
-  @Argument(doc="Unused", shortName="bigMemQueue", required=false)
-  var big_mem_queue: String = _
-
-  @Argument(doc="Job queue for short run jobs (<1hr)", shortName="shortJobQueue", required=false)
-  var short_job_queue: String = _
-
-
 
   private var pipeline: Pipeline = _
 
@@ -70,16 +55,10 @@ class FullCallingPipeline extends QScript {
 
     val projectBase: String = qscript.pipeline.getProject.getName
 
-    if (qscript.refseqTable != null)
-      qscript.pipeline.getProject.setRefseqTable(qscript.refseqTable)
     if (qscript.skip_cleaning) {
-
-
       endToEnd(projectBase + ".uncleaned", "recalibrated")
     } else {
-
       val recalibratedSamples = qscript.pipeline.getSamples.filter(_.getBamFiles.contains("recalibrated"))
-      /
 
       for ( sample <- recalibratedSamples ) {
         val sampleId = sample.getId
@@ -166,140 +145,151 @@ class FullCallingPipeline extends QScript {
         samtoolsindex.jobOutputFile = new File(".queue/logs/Cleaning/%s/SamtoolsIndex.out".format(sampleId))
         samtoolsindex.bamFile = cleaned_bam
         samtoolsindex.analysisName = "index_cleaned_"+sampleId
-        samtoolsindex.jobQueue = qscript.short_job_queue
+        //samtoolsindex.jobQueue = qscript.short_job_queue
         add(samtoolsindex)
       }
 
-      //endToEnd(projectBase + ".cleaned", "cleaned", adprRscript, seq, expKind)
       endToEnd(projectBase + ".cleaned", "cleaned")
     }
   }
 
   def endToEnd(base: String, bamType: String) = {
-
     val samples = qscript.pipeline.getSamples.filter(_.getBamFiles.contains(bamType)).toList
     val bamFiles = samples.map(_.getBamFiles.get(bamType))
 
-    // step through the un-indel-cleaned graph:
-    // 1a. call snps and indels
-    val snps = new UnifiedGenotyper with CommandLineGATKArgs
-    snps.jobOutputFile = new File(".queue/logs/SNPCalling/UnifiedGenotyper.out")
-    snps.analysisName = base+"_SNP_calls"
-    snps.input_file = bamFiles
-    snps.input_file = bamFiles
-    snps.group :+= "Standard"
-    snps.out = new File("SnpCalls", base+".vcf")
-    snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
-    snps.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
-    snps.memoryLimit = Some(6)
+    val ei : ExpandIntervals = new ExpandIntervals(qscript.pipeline.getProject.getIntervalList, 1, qscript.expandIntervals, new File("Resources", base + ".flanks.interval_list"), qscript.pipeline.getProject.getReferenceFile, "INTERVALS", "INTERVALS")
+    ei.jobOutputFile = new File(".queue/logs/Overall/ExpandIntervals.out")
 
-    snps.scatterCount = qscript.num_var_scatter_jobs
-        snps.setupScatterFunction = {
-          case scatter: ScatterFunction =>
-            scatter.commandDirectory = new File("SnpCalls/ScatterGather")
-            scatter.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Scatter.out")
-        }
-        snps.setupCloneFunction = {
-          case (clone: CloneFunction, index: Int) =>
-            clone.commandDirectory = new File("SnpCalls/ScatterGather/Scatter_%s".format(index))
-            clone.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Scatter_%s.out".format(index))
-        }
-        snps.setupGatherFunction = {
-          case (gather: GatherFunction, source: ArgumentSource) =>
-            gather.commandDirectory = new File("SnpCalls/ScatterGather/Gather_%s".format(source.field.getName))
-            gather.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Gather_%s.out".format(source.field.getName))
-        }
+    trait ExpandedIntervals extends CommandLineGATK {
+      if (qscript.expandIntervals > 0) {
+        this.intervals :+= ei.outList
 
-    val indels = new UnifiedGenotyper with CommandLineGATKArgs
-    indels.jobOutputFile = new File(".queue/logs/IndelCalling/UnifiedGenotyper.out")
-    indels.analysisName = base+"_Indel_calls"
-    indels.input_file = bamFiles
-    indels.input_file = bamFiles
-    indels.group :+= "Standard"
-    indels.out = new File("IndelCalls", base+".vcf")
-    indels.downsample_to_coverage = Some(qscript.downsampling_coverage)
-    indels.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
+        add(ei)
+      }
+    }
+
+    // Call indels
+    val indels = new UnifiedGenotyper with CommandLineGATKArgs with ExpandedIntervals
+    indels.analysisName = base + "_indels"
+    indels.jobOutputFile = new File(".queue/logs/IndelCalling/UnifiedGenotyper.indels.out")
     indels.memoryLimit = Some(6)
+    indels.downsample_to_coverage = Some(600)
     indels.genotype_likelihoods_model = Option(org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL)
-
-
+    indels.input_file = bamFiles
+    indels.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
+    indels.out = new File("IndelCalls", base+".indels.vcf")
 
     indels.scatterCount = qscript.num_var_scatter_jobs
-        indels.setupScatterFunction = {
-          case scatter: ScatterFunction =>
-            scatter.commandDirectory = new File("IndelCalls/ScatterGather")
-            scatter.jobOutputFile = new File(".queue/logs/IndelCalling/ScatterGather/Scatter.out")
-        }
-        indels.setupCloneFunction = {
-          case (clone: CloneFunction, index: Int) =>
-            clone.commandDirectory = new File("IndelCalls/ScatterGather/Scatter_%s".format(index))
-            clone.jobOutputFile = new File(".queue/logs/IndelCalling/ScatterGather/Scatter_%s.out".format(index))
-        }
-        indels.setupGatherFunction = {
-          case (gather: GatherFunction, source: ArgumentSource) =>
-            gather.commandDirectory = new File("IndelCalls/ScatterGather/Gather_%s".format(source.field.getName))
-            gather.jobOutputFile = new File(".queue/logs/IndelCalling/ScatterGather/Gather_%s.out".format(source.field.getName))
-        }
+    indels.setupScatterFunction = {
+      case scatter: ScatterFunction =>
+        scatter.commandDirectory = new File("IndelCalls/ScatterGather")
+        scatter.jobOutputFile = new File(".queue/logs/IndelCalling/ScatterGather/Scatter.out")
+    }
+    indels.setupCloneFunction = {
+      case (clone: CloneFunction, index: Int) =>
+        clone.commandDirectory = new File("IndelCalls/ScatterGather/Scatter_%s".format(index))
+        clone.jobOutputFile = new File(".queue/logs/IndelCalling/ScatterGather/Scatter_%s.out".format(index))
+    }
+    indels.setupGatherFunction = {
+      case (gather: GatherFunction, source: ArgumentSource) =>
+        gather.commandDirectory = new File("IndelCalls/ScatterGather/Gather_%s".format(source.field.getName))
+        gather.jobOutputFile = new File(".queue/logs/IndelCalling/ScatterGather/Gather_%s.out".format(source.field.getName))
+    }
 
+    // Filter indels
+    val filteredIndels = new VariantFiltration with CommandLineGATKArgs with ExpandedIntervals
+    filteredIndels.analysisName = base + "_filteredIndels"
+    filteredIndels.jobOutputFile = new File(".queue/logs/IndelCalling/VariantFiltration.indels.out")
+    filteredIndels.filterName ++= List("IndelQUALFilter","IndelSBFilter","IndelQDFilter")
+    filteredIndels.filterExpression ++= List("\"QUAL<30.0\"","\"SB>-1.0\"","\"QD<2\"")
+    filteredIndels.variantVCF = indels.out
+    filteredIndels.out = swapExt("IndelCalls", indels.out, ".vcf",".filtered.vcf")
 
-    // 1b. genomically annotate SNPs -- no longer slow
-    val annotated = new GenomicAnnotator with CommandLineGATKArgs
-    annotated.jobOutputFile = new File(".queue/logs/SNPCalling/GenomicAnnotator.out")
-    annotated.rodBind :+= RodBind("variant", "VCF", snps.out)
-    annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.pipeline.getProject.getRefseqTable)
-    annotated.out = swapExt("SnpCalls",snps.out,".vcf",".annotated.vcf")
+    // Call snps
+    val snps = new UnifiedGenotyper with CommandLineGATKArgs with ExpandedIntervals
+    snps.analysisName = base+"_snps"
+    snps.jobOutputFile = new File(".queue/logs/SNPCalling/UnifiedGenotyper.snps.out")
+    snps.memoryLimit = Some(6)
+    snps.downsample_to_coverage = Some(600)
+    snps.input_file = bamFiles
+    snps.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
+    snps.out = new File("SnpCalls", base+".snps.vcf")
+
+    snps.scatterCount = qscript.num_var_scatter_jobs
+    snps.setupScatterFunction = {
+      case scatter: ScatterFunction =>
+        scatter.commandDirectory = new File("SnpCalls/ScatterGather")
+        scatter.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Scatter.out")
+    }
+    snps.setupCloneFunction = {
+      case (clone: CloneFunction, index: Int) =>
+        clone.commandDirectory = new File("SnpCalls/ScatterGather/Scatter_%s".format(index))
+        clone.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Scatter_%s.out".format(index))
+    }
+    snps.setupGatherFunction = {
+      case (gather: GatherFunction, source: ArgumentSource) =>
+        gather.commandDirectory = new File("SnpCalls/ScatterGather/Gather_%s".format(source.field.getName))
+        gather.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Gather_%s.out".format(source.field.getName))
+    }
+
+    // Filter snps
+    val filteredSNPs = new VariantFiltration with CommandLineGATKArgs with ExpandedIntervals
+    filteredSNPs.analysisName = base+"_filteredSNPs"
+    filteredSNPs.jobOutputFile = new File(".queue/logs/SNPCalling/VariantFiltration.snps.out")
+    filteredSNPs.filterName ++= List("SNPSBFilter","SNPQDFilter","SNPHRunFilter")
+    filteredSNPs.filterExpression ++= List("\"SB>=0.10\"","\"QD<5.0\"","\"HRun>=4\"")
+    filteredSNPs.clusterWindowSize = Some(10)
+    filteredSNPs.clusterSize = Some(3)
+    filteredSNPs.rodBind :+= RodBind("mask", "VCF", filteredIndels.out)
+    filteredSNPs.variantVCF = snps.out
+    filteredSNPs.out = swapExt("SnpCalls",snps.out,".vcf",".filtered.vcf")
+
+    // Combine indels and snps into one VCF
+    val combineAll = new CombineVariants with CommandLineGATKArgs with ExpandedIntervals
+    combineAll.analysisName = base + "_combineAll"
+    combineAll.jobOutputFile = new File(".queue/logs/Combined/CombineVariants.out")
+    combineAll.variantMergeOptions = Option(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
+    combineAll.rod_priority_list = "Indels,SNPs"
+    combineAll.rodBind :+= RodBind("Indels", "VCF", filteredIndels.out)
+    combineAll.rodBind :+= RodBind("SNPs", "VCF", filteredSNPs.out)
+    combineAll.out = new File("CombinedCalls", base + ".allVariants.filtered.vcf")
+
+    // Annotate variants
+    val annotated = new GenomicAnnotator with CommandLineGATKArgs with ExpandedIntervals
+    annotated.analysisName = base+"_annotated"
+    annotated.jobOutputFile = new File(".queue/logs/Combined/GenomicAnnotator.out")
     annotated.rodToIntervalTrackName = "variant"
-    annotated.analysisName = base+"_GenomicAnnotator"
+    annotated.rodBind :+= RodBind("variant", "VCF", combineAll.out)
+    annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.pipeline.getProject.getRefseqTable)
+    annotated.out = new File(base + ".snps_and_indels.filtered.annotated.vcf")
+    //annotated.out = swapExt("VariantCalls", combineAll.out, ".vcf", ".annotated.vcf")
 
-    // 2. hand filter with standard filter;  mask indels; filter snp clusters
-    val handFilter = new VariantFiltration with CommandLineGATKArgs
-    handFilter.jobOutputFile = new File(".queue/logs/SNPCalling/HandFilter.out")
-    handFilter.variantVCF = annotated.out
-    handFilter.rodBind :+= RodBind("mask", "VCF", indels.out)
-    handFilter.maskname = "IndelSite"
-    handFilter.clusterWindowSize = Some(10)
-    handfilter.clusterSize = Some(3)
-    handFilter.filterName ++= List("StrandBias","QualByDepth","HomopolymerRun")
-    handFilter.filterExpression ++= List("\"SB>=0.10\"","\"QD<5.0\"","\"HRun>=4\"")
-    handFilter.out = swapExt("SnpCalls",annotated.out,".vcf",".handfiltered.vcf")
-    handFilter.analysisName = base+"_HandFilter"
-
-
-    // 3. Variant eval the cut and the hand-filtered vcf files
-    val smallEval = new VariantEval with CommandLineGATKArgs
-    smallEval.jobOutputFile = new File(".queue/logs/SNPCalling/VariantEval.out")
-    smallEval.rodBind :+= RodBind("eval", "VCF", handFilter.out)
-    smallEval.evalModule ++= List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
-    smallEval.stratificationModule ++= List("EvalRod", "Novelty")
-    smallEval.out = new File("SnpCalls", base+".gatkreport")
+    // Variant eval the cut and the hand-filtered vcf files
+    val smallEval = new VariantEval with CommandLineGATKArgs with ExpandedIntervals
     smallEval.analysisName = base+"_VariantEval"
+    smallEval.jobOutputFile = new File(".queue/logs/Overall/VariantEval.out")
     smallEval.noST = true
     smallEval.noEV = true
+    smallEval.evalModule ++= List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
+    smallEval.stratificationModule ++= List("EvalRod", "Novelty")
     smallEval.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getEvalDbsnpType, qscript.pipeline.getProject.getEvalDbsnp)
+    smallEval.rodBind :+= RodBind("eval", "VCF", annotated.out)
+    smallEval.out = swapExt(annotated.out, ".vcf", ".eval")
+    //smallEval.out = new File("VariantCalls", base+".gatkreport")
 
-    // 4. Combine indels and Snps into one VCF
-    val combineAll = new CombineVariants with CommandLineGATKArgs
-    combineAll.jobOutputFile = new File(".queue/logs/Overall/CombineVariants.out")
-    combineAll.rod_priority_list = List("Indels", "SNPs")
-    combineAll.rodBind :+= RodBind("SNPs", "VCF", handFilter.out)
-    combineAll.rodBind :+= RodBind("Indels", "VCF", indels.out)
-    combineAll.variantMergeOptions = Option(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
-    combineAll.analysisName = base + "_CombineCallsets"
-    combineAll.out = new File(base + "allVariants.vcf")
-
-    // 5. Make the bam list
-    val listOfBams =  new File(base +".BamFiles.list")
+    // Make the bam list
+    val listOfBams =  new File("Resources", base +".BamFiles.list")
 
     val writeBamList = new ListWriterFunction
+    writeBamList.analysisName = base + "_BamList"
+    writeBamList.jobOutputFile = new File(".queue/logs/Overall/WriteBamList.out")
     writeBamList.inputFiles = bamFiles
     writeBamList.listFile = listOfBams
-    writeBamList.analysisName = base + "_BamList"
-    writeBamList.jobOutputFile = new File(".queue/logs/SNPCalling/bamlist.out")
 
-    // 6. Run the ADPR and make pretty stuff
+    add(indels, filteredIndels, snps, filteredSNPs, combineAll, annotated, smallEval, writeBamList)
 
-    add(snps, indels, annotated,masker,handFilter,eval,writeBamList)
-    if (qscript.tearScript != null){
+    // Run the ADPR and make pretty stuff
+    if (qscript.tearScript != null) {
       class rCommand extends CommandLineFunction{
         @Input(doc="R script")
         var script: File = _
@@ -315,20 +305,15 @@ class FullCallingPipeline extends QScript {
       }
 
      val adpr = new rCommand
+     adpr.analysisName = base + "_ADPR"
      adpr.bamlist = listOfBams
      adpr.yaml = qscript.yamlFile.getAbsoluteFile
      adpr.script = qscript.tearScript
-     adpr.evalroot = eval.output
-     adpr.jobOutputFile = new File(".queue/logs/SNPCalling/adpr.out")
-     adpr.tearsheet = new File("SnpCalls", base + ".tearsheet.pdf")
-     adpr.analysisName = base + "_ADPR"
-
+     adpr.evalroot = smallEval.out
+     adpr.jobOutputFile = new File(".queue/logs/Overall/ADPR.out")
+     adpr.tearsheet = new File("VariantCalls", base + ".tearsheet.pdf")
 
      add(adpr)
     }
-
-
-
-
   }
 }
