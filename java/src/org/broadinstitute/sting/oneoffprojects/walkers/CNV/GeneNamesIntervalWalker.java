@@ -29,26 +29,32 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
+import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTableFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
- * Walks along reference and calculates the GC content for each interval defined in "intervals" ROD.
+ * Walks along reference and calculates the genes (from "" ROD) for each interval defined in "intervals" ROD.
  */
 @Allows(value = {DataSource.REFERENCE})
-@Requires(value = {DataSource.REFERENCE}, referenceMetaData = {@RMD(name = GCcontentIntervalWalker.INTERVALS_ROD_NAME, type = ReferenceOrderedDatum.class)})
+@Requires(value = {DataSource.REFERENCE}, referenceMetaData = {@RMD(name = GeneNamesIntervalWalker.REFSEQ_ROD_NAME, type = AnnotatorInputTableFeature.class), @RMD(name = GeneNamesIntervalWalker.INTERVALS_ROD_NAME, type = ReferenceOrderedDatum.class)})
 
-public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
+public class GeneNamesIntervalWalker extends RodWalker<GeneNames, GeneNames> {
     @Output
     protected PrintStream out;
 
+    public final static String REFSEQ_ROD_NAME = "refseq";
     public final static String INTERVALS_ROD_NAME = "intervals";
+
+    public final static String REFSEQ_NAME2 = "name2";
+
 
     public boolean isReduceByInterval() {
         return true;
@@ -61,8 +67,8 @@ public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
         return false;
     }
 
-    public GCcounter reduceInit() {
-        return new GCcounter();
+    public GeneNames reduceInit() {
+        return new GeneNames();
     }
 
     /**
@@ -71,7 +77,7 @@ public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
      * @param context the context for the given locus
      * @return statistics of and list of all phased VariantContexts and their base pileup that have gone out of cacheWindow range.
      */
-    public GCcounter map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public GeneNames map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (tracker == null)
             return null;
 
@@ -85,46 +91,42 @@ public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
         }
         GenomeLoc curInterval = interval.get(0).getLocation();
 
-        GCcounter counter = new GCcounter();
-        counter.calculateGCandAddIn(ref);
-        counter.loc = curInterval;
+        GeneNames names = new GeneNames();
+        names.addGenes(tracker.getReferenceMetaData(REFSEQ_ROD_NAME));
+        names.loc = curInterval;
 
-        return counter;
+        return names;
     }
 
-    public GCcounter reduce(GCcounter add, GCcounter runningCount) {
+    public GeneNames reduce(GeneNames add, GeneNames runningCount) {
         if (add == null)
-            add = new GCcounter();
+            add = new GeneNames();
 
         return runningCount.addIn(add);
     }
 
     /**
-     * @param result the GC content observed.
+     * @param result the genes in the interval.
      */
-    public void onTraversalDone(GCcounter result) {
+    public void onTraversalDone(GeneNames result) {
         if (result.loc == null)
             return;
 
-        double gcContent = (double) result.GCcount / result.totalCount;
-        out.println(result.loc + "\t" + gcContent + "\t" + result.loc.size());
+        out.println(result.loc + "\t" + result);
     }
 }
 
-class GCcounter {
-    public int totalCount;
-    public int GCcount;
+class GeneNames {
+    public Set<String> geneNames;
     public GenomeLoc loc;
 
-    public GCcounter() {
-        this.totalCount = 0;
-        this.GCcount = 0;
+    public GeneNames() {
+        this.geneNames = new HashSet<String>();
         this.loc = null;
     }
 
-    public GCcounter addIn(GCcounter other) {
-        this.totalCount += other.totalCount;
-        this.GCcount += other.GCcount;
+    public GeneNames addIn(GeneNames other) {
+        this.geneNames.addAll(other.geneNames);
 
         if (other.loc != null && this.loc == null)
             this.loc = other.loc;
@@ -132,18 +134,24 @@ class GCcounter {
         return this;
     }
 
-    public void calculateGCandAddIn(ReferenceContext ref) {
-        for (byte base : ref.getBases()) {
-            int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
-
-            boolean baseIsGC = (baseIndex == BaseUtils.gIndex || baseIndex == BaseUtils.cIndex);
-            boolean baseIsAT = (baseIndex == BaseUtils.aIndex || baseIndex == BaseUtils.tIndex);
-            if (baseIsGC || baseIsAT) {
-                totalCount++;
-                if (baseIsGC)
-                    GCcount++;
-            }
+    public void addGenes(List<Object> refSeqRODs) {
+        for (Object refSeqObject : refSeqRODs) {
+            AnnotatorInputTableFeature refSeqAnnotation = (AnnotatorInputTableFeature) refSeqObject;
+            if (refSeqAnnotation.containsColumnName(GeneNamesIntervalWalker.REFSEQ_NAME2))
+                geneNames.add(refSeqAnnotation.getColumnValue(GeneNamesIntervalWalker.REFSEQ_NAME2));
         }
+    }
+
+    public String toString() {
+        if (geneNames.isEmpty())
+            return ".";
+
+        StringBuilder sb = new StringBuilder();
+
+        for (String gene : geneNames)
+            sb.append(gene).append(";");
+
+        return sb.toString();
     }
 }
 

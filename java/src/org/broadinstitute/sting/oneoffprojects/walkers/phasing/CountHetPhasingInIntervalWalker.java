@@ -45,7 +45,7 @@ import java.util.*;
  * Walks along all variant ROD loci and verifies the phasing from the reads for user-defined pairs of sites.
  */
 @Allows(value = {DataSource.REFERENCE})
-@Requires(value = {DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
+@Requires(value = {DataSource.REFERENCE}, referenceMetaData = {@RMD(name = "variant", type = ReferenceOrderedDatum.class), @RMD(name = CountHetPhasingInIntervalWalker.INTERVALS_ROD_NAME, type = ReferenceOrderedDatum.class)})
 
 @ReadFilters({ZeroMappingQualityReadFilter.class})
 // Filter out all reads with zero mapping quality
@@ -62,6 +62,8 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
 
     @Argument(fullName = "perIntervalOut", shortName = "perIntervalOut", doc = "File to which to write per-sample, per-interval phased het statistics", required = false)
     protected PrintStream perIntervalOut = null;
+
+    public final static String INTERVALS_ROD_NAME = "intervals";
 
     public void initialize() {
         rodNames = new LinkedList<String>();
@@ -90,9 +92,9 @@ public class CountHetPhasingInIntervalWalker extends RodWalker<Integer, Integer>
 
         int processed = 1;
 
-        List<GATKFeature> interval = tracker.getGATKFeatureMetaData("intervals", true);
+        List<GATKFeature> interval = tracker.getGATKFeatureMetaData(INTERVALS_ROD_NAME, true);
         if (interval.size() != 1) {
-            String error = "At " + ref.getLocus() + " : Must provide a track named 'intervals' with exactly ONE interval per locus in -L argument!";
+            String error = "At " + ref.getLocus() + " : Must provide a track named '"+ INTERVALS_ROD_NAME  +"' with exactly ONE interval per locus in -L argument!";
             if (interval.size() < 1)
                 throw new UserException(error);
             else // interval.size() > 1
