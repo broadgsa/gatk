@@ -33,12 +33,15 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
 
     @DataPoint(description = "Number of snp loci")
     public long nSNPs = 0;
+    @DataPoint(description = "Number of mnp loci")
+    public long nMNPs = 0;
     @DataPoint(description = "Number of insertions")
     public long nInsertions = 0;
     @DataPoint(description = "Number of deletions")
     public long nDeletions = 0;
     @DataPoint(description = "Number of complex loci")
     public long nComplex = 0;
+
 
     @DataPoint(description = "Number of no calls loci")
     public long nNoCalls = 0;
@@ -95,6 +98,10 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                 break;
             case SNP:
                 nSNPs++;
+                if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
+                break;
+            case MNP:
+                nMNPs++;
                 if (vc1.getAttributeAsBoolean("ISSINGLETON")) nSingletons++;
                 break;
             case INDEL:
