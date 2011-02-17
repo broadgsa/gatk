@@ -28,13 +28,16 @@ class MultiFullCallingPipeline extends QScript {
   @Argument(doc="pipeline priority", shortName="PP", required = false)
   var pipelinePriority: Option[Int] = None
 
+  @Argument(doc="run with -tearScript", shortName="TS")
+  var runWithTearScript = false
+
   def script {
     // Global arguments for all pipeline runs
     stingHome = IOUtils.absolute(stingHome)
     val queueJar = new File(stingHome, "dist/Queue.jar")
     val pipelineScript = new File(stingHome, "scala/qscript/playground/FullCallingPipeline.q")
     val gatkJar = new File(stingHome, "dist/GenomeAnalysisTK.jar")
-    val tearScript = new File(stingHome, "R/DataProcessingReport/GetTearsheetStats.R")
+    val tearScript = if (runWithTearScript) new File(stingHome, "R/DataProcessingReport/GetTearsheetStats.R") else null
 
     // Parse the yaml list
     var yamls = List.empty[File]
@@ -64,23 +67,27 @@ class MultiFullCallingPipeline extends QScript {
      * run has produced the passed in output file.
      */
     class RunPipeline(yamlFile: File, lastOutput: File) extends JarCommandLineFunction {
+      private var yamlName = yamlFile.getName.stripSuffix(".yaml")
+
       @Input(doc="output file to wait for", required=false)
       var waitJobOutputFile = lastOutput
+
+      @Output(doc="virtual output file tagging this pipeline as complete")
+      var pipelineComplete = new File(yamlFile.getParentFile, yamlName + ".mfcp")
 
       commandDirectory = yamlFile.getParentFile
       jobOutputFile = IOUtils.absolute(commandDirectory, "queue.out")
       jarFile = queueJar
       memoryLimit = Some(1)
 
-      private var yamlName = yamlFile.getName.stripSuffix(".yaml")
-
       override def commandLine = super.commandLine +
         optional(" -statusTo ", qscript.pipelineStatusTo) +
         optional(" -jobQueue ", qscript.pipelineJobQueue) +
         optional(" -shortJobQueue ", qscript.pipelineShortQueue) +
         optional(" -jobPriority ", qscript.pipelinePriority) +
-        " -S %s --gatkjar %s -tearScript %s -jobProject %s -jobPrefix %s -Y %s -bsub -run"
-          .format(pipelineScript, gatkJar, tearScript, yamlName, yamlName, yamlFile)
+        optional(" -tearScript ", tearScript) +
+        " -S %s --gatkjar %s -jobProject %s -jobPrefix %s -Y %s -bsub -run"
+          .format(pipelineScript, gatkJar, yamlName, yamlName, yamlFile)
 
       override def dotString = "Queue: " + yamlName
     }
