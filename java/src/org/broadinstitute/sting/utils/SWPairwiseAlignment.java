@@ -28,10 +28,10 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.Cigar;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Arrays;
+import java.util.*;
+
+import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -52,6 +52,10 @@ public class SWPairwiseAlignment {
     private static final int MSTATE = 0;
     private static final int ISTATE = 1;
     private static final int DSTATE = 2;
+
+    private static boolean cutoff = true;
+
+    double[] SW;
 
 //    private double [] best_gap_v ;
 //    private int [] gap_size_v ;
@@ -88,7 +92,7 @@ public class SWPairwiseAlignment {
         final int n = a.length;
         final int m = b.length;
         double [] sw = new double[(n+1)*(m+1)];
-
+        SW = sw;
         int [] btrack = new int[(n+1)*(m+1)];
 
 //        best_gap_v = new double[m+1];
@@ -106,6 +110,11 @@ public class SWPairwiseAlignment {
     private void calculateMatrix(final byte[] a, final byte[] b, double [] sw, int [] btrack ) {
         final int n = a.length+1;
         final int m = b.length+1;
+
+        //final double MATRIX_MIN_CUTOFF=-1e100;   // never let matrix elements drop below this cutoff
+        final double MATRIX_MIN_CUTOFF;   // never let matrix elements drop below this cutoff
+        if ( cutoff ) MATRIX_MIN_CUTOFF = 0.0;
+        else MATRIX_MIN_CUTOFF = -1e100;
 
         double [] best_gap_v = new double[m+1];
         Arrays.fill(best_gap_v,-1.0e40);
@@ -208,19 +217,19 @@ public class SWPairwiseAlignment {
 
                 if ( step_down > step_right ) {
                     if ( step_down > step_diag ) {
-                        sw[data_offset] = Math.max(0,step_down);
+                        sw[data_offset] = Math.max(MATRIX_MIN_CUTOFF,step_down);
                         btrack[data_offset] = kd ; // positive=vertical
                     } else {
-                        sw[data_offset] = Math.max(0,step_diag);
+                        sw[data_offset] = Math.max(MATRIX_MIN_CUTOFF,step_diag);
                         btrack[data_offset] = 0; // 0 = diagonal
                     }
                 } else {
                     // step_down <= step_right
                     if ( step_right > step_diag ) {
-                        sw[data_offset] = Math.max(0,step_right);
+                        sw[data_offset] = Math.max(MATRIX_MIN_CUTOFF,step_right);
                         btrack[data_offset] = -ki; // negative = horizontal
                     } else {
-                        sw[data_offset] = Math.max(0,step_diag);
+                        sw[data_offset] = Math.max(MATRIX_MIN_CUTOFF,step_diag);
                         btrack[data_offset] = 0; // 0 = diagonal
                     }
                 }
@@ -267,34 +276,43 @@ public class SWPairwiseAlignment {
         }
 
 
-        // we will be placing all insertions and deletions into sequence b, so the state are named w/regard
+        // we will be placing all insertions and deletions into sequence b, so the states are named w/regard
         // to that sequence
 
         int state = MSTATE;
         List<CigarElement> lce = new ArrayList<CigarElement>(5);
 
         int data_offset = p1*(m+1)+p2;  // offset of element [p1][p2]
-
+ //       System.out.println("Backtracking: starts at "+p1+":"+p2+" ("+sw[data_offset]+")");
         do {
 //            int btr = btrack[p1][p2];
             int btr = btrack[data_offset];
-            int step_left = ( btr < 0 ? -btr : 1);
-            int step_up = ( btr > 0 ? btr : 1 );
 
             int new_state;
-            if ( btr > 0 ) new_state = DSTATE;
-            else if ( btr < 0 ) new_state = ISTATE;
-            else new_state = MSTATE;
-
             int step_length = 1;
+
+            if ( btr > 0 ) {
+                new_state = DSTATE;
+                step_length = btr;
+            } else if ( btr < 0 ) {
+                new_state = ISTATE;
+                step_length = (-btr);
+            } else new_state = MSTATE; // and step_length =1, already set above
+
 
             // move to next best location in the sw matrix:
             switch( new_state ) {
-                case MSTATE: data_offset -= (m+2); break; // equivalent to p1--; p2--
-                case ISTATE: data_offset -= step_left; step_length = step_left; break; // equivalent to p2-=step_left;
-                case DSTATE: data_offset -= (m+1)*step_up; step_length = step_up; break; // equivalent to p1 -= step_up
+                case MSTATE: data_offset -= (m+2); p1--; p2--; break; // equivalent to p1--; p2--
+                case ISTATE: data_offset -= step_length; p2 -= step_length; break; // equivalent to p2-=step_length;
+                case DSTATE: data_offset -= (m+1)*step_length; p1 -= step_length; break; // equivalent to p1 -= step_up
             }
-
+  /*
+            switch( new_state ) {
+                case MSTATE: System.out.println("  diag (match) to "+ sw[data_offset]); break; // equivalent to p1--; p2--
+                case ISTATE: System.out.println("  left (insertion, "+step_length+") to "+ sw[data_offset]); break; // equivalent to p2-=step_length;
+                case DSTATE: System.out.println("    up (deletion, "+step_length+") to "+ sw[data_offset]); break; // equivalent to p1 -= step_up
+            }
+   */
             // now let's see if the state actually changed:
             if ( new_state == state ) segment_length+=step_length;
             else {
@@ -304,11 +322,8 @@ public class SWPairwiseAlignment {
                 state = new_state;
             }
 //      next condition is equivalent to  while ( sw[p1][p2] != 0 ) (with modified p1 and/or p2:
-        } while ( sw[data_offset] != 0 );
+        } while ( p1 > 0 && p2 > 0 );
 
-        // reinstate last values of p1, p2 we arrived to after matrix traversal:
-        p1 = data_offset / (m+1);
-        p2 = data_offset % (m+1);
         // post-process the last segment we are still keeping
         lce.add(makeElement(state, segment_length + p2));
         alignment_offset = p1 - p2; 
@@ -388,37 +403,242 @@ public class SWPairwiseAlignment {
         }
     }
 
-    /* ##############################################
-    BELOW: main() method for testing; old implementations of the core methods are commented out below;
-           uncomment everything through the end of the file if benchmarking of new vs old implementations is needed.
+    private void print(double[] s, byte[] a, byte[] b) {
+           int n = a.length+1;
+           int m = b.length+1;
+           System.out.print("         ");
+           for ( int j = 1 ; j < m ; j++) System.out.printf(" %5c",(char)b[j-1]) ;
+           System.out.println();
 
-    public static void main(String argv[]) {
-        String ref="CACGAGCATATGTGTACATGAATTTGTATTGCACATGTGTTTAATGCGAACACGTGTCATGTGTATGTGTTCACATGCATGTGTGTCT";
-        String read =   "GCATATGTTTACATGAATTTGTATTGCACATGTGTTTAATGCGAACACGTGTCATGTGTGTGTTCACATGCATGTG";
+           for ( int i = 0, row_offset = 0 ; i < n ; i++, row_offset+=m) {
+               if ( i > 0 ) System.out.print((char)a[i-1]);
+               else System.out.print(' ');
+               System.out.print("  ");
+               for ( int j = 0; j < m ; j++ ) {
+                   System.out.printf(" %5.1f",s[row_offset+j]);
+               }
+               System.out.println();
+           }
+       }
 
-        long start = System.currentTimeMillis();
+    static void printAlignment(SWPairwiseAlignment a, byte[] ref, byte[] read) {
+        StringBuilder bread = new StringBuilder();
+        StringBuilder bref = new StringBuilder();
+        StringBuilder match = new StringBuilder();
 
-        SWPairwiseAlignment a = null;
-        for ( int i = 0 ; i < 10000 ; i++ ) {
-            a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),true);
+        int i = 0;
+        int j = 0;
+
+        final int offset = a.getAlignmentStart2wrt1();
+        if ( offset < 0 ) {
+            for (  ; j < (-offset) ; j++ ) {
+                bread.append((char)read[j]);
+                bref.append(' ');
+                match.append(' ');
+            }
+        } else {
+            for (  ; i < a.getAlignmentStart2wrt1() ; i++ ) {
+                bref.append((char)ref[i]);
+                bread.append(' ');
+                match.append(' ');
+            }
         }
-
-        long stop1 = System.currentTimeMillis();
-
-        for ( int i = 0 ; i < 10000 ; i++ ) {
-            a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),false);
+        
+        for ( CigarElement e : a.getCigar().getCigarElements() ) {
+            switch (e.getOperator()) {
+                case M :
+                    for ( int z = 0 ; z < e.getLength(); z++, i++, j++  ) {
+                        bref.append((char)ref[i]);
+                        bread.append((char)read[j]);
+                        match.append( ref[i] == read[j] ? '.':'*');
+                    }
+                    break;
+                case I :
+                    for ( int z = 0 ; z < e.getLength(); z++, j++ ) {
+                        bref.append('-');
+                        bread.append((char)read[j]);
+                        match.append('I');
+                    }
+                    break;
+                case D:
+                    for ( int z = 0 ; z < e.getLength(); z++ , i++ ) {
+                        bref.append((char)ref[i]);
+                        bread.append('-');
+                        match.append('D');
+                    }
+                    break;
+                default:
+                    throw new StingException("Unexpected Cigar element:" + e.getOperator());
+            }
         }
+        for ( ; i < ref.length; i++ ) bref.append((char)ref[i]);
+        for ( ; j < read.length; j++ ) bread.append((char)read[j]);
 
-        long stop2 = System.currentTimeMillis();
-
-        System.out.println("start="+a.getAlignmentStart2wrt1()+", cigar="+a.getCigar()+" length1="+ref.length()+" length2="+read.length());
-        long timeold = stop1-start;
-        long timenew = stop2-stop1;
-        System.out.println("TOTAL TIME OLD: "+(float)(timeold)/1000);
-        System.out.println("TOTAL TIME NEW: "+(float)(timenew)/1000);
-        System.out.println("Fold change: " + ((float) timeold)/timenew);
+        System.out.println(match);
+        System.out.println(bread);
+        System.out.println(bref);
     }
 
+//    BELOW: main() method for testing; old implementations of the core methods are commented out below;
+//           uncomment everything through the end of the file if benchmarking of new vs old implementations is needed.
+
+    public static void main(String argv[]) {
+//        String ref="CACGAGCATATGTGTACATGAATTTGTATTGCACATGTGTTTAATGCGAACACGTGTCATGTGTATGTGTTCACATGCATGTGTGTCT";
+//        String read =   "GCATATGTTTACATGAATTTGTATTGCACATGTGTTTAATGCGAACACGTGTCATGTGTGTGTTCACATGCATGTG";
+
+        String ref = null;
+        String read = null;
+
+        Map<String,List<String>> args = processArgs(argv);
+
+        List<String> l = args.get("SEQ");
+        args.remove("SEQ");
+        if ( l == null ) {
+            System.err.println("SEQ argument is missing. Two input sequences must be provided");
+            System.exit(1);
+        }
+        if ( l.size() != 2 ) {
+            System.err.println("Two input sequences (SEQ arguments) must be provided. Found "+l.size()+" instead");
+            System.exit(1);
+        }
+
+        ref = l.get(0);
+        read = l.get(1);
+
+        Double m = extractSingleDoubleArg("MATCH",args);
+        Double mm = extractSingleDoubleArg("MISMATCH",args);
+        Double open = extractSingleDoubleArg("OPEN",args);
+        Double ext = extractSingleDoubleArg("EXTEND",args);
+
+        Boolean reverse = extractSingleBooleanArg("REVERSE",args);
+        if ( reverse != null && reverse.booleanValue() == true ) {
+            ref = Utils.reverse(ref);
+            read = Utils.reverse(read);
+        }
+
+        Boolean print_mat = extractSingleBooleanArg("PRINT_MATRIX",args);
+        Boolean cut = extractSingleBooleanArg("CUTOFF",args);
+        if ( cut != null ) SWPairwiseAlignment.cutoff = cut;
+
+        if ( args.size() != 0 ) {
+            System.err.println("Unknown argument on the command line: "+args.keySet().iterator().next());
+            System.exit(1);
+        }
+
+        double w_match;
+        double w_mismatch;
+        double w_open;
+        double w_extend;
+
+        w_match = (m == null ? 30.0 : m.doubleValue());
+        w_mismatch = (mm == null ? -10.0 : mm.doubleValue());
+        w_open = (open == null ? -10.0 : open.doubleValue());
+        w_extend = (ext == null ? -2.0 : ext.doubleValue());
+
+
+        SWPairwiseAlignment a = new SWPairwiseAlignment(ref.getBytes(),read.getBytes(),w_match,w_mismatch,w_open,w_extend);
+
+        System.out.println("start="+a.getAlignmentStart2wrt1()+", cigar="+a.getCigar()+
+                " length1="+ref.length()+" length2="+read.length());
+
+
+        System.out.println();
+        printAlignment(a,ref.getBytes(),read.getBytes());
+
+        System.out.println();
+        if ( print_mat != null && print_mat == true ) {
+            a.print(a.SW,ref.getBytes(),read.getBytes());
+        }
+    }
+
+
+    static Pair<String,Integer> getArg(String prefix, String argv[], int i) {
+        String arg = null;
+        if ( argv[i].startsWith(prefix) ) {
+            arg = argv[i].substring(prefix.length());
+            if( arg.length() == 0 ) {
+                i++;
+                if ( i < argv.length ) arg = argv[i];
+                else {
+                    System.err.println("No value found after " + prefix + " argument tag");
+                    System.exit(1);
+                }
+            }
+            i++;
+        }
+        return new Pair<String,Integer>(arg,i);
+    }
+
+    static Map<String,List<String>> processArgs(String argv[]) {
+        Map<String,List<String>> args = new HashMap<String,List<String>>();
+
+        for ( int i = 0; i < argv.length ; i++ ) {
+            String arg = argv[i];
+            int pos = arg.indexOf('=');
+            if ( pos < 0 ) {
+                System.err.println("Argument "+arg+" is not of the form <ARG>=<VAL>");
+                System.exit(1);
+            }
+            String val = arg.substring(pos+1);
+            if ( val.length() == 0 ) {
+                // there was a space between '=' and the value
+                i++;
+                if ( i < argv.length ) val = argv[i];
+                else {
+                    System.err.println("No value found after " + arg + " argument tag");
+                    System.exit(1);
+                }
+            }
+            arg = arg.substring(0,pos);
+
+            List<String> l = args.get(arg);
+            if ( l == null ) {
+                l = new ArrayList<String>();
+                args.put(arg,l);
+            }
+            l.add(val);
+        }
+        return args;
+    }
+
+    static Double extractSingleDoubleArg(String argname, Map<String,List<String>> args) {
+        List<String> l = args.get(argname);
+        args.remove(argname);
+        if ( l == null ) return null;
+
+        if ( l.size() > 1 ) {
+            System.err.println("Only one "+argname+" argument is allowed");
+            System.exit(1);
+        }
+        double d=0;
+        try {
+            d = Double.parseDouble(l.get(0));
+        } catch ( NumberFormatException e) {
+            System.err.println("Can not parse value provided for "+argname+" argument ("+l.get(0)+")");
+            System.exit(1);
+        }
+        System.out.println("Argument "+argname+" set to "+d);
+        return new Double(d);
+    }
+
+
+    static Boolean extractSingleBooleanArg(String argname, Map<String,List<String>> args) {
+        List<String> l = args.get(argname);
+        args.remove(argname);
+        if ( l == null ) return null;
+
+        if ( l.size() > 1 ) {
+            System.err.println("Only one "+argname+" argument is allowed");
+            System.exit(1);
+        }
+        if ( l.get(0).equals("true") ) return new Boolean(true);
+        if ( l.get(0).equals("false") ) return new Boolean(false);
+        System.err.println("Can not parse value provided for "+argname+" argument ("+l.get(0)+"); true/false are allowed");
+        System.exit(1);
+        return null;
+    }
+
+/* ##############################################
     public SWPairwiseAlignment(byte[] seq1, byte[] seq2, double match, double mismatch, double open, double extend, boolean runOld ) {
         w_match = match;
         w_mismatch = mismatch;
