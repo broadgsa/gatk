@@ -33,7 +33,9 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -103,6 +105,10 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         getters.put("VAR", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getHetCount() + vc.getHomVarCount()); } });
         getters.put("NSAMPLES", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getNSamples()); } });
         getters.put("NCALLED", new Getter() { public String get(VariantContext vc) { return Integer.toString(vc.getNSamples() - vc.getNoCallCount()); } });
+        getters.put("GQ", new Getter() { public String get(VariantContext vc) {
+            if ( vc.getNSamples() > 1 ) throw new UserException("Cannot get GQ values for multi-sample VCF");
+            return String.format("%.2f", 10 * vc.getGenotype(0).getNegLog10PError());
+        }});
     }
 
 
