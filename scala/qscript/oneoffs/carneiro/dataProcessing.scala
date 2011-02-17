@@ -152,7 +152,7 @@ class dataProcessing extends QScript {
     this.targetIntervals = new File(tIntervals)
     this.out = new File(outBam)
     this.doNotUseSW = true
-    this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE)
+    this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.rodBind :+= RodBind("indels1", "VCF", dindelPilotCalls)
     this.rodBind :+= RodBind("indels2", "VCF", dindelAFRCalls)
