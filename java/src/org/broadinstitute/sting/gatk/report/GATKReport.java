@@ -131,7 +131,9 @@ public class GATKReport {
      */
     public void print(PrintStream out) {
         for (GATKReportTable table : tables.values()) {
-            table.write(out);
+            if (table.getNumRows() > 0) {
+                table.write(out);
+            }
         }
     }
 }

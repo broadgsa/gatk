@@ -571,4 +571,8 @@ public class GATKReportTable {
         // Close the table
         out.printf("%n");
     }
+
+    public int getNumRows() {
+        return primaryKeyColumn.size();
+    }
 }
