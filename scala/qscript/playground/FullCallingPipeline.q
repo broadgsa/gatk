@@ -264,20 +264,31 @@ class FullCallingPipeline extends QScript {
     annotated.rodBind :+= RodBind("variant", "VCF", combineAll.out)
     annotated.rodBind :+= RodBind("refseq", "AnnotatorInputTable", qscript.pipeline.getProject.getRefseqTable)
     annotated.out = new File(base + ".snps_and_indels.filtered.annotated.vcf")
-    //annotated.out = swapExt("VariantCalls", combineAll.out, ".vcf", ".annotated.vcf")
 
-    // Variant eval the cut and the hand-filtered vcf files
-    val smallEval = new VariantEval with CommandLineGATKArgs with ExpandedIntervals
-    smallEval.analysisName = base+"_VariantEval"
-    smallEval.jobOutputFile = new File(".queue/logs/Overall/VariantEval.out")
-    smallEval.noST = true
-    smallEval.noEV = true
-    smallEval.evalModule ++= List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
-    smallEval.stratificationModule ++= List("EvalRod", "Novelty")
-    smallEval.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getEvalDbsnpType, qscript.pipeline.getProject.getEvalDbsnp)
-    smallEval.rodBind :+= RodBind("eval", "VCF", annotated.out)
-    smallEval.out = swapExt(annotated.out, ".vcf", ".eval")
-    //smallEval.out = new File("VariantCalls", base+".gatkreport")
+    // Variant eval the standard region
+    val stdEval = new VariantEval with CommandLineGATKArgs
+    stdEval.analysisName = base+"_VariantEval"
+    stdEval.jobOutputFile = new File(".queue/logs/Overall/VariantEval.std.out")
+    stdEval.noST = true
+    stdEval.noEV = true
+    stdEval.evalModule ++= List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
+    stdEval.stratificationModule ++= List("EvalRod", "CompRod", "Novelty")
+    stdEval.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getEvalDbsnpType, qscript.pipeline.getProject.getEvalDbsnp)
+    stdEval.rodBind :+= RodBind("eval", "VCF", annotated.out)
+    stdEval.out = swapExt(annotated.out, ".vcf", ".eval")
+
+    // Variant eval the flanking region
+    val flanksEval = new VariantEval with CommandLineGATKArgs
+    flanksEval.analysisName = base+"_VariantEval"
+    flanksEval.jobOutputFile = new File(".queue/logs/Overall/VariantEval.flanks.out")
+    flanksEval.intervals = List(ei.outList)
+    flanksEval.noST = true
+    flanksEval.noEV = true
+    flanksEval.evalModule ++= List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
+    flanksEval.stratificationModule ++= List("EvalRod", "CompRod", "Novelty")
+    flanksEval.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getEvalDbsnpType, qscript.pipeline.getProject.getEvalDbsnp)
+    flanksEval.rodBind :+= RodBind("eval", "VCF", annotated.out)
+    flanksEval.out = swapExt(annotated.out, ".vcf", ".flanks.eval")
 
     // Make the bam list
     val listOfBams =  new File("Resources", base +".BamFiles.list")
@@ -288,7 +299,11 @@ class FullCallingPipeline extends QScript {
     writeBamList.inputFiles = bamFiles
     writeBamList.listFile = listOfBams
 
-    add(indels, filteredIndels, snps, filteredSNPs, combineAll, annotated, smallEval, writeBamList)
+    add(indels, filteredIndels, snps, filteredSNPs, combineAll, annotated, stdEval, writeBamList)
+    
+    if (qscript.expandIntervals > 0) {
+      add(flanksEval)
+    }
 
     // Run the ADPR and make pretty stuff
     if (qscript.tearScript != null) {
@@ -311,7 +326,7 @@ class FullCallingPipeline extends QScript {
      adpr.bamlist = listOfBams
      adpr.yaml = qscript.yamlFile.getAbsoluteFile
      adpr.script = qscript.tearScript
-     adpr.evalroot = smallEval.out
+     adpr.evalroot = stdEval.out
      adpr.jobOutputFile = new File(".queue/logs/Overall/ADPR.out")
      adpr.tearsheet = new File("VariantCalls", base + ".tearsheet.pdf")
 
