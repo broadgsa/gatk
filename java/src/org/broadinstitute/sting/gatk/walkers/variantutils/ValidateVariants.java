@@ -120,10 +120,14 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
                 return;
             }
 
+            // deletions are associated with the (position of) the last (preceding) non-deleted base;
+            // hence to get actually deleted bases we need offset = 1
+            int offset = 1 ;
+            if ( vc.getType() == VariantContext.Type.MNP ) offset = 0; // if it's an MNP, the reported position IS the first modified base
             byte[] refBytes = ref.getBases();
             byte[] trueRef = new byte[reportedRefAllele.length()];
             for (int i = 0; i < reportedRefAllele.length(); i++)
-                trueRef[i] = refBytes[i+1];
+                trueRef[i] = refBytes[i+offset];
             observedRefAllele = Allele.create(trueRef, true);
         }
         // SNPs, etc.
