@@ -13,6 +13,7 @@ import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFu
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, GatherFunction, ScatterGatherableFunction}
 import org.apache.commons.lang.StringUtils
 import org.broadinstitute.sting.queue.util._
+import collection.immutable.TreeMap
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -23,7 +24,13 @@ class QGraph extends Logging {
 
   private def dryRun = !settings.run
   private var numMissingValues = 0
+
   private val jobGraph = newGraph
+  // A map of nodes by list of files.
+  private var nodeMap = TreeMap.empty[Iterable[File], QNode](Ordering.Iterable(Ordering.by[File,String](_.getAbsolutePath)))
+  // The next unique id for a node if not found in the nodeMap.
+  private var nextNodeId = 0
+
   private var running = true
   private val runningLock = new Object
   private val nl = "%n".format()
@@ -212,8 +219,12 @@ class QGraph extends Logging {
       }
     }
 
-    if (running)
-      jobGraph.removeAllVertices(jobGraph.vertexSet.filter(isOrphan(_)))
+    if (running) {
+      for (orphan <- jobGraph.vertexSet.filter(isOrphan(_))) {
+        jobGraph.removeVertex(orphan)
+        nodeMap -= orphan.files
+      }
+    }
   }
 
   /**
@@ -606,9 +617,8 @@ class QGraph extends Logging {
   private def newGraph = new SimpleDirectedGraph[QNode, QEdge](new EdgeFactory[QNode, QEdge] {
     def createEdge(input: QNode, output: QNode) = new MappingEdge(input, output)})
 
-  private var nextNodeId = 0
   private def getQNode(files: List[File]) = {
-    jobGraph.vertexSet.find(node => node.files == files) match {
+    nodeMap.get(files) match {
       case Some(node) =>
         node
       case None =>
@@ -617,6 +627,7 @@ class QGraph extends Logging {
         val node = new QNode(nextNodeId, files)
         nextNodeId += 1
         jobGraph.addVertex(node)
+        nodeMap += files -> node
         node
     }
   }

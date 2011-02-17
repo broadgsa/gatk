@@ -160,11 +160,13 @@ class FullCallingPipeline extends QScript {
     val ei : ExpandIntervals = new ExpandIntervals(qscript.pipeline.getProject.getIntervalList, 1, qscript.expandIntervals, new File("Resources", base + ".flanks.interval_list"), qscript.pipeline.getProject.getReferenceFile, "INTERVALS", "INTERVALS")
     ei.jobOutputFile = new File(".queue/logs/Overall/ExpandIntervals.out")
 
+    if (qscript.expandIntervals > 0) {
+      add(ei)
+    }
+
     trait ExpandedIntervals extends CommandLineGATK {
       if (qscript.expandIntervals > 0) {
         this.intervals :+= ei.outList
-
-        add(ei)
       }
     }
 

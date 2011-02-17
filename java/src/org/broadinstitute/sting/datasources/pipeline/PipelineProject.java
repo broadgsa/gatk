@@ -85,7 +85,7 @@ public class PipelineProject {
     }
 
     public String getEvalDbsnpType() {
-        return getDbsnpType(genotypeDbsnp);
+        return getDbsnpType(evalDbsnp);
     }
 
     public File getRefseqTable() {
