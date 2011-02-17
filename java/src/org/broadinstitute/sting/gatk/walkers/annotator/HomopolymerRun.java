@@ -27,7 +27,7 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
 
         int run;
         if ( vc.isSNP() ) {
-            run = computeHomopolymerRun(vc.getAlternateAllele(0).getBases()[0], ref);
+            run = computeHomopolymerRun(vc.getAlternateAllele(0).getBases()[0], ref, true);
         } else if ( vc.isIndel() && ANNOTATE_INDELS ) {
             run = computeIndelHomopolymerRun(vc,ref);
         } else {
@@ -45,7 +45,7 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
 
     public boolean useZeroQualityReads() { return false; }
 
-    private static int computeHomopolymerRun(byte altAllele, ReferenceContext ref) {
+    private static int computeHomopolymerRun(byte altAllele, ReferenceContext ref, boolean domin) {
 
         // TODO -- this needs to be computed in a more accurate manner
         // We currently look only at direct runs of the alternate allele adjacent to this position
@@ -70,7 +70,11 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
             rightRun++;
         }
 
-        return Math.max(leftRun, rightRun);
+        if (domin)
+            return Math.min(leftRun, rightRun);
+        else
+            return Math.max(leftRun, rightRun);
+
      }
 
     private static int computeIndelHomopolymerRun(VariantContext vc, ReferenceContext ref) {
@@ -81,13 +85,13 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
         if ( vc.isDeletion() ) {
             // check that deleted bases are the same
             byte dBase = bases[refBasePos];
-            for ( int i = 0; i < vc.getAlternateAllele(0).length(); i ++ ) {
+            for ( int i = 0; i < vc.getReference().length(); i ++ ) {
                 if ( bases[refBasePos+i] != dBase ) {
                     return 0;
                 }
             }
 
-            return computeHomopolymerRun(dBase,ref)-1; // remove the extra match from the base itself
+            return computeHomopolymerRun(dBase, ref, false); // do max in both directions
         } else {
             // check that inserted bases are the same
             byte insBase = vc.getAlternateAllele(0).getBases()[0];
@@ -97,7 +101,7 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
                 }
             }
 
-            return computeHomopolymerRun(insBase,ref);
+            return computeHomopolymerRun(insBase,ref, false);
         }
     }
 }
