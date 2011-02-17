@@ -362,7 +362,7 @@
             <property name="build.dir" value="${external.build.dir}" />
             <property name="dist.dir" value="${external.dist.dir}" />
             <property name="gatk.classpath" value="${external.gatk.classpath}" />
-            <fileset dir="${external.dir}" includes="*/build.xml" />
+            <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
         </subant>
     </target>
 
