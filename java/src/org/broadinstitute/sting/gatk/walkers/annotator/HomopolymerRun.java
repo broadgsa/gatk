@@ -27,7 +27,7 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
 
         int run;
         if ( vc.isSNP() ) {
-            run = computeHomopolymerRun(vc.getAlternateAllele(0).getBases()[0], ref, true);
+            run = computeHomopolymerRun(vc.getAlternateAllele(0).getBases()[0], ref);
         } else if ( vc.isIndel() && ANNOTATE_INDELS ) {
             run = computeIndelHomopolymerRun(vc,ref);
         } else {
@@ -45,7 +45,7 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
 
     public boolean useZeroQualityReads() { return false; }
 
-    private static int computeHomopolymerRun(byte altAllele, ReferenceContext ref, boolean domin) {
+    private static int computeHomopolymerRun(byte altAllele, ReferenceContext ref) {
 
         // TODO -- this needs to be computed in a more accurate manner
         // We currently look only at direct runs of the alternate allele adjacent to this position
@@ -70,11 +70,7 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
             rightRun++;
         }
 
-        if (domin)
-            return Math.min(leftRun, rightRun);
-        else
-            return Math.max(leftRun, rightRun);
-
+        return Math.max(leftRun, rightRun);
      }
 
     private static int computeIndelHomopolymerRun(VariantContext vc, ReferenceContext ref) {
@@ -91,7 +87,7 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
                 }
             }
 
-            return computeHomopolymerRun(dBase, ref, false); // do max in both directions
+            return computeHomopolymerRun(dBase, ref);
         } else {
             // check that inserted bases are the same
             byte insBase = vc.getAlternateAllele(0).getBases()[0];
@@ -101,7 +97,7 @@ public class HomopolymerRun implements InfoFieldAnnotation, StandardAnnotation {
                 }
             }
 
-            return computeHomopolymerRun(insBase,ref, false);
+            return computeHomopolymerRun(insBase,ref);
         }
     }
 }
