@@ -333,7 +333,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     public void testSelect1() {
         String extraArgs = "-L 1:1-10,000,000";
         for (String tests : testsEnumerations) {
-            WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -o %s",
+            WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
                     1, Arrays.asList("0eed0ea48cb55164ba8d9383b96811c9"));
             executeTestParallel("testSelect1", spec);
             //executeTest("testSelect1", spec);
@@ -353,7 +353,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     public void testVEGenotypeConcordance() {
         String vcfFiles[] = {"GenotypeConcordanceEval.vcf", "GenotypeConcordanceEval.vcf.gz"};
         for (String vcfFile : vcfFiles) {
-            WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -B:eval,VCF " + validationDataLocation + vcfFile + " -B:comp,VCF " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
+            WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG -B:eval,VCF " + validationDataLocation + vcfFile + " -B:comp,VCF " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
                     1,
                     Arrays.asList("1387fcf8d5c53ff2c820fe79cc999bcf"));
             executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
@@ -365,8 +365,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000", "60bbf3539212ff4ecb172e0ef848b297");
-        expectations.put("-L 1:1-10,000,000 -family NA19238+NA19239=NA19240 -mvq 0 -EV MendelianViolationEvaluator", "c4a178c58464e367a5a0b22a99f35b25");
+        expectations.put("-L 1:1-10,000,000 -ST CpG", "60bbf3539212ff4ecb172e0ef848b297");
+        expectations.put("-L 1:1-10,000,000 -ST CpG -family NA19238+NA19239=NA19240 -mvq 0 -EV MendelianViolationEvaluator", "c4a178c58464e367a5a0b22a99f35b25");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -384,7 +384,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testVEComplex() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        String extraArgs1 = "-L " + validationDataLocation + "chr1_b36_pilot3.interval_list -family NA19238+NA19239=NA19240 -mvq 30 -EV MendelianViolationEvaluator" +
+        String extraArgs1 = "-L " + validationDataLocation + "chr1_b36_pilot3.interval_list -family NA19238+NA19239=NA19240 -mvq 30 -EV MendelianViolationEvaluator -ST CpG" +
                 " -B:dbsnp_130,dbSNP " + GATKDataLocation + "dbsnp_130_b36.rod" +
                 " -B:comp_hapmap,VCF " + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
@@ -408,7 +408,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testCompVsEvalAC() {
-        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -EV GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf";
+        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("2b969088abbfe69337fc3af663278323"));
         executeTestParallel("testCompVsEvalAC",spec);
         //executeTest("testCompVsEvalAC",spec);
@@ -420,7 +420,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testTranches() {
-        String extraArgs = "-T VariantEval -R "+ hg18Reference +" -B:eval,vcf " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -tf " + testDir + "tranches.6.txt";
+        String extraArgs = "-T VariantEval -R "+ hg18Reference +" -B:eval,vcf " + validationDataLocation + "GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.optimized.vcf -o %s -EV TiTvVariantEvaluator -L chr1 -noEV -ST CpG -tf " + testDir + "tranches.6.txt";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("b018ca01b374def71fcd1bf164326485"));
         executeTestParallel("testTranches",spec);
         //executeTest("testTranches",spec);

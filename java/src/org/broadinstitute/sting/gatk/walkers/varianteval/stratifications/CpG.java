@@ -9,7 +9,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatc
 import java.util.ArrayList;
 import java.util.Set;
 
-public class CpG extends VariantStratifier implements StandardStratification {
+public class CpG extends VariantStratifier {
     private ArrayList<String> states;
 
     @Override
