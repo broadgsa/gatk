@@ -218,4 +218,10 @@ public class UserException extends ReviewedStingException {
             super(String.format("Walker %s is not available: %s", walkerName, message));
         }
     }
+
+    public static class CannotExecuteQScript extends UserException {
+        public CannotExecuteQScript(String message, Exception e) {
+            super(String.format("Unable to execute QScript: " + message), e);
+        }
+    }
 }

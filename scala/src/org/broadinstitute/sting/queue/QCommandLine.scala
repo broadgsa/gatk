@@ -8,6 +8,7 @@ import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.queue.engine.{QGraphSettings, QGraph}
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.classloader.PluginManager
+import org.broadinstitute.sting.utils.exceptions.UserException
 
 /**
  * Entry point of Queue.  Compiles and runs QScripts passed in to the command line.
@@ -43,7 +44,12 @@ class QCommandLine extends CommandLineProgram with Logging {
     for (script <- pluginManager.createAllTypes()) {
       logger.info("Scripting " + pluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
       loadArgumentsIntoObject(script)
-      script.script
+      try {
+        script.script
+      } catch {
+        case e: Exception =>
+          throw new UserException.CannotExecuteQScript(script.getClass.getSimpleName + ".script() threw the following exception: " + e, e)
+      }
       script.functions.foreach(qGraph.add(_))
       logger.info("Added " + script.functions.size + " functions")
     }
