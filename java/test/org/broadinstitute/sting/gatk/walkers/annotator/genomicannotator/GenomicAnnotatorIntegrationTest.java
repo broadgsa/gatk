@@ -48,7 +48,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testGenomicAnnotatorOnIndels() {
         WalkerTestSpec testOnIndels = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T GenomicAnnotator",
                         "-R " + b37KGReference,
                         "-L 22:10000000-20000000",
@@ -65,7 +65,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
     @Test
     public void testGenomicAnnotatorOnSNPsAndIndels() {
         WalkerTestSpec testOnSNPsAndIndels = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T GenomicAnnotator",
                         "-R " + b37KGReference,
                         "-L 22:10000000-20000000",

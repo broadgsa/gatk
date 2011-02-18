@@ -75,7 +75,7 @@ public class CompOverlap extends VariantEvaluator implements StandardEval {
     }
 
     public String update2(VariantContext eval, VariantContext comp, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        boolean evalIsGood = eval != null;
+        boolean evalIsGood = eval != null && eval.isVariant();
         boolean expectingIndels = eval != null && eval.isIndel();
 
         boolean compIsGood = expectingIndels ? comp != null && comp.isNotFiltered() && comp.isIndel() : comp != null && comp.isNotFiltered() && comp.isSNP() ;

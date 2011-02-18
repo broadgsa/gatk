@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -11,6 +10,8 @@ import java.util.Map;
 public class VariantEvalIntegrationTest extends WalkerTest {
     private static String variantEvalTestDataRoot = validationDataLocation + "/VariantEval";
     private static String fundamentalTestVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.snps_and_indels.vcf";
+    private static String fundamentalTestSNPsVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.vcf";
+    private static String fundamentalTestSNPsOneSampleVCF = variantEvalTestDataRoot + "/" + "FundamentalsTest.annotated.db.subset.final.HG00625.vcf";
 
     private static String cmdRoot = "-T VariantEval" +
             " -R " + b36KGReference;
@@ -26,22 +27,6 @@ public class VariantEvalIntegrationTest extends WalkerTest {
             " -B:comp_genotypes,VCF " + validationDataLocation + "yri.trio.gatk.ug.head.vcf.gz";
 
     private static String[] testsEnumerations = {root, rootGZ};
-
-    /*
-    private String cmdLineBuilder(String ... arguments) {
-        String cmdline = "";
-
-        for ( int argIndex = 0; argIndex < arguments.length; argIndex++ ) {
-            cmdline += arguments[argIndex];
-
-            if (argIndex < arguments.length - 1) {
-                cmdline += " ";
-            }
-        }
-
-        return cmdline;
-    }
-    */
 
     @Test
     public void testFundamentalsCountVariantsSNPsAndIndels() {
@@ -59,7 +44,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 //        nHomVar        = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ for (i = 10; i <= 12; i++) if ($i ~ "1/1") print $0 }' | wc -l = 5
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                                cmdLineBuilder(
+                                buildCommandLine(
                                         "-T VariantEval",
                                         "-R " + b37KGReference,
                                         "-D " + b37dbSNP129,
@@ -91,7 +76,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 //        nHomVarKnown        = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | grep DBSNP129 | awk '{ if ($5 != ".") print $0 }' | awk '{ for (i = 10; i <= 12; i++) if ($i ~ "1/1") print $0 }' | wc -l = 5
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
                         "-D " + b37dbSNP129,
@@ -124,7 +109,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 //        nHomVarFail         = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep -v PASS | awk '{ for (i = 10; i <= 12; i++) if ($i ~ "1/1") print $0 }' | wc -l = 3
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
                         "-D " + b37dbSNP129,
@@ -158,7 +143,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 //        nHomVar        = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep NONCPG | grep PASS | awk '{ for (i = 10; i <= 12; i++) if ($i ~ "1/1") print $0 }' | wc -l = 5
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
                         "-D " + b37dbSNP129,
@@ -179,7 +164,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testFundamentalsCountVariantsSNPsAndIndelsWithFunctionalClasses() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
                         "-D " + b37dbSNP129,
@@ -200,7 +185,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testFundamentalsCountVariantsSNPsAndIndelsWithDegeneracy() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
                         "-D " + b37dbSNP129,
@@ -230,7 +215,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 //          nHomVar = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ if ($10 ~ "1/1") print $0 }' | wc -l = 2
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
                         "-D " + b37dbSNP129,
@@ -259,7 +244,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 //        nHomVar = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk -F"[\t;]" '{ for (i = 1; i < NF; i++) if ($i ~ "DP=") print $i, $0 }' | sed 's/^DP=//' | awk '{ if ($1 < 20) print $11 "\n" $12 "\n" $13 }' | grep -c '1/1' = 5
 //        nNoCalls = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk -F"[\t;]" '{ for (i = 1; i < NF; i++) if ($i ~ "DP=") print $i, $0 }' | sed 's/^DP=//' | awk '{ if ($1 < 20) print $11 "\n" $12 "\n" $13 }' | grep -c '\.\/\.' = 4
         WalkerTestSpec spec = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
                         "-D " + b37dbSNP129,
@@ -290,7 +275,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 //        nHomVar = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk -F"[\t;]" '{ for (i = 1; i < NF; i++) if ($i ~ "DP=") print $i, $0 }' | sed 's/^DP=//' | awk '{ if ($1 < 20) print $11 "\n" $12 "\n" $13 }' | grep -c '1/1' = 5
 //        nNoCalls = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk -F"[\t;]" '{ for (i = 1; i < NF; i++) if ($i ~ "DP=") print $i, $0 }' | sed 's/^DP=//' | awk '{ if ($1 < 20) print $11 "\n" $12 "\n" $13 }' | grep -c '\.\/\.' = 4
         WalkerTestSpec spec = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
                         "-D " + b37dbSNP129,
@@ -328,7 +313,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 //        nHomVar        = grep -v '#' FundamentalsTest.annotated.db.subset.snps_and_indels.vcf | grep PASS | awk '{ for (i = 10; i <= 12; i++) if ($i ~ "1/1") print $0 }' | wc -l = 5
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                cmdLineBuilder(
+                buildCommandLine(
                         "-T VariantEval",
                         "-R " + b37KGReference,
                         "-B:eval,VCF " + fundamentalTestVCF,
@@ -492,6 +477,46 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("3fced8e5fa7a1c952d08fead0accd3fb"));
         executeTestParallel("testMultipleCompTracks",spec);
+    }
+
+    @Test
+    public void testPerSampleAndSubsettedSampleHaveSameResults() {
+        String md5 = "454a1750fd36525f24172b21af5f49de";
+
+        WalkerTestSpec spec = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-D " + b37dbSNP129,
+                        "-B:eval,VCF " + fundamentalTestSNPsVCF,
+                        "-noEV",
+                        "-EV CompOverlap",
+                        "-sn HG00625",
+                        "-noST",
+                        "-BTI eval",
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList(md5)
+        );
+        executeTestParallel("testPerSampleAndSubsettedSampleHaveSameResults-subset", spec);
+
+        WalkerTestSpec spec2 = new WalkerTestSpec(
+                buildCommandLine(
+                        "-T VariantEval",
+                        "-R " + b37KGReference,
+                        "-D " + b37dbSNP129,
+                        "-B:eval,VCF " + fundamentalTestSNPsOneSampleVCF,
+                        "-noEV",
+                        "-EV CompOverlap",
+                        "-noST",
+                        "-BTI eval",
+                        "-o %s"
+                ),
+                1,
+                Arrays.asList(md5)
+        );
+        executeTestParallel("testPerSampleAndSubsettedSampleHaveSameResults-onesample", spec2);
     }
 
 //    @Test
