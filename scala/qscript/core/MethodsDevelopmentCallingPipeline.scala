@@ -1,7 +1,10 @@
+import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.gatk.CommandLineGATK
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
+import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, CloneFunction, ScatterFunction}
+
 
 class MethodsDevelopmentCallingPipeline extends QScript {
   qscript =>
@@ -12,13 +15,13 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="outputDir", doc="output directory", required=true)
   var outputDir: String = "./"
 
-  @Argument(shortName="skipCalling", doc="If true, skip the calling part of the pipeline and only run VQSR on preset, gold standard VCF files", required=false)
+  @Argument(shortName="skipCalling", doc="skip the calling part of the pipeline and only run VQSR on preset, gold standard VCF files", required=false)
   var skipCalling: Boolean = false
 
   @Argument(shortName="dataset", doc="selects the datasets to run. If not provided, all datasets will be used", required=false)
   var datasets: List[String] = Nil
 
-  @Argument(shortName="skipGoldStandard", doc="runs the pipeline with the goldstandard VCF files for comparison", required=false)
+  @Argument(shortName="skipGoldStandard", doc="doesn't run the pipeline with the goldstandard VCF files for comparison", required=false)
   var skipGoldStandard: Boolean = false
 
   @Argument(shortName="noBAQ", doc="turns off BAQ calculation", required=false)
@@ -30,7 +33,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="eval", doc="adds the VariantEval walker to the pipeline", required=false)
   var eval: Boolean = false
 
-  @Argument(shortName="noCut", doc="adds the ApplyVariantCut walker to the pipeline", required=false)
+  @Argument(shortName="noCut", doc="removes the ApplyVariantCut walker from the pipeline", required=false)
   var noCut: Boolean = false
 
   @Argument(shortName="LOCAL_ET", doc="Doesn't use the AWS S3 storage for ET option", required=false)
@@ -183,10 +186,25 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.out = t.rawVCF
     this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE})
     this.analysisName = t.name + "_UG"
-    if (t.dbsnpFile.endsWith(".rod"))
-      this.DBSNP = new File(t.dbsnpFile)
-    else if (t.dbsnpFile.endsWith(".vcf"))
-      this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+    if (t.dbsnpFile.endsWith(".rod")) this.DBSNP = new File(t.dbsnpFile)
+    else if (t.dbsnpFile.endsWith(".vcf")) this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+/*
+    this.setupScatterFunction = {
+      case scatter: ScatterFunction =>
+        scatter.commandDirectory = new File("UG/ScatterGather")
+        scatter.jobOutputFile = new File(".queue/UG/ScatterGather/Scatter.out")
+    }
+    this.setupCloneFunction = {
+      case (clone: CloneFunction, index: Int) =>
+        clone.commandDirectory = new File("SnpCalls/ScatterGather/Scatter_%s".format(index))
+        clone.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Scatter_%s.out".format(index))
+    }
+    this.setupGatherFunction = {
+      case (gather: GatherFunction, source: ArgumentSource) =>
+        gather.commandDirectory = new File("UG/ScatterGather/Gather_%s".format(source.field.getName))
+        gather.jobOutputFile = new File(".queue/UG/ScatterGather/Gather_%s.out".format(source.field.getName))
+    }
+*/
   }
 
   // 2.) Filter SNPs
