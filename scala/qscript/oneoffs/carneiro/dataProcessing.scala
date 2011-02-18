@@ -15,6 +15,8 @@ class dataProcessing extends QScript {
   @Input(doc="path to AnalyzeCovariates.jar", shortName="ac", required=true)
   var ACJar: File = _
 
+  // todo -- we should support the standard GATK arguments -R, -D [dbsnp],
+  // todo -- and indel files.  Those should be defaulted to hg19 but providable on command line
   @Input(doc="path to R resources folder inside Sting", shortName="r", required=true)
   var R: String = _
 
@@ -36,6 +38,7 @@ class dataProcessing extends QScript {
   @Input(doc="the -L interval string to be used by GATK", shortName="L", required=false)
   var intervalString: String = ""
 
+  // todo -- this shouldn't be allowed.  We want a flag that says "output bams at intervals only" or not
   @Input(doc="provide a .intervals file with the list of target intervals", shortName="intervals", required=false)
   var intervals: File = new File("/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals")
 
@@ -43,6 +46,8 @@ class dataProcessing extends QScript {
   // Reference sequence, dbsnps and RODs used by the pipeline
   val reference: File          = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
   val dbSNP: File              = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
+
+  // TODO -- let's create a pre-merged single VCF and put it into /humgen/gsa-hpprojects/GATK/data please
   val dindelPilotCalls: String = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg.pilot_release.merged.indels.sites.hg19.vcf"
   val dindelAFRCalls: String   = "/humgen/1kg/DCC/ftp/technical/working/20110126_dindel_august/AFR.dindel_august_release_merged_pilot1.20110126.sites.vcf.gz"
   val dindelASNCalls: String   = "/humgen/1kg/DCC/ftp/technical/working/20110126_dindel_august/ASN.dindel_august_release_merged_pilot1.20110126.sites.vcf.gz"
@@ -51,7 +56,6 @@ class dataProcessing extends QScript {
   // Simple boolean definitions for code clarity
   val knownsOnly: Boolean = true
   val intermediate: Boolean = true
-
 
   // General arguments to all programs
   trait CommandLineGATKArgs extends CommandLineGATK {
@@ -100,13 +104,13 @@ class dataProcessing extends QScript {
       val postOutPath: String     = baseName + ".post"
 
       add(new target(perLaneBam, targetIntervals),
-          new clean(perLaneBam, targetIntervals, cleanedBam, knownsOnly),
-          new fixMates(cleanedBam, fixedBam, intermediate),
-          new dedup(fixedBam, dedupedBam, metricsFile),
-          new index(dedupedBam),
+          new clean(perLaneBam, targetIntervals, cleanedBam, knownsOnly), // todo -- use constrained movement mode to skip this
+          new fixMates(cleanedBam, fixedBam, intermediate), // todo -- use constrained movement mode to skip this
+          new dedup(fixedBam, dedupedBam, metricsFile),     // todo -- generate index on fly here
+          new index(dedupedBam), // todo -- remove for on the fly index
           new cov(dedupedBam, preRecalFile),
-          new recal(dedupedBam, preRecalFile, recalBam),
-          new index(recalBam),
+          new recal(dedupedBam, preRecalFile, recalBam), // todo -- use GATK on the fly indexing?
+          new index(recalBam), // todo remove for on the fly indexing
           new cov(recalBam, postRecalFile),
           new analyzeCovariates(preRecalFile, preOutPath),
           new analyzeCovariates(postRecalFile, postOutPath))
@@ -129,8 +133,8 @@ class dataProcessing extends QScript {
 
     add(new writeList(recalibratedBamList, bamList, recalibratedBamIndexList),
         new target(bamList, targetIntervals),
-        new clean(bamList, targetIntervals, cleanedBam, !knownsOnly),
-        new fixMates(cleanedBam, fixedBam, !intermediate))
+        new clean(bamList, targetIntervals, cleanedBam, !knownsOnly), // todo -- use constrained movement mode to skip fix mates
+        new fixMates(cleanedBam, fixedBam, !intermediate)) // todo -- use constrained movement mode to skip this
   }
 
   class target (inBams: String, outIntervals: String) extends RealignerTargetCreator with CommandLineGATKArgs {
@@ -188,6 +192,8 @@ class dataProcessing extends QScript {
     this.jobName = inBam + ".dedup"
   }
 
+  // todo -- may we should use the picard version instead?  What about telling all of the picard tools to
+  // todo -- generate BAM indices on the fly?  That would be even better
   class index (inBam: String) extends SamtoolsIndexFunction {
     @Output(doc="bam index file") var outIndex: File = new File(inBam + ".bai")
     this.bamFile = new File(inBam)
