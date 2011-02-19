@@ -51,5 +51,6 @@ end
 endif
 
 #echo "GATK daily run report" | mutt -a $SUMMARY.30_days.pdf -a $SUMMARY.360_days.pdf -a $SUMMARY.7_days.pdf -s "GATK Run report PDFs for $DATE" gsamembers
-cat $REPORT_TXT | mutt -a $REPORT_TXT -a $SUMMARY.30_days.pdf -a $SUMMARY.360_days.pdf -s "GATK run report for $DATE" gsamembers
+#cat $REPORT_TXT | mutt -a $REPORT_TXT -a $SUMMARY.30_days.pdf -a $SUMMARY.360_days.pdf -s "GATK run report for $DATE" gsamembers
+cat $REPORT_TXT | mutt -a $REPORT_TXT -s "GATK run report for $DATE" gsamembers
 
