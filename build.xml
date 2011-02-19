@@ -358,6 +358,24 @@
           </manifest>
         </jar>
 
+        <jar jarfile="${dist.dir}/ReorderSam.jar" whenmanifestonly="skip">
+          <fileset dir="${java.classes}">
+            <include name="**/tools/**/*.class" />
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.ReorderSam" />
+          </manifest>
+        </jar>
+
+        <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" whenmanifestonly="skip">
+          <fileset dir="${java.classes}">
+            <include name="**/tools/**/*.class" />
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.oneoffprojects.tools.CompareBAMAlignments" />
+          </manifest>
+        </jar>
+
         <subant target="dist" genericantfile="build.xml">
             <property name="build.dir" value="${external.build.dir}" />
             <property name="dist.dir" value="${external.dist.dir}" />
@@ -415,6 +433,18 @@
         </jar>
 
         <jar jarfile="${dist.dir}/AnalyzeCovariates.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+
+        <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+
+        <jar jarfile="${dist.dir}/ReorderSam.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
