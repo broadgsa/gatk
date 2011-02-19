@@ -199,7 +199,8 @@ public class UserException extends ReviewedStingException {
         public LexicographicallySortedSequenceDictionary(String name, SAMSequenceDictionary dict) {
             super(String.format("Lexicographically sorted human genome sequence detected in %s."
                     + "\nFor safety's sake the GATK requires human contigs in karyotypic order: 1, 2, ..., 10, 11, ..., 20, 21, 22, X, Y with M either leading or trailing these contigs."
-                    + "\nThis is because all distributed GATK resources are sorted in karyotypic order, and your processing will fail when you need to use these files"
+                    + "\nThis is because all distributed GATK resources are sorted in karyotypic order, and your processing will fail when you need to use these files."
+                    + "\nYou can use the ReorderSam utility to fix this problem: http://www.broadinstitute.org/gsa/wiki/index.php/ReorderSam"
                     + "\n  %s contigs = %s",
                     name, name, prettyPrintSequenceRecords(dict)));
         }
