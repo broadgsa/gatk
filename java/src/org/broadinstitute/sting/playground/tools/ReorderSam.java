@@ -25,8 +25,10 @@ public class ReorderSam extends CommandLineProgram {
     public File OUT = null;
     @Option(shortName="R", doc="Reference sequence to reorder reads to match", optional=false)
     public File REFERENCE = null;
-    @Option(shortName="S", doc="If true, then every contig in the reads must be present in the new reference sequence.  By default, reads without a corresponding contig in the new reference are made unmapped", optional=true)
-    public Boolean REQUIRE_COMPLETE_DICT_CONCORDANCE = false;
+    @Option(shortName="S", doc="If true, then allows only a partial overlap of the BAM contigs with the new reference sequence contigs.  By default, this tool requires a corresponding contig in the new reference for each read contig", optional=true)
+    public Boolean ALLOW_INCOMPLETE_DICT_CONCORDANCE = false;
+    @Option(shortName="U", doc="If true, then permits mapping from a read contig to a new reference contig with the same name but a different length.  Highly dangerous, only use if you know what you are doing.", optional=true)
+    public Boolean ALLOW_CONTIG_LENGTH_DISCORDANCE = false;
 
     /** Required main method implementation. */
     public static void main(final String[] argv) {
@@ -45,7 +47,6 @@ public class ReorderSam extends CommandLineProgram {
         	System.exit(1);
         }
 
-
         printDictionary("SAM/BAM file", inReader.getFileHeader().getSequenceDictionary());
         printDictionary("Reference", refDict);
         Map<Integer, Integer> newOrder = buildSequenceDictionaryMap(refDict, inReader.getFileHeader().getSequenceDictionary());
@@ -55,19 +56,33 @@ public class ReorderSam extends CommandLineProgram {
         outHeader.setSequenceDictionary(refDict);
         SAMFileWriter outWriter = new SAMFileWriterFactory().makeSAMOrBAMWriter(outHeader, true, OUT) ;
 
+        //
         // write the reads in contig order
+        //
+        System.out.println("Writing reads...");
         for ( SAMSequenceRecord contig : refDict.getSequences() ) {
-            System.out.println("Writing reads on contig " + contig.getSequenceName());
-            writeReads(outWriter, inReader.query(contig.getSequenceName(), 0, 0, false), newOrder);
+            SAMRecordIterator it = inReader.query(contig.getSequenceName(), 0, 0, false);
+            writeReads(outWriter, it, newOrder, contig.getSequenceName());
         }
-        // write the unmapped reads
-        writeReads( outWriter, inReader.queryUnmapped(), newOrder);
+        // don't forget the unmapped reads
+        writeReads( outWriter, inReader.queryUnmapped(), newOrder, "unmapped" );
 
+        // cleanup
         inReader.close();
         outWriter.close();
         return 0;
     }
 
+    /**
+     * Low-level helper function that returns the new reference index for oldIndex according to the
+     * ordering map newOrder.  Read is provided in case an error occurs, so that an informative message
+     * can be made.
+     *
+     * @param read
+     * @param oldIndex
+     * @param newOrder
+     * @return
+     */
     private static int newOrderIndex(SAMRecord read, int oldIndex, Map<Integer, Integer> newOrder) {
         if ( oldIndex == -1 )
             return -1; // unmapped read
@@ -77,9 +92,24 @@ public class ReorderSam extends CommandLineProgram {
             return newOrder.get(oldIndex);
     }
 
-    private static void writeReads(SAMFileWriter out, SAMRecordIterator it, Map<Integer, Integer> newOrder) {
+    /**
+     * Helper function that writes reads from iterator it into writer out, updating each SAMRecord along the way
+     * according to the newOrder mapping from dictionary index -> index.  Name is used for printing only.
+     *
+     * @param out
+     * @param it
+     * @param newOrder
+     * @param name
+     */
+    private static void writeReads(SAMFileWriter out, SAMRecordIterator it, Map<Integer, Integer> newOrder, String name) {
+        long counter = 0;
+        System.out.print("  Processing " + name);
+        System.out.flush();
+
         while ( it.hasNext() ) {
+            counter++;
             SAMRecord read = it.next();
+            read.setHeader(out.getFileHeader());
             //System.out.println("Writing read " + read.format());
 
             int oldRefIndex = read.getReferenceIndex();
@@ -96,16 +126,37 @@ public class ReorderSam extends CommandLineProgram {
 
             out.addAlignment(read);
         }
+
         it.close();
+        System.out.println(" => Wrote " + counter + " reads");
     }
 
+    /**
+     * Constructs a mapping from read sequence records index -> new sequence dictionary index for use in
+     * reordering the reference index and mate reference index in each read.  -1 means unmapped.
+     * @param refDict
+     * @param readsDict
+     * @return
+     */
     private Map<Integer, Integer> buildSequenceDictionaryMap(SAMSequenceDictionary refDict, SAMSequenceDictionary readsDict) {
         Map<Integer, Integer> newOrder = new HashMap<Integer, Integer>();
 
+        System.out.println("Reordering SAM/BAM file:");
         for ( SAMSequenceRecord refRec : refDict.getSequences() ) {
             SAMSequenceRecord readsRec = readsDict.getSequence(refRec.getSequenceName());
             if ( readsRec != null ) {
-                System.out.printf("Mapping %s [%d] => %s [%d]%n",
+                if ( refRec.getSequenceLength() != readsRec.getSequenceLength() ) {
+                    String msg = String.format("Discordant contig lengths: read %s LN=%d, ref %s LN=%d",
+                            readsRec.getSequenceName(), readsRec.getSequenceLength(),
+                            refRec.getSequenceName(), refRec.getSequenceLength());
+                    if ( ALLOW_CONTIG_LENGTH_DISCORDANCE ) {
+                        System.err.println("WARN: " + msg);
+                    } else {
+                        throw new PicardException(msg);
+                    }
+                }
+
+                System.out.printf("  Reordering read contig %s [index=%d] to => ref contig %s [index=%d]%n",
                         readsRec.getSequenceName(), readsRec.getSequenceIndex(),
                         refRec.getSequenceName(), refRec.getSequenceIndex());
                 newOrder.put(readsRec.getSequenceIndex(), refRec.getSequenceIndex());
@@ -114,21 +165,25 @@ public class ReorderSam extends CommandLineProgram {
 
         for ( SAMSequenceRecord readsRec : readsDict.getSequences() ) {
             if ( ! newOrder.containsKey(readsRec.getSequenceIndex()) ) {
-                if ( REQUIRE_COMPLETE_DICT_CONCORDANCE )
-                    throw new PicardException("No matching contig in new reference found for " + readsRec.getSequenceName());
-                else
+                if ( ALLOW_INCOMPLETE_DICT_CONCORDANCE )
                     newOrder.put(readsRec.getSequenceIndex(), -1);
+                else
+                    throw new PicardException("New reference sequence does not contain a matching contig for " + readsRec.getSequenceName());
             }
         }
-
 
         return newOrder;
     }
 
+    /**
+     * Helper function to print out a sequence dictionary
+     * @param name
+     * @param dict
+     */
     private static void printDictionary(String name, SAMSequenceDictionary dict) {
         System.out.println(name);
         for ( SAMSequenceRecord contig : dict.getSequences() ) {
-            System.out.println(contig.getSequenceName());
+            System.out.printf( "  SN=%s LN=%d%n", contig.getSequenceName(), contig.getSequenceLength());
         }
     }
 }
