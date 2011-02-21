@@ -61,10 +61,12 @@ public class CompareBAMAlignments extends CommandLineProgram {
 
                         if ( ! read1.getReadName().equals(read.getReadName()) )
                             bad(read1, read, "Names not equal");
-                        if ( read1.getAlignmentStart() != read.getAlignmentStart() )
-                            bad(read1, read, "Alignment starts not equal");
-                        if ( ! read1.getCigarString().equals(read.getCigarString()) )
-                            bad(read1, read, "Unequal CIGAR strings");
+                        else {
+                            if ( read1.getAlignmentStart() != read.getAlignmentStart() )
+                                bad(read1, read, "Alignment starts not equal");
+                            if ( ! read1.getCigarString().equals(read.getCigarString()) )
+                                bad(read1, read, "Unequal CIGAR strings");
+                        }
                     }
                 }
                 counter++;
@@ -79,8 +81,8 @@ public class CompareBAMAlignments extends CommandLineProgram {
 
     private void bad(SAMRecord read1, SAMRecord read2, String msg) {
         System.out.printf("%nBAD: %s%n", msg);
-        System.out.printf("  read1:  %s %s %s%n", read1.getReadName(), read1.getAlignmentStart(), read1.getCigarString());
-        System.out.printf("  read2:  %s %s %s%n", read2.getReadName(), read2.getAlignmentStart(), read2.getCigarString());
+        System.out.printf("  read1:  %s %s %s %s%n", read1.getReadName(), read1.getAlignmentStart(), read1.getCigarString(), read1.getInferredInsertSize());
+        System.out.printf("  read2:  %s %s %s %s%n", read2.getReadName(), read2.getAlignmentStart(), read2.getCigarString(), read2.getInferredInsertSize());
         // System.exit(1);
     }
 

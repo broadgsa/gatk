@@ -367,6 +367,15 @@
           </manifest>
         </jar>
 
+        <jar jarfile="${dist.dir}/ModifyReadGroup.jar" whenmanifestonly="skip">
+          <fileset dir="${java.classes}">
+            <include name="**/tools/**/*.class" />
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.ModifyReadGroup" />
+          </manifest>
+        </jar>
+
         <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" whenmanifestonly="skip">
           <fileset dir="${java.classes}">
             <include name="**/tools/**/*.class" />
@@ -445,6 +454,12 @@
         </jar>
 
         <jar jarfile="${dist.dir}/ReorderSam.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+
+        <jar jarfile="${dist.dir}/ModifyReadGroup.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>

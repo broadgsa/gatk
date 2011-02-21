@@ -345,10 +345,10 @@ public class GATKRunReport {
                 // Create an S3Object based on a file, with Content-Length set automatically and
                 // Content-Type set based on the file's extension (using the Mimetypes utility class)
                 S3Object fileObject = new S3Object(localFile);
-                logger.info("Created S3Object" + fileObject);
-                logger.info("Uploading " + localFile + " to AWS bucket");
+                //logger.info("Created S3Object" + fileObject);
+                //logger.info("Uploading " + localFile + " to AWS bucket");
                 S3Object s3Object = s3Service.putObject(REPORT_BUCKET_NAME, fileObject);
-                logger.info("Uploaded: " + s3Object);
+                logger.info("Uploaded to AWS: " + s3Object);
             } catch ( S3ServiceException e ) {
                 exceptDuringRunReport("S3 exception occurred", e);
             } catch ( NoSuchAlgorithmException e ) {

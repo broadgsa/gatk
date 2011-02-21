@@ -124,7 +124,7 @@ public class UserException extends ReviewedStingException {
 
     public static class ReadMissingReadGroup extends MalformedBam {
         public ReadMissingReadGroup(SAMRecord read) {
-            super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK", read.getReadName()));
+            super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK.  Please use http://www.broadinstitute.org/gsa/wiki/index.php/ReplaceReadGroups to fix this problem", read.getReadName()));
         }
     }
 
