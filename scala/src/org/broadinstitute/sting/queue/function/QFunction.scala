@@ -56,6 +56,12 @@ trait QFunction extends Logging {
   var isIntermediate = false
 
   /**
+   * If true and isIntermediate is true, the files listed
+   * via outputs will deleted after the command completes.
+   */
+  var deleteIntermediateOutputs = true
+
+  /**
    * Copies settings from this function to another function.
    * @param function QFunction to copy values to.
    */
@@ -70,6 +76,7 @@ trait QFunction extends Logging {
     function.jobRestartable = this.jobRestartable
     function.updateJobRun = this.updateJobRun
     function.isIntermediate = this.isIntermediate
+    function.deleteIntermediateOutputs = this.deleteIntermediateOutputs
   }
 
   /** File to redirect any output.  Defaults to <jobName>.out */

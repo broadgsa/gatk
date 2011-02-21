@@ -82,6 +82,11 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     // Ask the scatter function how many clones to create.
     val numClones = scatterFunction.scatterCount
 
+    // List of the log files that are output by this function.
+    var logFiles = List(this.jobOutputFile)
+    if (this.jobErrorFile != null)
+      logFiles :+= this.jobErrorFile
+
     // Create the gather functions for each output field
     var gatherFunctions = Map.empty[ArgumentSource, GatherFunction]
     var gatherOutputs = Map.empty[ArgumentSource, File]
@@ -92,12 +97,23 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       this.copySettingsTo(gatherFunction)
       gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
       gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
-      gatherFunction.originalOutput = this.getFieldFile(gatherField)
+      gatherFunction.originalOutput = gatherOutput
       initGatherFunction(gatherFunction, gatherField)
       functions :+= gatherFunction
       gatherFunctions += gatherField -> gatherFunction
       gatherOutputs += gatherField -> gatherOutput
       gatherAddOrder += 1
+
+      // If this is a gather for a log file, make the gather intermediate just in case the log file name changes
+      // Otherwise have the regular output function wait on the log files to gather
+      if (isLogFile(gatherOutput)) {
+        gatherFunction.isIntermediate = true
+        // Only delete the log files if the original function is an intermediate
+        // and the intermediate files are supposed to be deleted
+        gatherFunction.deleteIntermediateOutputs = this.isIntermediate && this.deleteIntermediateOutputs
+      } else {
+        gatherFunction.originalLogFiles = logFiles
+      }
     }
 
     // Create the clone functions for running the parallel jobs
@@ -121,7 +137,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
       // Allow the script writer to change the paths to the files.
       initCloneFunction(cloneFunction, i)
-
 
       // If the command directory is relative, insert the run directory ahead of it.
       cloneFunction.absoluteCommandDirectory()

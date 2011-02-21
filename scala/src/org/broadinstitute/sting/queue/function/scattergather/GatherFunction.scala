@@ -13,6 +13,9 @@ trait GatherFunction extends QFunction {
   @Input(doc="Parts to gather back into the original output")
   var gatherParts: List[File] = Nil
 
+  @Input(doc="Other log files that will be gathered before this output", required=false)
+  var originalLogFiles: List[File] = Nil
+
   @Output(doc="The original output of the scattered function")
   var originalOutput: File = _
 

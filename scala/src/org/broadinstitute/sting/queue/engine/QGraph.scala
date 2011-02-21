@@ -484,7 +484,7 @@ class QGraph extends Logging {
   }
 
   private def failedDescription(failed: FunctionEdge) = {
-    var description = new StringBuilder
+    val description = new StringBuilder
     if (settings.retries > 0)
       description.append("Attempt %d of %d.%n".format(failed.retries + 1, settings.retries + 1))
     description.append(failed.function.description)
@@ -749,7 +749,7 @@ class QGraph extends Logging {
     if (running && !settings.keepIntermediates && success) {
       logger.info("Deleting intermediate files.")
       traverseFunctions(edge => {
-        if (edge.function.isIntermediate) {
+        if (edge.function.isIntermediate && edge.function.deleteIntermediateOutputs) {
           logger.debug("Deleting intermediates:" + edge.function.description)
           edge.function.deleteOutputs()
         }
