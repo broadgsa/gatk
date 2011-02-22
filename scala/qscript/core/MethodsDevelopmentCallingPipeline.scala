@@ -97,7 +97,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   val lowPass: Boolean = true
 
   val targetDataSets: Map[String, Target] = Map(
-    "HiSeq" -> new Target("NA12878.HiSeq", hg18, dbSNP_hg18, hapmap_hg18,
+    "HiSeq" -> new Target("NA12878.HiSeq", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
@@ -182,29 +182,11 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.stand_emit_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
     this.input_file :+= t.bamList
     this.out = t.rawVCF
-    this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE})
+    this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY})
     this.analysisName = t.name + "_UG"
+    this.jobName = t.name + ".snpcall"
     if (t.dbsnpFile.endsWith(".rod")) this.DBSNP = new File(t.dbsnpFile)
     else if (t.dbsnpFile.endsWith(".vcf")) this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
-
-    //todo -- beautify scattergather directory structure
-    /*
-    this.setupScatterFunction = {
-      case scatter: ScatterFunction =>
-        scatter.commandDirectory = new File("UG/ScatterGather")
-        scatter.jobOutputFile = new File(".queue/UG/ScatterGather/Scatter.out")
-    }
-    this.setupCloneFunction = {
-      case (clone: CloneFunction, index: Int) =>
-        clone.commandDirectory = new File("SnpCalls/ScatterGather/Scatter_%s".format(index))
-        clone.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Scatter_%s.out".format(index))
-    }
-    this.setupGatherFunction = {
-      case (gather: GatherFunction, source: ArgumentSource) =>
-        gather.commandDirectory = new File("UG/ScatterGather/Gather_%s".format(source.field.getName))
-        gather.jobOutputFile = new File(".queue/UG/ScatterGather/Gather_%s.out".format(source.field.getName))
-    }
-    */
   }
 
   // 2.) Filter SNPs
@@ -217,6 +199,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.filterName ++= List("HARD_TO_VALIDATE")
     this.filterExpression ++= List("\"MQ0 >= 4 && (MQ0 / (1.0 * DP)) > 0.1\"")
     this.analysisName = t.name + "_VF"
+    this.jobName = t.name + ".filter"
     if (!noMASK) {
       this.rodBind :+= RodBind("mask", "Bed", t.maskFile)
       this.maskName = "InDel"
@@ -233,12 +216,13 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
       this.clusterFile = if ( goldStandard ) { t.goldStandardClusterFile } else { t.clusterFile }
       this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
-      this.analysisName = name + "_GVC"
       this.intervalsString ++= List(t.intervals)
       this.qual = Some(350) // clustering parameters to be updated soon pending new experimentation results
       this.std = Some(3.5)
       this.mG = Some(10)
       this.ignoreFilter ++= FiltersToIgnore
+      this.analysisName = name + "_GVC"
+      this.jobName = t.name + ".cluster"
       if (t.dbsnpFile.endsWith(".rod"))
         this.DBSNP = new File(t.dbsnpFile)
       else if (t.dbsnpFile.endsWith(".vcf"))
@@ -271,6 +255,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.tranche ++= List("0.1", "1.0", "10.0", "100.0")
       this.out = t.titvRecalibratedVCF
       this.tranchesFile = t.titvTranchesFile
+      this.jobName = t.name + ".titv"
   }
 
   // 4b.) Choose VQSR tranches based on sensitivity to truth set
@@ -282,17 +267,19 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.priorHapMap = Some(2.0)
       this.prior1KG = Some(2.0)    
       this.tranchesFile = t.tsTranchesFile
+      this.jobName = t.name + ".nrs"
   }
 
    // 5.) Variant Cut filter out the variants marked by recalibration to the 99% tranche
   class VariantCut(t: Target) extends ApplyVariantCuts with UNIVERSAL_GATK_ARGS {
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("input", "VCF",  t.tsRecalibratedVCF )
-      this.analysisName = t.name + "_VC"
       this.intervalsString ++= List(t.intervals)
       this.out = t.cutVCF
       this.tranchesFile = t.tsTranchesFile
       this.fdr_filter_level = Some(1.0)
+      this.analysisName = t.name + "_VC"
+      this.jobName = t.name + ".cut"
       if (t.dbsnpFile.endsWith(".rod"))
         this.DBSNP = new File(t.dbsnpFile)
 	    else if (t.dbsnpFile.endsWith(".vcf"))
@@ -303,10 +290,11 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   class VariantEvaluation(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
       val name: String = t.name
       this.reference_sequence = t.reference
-      this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
-      this.knownName ++= List("hapmap")
+      this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
+      this.knownName ++= List("comphapmap")
       this.rodBind :+= RodBind("eval", "VCF", if (!noCut) {t.cutVCF} else {t.tsRecalibratedVCF} )
       this.analysisName = name + "_VE"
+      this.jobName = t.name + ".eval"
       this.intervalsString ++= List(t.intervals)
       this.EV ++= List("GenotypeConcordance")
       this.out =  t.evalFile
