@@ -44,23 +44,17 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "pcr_error_rate", shortName = "pcr_error", doc = "The PCR error rate to be used for computing fragment-based likelihoods", required = false)
     public Double PCR_error = DiploidSNPGenotypeLikelihoods.DEFAULT_PCR_ERROR_RATE;
 
-    @Argument(fullName = "genotype", shortName = "genotype", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
-    public boolean GENOTYPE_MODE = false;
+    @Argument(fullName = "genotyping_mode", shortName = "gt_mode", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
+    public GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY;
 
-    @Argument(fullName = "output_all_callable_bases", shortName = "all_bases", doc = "Should we output all callable bases?", required = false)
-    public boolean ALL_BASES_MODE = false;
+    @Argument(fullName = "output_mode", shortName = "out_mode", doc = "Should we output confident genotypes (i.e. including ref calls) or just the variants?", required = false)
+    public UnifiedGenotyperEngine.OUTPUT_MODE OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_VARIANTS_ONLY;
 
     @Argument(fullName = "standard_min_confidence_threshold_for_calling", shortName = "stand_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be called", required = false)
     public double STANDARD_CONFIDENCE_FOR_CALLING = 30.0;
 
     @Argument(fullName = "standard_min_confidence_threshold_for_emitting", shortName = "stand_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants not at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
     public double STANDARD_CONFIDENCE_FOR_EMITTING = 30.0;
-
-    @Argument(fullName = "trigger_min_confidence_threshold_for_calling", shortName = "trig_call_conf", doc = "The minimum phred-scaled confidence threshold at which variants at 'trigger' track sites should be called", required = false)
-    public double TRIGGER_CONFIDENCE_FOR_CALLING = 30.0;
-
-    @Argument(fullName = "trigger_min_confidence_threshold_for_emitting", shortName = "trig_emit_conf", doc = "The minimum phred-scaled confidence threshold at which variants at 'trigger' track sites should be emitted (and filtered if less than the calling threshold)", required = false)
-    public double TRIGGER_CONFIDENCE_FOR_EMITTING = 30.0;
 
     @Argument(fullName = "noSLOD", shortName = "nsl", doc = "If provided, we will not calculate the SLOD", required = false)
     public boolean NO_SLOD = false;
@@ -90,9 +84,6 @@ public class UnifiedArgumentCollection {
 
 
     // indel-related arguments
-    @Argument(fullName = "get_indel_alleles_from_vcf", shortName = "getIndelAllelesFromVCF", doc = "Get reference/alt alleles for indel genotyping from VCF", required = false)
-    public boolean GET_ALLELES_FROM_VCF = false;
-
     @Argument(fullName = "min_indel_count_for_genotyping", shortName = "minIndelCnt", doc = "Minimum number of consensus indels required to trigger genotyping run", required = false)
     public int MIN_INDEL_COUNT_FOR_GENOTYPING = 5;
 
@@ -101,32 +92,39 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "insertionStartProbability", shortName = "insertionStartProbability", doc = "Heterozygosity for indel calling", required = false)
     public double INSERTION_START_PROBABILITY = 1e-3;
+
     @Argument(fullName = "insertionEndProbability", shortName = "insertionEndProbability", doc = "Heterozygosity for indel calling", required = false)
     public double INSERTION_END_PROBABILITY = 0.5;
+
     @Argument(fullName = "alphaDeletionProbability", shortName = "alphaDeletionProbability", doc = "Heterozygosity for indel calling", required = false)
     public double ALPHA_DELETION_PROBABILITY = 1e-3;
 
-      
+    @Deprecated
+    @Argument(fullName="output_all_callable_bases", shortName="all_bases", doc="Please use --output_mode EMIT_ALL_SITES instead" ,required=false)
+    private Boolean ALL_BASES_DEPRECATED = false;   
+
+    @Deprecated
+    @Argument(fullName="genotype", shortName="genotype", doc="Please use --output_mode EMIT_ALL_CONFIDENT_SITES instead" ,required=false)
+    private Boolean GENOTYPE_DEPRECATED = false;
+
+
     public UnifiedArgumentCollection clone() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
 
         uac.GLmodel = GLmodel;
         uac.heterozygosity = heterozygosity;
         uac.PCR_error = PCR_error;
-        uac.GENOTYPE_MODE = GENOTYPE_MODE;
-        uac.ALL_BASES_MODE = ALL_BASES_MODE;
+        uac.GenotypingMode = GenotypingMode;
+        uac.OutputMode = OutputMode;
         uac.NO_SLOD = NO_SLOD;
         uac.ASSUME_SINGLE_SAMPLE = ASSUME_SINGLE_SAMPLE;
         uac.STANDARD_CONFIDENCE_FOR_CALLING = STANDARD_CONFIDENCE_FOR_CALLING;
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
-        uac.TRIGGER_CONFIDENCE_FOR_CALLING = TRIGGER_CONFIDENCE_FOR_CALLING;
-        uac.TRIGGER_CONFIDENCE_FOR_EMITTING = TRIGGER_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
         uac.MIN_MAPPING_QUALTY_SCORE = MIN_MAPPING_QUALTY_SCORE;
         uac.MAX_MISMATCHES = MAX_MISMATCHES;
         uac.USE_BADLY_MATED_READS = USE_BADLY_MATED_READS;
         uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
-        uac.GET_ALLELES_FROM_VCF = GET_ALLELES_FROM_VCF;
         uac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
         uac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
         uac.INSERTION_START_PROBABILITY = INSERTION_START_PROBABILITY;

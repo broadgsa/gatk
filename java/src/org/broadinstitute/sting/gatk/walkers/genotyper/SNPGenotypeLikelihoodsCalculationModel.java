@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -44,8 +45,11 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
     // the alternate allele with the largest sum of quality scores
     protected Byte bestAlternateAllele = null;
 
+    private final boolean useAlleleFromVCF;
+
     protected SNPGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
+        useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
     }
 
     public Allele getLikelihoods(RefMetaDataTracker tracker,
@@ -63,18 +67,29 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         Allele refAllele = Allele.create(refBase, true);
 
         // find the alternate allele with the largest sum of quality scores
-        if ( alternateAlleleToUse == null )
-            initializeBestAlternateAllele(refBase, contexts);
-        else
+        if ( alternateAlleleToUse != null ) {
             bestAlternateAllele = alternateAlleleToUse.getBases()[0];
+        } else if ( useAlleleFromVCF ) {
+            final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), true);
+            if ( vcInput == null )
+                return null;
+            if ( !vcInput.isBiallelic() ) {
+                logger.info("Record at position " + ref.getLocus() + " is not bi-allelic; skipping...");
+                return null;
+            }
+            if ( !vcInput.isSNP() ) {
+                logger.info("Record at position " + ref.getLocus() + " is not a SNP; skipping...");
+                return null;
+            }
+            bestAlternateAllele = vcInput.getAlternateAllele(0).getBases()[0];
+        } else {
+            initializeBestAlternateAllele(refBase, contexts);
+        }
 
         // if there are no non-ref bases...
         if ( bestAlternateAllele == null ) {
-            // did we trigger on the provided track?
-            boolean atTriggerTrack = tracker.getReferenceMetaData(UnifiedGenotyperEngine.TRIGGER_TRACK_NAME, false).size() > 0;
-
-            // if we don't want all bases, then we don't need to calculate genotype likelihoods
-            if ( !atTriggerTrack && !UAC.ALL_BASES_MODE && !UAC.GENOTYPE_MODE )
+            // if we only want variants, then we don't need to calculate genotype likelihoods
+            if ( UAC.OutputMode == UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_VARIANTS_ONLY )
                 return refAllele;
 
             // otherwise, choose any alternate allele (it doesn't really matter)

@@ -46,6 +46,11 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
         DINDEL
     }
 
+    public enum GENOTYPING_MODE {
+        DISCOVERY,
+        GENOTYPE_GIVEN_ALLELES
+    }
+
     protected UnifiedArgumentCollection UAC;
     protected Logger logger;
 

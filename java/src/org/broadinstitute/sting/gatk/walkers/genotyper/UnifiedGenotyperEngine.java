@@ -59,8 +59,13 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 public class UnifiedGenotyperEngine {
 
-    public static final String TRIGGER_TRACK_NAME = "trigger";
     public static final String LOW_QUAL_FILTER_NAME = "LowQual";
+
+    public enum OUTPUT_MODE {
+        EMIT_VARIANTS_ONLY,
+        EMIT_ALL_CONFIDENT_SITES,
+        EMIT_ALL_SITES
+    }
 
     // the unified argument collection
     private UnifiedArgumentCollection UAC = null;
@@ -187,6 +192,7 @@ public class UnifiedGenotyperEngine {
         }
 
         Map<String, BiallelicGenotypeLikelihoods> GLs = new HashMap<String, BiallelicGenotypeLikelihoods>();
+
         Allele refAllele = glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, type, genotypePriors, GLs, alternateAlleleToUse);
 
         if (refAllele != null)
@@ -289,7 +295,7 @@ public class UnifiedGenotyperEngine {
         double PofF = Math.min(sum, 1.0); // deal with precision errors
 
         double phredScaledConfidence;
-        if ( bestAFguess != 0 ) {
+        if ( bestAFguess != 0 || UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
             phredScaledConfidence = QualityUtils.phredScaleErrorRate(normalizedPosteriors[0]);
             if ( Double.isInfinite(phredScaledConfidence) )
                 phredScaledConfidence = -10.0 * log10AlleleFrequencyPosteriors.get()[0];
@@ -306,11 +312,8 @@ public class UnifiedGenotyperEngine {
             }
         }
 
-        // did we trigger on the provided track?
-        boolean atTriggerTrack = tracker.getReferenceMetaData(TRIGGER_TRACK_NAME, false).size() > 0;
-
         // return a null call if we don't pass the confidence cutoff or the most likely allele frequency is zero
-        if ( !UAC.ALL_BASES_MODE && !passesEmitThreshold(phredScaledConfidence, bestAFguess, atTriggerTrack) ) {
+        if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(phredScaledConfidence, bestAFguess) ) {
             // technically, at this point our confidence in a reference call isn't accurately estimated
             //  because it didn't take into account samples with no data, so let's get a better estimate
             return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), true, 1.0 - PofF);
@@ -380,12 +383,12 @@ public class UnifiedGenotyperEngine {
 
         Set<Allele> myAlleles = vc.getAlleles();
         // strip out the alternate allele if it's a ref call
-        if ( bestAFguess == 0 ) {
+        if ( bestAFguess == 0 && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.DISCOVERY ) {
             myAlleles = new HashSet<Allele>(1);
             myAlleles.add(vc.getReference());
         }
         VariantContext vcCall = new VariantContext("UG_call", loc.getContig(), loc.getStart(), endLoc,
-                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence, atTriggerTrack) ? null : filter, attributes);
+                myAlleles, genotypes, phredScaledConfidence/10.0, passesCallThreshold(phredScaledConfidence) ? null : filter, attributes);
 
         if ( annotationEngine != null ) {
             // first off, we want to use the *unfiltered* context for the annotations
@@ -400,7 +403,7 @@ public class UnifiedGenotyperEngine {
             vcCall = variantContexts.iterator().next(); // we know the collection will always have exactly 1 element.
         }
 
-        VariantCallContext call = new VariantCallContext(vcCall, passesCallThreshold(phredScaledConfidence, atTriggerTrack));
+        VariantCallContext call = new VariantCallContext(vcCall, passesCallThreshold(phredScaledConfidence));
         call.setRefBase(refContext.getBase());
         return call;
     }
@@ -440,7 +443,7 @@ public class UnifiedGenotyperEngine {
             ReadBackedExtendedEventPileup pileup = rawPileup.getMappingFilteredPileup(UAC.MIN_MAPPING_QUALTY_SCORE);
 
             // don't call when there is no coverage
-            if ( pileup.size() == 0 && !UAC.ALL_BASES_MODE )
+            if ( pileup.size() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES )
                 return null;
 
             // stratify the AlignmentContext and cut by sample
@@ -561,7 +564,7 @@ public class UnifiedGenotyperEngine {
         // now, test for bad pileups
 
         // in all_bases mode, it doesn't matter
-        if ( UAC.ALL_BASES_MODE )
+        if ( UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES )
             return true;
 
         // is there no coverage?
@@ -620,16 +623,12 @@ public class UnifiedGenotyperEngine {
         }
     }
 
-    protected boolean passesEmitThreshold(double conf, int bestAFguess, boolean atTriggerTrack) {
-        return (atTriggerTrack ?
-                (conf >= Math.min(UAC.TRIGGER_CONFIDENCE_FOR_CALLING, UAC.TRIGGER_CONFIDENCE_FOR_EMITTING)) :
-                ((UAC.GENOTYPE_MODE || bestAFguess != 0) && conf >= Math.min(UAC.STANDARD_CONFIDENCE_FOR_CALLING, UAC.STANDARD_CONFIDENCE_FOR_EMITTING)));
+    protected boolean passesEmitThreshold(double conf, int bestAFguess) {
+        return (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_CONFIDENT_SITES || bestAFguess != 0) && conf >= Math.min(UAC.STANDARD_CONFIDENCE_FOR_CALLING, UAC.STANDARD_CONFIDENCE_FOR_EMITTING);
     }
 
-    protected boolean passesCallThreshold(double conf, boolean atTriggerTrack) {
-        return (atTriggerTrack ?
-                (conf >= UAC.TRIGGER_CONFIDENCE_FOR_CALLING) :
-                (conf >= UAC.STANDARD_CONFIDENCE_FOR_CALLING));
+    protected boolean passesCallThreshold(double conf) {
+        return conf >= UAC.STANDARD_CONFIDENCE_FOR_CALLING;
     }
 
     protected void computeAlleleFrequencyPriors(int N) {

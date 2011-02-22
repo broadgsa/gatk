@@ -3,8 +3,10 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 import org.broadinstitute.sting.WalkerTest;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 // ********************************************************************************** //
@@ -18,7 +20,7 @@ public class
 
     // --------------------------------------------------------------------------------------------------------------
     //
-    // testing joint estimation model
+    // testing normal calling
     //
     // --------------------------------------------------------------------------------------------------------------
     @Test
@@ -26,15 +28,35 @@ public class
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
                 Arrays.asList("e7514b0f1f2df1ca42815b5c45775f36"));
-        executeTest("testMultiSamplePilot1", spec);
+        executeTest("test MultiSample Pilot1", spec);
     }
 
     @Test
-    public void testMultiSamplePilot2() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+    public void testMultiSamplePilot2AndRecallingWithAlleles() {
+        String md5 = "49ae129435063f47f0faf00337eb8bf7";
+
+        WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,050,000", 1,
-                Arrays.asList("49ae129435063f47f0faf00337eb8bf7"));
-        executeTest("testMultiSamplePilot2", spec);
+                Arrays.asList(md5));
+        List<File> result = executeTest("test MultiSample Pilot2", spec1).getFirst();
+
+        WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
+                baseCommand + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -B:alleles,vcf " + result.get(0).getAbsolutePath() + " -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,050,000", 1,
+                Arrays.asList(md5));
+        executeTest("test MultiSample Pilot2 with alleles passed in", spec2);       
+    }
+
+    @Test
+    public void testWithAllelesPassedIn() {
+        WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
+                baseCommand + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -B:alleles,vcf " + validationDataLocation + "allelesForUG.vcf -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,025,000", 1,
+                Arrays.asList("e95c545b8ae06f0721f260125cfbe1f0"));
+        executeTest("test MultiSample Pilot2 with alleles passed in", spec1);
+
+        WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
+                baseCommand + " --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -B:alleles,vcf " + validationDataLocation + "allelesForUG.vcf -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,025,000", 1,
+                Arrays.asList("6c96d76b9bc3aade0c768d7c657ae210"));
+        executeTest("test MultiSample Pilot2 with alleles passed in", spec2);
     }
 
     @Test
@@ -42,7 +64,7 @@ public class
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,100,000", 1,
                 Arrays.asList("8da08fe12bc0d95e548fe63681997038"));
-        executeTest("testSingleSamplePilot2", spec);
+        executeTest("test SingleSample Pilot2", spec);
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -58,7 +80,7 @@ public class
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,100,000", 1,
                 Arrays.asList("gz"), Arrays.asList(COMPRESSED_OUTPUT_MD5));
-        executeTest("testCompressedOutput", spec);
+        executeTest("test compressed output", spec);
     }
 
     // todo -- fixme
@@ -103,15 +125,27 @@ public class
     // --------------------------------------------------------------------------------------------------------------
 
     @Test
-    public void testParameter() {
+    public void testCallingParameters() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-genotype", "4ffcb1e1f20ce175783c32c30deef8db" );
-        e.put( "-sites_only", "71e561ba6fc66bd8b84907252f71ea55" );
-        e.put( "-all_bases", "3d98205a31a133c11e518e095dc7ab65" );
         e.put( "--min_base_quality_score 26", "5f1cfb9c7f82e6414d5db7aa344813ac" );
         e.put( "--min_mapping_quality_score 26", "6c3ad441f3a23ade292549b1dea80932" );
         e.put( "--max_mismatches_in_40bp_window 5", "5ecaf4281410b67e8e2e164f2ea0d58a" );
         e.put( "--p_nonref_model GRID_SEARCH", "17ffb56d078fdde335a79773e9534ce7" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000 " + entry.getKey(), 1,
+                    Arrays.asList(entry.getValue()));
+            executeTest(String.format("test calling parameter[%s]", entry.getKey()), spec);
+        }
+    }
+
+    @Test
+    public void testOutputParameter() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "-sites_only", "71e561ba6fc66bd8b84907252f71ea55" );
+        e.put( "--output_mode EMIT_ALL_CONFIDENT_SITES", "4ffcb1e1f20ce175783c32c30deef8db" );
+        e.put( "--output_mode EMIT_ALL_SITES", "3d98205a31a133c11e518e095dc7ab65" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -126,12 +160,12 @@ public class
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000 -stand_call_conf 10 ", 1,
                 Arrays.asList("17ffb56d078fdde335a79773e9534ce7"));
-        executeTest("testConfidence1", spec1);
+        executeTest("test confidence 1", spec1);
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,010,000 -stand_emit_conf 10 ", 1,
                 Arrays.asList("d49ec8c1476cecb8e3153894cc0f6662"));
-        executeTest("testConfidence2", spec2);
+        executeTest("test confidence 2", spec2);
     }
 
     // --------------------------------------------------------------------------------------------------------------
@@ -149,7 +183,7 @@ public class
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,100,000 --heterozygosity " + entry.getKey(), 1,
                     Arrays.asList(entry.getValue()));
-            executeTest(String.format("testHeterozyosity[%s]", entry.getKey()), spec);
+            executeTest(String.format("test heterozyosity[%s]", entry.getKey()), spec);
         }
     }
 
@@ -168,6 +202,6 @@ public class
                 1,
                 Arrays.asList("5974d8c21d27d014e2d0bed695b0b42e"));
 
-        executeTest(String.format("testMultiTechnologies"), spec);
+        executeTest(String.format("test multiple technologies"), spec);
     }
 }

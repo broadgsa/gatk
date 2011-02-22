@@ -5,6 +5,7 @@ import org.broadinstitute.sting.queue.util._
 import java.io.File
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
+import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.queue.function.CommandLineFunction
@@ -72,8 +73,7 @@ class ProjectManagement(stingPath: String) {
     calc.scatterCount = if (bams.size < 5  ) 1 else if (bams.size < 50) 60 else 120
     calc.min_base_quality_score = Some(22)
     calc.min_mapping_quality_score = Some(20)
-    calc.genotype = true
-    calc.output_all_callable_bases = true
+    //calc.genotyping_mode = Option[GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES]
     calc.out = outVCF
     calc.rodBind :+= new RodBind("allele","VCF",alleleVCF)
     calc.intervals :+= intervals

@@ -120,7 +120,7 @@ public class ValidationGenotyper extends LocusWalker<ValidationGenotyper.Counted
         }
 
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
-        uac.ALL_BASES_MODE = true;
+        uac.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
         engine = new UnifiedGenotyperEngine(getToolkit(),uac);
 
         logger.info( "Overlapping samples = " + overlappingSamples );

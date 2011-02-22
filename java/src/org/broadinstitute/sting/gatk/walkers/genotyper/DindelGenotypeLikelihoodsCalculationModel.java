@@ -25,8 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -65,7 +63,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         model = new HaplotypeIndelErrorModel(maxReadDeletionLength, UAC.INSERTION_START_PROBABILITY,
                 UAC.INSERTION_END_PROBABILITY, UAC.ALPHA_DELETION_PROBABILITY, HAPLOTYPE_SIZE, false, DEBUGOUT);
         alleleList = new ArrayList<Allele>();
-        getAlleleListFromVCF = UAC.GET_ALLELES_FROM_VCF;
+        getAlleleListFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         minIndelCountForGenotyping = UAC.MIN_INDEL_COUNT_FOR_GENOTYPING;
     }
 
@@ -260,7 +258,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
 
             if (getAlleleListFromVCF) {
 
-                 for( final VariantContext vc_input : tracker.getVariantContexts(ref, "indels", null, ref.getLocus(), false, false) ) {
+                 for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", null, ref.getLocus(), false, false) ) {
                      if( vc_input != null && vc_input.isIndel() && ref.getLocus().getStart() == vc_input.getStart()) {
                          vc = vc_input;
                          break;
