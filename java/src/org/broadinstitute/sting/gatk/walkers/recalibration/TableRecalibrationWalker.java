@@ -97,6 +97,8 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private int SMOOTHING = 1;
     @Argument(fullName="max_quality_score", shortName="maxQ", required = false, doc="The integer value at which to cap the quality scores, default=50")
     private int MAX_QUALITY_SCORE = 50;
+    @Argument(fullName="doNotWriteOriginalQuals", shortName="noOQs", required=false, doc="If true, we will not write the original quality (OQ) tag for each read")
+    private boolean DO_NOT_WRITE_OQ = false;
 
     /////////////////////////////
     // Debugging-only Arguments
@@ -378,7 +380,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
         preserveQScores( originalQuals, recalQuals ); // Overwrite the work done if original quality score is too low
 
         read.setBaseQualities( recalQuals ); // Overwrite old qualities with new recalibrated qualities
-        if ( read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // Save the old qualities if the tag isn't already taken in the read
+        if ( !DO_NOT_WRITE_OQ && read.getAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG) == null ) { // Save the old qualities if the tag isn't already taken in the read
             read.setAttribute(RecalDataManager.ORIGINAL_QUAL_ATTRIBUTE_TAG, SAMUtils.phredToFastq(originalQuals));
         }
 
