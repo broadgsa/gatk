@@ -1,5 +1,3 @@
-import org.broadinstitute.sting.commandline.ArgumentSource
-import org.broadinstitute.sting.gatk.CommandLineGATK
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
@@ -75,7 +73,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   val hg18 = new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta")
   val b36 = new File("/humgen/1kg/reference/human_b36_both.fasta")
   val b37 = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
-  val dbSNP_hg18 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_130_hg18.rod"
+  val dbSNP_hg18 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_130_hg18.rod"                // Special case for NA12878 collections that can't use 132 because they are part of it.
+  val dbSNP_hg18_129 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_129_hg18.rod"
   val dbSNP_b36 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_130_b36.rod"
   val dbSNP_b37 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_132_b37.leftAligned.vcf"
   val dbSNP_b37_129 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_129_b37.rod"              // Special case for NA12878 collections that can't use 132 because they are part of it.
@@ -107,15 +106,19 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
               new File("/humgen/gsa-scr1/carneiro/prj/hiseq19/analysis/snps/NA12878.hg19.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, !lowPass),                                                                                           // ** we need a chunked hg19 whole genome intervals file **
-    "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
-              new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
-              new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass),
-    "WEx" -> new Target("NA12878.WEx", hg18, dbSNP_hg18, hapmap_hg18,
+    "WEx" -> new Target("NA12878.WEx", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.vcf"),
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 2.6, !lowPass),
+    "WExTrio" -> new Target("CEUTrio.WEx", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
+              new File("/humgen/gsa-scr1/carneiro/prj/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass),
+    "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
+              new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
+              new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass),
     "TGPWExGdA" -> new Target("1000G.WEx.GdA", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/Barcoded_1000G_WEx_Reduced_Plate_1.cleaned.list"),        // BUGBUG: reduce from 60 to 20 people
               new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
@@ -131,12 +134,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     "LowPassEUR363Nov" -> new Target("EUR.nov2010", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/EUR.363sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass),
-
-    "WExTrio" -> new Target("CEUTrio.WEx", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
-              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
-              new File("/humgen/gsa-scr1/carneiro/prj/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass)
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, lowPass)
   )
 
 
@@ -154,16 +152,16 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val goldStandard = true
     for (target <- targets) {
       if( !skipCalling ) {
-        add(new UnifiedGenotyper(target))
-        add(new VariantFiltration(target))
-        add(new GenerateVariantClusters(target, !goldStandard))
+        add(new Call(target))
+        add(new Filter(target))
+        add(new GenerateClusters(target, !goldStandard))
         add(new VariantRecalibratorTiTv(target, !goldStandard))
         add(new VariantRecalibratorNRS(target, !goldStandard))
         if (!noCut) add (new VariantCut(target))
         if (eval) add(new VariantEvaluation(target))
       }
       if ( !skipGoldStandard ) {
-        add(new GenerateVariantClusters(target, goldStandard))
+        add(new GenerateClusters(target, goldStandard))
         add(new VariantRecalibratorTiTv(target, goldStandard))
         add(new VariantRecalibratorNRS(target, goldStandard))
       }
@@ -175,7 +173,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   val FiltersToIgnore = List("DPFilter", "ABFilter", "ESPStandard", "QualByDepth", "StrandBias", "HomopolymerRun")
 
   // 1.) Call SNPs with UG
-  class UnifiedGenotyper(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
+  class Call (t: Target) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
@@ -188,7 +186,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.analysisName = t.name + "_UG"
     if (t.dbsnpFile.endsWith(".rod")) this.DBSNP = new File(t.dbsnpFile)
     else if (t.dbsnpFile.endsWith(".vcf")) this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
-/*
+
+    //todo -- beautify scattergather directory structure
+    /*
     this.setupScatterFunction = {
       case scatter: ScatterFunction =>
         scatter.commandDirectory = new File("UG/ScatterGather")
@@ -204,11 +204,11 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         gather.commandDirectory = new File("UG/ScatterGather/Gather_%s".format(source.field.getName))
         gather.jobOutputFile = new File(".queue/UG/ScatterGather/Gather_%s.out".format(source.field.getName))
     }
-*/
+    */
   }
 
   // 2.) Filter SNPs
-  class VariantFiltration(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.VariantFiltration with UNIVERSAL_GATK_ARGS {
+  class Filter (t: Target) extends VariantFiltration with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 10
@@ -224,7 +224,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   // 3.) VQSR part1 Generate Gaussian clusters based on truth sites
-  class GenerateVariantClusters(t: Target, goldStandard: Boolean) extends org.broadinstitute.sting.queue.extensions.gatk.GenerateVariantClusters with UNIVERSAL_GATK_ARGS {
+  class GenerateClusters(t: Target, goldStandard: Boolean) extends GenerateVariantClusters with UNIVERSAL_GATK_ARGS {
       val name: String = if ( goldStandard ) { t.goldStandardName } else { t.name }
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
@@ -246,7 +246,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   // 4.) VQSR part2 Calculate new LOD for all input SNPs by evaluating the Gaussian clusters
-  class VariantRecalibratorBase(t: Target, goldStandard: Boolean) extends org.broadinstitute.sting.queue.extensions.gatk.VariantRecalibrator with UNIVERSAL_GATK_ARGS {
+  class VariantRecalibratorBase(t: Target, goldStandard: Boolean) extends VariantRecalibrator with UNIVERSAL_GATK_ARGS {
       val name: String = if ( goldStandard ) { t.goldStandardName } else { t.name }
       this.reference_sequence = t.reference
       if( t.hapmapFile.contains("b37") )
@@ -284,8 +284,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.tranchesFile = t.tsTranchesFile
   }
 
-   // 5.) Variant Cut (OPTIONAL!) filter out the variants marked by recalibration to the 99% tranche
-  class VariantCut(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.ApplyVariantCuts with UNIVERSAL_GATK_ARGS {
+   // 5.) Variant Cut filter out the variants marked by recalibration to the 99% tranche
+  class VariantCut(t: Target) extends ApplyVariantCuts with UNIVERSAL_GATK_ARGS {
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("input", "VCF",  t.tsRecalibratedVCF )
       this.analysisName = t.name + "_VC"
@@ -299,8 +299,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
   }
 
-  // 6.) Variant Evaluation (OPTIONAL!) based on the sensitivity recalibrated vcf
-  class VariantEvaluation(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.VariantEval with UNIVERSAL_GATK_ARGS {
+  // 6.) Variant Evaluation (OPTIONAL) based on the sensitivity recalibrated vcf
+  class VariantEvaluation(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
       val name: String = t.name
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
