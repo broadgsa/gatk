@@ -116,7 +116,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
      * @return the SAMFileWriter, so that the next reduce can emit to the same source
      */
     public SAMFileWriter reduce( SAMRecord read, SAMFileWriter output ) {
-        out.addAlignment(read);
+        output.addAlignment(read);
         return output;
     }
 
