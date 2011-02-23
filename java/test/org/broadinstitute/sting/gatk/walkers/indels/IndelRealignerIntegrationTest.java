@@ -4,36 +4,96 @@ import org.broadinstitute.sting.WalkerTest;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class IndelRealignerIntegrationTest extends WalkerTest {
 
+    private static final String mainTestBam = validationDataLocation + "indelRealignerTest.pilot1.ceu.bam";
+    private static final String mainTestIntervals = validationDataLocation + "indelRealignerTest.pilot1.ceu.intervals";
+    private static final String knownIndels = validationDataLocation + "indelRealignerTest.pilot1.ceu.vcf";
+    private static final String baseCommandPrefix = "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + mainTestBam + " -targetIntervals " + mainTestIntervals + " -compress 0 -L 20:49,500-55,500 --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe ";
+    private static final String baseCommand = baseCommandPrefix + "-o %s ";
+
     @Test
-    public void testRealignerLod5() {
-        String[] md5s = {"a377de4e2eb4df8ef79590e4131afe35", "c4ef635f2597b12b93a73199f07e509b"};
-        WalkerTestSpec spec = new WalkerTestSpec(
-                "-T IndelRealigner -noPG -LOD 5 -maxConsensuses 100 -greedy 100 -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023000-10030000 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -o %s -stats %s --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe",
-                 2,
-                 Arrays.asList(md5s));
-        executeTest("test realigner lod5", spec);
+    public void testDefaults() {
+        String md5 = "20ff8b76d834a8aaca46405e8328d258";
+
+        WalkerTestSpec spec1 = new WalkerTestSpec(
+                baseCommand,
+                1,
+                Arrays.asList(md5));
+        executeTest("test realigner defaults", spec1);
+
+        WalkerTestSpec spec2 = new WalkerTestSpec(
+                baseCommand + "-B:indels,vcf " + knownIndels,
+                1,
+                Arrays.asList(md5));
+        executeTest("test realigner defaults with VCF", spec2);
+
+        WalkerTestSpec spec3 = new WalkerTestSpec(
+                baseCommand + "-D " + GATKDataLocation + "dbsnp_129_b36.rod",
+                1,
+                Arrays.asList(md5));
+        executeTest("realigner defaults with dbsnp", spec3);
+
     }
 
     @Test
-    public void testRealignerLod50() {
-        String[] md5s = {"a377de4e2eb4df8ef79590e4131afe35", "3735a510513b6fa4161d92155e026283"};
+    public void testStats() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T IndelRealigner -noPG -LOD 50 -maxConsensuses 100 -greedy 100 -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023000-10030000 -compress 1 -targetIntervals " + validationDataLocation + "cleaner.test.intervals -o %s -stats %s --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe",
-                 2,
-                 Arrays.asList(md5s));
-        executeTest("test realigner lod50", spec);
+                baseCommandPrefix + "-stats %s -o /dev/null",
+                1,
+                Arrays.asList("ed5a207ddf5bdda4bb76899fb3eae35c"));
+        executeTest("realigner stats", spec);
+
     }
 
     @Test
-    public void testRealignerKnownsOnly() {
-        String[] md5s = {"654cb0c845c3f25af6a3f8911ac06a73", "74652bd8240291293ec921f8ecfa1622"};
+    public void testLods() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "-LOD 60", "20ff8b76d834a8aaca46405e8328d258" );
+        e.put( "-LOD 1", "39862f48d9eaaf841ca4a0d2c05c4187" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    baseCommand + entry.getKey(),
+                    1,
+                    Arrays.asList(entry.getValue()));
+            executeTest(String.format("realigner [%s]", entry.getKey()), spec);
+        }
+    }
+
+    @Test
+    public void testKnownsOnly() {
+        WalkerTestSpec spec1 = new WalkerTestSpec(
+                baseCommand + "-knownsOnly -B:indels,vcf " + knownIndels,
+                1,
+                Arrays.asList("1218d3c8fbd50581af5815938d6c0070"));
+        executeTest("realigner known indels only from VCF", spec1);
+
+        WalkerTestSpec spec2 = new WalkerTestSpec(
+                baseCommand + "-knownsOnly -D " + GATKDataLocation + "dbsnp_129_b36.rod",
+                1,
+                Arrays.asList("848740b201adc5c45bf82384c1f19d4d"));
+        executeTest("realigner known indels only from dbsnp", spec2);
+    }
+
+    @Test
+    public void testNoTags() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T IndelRealigner -noPG -LOD 1.0 -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10023000-10076000 -compress 1 -targetIntervals " + validationDataLocation + "NA12878.indels.intervals -B:knownIndels,VCF " + validationDataLocation + "NA12878.indels.vcf4 -o %s -stats %s --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe -knownsOnly",
-                 2,
-                 Arrays.asList(md5s));
-        executeTest("test realigner known indels only", spec);
+                baseCommand + "--noOriginalAlignmentTags",
+                1,
+                Arrays.asList("00e009c97905f4fa89e3102261a1fd57"));
+        executeTest("realigner no output tags", spec);
+    }
+
+    @Test
+    public void testLongRun() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10,000,000-11,000,000 -targetIntervals " + validationDataLocation + "indelRealignerTest.NA12878.chrom1.intervals -compress 0 --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe -o %s",
+                1,
+                Arrays.asList(""));
+        executeTest("realigner long run", spec);
     }
 }
