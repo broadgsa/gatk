@@ -68,7 +68,7 @@ class ExpandIntervals(in : File, start: Int, size: Int, out: File, ref: File, ip
 
   def ok( loc : GenomeLoc, prev: GenomeLoc, next: GenomeLoc  ) : Boolean = {
     //System.out.println("%s - %s - %s".format(repr(next),repr(loc),repr(previous)))
-    ( next == null || loc.distance(next) >= start) && (prev == null || loc.distance(prev) >= start)
+    ( next == null || loc.distance(next) >= start) && (prev == null || loc.distance(prev) >= start) && (!loc.equals(prev) && !loc.equals(next))
   }
 
   def repr(loc : GenomeLoc) : String = {

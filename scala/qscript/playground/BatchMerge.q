@@ -1,6 +1,7 @@
 import java.io.{FileReader, BufferedReader}
 import org.broadinstitute.sting.commandline.Hidden
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
+import org.broadinstitute.sting.gatk.walkers.genotyper.{GenotypeLikelihoodsCalculationModel, UnifiedGenotyperEngine}
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.library.ipf.vcf.{VCFSimpleMerge, VCFExtractSites,VCFExtractIntervals}
 import org.broadinstitute.sting.queue.pipeline.{ProjectManagement, BamProcessing, VariantCalling}
@@ -30,7 +31,7 @@ class batchMergePipeline extends QScript {
     var bams : List[File] = extractFileEntries(bamList)
 
     trait ExtractArgs extends VCFExtractSites {
-      this.keepFilters = true
+      this.keepFilters = false
       this.keepInfo = false
       this.keepQual = false
     }
@@ -55,10 +56,11 @@ class batchMergePipeline extends QScript {
       }
       this.intervals :+= extractIntervals.listOut
       this.alleleVCF = combineVCFs.outVCF
-      this.output_all_callable_bases = true
       this.jarFile = new File(stingDir+"/dist/GenomeAnalysisTK.jar")
       this.memoryLimit = Some(4)
       this.scatterCount = 60
+      this.output_mode = Some(UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES)
+      this.genotyping_mode = Some(GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
     }
 
     def newUGCL( bams: (List[File],Int) ) : UGCalcLikelihoods = {
@@ -72,18 +74,33 @@ class batchMergePipeline extends QScript {
     addAll(calcs)
 
     trait CallVariantsArgs extends UGCallVariants {
-      this.output_all_callable_bases = true
       this.reference_sequence = batchMerge.ref
       this.intervals :+= extractIntervals.listOut
       this.jarFile = new File(stingDir+"/dist/GenomeAnalysisTK.jar")
       this.scatterCount = 30
       this.memoryLimit = Some(8)
+      this.output_mode = Some(UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES)
+      this.genotyping_mode = Some(GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
     }
 
     var cVars : UGCallVariants = new UGCallVariants with CallVariantsArgs
     cVars.rodBind ++= calcs.map( a => new RodBind("variant"+a.out.getName.replace(".vcf",""),"vcf",a.out) )
     cVars.out = batchOut
     add(cVars)
+
+    trait CombineVariantsArgs extends CombineVariants {
+      this.reference_sequence = batchMerge.ref
+      this.intervals :+= extractIntervals.listOut
+      this.jarFile = new File(batchMerge.stingDir+"/dist/GenomeAnalysisTK.jar")
+      this.scatterCount = 10
+      this.memoryLimit=Some(4)
+    }
+
+    var combine : CombineVariants = new CombineVariants with CombineVariantsArgs
+    combine.out = swapExt(batchOut,".vcf",".variant.combined.vcf")
+    combine.rodBind ++= vcfs.map( u => new RodBind(u.getName,"vcf",u) )
+
+    add(combine)
   }
 
   def extractFileEntries(in: File): List[File] = {

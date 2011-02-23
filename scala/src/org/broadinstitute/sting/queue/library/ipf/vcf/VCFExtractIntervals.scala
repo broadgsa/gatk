@@ -18,14 +18,42 @@ class VCFExtractIntervals(inVCF: File, outList: File, useFilterSites: Boolean) e
 
   def run = {
     out = new PrintWriter(new PrintStream(listOut))
-    asScalaIterator(new XReadLines(vcfIn)).foreach(vcf2int)
+    var elems = asScalaIterator(new XReadLines(vcfIn)).map(vcf2int).filter(p => !p.equals(""))
+    var prev : String = null
+    if ( elems.hasNext ) {
+      prev = elems.next
+    }
+    var cur : String = null
+    if ( elems.hasNext ) {
+      cur = elems.next
+    } else {
+      out.printf("%s%n",prev)
+    }
+    while ( elems.hasNext ) {
+      out.printf("%s%n",prev)
+      while ( cur.equals(prev) && elems.hasNext && !cur.equals("") ) {
+        cur = elems.next
+      }
+      
+      if ( ! cur.equals(prev) ) {
+        if ( elems.hasNext ) {
+          prev = cur
+          cur = elems.next
+        } else {
+          out.printf("%s%n",cur)
+        }
+      }
+    }
+
     out.close
   }
 
-  def vcf2int( vcfLine: String ) : Unit = {
+  def vcf2int( vcfLine: String ) : String = {
     var spline = vcfLine.split("\t")
     if ( ! vcfLine.startsWith("#") && (spline(6).equals("PASS") || spline(6).equals(".") || keepFilters) ) {
-      out.print("%s:%s%n".format(spline(0),spline(1)))
+      return("%s:%s".format(spline(0),spline(1)))
+    } else {
+      return ""
     }
   }
 
