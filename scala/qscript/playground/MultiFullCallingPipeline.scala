@@ -28,6 +28,9 @@ class MultiFullCallingPipeline extends QScript {
   @Argument(doc="pipeline priority", shortName="PP", required = false)
   var pipelinePriority: Option[Int] = None
 
+  @Argument(doc="pipeline retry", shortName="PR", required = false)
+  var pipelineRetry: Option[Int] = None
+
   @Argument(doc="run with -tearScript", shortName="TS")
   var runWithTearScript = false
 
@@ -85,6 +88,7 @@ class MultiFullCallingPipeline extends QScript {
         optional(" -jobQueue ", qscript.pipelineJobQueue) +
         optional(" -shortJobQueue ", qscript.pipelineShortQueue) +
         optional(" -jobPriority ", qscript.pipelinePriority) +
+        optional(" -retry ", qscript.pipelineRetry) +
         optional(" -tearScript ", tearScript) +
         " -S %s --gatkjar %s -jobProject %s -jobPrefix %s -Y %s -bsub -run"
           .format(pipelineScript, gatkJar, yamlName, yamlName, yamlFile)

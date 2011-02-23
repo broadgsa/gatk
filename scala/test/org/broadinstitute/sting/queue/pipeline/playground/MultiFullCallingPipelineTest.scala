@@ -67,7 +67,7 @@ class MultiFullCallingPipelineTest {
 
     // Run the pipeline with the expected inputs.
     val pipelineCommand = ("-retry 1 -BS 3 -PP 100 -S scala/qscript/playground/MultiFullCallingPipeline.scala" +
-            " -jobProject %s -YL %s -PJQ %s -stingHome %s")
+            " -jobProject %s -YL %s -PJQ %s -PR 2 -stingHome %s")
             .format(projectName, yamlList, dataset.pipelineJobQueue, PipelineTest.currentStingDir)
 
     val pipelineSpec = new PipelineTestSpec

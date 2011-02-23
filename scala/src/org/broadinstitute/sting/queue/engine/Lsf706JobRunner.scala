@@ -8,9 +8,9 @@ import org.broadinstitute.sting.jna.lsf.v7_0_6.{LibLsf, LibBat}
 import org.broadinstitute.sting.utils.Utils
 import org.broadinstitute.sting.jna.clibrary.LibC
 import java.util.Date
-import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{signalBulkJobs, submitReply, submit}
+import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{submitReply, submit}
 import com.sun.jna.ptr.IntByReference
-import com.sun.jna.{StringArray, NativeLong, Memory}
+import com.sun.jna.{StringArray, NativeLong}
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -107,9 +107,12 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
       var exitInfo = 0
       var endTime: NativeLong = null
 
-      val result = LibBat.lsb_openjobinfo(jobId, null, null, null, null, LibBat.ALL_JOB)
-      if (result < 0)
-        throw new QException(LibBat.lsb_sperror("Unable to open LSF job info for job id: " + jobId))
+      var result = 0
+      Retry.attempt(() => {
+        result = LibBat.lsb_openjobinfo(jobId, null, null, null, null, LibBat.ALL_JOB)
+        if (result < 0)
+          throw new QException(LibBat.lsb_sperror("Unable to open LSF job info for job id: " + jobId))
+      }, 0.5, 1, 2)
       try {
         if (result > 1)
           throw new QException(LibBat.lsb_sperror("Recieved " + result + " LSF results for job id: " + jobId))
@@ -179,6 +182,7 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
 
 object Lsf706JobRunner extends Logging {
   private val lsfLibLock = new Object
+  private val SIGTERM = 15
 
   init()
 
@@ -244,23 +248,15 @@ object Lsf706JobRunner extends Logging {
    */
   def tryStop(runners: List[Lsf706JobRunner]) {
     lsfLibLock.synchronized {
-      for (jobRunners <- runners.filterNot(_.jobId < 0).grouped(10)) {
+      // lsb_killbulkjobs does not seem to forward SIGTERM,
+      // only SIGKILL, so send the Ctrl-C (SIGTERM) one by one.
+      for (jobRunner <- runners.filterNot(_.jobId < 0)) {
         try {
-          val njobs = jobRunners.size
-          val signalJobs = new signalBulkJobs
-          signalJobs.jobs = {
-            val jobIds = new Memory(8 * njobs)
-            jobIds.write(0, jobRunners.map(_.jobId).toArray, 0, njobs)
-            jobIds
-          }
-          signalJobs.njobs = njobs
-          signalJobs.signal = 9
-
-          if (LibBat.lsb_killbulkjobs(signalJobs) < 0)
-            throw new QException(LibBat.lsb_sperror("lsb_killbulkjobs failed"))
+          if (LibBat.lsb_signaljob(jobRunner.jobId, SIGTERM) < 0)
+            logger.error(LibBat.lsb_sperror("Unable to kill job " + jobRunner.jobId))
         } catch {
           case e =>
-            logger.error("Unable to kill all jobs.", e)
+            logger.error("Unable to kill job " + jobRunner.jobId, e)
         }
       }
     }

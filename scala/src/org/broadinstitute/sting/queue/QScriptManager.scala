@@ -40,8 +40,8 @@ class QScriptManager() extends Logging {
 
       reporter.printSummary()
       if (reporter.hasErrors) {
-        val msg = "Compile failed with %d error%s".format(
-          reporter.ERROR.count, plural(reporter.ERROR.count))
+        val msg = "Compile of %s failed with %d error%s".format(
+          scripts.mkString(", "), reporter.ERROR.count, plural(reporter.ERROR.count))
         throw new QException(msg)
       }
       else if (reporter.WARNING.count > 0)
