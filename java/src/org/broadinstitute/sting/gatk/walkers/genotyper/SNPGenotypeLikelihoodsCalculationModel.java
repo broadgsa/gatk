@@ -73,13 +73,13 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), true);
             if ( vcInput == null )
                 return null;
-            if ( !vcInput.isBiallelic() ) {
-                logger.info("Record at position " + ref.getLocus() + " is not bi-allelic; skipping...");
-                return null;
-            }
             if ( !vcInput.isSNP() ) {
                 logger.info("Record at position " + ref.getLocus() + " is not a SNP; skipping...");
                 return null;
+            }
+            if ( !vcInput.isBiallelic() ) {
+                logger.info("Record at position " + ref.getLocus() + " is not bi-allelic; choosing the first allele...");
+                //return null;
             }
             bestAlternateAllele = vcInput.getAlternateAllele(0).getBases()[0];
         } else {
