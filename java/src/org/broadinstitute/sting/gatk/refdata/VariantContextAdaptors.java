@@ -359,6 +359,7 @@ public class VariantContextAdaptors {
                         case Flank5: attrs.put("VC","5'flank"); break;
                         case Promoter: attrs.put("VC","5'flank"); break;
                         case De_novo_start: attrs.put("VC","De_novo_start"); break;
+                        case De_novo_start_out_of_frame: attrs.put("VC","De_novo_start_out_of_frame"); break;
                         case Silent: attrs.put("VC","Silent"); break;
                         case Missense: attrs.put("VC","Missense"); break;
                         case Nonsense: attrs.put("VC","Nonsense"); break;

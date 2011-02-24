@@ -57,7 +57,7 @@ public class MafFeature implements Feature {
 
     public enum Classification {
         Unclassified, Intergenic,Intron,Noncoding_transcript,UTR3,UTR5,Flank5,Silent,Missense, Nonsense, Splice_site, miRNA,
-        Frameshift, Inframe, Stop_deletion, Promoter,De_novo_start
+        Frameshift, Inframe, Stop_deletion, Promoter,De_novo_start, De_novo_start_out_of_frame
     }
 
     private Type type = Type.UNKNOWN;
@@ -111,8 +111,13 @@ public class MafFeature implements Feature {
         return hugoSymbol;
     }
 
-    public String setHugoGeneSymbol(String genename) {
-        return hugoSymbol = genename;
+    public void setHugoGeneSymbol(String genename) {
+        int pos = genename.indexOf('|');
+        if ( pos < 0 ) {
+            hugoSymbol = genename;
+        } else {
+            hugoSymbol = genename.substring(0,pos);
+        }
     }
 
     /**
@@ -214,13 +219,13 @@ public class MafFeature implements Feature {
     public void setVariantClassification(String s) {
         if ( s.equals("IGR") ) { classification = Classification.Intergenic ; return; }
         if ( s.equals("Intron") ) { classification = Classification.Intron ; return; }
-        if ( s.equals("3'UTR") ) { classification = Classification.UTR3 ; return; }
-        if ( s.equals("5'UTR") ) { classification = Classification.UTR5 ; return; }
+        if ( s.equals("3'UTR") || s.equals("3'-UTR")) { classification = Classification.UTR3 ; return; }
+        if ( s.equals("5'UTR") || s.equals("5'-UTR")) { classification = Classification.UTR5 ; return; }
         if ( s.equals("5'-Flank") ) { classification = Classification.Flank5 ; return; }
-        if ( s.equals("Silent") ) { classification = Classification.Silent ; return; }
+        if ( s.equals("Silent") || s.equals("Synonymous")) { classification = Classification.Silent ; return; }
         if ( s.equals("Non-coding_Transcript")) { classification = Classification.Noncoding_transcript; return; }
         if ( s.equals("Missense") || s.equals("Missense_Mutation") ) { classification = Classification.Missense ; return; }
-        if ( s.equals("Nonsense_Mutation") ) { classification = Classification.Nonsense ; return; }
+        if ( s.equals("Nonsense_Mutation") || s.equals("Nonsense") ) { classification = Classification.Nonsense ; return; }
         if ( s.equals("Splice_Site") ) { classification = Classification.Splice_site ; return; }
         if ( s.equals("miRNA") ) { classification = Classification.miRNA ; return; }
         if ( s.equals("Frame_Shift_Ins") ) { classification = Classification.Frameshift ; return; }
@@ -233,6 +238,7 @@ public class MafFeature implements Feature {
         if ( s.equals("Splice_Site_SNP") ) { classification = Classification.Splice_site ; return; }
         if ( s.equals("Promoter") ) { classification = Classification.Promoter ; return; }
         if ( s.equals("De_novo_Start") ) { classification = Classification.De_novo_start ; return; }
+        if ( s.equals("De_novo_Start_OutOfFrame") ) { classification = Classification.De_novo_start_out_of_frame ; return; }
         if ( s.equals("TX-REF-MISMATCH") ) { classification = Classification.Unclassified ; return; }
         throw new UserException.MalformedFile("Unknown variant classification: " + s);
     }

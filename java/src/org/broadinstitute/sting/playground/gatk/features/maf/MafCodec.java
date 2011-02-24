@@ -34,10 +34,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.*;
 import java.lang.reflect.Field;
 
 /**
@@ -53,20 +50,20 @@ public class MafCodec implements FeatureCodec {
      private int expectedTokenCount = -1;
 
 
-     private Column BUILD_COL = new Column("NCBI_Build",true);
-     private Column CHR_COL = new Column("Chromosome",true);
-     private Column START_COL = new Column("Start_position",true);
-     private Column END_COL = new Column("End_position",true);
-     private Column REF_ALLELE_COL = new Column("Reference_Allele",true);
-     private Column TUMOR_ALLELE1_COL = new Column("Tumor_Seq_Allele1",true);
-     private Column TUMOR_ALLELE2_COL = new Column("Tumor_Seq_Allele2",true);
-     private Column TUMOR_SAMPLE_COL = new Column("Tumor_Sample_Barcode",true);
-     private Column NORMAL_SAMPLE_COL = new Column("Matched_Norm_Sample_Barcode",true);
+     private Column BUILD_COL = new Column(new String[]{"NCBI_Build","build"},true);
+     private Column CHR_COL = new Column(new String[] {"Chromosome","chr"},true);
+     private Column START_COL = new Column(new String[] {"Start_position","start"},true);
+     private Column END_COL = new Column(new String[]{"End_position","end"},true);
+     private Column REF_ALLELE_COL = new Column(new String[] {"Reference_Allele","ref_allele"},true);
+     private Column TUMOR_ALLELE1_COL = new Column(new String[] {"Tumor_Seq_Allele1","tum_allele1"},true);
+     private Column TUMOR_ALLELE2_COL = new Column(new String[] {"Tumor_Seq_Allele2","tum_allele2"},true);
+     private Column TUMOR_SAMPLE_COL = new Column(new String[] {"Tumor_Sample_Barcode","tumor_barcode"},true);
+     private Column NORMAL_SAMPLE_COL = new Column(new String[]{"Matched_Norm_Sample_Barcode","normal_barcode"},true);
     // optional fields (absent from maf lite):
-     private Column VARTYPE_COL = new Column("Variant_Type",false);
-     private Column STRAND_COL = new Column("Strand",false);
-     private Column HUGO_GENE_COL = new Column("Hugo_Symbol",false);
-     private Column VARCLASS_COL = new Column("Variant_Classification",false);
+     private Column VARTYPE_COL = new Column(new String[]{"Variant_Type","classification"},false);
+     private Column STRAND_COL = new Column(new String[]{"Strand","strand"},false);
+     private Column HUGO_GENE_COL = new Column(new String[]{"Hugo_Symbol","gene"},false);
+     private Column VARCLASS_COL = new Column(new String[]{"Variant_Classification","type"},false);
 
 
      public enum MAF_TYPE {
@@ -151,7 +148,8 @@ public class MafCodec implements FeatureCodec {
                      log.info("MAF file has "+expectedTokenCount +" columns in first line, unknown file type");
                  }
              }
-             if ( line.contains("Chromosome") && line.contains("Start") && line.contains("Build")) {
+             if ( line.contains("Chromosome") && line.contains("Start") && line.contains("Build") ||
+                   line.contains("build") && line.contains("start") && line.contains("ref_allele")  ) {
                 // a naive way to detect the line with column names
 
                  setColumnsFromHeader(tokens);
@@ -181,7 +179,7 @@ public class MafCodec implements FeatureCodec {
             }
         }
 
-        if ( tokens[CHR_COL.getIndex()].equals("Chromosome") ) return null; // if someone uses this codec manually and feeds it the header line multiple times...
+        if ( tokens[CHR_COL.getIndex()].equals("Chromosome") || tokens[CHR_COL.getIndex()].equals("chr")) return null; // if someone uses this codec manually and feeds it the header line multiple times...
         // create a new feature from the line:
 
         int start = 0;
@@ -339,23 +337,38 @@ public class MafCodec implements FeatureCodec {
 
 class Column {
     int index ;
-    String name;
+    List<String> names;
     boolean required;
 
     Column(String name, boolean required) {
-        this.name = name;
+        this.names = new ArrayList<String>();
+        this.names.add(name);
         this.required = required;
         this.index = -1;
     }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    Column(String [] names, boolean required) {
+        this.names = new ArrayList<String>();
+        for ( int i = 0 ; i < names.length ; i++ ) this.names.add(names[i]);
+        this.required = required;
+        this.index = -1;
+    }
+
+    public String getName() { return names.get(0); }
+    public Collection<String> getNames() { return names; }
+    public void setName(String name) {
+        for ( String n : names ) {
+            if ( n.equals(name) ) return;
+        }
+        this.names.add( name );
+    }
+
     public int getIndex() { return index; }
     public void setIndex(int index) { this.index = index; }
     public String getValue(String[] fields) {
         if ( index < fields.length ) return fields[index];
 
-        if ( required ) throw new UserException.MalformedFile("In MAF file: required column "+name+" has index "+index+
+        if ( required ) throw new UserException.MalformedFile("In MAF file: required column "+getName()+" has index "+index+
                     ", but only "+fields.length+ " fields are present in maf line");
         return null;
     }
@@ -367,13 +380,20 @@ class Column {
      * @param throw_exception
      */
     public void setFromMap(Map<String,Integer> m, boolean throw_exception) {
-        Integer i = m.get(this.name);
-        if ( i == null ) {
-            if ( this.required && throw_exception ) throw new UserException.MalformedFile("Required column "+this.name+" is missing from the maf file");
-            index = -1;
-            return; // not found
+//        Integer i = null;
+        for ( String n : names ) {
+            if ( m.containsKey(n) ) {
+//                if ( i != null )
+//                    throw new UserException.MalformedFile("MAF file contains multiple columns with name or alternative names registered for single data field "+getName());
+                // go with the first column name found; we assume here that column names have priorities:
+                // for instance, if the file has both 'Chromosome' and 'chr' columns, we will just take
+                // Chromosome and run with that
+                this.index = m.get(n);
+                return;
+            }
         }
-        this.index = i.intValue(); // found and set.
+        if ( this.required && throw_exception ) throw new UserException.MalformedFile("Required column "+getName()+" is missing from the maf file");
+        this.index = -1;
     }
 
 /**  Sets this column's index from the provided name->index map (i.e. searches for itself in the map).
