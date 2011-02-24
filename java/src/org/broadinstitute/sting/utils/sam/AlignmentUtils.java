@@ -31,6 +31,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.Utils;
@@ -368,6 +369,18 @@ public class AlignmentUtils {
     	return n;
     }
 
+    public static int getNumAlignedBases(final SAMRecord r) {
+    	int n = 0;
+        final Cigar cigar = r.getCigar();
+        if (cigar == null) return 0;
+
+        for (final CigarElement e : cigar.getCigarElements()) {
+        	if (e.getOperator() == CigarOperator.M ) { n += e.getLength(); }
+        }
+
+    	return n;
+    }
+
     @Deprecated
     public static char[] alignmentToCharArray( final Cigar cigar, final char[] read, final char[] ref ) {
 
@@ -468,37 +481,30 @@ public class AlignmentUtils {
             switch( ce.getOperator() ) {
             case I:
             case S:
-                for ( int jjj = 0; jjj < elementLength; jjj++ ) {
-                    if( pos == pileupOffset ) {
-                        return alignmentPos;
-                    }
-                    pos++;
+                pos += elementLength;
+                if( pos >= pileupOffset ) {
+                    return alignmentPos;
                 }
                 break;
             case D:
             case N:
                 if(!atDeletion) {
-                    for ( int jjj = 0; jjj < elementLength; jjj++ ) {
-                        alignmentPos++;
-                    }
+                    alignmentPos += elementLength;
                 } else {
-                    for ( int jjj = 0; jjj < elementLength; jjj++ ) {
-                        if( pos == pileupOffset ) {
-                            return alignmentPos;
-                        }
-                        pos++;
-                        alignmentPos++;
+                    if( pos + elementLength >= pileupOffset ) {
+                        return alignmentPos + (pileupOffset - pos);
+                    } else {
+                        pos += elementLength;
+                        alignmentPos += elementLength;
                     }
-
                 }
                 break;
             case M:
-                for ( int jjj = 0; jjj < elementLength; jjj++ ) {
-                    if( pos == pileupOffset ) {
-                        return alignmentPos;
-                    }
-                    pos++;
-                    alignmentPos++;
+                if( pos + elementLength >= pileupOffset ) {
+                    return alignmentPos + (pileupOffset - pos);
+                } else {
+                    pos += elementLength;
+                    alignmentPos += elementLength;
                 }
                 break;
             case H:
@@ -547,7 +553,15 @@ public class AlignmentUtils {
             final int elementLength = ce.getLength();
 
             switch( ce.getOperator() ) {
-            case I:                
+            case I:
+                /*
+                if( alignPos > 0 ) {
+                    if( alignment[alignPos-1] == BaseUtils.A ) { alignment[alignPos-1] = PileupElement.A_FOLLOWED_BY_INSERTION_BASE; }
+                    else if( alignment[alignPos-1] == BaseUtils.C ) { alignment[alignPos-1] = PileupElement.C_FOLLOWED_BY_INSERTION_BASE; }
+                    else if( alignment[alignPos-1] == BaseUtils.T ) { alignment[alignPos-1] = PileupElement.T_FOLLOWED_BY_INSERTION_BASE; }
+                    else if( alignment[alignPos-1] == BaseUtils.G ) { alignment[alignPos-1] = PileupElement.G_FOLLOWED_BY_INSERTION_BASE; }
+                }
+                */
             case S:
                 for ( int jjj = 0; jjj < elementLength; jjj++ ) {
                     readPos++;
