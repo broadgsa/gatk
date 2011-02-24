@@ -59,7 +59,7 @@ class dataProcessing extends QScript {
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.jarFile = qscript.GATKjar
     this.reference_sequence = qscript.reference
-    this.memoryLimit = Some(4)
+    this.memoryLimit = Some(8)
     this.isIntermediate = true
   }
 
