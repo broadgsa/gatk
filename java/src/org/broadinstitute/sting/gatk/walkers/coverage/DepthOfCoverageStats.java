@@ -315,7 +315,7 @@ public class DepthOfCoverageStats {
 
     public int value2bin(int value) {
         for ( int index = 0; index < binLeftEndpoints.length; index++ ) {
-            if ( binLeftEndpoints[index] >= value ) {
+            if ( binLeftEndpoints[index] > value ) {
                 return index;
             }
         }

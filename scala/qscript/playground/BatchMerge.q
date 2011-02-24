@@ -24,6 +24,7 @@ class batchMergePipeline extends QScript {
   @Hidden @Argument(doc="Min map q",shortName="mmq",required=false) var mmq : Int = 20
   @Hidden @Argument(doc="Max mismatching bases",shortName="mmb",required=false) var mmb : Int = 3
   @Hidden @Argument(doc="baq gap open penalty, using sets baq to calc when necessary",shortName="baqp",required=false) var baq : Int = -1
+  @Hidden @Argument(doc="VCFs are indels",shortName="indel") var indelMode : Boolean = false
 
   def script = {
 
@@ -61,6 +62,9 @@ class batchMergePipeline extends QScript {
       this.scatterCount = 60
       this.output_mode = Some(UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES)
       this.genotyping_mode = Some(GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
+      if ( batchMerge.indelMode ) {
+        this.genotype_likelihoods_model = Some(GenotypeLikelihoodsCalculationModel.Model.DINDEL)
+      }
     }
 
     def newUGCL( bams: (List[File],Int) ) : UGCalcLikelihoods = {
@@ -81,6 +85,9 @@ class batchMergePipeline extends QScript {
       this.memoryLimit = Some(8)
       this.output_mode = Some(UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES)
       this.genotyping_mode = Some(GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
+      if ( batchMerge.indelMode ) {
+        this.genotype_likelihoods_model = Some(GenotypeLikelihoodsCalculationModel.Model.DINDEL)
+      }
     }
 
     var cVars : UGCallVariants = new UGCallVariants with CallVariantsArgs
