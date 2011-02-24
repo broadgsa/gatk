@@ -70,7 +70,7 @@ public class PairMaker extends CommandLineProgram {
             optional = true)
         public String FILTER = null;
     @Option(shortName="Q", optional=true, doc="Minimum mapping quality required on both ends in order to accept the pair.")
-        public Integer MINQ = 20;
+        public Integer MINQ = -1;
 
     public static int INFINITY = 1000000000;
 
@@ -80,10 +80,16 @@ public class PairMaker extends CommandLineProgram {
     private int end2_missing = 0;
     private int end1_unmapped = 0;
     private int end2_unmapped = 0;
+    private int end1_unpaired_unmapped = 0;
+    private int end2_unpaired_unmapped = 0;
     private int both_unmapped = 0;
     private int both_mapped = 0;
     private int both_unique = 0;
     private int proper_pair = 0;
+    private int proper_unique_pair = 0;
+    private int outer_pair = 0;
+    private int side_pair = 0;
+    private int inter_chrom = 0;
 
     /** Required main method implementation. */
     public static void main(final String[] argv) {
@@ -120,10 +126,9 @@ public class PairMaker extends CommandLineProgram {
                 end1_missing++;
                 r1 = null;
                 r2 = selectBestSingleEnd(end2);
-                if ( AlignmentUtils.isReadUnmapped(r2) ) both_unmapped++;
-                else end1_unmapped++;
- //               setPairingInformation(r1,r2);
- //               outWriter.addAlignment(r2);
+                if ( AlignmentUtils.isReadUnmapped(r2) ) end2_unpaired_unmapped++;
+                setPairingInformation(r1,r2);
+                outWriter.addAlignment(r2);
                 continue;
             }
             if ( end2.size() == 0 ) {
@@ -131,42 +136,48 @@ public class PairMaker extends CommandLineProgram {
                 end2_missing++;
                 r1 = selectBestSingleEnd(end1);
                 r2 = null;
-                if ( AlignmentUtils.isReadUnmapped(r1) ) both_unmapped++;
-                else end2_unmapped++;
-//                setPairingInformation(r1,r2);
-//                outWriter.addAlignment(r1);
+                if ( AlignmentUtils.isReadUnmapped(r1) ) end1_unpaired_unmapped++;
+                setPairingInformation(r1,r2);
+                outWriter.addAlignment(r1);
                 continue;
             }
+
+            // we got reads on both sides
 
             if ( end1.size() == 1 && end2.size() == 1 ) {
                 // unique alignments on both ends: not much to do, just save as a pair
                 r1 = end1.get(0);
                 r2 = end2.get(0);
                 if ( AlignmentUtils.isReadUnmapped(r1) ) {
-                    if ( AlignmentUtils.isReadUnmapped(r2) ) both_unmapped++;
-                    else end1_unmapped++;
+                    end1_unmapped++;
+                    if ( AlignmentUtils.isReadUnmapped(r2) ) { end2_unmapped++; both_unmapped++; }
                 } else {
                     if ( AlignmentUtils.isReadUnmapped(r2)) end2_unmapped++;
                     else {
                         // both mapped
                         both_mapped++;
 
-                        if ( r1.getMappingQuality() >= MINQ.intValue() &&
-                             r2.getMappingQuality() >= MINQ.intValue() ) {
-                              both_unique++;
-                              if ( r1.getReferenceIndex() == r2.getReferenceIndex() &&
-                                   orientation(r1,r2) == PairOrientation.INNER ) {
-                                  proper_pair++;
-                                  setPairingInformation(r1,r2);
-                                  outWriter.addAlignment(r1);
-                                  outWriter.addAlignment(r2);
-                              }
+                        boolean unique = false;
+                        if ( r1.getMappingQuality() > 0 &&
+                              r2.getMappingQuality() > 0  ) { unique = true; both_unique++; }
+
+                        if ( r1.getReferenceIndex() != r2.getReferenceIndex() ) {
+                             inter_chrom++;
+                        } else {
+                             switch ( orientation(r1,r2) ) {
+                                case INNER :  proper_pair++; if ( unique ) proper_unique_pair++;  break;
+                                case OUTER: outer_pair++; break;
+                                case LEFT:
+                                case RIGHT: side_pair++; break;
+                                default:
+                             }
                         }
                     }
                 }
-//                setPairingInformation(r1,r2);
-//                outWriter.addAlignment(r1);
-//                outWriter.addAlignment(r2);
+
+                setPairingInformation(r1,r2);
+                outWriter.addAlignment(r1);
+                outWriter.addAlignment(r2);
                 continue;
             }
 
@@ -174,11 +185,11 @@ public class PairMaker extends CommandLineProgram {
                 // special case: multiple alignments for end2 but end1 is unmapped: just select best for end2
                 r1 = end1.get(0);
                 r2 = selectBestSingleEnd(end2);
-                if ( AlignmentUtils.isReadUnmapped(r2) ) both_unmapped++;
-                else end1_unmapped++;
-//                setPairingInformation(r1,r2);
-//                outWriter.addAlignment(r1);
-//                outWriter.addAlignment(r2);
+                end1_unmapped++;
+                if ( AlignmentUtils.isReadUnmapped(r2) ) { end2_unmapped++; both_unmapped++; }
+                setPairingInformation(r1,r2);
+                outWriter.addAlignment(r1);
+                outWriter.addAlignment(r2);
                 continue;
             }
 
@@ -186,15 +197,15 @@ public class PairMaker extends CommandLineProgram {
                 // special case: multiple alignments for end1 but end2 is unmapped: just select best for end1
                 r1 = selectBestSingleEnd(end1);
                 r2 = end2.get(0);
-                if ( AlignmentUtils.isReadUnmapped(r1) ) both_unmapped++;
-                else end2_unmapped++;
- //               setPairingInformation(r1,r2);
- //               outWriter.addAlignment(r1);
- //               outWriter.addAlignment(r2);
+                end2_unmapped++;
+                if ( AlignmentUtils.isReadUnmapped(r1) ) { end1_unmapped++; both_unmapped++; }
+                setPairingInformation(r1,r2);
+                outWriter.addAlignment(r1);
+                outWriter.addAlignment(r2);
                 continue;
             }
 
-            // ok, if we are here then we got both ends and multiple alignments in at least one end.
+            // ok, if we are here then we got both ends mapped and multiple alignments in at least one end.
             // Let's loop through candidates and choose the best pair:
 /*
             List<Pairing> good = new ArrayList<Pairing>();
@@ -210,19 +221,28 @@ public class PairMaker extends CommandLineProgram {
                 }
             }
 */
-            r1 = selectUniqueSingleEnd(end1,MINQ.intValue());
-            r2 = selectUniqueSingleEnd(end2,MINQ.intValue());
-            if ( r1 == null || r2 == null ) continue;
+            Pair<SAMRecord, SAMRecord> bestPair = selectBestPair(end1,end2);
+
+//            r1 = selectUniqueSingleEnd(end1,MINQ.intValue());
+//            r2 = selectUniqueSingleEnd(end2,MINQ.intValue());
+
+            r1 = bestPair.first;
+            r2 = bestPair.second;
 
             both_mapped++;
-            both_unique++;
+            if ( r1.getMappingQuality() > 0 && r2.getMappingQuality() > 0 ) both_unique++;
             if ( r1.getReferenceIndex() == r2.getReferenceIndex() &&
                  orientation(r1,r2) == PairOrientation.INNER ) {
                       proper_pair++;
-                      setPairingInformation(r1,r2);
-                      outWriter.addAlignment(r1);
-                      outWriter.addAlignment(r2);
             }
+            if ( r1.getMappingQuality() > 0 && r2.getMappingQuality() > 0 &&
+                r1.getReferenceIndex() == r2.getReferenceIndex() &&
+                 orientation(r1,r2) == PairOrientation.INNER ) {
+                      proper_unique_pair++;
+            }
+            setPairingInformation(r1,r2);
+            outWriter.addAlignment(r1);
+            outWriter.addAlignment(r2);
 
 
         }
@@ -230,14 +250,21 @@ public class PairMaker extends CommandLineProgram {
         pi.close();
         outWriter.close();
 
-        System.out.println("Pairs with end1 missing: "+end1_missing);
-        System.out.println("Pairs with end2 missing: "+end2_missing);
-        System.out.println("Pairs with only end1 unmapped (including missing): "+end1_unmapped);
-        System.out.println("Pairs with only end2 unmapped (including missing): "+end2_unmapped);
-        System.out.println("Pairs with both ends unmapped (including one missing): "+both_unmapped);
+        System.out.println();
+        System.out.println("Total fragments (read pairs): "+fragments_seen);
+
+        System.out.println("Unpaired end1 reads (end2 missing): "+end2_missing);
+        System.out.println("Unpaired end1 reads (end2 missing), unmapped: "+end1_unpaired_unmapped);
+        System.out.println("Unpaired end2 reads (end1 missing): "+end1_missing);
+        System.out.println("Unpaired end2 reads (end1 missing), unmapped: "+end2_unpaired_unmapped);
+        System.out.println("Pairs with end1 unmapped (regardless of end2 status): "+end1_unmapped);
+        System.out.println("Pairs with end2 unmapped (regardless of end1 status): "+end2_unmapped);
+        System.out.println("Pairs with both ends unmapped: "+both_unmapped);
         System.out.println("Pairs with both ends mapped: "+both_mapped);
-        System.out.println("Pairs with both ends mapped uniquely (based on MINQ="+MINQ+"): "+both_unique);
-        System.out.println("Pairs with both ends mapped uniquely and properly (written into output): "+proper_pair);
+        System.out.println("Pairs with both ends mapped uniquely (MQ>0): "+both_unique);
+        System.out.println("Pairs with both ends mapped properly: "+proper_pair);
+        System.out.println("Pairs with both ends mapped uniquely and properly: "+proper_unique_pair);
+        System.out.println();
         return 0;
     }
 
@@ -340,6 +367,81 @@ public class PairMaker extends CommandLineProgram {
         return best.get((int)(Math.random()*best.size()));
     }
 
+    private Pair<SAMRecord,SAMRecord> selectBestPair(List<SAMRecord> end1, List<SAMRecord> end2) {
+        SAMRecord r1 = selectBestSingleEnd(end1);
+        SAMRecord r2 = selectBestSingleEnd(end2);
+
+        if ( AlignmentUtils.isReadUnmapped(r1) || AlignmentUtils.isReadUnmapped(r2) ) {
+            throw new RuntimeException("Unmapped read in selectBestPair: should never happen. read1="+r1.toString()+"; read2="+r2.toString());
+        }
+
+        if ( r1.getMappingQuality() > 0 && r2.getMappingQuality() > 0 ) {
+            // we got best placements for the reads
+            return new Pair<SAMRecord,SAMRecord>(r1,r2);
+        }
+
+        // at least one alignment is non-unique
+
+        List<SAMRecord> toChooseFrom = new ArrayList<SAMRecord>();
+
+        if ( r1.getMappingQuality() > 0 ) {
+            // r2 is non unique
+            for ( SAMRecord r : end2 ) {
+                if ( r.getReferenceIndex().intValue() == r1.getReferenceIndex().intValue() ) {
+                    toChooseFrom.add(r);
+                }
+            }
+            if ( toChooseFrom.size() == 1 ) {
+                return new Pair<SAMRecord,SAMRecord>(r1,toChooseFrom.get(0));
+            } else {
+                if ( toChooseFrom.size() > 1 ) {
+                    return new Pair<SAMRecord,SAMRecord>(r1,toChooseFrom.get((int)(Math.random()*toChooseFrom.size())));
+                } else {
+                    return new Pair<SAMRecord,SAMRecord>(r1,end2.get((int)(Math.random()*end2.size())));
+                }
+            }
+        }
+
+        if ( r2.getMappingQuality() > 0 ) {
+            // r1 is non unique
+            for ( SAMRecord r : end1 ) {
+                if ( r.getReferenceIndex().intValue() == r2.getReferenceIndex().intValue() ) {
+                    toChooseFrom.add(r);
+                }
+            }
+            if ( toChooseFrom.size() == 1 ) {
+                return new Pair<SAMRecord,SAMRecord>(toChooseFrom.get(0),r2);
+            } else {
+                if ( toChooseFrom.size() > 1 ) {
+                    return new Pair<SAMRecord,SAMRecord>(toChooseFrom.get((int)(Math.random()*toChooseFrom.size())),r2);
+                } else {
+                    return new Pair<SAMRecord,SAMRecord>(end2.get((int)(Math.random()*end2.size())),r2);
+                }
+            }
+        }
+
+        // both are non-unique
+        List<Pair<SAMRecord,SAMRecord>> toChooseFromP = new ArrayList<Pair<SAMRecord,SAMRecord>>();
+        for ( SAMRecord rr1 : end1 ) {
+            for ( SAMRecord rr2 : end2 ) {
+                if ( rr1.getReferenceIndex().intValue() == rr2.getReferenceIndex().intValue() ) {
+                    toChooseFromP.add ( new Pair<SAMRecord,SAMRecord>(rr1,rr2) );
+                }
+            }
+        }
+        if ( toChooseFrom.size() == 1 ) {
+            return toChooseFromP.get(0);
+        } else {
+            if ( toChooseFrom.size() > 1 ) {
+                return toChooseFromP.get((int)(Math.random()*toChooseFromP.size()));
+            } else {
+                return new Pair<SAMRecord,SAMRecord>(end1.get((int)(Math.random()*end1.size())),
+                        end2.get((int)(Math.random()*end2.size())));
+            }
+        }
+
+    }
+
     private SAMRecord selectUniqueSingleEnd(List<SAMRecord> l, int minq) {
         if ( l.size() == 0 ) return null; // should not happen; just don not want to crash here, but somewhere else
         if ( l.size() == 1 ) {
@@ -388,25 +490,45 @@ public class PairMaker extends CommandLineProgram {
 
         if ( r1 == null && r2 == null ) throw new RuntimeException("Both ends of the mate pair are passed as 'null'");
 
-        if ( r1 != null ) {
-            r1.setMateUnmappedFlag( r2==null ? true : AlignmentUtils.isReadUnmapped(r2) );
-            r1.setMateReferenceIndex( r2==null ? SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX : r2.getReferenceIndex() );
-            r1.setMateNegativeStrandFlag(r2==null ? false : r2.getReadNegativeStrandFlag() );
-            r1.setMateAlignmentStart( r2 == null ? SAMRecord.NO_ALIGNMENT_START : r2.getAlignmentStart());
+        // take care of unpaired reads:
+        if ( r2 == null ) {
+            r1.setReadPairedFlag(false);
+            r1.setMateReferenceIndex( SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX );
+            r1.setMateNegativeStrandFlag( false );
+            r1.setMateAlignmentStart( SAMRecord.NO_ALIGNMENT_START );
+            return;
+        }
 
-            r1.setFirstOfPairFlag(true);
-            r1.setSecondOfPairFlag(false);
-            r1.setReadPairedFlag(true);
+        if ( r1 == null ) {
+            r2.setReadPairedFlag(false);
+            r2.setMateReferenceIndex( SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX );
+            r2.setMateNegativeStrandFlag( false );
+            r2.setMateAlignmentStart( SAMRecord.NO_ALIGNMENT_START );
+            return;
         }
-        if ( r2 != null ) {
-            r2.setMateUnmappedFlag( r1==null ? true : AlignmentUtils.isReadUnmapped(r1) );
-            r2.setMateReferenceIndex( r1==null ? SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX : r1.getReferenceIndex() );
-            r2.setMateNegativeStrandFlag(r1==null ? false : r1.getReadNegativeStrandFlag() );
-            r2.setMateAlignmentStart( r1 == null ? SAMRecord.NO_ALIGNMENT_START : r1.getAlignmentStart());
-            r2.setFirstOfPairFlag(false);
-            r2.setSecondOfPairFlag(true);
-            r2.setReadPairedFlag(true);
-        }
+
+        // we got both reads
+
+        r1.setReadPairedFlag(true);
+        r2.setReadPairedFlag(true);
+
+        boolean r1unmapped = AlignmentUtils.isReadUnmapped(r1);
+        boolean r2unmapped = AlignmentUtils.isReadUnmapped(r2);
+
+        r1.setMateUnmappedFlag( r2unmapped );
+        r1.setMateReferenceIndex( r2unmapped ? SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX : r2.getReferenceIndex() );
+        r1.setMateNegativeStrandFlag(r2unmapped ? false : r2.getReadNegativeStrandFlag() );
+        r1.setMateAlignmentStart( r2unmapped ? SAMRecord.NO_ALIGNMENT_START : r2.getAlignmentStart());
+
+        r1.setFirstOfPairFlag(true);
+        r1.setSecondOfPairFlag(false);
+
+        r2.setMateUnmappedFlag( r1unmapped );
+        r2.setMateReferenceIndex( r1unmapped ? SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX : r1.getReferenceIndex() );
+        r2.setMateNegativeStrandFlag(r1unmapped ? false : r1.getReadNegativeStrandFlag() );
+        r2.setMateAlignmentStart( r1unmapped ? SAMRecord.NO_ALIGNMENT_START : r1.getAlignmentStart());
+        r2.setFirstOfPairFlag(false);
+        r2.setSecondOfPairFlag(true);
     }
 
     /**
