@@ -692,11 +692,17 @@
 
     <!-- Build a package consisting of all supporting files -->
     <target name="package" depends="dist,stage" description="bundle up an executable for distribution">
-      <mkdir dir="${dist.dir}/packages" />
-      <xslt destdir="${dist.dir}/packages" style="packages/CreatePackager.xsl">
+      <mkdir dir="dist/packages" />
+      <xslt destdir="dist/packages" style="packages/CreatePackager.xsl" useImplicitFileset="false">
           <flattenmapper/>
-          <include name="${package.xml.dir}/${executable}.xml"/>
-          <include name="${external.dir}/*/${executable}.xml" />
+          <fileset dir="${package.xml.dir}">
+              <include name="${executable}.xml" />
+          </fileset>
+
+          <fileset dir="${external.dir}">
+              <include name="*/${executable}.xml" />
+          </fileset>
+
       </xslt>
       <ant antfile="${dist.dir}/packages/${executable}.xml" target="package" />
     </target>
