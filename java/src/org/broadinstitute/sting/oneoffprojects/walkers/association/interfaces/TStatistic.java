@@ -9,4 +9,5 @@ package org.broadinstitute.sting.oneoffprojects.walkers.association.interfaces;
  */
 public interface TStatistic {
     public abstract double getTStatistic();
+    public abstract int getDegreesOfFreedom();
 }

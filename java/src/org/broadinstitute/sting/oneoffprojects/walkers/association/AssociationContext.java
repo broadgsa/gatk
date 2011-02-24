@@ -9,8 +9,8 @@ import java.util.*;
  * A general context for windowed association
  */
 public abstract class AssociationContext<X extends AssociationContextAtom> {
-    private Class<? extends AssociationContextAtom> clazz;
-    private List<X> window;
+    protected Class<? extends AssociationContextAtom> clazz;
+    protected List<X> window;
 
     public AssociationContext( Class<X> zclaz ) {
         window = new ArrayList<X>(getWindowSize());
