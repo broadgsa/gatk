@@ -34,6 +34,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="noCut", doc="removes the ApplyVariantCut walker from the pipeline", required=false)
   var noCut: Boolean = false
 
+  @Argument(shortName="indels", doc="calls indels with the Unified Genotyper", required=false)
+  var callIndels: Boolean = false
+
   @Argument(shortName="LOCAL_ET", doc="Doesn't use the AWS S3 storage for ET option", required=false)
   var LOCAL_ET: Boolean = false
 
@@ -58,7 +61,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val name = qscript.outputDir + baseName
     val clusterFile = new File(name + ".clusters")
     val rawVCF = new File(name + ".raw.vcf")
+    val rawIndelVCF = new File(name + ".raw.indel.vcf")
     val filteredVCF = new File(name + ".filtered.vcf")
+    val filteredIndelVCF = new File(name + ".filtered.indel.vcf")
     val titvRecalibratedVCF = new File(name + ".titv.recalibrated.vcf")
     val titvTranchesFile = new File(name + ".titv.tranches")
     val tsRecalibratedVCF = new File(name + ".ts.recalibrated.vcf")
@@ -94,6 +99,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // produce Kiran's Venn plots based on comparison between new VCF and gold standard produced VCF
 
   val lowPass: Boolean = true
+  val indels: Boolean = true
 
   val targetDataSets: Map[String, Target] = Map(
     "HiSeq" -> new Target("NA12878.HiSeq", hg18, dbSNP_hg18_129, hapmap_hg18,
@@ -101,10 +107,14 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.07, !lowPass),
-    "HiSeq19" -> new Target("NA12878.hg19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
+    "HiSeq19" -> new Target("NA12878.HiSeq19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
-              new File("/humgen/gsa-scr1/carneiro/prj/hiseq19/analysis/snps/NA12878.hg19.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, !lowPass),                                                                                           // ** we need a chunked hg19 whole genome intervals file **
+              new File("/humgen/gsa-hpprojects/carneiro/hiseq19/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, !lowPass),
+    "GA2hg19" -> new Target("NA12878.GA2.hg19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
+              new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.hg19.bam"),
+              new File("/humgen/gsa-hpprojects/carneiro/hiseq19/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, !lowPass),
     "WEx" -> new Target("NA12878.WEx", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
@@ -112,7 +122,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 2.6, !lowPass),
     "WExTrio" -> new Target("CEUTrio.WEx", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
-              new File("/humgen/gsa-scr1/carneiro/prj/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
+              new File("/humgen/gsa-hpprojects/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, !lowPass),
     "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
@@ -151,13 +161,14 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val goldStandard = true
     for (target <- targets) {
       if( !skipCalling ) {
-        add(new Call(target))
-        add(new Filter(target))
+        if (callIndels) add(new indelCall(target), new indelFilter(target), new indelEvaluation(target))
+        add(new snpCall(target))
+        add(new snpFilter(target))
         add(new GenerateClusters(target, !goldStandard))
         add(new VariantRecalibratorTiTv(target, !goldStandard))
         add(new VariantRecalibratorNRS(target, !goldStandard))
-        if (!noCut) add (new VariantCut(target))
-        if (eval) add(new VariantEvaluation(target))
+        if (!noCut) add(new VariantCut(target))
+        if (eval) add(new snpEvaluation(target))
       }
       if ( !skipGoldStandard ) {
         add(new GenerateClusters(target, goldStandard))
@@ -171,8 +182,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   val FiltersToIgnore = List("DPFilter", "ABFilter", "ESPStandard", "QualByDepth", "StrandBias", "HomopolymerRun")
 
-  // 1.) Call SNPs with UG
-  class Call (t: Target) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
+  // 1a.) Call SNPs with UG
+  class snpCall (t: Target) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
@@ -182,14 +193,32 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.input_file :+= t.bamList
     this.out = t.rawVCF
     this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY})
-    this.analysisName = t.name + "_UG"
+    this.analysisName = t.name + "_UGs"
     this.jobName = t.name + ".snpcall"
     if (t.dbsnpFile.endsWith(".rod")) this.DBSNP = new File(t.dbsnpFile)
     else if (t.dbsnpFile.endsWith(".vcf")) this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
   }
 
-  // 2.) Filter SNPs
-  class Filter (t: Target) extends VariantFiltration with UNIVERSAL_GATK_ARGS {
+  // 1b.) Call Indels with UG
+  class indelCall (t: Target) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
+    this.reference_sequence = t.reference
+    this.intervalsString ++= List(t.intervals)
+    this.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
+    this.dcov = Some( if ( t.isLowpass ) { 50 } else { 250 } )
+    this.stand_call_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
+    this.stand_emit_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
+    this.input_file :+= t.bamList
+    this.out = t.rawIndelVCF
+    this.glm = Some(org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL)
+    this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF)
+    this.analysisName = t.name + "_UGi"
+    this.jobName = t.name + ".indelcall"
+    if (t.dbsnpFile.endsWith(".rod")) this.DBSNP = new File(t.dbsnpFile)
+    else if (t.dbsnpFile.endsWith(".vcf")) this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+  }
+
+  // 2a.) Filter SNPs
+  class snpFilter (t: Target) extends VariantFiltration with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 10
@@ -198,7 +227,24 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.filterName ++= List("HARD_TO_VALIDATE")
     this.filterExpression ++= List("\"MQ0 >= 4 && (MQ0 / (1.0 * DP)) > 0.1\"")
     this.analysisName = t.name + "_VF"
-    this.jobName = t.name + ".filter"
+    this.jobName = t.name + ".snpfilter"
+    if (!noMASK) {
+      this.rodBind :+= RodBind("mask", "Bed", t.maskFile)
+      this.maskName = "InDel"
+    }
+  }
+
+   // 2b.) Filter Indels
+  class indelFilter (t: Target) extends VariantFiltration with UNIVERSAL_GATK_ARGS {
+    this.reference_sequence = t.reference
+    this.intervalsString ++= List(t.intervals)
+    this.scatterCount = 10
+    this.variantVCF = t.rawIndelVCF
+    this.out = t.filteredIndelVCF
+    this.filterName ++= List("HARD_TO_VALIDATE", "LowQual", "StrandBias", "QualByDepth", "HomopolymerRun")
+    this.filterExpression ++= List("\"MQ0 >= 4 && (MQ0 / (1.0 * DP)) > 0.1\"", "\"QUAL<30.0\"", "\"SB>=-1.0\"", "\"QD<1.0\"", "\"HRun>=15\"")
+    this.analysisName = t.name + "_VF"
+    this.jobName = t.name + ".indelfilter"
     if (!noMASK) {
       this.rodBind :+= RodBind("mask", "Bed", t.maskFile)
       this.maskName = "InDel"
@@ -285,17 +331,31 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
   }
 
-  // 6.) Variant Evaluation (OPTIONAL) based on the sensitivity recalibrated vcf
-  class VariantEvaluation(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
+  // 6a.) Variant Evaluation (OPTIONAL) based on the sensitivity recalibrated vcf
+  class snpEvaluation(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
       val name: String = t.name
       this.reference_sequence = t.reference
       this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
-      this.knownName ++= List("comphapmap")
       this.rodBind :+= RodBind("eval", "VCF", if (!noCut) {t.cutVCF} else {t.tsRecalibratedVCF} )
       this.analysisName = name + "_VE"
-      this.jobName = t.name + ".eval"
+      this.jobName = t.name + ".snpeval"
       this.intervalsString ++= List(t.intervals)
-      this.EV ++= List("GenotypeConcordance")
+      this.out =  t.evalFile
+      if (t.dbsnpFile.endsWith(".rod"))
+        this.DBSNP = new File(t.dbsnpFile)
+	    else if (t.dbsnpFile.endsWith(".vcf"))
+        this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+  }
+
+  // 6b.) Variant Evaluation of Indels (OPTIONAL)
+  class indelEvaluation(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
+      val name: String = t.name
+      this.reference_sequence = t.reference
+      this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
+      this.rodBind :+= RodBind("eval", "VCF", if (!noCut) {t.cutVCF} else {t.tsRecalibratedVCF} )
+      this.analysisName = name + "_VE"
+      this.jobName = t.name + ".indeleval"
+      this.intervalsString ++= List(t.intervals)
       this.out =  t.evalFile
       if (t.dbsnpFile.endsWith(".rod"))
         this.DBSNP = new File(t.dbsnpFile)

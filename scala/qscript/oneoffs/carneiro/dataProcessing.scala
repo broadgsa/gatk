@@ -1,7 +1,6 @@
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 import scala.io.Source
 
@@ -25,7 +24,7 @@ class dataProcessing extends QScript {
   var input: String = _
 
   @Input(doc="Reference fasta file", shortName="R", required=false)
-  var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19")
+  var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
   @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)     // todo -- accept any format. Not only VCF.
   val dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
@@ -136,6 +135,7 @@ class dataProcessing extends QScript {
       this.rodBind :+= RodBind("indels2", "VCF", dindelAFRCalls)
       this.rodBind :+= RodBind("indels3", "VCF", dindelEURCalls)
       this.rodBind :+= RodBind("indels4", "VCF", dindelASNCalls)
+      this.jobName = outIntervals + ".ktarget"
   }
 
   class allTargets (inBams: String, outIntervals: String) extends knownTargets(outIntervals) {
@@ -148,7 +148,7 @@ class dataProcessing extends QScript {
       this.rodBind :+= RodBind("indels3", "VCF", dindelEURCalls)
       this.rodBind :+= RodBind("indels4", "VCF", dindelASNCalls)
       if (qscript.indels != null) this.rodBind :+= RodBind("indels5", "VCF", qscript.indels)
-      this.jobName = outIntervals + ".target"
+      this.jobName = outIntervals + ".atarget"
   }
 
   class clean (inBams: String, tIntervals: String, outBam: String, knownsOnly: Boolean, intermediate: Boolean) extends IndelRealigner with CommandLineGATKArgs {
