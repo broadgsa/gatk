@@ -539,10 +539,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             indelRodsSeen.clear();
 
             emitReadLists();
-            // why was this different than the other emits?
-//            // merge the two sets for emission
-//            readsNotToClean.addAll(readsToClean.getReads());
-//            emit(readsNotToClean);
         }
 
         if ( OUT_INDELS != null ) {

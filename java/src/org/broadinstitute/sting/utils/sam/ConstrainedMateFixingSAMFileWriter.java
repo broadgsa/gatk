@@ -76,7 +76,6 @@ import java.util.*;
 public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
     final protected static Logger logger = Logger.getLogger(ConstrainedMateFixingSAMFileWriter.class);
     private final static boolean DEBUG = false;
-    private final static boolean PRINT_COUNTER = true;
 
     /** How often do we check whether we want to emit reads? */
     private final static int EMIT_FREQUENCY = 1000;
@@ -90,18 +89,6 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
     /** how we order our SAM records */
     private final SAMRecordComparator comparer = new SAMRecordCoordinateComparator();
 
-    // todo -- remove test comparer
-//    private static class MySAMRecordCoordinateComparator extends SAMRecordCoordinateComparator {
-//        @Override
-//        public int compare(final SAMRecord samRecord1, final SAMRecord samRecord2) {
-//            int cmp = super.fileOrderCompare(samRecord1, samRecord2);
-//            int cmpPos = new Integer(samRecord1.getAlignmentStart()).compareTo(samRecord2.getAlignmentStart());
-//            if ( Math.signum(cmp) != Math.signum(cmpPos) )
-//                logger.info(String.format("Comparing %d to %d => %d cmp and %d cmpPos",
-//                        samRecord1.getAlignmentStart(), samRecord2.getAlignmentStart(), cmp, cmpPos));
-//            return cmp;
-//        }
-//    }
 
     /** The place where we ultimately write out our records */
     final SAMFileWriter finalDestination;
@@ -149,7 +136,6 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
      * Retrieves the header to use when creating the new SAM file.
      * @return header to use when creating the new SAM file.
      */
-    @Override
     public SAMFileHeader getFileHeader() {
         return finalDestination.getFileHeader();
     }
@@ -189,13 +175,8 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
     /**
      * @{inheritDoc}
      */
-    @Override
     public void addAlignment( SAMRecord newRead ) {
         if ( DEBUG ) logger.info("New read pos " + newRead.getAlignmentStart());
-
-//        if ( newRead.getReadName().equals("ERR019492.23181457") )
-//            logger.warn("foo");
-
 
         // fix mates, as needed
         // Since setMateInfo can move reads, we potentially need to remove the mate, and requeue
@@ -209,7 +190,7 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
                     // to be next-to newRead, so needs to be reinserted into the waitingReads queue
                     // note -- this must be called before the setMateInfo call below
                     if ( ! waitingReads.remove(mate) )
-                        throw new ReviewedStingException("BUG: remove of mate failed at " + mate);
+                        throw new ReviewedStingException("BUG: removal of mate failed at " + mate);
                 }
 
                 // we've already seen our mate -- set the mate info and remove it from the map
@@ -222,28 +203,18 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
         }
 
         waitingReads.add(newRead);
-//        logger.warn("GATKSamRecord newRead.equals(newread) = " + newRead.equals(newRead));
-//        if ( ! waitingReads.remove(newRead) )
-//            throw new ReviewedStingException("BUG: remove of failed at " + newRead);
-//        waitingReads.add(newRead);
         maxReadsInQueue = Math.max(maxReadsInQueue, waitingReads.size());
 
-        if ( PRINT_COUNTER && counter++ % 10000 == 0 )
-            logger.warn("Reads in queue " + waitingReads.size() + " max " + maxReadsInQueue);
-
-        if ( counter % EMIT_FREQUENCY == 0 ) {
+        if ( ++counter % EMIT_FREQUENCY == 0 ) {
             //verifyOrdering();
             while ( ! waitingReads.isEmpty() ) { // there's something in the queue
                 SAMRecord read = waitingReads.peek();
-                //logger.info("Examining read at " + read.getAlignmentStart());
 
                 if ( noReadCanMoveBefore(read.getAlignmentStart(), newRead) &&
                         (iSizeTooBigToMove(read)                                           // we won't try to move such a read
                                 || ! read.getReadPairedFlag()                                     // we're not a paired read
                                 || read.getReadUnmappedFlag() && read.getMateUnmappedFlag()       // both reads are unmapped
                                 || noReadCanMoveBefore(read.getMateAlignmentStart(), newRead ) ) ) { // we're already past where the mate started
-//                    if ( read.getReadName().equals("20FUKAAXX100202:2:64:2458:35096") )
-//                        logger.warn("foo");
 
                     // remove reads from the map that we have emitted -- useful for case where the mate never showed up
                     forMateMatching.remove(read.getReadName());
@@ -282,7 +253,6 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
     /**
      * @{inheritDoc}
      */
-    @Override
     public void close() {
         // write out all of the remaining reads
         while ( ! waitingReads.isEmpty() ) { // there's something in the queue
