@@ -44,7 +44,6 @@ import org.broadinstitute.sting.gatk.refdata.*;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.BAQMode;
-import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -96,11 +95,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="doNotUseSW", shortName="doNotUseSW", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs or indels in the reads for constructing the alternate references.")
     protected boolean NO_SW = false;
 
-    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
-                "If too low, the tool may run out of system file descriptors needed to perform sorting; if too high, the tool may run out of memory.", required=false)
-    protected int MAX_RECORDS_IN_RAM = 500000;
 
     // ADVANCED OPTIONS FOLLOW
+
+    @Argument(fullName="maxIsizeForMovement", shortName="maxIsize", doc="maximum insert size of read pairs that we attempt to realign", required=false)
+    protected int MAX_ISIZE_FOR_MOVEMENT = 3000;
 
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
     protected int MAX_CONSENSUSES = 30;
@@ -111,20 +110,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="maxReadsForRealignment", shortName="maxReads", doc="max reads allowed at an interval for realignment; "+
                        "if this value is exceeded, realignment is not attempted and the reads are passed to the output file(s) as-is", required=false)
     protected int MAX_READS = 20000;
-
-    @Hidden
-    @Argument(fullName="doNotSortEvenThoughItIsHighlyUnsafe", required=false,
-            doc="Should we not sort the final bam at all?")
-    protected boolean DO_NOT_SORT = false;
-
-    @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", required=false,
-            doc="Should we sort the final bam in coordinate order even though it will be malformed because "+
-                "mate pairs of realigned reads will contain inaccurate information?")
-    protected boolean SORT_IN_COORDINATE_ORDER = false;
-
-    @Argument(fullName="realignReadsWithBadMates", required=false,
-            doc="Should we try to realign paired-end reads whose mates map to other chromosomes?")
-    protected boolean REALIGN_BADLY_MATED_READS = false;
 
     @Argument(fullName="noPGTag", shortName="noPG", required=false,
             doc="Don't output the usual PG tag in the realigned bam file header. FOR DEBUGGING PURPOSES ONLY. "+
@@ -159,6 +144,21 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected boolean CHECKEARLY = false;
 
 
+    // DEPRECATED
+
+    @Deprecated
+    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="This argument is no longer used.", required=false)
+    protected int DEPRECATED_MAX_IN_RAM = 0;
+
+    @Deprecated
+    @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", doc="This argument is no longer used.", required=false)
+    protected boolean DEPRECATED_SORT_IN_COORDINATE_ORDER = false;
+
+    @Deprecated
+    @Argument(fullName="realignReadsWithBadMates", doc="This argument is no longer used.", required=false)
+    protected boolean DEPRECATED_REALIGN_MATES = false;
+    
+
     // DEBUGGING OPTIONS FOLLOW
 
     @Hidden
@@ -172,16 +172,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Hidden
     @Output(fullName="SNPsFileForDebugging", shortName="snps", doc="print out whether mismatching columns do or don't get cleaned out; FOR DEBUGGING PURPOSES ONLY", required=false)
     protected String OUT_SNPS = null;
-
-    //
-    // Experimental output constraints
-    //
-    // TODO -- eric promised me he'll validate this further and release to the world as the only option to do cleaning
-    //
-    @Hidden
-    @Argument(fullName="constrainMovement", shortName="CM", required=false, doc="If provided, we'll try the experimental constraining output system")
-    protected boolean CONSTRAIN_MOVEMENT = false;
-    protected int MAX_ISIZE_FOR_MOVEMENT = 3000;
 
     // fasta reference reader to supplement the edges of the reference sequence
     private IndexedFastaSequenceFile referenceReader;
@@ -297,8 +287,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 }
             }
 
-            SAMFileWriterImpl.setDefaultMaxRecordsInRam(MAX_RECORDS_IN_RAM);
-
             for ( SAMReaderID rid : getToolkit().getReadsDataSource().getReaderIDs() ) {
 
                 String fName = getToolkit().getReadsDataSource().getSAMFile(rid).getName();
@@ -323,7 +311,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
 
                 File f = new File(outName);
-                SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(setupHeader(getToolkit().getSAMFileHeader(rid)), false, f);
+                SAMFileHeader header = getToolkit().getSAMFileHeader(rid);
+                header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
+                SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, false, f);
                 nwayWriters.put(rid,sw);
             }
 
@@ -362,19 +352,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
     }
 
-    private SAMFileHeader setupHeader(SAMFileHeader header) {
-        if ( DO_NOT_SORT )
-            header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
-        else if ( SORT_IN_COORDINATE_ORDER || CONSTRAIN_MOVEMENT )
-            header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
-        else
-            header.setSortOrder(SAMFileHeader.SortOrder.queryname);
-        return header;
-    }
-
     private void setupWriter(SAMFileHeader header) {
-        header = setupHeader(header);
-
+        
         if ( !NO_PG_TAG ) {
             final SAMProgramRecord programRecord = new SAMProgramRecord(PROGRAM_RECORD_NAME);
             final ResourceBundle headerInfo = TextFormattingUtils.loadResourceBundle("StingText");
@@ -395,13 +374,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
 
         writer.writeHeader(header);
-        writer.setPresorted(CONSTRAIN_MOVEMENT);
-        writer.setMaxRecordsInRam(MAX_RECORDS_IN_RAM);
+        writer.setPresorted(true);
 
-        if ( CONSTRAIN_MOVEMENT ) {
-            writer.setUseConstrainedFileWriter(true);
-            writer.setMaxInsertSizeForMovingReadPairs(MAX_ISIZE_FOR_MOVEMENT);
-        }
+        writer.setUseConstrainedFileWriter(true);
+        writer.setMaxInsertSizeForMovingReadPairs(MAX_ISIZE_FOR_MOVEMENT);
     }
 
     private void emit(final SAMRecord read) {
@@ -489,19 +465,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private boolean doNotTryToClean(SAMRecord read) {
-        boolean immobileReadForWriting = CONSTRAIN_MOVEMENT && ConstrainedMateFixingSAMFileWriter.iSizeTooBigToMove(read, MAX_ISIZE_FOR_MOVEMENT);
-
-        boolean old = read.getReadUnmappedFlag() ||
+        return read.getReadUnmappedFlag() ||
                 read.getNotPrimaryAlignmentFlag() ||
                 read.getReadFailsVendorQualityCheckFlag() ||
                 read.getMappingQuality() == 0 ||
                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
-                (!REALIGN_BADLY_MATED_READS && BadMateFilter.hasBadMate(read));
-
-//        if ( immobileReadForWriting && ! old)
-//            logger.warn("Newly skipping read: " + read + " isize = " + read.getInferredInsertSize());
-
-        return old || immobileReadForWriting;
+                ConstrainedMateFixingSAMFileWriter.iSizeTooBigToMove(read, MAX_ISIZE_FOR_MOVEMENT);
     }
 
     private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {

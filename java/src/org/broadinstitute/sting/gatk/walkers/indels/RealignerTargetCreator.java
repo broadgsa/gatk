@@ -73,8 +73,9 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
     @Argument(fullName="maxIntervalSize", shortName="maxInterval", doc="maximum interval size", required=false)
     protected int maxIntervalSize = 500;
 
-    @Argument(fullName="realignReadsWithBadMates", required=false, doc="Should we try to realign paired-end reads whose mates map to other chromosomes?")
-    protected boolean REALIGN_BADLY_MATED_READS = false;
+    @Deprecated
+    @Argument(fullName="realignReadsWithBadMates", doc="This argument is no longer used.", required=false)
+    protected boolean DEPRECATED_REALIGN_MATES = false;
 
     @Override
     public boolean generateExtendedEvents() { return true; }
@@ -140,7 +141,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
             int mismatchQualities = 0, totalQualities = 0;
             byte refBase = ref.getBase();
             for (PileupElement p : pileup ) {
-                if ( !REALIGN_BADLY_MATED_READS && BadMateFilter.hasBadMate(p.getRead()) )
+                if ( BadMateFilter.hasBadMate(p.getRead()) )
                     continue;
 
                 // check the ends of the reads to see how far they extend

@@ -12,7 +12,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     private static final String mainTestBam = validationDataLocation + "indelRealignerTest.pilot1.ceu.bam";
     private static final String mainTestIntervals = validationDataLocation + "indelRealignerTest.pilot1.ceu.intervals";
     private static final String knownIndels = validationDataLocation + "indelRealignerTest.pilot1.ceu.vcf";
-    private static final String baseCommandPrefix = "--constrainMovement -T IndelRealigner -noPG -R " + b36KGReference + " -I " + mainTestBam + " -targetIntervals " + mainTestIntervals + " -compress 0 -L 20:49,500-55,500 --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe ";
+    private static final String baseCommandPrefix = "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + mainTestBam + " -targetIntervals " + mainTestIntervals + " -compress 0 -L 20:49,500-55,500 ";
     private static final String baseCommand = baseCommandPrefix + "-o %s ";
 
     @Test
@@ -91,7 +91,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     @Test
     public void testLongRun() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                "--constrainMovement -T IndelRealigner -noPG -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10,000,000-11,000,000 -targetIntervals " + validationDataLocation + "indelRealignerTest.NA12878.chrom1.intervals -compress 0 --sortInCoordinateOrderEvenThoughItIsHighlyUnsafe -o %s",
+                "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10,000,000-11,000,000 -targetIntervals " + validationDataLocation + "indelRealignerTest.NA12878.chrom1.intervals -compress 0 -o %s",
                 1,
                 Arrays.asList("be859f9a98d738becee0526887cae42e"));
         executeTest("realigner long run", spec);
