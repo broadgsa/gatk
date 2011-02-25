@@ -26,7 +26,7 @@ class dataProcessing extends QScript {
   @Input(doc="Reference fasta file", shortName="R", required=false)
   var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
-  @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)     // todo -- accept any format. Not only VCF.
+  @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)
   val dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", shortName="indels", required=false)  //todo -- once vcfs are merged, this will become the only indel vcf to be used and the merged file will be the default.
@@ -51,6 +51,9 @@ class dataProcessing extends QScript {
   val dindelASNCalls: String   = "/humgen/1kg/DCC/ftp/technical/working/20110126_dindel_august/ASN.dindel_august_release_merged_pilot1.20110126.sites.vcf.gz"
   val dindelEURCalls: String   = "/humgen/1kg/DCC/ftp/technical/working/20110126_dindel_august/EUR.dindel_august_release_merged_pilot1.20110126.sites.vcf.gz"
 
+  val queueLogDir: String = ".qlog/"
+
+
   // Simple boolean definitions for code clarity
   val knownsOnly: Boolean = true
   val intermediate: Boolean = true
@@ -59,7 +62,7 @@ class dataProcessing extends QScript {
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.jarFile = qscript.GATKjar
     this.reference_sequence = qscript.reference
-    this.memoryLimit = Some(8)
+    this.memoryLimit = Some(4)
     this.isIntermediate = true
   }
 
@@ -135,7 +138,7 @@ class dataProcessing extends QScript {
       this.rodBind :+= RodBind("indels2", "VCF", dindelAFRCalls)
       this.rodBind :+= RodBind("indels3", "VCF", dindelEURCalls)
       this.rodBind :+= RodBind("indels4", "VCF", dindelASNCalls)
-      this.jobName = outIntervals + ".ktarget"
+      this.jobName = queueLogDir + outIntervals + ".ktarget"
   }
 
   class allTargets (inBams: String, outIntervals: String) extends knownTargets(outIntervals) {
@@ -148,7 +151,7 @@ class dataProcessing extends QScript {
       this.rodBind :+= RodBind("indels3", "VCF", dindelEURCalls)
       this.rodBind :+= RodBind("indels4", "VCF", dindelASNCalls)
       if (qscript.indels != null) this.rodBind :+= RodBind("indels5", "VCF", qscript.indels)
-      this.jobName = outIntervals + ".atarget"
+      this.jobName = queueLogDir + outIntervals + ".atarget"
   }
 
   class clean (inBams: String, tIntervals: String, outBam: String, knownsOnly: Boolean, intermediate: Boolean) extends IndelRealigner with CommandLineGATKArgs {
@@ -168,7 +171,7 @@ class dataProcessing extends QScript {
     this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
     this.compress = Some(0)
     this.isIntermediate = intermediate
-    this.jobName = outBam + ".clean"
+    this.jobName = queueLogDir + outBam + ".clean"
     if (!intermediate && !qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     if (!intermediate && qscript.intervals != null) this.intervals :+= qscript.intervals
   }
@@ -185,7 +188,7 @@ class dataProcessing extends QScript {
     this.memoryLimit = Some(6)
     this.jarFile = qscript.dedupJar
     this.isIntermediate = true
-    this.jobName = outBam + ".dedup"
+    this.jobName = queueLogDir + outBam + ".dedup"
   }
 
   class cov (inBam: String, outRecalFile: String) extends CountCovariates with CommandLineGATKArgs {
@@ -193,7 +196,7 @@ class dataProcessing extends QScript {
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= new File(inBam)
     this.recal_file = new File(outRecalFile)
-    this.jobName = outRecalFile + ".covariates"
+    this.jobName = queueLogDir + outRecalFile + ".covariates"
   }
 
   class recal (inBam: String, inRecalFile: String, outBam: String) extends TableRecalibration with CommandLineGATKArgs {
@@ -202,7 +205,7 @@ class dataProcessing extends QScript {
     this.recal_file = new File(inRecalFile)
     this.out = new File(outBam)
     this.index_output_bam_on_the_fly = Some(true)
-    this.jobName = outBam + ".recalibration"
+    this.jobName = queueLogDir + outBam + ".recalibration"
   }
 
   class analyzeCovariates (inRecalFile: String, outPath: String) extends AnalyzeCovariates {
@@ -210,12 +213,12 @@ class dataProcessing extends QScript {
     this.resources = qscript.R
     this.recal_file = new File(inRecalFile)
     this.output_dir = outPath
-    this.jobName = inRecalFile + ".analyze_covariates"
+    this.jobName = queueLogDir + inRecalFile + ".analyze_covariates"
   }
 
   class writeList(inBams: List[File], outBamList: String) extends ListWriterFunction {
     this.inputFiles = inBams
     this.listFile = new File(outBamList)
-    this.jobName = outBamList + ".bamList"
+    this.jobName = queueLogDir + outBamList + ".bamList"
   }
 }
