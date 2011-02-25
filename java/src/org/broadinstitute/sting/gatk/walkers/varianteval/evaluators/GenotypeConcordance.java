@@ -249,7 +249,7 @@ public class GenotypeConcordance extends VariantEvaluator {
         String interesting = null;
 
         // sanity check that we at least have either eval or validation data
-        if (eval == null && !isValidVC(validation)) {
+        if ( (validation != null && !validation.hasGenotypes()) || eval == null && !isValidVC(validation)) {
             return interesting;
         }
 
@@ -300,7 +300,6 @@ public class GenotypeConcordance extends VariantEvaluator {
     }
 
     private String determineStats(final VariantContext eval, final VariantContext validation) {
-
         String interesting = null;
 
         final boolean validationIsValidVC = isValidVC(validation);
@@ -380,7 +379,6 @@ public class GenotypeConcordance extends VariantEvaluator {
             } else { // multi sample calls
                 qualityScoreHistograms.incrValue( eval.getPhredScaledQual(), validation.isPolymorphic() );
             }
-
         }
 
         return interesting;
