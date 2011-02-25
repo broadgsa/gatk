@@ -130,19 +130,7 @@ class dataProcessing extends QScript {
         new clean(bamList, allTargetIntervals, cleanedBam, !knownsOnly, !intermediate))
   }
 
-  class knownTargets (outIntervals: String) extends RealignerTargetCreator with CommandLineGATKArgs {
-      this.out = new File(outIntervals)
-      this.mismatchFraction = Some(0.0)
-      this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-      this.rodBind :+= RodBind("indels1", "VCF", dindelPilotCalls)
-      this.rodBind :+= RodBind("indels2", "VCF", dindelAFRCalls)
-      this.rodBind :+= RodBind("indels3", "VCF", dindelEURCalls)
-      this.rodBind :+= RodBind("indels4", "VCF", dindelASNCalls)
-      this.jobName = queueLogDir + outIntervals + ".ktarget"
-  }
-
-  class allTargets (inBams: String, outIntervals: String) extends knownTargets(outIntervals) {
-      this.input_file :+= new File(inBams)
+  class TargetBase (outIntervals: String) extends RealignerTargetCreator with CommandLineGATKArgs {
       this.out = new File(outIntervals)
       this.mismatchFraction = Some(0.0)
       this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
@@ -151,6 +139,15 @@ class dataProcessing extends QScript {
       this.rodBind :+= RodBind("indels3", "VCF", dindelEURCalls)
       this.rodBind :+= RodBind("indels4", "VCF", dindelASNCalls)
       if (qscript.indels != null) this.rodBind :+= RodBind("indels5", "VCF", qscript.indels)
+
+  }
+
+  class knownTargets (outIntervals: String) extends TargetBase {
+      this.jobName = queueLogDir + outIntervals + ".ktarget"
+  }
+
+  class allTargets (inBams: String, outIntervals: String) extends TargetBase(outIntervals) {
+      this.input_file :+= new File(inBams)
       this.jobName = queueLogDir + outIntervals + ".atarget"
   }
 
@@ -165,8 +162,6 @@ class dataProcessing extends QScript {
     this.rodBind :+= RodBind("indels4", "VCF", dindelASNCalls)
     if (qscript.indels != null) this.rodBind :+= RodBind("indels5", "VCF", qscript.indels)
     this.useOnlyKnownIndels = knownsOnly
-    this.sortInCoordinateOrderEvenThoughItIsHighlyUnsafe = true
-    this.constrainMovement = true
     this.doNotUseSW = true
     this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
     this.compress = Some(0)

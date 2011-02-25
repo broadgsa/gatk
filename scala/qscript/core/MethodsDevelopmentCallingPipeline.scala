@@ -172,7 +172,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         add(new snpCall(target))
         add(new snpFilter(target))
         add(new GenerateClusters(target, !goldStandard))
-        add(new VariantRecalibratorTiTv(target, !goldStandard))
         add(new VariantRecalibratorNRS(target, !goldStandard))
         if (!noCut) add(new VariantCut(target))
         if (eval) add(new snpEvaluation(target))
@@ -205,7 +204,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   // 1a.) Call SNPs with UG
-  class snpCall (t: Target) extends GenotyperBase {
+  class snpCall (t: Target) extends GenotyperBase(t) {
     this.out = t.rawVCF
     this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY})
     this.analysisName = t.name + "_UGs"
@@ -213,7 +212,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   // 1b.) Call Indels with UG
-  class indelCall (t: Target) extends GenotyperBase {
+  class indelCall (t: Target) extends GenotyperBase(t) {
     this.out = t.rawIndelVCF
     this.glm = Some(org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL)
     this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF)
@@ -231,7 +230,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   // 2a.) Hard Filter for SNPs (soon to be obsolete)
-  class snpFilter (t: Target) extends FilterBase {
+  class snpFilter (t: Target) extends FilterBase(t) {
     this.variantVCF = t.rawVCF
     this.out = t.filteredVCF
     if (useMask) {
@@ -243,7 +242,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
    // 2b.) Hard Filter for Indels
-  class indelFilter (t: Target) extends FilterBase {
+  class indelFilter (t: Target) extends FilterBase(t) {
     this.variantVCF = t.rawIndelVCF
     this.out = t.filteredIndelVCF
     this.filterName ++= List("LowQual", "StrandBias", "QualByDepth", "HomopolymerRun")
@@ -347,17 +346,16 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   // 6a.) SNP Evaluation (OPTIONAL) based on the cut vcf
-  class snpEvaluation(t: Target) extends EvalBase {
+  class snpEvaluation(t: Target) extends EvalBase(t) {
     if (t.reference == b37 || t.reference == hg19) this.rodBind :+= RodBind("compomni", "VCF", omni_b37)
     this.rodBind :+= RodBind("eval", "VCF", if (useCut) {t.cutVCF} else {t.tsRecalibratedVCF} )
-    this.evalModule :+= "GenotypeConcordance"
     this.out =  t.evalFile
     this.analysisName = t.name + "_VEs"
     this.jobName =  queueLogDir + t.name + ".snp.eval"
   }
 
   // 6b.) Indel Evaluation (OPTIONAL)
-  class indelEvaluation(t: Target) extends EvalBase {
+  class indelEvaluation(t: Target) extends EvalBase(t) {
     this.rodBind :+= RodBind("eval", "VCF", t.filteredIndelVCF)
     this.evalModule :+= "IndelStatistics"
     this.out =  t.evalIndelFile
