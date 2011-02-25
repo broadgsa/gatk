@@ -4,6 +4,7 @@ import net.sf.picard.sam.SamPairUtil;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+//import org.broadinstitute.sting.utils.SimpleTimer;
 
 import java.io.File;
 import java.util.*;
@@ -104,8 +105,11 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
 
     /** read.name -> records */
     HashMap<String, SAMRecord> forMateMatching = new HashMap<String, SAMRecord>();
-    //Queue<SAMRecord> waitingReads = new LinkedList<SAMRecord>();
     Queue<SAMRecord> waitingReads = new PriorityQueue<SAMRecord>(1000, comparer);
+
+    //private SimpleTimer timer = new SimpleTimer("ConstrainedWriter");
+    //private long PROGRESS_PRINT_FREQUENCY = 10 * 1000;             // in milliseconds
+    //private long lastProgressPrintTime = -1;                       // When was the last time we printed progress log?
 
 
     /**
@@ -127,6 +131,9 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
                                               final int maxInsertSizeForMovingReadPairs) {
         this.finalDestination = finalDestination;
         this.maxInsertSizeForMovingReadPairs = maxInsertSizeForMovingReadPairs;
+
+        //timer.start();
+        //lastProgressPrintTime = timer.currentTime();
     }
 
     public int getMaxReadsInQueue() { return maxReadsInQueue; }
@@ -144,39 +151,30 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
         return pos + 2 * MAX_POS_MOVE_ALLOWED < addedRead.getAlignmentStart();
     }
 
-//    private void verifyOrdering() {
-//        SAMRecord lastRead = null;
-//        List<SAMRecord> reads = new ArrayList<SAMRecord>();
-//
-//        reads.addAll(waitingReads);
-//        Collections.sort(reads, comparer);
-//        for ( SAMRecord read : reads ) {
-//            logger.info("READ is " + read.getReadName() + " pos " + read.getAlignmentStart());
-//            if ( lastRead != null && comparer.fileOrderCompare(lastRead, read) > 0 )
-//                throw new ReviewedStingException("BUG: records added out of order: read1=" + lastRead +
-//                        ", pos=" + lastRead.getAlignmentStart() + " read2="+read + ", pos=" + read.getAlignmentStart());
-//            lastRead = read;
-//        }
-//
-////        List<SAMRecord> reads = new ArrayList<SAMRecord>();
-////        while ( waitingReads.peek() != null ) {
-////            SAMRecord read = waitingReads.poll();
-////            logger.info("READ is " + read.getReadName() + " pos " + read.getAlignmentStart());
-////            if ( lastRead != null && comparer.fileOrderCompare(lastRead, read) > 0 )
-////                throw new ReviewedStingException("BUG: records added out of order: read1=" + lastRead +
-////                        ", pos=" + lastRead.getAlignmentStart() + " read2="+read + ", pos=" + read.getAlignmentStart());
-////            lastRead = read;
-////            reads.add(read);
-////        }
-//
-//        for ( SAMRecord read : reads ) waitingReads.add(read);
-//    }
 
     /**
      * @{inheritDoc}
      */
     public void addAlignment( SAMRecord newRead ) {
         if ( DEBUG ) logger.info("New read pos " + newRead.getAlignmentStart());
+
+        //final long curTime = timer.currentTime();
+        //if ( curTime - lastProgressPrintTime > PROGRESS_PRINT_FREQUENCY ) {
+        //    lastProgressPrintTime = curTime;
+        //    System.out.println("WaitingReads.size = " + waitingReads.size() + ", forMateMatching.size = " + forMateMatching.size());
+        //}
+
+        // if the new read is on a different contig, then we need to flush the queue and clear the map
+        if ( waitingReads.size() > 0 && waitingReads.peek().getReferenceIndex() != newRead.getReferenceIndex()) {
+            if ( DEBUG ) logger.warn("Flushing queue on move to new contig: " + newRead.getReferenceName());
+
+            while ( ! waitingReads.isEmpty() ) {
+                // emit to disk
+                finalDestination.addAlignment(waitingReads.remove());
+            }
+
+            forMateMatching.clear();
+        }
 
         // fix mates, as needed
         // Since setMateInfo can move reads, we potentially need to remove the mate, and requeue
@@ -206,7 +204,6 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
         maxReadsInQueue = Math.max(maxReadsInQueue, waitingReads.size());
 
         if ( ++counter % EMIT_FREQUENCY == 0 ) {
-            //verifyOrdering();
             while ( ! waitingReads.isEmpty() ) { // there's something in the queue
                 SAMRecord read = waitingReads.peek();
 
