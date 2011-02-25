@@ -79,7 +79,7 @@ class MultiFullCallingPipeline extends QScript {
       var pipelineComplete = new File(yamlFile.getParentFile, yamlName + ".mfcp")
 
       commandDirectory = yamlFile.getParentFile
-      jobOutputFile = IOUtils.absolute(commandDirectory, "queue.out")
+      jobOutputFile = IOUtils.absolute(commandDirectory, yamlName + ".queue.txt")
       jarFile = queueJar
       memoryLimit = Some(1)
 
