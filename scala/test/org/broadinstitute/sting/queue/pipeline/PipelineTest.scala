@@ -257,7 +257,7 @@ object PipelineTest extends BaseTest with Logging {
         Assert.fail("Test %s expected exception %s but none was thrown".format(name, expectedException.toString))
     } else {
       if (CommandLineProgram.result != 0)
-        throw new RuntimeException("Error running the GATK with arguments: " + args)
+        throw new RuntimeException("Error running Queue with arguments: " + args)
     }
   }
 

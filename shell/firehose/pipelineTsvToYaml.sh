@@ -82,39 +82,38 @@ awk '
                 bamFile = columnFields[key]
 
         if (referenceFile == "") {
-            print "Column header reference_file missing from " tsvFile > "/dev/stderr"
+            print "ERROR: Column header reference_file missing from " tsvFile > "/dev/stderr"
             exitWithError = 1
         }
 
         if (intervalList == "") {
-            print "Column header interval_list missing from " tsvFile > "/dev/stderr"
+            print "ERROR: Column header interval_list missing from " tsvFile > "/dev/stderr"
             exitWithError = 1
         }
 
         if (sampleId == "") {
-            print "Column header sample_id missing from " tsvFile > "/dev/stderr"
+            print "ERROR: Column header sample_id missing from " tsvFile > "/dev/stderr"
             exitWithError = 1
         }
 
         if (squidProject == "") {
-            print "Column header squid_project missing from " tsvFile > "/dev/stderr"
+            print "ERROR: Column header squid_project missing from " tsvFile > "/dev/stderr"
             exitWithError = 1
         }
 
         if (collaboratorId == "") {
-            print "Column header collaborator_id missing from " tsvFile > "/dev/stderr"
+            print "ERROR: Column header collaborator_id missing from " tsvFile > "/dev/stderr"
             exitWithError = 1
         }
 
         if (bamFile == "") {
-            print "Column header *bam_file* missing from " tsvFile > "/dev/stderr"
+            print "ERROR: Column header *bam_file* missing from " tsvFile > "/dev/stderr"
             exitWithError = 1
         }
 
         if (exitWithError) {
             exit 1
         }
-
 
         refseqDir = "/humgen/gsa-hpprojects/GATK/data/Annotations/refseq/"
         dbsnpDir = "/humgen/gsa-hpprojects/GATK/data/"
@@ -131,22 +130,34 @@ awk '
 
         printf "{"
     } else {
-        if (NR == 2) {
-            # Based on the reference of the first sample, specify the dbsnps and refseq tables.
+        missingValue = 0
+        if ($referenceFile == "") missingValue = 1
+        if ($intervalList == "") missingValue = 1
+        if ($sampleId == "") missingValue = 1
+        if ($squidProject == "") missingValue = 1
+        if ($collaboratorId == "") missingValue = 1
+        if ($bamFile == "") missingValue = 1
 
-            referencePartCount = split($referenceFile, referenceParts, "/")
-            referenceName = referenceParts[referencePartCount]
-
-            genotypeDbsnp = genotypeDbsnps[referenceName]
-            evalDbsnp = evalDbsnps[referenceName]
-            refseq = refseqs[referenceName]
-
-            printf '"$PROJECT_YAML_TEMPLATE"'
-            printf "\n  samples: ["
+        if (missingValue) {
+            print "WARNING: Skipping row which does not have all values: " $0 > "/dev/stderr"
         } else {
-            printf ","
+            if (NR == 2) {
+                # Based on the reference of the first sample, specify the dbsnps and refseq tables.
+
+                referencePartCount = split($referenceFile, referenceParts, "/")
+                referenceName = referenceParts[referencePartCount]
+
+                genotypeDbsnp = genotypeDbsnps[referenceName]
+                evalDbsnp = evalDbsnps[referenceName]
+                refseq = refseqs[referenceName]
+
+                printf '"$PROJECT_YAML_TEMPLATE"'
+                printf "\n  samples: ["
+            } else {
+                printf ","
+            }
+            printf '"$SAMPLE_YAML_TEMPLATE"'
         }
-        printf '"$SAMPLE_YAML_TEMPLATE"'
     }
 }
 END {
