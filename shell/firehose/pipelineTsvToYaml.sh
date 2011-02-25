@@ -31,8 +31,8 @@ PROJECT_YAML_TEMPLATE='"\n\
   project: {\n\
     name: %s,\n\
     referenceFile: %s,\n\
-    genotypeDbsnpFile: %s,\n\
-    evalDbsnpFile: %s,\n\
+    genotypeDbsnp: %s,\n\
+    evalDbsnp: %s,\n\
     refseqTable: %s,\n\
     intervalList: %s\n\
   },", projectName, $referenceFile, genotypeDbsnp, evalDbsnp, refseq, $intervalList'
