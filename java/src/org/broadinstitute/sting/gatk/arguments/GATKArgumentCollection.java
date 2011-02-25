@@ -179,7 +179,7 @@ public class GATKArgumentCollection {
      * method.
      * @return The default downsampling mechanism, or null if none exists.
      */
-    public DownsamplingMethod getDefaultDownsamplingMethod() {
+    public static DownsamplingMethod getDefaultDownsamplingMethod() {
         return new DownsamplingMethod(DEFAULT_DOWNSAMPLING_TYPE,DEFAULT_DOWNSAMPLING_COVERAGE,null);
     }
 

@@ -61,6 +61,10 @@ class FilePointer {
         this.isRegionUnmapped = false;
     }
 
+    public FilePointer(final String referenceSequence) {
+        this(referenceSequence,null);
+    }
+
     public void addLocation(GenomeLoc location) {
         locations.add(location);
     }

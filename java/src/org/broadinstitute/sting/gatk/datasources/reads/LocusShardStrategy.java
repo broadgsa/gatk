@@ -83,7 +83,10 @@ public class LocusShardStrategy implements ShardStrategy {
             else
                 intervals = locations;
 
-            this.filePointerIterator = IntervalSharder.shardIntervals(this.reads,intervals);
+            if(SAMDataSource.TRY_LOW_MEMORY_SHARDING)
+                this.filePointerIterator = new LowMemoryIntervalSharder(this.reads,intervals);
+            else
+                this.filePointerIterator = IntervalSharder.shardIntervals(this.reads,intervals);
         }
         else {
             final int maxShardSize = 100000;

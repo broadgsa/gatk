@@ -25,6 +25,7 @@
 package net.sf.samtools;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -53,8 +54,8 @@ public class GATKBAMFileSpan extends BAMFileSpan {
      * Create a new chunk list from the given list of chunks.
      * @param chunks Constituent chunks.
      */
-    public GATKBAMFileSpan(final List<GATKChunk> chunks) {
-        super(new ArrayList<Chunk>(chunks));
+    public GATKBAMFileSpan(final GATKChunk[] chunks) {
+        super(Arrays.<Chunk>asList(chunks));
     }
 
     /**

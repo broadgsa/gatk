@@ -88,7 +88,7 @@ public class GATKBAMIndexUnitTest extends BaseTest {
 
         // Level 5                                
         Assert.assertEquals(GATKBAMIndex.getFirstBinInLevel(5),4681);
-        Assert.assertEquals(bamIndex.getLevelSize(5),37449-4681+1);
+        Assert.assertEquals(bamIndex.getLevelSize(5),37448-4681+1);
     }
 
 }

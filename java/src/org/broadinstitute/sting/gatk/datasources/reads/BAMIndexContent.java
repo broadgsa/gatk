@@ -100,7 +100,7 @@ class BAMIndexContent {
         List<GATKChunk> allChunks = new ArrayList<GATKChunk>();
         for (GATKBin b : mBinList)
             if (b.getChunkList() != null) {
-                allChunks.addAll(b.getGATKChunkList());
+                allChunks.addAll(Arrays.asList(b.getChunkList()));
             }
         return Collections.unmodifiableList(allChunks);
     }

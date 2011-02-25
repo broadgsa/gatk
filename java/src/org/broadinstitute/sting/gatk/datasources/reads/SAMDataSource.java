@@ -46,6 +46,8 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -78,6 +80,11 @@ public class SAMDataSource {
      * How strict are the readers driving this data source.
      */
     private final SAMFileReader.ValidationStringency validationStringency;
+
+    /**
+     * Store BAM indices for each reader present.
+     */
+    private final Map<SAMReaderID,GATKBAMIndex> bamIndices = new HashMap<SAMReaderID,GATKBAMIndex>();
 
     /**
      * How far along is each reader?
@@ -120,6 +127,8 @@ public class SAMDataSource {
      * A collection of readers driving the merging process.
      */
     private final SAMResourcePool resourcePool;
+
+    static final boolean TRY_LOW_MEMORY_SHARDING = false;
 
     /**
      * Create a new SAM data source given the supplied read metadata.
@@ -272,6 +281,17 @@ public class SAMDataSource {
             originalToMergedReadGroupMappings.put(id,mappingToMerged);
         }
 
+        if(TRY_LOW_MEMORY_SHARDING) {
+            for(SAMReaderID id: readerIDs) {
+                File indexFile = findIndexFile(id.samFile);
+                if(indexFile != null) {
+                    SAMSequenceDictionary sequenceDictionary = readers.getReader(id).getFileHeader().getSequenceDictionary();
+                    GATKBAMIndex index = new GATKBAMIndex(indexFile,sequenceDictionary);
+                    bamIndices.put(id,index);
+                }
+            }
+        }
+
         resourcePool.releaseReaders(readers);
     }
 
@@ -366,14 +386,18 @@ public class SAMDataSource {
 
     /**
      * True if all readers have an index.
-     * @return
+     * @return True if all readers have an index.
      */
     public boolean hasIndex() {
-        for(SAMFileReader reader: resourcePool.getReadersWithoutLocking()) {
-            if(!reader.hasIndex())
-                return false;
+        if(TRY_LOW_MEMORY_SHARDING)
+            return readerIDs.size() == bamIndices.size();
+        else {
+            for(SAMFileReader reader: resourcePool.getReadersWithoutLocking()) {
+                if(!reader.hasIndex())
+                    return false;
+            }
+            return true;
         }
-        return true;
     }
 
     /**
@@ -382,8 +406,12 @@ public class SAMDataSource {
      * @return The index.  Will preload the index if necessary.
      */
     public BrowseableBAMIndex getIndex(final SAMReaderID id) {
-        SAMReaders readers = resourcePool.getReadersWithoutLocking();
-        return readers.getReader(id).getBrowseableIndex();
+        if(TRY_LOW_MEMORY_SHARDING)
+            return bamIndices.get(id);
+        else {
+            SAMReaders readers = resourcePool.getReadersWithoutLocking();
+            return readers.getReader(id).getBrowseableIndex();
+        }
     }
 
     /**
@@ -701,11 +729,10 @@ public class SAMDataSource {
             for(SAMReaderID readerID: readerIDs) {
                 SAMFileReader reader = new SAMFileReader(readerID.samFile);
                 reader.enableFileSource(true);
-                reader.enableIndexCaching(true);
+                if(!TRY_LOW_MEMORY_SHARDING)
+                    reader.enableIndexCaching(true);
                 reader.setValidationStringency(validationStringency);
 
-                // If no read group is present, hallucinate one.
-                // TODO: Straw poll to see whether this is really required.
                 final SAMFileHeader header = reader.getFileHeader();
                 logger.debug(String.format("Sort order is: " + header.getSortOrder()));
 
@@ -943,6 +970,37 @@ public class SAMDataSource {
                 candidateRead = iterator.next();
             }
         }
+    }
+
+    /**
+     * Locates the index file alongside the given BAM, if present.
+     * TODO: This is currently a hachetjob that reaches into Picard and pulls out its index file locator.  Replace with something more permanent.
+     * @param bamFile The data file to use.
+     * @return A File object if the index file is present; null otherwise.
+     */
+    private File findIndexFile(File bamFile) {
+        File indexFile;
+
+        try {
+            Class bamFileReaderClass = Class.forName("net.sf.samtools.BAMFileReader");
+            Method indexFileLocator = bamFileReaderClass.getDeclaredMethod("findIndexFile",File.class);
+            indexFileLocator.setAccessible(true);
+            indexFile = (File)indexFileLocator.invoke(null,bamFile);
+        }
+        catch(ClassNotFoundException ex) {
+            throw new ReviewedStingException("Unable to locate BAMFileReader class, used to check for index files");
+        }
+        catch(NoSuchMethodException ex) {
+            throw new ReviewedStingException("Unable to locate Picard index file locator.");
+        }
+        catch(IllegalAccessException ex) {
+            throw new ReviewedStingException("Unable to access Picard index file locator.");
+        }
+        catch(InvocationTargetException ex) {
+            throw new ReviewedStingException("Unable to invoke Picard index file locator.");
+        }
+
+        return indexFile;
     }
 }
 

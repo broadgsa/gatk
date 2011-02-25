@@ -104,6 +104,14 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
     }
 
     /**
+     * Gets the file backing this index.
+     * @return The index file.
+     */
+    public File getIndexFile() {
+        return mFile;
+    }
+
+    /**
      * Get the number of levels employed by this index.
      * @return Number of levels in this index.
      */
@@ -127,7 +135,7 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
      */
     public int getLevelSize(final int levelNumber) {
         if(levelNumber == getNumIndexLevels()-1)
-            return MAX_BINS-LEVEL_STARTS[levelNumber];
+            return MAX_BINS-LEVEL_STARTS[levelNumber]-1;
         else
             return LEVEL_STARTS[levelNumber+1]-LEVEL_STARTS[levelNumber];
     }
@@ -272,7 +280,7 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
 
         List<GATKChunk> chunkList = new ArrayList<GATKChunk>();
         for(GATKBin bin: bins) {
-            for(GATKChunk chunk: bin.getGATKChunkList())
+            for(GATKChunk chunk: bin.getChunkList())
                 chunkList.add(chunk.clone());
         }
 
@@ -281,7 +289,7 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
         }
 
         chunkList = optimizeChunkList(chunkList,queryResults.getLinearIndex().getMinimumOffset(startPos));
-        return new GATKBAMFileSpan(chunkList);
+        return new GATKBAMFileSpan(chunkList.toArray(new GATKChunk[chunkList.size()]));
     }
 
     /**
@@ -322,13 +330,13 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
 
         List<GATKChunk> chunkList = new ArrayList<GATKChunk>();
         for(GATKBin coveringBin: binTree) {
-            for(GATKChunk chunk: coveringBin.getGATKChunkList())
+            for(GATKChunk chunk: coveringBin.getChunkList())
                 chunkList.add(chunk.clone());
         }
 
         final int start = getFirstLocusInBin(bin);
         chunkList = optimizeChunkList(chunkList,indexQuery.getLinearIndex().getMinimumOffset(start));
-        return new GATKBAMFileSpan(chunkList);
+        return new GATKBAMFileSpan(chunkList.toArray(new GATKChunk[chunkList.size()]));
     }
 
     public GATKBAMFileSpan getContentsOfBin(final Bin bin) {
@@ -344,7 +352,7 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
 
         GATKBin queriedBin = indexQuery.getBins().getBin(gatkBin.getBinNumber());
 
-        return queriedBin != null ? new GATKBAMFileSpan(queriedBin.getGATKChunkList()) : null;
+        return queriedBin != null ? new GATKBAMFileSpan(queriedBin.getChunkList()) : null;
     }
 
     /**
@@ -420,8 +428,7 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
                 skipBytes(16 * nChunks);
             }
             GATKBin bin = new GATKBin(referenceSequence, indexBin);
-            bin.setGATKChunkList(chunks);
-            bin.setLastChunk(lastChunk);
+            bin.setChunkList(chunks.toArray(new GATKChunk[chunks.size()]));
             bins[indexBin] = bin;
         }
 
@@ -560,7 +567,7 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
         }
     }
 
-    private void skipToSequence(final int sequenceIndex) {
+    protected void skipToSequence(final int sequenceIndex) {
         for (int i = 0; i < sequenceIndex; i++) {
             // System.out.println("# Sequence TID: " + i);
             final int nBins = readInteger();
@@ -581,20 +588,23 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
         mFileBuffer.get(bytes);
     }
 
-    private int readInteger() {
+    protected int readInteger() {
         return mFileBuffer.getInt();
     }
 
-    private long readLong() {
+    protected long readLong() {
         return mFileBuffer.getLong();
     }
 
-    private void skipBytes(final int count) {
+    protected void skipBytes(final int count) {
         mFileBuffer.position(mFileBuffer.position() + count);
     }
 
-    private void seek(final int position) {
+    protected void seek(final int position) {
         mFileBuffer.position(position);
     }
 
+    protected long position() {
+        return mFileBuffer.position();
+    }
 }

@@ -158,8 +158,8 @@ public class IntervalSharder {
             if(!binIterator.hasNext())
                 break;
 
-            int locationStart = (int)location.getStart();
-            final int locationStop = (int)location.getStop();
+            int locationStart = location.getStart();
+            final int locationStop = location.getStop();
 
             // Advance to first bin.
             while(binIterator.peek().stop < locationStart)

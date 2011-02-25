@@ -33,38 +33,102 @@ import java.util.List;
  * override GATKBin and make it public.
  * TODO: Eliminate once we determine the final fate of the BAM index reading code.
  */
-public class GATKBin extends Bin {
+public class GATKBin implements Comparable<GATKBin> {
+    /**
+     * The reference sequence associated with this bin.
+     */
+    private final int referenceSequence;
+
+    /**
+     * The number of this bin within the BAM file.
+     */
+    private final int binNumber;
+
+    /**
+     * The chunks associated with this bin.
+     */
+    private GATKChunk[] chunkList;
+
+    public GATKBin(Bin bin) {
+        this(bin.getReferenceSequence(),bin.getBinNumber());
+    }
+
     public GATKBin(final int referenceSequence, final int binNumber) {
-        super(referenceSequence,binNumber);
+        this.referenceSequence = referenceSequence;
+        this.binNumber = binNumber;
     }
 
-    public GATKBin(final Bin bin) {
-        super(bin.getReferenceSequence(),bin.getBinNumber());
-    }
-
-    @Override
     public int getReferenceSequence() {
-        return super.getReferenceSequence();
+        return referenceSequence;
     }
 
-    @Override
     public int getBinNumber() {
-        return super.getBinNumber();
+        return binNumber;
     }
 
-    public List<GATKChunk> getGATKChunkList() {
-        List<GATKChunk> gatkChunks = new ArrayList<GATKChunk>();
-        for(Chunk chunk: getChunkList())
-            gatkChunks.add(new GATKChunk(chunk));
-        return gatkChunks;
+    /**
+     * Convert this GATKBin to a normal bin, for processing with the standard BAM query interface.
+     * @return
+     */
+    public Bin toBin() {
+        return new Bin(referenceSequence,binNumber);
     }
 
-    public void setGATKChunkList(List<GATKChunk> chunks) {
-        super.setChunkList(new ArrayList<Chunk>(chunks));
-    }
-
+    /**
+     * See whether two bins are equal.  If the ref seq and the bin number
+     * are equal, assume equality of the chunk list.
+     * @param other The other Bin to which to compare this.
+     * @return True if the two bins are equal.  False otherwise.
+     */
     @Override
-    public String toString() {
-        return String.format("Bin %d in contig %d",getBinNumber(),getReferenceSequence());
+    public boolean equals(Object other) {
+        if(other == null) return false;
+        if(!(other instanceof GATKBin)) return false;
+
+        GATKBin otherBin = (GATKBin)other;
+        return this.referenceSequence == otherBin.referenceSequence && this.binNumber == otherBin.binNumber;
+    }
+
+    /**
+     * Compute a unique hash code for the given reference sequence and bin number.
+     * @return A unique hash code.
+     */
+    @Override
+    public int hashCode() {
+        return ((Integer)referenceSequence).hashCode() ^ ((Integer)binNumber).hashCode();
+    }
+
+    /**
+     * Compare two bins to see what ordering they should appear in.
+     * @param other Other bin to which this bin should be compared.
+     * @return -1 if this < other, 0 if this == other, 1 if this > other.
+     */
+    public int compareTo(GATKBin other) {
+        if(other == null)
+            throw new ClassCastException("Cannot compare to a null object");
+
+        // Check the reference sequences first.
+        if(this.referenceSequence != other.referenceSequence)
+            return referenceSequence - other.referenceSequence;
+
+        // Then check the bin ordering.
+        return binNumber - other.binNumber;
+    }
+
+    /**
+     * Sets the chunks associated with this bin
+     */
+    public void setChunkList(GATKChunk[] list){
+        chunkList = list;
+    }
+
+    /**
+     * Gets the list of chunks associated with this bin.
+     * @return the chunks in this bin.  If no chunks are associated, an empty list will be returned.
+     */
+    public GATKChunk[] getChunkList(){
+        if(chunkList == null)
+            return new GATKChunk[0];
+        return chunkList;
     }
 }
