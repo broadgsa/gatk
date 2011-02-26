@@ -1,6 +1,6 @@
 args = commandArgs(TRUE);
 
-RUNME = T
+RUNME = F
 onCMDLine = ! is.na(args[1])
 DATA_FILE = args[1]
 DESCRIPTION = args[2]
@@ -29,7 +29,6 @@ everyNth <- function(x, n) {
     x[keep,]
 }
 
-
 l = length(d$units.processed)
 d$units.processed.margin = vec.margin(d$units.processed)
 #prev = 0
@@ -53,8 +52,8 @@ generateOneReport <- function(d) {
     if ( onCMDLine ) png(paste(DATA_FILE, ".marginal.png", sep=""), width=1080, height=1080)
     running_median_window = 101
     rm = runmed(d$units.processed.margin, running_median_window)
-    POINT_COL = "#0000AA33"
-    plot(dpoints$elapsed.time, dpoints$units.processed.margin, main=DESCRIPTION, xlab="Elapsed time (sec)", ylab="Units processed in last timing interval", type="p", cex = 0.5, col=POINT_COL)
+    POINT_COL = "#0000AA99"
+    plot(dpoints$elapsed.time, dpoints$units.processed.margin, main=DESCRIPTION, xlab="Elapsed time (sec)", ylab="Units processed in last timing interval", type="p", cex = 0.75, col=POINT_COL)
     lines(d$elapsed.time, rm, lwd=3, col="red")
     legend("topleft", c("Observations", "101-elt running median"), fill=c(POINT_COL, "red"))
     if ( onCMDLine ) dev.off()
@@ -63,7 +62,6 @@ generateOneReport <- function(d) {
 if ( RUNME ) {
     generateOneReport(d)
 }
-
 
 
 

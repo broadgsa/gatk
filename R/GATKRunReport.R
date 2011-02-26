@@ -181,7 +181,7 @@ generateOneReport <- function(d, header, includeByWeek = T) {
     #reportCountingPlot(d$working.directory, head("Working directory"))
 }
 
-RUNME = F
+RUNME = T
 if ( RUNME ) {
     lastWeek = levels(cut(d$end.time, "weeks"))[-1]
     generateOneReport(d, "Overall")
