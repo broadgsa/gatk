@@ -200,9 +200,12 @@ def compareAlignmentIndices(remoteAlignmentIndex, alignmentIndex):
         print '  md5s: local=%s remote=%s' % (raImd5, laImd5)
         if raImd5 <> laImd5:
             print '  [FAIL] -- alignment indices do not have the same hash!'
-            sys.exit(1)
+            #sys.exit(1)
         else:
             print '  [PASS] -- alignment indices are the same'
+        return remoteAlignmentIndexFile.file
+    else:
+        return None
 
 def displayChangeLog( changelog ):
     if changelog <> None:
@@ -258,10 +261,14 @@ if __name__ == "__main__":
     FTPSERVER.login()
 
     displayChangeLog(OPTIONS.remoteChangeLog)
-    compareAlignmentIndices(OPTIONS.remoteAlignmentIndex, OPTIONS.alignmentIndex)
+    remoteAI = compareAlignmentIndices(OPTIONS.remoteAlignmentIndex, OPTIONS.alignmentIndex)
 
     results = dict()
-    for file in itertools.chain(readAlignmentIndex(OPTIONS.alignmentIndex), filesInLocalPath(root, OPTIONS.scanLocal )):
+    AIToUse = OPTIONS.alignmentIndex 
+    if remoteAI != None:
+        AIToUse = remoteAI
+        print 'Using remote AI', remoteAI, "for comparisons"
+    for file in itertools.chain(readAlignmentIndex(AIToUse), filesInLocalPath(root, OPTIONS.scanLocal )):
         #print line
         #bas = line.split()[6]
         if file not in results:
