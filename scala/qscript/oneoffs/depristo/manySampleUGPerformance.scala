@@ -1,6 +1,6 @@
 import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
+import org.broadinstitute.sting.queue.extensions.gatk._
 
 class ManySampleUGPerformanceTesting extends QScript {
   @Argument(doc="gatkJarFile", required=false)
@@ -9,76 +9,73 @@ class ManySampleUGPerformanceTesting extends QScript {
   @Argument(shortName = "R", doc="ref", required=false)
   var referenceFile: File = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
 
-val TARGET_INTERVAL = "my.intervals"
-val FULL_BAM_LIST = new File("/humgen/1kg/processing/allPopulations_chr20_june_release/allPopulations.june.bam.list")
-val MERGED_DIR = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/manySampleUGPerformance/")
+  val TARGET_INTERVAL = "my.intervals"
+  val FULL_BAM_LIST = new File("allPopulations_phase1_release.no_solid.list")
+  val MERGED_DIR = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/manySampleUGPerformance/")
 
-trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { 
-    this.logging_level = "INFO"; 
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK {
+    this.logging_level = "INFO";
     this.jarFile = gatkJarFile;
     this.intervals = List(new File(TARGET_INTERVAL));
-    this.reference_sequence = referenceFile; 
-    this.jobQueue = "gsa"; 
-    this.et = Option(org.broadinstitute.sting.gatk.phonehome.GATKRunReport.PhoneHomeOption.STANDARD);
-    this.dcov = Option(50);
+    this.reference_sequence = referenceFile;
+    this.jobQueue = "gsa";
+    this.memoryLimit = Some(4)
     //this.commandDirectory = new File("results");
-    }
+  }
 
-def script = {
-    for (nSamples <- List(1, 2, 5, 10, 50, 100, 200, 300, 400, 500)) {
-        val sublist = new SliceList(nSamples)
-        val mergeSublist = new MergeBAMs(sublist.list)
-        
-    	add(sublist)
-    	add(mergeSublist)
-    	add(new Index(mergeSublist.o) )
+  def script = {
+    for (nSamples <- List(1, 2, 5, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900)) {
+//    for (nSamples <- List(10)) {
+      val sublist = new SliceList(nSamples)
+      val mergeSublist = new MergeBAMs(sublist.list)
+
+      add(sublist)
+      add(mergeSublist)
+      add(new Index(mergeSublist.o) )
 
       // SNP calling
-    	add(new Call(sublist.list, nSamples, "dynamic_merge"))
-    	add(new Call(mergeSublist.o, nSamples, "pre_merge"))
+      //add(new Call(sublist.list, nSamples, "dynamic_merge"))
+      add(new Call(mergeSublist.o, nSamples, "pre_merge"))
 
       // SNP calling -- no annotations
-    	add(new Call(sublist.list, nSamples, "dynamic_merge_no_annotations") { this.G :+= "None"; })
-    	add(new Call(mergeSublist.o, nSamples, "pre_merge_no_annotations") { this.G :+= "None"; })
+      //add(new Call(sublist.list, nSamples, "dynamic_merge_no_annotations") { this.G :+= "None"; })
+      add(new Call(mergeSublist.o, nSamples, "pre_merge_no_annotations") { this.G :+= "none"; })
 
       // CountLoci
-      add(new MyCountLoci(sublist.list, nSamples, "dynamic_merge"))
+      //add(new MyCountLoci(sublist.list, nSamples, "dynamic_merge"))
       add(new MyCountLoci(mergeSublist.o, nSamples, "pre_merge"))
-
     }
-}
+  }
 
-class Index(bamIn: File) extends SamtoolsIndexFunction {
+  class Index(bamIn: File) extends SamtoolsIndexFunction {
     this.jobQueue = "gsa"
     bamFile = bamIn
-}
+  }
 
-class MergeBAMs(bamList: File) extends PrintReads with UNIVERSAL_GATK_ARGS {
+  class MergeBAMs(bamList: File) extends PrintReads with UNIVERSAL_GATK_ARGS {
     this.memoryLimit = Some(3)
     this.input_file :+= bamList
+    this.memoryLimit = Some(16)
     this.o = new File(MERGED_DIR + "/" + bamList.getName + ".bam")
   }
 
-class Call(@Input(doc="foo") bamList: File, n: Int, name: String) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
+  class Call(@Input(doc="foo") bamList: File, n: Int, name: String) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
     @Output(doc="foo") var outVCF: File = new File("%s.%d.%s.vcf".format(bamList.getName, n, name))
-    this.memoryLimit = Some(4)
     this.input_file :+= bamList
-    this.jobQueue = "gsa"
     this.stand_call_conf = Option(10.0)
+    this.dcov = Option(50);
     this.o = outVCF
   }
 
   class MyCountLoci(@Input(doc="foo") bamList: File, n: Int, name: String) extends CountLoci with UNIVERSAL_GATK_ARGS {
-      @Output(doc="foo") var outFile: File = new File("%s.%d.%s.txt".format(bamList.getName, n, name))
-      this.memoryLimit = Some(4)
-      this.input_file :+= bamList
-      this.jobQueue = "gsa"
-      this.o = outFile
-    }
+    @Output(doc="foo") var outFile: File = new File("%s.%d.%s.txt".format(bamList.getName, n, name))
+    this.input_file :+= bamList
+    this.dcov = Option(50);
+    this.o = outFile
+  }
 
-class SliceList(n: Int) extends CommandLineFunction {
+  class SliceList(n: Int) extends CommandLineFunction {
     @Output(doc="foo") var list: File = new File("bams.%d.list".format(n))
-    this.jobQueue = "gsa"
     def commandLine = "head -n %d %s > %s".format(n, FULL_BAM_LIST, list)
   }
 }
