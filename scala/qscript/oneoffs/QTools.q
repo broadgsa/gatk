@@ -1,5 +1,6 @@
 import org.broadinstitute.sting.queue.library.ipf.vcf.{VCFExtractIntervals, VCFExtractSamples, VCFSimpleMerge, VCFExtractSites}
 import org.broadinstitute.sting.queue.library.ipf.SortByRef
+import org.broadinstitute.sting.queue.library.ipf.intervals.ExpandIntervals
 import org.broadinstitute.sting.queue.QScript
 import collection.JavaConversions._
 
@@ -13,6 +14,10 @@ class QTools extends QScript {
   @Argument(doc="reference file",shortName="ref",required=false) var ref : File = _
   @Argument(doc="The samples to extract",shortName="sm",required=false) var samples : String = _
   @Argument(doc="Keep filtered sites when merging or extracting?",shortName="kf",required=false) var keepFilters : Boolean = false
+  @Argument(doc="Input interval list (not used with VCF tools)",shortName="il",required=false) var intervalList : File = _
+  @Argument(doc="Reference fai file",shortName="fai",required=false) var fai : File = _
+  @Argument(doc="interval list expand start",shortName="il_start",required=false) var ilStart : Int = 1
+  @Argument(doc="interval list expand size",shortName="il_size",required=false) var ilSize : Int = 50
   // todo -- additional arguments or argument collection
 
   def script = {
@@ -34,6 +39,10 @@ class QTools extends QScript {
 
     if ( qtool.equals("SortByRef") ) {
       runSortByRef
+    }
+
+    if ( qtool.equals("ExpandTargets") ) {
+      runExpandTargets
     }
   }
 
@@ -64,5 +73,10 @@ class QTools extends QScript {
   def runSortByRef = {
     var sbr : SortByRef = new SortByRef(inVCF,new File(ref.getAbsolutePath+".fai"),output)
     add(sbr)
+  }
+
+  def runExpandTargets = {
+    var ets : ExpandIntervals = new ExpandIntervals(intervalList,ilStart,ilSize,output,fai,"INTERVALS","INTERVALS")
+    add(ets)
   }
 }

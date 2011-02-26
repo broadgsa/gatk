@@ -7,6 +7,7 @@ import collection.JavaConversions._
 import org.broadinstitute.sting.utils.text.XReadLines
 import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.utils.{GenomeLoc, GenomeLocParser}
+import collection.immutable.TreeSet
 
 // todo -- this is unsafe. Need to use a reference dictionary to ensure no off-contig targets are created
 class ExpandIntervals(in : File, start: Int, size: Int, out: File, ref: File, ipType: String, opType: String) extends InProcessFunction {
@@ -30,45 +31,66 @@ class ExpandIntervals(in : File, start: Int, size: Int, out: File, ref: File, ip
   var first : Boolean = true
   var lastTwo : (GenomeLoc,GenomeLoc) = _
 
+  var intervalCache : TreeSet[GenomeLoc] = _
+  val LINES_TO_CACHE : Int = 1000
+
   def run = {
-    first = true
-    lastTwo = null
     output = new PrintStream(outList)
+    intervalCache = new TreeSet[GenomeLoc]()(new Ordering[GenomeLoc]{
+      def compare(o1: GenomeLoc, o2: GenomeLoc) : Int = { o1.compareTo(o2) }
+    })
     parser = new GenomeLocParser(new FastaSequenceFile(ref,true))
     xrl = new XReadLines(inList)
     offsetIn = if (isBed(inType)) 1 else 0
-    offsetOut = if (isBed(outType)) 1 else 0
-    asScalaIterable(xrl).filter( ! _.startsWith("@")).map(parseGenomeInterval(_)).sliding(3).map(a => a.toList).foreach(a => expand(a(0),a(1),a(2)))
-    expand(lastTwo._1,lastTwo._2,null)
+    offsetOut = if( isBed(outType)) 1 else 0
+    var line : String = xrl.next
+    while ( line.startsWith("@") ) {
+      line = xrl.next
+    }
+    var prevLoc: GenomeLoc = null
+    var curLoc: GenomeLoc = null
+    var nextLoc : GenomeLoc = parseGenomeInterval(line)
+    var linesProcessed : Int = 1
+    while ( prevLoc != null || curLoc != null || nextLoc != null ) {
+      prevLoc = curLoc
+      curLoc = nextLoc
+      nextLoc = if ( xrl.hasNext ) parseGenomeInterval(xrl.next) else null
+      if ( curLoc != null ) {
+        intervalCache += refine(expandLeft(curLoc),prevLoc)
+        intervalCache += refine(expandRight(curLoc),nextLoc)
+      }
+      linesProcessed += 1
+      if ( linesProcessed % LINES_TO_CACHE == 0 ) {
+        val toPrint = intervalCache.filter( u => (u.isBefore(prevLoc) && u.distance(prevLoc) > startInt+sizeInt))
+        intervalCache = intervalCache -- toPrint
+        toPrint.foreach(u => output.print("%s%n".format(repr(u))))
+      }
+      //System.out.printf("%s".format(if ( curLoc == null ) "null" else repr(curLoc)))
+    }
+
+    intervalCache.foreach(u => output.print("%s%n".format(repr(u))))
+
     output.close()
   }
 
-  def expand(previous: GenomeLoc, current: GenomeLoc, next: GenomeLoc) : Unit = {
-    if ( first ) {
-      first = false
-      expand(null,previous,current)
-    }
-    lastTwo = (current,next)
-
-    if ( start > 0 ) {
-      val new1 = parser.createGenomeLoc(current.getContig,current.getStart-startInt-sizeInt,current.getStart-startInt)
-      val new2 = parser.createGenomeLoc(current.getContig,current.getStop+startInt,current.getStop+startInt+sizeInt)
-      if ( ok(new1,previous,next) ) {
-        //System.out.println("Printing! %s".format(repr(new1)))
-        output.print("%s%n".format(repr(new1)))
-      }
-      if ( ok(new2,previous,next) ) {
-        //System.out.println("Printing! %s".format(repr(new2)))
-        output.print("%s%n".format(repr(new2)))
-      }
-    } else {
-      output.print("%s%n".format(repr(parser.createGenomeLoc(current.getContig,current.getStart-sizeInt,current.getStop+sizeInt))))
-    }
+  def expandLeft(g: GenomeLoc) : GenomeLoc = {
+    parser.createGenomeLoc(g.getContig,g.getStart-startInt-sizeInt,g.getStart-startInt)
   }
 
-  def ok( loc : GenomeLoc, prev: GenomeLoc, next: GenomeLoc  ) : Boolean = {
-    //System.out.println("%s - %s - %s".format(repr(next),repr(loc),repr(previous)))
-    ( next == null || loc.distance(next) >= start) && (prev == null || loc.distance(prev) >= start) && (!loc.equals(prev) && !loc.equals(next))
+  def expandRight(g: GenomeLoc) : GenomeLoc = {
+    parser.createGenomeLoc(g.getContig,g.getStop+startInt,g.getStop+startInt+sizeInt)
+  }
+
+  def refine(newG: GenomeLoc, borderG: GenomeLoc) : GenomeLoc = {
+    if ( borderG == null || ! newG.overlapsP(borderG) ) {
+      newG
+    } else {
+      if ( newG.getStart < borderG.getStart ) {
+        parser.createGenomeLoc(newG.getContig,newG.getStart,borderG.getStart-startInt)
+      } else {
+        parser.createGenomeLoc(newG.getContig,borderG.getStop+startInt,newG.getStop)
+      }
+    }
   }
 
   def repr(loc : GenomeLoc) : String = {
