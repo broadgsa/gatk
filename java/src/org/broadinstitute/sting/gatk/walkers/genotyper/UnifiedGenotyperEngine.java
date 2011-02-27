@@ -159,7 +159,7 @@ public class UnifiedGenotyperEngine {
     public VariantCallContext calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, null);
-        if ( vc == null )
+        if ( vc == null || !vc.hasGenotypes() )
             return null;
 
         VariantCallContext vcc = calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc);
@@ -195,7 +195,7 @@ public class UnifiedGenotyperEngine {
 
         Allele refAllele = glcm.get().getLikelihoods(tracker, refContext, stratifiedContexts, type, genotypePriors, GLs, alternateAlleleToUse);
 
-        if (refAllele != null)
+        if ( refAllele != null )
             return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
         else
             return null;
