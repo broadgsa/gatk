@@ -160,14 +160,16 @@ class BinTreeIterator implements Iterator<BinTree> {
         final int firstBinInLowestLevel = GATKBAMIndex.getFirstBinInLevel(lowestLevel);
         final int binsInLowestLevel = index.getLevelSize(lowestLevel);
 
-        currentBinInLowestLevel++;
-
         GATKBin[] bins = new GATKBin[GATKBAMIndex.getNumIndexLevels()];
         nextBinTree = null;
         while(nextBinTree == null) {
+            currentBinInLowestLevel++;
+            boolean levelIteratorsExhausted = true;
+
             for(int level = lowestLevel; level >= 0; level--) {
                 if(!levelIterators[level].hasNext())
                     continue;
+                levelIteratorsExhausted = false;
 
                 final int firstBinInThisLevel = GATKBAMIndex.getFirstBinInLevel(level);
                 final int binsInThisLevel = index.getLevelSize(level);
@@ -180,6 +182,11 @@ class BinTreeIterator implements Iterator<BinTree> {
                     bins[level] = levelIterators[level].peek();
             }
 
+            // No more bins available for this reference sequence?  Break out of the loop.
+            if(levelIteratorsExhausted)
+                break;
+
+            // Found a compelling bin tree?  Break out of the loop.
             for(int level = 0; level <= lowestLevel; level++) {
                 if(bins[level] != null) {
                     nextBinTree = new BinTree(index,bins);

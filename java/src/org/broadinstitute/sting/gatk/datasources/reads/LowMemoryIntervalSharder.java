@@ -104,6 +104,13 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
                 }
             }
 
+            // Early exit if no bins were found.
+            if(coveredRegion == null) {
+                nextFilePointer.addLocation(currentLocus);
+                currentLocus = locusIterator.next();
+                continue;
+            }
+
             // Define the initial range of the file pointer, aka the region where the locus currently being processed intersects the BAM list.
             GenomeLoc initialLocation = currentLocus.intersect(coveredRegion);
             nextFilePointer.addLocation(initialLocation);
