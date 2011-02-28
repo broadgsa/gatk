@@ -156,7 +156,7 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
      * @{inheritDoc}
      */
     public void addAlignment( SAMRecord newRead ) {
-        if ( DEBUG ) logger.info("New read pos " + newRead.getAlignmentStart());
+        if ( DEBUG ) logger.info("New read pos " + newRead.getAlignmentStart() + " OP = " + newRead.getAttribute("OP"));
 
         //final long curTime = timer.currentTime();
         //if ( curTime - lastProgressPrintTime > PROGRESS_PRINT_FREQUENCY ) {
@@ -217,8 +217,9 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
                     forMateMatching.remove(read.getReadName());
 
                     if ( DEBUG )
-                        logger.warn(String.format("EMIT!  At %d: read %s at %d with isize %d, mate start %d",
-                                newRead.getAlignmentStart(), read.getReadName(), read.getAlignmentStart(), read.getInferredInsertSize(), read.getMateAlignmentStart()));
+                        logger.warn(String.format("EMIT!  At %d: read %s at %d with isize %d, mate start %d, op = %s",
+                                newRead.getAlignmentStart(), read.getReadName(), read.getAlignmentStart(),
+                                read.getInferredInsertSize(), read.getMateAlignmentStart(), read.getAttribute("OP")));
                     // emit to disk
                     finalDestination.addAlignment(waitingReads.remove());
                 } else {

@@ -27,8 +27,7 @@ package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 import java.io.File;
 
 /**
@@ -208,5 +207,25 @@ public class ReadUtils {
             }
         }
         return flags;
-    }    
+    }
+
+    /**
+     * Returns the collections of reads sorted in coordinate order, according to the order defined
+     * in the reads themselves
+     *
+     * @param reads
+     * @return
+     */
+    public final static List<SAMRecord> coordinateSortReads(Collection<SAMRecord> reads) {
+        final int n = reads.size();
+
+        if ( n > 0 ) {
+            final SAMRecordComparator comparer = new SAMRecordCoordinateComparator();
+            final Queue<SAMRecord> sorted = new PriorityQueue<SAMRecord>(reads.size(), comparer);
+            sorted.addAll(reads);
+            return new ArrayList<SAMRecord>(sorted);
+        } else {
+            return Collections.emptyList();
+        }
+    }
 }

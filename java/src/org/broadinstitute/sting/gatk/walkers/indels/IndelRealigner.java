@@ -406,8 +406,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     private void emitReadLists() {
         // pre-merge lists with priority queue for constrained SAMFileWriter
+        logger.warn("EMIT currentInterval " + currentInterval);
         readsNotToClean.addAll(readsToClean.getReads());
-        emit(readsNotToClean);
+        emit(ReadUtils.coordinateSortReads(readsNotToClean));
         readsToClean.clear();
         readsNotToClean.clear();
     }
