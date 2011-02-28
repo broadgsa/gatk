@@ -7,6 +7,21 @@ import java.util.ArrayList;
 
 public class IndelRealignerPerformanceTest extends WalkerTest {
     @Test
+    public void testHighCoverage() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+
+                "-R " + b36KGReference +
+                        " -T IndelRealigner" +
+                        " -I " + validationDataLocation + "indelRealignerTest.pilot1.veryHighCoverage.bam" +
+                        " -L 20:49,500-55,500" +
+                        " -o /dev/null" +
+                        " -targetIntervals " + validationDataLocation + "indelRealignerTest.pilot1.ceu.intervals",
+                 0,
+                new ArrayList<String>(0));
+        executeTest("testIndelRealignerHighCoverage", spec);
+    }
+
+    @Test
     public void testRealigner() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
 
