@@ -182,12 +182,16 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
         for(GATKBin bin: binTree.getBins()) {
             if(bin == null)
                 continue;
-            chunks.addAll(Arrays.asList(bin.getChunkList()));
+            // The optimizer below will mutate the chunk list.  Make sure each element is a clone of the reference sequence.
+            for(GATKChunk chunk: bin.getChunkList())
+                chunks.add(chunk.clone());
         }
 
         // Optimize the chunk list with a linear index optimization
         chunks = index.optimizeChunkList(chunks,index.getLinearIndex(initialRegion.getContigIndex()).getMinimumOffset(initialRegion.getStart()));
         
-        return new GATKBAMFileSpan(chunks.toArray(new GATKChunk[chunks.size()]));
+        GATKBAMFileSpan fileSpan = new GATKBAMFileSpan(chunks.toArray(new GATKChunk[chunks.size()]));
+
+        return fileSpan;
     }
 }

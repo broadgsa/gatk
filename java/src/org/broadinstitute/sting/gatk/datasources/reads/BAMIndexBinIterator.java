@@ -110,8 +110,6 @@ public class BAMIndexBinIterator {
                 binPositionBuffer.putLong(position);
                 binPositionBuffer.flip();
 
-                System.out.printf("Writing bin number %d to position %d: coordinate = %d%n",indexBin,indexBin*Long.SIZE*8,position);
-
                 metaIndexChannel.write(binPositionBuffer);
                 binPositionBuffer.flip();
 

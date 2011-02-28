@@ -68,4 +68,11 @@ public class GATKBAMFileSpan extends BAMFileSpan {
             gatkChunks.add(new GATKChunk(chunk));
         return gatkChunks;
     }
+
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        for(GATKChunk chunk: getGATKChunks())
+            builder.append(String.format("%s;",chunk));
+        return builder.toString();
+    }
 }
