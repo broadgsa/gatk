@@ -29,8 +29,8 @@ class dataProcessing extends QScript {
   @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)
   val dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
-  @Input(doc="extra VCF files to use as reference indels for Indel Realignment", shortName="indels", required=false)  //todo -- once vcfs are merged, this will become the only indel vcf to be used and the merged file will be the default.
-  val indels: File = null
+  @Input(doc="extra VCF files to use as reference indels for Indel Realignment", shortName="indels", required=false)
+  val indels: File = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf"
 
   @Input(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", shortName="p", required=false)
   var projectName: String = "combined"
@@ -43,13 +43,6 @@ class dataProcessing extends QScript {
 
   @Input(doc="output bams at intervals only", shortName="intervals", required=false)
   var intervals: File = _
-
-
-  // todo -- let's create a pre-merged single VCF and put it into /humgen/gsa-hpprojects/GATK/data please
-  val dindelPilotCalls: String = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg.pilot_release.merged.indels.sites.hg19.vcf"
-  val dindelAFRCalls: String   = "/humgen/1kg/DCC/ftp/technical/working/20110126_dindel_august/AFR.dindel_august_release_merged_pilot1.20110126.sites.vcf.gz"
-  val dindelASNCalls: String   = "/humgen/1kg/DCC/ftp/technical/working/20110126_dindel_august/ASN.dindel_august_release_merged_pilot1.20110126.sites.vcf.gz"
-  val dindelEURCalls: String   = "/humgen/1kg/DCC/ftp/technical/working/20110126_dindel_august/EUR.dindel_august_release_merged_pilot1.20110126.sites.vcf.gz"
 
   val queueLogDir: String = ".qlog/"
 
@@ -134,15 +127,11 @@ class dataProcessing extends QScript {
       this.out = new File(outIntervals)
       this.mismatchFraction = Some(0.0)
       this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-      this.rodBind :+= RodBind("indels1", "VCF", dindelPilotCalls)
-      this.rodBind :+= RodBind("indels2", "VCF", dindelAFRCalls)
-      this.rodBind :+= RodBind("indels3", "VCF", dindelEURCalls)
-      this.rodBind :+= RodBind("indels4", "VCF", dindelASNCalls)
-      if (qscript.indels != null) this.rodBind :+= RodBind("indels5", "VCF", qscript.indels)
+      this.rodBind :+= RodBind("indels", "VCF", indels)
 
   }
 
-  class knownTargets (outIntervals: String) extends TargetBase {
+  class knownTargets (outIntervals: String) extends TargetBase(outIntervals) {
       this.jobName = queueLogDir + outIntervals + ".ktarget"
   }
 
@@ -156,11 +145,7 @@ class dataProcessing extends QScript {
     this.targetIntervals = new File(tIntervals)
     this.out = new File(outBam)
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels1", "VCF", dindelPilotCalls)
-    this.rodBind :+= RodBind("indels2", "VCF", dindelAFRCalls)
-    this.rodBind :+= RodBind("indels3", "VCF", dindelEURCalls)
-    this.rodBind :+= RodBind("indels4", "VCF", dindelASNCalls)
-    if (qscript.indels != null) this.rodBind :+= RodBind("indels5", "VCF", qscript.indels)
+    this.rodBind :+= RodBind("indels", "VCF", indels)
     this.useOnlyKnownIndels = knownsOnly
     this.doNotUseSW = true
     this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
