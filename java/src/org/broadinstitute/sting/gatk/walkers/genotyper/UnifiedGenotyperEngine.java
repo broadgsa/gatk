@@ -687,10 +687,10 @@ public class UnifiedGenotyperEngine {
         AlleleFrequencyCalculationModel afcm;
         switch ( UAC.AFmodel ) {
             case EXACT:
-                afcm = new ExactAFCalculationModel(N, logger, verboseWriter);
+                afcm = new ExactAFCalculationModel(UAC, N, logger, verboseWriter);
                 break;
             case GRID_SEARCH:
-                afcm = new GridSearchAFEstimation(N, logger, verboseWriter);
+                afcm = new GridSearchAFEstimation(UAC, N, logger, verboseWriter);
                 break;
             default: throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + UAC.GLmodel);
         }

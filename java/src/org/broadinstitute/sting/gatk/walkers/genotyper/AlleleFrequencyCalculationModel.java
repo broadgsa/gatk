@@ -55,7 +55,7 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
 
     protected static final double VALUE_NOT_CALCULATED = -1.0 * Double.MAX_VALUE;
 
-    protected AlleleFrequencyCalculationModel(int N, Logger logger, PrintStream verboseWriter) {
+    protected AlleleFrequencyCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
         this.N = N;
         this.logger = logger;
         this.verboseWriter = verboseWriter;

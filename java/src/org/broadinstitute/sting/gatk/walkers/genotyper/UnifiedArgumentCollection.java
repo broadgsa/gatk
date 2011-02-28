@@ -99,6 +99,9 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "alphaDeletionProbability", shortName = "alphaDeletionProbability", doc = "Heterozygosity for indel calling", required = false)
     public double ALPHA_DELETION_PROBABILITY = 1e-3;
 
+    @Argument(fullName = "exactCalculation", shortName = "exactCalculation", doc = "expt", required = false)
+    public ExactAFCalculationModel.ExactCalculation EXACT_CALCULATION_TYPE = ExactAFCalculationModel.ExactCalculation.N2_GOLD_STANDARD;
+
     @Deprecated
     @Argument(fullName="output_all_callable_bases", shortName="all_bases", doc="Please use --output_mode EMIT_ALL_SITES instead" ,required=false)
     private Boolean ALL_BASES_DEPRECATED = false;   
@@ -130,6 +133,7 @@ public class UnifiedArgumentCollection {
         uac.INSERTION_START_PROBABILITY = INSERTION_START_PROBABILITY;
         uac.INSERTION_END_PROBABILITY = INSERTION_END_PROBABILITY;
         uac.ALPHA_DELETION_PROBABILITY = ALPHA_DELETION_PROBABILITY;
+        uac.EXACT_CALCULATION_TYPE = EXACT_CALCULATION_TYPE;
 
         return uac;
     }

@@ -47,8 +47,8 @@ public class GridSearchAFEstimation extends AlleleFrequencyCalculationModel {
 
     private AlleleFrequencyMatrix AFMatrix;
 
-    protected GridSearchAFEstimation(int N, Logger logger, PrintStream verboseWriter) {
-        super(N, logger, verboseWriter);
+    protected GridSearchAFEstimation(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
+        super(UAC, N, logger, verboseWriter);
         AFMatrix = new AlleleFrequencyMatrix(N);
     }
 
