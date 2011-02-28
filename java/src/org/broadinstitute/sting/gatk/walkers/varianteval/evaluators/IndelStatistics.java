@@ -55,7 +55,21 @@ public class IndelStatistics extends VariantEvaluator {
     }
 
     private static final int INDEL_SIZE_LIMIT = 100;
-    private static final int NUM_SCALAR_COLUMNS = 10;
+    private static final int IND_HET = 0;
+    private static final int IND_INS = 1;
+    private static final int IND_DEL = 2;
+    private static final int IND_AT_CG_RATIO = 3;
+    private static final int IND_HET_INS = 4;
+    private static final int IND_HOM_INS = 5;
+    private static final int IND_HET_DEL = 6;
+    private static final int IND_HOM_DEL = 7;
+    private static final int IND_HOM_REF = 8;
+    private static final int IND_COMPLEX = 9;
+    private static final int IND_LONG = 10;
+    private static final int IND_AT_EXP = 11;
+    private static final int IND_CG_EXP = 12;
+    private static final int IND_FRAMESHIFT = 13;
+    private static final int NUM_SCALAR_COLUMNS = 14;
 
     static int len2Index(int ind) {
         return ind+INDEL_SIZE_LIMIT+NUM_SCALAR_COLUMNS;
@@ -68,30 +82,35 @@ public class IndelStatistics extends VariantEvaluator {
     static class IndelStats implements TableType {
         protected final static String ALL_SAMPLES_KEY = "allSamples";
         protected final static String[] COLUMN_KEYS;
-        static {
+
+         static {
             COLUMN_KEYS= new String[NUM_SCALAR_COLUMNS+2*INDEL_SIZE_LIMIT+1];
             COLUMN_KEYS[0] = "heterozygosity";
-            COLUMN_KEYS[1] = "number_of_insertions";
-            COLUMN_KEYS[2] = "number_of_deletions";
-            COLUMN_KEYS[3] = "number_het_insertions";
-            COLUMN_KEYS[4] = "number_homozygous_insertions";
-            COLUMN_KEYS[5] = "number_het_deletions";
-            COLUMN_KEYS[6] = "number_homozygous_deletions";
-            COLUMN_KEYS[7] = "number_of_homozygous_reference_sites";
-            COLUMN_KEYS[8] = "number_of_complex_events";
-            COLUMN_KEYS[9] = "number_of_long_indels";
+            COLUMN_KEYS[1] = "insertions";
+            COLUMN_KEYS[2] = "deletions";
+            COLUMN_KEYS[3] = "AT_CG_expansion_ratio";
+            COLUMN_KEYS[4] = "het_insertions";
+            COLUMN_KEYS[5] = "homozygous_insertions";
+            COLUMN_KEYS[6] = "het_deletions";
+            COLUMN_KEYS[7] = "homozygous_deletions";
+            COLUMN_KEYS[8] = "homozygous_reference_sites";
+            COLUMN_KEYS[9] = "complex_events";
+            COLUMN_KEYS[10] = "long_indels";
+            COLUMN_KEYS[11] = "AT_expansions";
+            COLUMN_KEYS[12] = "CG_expansions";
+            COLUMN_KEYS[13] = "frameshift_indels";
 
             for (int k=NUM_SCALAR_COLUMNS; k < NUM_SCALAR_COLUMNS+ 2*INDEL_SIZE_LIMIT+1; k++)
                 COLUMN_KEYS[k] = "indel_size_len"+Integer.valueOf(index2len(k));
         }
 
         // map of sample to statistics
-        protected final HashMap<String, double[]> indelSummary = new HashMap<String, double[]>();
+        protected final HashMap<String, int[]> indelSummary = new HashMap<String, int[]>();
 
         public IndelStats(final VariantContext vc) {
-            indelSummary.put(ALL_SAMPLES_KEY, new double[COLUMN_KEYS.length]);
+            indelSummary.put(ALL_SAMPLES_KEY, new int[COLUMN_KEYS.length]);
             for( final String sample : vc.getGenotypes().keySet() ) {
-                indelSummary.put(sample, new double[COLUMN_KEYS.length]);
+                indelSummary.put(sample, new int[COLUMN_KEYS.length]);
             }
         }
 
@@ -104,7 +123,15 @@ public class IndelStatistics extends VariantEvaluator {
         }
         public Object getCell(int x, int y) {
             final Object[] rowKeys = getRowKeys();
-            return String.format("%4.2f",indelSummary.get(rowKeys[x])[y]);
+            if (y == IND_AT_CG_RATIO) {
+
+                int at = indelSummary.get(rowKeys[x])[IND_AT_EXP];
+                int cg = indelSummary.get(rowKeys[x])[IND_CG_EXP];
+                return String.format("%4.2f",((double)at) / (Math.max(cg, 1)));
+            }
+            else
+                return String.format("%d",indelSummary.get(rowKeys[x])[y]);
+
         }
 
         /**
@@ -130,28 +157,35 @@ public class IndelStatistics extends VariantEvaluator {
         /*
          * increment the specified value
          */
-        public void incrValue(VariantContext vc) {
+        public void incrValue(VariantContext vc, ReferenceContext ref) {
             int eventLength = 0;
             boolean isInsertion = false, isDeletion = false;
 
             if ( vc.isInsertion() ) {
                 eventLength = vc.getAlternateAllele(0).length();
-                indelSummary.get(ALL_SAMPLES_KEY)[1]++;
+                indelSummary.get(ALL_SAMPLES_KEY)[IND_INS]++;
                 isInsertion = true;
             } else if ( vc.isDeletion() ) {
-                indelSummary.get(ALL_SAMPLES_KEY)[2]++;
+                indelSummary.get(ALL_SAMPLES_KEY)[IND_DEL]++;
                 eventLength = -vc.getReference().length();
                 isDeletion = true;
             }
             else {
-                indelSummary.get(ALL_SAMPLES_KEY)[8]++;
+                indelSummary.get(ALL_SAMPLES_KEY)[IND_COMPLEX]++;
             }
+            if (IndelUtils.isATExpansion(vc,ref))
+                indelSummary.get(ALL_SAMPLES_KEY)[IND_AT_EXP]++;
+            if (IndelUtils.isCGExpansion(vc,ref))
+                 indelSummary.get(ALL_SAMPLES_KEY)[IND_CG_EXP]++;
 
             // make sure event doesn't overstep array boundaries
-            if (Math.abs(eventLength) < INDEL_SIZE_LIMIT)
+            if (Math.abs(eventLength) < INDEL_SIZE_LIMIT) {
                 indelSummary.get(ALL_SAMPLES_KEY)[len2Index(eventLength)]++;
+                if (eventLength % 3 != 0)
+                    indelSummary.get(ALL_SAMPLES_KEY)[IND_FRAMESHIFT]++;
+            }
             else
-                indelSummary.get(ALL_SAMPLES_KEY)[9]++;
+                indelSummary.get(ALL_SAMPLES_KEY)[IND_LONG]++;
 
 
             for( final String sample : vc.getGenotypes().keySet() ) {
@@ -161,35 +195,42 @@ public class IndelStatistics extends VariantEvaluator {
                     if (isVariant) {
                         // update ins/del count
                         if (isInsertion) {
-                            indelSummary.get(sample)[1]++;
+                            indelSummary.get(sample)[IND_INS]++;
                         }
                         else if (isDeletion)
-                            indelSummary.get(sample)[2]++;
+                            indelSummary.get(sample)[IND_DEL]++;
                         else
-                            indelSummary.get(sample)[8]++;
+                            indelSummary.get(sample)[IND_COMPLEX]++;
 
                         // update histogram
-                        if (Math.abs(eventLength) < INDEL_SIZE_LIMIT)
+                        if (Math.abs(eventLength) < INDEL_SIZE_LIMIT) {
                             indelSummary.get(sample)[len2Index(eventLength)]++;
+                            if (eventLength % 3 != 0)
+                                indelSummary.get(sample)[IND_FRAMESHIFT]++;    
+                        }
                         else
-                            indelSummary.get(sample)[9]++;
+                            indelSummary.get(sample)[IND_LONG]++;
 
                         if (g.isHet())
                             if (isInsertion)
-                                indelSummary.get(sample)[3]++;
-                            else
-                                indelSummary.get(sample)[5]++;
+                                indelSummary.get(sample)[IND_HET_INS]++;
+                            else if (isDeletion)
+                                indelSummary.get(sample)[IND_HET_DEL]++;
                         else
                             if (isInsertion)
-                                indelSummary.get(sample)[4]++;
-                            else
-                                indelSummary.get(sample)[6]++;
+                                indelSummary.get(sample)[IND_HOM_INS]++;
+                            else if (isDeletion)
+                                indelSummary.get(sample)[IND_HOM_DEL]++;
 
+                        if (IndelUtils.isATExpansion(vc,ref))
+                            indelSummary.get(sample)[IND_AT_EXP]++;
+                        if (IndelUtils.isCGExpansion(vc,ref))
+                             indelSummary.get(sample)[IND_CG_EXP]++;
 
 
                     }
                     else
-                        indelSummary.get(sample)[7]++;
+                        indelSummary.get(sample)[IND_HOM_REF]++;
                 }
             }
 
@@ -265,8 +306,16 @@ public class IndelStatistics extends VariantEvaluator {
 
 
             ArrayList<Integer> indices = IndelUtils.findEventClassificationIndex(vc,ref);
-            for (int index: indices) 
+             //System.out.format("pos:%d \nREF: %s, ALT: %s\n",vc.getStart(), vc.getReference().getDisplayString(),
+             //  vc.getAlternateAllele(0).getDisplayString());
+
+             byte[] refBases = ref.getBases();
+             //System.out.format("ref bef:%s\n",new String(Arrays.copyOfRange(refBases,0,refBases.length/2+1) ));
+             //System.out.format("ref aft:%s\n",new String(Arrays.copyOfRange(refBases,refBases.length/2+1,refBases.length) ));
+            for (int index: indices)    {
                 incrementSampleStat(vc, index);
+               // System.out.println(IndelUtils.getIndelClassificationName(index));
+            }
         }
 
     }
@@ -307,7 +356,7 @@ public class IndelStatistics extends VariantEvaluator {
 
             if ( eval.isIndel() && eval.isBiallelic() ) {
                 if (indelStats != null )
-                    indelStats.incrValue(eval);
+                    indelStats.incrValue(eval, ref);
 
                 if (indelClasses != null)
                     indelClasses.incrValue(eval, ref);

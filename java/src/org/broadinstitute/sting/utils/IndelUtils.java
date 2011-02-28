@@ -220,7 +220,7 @@ public class IndelUtils {
 
         boolean isIt = false;
         for (int k : inds) {
-            if (k == IND_FOR_REPEAT_EXPANSION_A || k == IND_FOR_REPEAT_EXPANSION_A) {
+            if (k == IND_FOR_REPEAT_EXPANSION_A || k == IND_FOR_REPEAT_EXPANSION_T) {
                 isIt = true;
                 break;
             }
@@ -230,7 +230,17 @@ public class IndelUtils {
 
     }
     public static boolean isCGExpansion(VariantContext vc, ReferenceContext ref) {
-        return !isATExpansion(vc,ref);
+        ArrayList<Integer> inds = findEventClassificationIndex(vc, ref);
+
+         boolean isIt = false;
+         for (int k : inds) {
+             if (k == IND_FOR_REPEAT_EXPANSION_C || k == IND_FOR_REPEAT_EXPANSION_G) {
+                 isIt = true;
+                 break;
+             }
+         }
+
+         return isIt;
 
     }
 
