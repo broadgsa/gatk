@@ -46,7 +46,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         LINEAR_EXPERIMENTAL
     }
 
-    private final static boolean COMPARE_TO_GS = true;
+    private final static boolean COMPARE_TO_GS = false;
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
 
     private boolean SIMPLE_GREEDY_GENOTYPER = false;
