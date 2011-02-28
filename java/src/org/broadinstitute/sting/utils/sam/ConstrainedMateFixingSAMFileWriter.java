@@ -75,17 +75,16 @@ import java.util.*;
  * @version 0.1
  */
 public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
-    final protected static Logger logger = Logger.getLogger(ConstrainedMateFixingSAMFileWriter.class);
-    private final static boolean DEBUG = false;
+    protected static final Logger logger = Logger.getLogger(ConstrainedMateFixingSAMFileWriter.class);
+    private static final boolean DEBUG = false;
 
     /** How often do we check whether we want to emit reads? */
     private final static int EMIT_FREQUENCY = 1000;
 
     /**
      * How much could a single read move in position from its original position?
-     * todo -- this really should be a provided parameter
      */
-    private final static int MAX_POS_MOVE_ALLOWED = 200;
+    private int MAX_POS_MOVE_ALLOWED;
 
     /** how we order our SAM records */
     private final SAMRecordComparator comparer = new SAMRecordCoordinateComparator();
@@ -122,15 +121,19 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
     public ConstrainedMateFixingSAMFileWriter(final SAMFileHeader header,
                                               final File outputFile,
                                               final int compressionLevel,
-                                              final int maxInsertSizeForMovingReadPairs) {
+                                              final int maxInsertSizeForMovingReadPairs,
+                                              final int maxMoveAllowed) {
         this(new SAMFileWriterFactory().makeBAMWriter(header, true, outputFile, compressionLevel),
-                maxInsertSizeForMovingReadPairs);
+                maxInsertSizeForMovingReadPairs,
+                maxMoveAllowed);
     }
 
     public ConstrainedMateFixingSAMFileWriter(final SAMFileWriter finalDestination,
-                                              final int maxInsertSizeForMovingReadPairs) {
+                                              final int maxInsertSizeForMovingReadPairs,
+                                              final int maxmoveAllowed) {
         this.finalDestination = finalDestination;
         this.maxInsertSizeForMovingReadPairs = maxInsertSizeForMovingReadPairs;
+        this.MAX_POS_MOVE_ALLOWED = maxmoveAllowed;
 
         //timer.start();
         //lastProgressPrintTime = timer.currentTime();

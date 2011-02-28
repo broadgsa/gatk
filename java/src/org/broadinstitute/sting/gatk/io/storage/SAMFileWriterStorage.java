@@ -82,7 +82,7 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
             throw new UserException("Unable to write to SAM file; neither a target file nor a stream has been specified");
 
         if ( stub.useConstrainedFileWriter() ) {
-            this.writer = new ConstrainedMateFixingSAMFileWriter(writer, stub.getMaxInsertSizeForMovingReadPairs());
+            this.writer = new ConstrainedMateFixingSAMFileWriter(writer, stub.getMaxInsertSizeForMovingReadPairs(), stub.getMaxPositionalMoveAllowed());
         }
     }
 

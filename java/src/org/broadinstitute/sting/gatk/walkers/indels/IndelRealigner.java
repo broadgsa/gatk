@@ -101,6 +101,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="maxIsizeForMovement", shortName="maxIsize", doc="maximum insert size of read pairs that we attempt to realign", required=false)
     protected int MAX_ISIZE_FOR_MOVEMENT = 3000;
 
+    @Argument(fullName="maxPositionalMoveAllowed", shortName="maxPosMove", doc="maximum positional move in basepairs that a read can be adjusted during realignment", required=false)
+    protected int MAX_POS_MOVE_ALLOWED = 200;
+
     @Argument(fullName="maxConsensuses", shortName="maxConsensuses", doc="max alternate consensuses to try (necessary to improve performance in deep coverage)", required=false)
     protected int MAX_CONSENSUSES = 30;
 
@@ -378,6 +381,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         writer.setUseConstrainedFileWriter(true);
         writer.setMaxInsertSizeForMovingReadPairs(MAX_ISIZE_FOR_MOVEMENT);
+        writer.setMaxPositionalMoveAllowed(MAX_POS_MOVE_ALLOWED);
     }
 
     private void emit(final SAMRecord read) {
@@ -406,7 +410,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     private void emitReadLists() {
         // pre-merge lists with priority queue for constrained SAMFileWriter
-        logger.warn("EMIT currentInterval " + currentInterval);
+        //logger.warn("EMIT currentInterval " + currentInterval);
         readsNotToClean.addAll(readsToClean.getReads());
         emit(ReadUtils.coordinateSortReads(readsNotToClean));
         readsToClean.clear();
@@ -1430,6 +1434,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 return false;
             if ( newStart == -1 )
                 newStart = read.getAlignmentStart();
+            else if ( Math.abs(newStart - read.getAlignmentStart()) > MAX_POS_MOVE_ALLOWED ) {
+                logger.warn(String.format("Attempting to realign read %s at %d more than %d bases to %d.", read.getReadName(), read.getAlignmentStart(), MAX_POS_MOVE_ALLOWED, newStart));
+                return false;
+            }
 
             // annotate the record with the original cigar (and optionally the alignment start)
             if ( !NO_ORIGINAL_ALIGNMENT_TAGS ) {

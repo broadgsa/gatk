@@ -30,5 +30,6 @@ public interface StingSAMFileWriter extends SAMFileWriter {
     public void setMaxRecordsInRam(int maxRecordsInRam);
 
     public void setMaxInsertSizeForMovingReadPairs(int maxInsertSizeForMovingReadPairs);
+    public void setMaxPositionalMoveAllowed(int maxPositionalMoveAllowed);
     public void setUseConstrainedFileWriter(boolean useConstrainedFileWriter);
 }

@@ -1,16 +1,12 @@
 package org.broadinstitute.sting.utils.sam;
 
-import com.sun.xml.internal.messaging.saaj.packaging.mime.util.OutputUtil;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.sam.SamFileValidator;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -20,9 +16,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
 
 
 /*
@@ -86,7 +79,7 @@ public class ConstrainedMateFixingSAMFileWriterUnitTest extends BaseTest {
     }
 
     private ConstrainedMateFixingSAMFileWriter makeWriter(final int maxInsertSizeForMovingReadPairs) {
-        return new ConstrainedMateFixingSAMFileWriter(bamIn.getFileHeader(), OUTPUT_FILE, 5, maxInsertSizeForMovingReadPairs);
+        return new ConstrainedMateFixingSAMFileWriter(bamIn.getFileHeader(), OUTPUT_FILE, 5, maxInsertSizeForMovingReadPairs, 200);
     }
 
     private List<SAMRecord> readBAM(File file) {

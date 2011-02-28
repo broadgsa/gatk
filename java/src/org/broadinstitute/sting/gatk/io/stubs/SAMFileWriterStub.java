@@ -102,6 +102,14 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
     private boolean writeStarted = false;
 
     /**
+     * Arguments used for the constrained mate pair fixing file writer
+     */
+    private boolean useConstrainedFileWriter = false;
+    private int maxInsertSizeForMovingReadPairs = -1;
+    private int maxPositionalMoveAllowed = -1;
+
+
+    /**
      * HMM for BAQ, if needed
      */
     BAQ baqHMM = new BAQ();
@@ -258,18 +266,20 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
         outputTracker.getStorage(this).close();    
     }
 
-    //
-    // Experimental arguments for the constrained SAMFileWriter
-    //
-    private boolean useConstrainedFileWriter = false;
-    private int maxInsertSizeForMovingReadPairs = -1;
-
     public int getMaxInsertSizeForMovingReadPairs() {
         return maxInsertSizeForMovingReadPairs;
     }
 
     public void setMaxInsertSizeForMovingReadPairs(int maxInsertSizeForMovingReadPairs) {
         this.maxInsertSizeForMovingReadPairs = maxInsertSizeForMovingReadPairs;
+    }
+
+    public int getMaxPositionalMoveAllowed() {
+        return maxPositionalMoveAllowed;
+    }
+
+    public void setMaxPositionalMoveAllowed(int maxPositionalMoveAllowed) {
+        this.maxPositionalMoveAllowed = maxPositionalMoveAllowed;
     }
 
     public boolean useConstrainedFileWriter() {
