@@ -39,18 +39,24 @@ import java.util.NoSuchElementException;
  */
 public class BinTree {
     /**
-     * The BAM index from which this bin data is sourced.
-     */
-    private final GATKBAMIndex index;
-
-    /**
      * The bins in this tree, organized by level.
      */
     private final GATKBin[] bins;
 
-    public BinTree(GATKBAMIndex index,final GATKBin[] bins) {
-        this.index = index;
-        this.bins = bins;            
+    /**
+     * Starting location of the bin tree.
+     */
+    private final int binTreeStart;
+
+    /**
+     * Ending location of the bin tree.
+     */
+    private final int binTreeStop;
+
+    public BinTree(final int binTreeStart, final int binTreeStop,final GATKBin[] bins) {
+        this.binTreeStart = binTreeStart;
+        this.binTreeStop = binTreeStop;
+        this.bins = bins;
     }
 
     public GATKBin getLowestLevelBin() {
@@ -89,7 +95,7 @@ public class BinTree {
                 continue;
             Bin bin = new Bin(gatkBin.getReferenceSequence(),gatkBin.getBinNumber());
             // Overlap occurs when the position is not disjoint with the bin boundaries.
-            if(!(position.getStop() < index.getFirstLocusInBin(bin) || position.getStart() > index.getLastLocusInBin(bin)))
+            if(!(position.getStop() < binTreeStart || position.getStart() > binTreeStop))
                 return true;
         }
         return false;
@@ -189,7 +195,8 @@ class BinTreeIterator implements Iterator<BinTree> {
             // Found a compelling bin tree?  Break out of the loop.
             for(int level = 0; level <= lowestLevel; level++) {
                 if(bins[level] != null) {
-                    nextBinTree = new BinTree(index,bins);
+                    Bin lowestLevelBin = new Bin(bins[level].getReferenceSequence(),currentBinInLowestLevel);
+                    nextBinTree = new BinTree(index.getFirstLocusInBin(lowestLevelBin),index.getLastLocusInBin(lowestLevelBin),bins);
                     break;
                 }
             }
