@@ -97,6 +97,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   val hapmap_hg18 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/sites_r27_nr.hg18_fwd.vcf"
   val hapmap_b36 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/sites_r27_nr.b36_fwd.vcf"
   val hapmap_b37 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf"
+  val training_hapmap_b37 = "/humgen/1kg/processing/pipeline_test_bams/hapmap3.3_training_chr20.vcf"
+  val omni_b36 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/1212samples.b36.vcf"
   val omni_b37 = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/1212samples.b37.vcf"
   val indelMask_b36 = "/humgen/1kg/processing/pipeline_test_bams/pilot1.dindel.mask.b36.bed"
   val indelMask_b37 = "/humgen/1kg/processing/pipeline_test_bams/pilot1.dindel.mask.b37.bed"
@@ -117,7 +119,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     "HiSeq19" -> new Target("NA12878.HiSeq19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 1.0, !lowPass),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 0.5, !lowPass),
     "GA2hg19" -> new Target("NA12878.GA2.hg19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
@@ -143,10 +145,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               new File("/humgen/1kg/analysis/bamsForDataProcessingPapers/lowpass_b36/lowpass.chr20.cleaned.matefixed.bam"), // the bam list to call from
               new File("/home/radon01/depristo/work/oneOffProjects/VQSRCutByNRS/lowpass.N60.chr20.filtered.vcf"),           // the gold standard VCF file to run through the VQSR
               "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.b36.intervals", 2.3, 1.0, lowPass),          // chunked interval list to use with Queue's scatter/gather functionality
-    "LowPassAugust" -> new Target("ALL.august.v4", b37, dbSNP_b37, hapmap_b37, indelMask_b37,                               // BUGBUG: kill this, it is too large
-              new File("/humgen/1kg/processing/allPopulations_chr20_august_release.cleaned.merged.bams/ALL.cleaned.merged.list"),
-              new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, 1.0, lowPass),
     "LowPassEUR363Nov" -> new Target("EUR.nov2010", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/EUR.363sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
@@ -178,7 +176,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       }
       if ( !skipGoldStandard ) {
         add(new GenerateClusters(target, goldStandard))
-        add(new VariantRecalibratorTiTv(target, goldStandard))
         add(new VariantRecalibratorNRS(target, goldStandard))
       }
     }
@@ -260,14 +257,16 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.reference_sequence = t.reference
     this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
     if( t.hapmapFile.contains("b37") )
-      this.rodBind :+= RodBind("1kg", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/ALL.low_coverage.2010_07.hg19.vcf")
+      this.rodBind :+= RodBind("1kg", "VCF", omni_b37)
+    else if( t.hapmapFile.contains("b36") )
+      this.rodBind :+= RodBind("1kg", "VCF", omni_b36)
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
     this.clusterFile = if ( goldStandard ) { t.goldStandardClusterFile } else { t.clusterFile }
     this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
     this.intervalsString ++= List(t.intervals)
-    this.qual = Some(350) // clustering parameters to be updated soon pending new experimentation results
+    this.qual = Some(100) // clustering parameters to be updated soon pending new experimentation results
     this.std = Some(3.5)
-    this.mG = Some(10)
+    this.mG = Some(8)
     this.ignoreFilter ++= FiltersToIgnore
     this.analysisName = name + "_GVC"
     this.jobName =  queueLogDir + t.name + ".cluster"
@@ -275,47 +274,38 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.DBSNP = new File(t.dbsnpFile)
     else if (t.dbsnpFile.endsWith(".vcf"))
       this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+    this.trustAllPolymorphic = true
   }
 
   // 4.) VQSR part2 Calculate new LOD for all input SNPs by evaluating the Gaussian clusters
-  class VariantRecalibratorBase(t: Target, goldStandard: Boolean) extends VariantRecalibrator with UNIVERSAL_GATK_ARGS {
+  class VariantRecalibratorNRS(t: Target, goldStandard: Boolean) extends VariantRecalibrator with UNIVERSAL_GATK_ARGS {
     val name: String = if ( goldStandard ) { t.goldStandardName } else { t.name }
     this.reference_sequence = t.reference
-    if( t.hapmapFile.contains("b37") )
-      this.rodBind :+= RodBind("1kg", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/ALL.low_coverage.2010_07.hg19.vcf")
+    if( t.hapmapFile.contains("b37") ) {
+      this.rodBind :+= RodBind("1kg", "VCF", omni_b37)
+      this.rodBind :+= RodBind("truthOmni", "VCF", omni_b37)
+    } else if( t.hapmapFile.contains("b36") ) {
+      this.rodBind :+= RodBind("1kg", "VCF", omni_b36)
+      this.rodBind :+= RodBind("truthOmni", "VCF", omni_b36)
+    }
     this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
-    this.rodBind :+= RodBind("truth", "VCF", t.hapmapFile)
+    this.rodBind :+= RodBind("truthHapMap", "VCF", t.hapmapFile)
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
     this.clusterFile = if ( goldStandard ) { t.goldStandardClusterFile } else { t.clusterFile }
     this.analysisName = name + "_VR"
     this.intervalsString ++= List(t.intervals)
     this.ignoreFilter ++= FiltersToIgnore
     this.ignoreFilter ++= List("HARD_TO_VALIDATE")
-    this.target_titv = Some(t.titvTarget)
     if (t.dbsnpFile.endsWith(".rod"))
       this.DBSNP = new File(t.dbsnpFile)
     else if (t.dbsnpFile.endsWith(".vcf"))
       this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
-  }
-
-  // 4a.) Choose VQSR tranches based on novel ti/tv
-  class VariantRecalibratorTiTv(t: Target, goldStandard: Boolean) extends VariantRecalibratorBase(t, goldStandard) {
-    this.tranche ++= List("0.1", "1.0", "3.0", "5.0", "10.0", "100.0")
-    this.out = t.titvRecalibratedVCF
-    this.tranchesFile = t.titvTranchesFile
-    this.jobName =  queueLogDir + t.name + ".titv"
-  }
-
-  // 4b.) Choose VQSR tranches based on sensitivity to truth set
-  class VariantRecalibratorNRS(t: Target, goldStandard: Boolean) extends VariantRecalibratorBase(t, goldStandard) {
     this.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
-    this.tranche ++= List("0.1", "1.0", "3.0", "5.0", "10.0", "100.0")
+    this.tranche ++= List("0.1", "0.5", "0.7", "1.0", "3.0", "5.0", "10.0", "100.0")
     this.out = t.tsRecalibratedVCF
-    this.priorDBSNP = Some(2.0)
-    this.priorHapMap = Some(2.0)
-    this.prior1KG = Some(2.0)
     this.tranchesFile = t.tsTranchesFile
     this.jobName =  queueLogDir + t.name + ".nrs"
+    this.trustAllPolymorphic = true
   }
 
    // 5.) Variant Cut filter out the variants marked by recalibration to the 99% tranche

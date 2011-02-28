@@ -96,6 +96,9 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     @Hidden
     @Argument(fullName = "NO_HEADER", shortName = "NO_HEADER", doc = "Don't output the usual VCF header tag with the command line. FOR DEBUGGING PURPOSES ONLY. This option is required in order to pass integration tests.", required = false)
     protected Boolean NO_HEADER_LINE = false;
+    @Hidden
+    @Argument(fullName = "trustAllPolymorphic", shortName = "allPoly", doc = "Trust that all the input training sets' unfiltered records contain only polymorphic sites to drastically speed up the computation.", required = false)
+    protected Boolean TRUST_ALL_POLYMORPHIC = false;
 
     /////////////////////////////
     // Private Member Variables
@@ -198,9 +201,9 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
 
                     variantDatum.isKnown = ( vcDbsnp != null && vcDbsnp.isVariant() && !vcDbsnp.isFiltered() );
                     variantDatum.weight = WEIGHT_NOVELS;
-                    if( vcHapMap != null && vcHapMap.isVariant() && !vcHapMap.isFiltered() && (!vcHapMap.hasGenotypes() || vcHapMap.isPolymorphic()) ) {
+                    if( vcHapMap != null && vcHapMap.isVariant() && !vcHapMap.isFiltered() && (TRUST_ALL_POLYMORPHIC || !vcHapMap.hasGenotypes() || vcHapMap.isPolymorphic()) ) {
                         variantDatum.weight = WEIGHT_HAPMAP;
-                    } else if( vc1KG != null && vc1KG.isVariant() && !vc1KG.isFiltered() && (!vc1KG.hasGenotypes() || vc1KG.isPolymorphic()) ) {
+                    } else if( vc1KG != null && vc1KG.isVariant() && !vc1KG.isFiltered() && (TRUST_ALL_POLYMORPHIC || !vc1KG.hasGenotypes() || vc1KG.isPolymorphic()) ) {
                         variantDatum.weight = WEIGHT_1KG;
                     } else if( vcDbsnp != null && vcDbsnp.isVariant() && !vcDbsnp.isFiltered() ) {
                         variantDatum.weight = WEIGHT_DBSNP;

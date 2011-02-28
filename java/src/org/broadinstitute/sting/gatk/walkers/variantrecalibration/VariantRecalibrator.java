@@ -112,11 +112,12 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Hidden
     @Argument(fullName = "qual", shortName = "qual", doc = "Don't use sites with original quality scores below the qual threshold. FOR DEBUGGING PURPOSES ONLY.", required=false)
     private double QUAL_THRESHOLD = 0.0;
-
+    @Hidden
+    @Argument(fullName = "trustAllPolymorphic", shortName = "allPoly", doc = "Trust that all the input training sets' unfiltered records contain only polymorphic sites to drastically speed up the computation.", required = false)
+    protected Boolean TRUST_ALL_POLYMORPHIC = false;
     @Hidden
     @Argument(fullName = "debugFile", shortName = "debugFile", doc = "Print debugging information here", required=false)
     private File DEBUG_FILE = null;
-
     @Hidden
     @Argument(fullName = "selectionMetric", shortName = "sm", doc = "Selection metric to use", required=false)
     private SelectionMetricType SELECTION_METRIC_TYPE = SelectionMetricType.NOVEL_TITV;
@@ -273,9 +274,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
                         variantDatum.isKnown = ( vcDbsnp != null && vcDbsnp.isVariant() && !vcDbsnp.isFiltered() );
                         double knownPrior_qScore = PRIOR_NOVELS;
-                        if( vcHapMap != null && vcHapMap.isVariant() && !vcHapMap.isFiltered() && (!vcHapMap.hasGenotypes() || vcHapMap.isPolymorphic()) ) {
+                        if( vcHapMap != null && vcHapMap.isVariant() && !vcHapMap.isFiltered() && (TRUST_ALL_POLYMORPHIC || !vcHapMap.hasGenotypes() || vcHapMap.isPolymorphic()) ) {
                             knownPrior_qScore = PRIOR_HAPMAP;
-                        } else if( vc1KG != null && vc1KG.isVariant() && !vc1KG.isFiltered() && (!vc1KG.hasGenotypes() || vc1KG.isPolymorphic()) ) {
+                        } else if( vc1KG != null && vc1KG.isVariant() && !vc1KG.isFiltered() && (TRUST_ALL_POLYMORPHIC || !vc1KG.hasGenotypes() || vc1KG.isPolymorphic()) ) {
                             knownPrior_qScore = PRIOR_1KG;
                         } else if( vcDbsnp != null && vcDbsnp.isVariant() && !vcDbsnp.isFiltered() ) {
                             knownPrior_qScore = PRIOR_DBSNP;
