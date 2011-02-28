@@ -56,8 +56,14 @@ class ExpandIntervals(in : File, start: Int, size: Int, out: File, ref: File, ip
       curLoc = nextLoc
       nextLoc = if ( xrl.hasNext ) parseGenomeInterval(xrl.next) else null
       if ( curLoc != null ) {
-        intervalCache += refine(expandLeft(curLoc),prevLoc)
-        intervalCache += refine(expandRight(curLoc),nextLoc)
+        val left: GenomeLoc =  refine(expandLeft(curLoc),prevLoc)
+        val right: GenomeLoc =  refine(expandRight(curLoc),nextLoc)
+        if ( left != null ) {
+          intervalCache += left
+        }
+        if ( right != null ) {
+          intervalCache += right
+        }
       }
       linesProcessed += 1
       if ( linesProcessed % LINES_TO_CACHE == 0 ) {
@@ -83,14 +89,20 @@ class ExpandIntervals(in : File, start: Int, size: Int, out: File, ref: File, ip
 
   def refine(newG: GenomeLoc, borderG: GenomeLoc) : GenomeLoc = {
     if ( borderG == null || ! newG.overlapsP(borderG) ) {
-      newG
+      return newG
     } else {
       if ( newG.getStart < borderG.getStart ) {
-        parser.createGenomeLoc(newG.getContig,newG.getStart,borderG.getStart-startInt)
+        if ( borderG.getStart - startInt > newG.getStart ) {
+          return parser.createGenomeLoc(newG.getContig,newG.getStart,borderG.getStart-startInt)
+        }
       } else {
-        parser.createGenomeLoc(newG.getContig,borderG.getStop+startInt,newG.getStop)
+        if ( borderG.getStop + startInt < newG.getStop ){
+          return parser.createGenomeLoc(newG.getContig,borderG.getStop+startInt,newG.getStop)
+        }
       }
     }
+
+    null
   }
 
   def repr(loc : GenomeLoc) : String = {
