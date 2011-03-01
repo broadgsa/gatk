@@ -59,10 +59,6 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
         request.options3 |= LibBat.SUB3_CWD
       }
 
-      if (function.jobRestartable) {
-        request.options |= LibBat.SUB_RERUNNABLE
-      }
-
       if (function.memoryLimit.isDefined) {
         request.resReq = "rusage[mem=" + function.memoryLimit.get + "]"
         request.options |= LibBat.SUB_RES_REQ
