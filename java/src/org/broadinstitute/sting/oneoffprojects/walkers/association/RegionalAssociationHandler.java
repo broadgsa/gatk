@@ -16,7 +16,7 @@ public class RegionalAssociationHandler {
     private Set<AssociationContext> associations;
 
     public RegionalAssociationHandler(Set<AssociationContext> contexts) {
-        maps = null;
+        maps = new MapExtender();
         associations = contexts;
     }
 

@@ -804,8 +804,15 @@ public class MathUtils {
             s += ( obs - oldMean ) * ( obs - mean );
         }
 
+        public void addAll(Collection<Number> col) {
+            for ( Number o : col ) {
+                add(o.doubleValue());
+            }
+        }
+
         public double mean() { return mean; }
         public double stddev() { return Math.sqrt(s/(obs_count - 1)); }
+        public double var() { return s/(obs_count - 1); }
         public long observationCount() { return obs_count; }
     }
     

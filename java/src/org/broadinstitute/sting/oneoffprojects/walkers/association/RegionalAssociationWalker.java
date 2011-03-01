@@ -7,7 +7,10 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.LowMappingQuality;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.LowMappingQualityAtom;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.PrintStream;
 import java.util.HashSet;
@@ -46,15 +49,21 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
         }
         List<String> testsHere = rac.runTests();
         // todo -- really awful shitty formatting
-        out.printf("%s%n",rac.getLocation().toString());
-        for ( String s : testsHere ) {
-            out.printf("%s%n",s);
+        if ( testsHere.size() > 0 ) {
+            out.printf("%s%n",rac.getLocation().toString());
+            for ( String s : testsHere ) {
+                out.printf("%s%n",s);
+            }
         }
         return rac;
     }
 
     private AssociationContext stringToAssociationContext(String s) {
-        return null;
+        if ( s.equals("LowMappingQuality") ) {
+            return new LowMappingQuality();
+        }
+
+        throw new UserException(String.format("AssociationContext type %s not found.",s));
     }
 
     private Set<AssociationContext> getAssociations() {

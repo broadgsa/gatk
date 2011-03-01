@@ -18,7 +18,7 @@ public abstract class AssociationContext<X extends AssociationContextAtom> {
     }
 
     public X map(MapExtender e) throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException, ClassCastException {
-        return (X) clazz.getConstructor().newInstance(e);
+        return (X) clazz.getConstructor(new Class[] {MapExtender.class}).newInstance(new Object[] {e});
     }
 
     public boolean filter(MapExtender m) { return true; }
@@ -35,6 +35,8 @@ public abstract class AssociationContext<X extends AssociationContextAtom> {
     }
 
     public void slide() {
-        window = window.subList(slideByValue(),window.size());
+        ArrayList<X> newWindow = new ArrayList<X>((window.subList(slideByValue(),window.size())));
+        newWindow.ensureCapacity(getWindowSize());
+        window = newWindow;
     }
 }

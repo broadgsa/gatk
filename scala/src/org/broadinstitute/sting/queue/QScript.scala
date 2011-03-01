@@ -2,6 +2,7 @@ package org.broadinstitute.sting.queue
 
 import org.broadinstitute.sting.queue.util.Logging
 import org.broadinstitute.sting.queue.function.QFunction
+import org.broadinstitute.sting.utils.text.XReadLines
 
 /**
  * Defines a Queue pipeline as a collection of CommandLineFunctions.
@@ -72,6 +73,10 @@ trait QScript extends Logging {
 
   def addAll(functions: List[QFunction] ) = {
     functions.foreach( f => add(f) )
+  }
+
+  def extractFileEntries(in: File): List[File] = {
+    return collection.JavaConversions.asScalaIterator((new XReadLines(in))).toList.map( new File(_) )
   }
 }
 

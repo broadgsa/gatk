@@ -27,26 +27,26 @@ public class MapExtender {
     }
 
     public Map<Sample,StratifiedAlignmentContext> getPreviousContext() {
-        return previous.getContext();
+        return previous != null ? previous.getContext() : null;
     }
 
     public ReferenceContext getPreviousRef() {
-        return previous.getRef();
+        return previous != null ? previous.getRef() : null;
     }
 
     public RefMetaDataTracker getPreviousTracker() {
-        return previous.getTracker();
+        return previous != null ? previous.getTracker() : null;
     }
 
     public Map<Sample,StratifiedAlignmentContext> getContext() {
-        return current.getContext();
+        return current != null ? current.getContext() : null;
     }
 
     public ReferenceContext getReferenceContext() {
-        return current.getRef();
+        return current != null ? current.getRef() : null;
     }
 
     public RefMetaDataTracker getTracker() {
-        return current.getTracker();
+        return current != null ? current.getTracker() : null;
     }
 }
