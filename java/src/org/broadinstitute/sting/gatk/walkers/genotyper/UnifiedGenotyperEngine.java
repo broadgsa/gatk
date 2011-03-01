@@ -158,8 +158,11 @@ public class UnifiedGenotyperEngine {
      */
     public VariantCallContext calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
+        if ( stratifiedContexts == null )
+            return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ? null : new VariantCallContext(generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext), refContext.getBase(), false));
+
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, null);
-        if ( vc == null || !vc.hasGenotypes() )
+        if ( vc == null )
             return null;
 
         VariantCallContext vcc = calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc);
@@ -178,13 +181,13 @@ public class UnifiedGenotyperEngine {
      */
     public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Allele alternateAlleleToUse) {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
+        if ( stratifiedContexts == null )
+            return null;
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, alternateAlleleToUse);
         return GLsToPLs(vc);
     }
 
     private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse) {
-        if ( stratifiedContexts == null )
-            return null;
 
         // initialize the data for this thread if that hasn't been done yet
         if ( glcm.get() == null ) {
@@ -199,6 +202,32 @@ public class UnifiedGenotyperEngine {
             return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
         else
             return null;
+    }
+
+    private VariantContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
+        VariantContext vc;
+        if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
+            final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), true);
+            vc = new VariantContext("UG_call", vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles());
+        } else {
+            Set<Allele> alleles = new HashSet<Allele>();
+            alleles.add(Allele.create(ref.getBase(), true));
+            vc = new VariantContext("UG_call", ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles);
+        }
+        
+        if ( annotationEngine != null ) {
+            // we want to use the *unfiltered* context for the annotations
+            ReadBackedPileup pileup = null;
+            if (rawContext.hasExtendedEventPileup())
+                pileup = rawContext.getExtendedEventPileup();
+            else if (rawContext.hasBasePileup())
+                pileup = rawContext.getBasePileup();
+            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+
+            vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc).iterator().next();
+        }
+
+        return vc;
     }
 
     private VariantContext createVariantContextFromLikelihoods(ReferenceContext refContext, Allele refAllele, Map<String, BiallelicGenotypeLikelihoods> GLs) {
@@ -278,7 +307,9 @@ public class UnifiedGenotyperEngine {
 
         // estimate our confidence in a reference call and return
         if ( vc.getNSamples() == 0 )
-            return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), false, 1.0);
+            return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ?
+                    estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), false, 1.0) :
+                    new VariantCallContext(generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext), refContext.getBase(), false));
 
         // 'zero' out the AFs (so that we don't have to worry if not all samples have reads at this position)
         clearAFarray(log10AlleleFrequencyPosteriors.get());
