@@ -119,7 +119,7 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
             if(!nextFilePointer.locations.isEmpty()) {
                 while(locusIterator.hasNext() && locusIterator.peek().overlapsP(coveredRegion)) {
                     currentLocus = locusIterator.next();
-                    nextFilePointer.addLocation(locusIterator.next());
+                    nextFilePointer.addLocation(currentLocus.intersect(coveredRegion));
                 }
 
                 // Chop off the uncovered portion of the locus.  Since we know that the covered region overlaps the current locus,
