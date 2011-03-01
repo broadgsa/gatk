@@ -75,10 +75,10 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val rawIndelVCF = new File(name + ".raw.indel.vcf")
     val filteredVCF = new File(name + ".filtered.vcf")
     val filteredIndelVCF = new File(name + ".filtered.indel.vcf")
-    val titvRecalibratedVCF = new File(name + ".titv.recalibrated.vcf")
-    val titvTranchesFile = new File(name + ".titv.tranches")
     val tsRecalibratedVCF = new File(name + ".ts.recalibrated.vcf")
     val tsTranchesFile = new File(name + ".ts.tranches")
+    val goldStandardTsRecalibratedVCF = new File(name + "goldStandard.ts.recalibrated.vcf")
+    val goldStandardTsTranchesFile = new File(name + "goldStandard.ts.tranches")
     val cutVCF = new File(name + ".cut.vcf")
     val evalFile = new File(name + ".snp.eval")
     val evalIndelFile = new File(name + ".indel.eval")
@@ -302,8 +302,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
     this.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
     this.tranche ++= List("0.1", "0.5", "0.7", "1.0", "3.0", "5.0", "10.0", "100.0")
-    this.out = t.tsRecalibratedVCF
-    this.tranchesFile = t.tsTranchesFile
+    this.out = if ( goldStandard ) { t.goldStandardTsRecalibratedVCF } else { t.tsRecalibratedVCF }
+    this.tranchesFile = if ( goldStandard ) { t.goldStandardTsTranchesFile } else { t.tsTranchesFile }
     this.jobName =  queueLogDir + t.name + ".nrs"
     this.trustAllPolymorphic = true
   }
