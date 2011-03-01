@@ -95,8 +95,8 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
                 GATKBAMIndex index = (GATKBAMIndex)dataSource.getIndex(reader);
                 BinTree binTree = getNextOverlappingBinTree((GATKBAMIndex)dataSource.getIndex(reader),currentLocus);
                 if(binTree != null) {
-                    coveredRegionStart = Math.max(coveredRegionStart,index.getFirstLocusInBin(binTree.getLowestLevelBin().toBin()));
-                    coveredRegionStop = Math.min(coveredRegionStop,index.getLastLocusInBin(binTree.getLowestLevelBin().toBin()));
+                    coveredRegionStart = Math.max(coveredRegionStart,binTree.getStart());
+                    coveredRegionStop = Math.min(coveredRegionStop,binTree.getStop());
                     coveredRegion = loci.getGenomeLocParser().createGenomeLoc(currentLocus.getContig(),coveredRegionStart,coveredRegionStop);
 
                     GATKBAMFileSpan fileSpan = generateFileSpan(index,binTree,currentLocus);
@@ -164,7 +164,7 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
             return null;
 
         BinTree binTree = binTreeIterator.peek();
-        while(index.getLastLocusInBin(binTree.getLowestLevelBin().toBin()) < locus.getStart()) {
+        while(binTree.isBefore(locus)) {
             binTreeIterator.next(); // Before the point of interest.  Consume this one.
             binTree = binTreeIterator.peek();
         }

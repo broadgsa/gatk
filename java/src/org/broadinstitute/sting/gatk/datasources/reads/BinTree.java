@@ -59,15 +59,6 @@ public class BinTree {
         this.bins = bins;
     }
 
-    public GATKBin getLowestLevelBin() {
-        for(int i = bins.length-1; i >= 0; i--) {
-            if(bins[i] != null)
-                return bins[i];
-        }
-        return null;
-    }
-
-
     /**
      * Retrieve the bins from the bin tree.
      * @return list of bins.
@@ -82,6 +73,31 @@ public class BinTree {
      */
     public int size() {
         return bins.length;
+    }
+
+    /**
+     * Returns the start of the region covered by this bin tree.
+     * @return Start of the region covered by this bin tree.
+     */
+    public int getStart() {
+        return binTreeStart;
+    }
+
+    /**
+     * Returns the end of the region covered by this bin tree.
+     * @return End of the region covered by this bin tree.
+     */
+    public int getStop() {
+        return binTreeStop;
+    }
+
+    /**
+     * Returns true if the location of this bin tree is before the given position.
+     * @param locus Locus to test.
+     * @return True if this bin sits completely before the given locus; false otherwise.
+     */
+    public boolean isBefore(final GenomeLoc locus) {
+        return binTreeStop < locus.getStart();
     }
 
     /**
