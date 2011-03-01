@@ -65,6 +65,11 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "assume_single_sample_reads", shortName = "single_sample", doc = "The single sample that we should assume is represented in the input bam (and therefore associate with all reads regardless of whether they have read groups)", required = false)
     public String ASSUME_SINGLE_SAMPLE = null;
 
+    // TODO -- delete me
+    @Hidden
+    @Argument(fullName = "abort_at_too_much_coverage", doc = "Don't call a site if the downsampled coverage is greater than this value", required = false)
+    public int COVERAGE_AT_WHICH_TO_ABORT = -1;
+
 
     // control the various parameters to be used
     @Argument(fullName = "min_base_quality_score", shortName = "mbq", doc = "Minimum base quality required to consider a base for calling", required = false)
@@ -134,6 +139,8 @@ public class UnifiedArgumentCollection {
         uac.INSERTION_END_PROBABILITY = INSERTION_END_PROBABILITY;
         uac.ALPHA_DELETION_PROBABILITY = ALPHA_DELETION_PROBABILITY;
         uac.EXACT_CALCULATION_TYPE = EXACT_CALCULATION_TYPE;
+
+        uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
 
         return uac;
     }

@@ -157,6 +157,9 @@ public class UnifiedGenotyperEngine {
      * @return the VariantCallContext object
      */
     public VariantCallContext calculateLikelihoodsAndGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
+        if ( UAC.COVERAGE_AT_WHICH_TO_ABORT > 0 && rawContext.size() > UAC.COVERAGE_AT_WHICH_TO_ABORT )
+            return null;
+
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
         if ( stratifiedContexts == null )
             return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ? null : new VariantCallContext(generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext), refContext.getBase(), false));
