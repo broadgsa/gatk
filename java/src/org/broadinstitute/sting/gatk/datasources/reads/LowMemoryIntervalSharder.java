@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -85,6 +86,15 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
 
         nextFilePointer = null;
         while(nextFilePointer == null && currentLocus != null) {
+            // special case handling of the unmapped shard.
+            if(currentLocus == GenomeLoc.UNMAPPED) {
+                nextFilePointer = new FilePointer(GenomeLoc.UNMAPPED);
+                for(SAMReaderID id: dataSource.getReaderIDs())
+                    nextFilePointer.addFileSpans(id,null);
+                currentLocus = null;
+                continue;
+            }
+
             nextFilePointer = new FilePointer(currentLocus.getContig());
 
             int coveredRegionStart = 1;
