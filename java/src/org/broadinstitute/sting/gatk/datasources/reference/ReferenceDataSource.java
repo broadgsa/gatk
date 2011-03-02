@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.reference;
 
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import net.sf.picard.reference.FastaSequenceIndexBuilder;
 import net.sf.picard.sam.CreateSequenceDictionary;
@@ -179,6 +180,8 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
 
             index = new CachingIndexedFastaSequenceFile(fastaFile);
 
+        } catch (IllegalArgumentException e) {
+            throw new UserException.CouldNotReadInputFile(fastaFile, "Could not read reference sequence.  The FASTA must have one of the following extensions: " + ReferenceSequenceFileFactory.FASTA_EXTENSIONS.toString(), e);
         }
         catch (Exception e) {
             throw new UserException.CouldNotReadInputFile(fastaFile, e);
