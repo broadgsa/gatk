@@ -83,7 +83,7 @@ public class LocusShardStrategy implements ShardStrategy {
             else
                 intervals = locations;
 
-            if(SAMDataSource.TRY_LOW_MEMORY_SHARDING)
+            if(SAMDataSource.isLowMemoryShardingEnabled())
                 this.filePointerIterator = new LowMemoryIntervalSharder(this.reads,intervals);
             else
                 this.filePointerIterator = IntervalSharder.shardIntervals(this.reads,intervals);

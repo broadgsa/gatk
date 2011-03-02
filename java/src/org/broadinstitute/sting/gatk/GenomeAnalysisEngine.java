@@ -836,6 +836,9 @@ public class GenomeAnalysisEngine {
         if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
+        // TEMPORARY: Force low-memory sharding to be available.
+        SAMDataSource.enableLowMemorySharding(argCollection.enableLowMemorySharding);
+
         return new SAMDataSource(
                 samReaderIDs,
                 genomeLocParser,

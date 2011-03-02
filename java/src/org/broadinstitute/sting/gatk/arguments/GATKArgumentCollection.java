@@ -238,9 +238,13 @@ public class GATKArgumentCollection {
     public int processTrackerID = -1;
 
     @Element(required = false)
-    @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM.  NO INTEGRATION TESTS are available.  Use at your own risk.")
+    @Argument(fullName="allow_intervals_with_unindexed_bam",doc="Allow interval processing with an unsupported BAM.  NO INTEGRATION TESTS are available.  Use at your own risk.",required=false)
     @Hidden
     public boolean allowIntervalsWithUnindexedBAM = false;
+
+    @Element(required = false)
+    @Argument(fullName="enable_experimental_low_memory_sharding",doc="Enable experimental low-memory sharding functionality.  Use at your own risk.",required=false)
+    public boolean enableLowMemorySharding = false;
 
     // --------------------------------------------------------------------------------------------------------------
     //
@@ -426,6 +430,9 @@ public class GATKArgumentCollection {
             return false;
 
         if (allowIntervalsWithUnindexedBAM != other.allowIntervalsWithUnindexedBAM)
+            return false;
+
+        if (enableLowMemorySharding != other.enableLowMemorySharding)
             return false;
 
         return true;

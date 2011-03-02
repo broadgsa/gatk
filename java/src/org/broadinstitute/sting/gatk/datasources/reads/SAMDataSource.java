@@ -128,7 +128,10 @@ public class SAMDataSource {
      */
     private final SAMResourcePool resourcePool;
 
-    static final boolean TRY_LOW_MEMORY_SHARDING = false;
+    /**
+     * Whether to enable the new low-memory sharding mechanism.
+     */
+    private static boolean enableLowMemorySharding = false;
 
     /**
      * Create a new SAM data source given the supplied read metadata.
@@ -281,7 +284,7 @@ public class SAMDataSource {
             originalToMergedReadGroupMappings.put(id,mappingToMerged);
         }
 
-        if(TRY_LOW_MEMORY_SHARDING) {
+        if(enableLowMemorySharding) {
             for(SAMReaderID id: readerIDs) {
                 File indexFile = findIndexFile(id.samFile);
                 if(indexFile != null) {
@@ -301,6 +304,22 @@ public class SAMDataSource {
      * @return
      */
     public ReadProperties getReadsInfo() { return readProperties; }
+
+    /**
+     * Enable experimental low-memory sharding.
+     * @param enable True to enable sharding.  False otherwise.
+     */
+    public static void enableLowMemorySharding(final boolean enable) {
+        enableLowMemorySharding = enable;
+    }
+
+    /**
+     * Returns whether low-memory sharding is enabled.
+     * @return True if enabled, false otherwise.
+     */
+    public static boolean isLowMemoryShardingEnabled() {
+        return enableLowMemorySharding;
+    }
 
     /**
      * Checks to see whether any reads files are supplying data.
@@ -389,7 +408,7 @@ public class SAMDataSource {
      * @return True if all readers have an index.
      */
     public boolean hasIndex() {
-        if(TRY_LOW_MEMORY_SHARDING)
+        if(enableLowMemorySharding)
             return readerIDs.size() == bamIndices.size();
         else {
             for(SAMFileReader reader: resourcePool.getReadersWithoutLocking()) {
@@ -406,7 +425,7 @@ public class SAMDataSource {
      * @return The index.  Will preload the index if necessary.
      */
     public BrowseableBAMIndex getIndex(final SAMReaderID id) {
-        if(TRY_LOW_MEMORY_SHARDING)
+        if(enableLowMemorySharding)
             return bamIndices.get(id);
         else {
             SAMReaders readers = resourcePool.getReadersWithoutLocking();
@@ -729,7 +748,7 @@ public class SAMDataSource {
             for(SAMReaderID readerID: readerIDs) {
                 SAMFileReader reader = new SAMFileReader(readerID.samFile);
                 reader.enableFileSource(true);
-                if(!TRY_LOW_MEMORY_SHARDING)
+                if(!enableLowMemorySharding)
                     reader.enableIndexCaching(true);
                 reader.setValidationStringency(validationStringency);
 
