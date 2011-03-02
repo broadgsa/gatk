@@ -67,6 +67,16 @@ public class BAMIndexBinIterator {
     private final int referenceSequence;
 
     /**
+     * Position of the linear index in the BAM on disk for the given reference sequence.
+     */
+    private final long linearIndexPosition;
+
+    /**
+     * Size of the linear index for the given reference sequence.
+     */
+    private final int linearIndexSize;
+
+    /**
      * Size of a long in bytes.
      */
     private static final int LONG_SIZE_IN_BYTES = Long.SIZE / 8;
@@ -95,27 +105,32 @@ public class BAMIndexBinIterator {
             FileChannel metaIndexChannel = metaIndex.getChannel();
 
             // zero out the contents of the file.  Arrays of primitives in java are always zeroed out by default.
-            byte[] emptyContents = new byte[GATKBAMIndex.MAX_BINS*(Long.SIZE/8)]; // byte array is zeroed out by default.
+            byte[] emptyContents = new byte[GATKBAMIndex.MAX_BINS*LONG_SIZE_IN_BYTES]; // byte array is zeroed out by default.
             metaIndexChannel.write(ByteBuffer.wrap(emptyContents));
 
-            ByteBuffer binPositionBuffer = ByteBuffer.allocate(emptyContents.length);
-            binPositionBuffer.order(ByteOrder.LITTLE_ENDIAN);            
+            ByteBuffer positionBuffer = ByteBuffer.allocate(emptyContents.length);
+            positionBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
+            // Write the positions of the bins in the index
             for (int binNumber = 0; binNumber < binCount; binNumber++) {
                 long position = index.position();
 
                 final int indexBin = index.readInteger();
 
                 metaIndexChannel.position(indexBin*LONG_SIZE_IN_BYTES);
-                binPositionBuffer.putLong(position);
-                binPositionBuffer.flip();
+                positionBuffer.putLong(position);
+                positionBuffer.flip();
 
-                metaIndexChannel.write(binPositionBuffer);
-                binPositionBuffer.flip();
+                metaIndexChannel.write(positionBuffer);
+                positionBuffer.flip();
 
                 final int nChunks = index.readInteger();
                 index.skipBytes(16 * nChunks);
             }
+
+            // Read the size of the linear index and the first position.
+            linearIndexSize = index.readInteger();
+            linearIndexPosition = index.position();
 
             metaIndexChannel.close();
             metaIndex.close();
@@ -131,6 +146,55 @@ public class BAMIndexBinIterator {
 
     public CloseableIterator<GATKBin> getIteratorOverLevel(int level) {
         return new LevelIterator(level);
+    }
+
+    /**
+     * Gets the linear index entry for the specified genomic start.
+     * @param genomicStart Starting location for which to search.
+     * @return Linear index entry corresponding to this genomic start.
+     */
+    public long getLinearIndexEntry(final int genomicStart) {
+        final int indexOffset = (genomicStart-1 >> 14);
+        // If the number of bins is exceeded, don't perform any trimming.
+        if(indexOffset >= linearIndexSize)
+            return 0L;
+
+        FileInputStream indexInputStream;
+        try {
+            indexInputStream = new FileInputStream(indexFile);
+        }
+        catch(IOException ex) {
+            throw new ReviewedStingException("Unable to open index file for reading");
+        }
+
+        try {
+            indexInputStream.getChannel().position(linearIndexPosition+(indexOffset*LONG_SIZE_IN_BYTES));
+        }
+        catch(IOException ex) {
+            throw new ReviewedStingException("Unable to position index file for reading");
+        }
+
+        ByteBuffer indexReader = ByteBuffer.allocate(LONG_SIZE_IN_BYTES);
+        indexReader.order(ByteOrder.LITTLE_ENDIAN);
+
+        try {
+            indexInputStream.getChannel().read(indexReader);
+        }
+        catch(IOException ex) {
+            throw new ReviewedStingException("Unable to position index file for reading");
+        }
+
+        indexReader.flip();
+        final long linearIndexEntry = indexReader.getLong();
+
+        try {
+            indexInputStream.close();
+        }
+        catch(IOException ex) {
+            throw new ReviewedStingException("Unable to close index file.");
+        }
+
+        return linearIndexEntry;
     }
 
     private class LevelIterator implements CloseableIterator<GATKBin> {

@@ -31,6 +31,7 @@ import net.sf.samtools.GATKChunk;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -203,9 +204,13 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
             for(GATKChunk chunk: bin.getChunkList())
                 chunks.add(chunk.clone());
         }
+        final long referenceLinearIndexMinimumOffset = index.getLinearIndex(initialRegion.getContigIndex()).getMinimumOffset(initialRegion.getStart());
+        final long linearIndexMinimumOffset = binTree.getLinearIndexEntry();
+        if(linearIndexMinimumOffset != referenceLinearIndexMinimumOffset)
+            throw new ReviewedStingException(String.format("Loaded linear index offset is incorrect; is %d, should be %d",linearIndexMinimumOffset,referenceLinearIndexMinimumOffset));
 
         // Optimize the chunk list with a linear index optimization
-        chunks = index.optimizeChunkList(chunks,index.getLinearIndex(initialRegion.getContigIndex()).getMinimumOffset(initialRegion.getStart()));
+        chunks = index.optimizeChunkList(chunks,linearIndexMinimumOffset);
         
         GATKBAMFileSpan fileSpan = new GATKBAMFileSpan(chunks.toArray(new GATKChunk[chunks.size()]));
 

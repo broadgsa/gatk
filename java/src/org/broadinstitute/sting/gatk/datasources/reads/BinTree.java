@@ -53,10 +53,16 @@ public class BinTree {
      */
     private final int binTreeStop;
 
-    public BinTree(final int binTreeStart, final int binTreeStop,final GATKBin[] bins) {
+    /**
+     * Linear index entry associated with this location.
+     */
+    private final long linearIndexEntry;
+
+    public BinTree(final int binTreeStart, final int binTreeStop,final GATKBin[] bins, final long linearIndexEntry) {
         this.binTreeStart = binTreeStart;
         this.binTreeStop = binTreeStop;
         this.bins = bins;
+        this.linearIndexEntry = linearIndexEntry;
     }
 
     /**
@@ -89,6 +95,14 @@ public class BinTree {
      */
     public int getStop() {
         return binTreeStop;
+    }
+
+    /**
+     * The linear index entry associated with this bin tree.
+     * @return Linear index entry.
+     */
+    public long getLinearIndexEntry() {
+        return linearIndexEntry;
     }
 
     /**
@@ -128,6 +142,11 @@ class BinTreeIterator implements Iterator<BinTree> {
     private final GATKBAMIndex index;
 
     /**
+     * Master iterator over the BAM index.
+     */
+    private final BAMIndexBinIterator binIterator;
+
+    /**
      * Iterators over each individual level.
      */
     private final PeekableIterator<GATKBin>[] levelIterators;
@@ -146,7 +165,7 @@ class BinTreeIterator implements Iterator<BinTree> {
     public BinTreeIterator(final GATKBAMIndex index, final File indexFile, final int referenceSequence) {
         this.index = index;
         
-        BAMIndexBinIterator binIterator = new BAMIndexBinIterator(index,indexFile,referenceSequence);
+        binIterator = new BAMIndexBinIterator(index,indexFile,referenceSequence);
         levelIterators = new PeekableIterator[GATKBAMIndex.getNumIndexLevels()];
         for(int level = 0; level < GATKBAMIndex.getNumIndexLevels(); level++)
             levelIterators[level] = new PeekableIterator<GATKBin>(binIterator.getIteratorOverLevel(level));
@@ -156,6 +175,11 @@ class BinTreeIterator implements Iterator<BinTree> {
         currentBinInLowestLevel = GATKBAMIndex.getFirstBinInLevel(GATKBAMIndex.getNumIndexLevels()-1) - 1;
 
         advance();
+    }
+
+    public void close() {
+        for(PeekableIterator<GATKBin> levelIterator: levelIterators)
+            levelIterator.close();
     }
 
     public boolean hasNext() {
@@ -212,7 +236,10 @@ class BinTreeIterator implements Iterator<BinTree> {
             for(int level = 0; level <= lowestLevel; level++) {
                 if(bins[level] != null) {
                     Bin lowestLevelBin = new Bin(bins[level].getReferenceSequence(),currentBinInLowestLevel);
-                    nextBinTree = new BinTree(index.getFirstLocusInBin(lowestLevelBin),index.getLastLocusInBin(lowestLevelBin),bins);
+                    final int firstLocusInBin = index.getFirstLocusInBin(lowestLevelBin);
+                    final int lastLocusInBin = index.getLastLocusInBin(lowestLevelBin);
+                    final long linearIndexEntry = binIterator.getLinearIndexEntry(firstLocusInBin);
+                    nextBinTree = new BinTree(firstLocusInBin,lastLocusInBin,bins,linearIndexEntry);
                     break;
                 }
             }
