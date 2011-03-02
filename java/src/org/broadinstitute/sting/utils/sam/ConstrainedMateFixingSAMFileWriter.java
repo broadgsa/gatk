@@ -185,18 +185,29 @@ public class ConstrainedMateFixingSAMFileWriter implements SAMFileWriter {
         if ( newRead.getReadPairedFlag() ) {
             SAMRecord mate = forMateMatching.get(newRead.getReadName());
             if ( mate != null ) {
-                boolean reQueueMate = mate.getReadUnmappedFlag() && ! newRead.getReadUnmappedFlag();
-                if ( reQueueMate ) {
-                    // the mate was unmapped, but newRead was mapped, so the mate may have been moved
-                    // to be next-to newRead, so needs to be reinserted into the waitingReads queue
-                    // note -- this must be called before the setMateInfo call below
-                    if ( ! waitingReads.remove(mate) )
-                        throw new ReviewedStingException("BUG: removal of mate failed at " + mate);
+                // Frustratingly, Picard's setMateInfo() method unaligns (by setting the reference contig
+                // to '*') read pairs when both of their flags have the unmapped bit set.  This is problematic
+                // when trying to emit reads in coordinate order because all of a sudden we have reads in the
+                // middle of the bam file that now belong at the end - and any mapped reads that get emitted
+                // after them trigger an exception in the writer.  For our purposes, because we shouldn't be
+                // moving read pairs when they are both unmapped anyways, we'll just not run fix mates on them.
+                boolean doNotFixMates = newRead.getReadUnmappedFlag() && mate.getReadUnmappedFlag();
+                if ( !doNotFixMates ) {
+
+                    boolean reQueueMate = mate.getReadUnmappedFlag() && ! newRead.getReadUnmappedFlag();
+                    if ( reQueueMate ) {
+                        // the mate was unmapped, but newRead was mapped, so the mate may have been moved
+                        // to be next-to newRead, so needs to be reinserted into the waitingReads queue
+                        // note -- this must be called before the setMateInfo call below
+                        if ( ! waitingReads.remove(mate) )
+                            throw new ReviewedStingException("BUG: removal of mate failed at " + mate);
+                    }
+
+                    // we've already seen our mate -- set the mate info and remove it from the map
+                    SamPairUtil.setMateInfo(mate, newRead, null);
+                    if ( reQueueMate ) waitingReads.add(mate);
                 }
 
-                // we've already seen our mate -- set the mate info and remove it from the map
-                SamPairUtil.setMateInfo(mate, newRead, null);
-                if ( reQueueMate ) waitingReads.add(mate);
                 forMateMatching.remove(newRead.getReadName());
             } else {
                 forMateMatching.put(newRead.getReadName(), newRead);
