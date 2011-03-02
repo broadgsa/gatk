@@ -29,8 +29,11 @@ import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 import net.sf.samtools.util.RuntimeIOException;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.ConstrainedMateFixingSAMFileWriter;
@@ -44,6 +47,8 @@ import org.broadinstitute.sting.utils.sam.ConstrainedMateFixingSAMFileWriter;
 public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWriter> {
     private final File file;
     private SAMFileWriter writer;
+
+    private static Logger logger = Logger.getLogger(SAMFileWriterStorage.class);
 
     public SAMFileWriterStorage( SAMFileWriterStub stub ) {
         this(stub,stub.getSAMFile());   
@@ -66,10 +71,7 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
                 factory.setCreateIndex(false);
 
             try {
-                if( stub.getCompressionLevel() != null )
-                    this.writer = factory.makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file, stub.getCompressionLevel() );
-                else
-                    this.writer = factory.makeBAMWriter( stub.getFileHeader(), stub.isPresorted(), file );
+                this.writer = createBAMWriter(factory,stub.getFileHeader(),stub.isPresorted(),file,stub.getCompressionLevel());
             }
             catch(RuntimeIOException ex) {
                 throw new UserException.CouldNotCreateOutputFile(file,"file could not be created",ex);
@@ -114,6 +116,39 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
             reader.close();
             file.delete();
         }
+    }
+
+    private SAMFileWriter createBAMWriter(final SAMFileWriterFactory factory,
+                                 final SAMFileHeader header,
+                                 final boolean presorted,
+                                 final File outputFile,
+                                 final Integer compressionLevel) {
+        SAMFileWriter writer;
+        if(compressionLevel != null)
+            writer = factory.makeBAMWriter(header, presorted, outputFile, compressionLevel);
+        else
+            writer = factory.makeBAMWriter(header, presorted, outputFile);
+
+        // mhanna - 1 Mar 2011 - temporary hack until Picard generates an index file for empty BAMs --
+        //                     - do a pre-initialization of the BAM file.
+        try {
+            Method prepareToWriteAlignmentsMethod = writer.getClass().getDeclaredMethod("prepareToWriteAlignments");
+            if(prepareToWriteAlignmentsMethod != null) {
+                prepareToWriteAlignmentsMethod.setAccessible(true);
+                prepareToWriteAlignmentsMethod.invoke(writer);
+            }
+        }
+        catch(NoSuchMethodException ex) {
+            logger.info("Unable to call prepareToWriteAlignments method; this should be reviewed when Picard is updated.");
+        }
+        catch(IllegalAccessException ex) {
+            logger.info("Unable to access prepareToWriteAlignments method; this should be reviewed when Picard is updated.");
+        }
+        catch(InvocationTargetException ex) {
+            logger.info("Unable to invoke prepareToWriteAlignments method; this should be reviewed when Picard is updated.");
+        }
+
+        return writer;
     }
 
 }
