@@ -814,6 +814,22 @@ public class MathUtils {
         public double stddev() { return Math.sqrt(s/(obs_count - 1)); }
         public double var() { return s/(obs_count - 1); }
         public long observationCount() { return obs_count; }
+
+        public RunningAverage clone() {
+            RunningAverage ra = new RunningAverage();
+            ra.mean = this.mean;
+            ra.s = this.s;
+            ra.obs_count = this.obs_count;
+            return ra;
+        }
+
+        public void merge(RunningAverage other) {
+            if ( this.obs_count > 0 || other.obs_count > 0 ) { // if we have any observations at all
+                this.mean = ( this.mean * this.obs_count + other.mean * other.obs_count ) / ( this.obs_count + other.obs_count );
+                this.s += other.s;
+            }
+            this.obs_count += other.obs_count;
+        }
     }
     
     //
