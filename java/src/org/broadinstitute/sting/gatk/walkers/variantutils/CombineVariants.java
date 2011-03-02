@@ -131,8 +131,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
 
         if ( ASSUME_IDENTICAL_SAMPLES ) {
-            final VariantContext vc = vcs.iterator().next();
-            if( vc != null ) {
+            for ( final VariantContext vc : vcs ) {
                 vcfWriter.add( vc, ref.getBase() );
             }
             
