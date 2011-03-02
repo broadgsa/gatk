@@ -105,7 +105,7 @@ public class UnifiedArgumentCollection {
     public double ALPHA_DELETION_PROBABILITY = 1e-3;
 
     @Argument(fullName = "exactCalculation", shortName = "exactCalculation", doc = "expt", required = false)
-    public ExactAFCalculationModel.ExactCalculation EXACT_CALCULATION_TYPE = ExactAFCalculationModel.ExactCalculation.N2_GOLD_STANDARD;
+    public ExactAFCalculationModel.ExactCalculation EXACT_CALCULATION_TYPE = ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL;
 
     @Deprecated
     @Argument(fullName="output_all_callable_bases", shortName="all_bases", doc="Please use --output_mode EMIT_ALL_SITES instead" ,required=false)
