@@ -79,6 +79,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="setKey", shortName="setKey", doc="Key, by default set, in the INFO key=value tag emitted describing which set the combined VCF record came from.  Set to null if you don't want the set field emitted.", required=false)
     public String SET_KEY = "set";
 
+    @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="If true, assume input VCFs have identical sample sets and disjoint calls so that one can simply perform a merge sort to combine the VCFs into one, drastically reducing the runtime.", required=false)
+    public boolean ASSUME_IDENTICAL_SAMPLES = false;
+
     private List<String> priority = null;
 
     public void initialize() {
@@ -126,6 +129,15 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
+
+        if ( ASSUME_IDENTICAL_SAMPLES ) {
+            final VariantContext vc = vcs.iterator().next();
+            if( vc != null ) {
+                vcfWriter.add( vc, ref.getBase() );
+            }
+            
+            return vcs.isEmpty() ? 0 : 1;
+        }
 
         VariantContext mergedVC = null;
         if ( variantMergeOption == VariantContextUtils.VariantMergeType.MASTER ) {
