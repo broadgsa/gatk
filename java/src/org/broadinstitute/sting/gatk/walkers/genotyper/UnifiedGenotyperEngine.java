@@ -211,6 +211,8 @@ public class UnifiedGenotyperEngine {
         VariantContext vc;
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
             final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), true);
+            if ( vcInput == null )
+                return null;
             vc = new VariantContext("UG_call", vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles());
         } else {
             Set<Allele> alleles = new HashSet<Allele>();
