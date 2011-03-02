@@ -31,13 +31,12 @@ import net.sf.samtools.GATKChunk;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
@@ -104,13 +103,13 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
 
             for(SAMReaderID reader: dataSource.getReaderIDs()) {
                 GATKBAMIndex index = (GATKBAMIndex)dataSource.getIndex(reader);
-                BinTree binTree = getNextOverlappingBinTree((GATKBAMIndex)dataSource.getIndex(reader),currentLocus);
+                BinTree binTree = getNextOverlappingBinTree(reader,(GATKBAMIndex)dataSource.getIndex(reader),currentLocus);
                 if(binTree != null) {
                     coveredRegionStart = Math.max(coveredRegionStart,binTree.getStart());
                     coveredRegionStop = Math.min(coveredRegionStop,binTree.getStop());
                     coveredRegion = loci.getGenomeLocParser().createGenomeLoc(currentLocus.getContig(),coveredRegionStart,coveredRegionStop);
 
-                    GATKBAMFileSpan fileSpan = generateFileSpan(index,binTree,currentLocus);
+                    GATKBAMFileSpan fileSpan = generateFileSpan(reader,index,binTree,currentLocus);
                     nextFilePointer.addFileSpans(reader,fileSpan);
                 }
             }
@@ -149,28 +148,28 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
     /**
      * The last reference sequence processed by this iterator.
      */
-    private int lastReferenceSequenceLoaded = -1;
+    private Map<SAMReaderID,Integer> lastReferenceSequenceLoaded = new HashMap<SAMReaderID,Integer>();
 
     /**
      * The stateful iterator used to progress through the genoem.
      */
-    private PeekableIterator<BinTree> binTreeIterator = null;
-
+    private Map<SAMReaderID, PeekableIterator<BinTree>> binTreeIterators = new HashMap<SAMReaderID, PeekableIterator<BinTree>>();
     /**
      * Get the next overlapping tree of bins associated with the given BAM file.
      * @param index BAM index representation.
      * @param locus Locus for which to grab the bin tree, if available.
      * @return The BinTree overlapping the given locus.
      */
-    private BinTree getNextOverlappingBinTree(final GATKBAMIndex index, final GenomeLoc locus) {
+    private BinTree getNextOverlappingBinTree(final SAMReaderID reader, final GATKBAMIndex index, final GenomeLoc locus) {
         // Stale reference sequence or first invocation.  (Re)create the binTreeIterator.
-        if(locus.getContigIndex() != lastReferenceSequenceLoaded) {
-            if(binTreeIterator != null)
-                binTreeIterator.close();
-            lastReferenceSequenceLoaded = locus.getContigIndex();
-            binTreeIterator = new PeekableIterator<BinTree>(new BinTreeIterator(index,index.getIndexFile(),locus.getContigIndex()));
+        if(!lastReferenceSequenceLoaded.containsKey(reader) || lastReferenceSequenceLoaded.get(reader) != locus.getContigIndex()) {
+            if(binTreeIterators.containsKey(reader))
+                binTreeIterators.get(reader).close();
+            lastReferenceSequenceLoaded.put(reader,locus.getContigIndex());
+            binTreeIterators.put(reader,new PeekableIterator<BinTree>(new BinTreeIterator(index, index.getIndexFile(), locus.getContigIndex())));
         }
 
+        PeekableIterator<BinTree> binTreeIterator = binTreeIterators.get(reader);
         if(!binTreeIterator.hasNext())
             return null;
 
@@ -195,7 +194,7 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
      * @param initialRegion The region to employ when trimming the linear index.
      * @return File span mapping to given region.
      */
-    private GATKBAMFileSpan generateFileSpan(final GATKBAMIndex index, final BinTree binTree, final GenomeLoc initialRegion) {
+    private GATKBAMFileSpan generateFileSpan(final SAMReaderID reader, final GATKBAMIndex index, final BinTree binTree, final GenomeLoc initialRegion) {
         List<GATKChunk> chunks = new ArrayList<GATKChunk>(binTree.size());
         for(GATKBin bin: binTree.getBins()) {
             if(bin == null)
@@ -208,7 +207,7 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
 
         // Optimize the chunk list with a linear index optimization
         chunks = index.optimizeChunkList(chunks,linearIndexMinimumOffset);
-        
+
         GATKBAMFileSpan fileSpan = new GATKBAMFileSpan(chunks.toArray(new GATKChunk[chunks.size()]));
 
         return fileSpan;
