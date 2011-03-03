@@ -156,7 +156,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         }
     }
 
-    private static boolean isUniqueHeaderLine(VCFHeaderLine line, Set<VCFHeaderLine> currentSet) {
+    public static boolean isUniqueHeaderLine(VCFHeaderLine line, Set<VCFHeaderLine> currentSet) {
         if ( !(line instanceof VCFCompoundHeaderLine) )
             return true;
 

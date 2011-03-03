@@ -12,7 +12,11 @@ import java.util.Map;
  * Created by IntelliJ IDEA.
  * @author chartl
  */
-public abstract class CaseControl<X> extends AssociationContext<X> {
+public abstract class CaseControl<X> extends AssociationContext<X,X> {
+
+    public Map<Cohort,X> getCaseControl() {
+       return reduce(window);
+    }
 
     public Map<Cohort,X> reduce(List<Map<Sample,X>> window) {
         X accumCase = null;

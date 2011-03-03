@@ -276,6 +276,19 @@ public class RefMetaDataTracker {
         return contexts;
     }
 
+    public Collection<VariantContext> getVariantContextsByPrefix(ReferenceContext ref, Collection<String> names, EnumSet<VariantContext.Type> allowedTypes, GenomeLoc curLocation, boolean requireStartHere, boolean takeFirstOnly ) {
+        Collection<VariantContext> contexts = new ArrayList<VariantContext>();
+
+        for ( String name : names ) {
+            RODRecordList rodList = getTrackDataByName(name,false); // require that the name is an exact match
+
+            if ( rodList != null )
+                addVariantContexts(contexts, rodList, ref, allowedTypes, curLocation, requireStartHere, takeFirstOnly );
+        }
+
+        return contexts;
+    }
+
     /**
      * Gets the variant context associated with name, and assumes the system only has a single bound track at this location.  Throws an exception if not.
      * see getVariantContexts for more information.

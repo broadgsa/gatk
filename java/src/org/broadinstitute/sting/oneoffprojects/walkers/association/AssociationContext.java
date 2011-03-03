@@ -15,12 +15,12 @@ import java.util.Map;
  * Time: 11:58 AM
  * To change this template use File | Settings | File Templates.
  */
-public abstract class AssociationContext<X> {
+public abstract class AssociationContext<X,Y> {
 
-    protected List<Map<Sample,Object>> window;
+    protected List<Map<Sample,Y>> window;
 
     public AssociationContext() {
-        window = new ArrayList<Map<Sample,Object>>(getWindowSize());
+        window = new ArrayList<Map<Sample,Y>>(getWindowSize());
     }
 
     // specifies size of window
@@ -36,7 +36,7 @@ public abstract class AssociationContext<X> {
     public abstract Object map(ReadBackedPileup rbp);
 
     // specifies how to take the per-sample data and reduce them into testable pairs
-    public abstract Map<?,X> reduce(List<Map<Sample,X>> win);
+    public abstract Map<?,X> reduce(List<Map<Sample,Y>> win);
 
     // do we filter the current location (e.g. omit from window)
     public boolean filter(MapExtender m) { return true; }
@@ -60,7 +60,7 @@ public abstract class AssociationContext<X> {
     }
 
 
-    public void addData(Map<Sample,Object> sampleData) {
+    public void addData(Map<Sample,Y> sampleData) {
         window.add(sampleData);
     }
 
@@ -70,7 +70,7 @@ public abstract class AssociationContext<X> {
     }
 
     public void slide() {
-        ArrayList<Map<Sample,Object>> newWindow = new ArrayList<Map<Sample,Object>>((window.subList(slideByValue(),window.size())));
+        ArrayList<Map<Sample,Y>> newWindow = new ArrayList<Map<Sample,Y>>((window.subList(slideByValue(),window.size())));
         newWindow.ensureCapacity(getWindowSize());
         window = newWindow;
     }

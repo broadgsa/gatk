@@ -9,13 +9,13 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.lang.reflect.Modifier;
+import java.util.*;
 
 /**
  * @Author chartl
@@ -23,7 +23,7 @@ import java.util.Set;
  * Generalized framework for regional (windowed) associations
  */
 public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAssociationHandler> implements TreeReducible<RegionalAssociationHandler> {
-    @Argument(doc="foo",shortName="AT",fullName="associationType",required=false)
+    @Argument(doc="Association type(s) to use. Supports multiple arguments (-AT thing1 -AT thing2).",shortName="AT",fullName="associationType",required=false)
     public String[] associationsToUse = null;
 
     @Output
@@ -57,17 +57,23 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
         }
         return rac;
     }
-
-    private AssociationContext stringToAssociationContext(String s) {
-
-        throw new UserException(String.format("AssociationContextOld type %s not found.",s));
-    }
-
     private Set<AssociationContext> getAssociations() {
-        // todo -- this should use the package handler like variant eval
+        List<Class<? extends AssociationContext>> contexts = new PluginManager<AssociationContext>(AssociationContext.class).getPlugins();
+        Map<String,Class<? extends AssociationContext>> classNameToClass = new HashMap<String,Class<? extends AssociationContext>>(contexts.size());
+        for ( Class<? extends AssociationContext> clazz : contexts ) {
+            if (! Modifier.isAbstract(clazz.getModifiers())) {
+                classNameToClass.put(clazz.getSimpleName(),clazz);
+            }
+        }
+
         Set<AssociationContext> validAssociations = new HashSet<AssociationContext>();
         for ( String s : associationsToUse ) {
-            AssociationContext context = stringToAssociationContext(s);
+            AssociationContext context;
+            try {
+                context = classNameToClass.get(s).getConstructor(new Class[]{}).newInstance(new Object[]{});
+            } catch ( Exception e ) {
+                throw new StingException("The class "+s+" could not be instantiated.",e);
+            }
             context.init(this);
             validAssociations.add(context);
         }

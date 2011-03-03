@@ -52,6 +52,30 @@ public class MathUtils {
     /** Private constructor.  No instantiating this class! */
     private MathUtils() {}
 
+    public static double sum( Collection<Number> numbers ) {
+        double sum = 0;
+        for ( Number n : numbers ) {
+            sum += n.doubleValue();
+        }
+
+        return sum;
+    }
+
+    public static double average( Collection<Number> numbers ) {
+        return sum(numbers)/numbers.size();
+    }
+
+    public static double variance( Collection<Number> numbers, Number mean ) {
+        double mn = mean.doubleValue();
+        double var = 0;
+        for ( Number n : numbers ) { var += Math.pow( n.doubleValue() - mn , 2); }
+        return var;
+    }
+
+    public static double variance(Collection<Number> numbers) {
+        return variance(numbers,average(numbers));
+    }
+
     public static double sum(double[] values) {
         double s = 0.0;
         for ( double v : values) s += v;

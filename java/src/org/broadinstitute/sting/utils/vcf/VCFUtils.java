@@ -60,6 +60,23 @@ public class VCFUtils {
         return data;
     }
 
+    public static Map<String,VCFHeader> getVCFHeadersFromRodPrefix(GenomeAnalysisEngine toolkit,String prefix) {
+        Map<String, VCFHeader> data = new HashMap<String, VCFHeader>();
+
+        // iterate to get all of the sample names
+        List<ReferenceOrderedDataSource> dataSources = toolkit.getRodDataSources();
+        for ( ReferenceOrderedDataSource source : dataSources ) {
+            // ignore the rod if lacks the prefix
+            if ( ! source.getName().startsWith(prefix) )
+                continue;
+
+            if ( source.getHeader() != null && source.getHeader() instanceof VCFHeader )
+                data.put(source.getName(), (VCFHeader)source.getHeader());
+        }
+
+        return data;
+    }
+
     /**
      * Gets the header fields from all VCF rods input by the user
      *
