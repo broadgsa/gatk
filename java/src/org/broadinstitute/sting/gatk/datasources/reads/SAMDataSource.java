@@ -974,11 +974,11 @@ public class SAMDataSource {
                     }
                 }
                 else {
-                    // Unmapped read filter; just check getReadUnmappedFlag().
-                    if(!candidateRead.getReadUnmappedFlag())
-                        continue;
-                    nextRead = candidateRead;
-                    break;
+                    // Found an unmapped read.  We're done.
+                    if(candidateRead.getReadUnmappedFlag()) {
+                        nextRead = candidateRead;
+                        break;
+                    }
                 }
 
                 // No more reads available.  Stop the search.
