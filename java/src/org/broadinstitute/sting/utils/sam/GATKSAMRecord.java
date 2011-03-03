@@ -88,7 +88,7 @@ public class GATKSAMRecord extends SAMRecord {
 
         // sanity check that the lengths of the base and quality strings are equal
         if ( getBaseQualities().length  != getReadLength() )
-            throw new UserException.MalformedBam(this, String.format("Error: the number of base qualities does not match the number of bases in %s. Use -DBQ x to set a default base quality score to all reads so GATK can proceed.", mRecord.getReadName()));
+            throw new UserException.MalformedBAM(this, String.format("Error: the number of base qualities does not match the number of bases in %s. Use -DBQ x to set a default base quality score to all reads so GATK can proceed.", mRecord.getReadName()));
     }
 
     public void setGoodBases(GATKSAMRecordFilter filter, boolean abortIfAlreadySet) {

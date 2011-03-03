@@ -43,6 +43,11 @@ public class VerifyingSamIterator implements StingSAMIterator {
         if ( last == null || cur.getReadUnmappedFlag() )
             return false;
         else {
+            if(last.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX || last.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START)
+                throw new UserException.MalformedBAM(last,String.format("read %s has inconsistent mapping information.",last.format()));
+            if(cur.getReferenceIndex() == SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX || cur.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START)
+                throw new UserException.MalformedBAM(last,String.format("read %s has inconsistent mapping information.",cur.format()));
+
             GenomeLoc lastLoc = genomeLocParser.createGenomeLoc( last );
             GenomeLoc curLoc = genomeLocParser.createGenomeLoc( cur );
             return curLoc.compareTo(lastLoc) == -1;

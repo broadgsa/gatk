@@ -392,7 +392,7 @@ public class DSBWalkerV3 extends ReadWalker<Integer,Integer> {
         } else if ( controlReadGroups.contains( read.getReadGroup().getReadGroupId() )) {
             addControl(read);
         } else {
-            throw new UserException.MalformedBam(read, "Read "+read + " belongs to unrecognized read group");
+            throw new UserException.MalformedBAM(read, "Read "+read + " belongs to unrecognized read group");
         }
         return 1;
     }

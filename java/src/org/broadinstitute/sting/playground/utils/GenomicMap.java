@@ -250,7 +250,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
 
         // get mapping from read's contig onto a "global" contig (as a list of intervals on the latter):
 		Collection<GenomeLoc> segments = getContigMapping(r.getReferenceName());
-		if ( segments == null ) throw new UserException.MalformedBam(r, "Can not remap a record: unknown custom contig name "+r.getReferenceName());
+		if ( segments == null ) throw new UserException.MalformedBAM(r, "Can not remap a record: unknown custom contig name "+r.getReferenceName());
 
         // scroll the list of intervals until we find the interval that the alignment start falls into:
 		Pair<? extends Iterator<GenomeLoc>, Integer> p = seekForward(segments,customStart);
@@ -324,7 +324,7 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
                         if ( discardCrossContig ) {
                 //			System.out.println("WARNING: ALIGNMENT DISCARDED: "+message);
                             return null;
-                        } else throw new UserException.MalformedBam(r, message);
+                        } else throw new UserException.MalformedBAM(r, message);
                     }
 
                     gl = iter.next(); // advance to next segment
@@ -332,11 +332,11 @@ public class GenomicMap implements Iterable<Map.Entry<String, Collection<GenomeL
                     refPos = (int)gl.getStart(); // we jump to the start of next segment on the master ref
 
                     if ( gl.getContigIndex() != r.getReferenceIndex() )
-                        throw new UserException.MalformedBam(r, "Contig "+oldRefName+
+                        throw new UserException.MalformedBAM(r, "Contig "+oldRefName+
                         " has segments on different master contigs: currently unsupported");
 
                     if ( refPos < currStop + 1 )
-                        throw new UserException.MalformedBam(r, "Contig "+oldRefName+
+                        throw new UserException.MalformedBAM(r, "Contig "+oldRefName+
                         " has segments that are out of order or strictly adjacent: currently unsupported");
                     if ( len > 0 && refPos > currStop + 1 ) {
                         // add "panning" N's w/respect to the master ref over the region between adjacent segments

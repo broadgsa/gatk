@@ -116,18 +116,6 @@ public class UserException extends ReviewedStingException {
         }
     }
 
-    public static class MalformedBam extends UserException {
-        public MalformedBam(SAMRecord read, String message) {
-            super(String.format("SAM/BAM file %s is malformed: %s", read.getFileSource().getReader(), message));
-        }
-    }
-
-    public static class ReadMissingReadGroup extends MalformedBam {
-        public ReadMissingReadGroup(SAMRecord read) {
-            super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK.  Please use http://www.broadinstitute.org/gsa/wiki/index.php/ReplaceReadGroups to fix this problem", read.getReadName()));
-        }
-    }
-
     public static class MissortedBAM extends UserException {
         public MissortedBAM(SAMFileHeader.SortOrder order, File file, SAMFileHeader header) {
             super(String.format("Missorted Input SAM/BAM files: %s is must be sorted in %s order but order was: %s", file, order, header.getSortOrder()));
@@ -146,6 +134,19 @@ public class UserException extends ReviewedStingException {
             super(String.format("Missorted Input SAM/BAM files: %s", message));
         }
     }
+
+    public static class MalformedBAM extends UserException {
+        public MalformedBAM(SAMRecord read, String message) {
+            super(String.format("SAM/BAM file %s is malformed: %s", read.getFileSource().getReader(), message));
+        }
+    }
+
+    public static class ReadMissingReadGroup extends MalformedBAM {
+        public ReadMissingReadGroup(SAMRecord read) {
+            super(read, String.format("Read %s is either missing the read group or its read group is not defined in the BAM header, both of which are required by the GATK.  Please use http://www.broadinstitute.org/gsa/wiki/index.php/ReplaceReadGroups to fix this problem", read.getReadName()));
+        }
+    }
+
 
     public static class MissortedFile extends UserException {
         public MissortedFile(File file, String message, Exception e) {

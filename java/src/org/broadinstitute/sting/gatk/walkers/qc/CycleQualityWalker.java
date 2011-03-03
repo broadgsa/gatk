@@ -100,8 +100,8 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
         String lane = read.getReadGroup().getPlatformUnit();
         String library = read.getReadGroup().getLibrary();
 
-        if ( lane == null ) throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has no platform unit information");
-        if ( library == null ) throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has no library information");
+        if ( lane == null ) throw new UserException.MalformedBAM(read, "Read "+read.getReadName()+" has no platform unit information");
+        if ( library == null ) throw new UserException.MalformedBAM(read, "Read "+read.getReadName()+" has no library information");
 
         int end = 0;
 
@@ -109,11 +109,11 @@ public class CycleQualityWalker extends ReadWalker<Integer,Integer> {
 
             if ( read.getFirstOfPairFlag() ) {
                 if ( read.getSecondOfPairFlag() )
-                    throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
+                    throw new UserException.MalformedBAM(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
                 end = 1;
             } else {
                 if ( ! read.getSecondOfPairFlag() )
-                    throw new UserException.MalformedBam(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
+                    throw new UserException.MalformedBAM(read, "Read "+read.getReadName()+" has conflicting first/second in pair attributes");
                 end = 2;
             }
         }

@@ -289,7 +289,7 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
 
             byte qual = p.getQual();
             if ( qual > SAMUtils.MAX_PHRED_SCORE )
-                throw new UserException.MalformedBam(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
+                throw new UserException.MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
             if ( capBaseQualsAtMappingQual )
                 qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
 

@@ -47,7 +47,7 @@ public class TileCovariate implements ExperimentalCovariate {
         Integer tile = IlluminaUtil.getTileFromReadName(read.getReadName());
         if (tile == null) {
             if( exceptionWhenNoTile ) {
-                throw new UserException.MalformedBam(read, "Tile covariate specified but tile number not defined for read: " + read.getReadName() );
+                throw new UserException.MalformedBAM(read, "Tile covariate specified but tile number not defined for read: " + read.getReadName() );
             } else {
                 return -1;
             }

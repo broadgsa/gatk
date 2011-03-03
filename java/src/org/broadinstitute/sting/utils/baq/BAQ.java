@@ -427,7 +427,7 @@ public class BAQ {
                 int baq_delta = (int)baq[i] - 64;
                 int newval =  rawQual - baq_delta;
                 if ( newval < 0 )
-                    throw new UserException.MalformedBam(read, "BAQ tag error: the BAQ value is larger than the base quality");
+                    throw new UserException.MalformedBAM(read, "BAQ tag error: the BAQ value is larger than the base quality");
                 newQuals[i] = (byte)newval;
             }
         } else if ( ! useRawQualsIfNoBAQTag ) {

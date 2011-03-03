@@ -210,7 +210,7 @@ public class LocusIteratorByState extends LocusIterator {
                     if ( generateExtendedEvents ) {
                         // we see insertions only once, when we step right onto them; the position on the read is scrolled
                         // past the insertion right after that
-                        if ( eventDelayedFlag > 1 ) throw new UserException.MalformedBam(read, "Adjacent I/D events in read "+read.getReadName());
+                        if ( eventDelayedFlag > 1 ) throw new UserException.MalformedBAM(read, "Adjacent I/D events in read "+read.getReadName());
                         insertedBases = Arrays.copyOfRange(read.getReadBases(),readOffset+1,readOffset+1+curElement.getLength());
                         eventLength = curElement.getLength() ;
                         eventStart = readOffset;
@@ -226,7 +226,7 @@ public class LocusIteratorByState extends LocusIterator {
                         if ( cigarElementCounter == 1) {
                             // generate an extended event only if we just stepped into the deletion (i.e. don't
                             // generate the event at every deleted position on the ref, that's what cigarElementCounter==1 is for!)
-                            if ( eventDelayedFlag > 1 ) throw new UserException.MalformedBam(read, "Adjacent I/D events in read "+read.getReadName());
+                            if ( eventDelayedFlag > 1 ) throw new UserException.MalformedBAM(read, "Adjacent I/D events in read "+read.getReadName());
                             eventLength = curElement.getLength();
                             eventDelayedFlag = 2; // deletion on the ref causes an immediate return, so we have to delay by 1 only
                             eventStart = readOffset;

@@ -128,7 +128,7 @@ public class CoverageUtils {
         SAMReadGroupRecord rg = r.getReadGroup();
         if ( rg == null ) {
             String msg = "Read "+r.getReadName()+" lacks read group information; Please associate all reads with read groups";
-            throw new UserException.MalformedBam(r, msg);
+            throw new UserException.MalformedBAM(r, msg);
         }
 
         return rg;
