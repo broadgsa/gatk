@@ -41,6 +41,9 @@ public abstract class AssociationContext<X> {
     // do we filter the current location (e.g. omit from window)
     public boolean filter(MapExtender m) { return true; }
 
+    // a basic initialization of the context (give the walker for access to object?)
+    public void init(RegionalAssociationWalker walker) { }
+
     public Map<Sample,Object> mapLocus(MapExtender extender) {
         Map<Sample,ReadBackedPileup> pileups;
         if ( ! usePreviouslySeenReads() ) {

@@ -4,9 +4,11 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -65,7 +67,9 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
         // todo -- this should use the package handler like variant eval
         Set<AssociationContext> validAssociations = new HashSet<AssociationContext>();
         for ( String s : associationsToUse ) {
-            validAssociations.add(stringToAssociationContext(s));
+            AssociationContext context = stringToAssociationContext(s);
+            context.init(this);
+            validAssociations.add(context);
         }
         return validAssociations;
     }
@@ -78,5 +82,9 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
 
     public void onTraversalDone(RegionalAssociationHandler rac) {
         // do nothing
+    }
+
+    public Set<Sample> getSamples() {
+        return getToolkit().getSAMFileSamples();
     }
 }

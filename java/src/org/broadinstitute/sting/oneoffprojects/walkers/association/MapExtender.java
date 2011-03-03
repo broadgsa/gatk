@@ -55,7 +55,6 @@ public class MapExtender {
                             filtElems.add(e);
                         }
                     }
-
                     readFilteredPileup.put(sac.getKey(),new ReadBackedPileupImpl(current.getRef().getLocus(),filtElems));
                 } else {
                     readFilteredPileup = fullPileup;
