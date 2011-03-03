@@ -27,10 +27,10 @@ class dataProcessing extends QScript {
   var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
   @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)
-  val dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
+  var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", shortName="indels", required=false)
-  val indels: File = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf"
+  var indels: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf")
 
   @Input(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", shortName="p", required=false)
   var projectName: String = "combined"
@@ -145,11 +145,12 @@ class dataProcessing extends QScript {
     this.targetIntervals = new File(tIntervals)
     this.out = new File(outBam)
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels", "VCF", indels)
+    this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
     this.useOnlyKnownIndels = knownsOnly
     this.doNotUseSW = true
     this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
     this.compress = Some(0)
+    this.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
     this.isIntermediate = intermediate
     this.jobName = queueLogDir + outBam + ".clean"
     if (!intermediate && !qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
@@ -184,6 +185,7 @@ class dataProcessing extends QScript {
     this.input_file :+= new File (inBam)
     this.recal_file = new File(inRecalFile)
     this.out = new File(outBam)
+    this.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
     this.index_output_bam_on_the_fly = Some(true)
     this.jobName = queueLogDir + outBam + ".recalibration"
   }
