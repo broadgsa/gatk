@@ -28,9 +28,8 @@ import org.broadinstitute.sting.utils.interval.IntervalUtils
 import java.io.File
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.util.IOUtils
-import org.broadinstitute.sting.queue.function.QFunction
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, ScatterGatherableFunction, ScatterFunction}
-import org.broadinstitute.sting.commandline.{Output, ArgumentSource}
+import org.broadinstitute.sting.commandline.Output
 
 trait GATKScatterFunction extends ScatterFunction {
   /** The total number of clone jobs that will be created. */
@@ -40,10 +39,10 @@ trait GATKScatterFunction extends ScatterFunction {
   protected var referenceSequence: File = _
 
   /** The runtime field to set for specifying an interval file. */
-  protected var intervalsField: ArgumentSource = _
+  private final val intervalsField = "intervals"
 
   /** The runtime field to set for specifying an interval string. */
-  protected var intervalsStringField: ArgumentSource = _
+  private final val intervalsStringField = "intervalsString"
 
   /** The list of interval files ("/path/to/interval.list") or interval strings ("chr1", "chr2") to parse into smaller parts. */
   protected var intervals: List[String] = Nil
@@ -60,22 +59,19 @@ trait GATKScatterFunction extends ScatterFunction {
    * @return true if the function is a GATK function with the reference sequence set.
    * @throws IllegalArgumentException if -BTI or -BTIMR are set.  QScripts should not try to scatter gather with those option set.
    */
-  def isScatterGatherable(originalFunction: ScatterGatherableFunction): Boolean = {
-    if (originalFunction.isInstanceOf[CommandLineGATK]) {
-      val gatk = originalFunction.asInstanceOf[CommandLineGATK]
-      if ( gatk.BTI != null && gatk.BTIMR == null) throw new IllegalArgumentException("BTI requires BTIMR for use with scatter-gather (recommended: INTERSECTION)")
-      gatk.reference_sequence != null
-    } else false
+  override def isScatterGatherable(originalFunction: ScatterGatherableFunction): Boolean = {
+    val gatk = originalFunction.asInstanceOf[CommandLineGATK]
+    if (gatk.BTI != null && gatk.BTIMR == null)
+      throw new IllegalArgumentException("BTI requires BTIMR for use with scatter-gather (recommended: INTERSECTION)")
+    gatk.reference_sequence != null
   }
 
   /**
    * Sets the scatter gatherable function.
    * @param originalFunction Function to bind.
    */
-  def setScatterGatherable(originalFunction: ScatterGatherableFunction) = {
+  override def setScatterGatherable(originalFunction: ScatterGatherableFunction) = {
     val gatk = originalFunction.asInstanceOf[CommandLineGATK]
-    this.intervalsField = QFunction.findField(originalFunction.getClass, "intervals")
-    this.intervalsStringField = QFunction.findField(originalFunction.getClass, "intervalsString")
     this.referenceSequence = gatk.reference_sequence
     if (gatk.intervals.isEmpty && gatk.intervalsString.isEmpty) {
       this.intervals ++= IntervalUtils.distinctContigs(this.referenceSequence).toList

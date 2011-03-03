@@ -20,6 +20,12 @@ trait GatherFunction extends QFunction {
   var originalOutput: File = _
 
   /**
+   * Sets the original ScatterGatherableFunction to be gathered.
+   * @param originalFunction The original function to with inputs bind to this scatter function.
+   */
+  def setScatterGatherable(originalFunction: ScatterGatherableFunction) {}
+
+  /**
    * Waits for gather parts to propagate over NFS or throws an exception.
    */
   protected def waitForGatherParts = {

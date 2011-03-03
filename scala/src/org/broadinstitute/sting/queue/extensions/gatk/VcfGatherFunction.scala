@@ -1,47 +1,31 @@
 package org.broadinstitute.sting.queue.extensions.gatk
 
-import org.broadinstitute.sting.queue.function.InProcessFunction
-import org.broadinstitute.sting.queue.QException
-import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
-import java.io.{FileReader, PrintWriter}
-import org.apache.commons.io.{LineIterator, IOUtils, FileUtils}
+import org.broadinstitute.sting.queue.function.scattergather.{ScatterGatherableFunction, GatherFunction}
 
 /**
  * Merges a vcf text file.
  */
-class VcfGatherFunction extends GatherFunction with InProcessFunction {
-  def run() = {
-    waitForGatherParts
-    if (gatherParts.size < 1) {
-      throw new QException("No files to gather to output: " + originalOutput)
-    } else {
-      val writer = new PrintWriter(originalOutput)
-      try {
-        var reader = new FileReader(gatherParts(0))
-        try {
-          IOUtils.copy(reader, writer)
-        } finally {
-          IOUtils.closeQuietly(reader)
-        }
+class VcfGatherFunction extends CombineVariants with GatherFunction {
 
-        for (file <- gatherParts.tail) {
-          var inHeaders = true
-          val itor = FileUtils.lineIterator(file)
-          try {
-            while (itor.hasNext) {
-              val nextLine = itor.nextLine
-              if (inHeaders && nextLine(0) != '#')
-                inHeaders = false
-              if (!inHeaders)
-                writer.println(nextLine)
-            }
-          } finally {
-            LineIterator.closeQuietly(itor)
-          }
-        }
-      } finally {
-        IOUtils.closeQuietly(writer)
-      }
-    }
+  private var originalGATK: CommandLineGATK = _
+
+  override def setScatterGatherable(originalFunction: ScatterGatherableFunction) {
+    this.originalGATK = originalFunction.asInstanceOf[CommandLineGATK]
+  }
+
+  override def freezeFieldValues = {
+    this.memoryLimit = Some(1)
+
+    this.jarFile = this.originalGATK.jarFile
+    this.reference_sequence = this.originalGATK.reference_sequence
+    this.intervals = this.originalGATK.intervals
+    this.intervalsString = this.originalGATK.intervalsString
+
+    this.rodBind = this.gatherParts.zipWithIndex map { case (input, index) => new RodBind("input"+index, "VCF", input) }
+    this.rod_priority_list = (0 until this.gatherParts.size).map("input"+_).mkString(",")
+    this.out = this.originalOutput
+    this.assumeIdenticalSamples = true
+
+    super.freezeFieldValues
   }
 }

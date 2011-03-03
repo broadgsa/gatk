@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.queue.function.scattergather
 
-import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.commandline.ArgumentSource
 import java.io.File
 import org.broadinstitute.sting.queue.QException
+import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
 
 /**
  * Shadow clones another command line function.
@@ -47,7 +47,12 @@ class CloneFunction extends CommandLineFunction {
 
   def commandLine = withScatterPart(() => originalFunction.commandLine)
 
-  override def getFieldValue(source: ArgumentSource) = {
+  def getFieldValue(field: String): AnyRef = {
+    val source = QFunction.findField(originalFunction.getClass, field)
+    getFieldValue(source)
+  }
+
+  override def getFieldValue(source: ArgumentSource): AnyRef = {
     source.field.getName match {
       case "jobOutputFile" => jobOutputFile
       case "jobErrorFile" => jobErrorFile
@@ -60,6 +65,11 @@ class CloneFunction extends CommandLineFunction {
         }
       }
     }
+  }
+
+  def setFieldValue(field: String, value: Any): Unit = {
+    val source = QFunction.findField(originalFunction.getClass, field)
+    setFieldValue(source, value)
   }
 
   override def setFieldValue(source: ArgumentSource, value: Any): Unit = {

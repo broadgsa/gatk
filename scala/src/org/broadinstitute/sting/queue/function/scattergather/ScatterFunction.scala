@@ -16,13 +16,13 @@ trait ScatterFunction extends QFunction {
    * @param originalFunction The original function to check.
    * @return true if the scatter function can scatter this original function.
    */
-  def isScatterGatherable(originalFunction: ScatterGatherableFunction): Boolean
+  def isScatterGatherable(originalFunction: ScatterGatherableFunction) = true
 
   /**
    * Sets the original ScatterGatherableFunction to be scattered.
    * @param originalFunction The original function to with inputs bind to this scatter function.
    */
-  def setScatterGatherable(originalFunction: ScatterGatherableFunction)
+  def setScatterGatherable(originalFunction: ScatterGatherableFunction) {}
 
   /**
    * After a call to setScatterGatherable(), returns the number of clones that should be created.

@@ -77,6 +77,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     scatterFunction.isIntermediate = true
     scatterFunction.setScatterGatherable(this)
     initScatterFunction(scatterFunction)
+    scatterFunction.absoluteCommandDirectory()
     functions :+= scatterFunction
 
     // Ask the scatter function how many clones to create.
@@ -98,7 +99,9 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
       gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
       gatherFunction.originalOutput = gatherOutput
+      gatherFunction.setScatterGatherable(this)
       initGatherFunction(gatherFunction, gatherField)
+      gatherFunction.absoluteCommandDirectory()
       functions :+= gatherFunction
       gatherFunctions += gatherField -> gatherFunction
       gatherOutputs += gatherField -> gatherOutput
