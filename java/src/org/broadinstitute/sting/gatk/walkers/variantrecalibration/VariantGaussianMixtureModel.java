@@ -445,41 +445,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         return value;
     }
 
-    public final double evaluateVariant( GenomeLocParser genomeLocParser, final VariantContext vc ) {
-        final double[] log10pVarInCluster = new double[maxGaussians];
-        final double[] annotations = new double[dataManager.numAnnotations];
-
-        for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
-            final double value = decodeAnnotation( genomeLocParser, dataManager.annotationKeys.get(jjj), vc, false );
-
-            double z = (value - dataManager.meanVector[jjj]) / dataManager.varianceVector[jjj];
-//            switch ( dataManager.getAnnotationType(jjj) ) {
-//                case TWO_TAILED: // z is already fine
-//                    break;
-//                case SMALL_IS_GOOD:
-//                    if ( z < 0.0 ) {
-////                        logger.info(String.format("One-tailed test correction: %s %.2f mu=%.2f sigma=%.2f z=%.2f, newZ = 0",
-////                                dataManager.annotationKeys.get(jjj), value, dataManager.meanVector[jjj], dataManager.varianceVector[jjj], z));
-//                        z = 0.0;
-//                    }
-//                    break;
-//                case BIG_IS_GOOD:
-//                    if ( z > 0.0 ) {
-////                        logger.info(String.format("One-tailed test correction: %s %.2f mu=%.2f sigma=%.2f z=%.2f, newZ = 0",
-////                                dataManager.annotationKeys.get(jjj), value, dataManager.meanVector[jjj], dataManager.varianceVector[jjj], z));
-//                        z = 0.0;
-//                    }
-//                    break;
-//                default:
-//                    throw new ReviewedStingException("Unexpected annotation tail type: " + dataManager.getAnnotationType(jjj));
-//            }
-
-            annotations[jjj] = z;
-        }
-
-        return evaluateGaussiansForSingleVariant( annotations, log10pVarInCluster );
-    }
-
     // ---------------------------------------------------------------------------------------------------------
     //
     // Code to determine FDR tranches for VariantDatum[]
@@ -713,6 +678,85 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
     // Code to evaluate vectors given an already trained model
     //
     // ---------------------------------------------------------------------------------------------------------
+    public final double evaluateVariant( GenomeLocParser genomeLocParser, final VariantContext vc ) {
+        final double[] log10pVarInCluster = new double[maxGaussians];
+        final double[] annotations = new double[dataManager.numAnnotations];
+
+        for( int jjj = 0; jjj < dataManager.numAnnotations; jjj++ ) {
+            final double value = decodeAnnotation( genomeLocParser, dataManager.annotationKeys.get(jjj), vc, false );
+
+            double z = (value - dataManager.meanVector[jjj]) / dataManager.varianceVector[jjj];
+//            switch ( dataManager.getAnnotationType(jjj) ) {
+//                case TWO_TAILED: // z is already fine
+//                    break;
+//                case SMALL_IS_GOOD:
+//                    if ( z < 0.0 ) {
+////                        logger.info(String.format("One-tailed test correction: %s %.2f mu=%.2f sigma=%.2f z=%.2f, newZ = 0",
+////                                dataManager.annotationKeys.get(jjj), value, dataManager.meanVector[jjj], dataManager.varianceVector[jjj], z));
+//                        z = 0.0;
+//                    }
+//                    break;
+//                case BIG_IS_GOOD:
+//                    if ( z > 0.0 ) {
+////                        logger.info(String.format("One-tailed test correction: %s %.2f mu=%.2f sigma=%.2f z=%.2f, newZ = 0",
+////                                dataManager.annotationKeys.get(jjj), value, dataManager.meanVector[jjj], dataManager.varianceVector[jjj], z));
+//                        z = 0.0;
+//                    }
+//                    break;
+//                default:
+//                    throw new ReviewedStingException("Unexpected annotation tail type: " + dataManager.getAnnotationType(jjj));
+//            }
+
+            annotations[jjj] = z;
+        }
+
+        return evaluateGaussiansForSingleVariant( annotations, log10pVarInCluster );
+    }
+
+    private double evaluateGaussiansForSingleVariant( final double[] annotations, final double[] log10pVarInCluster ) {
+
+        final int numAnnotations = annotations.length;
+
+        for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
+            final double sigmaVals[][] = sigmaInverse[kkk];
+            double sum = 0.0;
+            for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                double value = 0.0;
+                for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
+                    final double myMu = mu[kkk][ppp];
+                    double myAnn = annotations[ppp];
+                    final double mySigma = sigmaVals[ppp][jjj];
+                    double z = (myAnn - myMu) * mySigma;
+
+                    switch ( dataManager.getAnnotationType(jjj) ) {
+                        case TWO_TAILED:    break;
+                        case SMALL_IS_GOOD: if( myAnn < myMu && Math.abs(z) < MAX_SIGMA_TO_BE_IN_GAUSSIAN ) { z = 0.0; } break;
+                        case BIG_IS_GOOD:   if( myAnn > myMu && Math.abs(z) < MAX_SIGMA_TO_BE_IN_GAUSSIAN ) { z = 0.0; } break;
+                        default:            throw new ReviewedStingException("Unexpected annotation tail type: " + dataManager.getAnnotationType(jjj));
+                    }
+
+                    value += z;
+                }
+                final double jNorm = annotations[jjj] - mu[kkk][jjj];
+                final double prod = value * jNorm;
+                sum += prod;
+            }
+
+            final double denomLog10 = CONSTANT_GAUSSIAN_DENOM_LOG10 + sqrtDeterminantLog10[kkk];
+            final double evalGaussianPDFLog10 = (( -0.5 * sum ) / Math.log(10.0)) - denomLog10;
+            //final double pVar1 = Math.pow(10.0, pClusterLog10[kkk] + evalGaussianPDFLog10);
+            final double pVar1 = pClusterLog10[kkk] + evalGaussianPDFLog10;
+            log10pVarInCluster[kkk] = pVar1;
+        }
+
+        return MathUtils.log10sumLog10(log10pVarInCluster);
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Code to implement the steps of the VBEM algorithm
+    //
+    // ---------------------------------------------------------------------------------------------------------
     private double evaluateGaussians( final VariantDatum[] data, final double[][] pVarInCluster, final int startCluster, final int stopCluster ) {
 
         final int numAnnotations = data[0].annotations.length;
@@ -796,46 +840,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         logger.info("explained likelihood = " + String.format("%.5f",likelihood / sumWeight));
         return likelihood / sumWeight;
     }
-
-    private double evaluateGaussiansForSingleVariant( final double[] annotations, final double[] log10pVarInCluster ) {
-
-        final int numAnnotations = annotations.length;
-
-        for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
-            final double sigmaVals[][] = sigmaInverse[kkk];
-            double sum = 0.0;
-            for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                double value = 0.0;
-                for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                    final double myMu = mu[kkk][ppp];
-                    double myAnn = annotations[ppp];
-                    final double mySigma = sigmaVals[ppp][jjj];
-                    double z = (myAnn - myMu) * mySigma;
-
-                    switch ( dataManager.getAnnotationType(jjj) ) {
-                        case TWO_TAILED:    break;
-                        case SMALL_IS_GOOD: if( myAnn < myMu && Math.abs(z) < MAX_SIGMA_TO_BE_IN_GAUSSIAN ) { z = 0.0; } break;
-                        case BIG_IS_GOOD:   if( myAnn > myMu && Math.abs(z) < MAX_SIGMA_TO_BE_IN_GAUSSIAN ) { z = 0.0; } break;
-                        default:            throw new ReviewedStingException("Unexpected annotation tail type: " + dataManager.getAnnotationType(jjj));
-                    }
-
-                    value += z;
-                }
-                final double jNorm = annotations[jjj] - mu[kkk][jjj];
-                final double prod = value * jNorm;
-                sum += prod;
-            }
-
-            final double denomLog10 = CONSTANT_GAUSSIAN_DENOM_LOG10 + sqrtDeterminantLog10[kkk];
-            final double evalGaussianPDFLog10 = (( -0.5 * sum ) / Math.log(10.0)) - denomLog10;
-            //final double pVar1 = Math.pow(10.0, pClusterLog10[kkk] + evalGaussianPDFLog10);
-            final double pVar1 = pClusterLog10[kkk] + evalGaussianPDFLog10;
-            log10pVarInCluster[kkk] = pVar1;
-        }
-
-        return MathUtils.log10sumLog10(log10pVarInCluster);
-    }
-
 
     private void maximizeGaussians( final VariantDatum[] data, final double[][] pVarInCluster, final int startCluster, final int stopCluster ) {
 
