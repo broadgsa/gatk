@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.association.interfaces;
+package org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol;
 
 /**
  * Created by IntelliJ IDEA.

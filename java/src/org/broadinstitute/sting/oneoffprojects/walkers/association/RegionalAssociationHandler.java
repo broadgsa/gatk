@@ -2,7 +2,6 @@ package org.broadinstitute.sting.oneoffprojects.walkers.association;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 /**
@@ -31,10 +30,10 @@ public class RegionalAssociationHandler {
      * @reduce: (List<AssociationContext>,AssociationContext) --> List<AssociationContextAtom>
      *  @implementation: just append
      */
-    public void runMapReduce() throws NoSuchMethodException, IllegalAccessException, InstantiationException, InvocationTargetException {
+    public void runMapReduce() {
         for ( AssociationContext w : associations ) {
             if ( w.filter(maps) ) {
-                w.reduce(w.map(maps));
+                w.addData(w.mapLocus(maps));
             }
         }
     }

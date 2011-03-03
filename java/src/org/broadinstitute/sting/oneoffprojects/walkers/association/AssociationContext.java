@@ -1,41 +1,73 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.association;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * @Author chartl
- * @Date 2011-02-23
- * A general context for windowed association
+ * Created by IntelliJ IDEA.
+ * User: chartl
+ * Date: 3/2/11
+ * Time: 11:58 AM
+ * To change this template use File | Settings | File Templates.
  */
-public abstract class AssociationContext<X extends AssociationContextAtom> {
-    protected Class<? extends AssociationContextAtom> clazz;
-    protected List<X> window;
+public abstract class AssociationContext<X> {
 
-    public AssociationContext( Class<X> zclaz ) {
-        window = new ArrayList<X>(getWindowSize());
-        clazz = zclaz;
+    protected List<Map<Sample,Object>> window;
+
+    public AssociationContext() {
+        window = new ArrayList<Map<Sample,Object>>(getWindowSize());
     }
 
-    public X map(MapExtender e) throws NoSuchMethodException, InstantiationException, IllegalAccessException, InvocationTargetException, ClassCastException {
-        return (X) clazz.getConstructor(new Class[] {MapExtender.class}).newInstance(new Object[] {e});
-    }
+    // specifies size of window
+    public abstract int getWindowSize();
 
+    // specifies how many bases to wait until next test
+    public abstract int slideByValue();
+
+    // specifies whether to use previously seen reads
+    public abstract boolean usePreviouslySeenReads();
+
+    // specifies the map from a sample's pileup to the data we want to test
+    public abstract Object map(ReadBackedPileup rbp);
+
+    // specifies how to take the per-sample data and reduce them into testable pairs
+    public abstract Map<?,X> reduce(List<Map<Sample,X>> win);
+
+    // do we filter the current location (e.g. omit from window)
     public boolean filter(MapExtender m) { return true; }
 
-    public void reduce(X context) {
-        window.add(context);
+    public Map<Sample,Object> mapLocus(MapExtender extender) {
+        Map<Sample,ReadBackedPileup> pileups;
+        if ( ! usePreviouslySeenReads() ) {
+            pileups = extender.getReadFilteredPileup();
+        } else {
+            pileups = extender.getFullPileup();
+        }
+        Map<Sample,Object> maps = new HashMap<Sample,Object>(pileups.size());
+        for ( Map.Entry<Sample,ReadBackedPileup> samPileup : pileups.entrySet() ) {
+            maps.put(samPileup.getKey(),map(samPileup.getValue()));
+        }
+
+        return maps;
     }
 
-    public abstract int getWindowSize();
-    public abstract int slideByValue();
+
+    public void addData(Map<Sample,Object> sampleData) {
+        window.add(sampleData);
+    }
+
 
     public boolean isFull() {
         return window.size() >= getWindowSize();
     }
 
     public void slide() {
-        ArrayList<X> newWindow = new ArrayList<X>((window.subList(slideByValue(),window.size())));
+        ArrayList<Map<Sample,Object>> newWindow = new ArrayList<Map<Sample,Object>>((window.subList(slideByValue(),window.size())));
         newWindow.ensureCapacity(getWindowSize());
         window = newWindow;
     }

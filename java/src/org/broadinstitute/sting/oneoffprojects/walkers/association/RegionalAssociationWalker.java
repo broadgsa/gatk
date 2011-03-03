@@ -7,8 +7,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.LowMappingQuality;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.LowMappingQualityAtom;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -59,11 +57,8 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
     }
 
     private AssociationContext stringToAssociationContext(String s) {
-        if ( s.equals("LowMappingQuality") ) {
-            return new LowMappingQuality();
-        }
 
-        throw new UserException(String.format("AssociationContext type %s not found.",s));
+        throw new UserException(String.format("AssociationContextOld type %s not found.",s));
     }
 
     private Set<AssociationContext> getAssociations() {

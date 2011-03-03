@@ -5,7 +5,8 @@ import java.util.List;
 
 import cern.jet.random.Normal;
 import cern.jet.random.StudentT;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.interfaces.*;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.*;
+import org.broadinstitute.sting.utils.MathUtils;
 
 /**
  * Created by IntelliJ IDEA.
@@ -34,17 +35,19 @@ public class AssociationTestRunner {
         return results;
     }
 
-    public static String runStudentT(TStatistic context) {
-        double t = context.getTStatistic();
-        StudentT studentT = new StudentT(context.getDegreesOfFreedom(),null);
+    public static String runStudentT(TStatistic context) { /*
+        StudentT studentT = new StudentT(dfnum/dfdenom,null);
         double p = t < 0 ? 2*studentT.cdf(t) : 2*(1-studentT.cdf(t));
-        return String.format("T: %.2f\tP: %.2e",t,p);
+        return String.format("T: %.2f\tP: %.2e",t,p);*/
+        return null;
     }
 
-    public static String runZ(ZStatistic context) {
-        double z = context.getZStatistic();
+    public static String runZ(ZStatistic context) { /*
+        double z = num/Math.sqrt(se);
         double p = z < 0 ? 2*standardNormal.cdf(z) : 2*(1-standardNormal.cdf(z));
-        return String.format("Z: %.2f\tP: %.2e",z,p);
+        return String.format("Z: %.2f\tP: %.2e",z,p);*/
+
+        return null;
     }
 
     public static String runFisherExact(AssociationContext context) {
