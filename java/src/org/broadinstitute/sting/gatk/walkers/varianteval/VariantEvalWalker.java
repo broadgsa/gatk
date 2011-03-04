@@ -285,6 +285,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                                     table.addColumn(columnName, "unknown");
                                 }
 
+                                table.addColumn("row", "unknown");
+
                                 for ( Object o : t.getColumnKeys() ) {
                                     String c;
 
@@ -319,6 +321,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
                                     String newStateKey = stateKey.toString() + r;
                                     table.set(newStateKey, c, t.getCell(row, col));
+
+                                    table.set(newStateKey, "row", r);
                                 }
                             }
                         } else {

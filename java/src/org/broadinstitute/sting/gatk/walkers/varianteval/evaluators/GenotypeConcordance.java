@@ -85,7 +85,7 @@ public class GenotypeConcordance extends VariantEvaluator {
         public Object[] getRowKeys() {
             String rows[] = new String[foundMissedByAC.size()];
             int index = 0;
-            for (int i : foundMissedByAC.keySet()) rows[index++] = "Allele Count " + i;
+            for (int i : foundMissedByAC.keySet()) rows[index++] = "AlleleCount_" + i;
             return rows;
         }
 
@@ -471,11 +471,11 @@ class SampleStats implements TableType {
 //                            "n_het/ref","n_het/het","n_het/hom",
 //                            "total_true_hom","%_hom/hom","n_hom/no-call",
 //                            "n_hom/ref","n_hom/het","n_hom/hom"};
-        return new String[]{"total_true_ref","pct_ref_vs_ref","n_ref_vs_no-call",
+        return new String[]{"total_true_ref","pct_ref_vs_ref","n_ref_vs_no_call",
                 "n_ref_vs_ref","n_ref_vs_het","n_ref_vs_hom",
-                "total_true_het","pct_het_vs_het","n_het_vs_no-call",
+                "total_true_het","pct_het_vs_het","n_het_vs_no_call",
                 "n_het_vs_ref","n_het_vs_het","n_het_vs_hom",
-                "total_true_hom","pct_hom_vs_hom","n_hom_vs_no-call",
+                "total_true_hom","pct_hom_vs_hom","n_hom_vs_no_call",
                 "n_hom_vs_ref","n_hom_vs_het","n_hom_vs_hom"};
     }
 
@@ -560,9 +560,9 @@ class SampleSummaryStats implements TableType {
             "percent_comp_het_called_var",
             "percent_comp_hom_called_hom",
             "percent_comp_hom_called_var",
-            "percent_non-reference_sensitivity",
+            "percent_non_reference_sensitivity",
             "percent_overall_genotype_concordance",
-            "percent_non-reference_discrepancy_rate"};
+            "percent_non_reference_discrepancy_rate"};
 
     // sample to concordance stats object
     protected final HashMap<String, double[]> concordanceSummary = new HashMap<String, double[]>();

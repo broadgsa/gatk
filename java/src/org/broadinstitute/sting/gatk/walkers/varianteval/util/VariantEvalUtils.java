@@ -342,12 +342,13 @@ public class VariantEvalUtils {
      * @param allowableTypes a set of allowable variation types
      * @param byFilter       if false, only accept PASSing VariantContexts.  Otherwise, accept both PASSing and filtered
      *                       sites
+     * @param subsetBySample if false, do not separate the track into per-sample VCs
      * @param trackPerSample if false, don't stratify per sample (and don't cut up the VariantContext like we would need
      *                       to do this)
      * @param allowNoCalls   if false, don't accept no-call loci from a variant track
      * @return a mapping of track names to a list of VariantContext objects
      */
-    public HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter, boolean trackPerSample, boolean allowNoCalls) {
+    public HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter, boolean subsetBySample, boolean trackPerSample, boolean allowNoCalls) {
         HashMap<String, HashMap<String, VariantContext>> bindings = new HashMap<String, HashMap<String, VariantContext>>();
 
         for (String trackName : trackNames) {
@@ -360,7 +361,7 @@ public class VariantEvalUtils {
             if (vc != null) {
                 VariantContext vcsub = vc;
 
-                if (vc.hasGenotypes() && vc.hasGenotypes(variantEvalWalker.getSampleNamesForEvaluation())) {
+                if (subsetBySample && vc.hasGenotypes() && vc.hasGenotypes(variantEvalWalker.getSampleNamesForEvaluation())) {
                     vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
                 }
 
@@ -411,8 +412,8 @@ public class VariantEvalUtils {
             }
         }
 
-        HashMap<String, HashMap<String, VariantContext>> evalBindings = bindVariantContexts(tracker, ref, evalNames, allowableTypes, byFilter, perSampleIsEnabled, true);
-        HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allowableTypes, byFilter, false, false);
+        HashMap<String, HashMap<String, VariantContext>> evalBindings = bindVariantContexts(tracker, ref, evalNames, allowableTypes, byFilter, true, perSampleIsEnabled, true);
+        HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allowableTypes, byFilter, false, false, false);
 
         vcs.putAll(compBindings);
         vcs.putAll(evalBindings);
