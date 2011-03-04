@@ -32,7 +32,8 @@ public class CpG extends VariantStratifier {
             String leftFlank = fwRefBases.substring((fwRefBases.length()/2) - 1, (fwRefBases.length()/2) + 1);
             String rightFlank = fwRefBases.substring((fwRefBases.length()/2), (fwRefBases.length()/2) + 2);
 
-            if (leftFlank.equalsIgnoreCase("CG") || leftFlank.equalsIgnoreCase("GC") || rightFlank.equalsIgnoreCase("CG") || rightFlank.equalsIgnoreCase("GC")) {
+            //if (leftFlank.equalsIgnoreCase("CG") || leftFlank.equalsIgnoreCase("GC") || rightFlank.equalsIgnoreCase("CG") || rightFlank.equalsIgnoreCase("GC")) {
+            if (rightFlank.equalsIgnoreCase("CG")) {
                 isCpG = true;
             }
         }
