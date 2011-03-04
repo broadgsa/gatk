@@ -103,15 +103,16 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
 
             for(SAMReaderID reader: dataSource.getReaderIDs()) {
                 GATKBAMIndex index = (GATKBAMIndex)dataSource.getIndex(reader);
+
                 BinTree binTree = getNextOverlappingBinTree(reader,(GATKBAMIndex)dataSource.getIndex(reader),currentLocus);
                 if(binTree != null) {
                     coveredRegionStart = Math.max(coveredRegionStart,binTree.getStart());
                     coveredRegionStop = Math.min(coveredRegionStop,binTree.getStop());
                     coveredRegion = loci.getGenomeLocParser().createGenomeLoc(currentLocus.getContig(),coveredRegionStart,coveredRegionStop);
-
-                    GATKBAMFileSpan fileSpan = generateFileSpan(reader,index,binTree,currentLocus);
-                    nextFilePointer.addFileSpans(reader,fileSpan);
                 }
+
+                GATKBAMFileSpan fileSpan = generateFileSpan(reader,index,binTree,currentLocus);
+                nextFilePointer.addFileSpans(reader,fileSpan);
             }
 
             // Early exit if no bins were found.
@@ -195,6 +196,10 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
      * @return File span mapping to given region.
      */
     private GATKBAMFileSpan generateFileSpan(final SAMReaderID reader, final GATKBAMIndex index, final BinTree binTree, final GenomeLoc initialRegion) {
+        // Empty bin trees mean empty file spans.
+        if(binTree == null)
+            return new GATKBAMFileSpan();
+        
         List<GATKChunk> chunks = new ArrayList<GATKChunk>(binTree.size());
         for(GATKBin bin: binTree.getBins()) {
             if(bin == null)
