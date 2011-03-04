@@ -139,9 +139,14 @@ public class LeftAlignVariants extends RodWalker<Integer, Integer> {
 
             int indelIndex = originalIndex-difference;
             byte[] newBases = new byte[indelLength];
-            System.arraycopy(refSeq, indelIndex, newBases, 0, indelLength);
+            System.arraycopy((vc.isDeletion() ? refSeq : originalIndel), indelIndex, newBases, 0, indelLength);
             Allele newAllele = Allele.create(newBases, vc.isDeletion());
             newVC = updateAllele(newVC, newAllele);
+
+	    // we need to update the reference base just in case it changed
+	    Map<String, Object> attrs = new HashMap<String, Object>(newVC.getAttributes());
+	    attrs.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, refSeq[indelIndex-1]);
+	    newVC = VariantContext.modifyAttributes(newVC, attrs);
 
             writer.add(newVC, refSeq[indelIndex-1]);
             return 1;
