@@ -99,6 +99,12 @@ public class MathUtils {
         return s;
     }
 
+    public static int sum(List<Integer> values) {
+        int s = 0;
+        for ( int v : values) s += v;
+        return s;
+    }
+
     public static double sumLog10(double[] log10values) {
         return Math.pow(10.0, log10sumLog10(log10values));
 //        double s = 0.0;
