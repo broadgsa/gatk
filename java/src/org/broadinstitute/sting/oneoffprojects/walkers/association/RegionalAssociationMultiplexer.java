@@ -33,6 +33,11 @@ public class RegionalAssociationMultiplexer implements Multiplexer<Class<? exten
 
     private Set<Class<? extends AssociationContext>> getAssociations(String[] associationsToUse) {
         List<Class<? extends AssociationContext>> contexts = new PluginManager<AssociationContext>(AssociationContext.class).getPlugins();
+
+        if ( associationsToUse.length > 0 && associationsToUse[0].equals("ALL") ) {
+            return new HashSet<Class<? extends AssociationContext>>((Collection)contexts);
+        }
+
         Map<String,Class<? extends AssociationContext>> classNameToClass = new HashMap<String,Class<? extends AssociationContext>>(contexts.size());
         for ( Class<? extends AssociationContext> clazz : contexts ) {
             classNameToClass.put(clazz.getSimpleName(),clazz);

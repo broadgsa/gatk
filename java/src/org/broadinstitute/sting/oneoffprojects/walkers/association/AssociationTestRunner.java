@@ -10,6 +10,7 @@ import cern.jet.random.StudentT;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.*;
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.WilcoxonRankSum;
 import org.broadinstitute.sting.utils.collections.Pair;
 
@@ -53,11 +54,14 @@ public class AssociationTestRunner {
         Pair<Double,Double> stats = testStudentT(context);
         double t = stats.first;
         double p = stats.second;
-        return String.format("T: %.2f\tP: %.2e",t,p);
+        return String.format("T: %.2f\tP: %.2e\tQ: %d",t,p,(int)Math.floor(QualityUtils.phredScaleErrorRate(p)));
     }
 
     public static Pair<Double,Double> testStudentT(TStatistic context) {
         Map<CaseControl.Cohort,Collection<Number>> caseControlVectors = context.getCaseControl();
+        if ( caseControlVectors == null || caseControlVectors.get(CaseControl.Cohort.CASE) == null || caseControlVectors.get(CaseControl.Cohort.CONTROL) == null ) {
+            return new Pair<Double,Double>(Double.NaN,Double.NaN);
+        }
         double meanCase = MathUtils.average(caseControlVectors.get(CaseControl.Cohort.CASE));
         double varCase = MathUtils.variance(caseControlVectors.get(CaseControl.Cohort.CASE),meanCase);
         double nCase =  caseControlVectors.get(CaseControl.Cohort.CASE).size();
@@ -79,11 +83,14 @@ public class AssociationTestRunner {
         Pair<Double,Double> stats = testZ(context);
         double z = stats.first;
         double p = stats.second;
-        return String.format("Z: %.2f\tP: %.2e",z,p);
+        return String.format("Z: %.2f\tP: %.2e\tQ: %d",z,p,(int)Math.floor(QualityUtils.phredScaleErrorRate(p)));
     }
 
     public static Pair<Double,Double> testZ(ZStatistic context) {
         Map<CaseControl.Cohort,Pair<Number,Number>> caseControlCounts = context.getCaseControl();
+        if ( caseControlCounts == null || caseControlCounts.get(CaseControl.Cohort.CASE) == null || caseControlCounts.get(CaseControl.Cohort.CONTROL) == null ) {
+            return new Pair<Double,Double>(Double.NaN,Double.NaN);
+        }
         double pCase = caseControlCounts.get(CaseControl.Cohort.CASE).first.doubleValue()/caseControlCounts.get(CaseControl.Cohort.CASE).second.doubleValue();
         double pControl = caseControlCounts.get(CaseControl.Cohort.CONTROL).first.doubleValue()/caseControlCounts.get(CaseControl.Cohort.CONTROL).second.doubleValue();
         double nCase = caseControlCounts.get(CaseControl.Cohort.CASE).second.doubleValue();
@@ -100,12 +107,15 @@ public class AssociationTestRunner {
     }
 
     public static String runU(UStatistic context) {
-        Pair<Integer,Double> results = mannWhitneyUTest(context);
-        return String.format("U: %d\tP: %.2e",results.first,results.second);
+        Pair<Long,Double> results = mannWhitneyUTest(context);
+        return String.format("U: %d\tP: %.2e\tQ: %d",results.first,results.second,(int)Math.floor(QualityUtils.phredScaleErrorRate(results.second)));
     }
 
-    public static Pair<Integer,Double> mannWhitneyUTest(UStatistic context) {
+    public static Pair<Long,Double> mannWhitneyUTest(UStatistic context) {
         Map<CaseControl.Cohort,Collection<Number>> caseControlVectors = context.getCaseControl();
+        if ( caseControlVectors == null || caseControlVectors.get(CaseControl.Cohort.CASE) == null || caseControlVectors.get(CaseControl.Cohort.CONTROL) == null ) {
+            return new Pair<Long,Double>(-1l,Double.NaN);
+        }
         MannWhitneyU mwu = new MannWhitneyU();
         for ( Number n : caseControlVectors.get(CaseControl.Cohort.CASE) ) {
             mwu.add(n, MannWhitneyU.USet.SET1);

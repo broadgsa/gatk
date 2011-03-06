@@ -45,13 +45,13 @@ public class MannWhitneyU {
      * returns the u and p values.
      * @Returns a pair holding the u and p-value.
      */
-    public Pair<Integer,Double> runTwoSidedTest() {
-        Pair<Integer,USet> uPair = calculateTwoSidedU(observations);
-        int u = uPair.first;
+    public Pair<Long,Double> runTwoSidedTest() {
+        Pair<Long,USet> uPair = calculateTwoSidedU(observations);
+        long u = uPair.first;
         int n = uPair.second == USet.SET1 ? sizeSet1 : sizeSet2;
         int m = uPair.second == USet.SET1 ? sizeSet2 : sizeSet1;
         double pval = calculateP(n,m,u,true);
-        return new Pair<Integer,Double>(u,pval);
+        return new Pair<Long,Double>(u,pval);
     }
 
     /**
@@ -61,14 +61,18 @@ public class MannWhitneyU {
      * @param u - the Mann-Whitney U value
      * @param twoSided - is the test twosided
      * @return the (possibly approximate) p-value associated with the MWU test
+     * todo -- there must be an approximation for small m and large n
      */
-    public static double calculateP(int n, int m, int u, boolean twoSided) {
+    public static double calculateP(int n, int m, long u, boolean twoSided) {
         double pval;
         if ( n > 8 && m > 8 ) {
+            // large m and n - normal approx
             pval = calculatePNormalApproximation(n,m,u);
         } else if ( n > 4 && m > 7 ) {
+            // large m, small n - sum uniform approx
             pval = calculatePUniformApproximation(n,m,u);
         } else {
+            // small m [possibly small n] - full approx
             pval = calculatePRecursively(n,m,u);
         }
 
@@ -82,9 +86,9 @@ public class MannWhitneyU {
      * @param u - the Mann-Whitney U value
      * @return p-value associated with the normal approximation
      */
-    public static double calculatePNormalApproximation(int n,int m,int u) {
-        double mean = ((double) m*n+1)/2;
-        double var = (n*m*(n+m+1))/12;
+    public static double calculatePNormalApproximation(int n,int m,long u) {
+        double mean = ( ((long)m)*n+1.0)/2;
+        double var = (((long) n)*m*(n+m+1.0))/12;
         double z = ( u - mean )/Math.sqrt(var);
         return z < 0 ? STANDARD_NORMAL.cdf(z) : 1.0-STANDARD_NORMAL.cdf(z);
     }
@@ -97,8 +101,8 @@ public class MannWhitneyU {
      * @param u -
      * @return
      */
-    public static double calculatePUniformApproximation(int n, int m, int u) {
-        int R = u + (n*(n+1))/2;
+    public static double calculatePUniformApproximation(int n, int m, long u) {
+        long R = u + (n*(n+1))/2;
         double a = Math.sqrt(m*(n+m+1));
         double b = (n/2.0)*(1-Math.sqrt((n+m+1)/m));
         double z = b + R/a;
@@ -130,11 +134,11 @@ public class MannWhitneyU {
      * @param observed
      * @return the minimum of the U counts (set1 dominates 2, set 2 dominates 1)
      */
-    public static Pair<Integer,USet> calculateTwoSidedU(TreeSet<Pair<Number,USet>> observed ) {
+    public static Pair<Long,USet> calculateTwoSidedU(TreeSet<Pair<Number,USet>> observed ) {
         int set1SeenSoFar = 0;
         int set2SeenSoFar = 0;
-        int uSet1DomSet2 = 0;
-        int uSet2DomSet1 = 0;
+        long uSet1DomSet2 = 0;
+        long uSet2DomSet1 = 0;
         USet previous = null;
         for ( Pair<Number,USet> dataPoint : observed ) {
 
@@ -155,7 +159,7 @@ public class MannWhitneyU {
             previous = dataPoint.second;
         }
 
-        return uSet1DomSet2 < uSet2DomSet1 ? new Pair<Integer,USet>(uSet1DomSet2,USet.SET1) : new Pair<Integer,USet>(uSet2DomSet1,USet.SET2);
+        return uSet1DomSet2 < uSet2DomSet1 ? new Pair<Long,USet>(uSet1DomSet2,USet.SET1) : new Pair<Long,USet>(uSet2DomSet1,USet.SET2);
     }
 
     /**
@@ -167,8 +171,8 @@ public class MannWhitneyU {
      * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
      * @return the probability under the hypothesis that all sequences are equally likely of finding a set-two entry preceding a set-one entry "u" times.
      */
-    public static double calculatePRecursively(int n, int m, int u) {
-        if ( m + n > 16 ) { throw new StingException("Please use the appropriate (normal or sum of uniform) approximation"); }
+    public static double calculatePRecursively(int n, int m, long u) {
+        if ( m > 7 && n > 4 ) { throw new StingException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
         return cpr(n,m,u);
     }
 
@@ -178,7 +182,7 @@ public class MannWhitneyU {
      * @m: number of set-2 entries
      * @u: number of times a set-2 entry as preceded a set-1 entry
      */
-    private static double cpr(int n, int m, int u) {
+    private static double cpr(int n, int m, long u) {
         if ( u < 0 || n == 0 && m == 0 ) {
             return 0.0;
         }

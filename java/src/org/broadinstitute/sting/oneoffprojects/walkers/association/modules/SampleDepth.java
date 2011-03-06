@@ -5,6 +5,7 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.MapExtender;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.RegionalAssociationWalker;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.TStatistic;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.UStatistic;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -16,7 +17,7 @@ import java.util.*;
 /**
  * @author chartl
  */
-public class SampleDepth extends UStatistic {
+public class SampleDepth extends TStatistic {
 
     public Map<Sample,Object> sampleStats = null;
 

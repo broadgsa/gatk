@@ -49,7 +49,7 @@ public class RegionalAssociationHandler {
         for ( AssociationContext w : associations ) {
             if ( w.isFull() ) {
                 testResults.put(w,String.format("%s\t%d\t%d\t%s",maps.getReferenceContext().getLocus().getContig(),
-                        maps.getReferenceContext().getLocus().getStart(),maps.getReferenceContext().getLocus().getStop(),AssociationTestRunner.runTests(w)));
+                        maps.getReferenceContext().getLocus().getStart(),maps.getReferenceContext().getLocus().getStart()+1,AssociationTestRunner.runTests(w)));
                 w.slide();
             }
         }

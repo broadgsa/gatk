@@ -62,6 +62,25 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
 
     public Set<AssociationContext> getAssociations() {
         List<Class<? extends AssociationContext>> contexts = new PluginManager<AssociationContext>(AssociationContext.class).getPlugins();
+
+
+
+        if ( associationsToUse.length > 0 && associationsToUse[0].equals("ALL") ) {
+            HashSet<AssociationContext> allAssoc =  new HashSet<AssociationContext>(contexts.size());
+            for ( Class<? extends AssociationContext> clazz : contexts ) {
+                AssociationContext context;
+                try {
+                    context = clazz.newInstance();
+                } catch (Exception e ) {
+                    throw new StingException("The class "+clazz.getSimpleName()+" could not be instantiated",e);
+                }
+                context.init(this);
+                allAssoc.add(context);
+            }
+            return allAssoc;
+        }
+
+
         Map<String,Class<? extends AssociationContext>> classNameToClass = new HashMap<String,Class<? extends AssociationContext>>(contexts.size());
         for ( Class<? extends AssociationContext> clazz : contexts ) {
             classNameToClass.put(clazz.getSimpleName(),clazz);
