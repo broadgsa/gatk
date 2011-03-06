@@ -23,7 +23,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 public class AssociationTestRunner {
     static Normal standardNormal = new Normal(0.0,1.0,null);
 
-    public static List<String> runTests(AssociationContext context) {
+    public static String runTests(AssociationContext context) {
         List<String> results = new ArrayList<String>();
         if ( context instanceof TStatistic) {
             results.add(runStudentT((TStatistic) context));
@@ -37,7 +37,16 @@ public class AssociationTestRunner {
             results.add(runU((UStatistic) context));
         }
 
-        return results;
+        StringBuffer buf = new StringBuffer();
+        if ( results.size() > 0 ) {
+            buf.append(results.remove(0));
+            for ( String s : results ) {
+                buf.append('\t');
+                buf.append(s);
+            }
+        }
+
+        return buf.toString();
     }
 
     public static String runStudentT(TStatistic context) {

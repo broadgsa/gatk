@@ -7,11 +7,13 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.Multiplex;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.wiggle.WiggleWriter;
 
 import java.io.PrintStream;
 import java.lang.reflect.Modifier;
@@ -27,7 +29,8 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
     public String[] associationsToUse = null;
 
     @Output
-    PrintStream out;
+    @Multiplex(value=RegionalAssociationMultiplexer.class,arguments={"associationsToUse"})
+    Map<AssociationContext,PrintStream> out;
 
     public RegionalAssociationHandler reduceInit() {
         Set<AssociationContext> validAssociations = getAssociations();
@@ -47,17 +50,17 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
         } catch (Exception e) {
             throw new StingException("Error in map reduce",e);
         }
-        List<String> testsHere = rac.runTests();
+        Map<AssociationContext,String> testsHere = rac.runTests();
         // todo -- really awful shitty formatting
         if ( testsHere.size() > 0 ) {
-            out.printf("%s%n",rac.getLocation().toString());
-            for ( String s : testsHere ) {
-                out.printf("%s%n",s);
+            for ( Map.Entry<AssociationContext,String> result : testsHere.entrySet() ) {
+                out.get(result.getKey().getClass()).printf("%s%n",result.getValue());
             }
         }
         return rac;
     }
-    private Set<AssociationContext> getAssociations() {
+
+    public Set<AssociationContext> getAssociations() {
         List<Class<? extends AssociationContext>> contexts = new PluginManager<AssociationContext>(AssociationContext.class).getPlugins();
         Map<String,Class<? extends AssociationContext>> classNameToClass = new HashMap<String,Class<? extends AssociationContext>>(contexts.size());
         for ( Class<? extends AssociationContext> clazz : contexts ) {

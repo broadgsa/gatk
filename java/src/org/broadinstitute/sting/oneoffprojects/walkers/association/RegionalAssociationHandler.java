@@ -43,11 +43,13 @@ public class RegionalAssociationHandler {
      *  1) Run their associated test(s)
      *  2) Slide the windows
      */
-    public List<String> runTests() {
-        List<String> testResults = new ArrayList<String>(associations.size());
+    public Map<AssociationContext,String> runTests() {
+        // todo -- maybe the tdf should be the whole window rather than just the most recent loc?
+        Map<AssociationContext,String> testResults = new HashMap<AssociationContext,String>(associations.size());
         for ( AssociationContext w : associations ) {
             if ( w.isFull() ) {
-                testResults.addAll(AssociationTestRunner.runTests(w));
+                testResults.put(w,String.format("%s\t%d\t%d\t%s",maps.getReferenceContext().getLocus().getContig(),
+                        maps.getReferenceContext().getLocus().getStart(),maps.getReferenceContext().getLocus().getStop(),AssociationTestRunner.runTests(w)));
                 w.slide();
             }
         }
