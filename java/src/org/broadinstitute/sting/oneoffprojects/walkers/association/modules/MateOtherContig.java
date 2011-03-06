@@ -30,7 +30,7 @@ public class MateOtherContig extends ZStatistic {
             }
         }
 
-        return new Pair<Number,Number>(tot,otherCon);
+        return new Pair<Number,Number>(otherCon,tot);
     }
 
 }

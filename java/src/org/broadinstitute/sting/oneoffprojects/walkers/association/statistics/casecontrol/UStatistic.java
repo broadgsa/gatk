@@ -19,8 +19,8 @@ public abstract class UStatistic extends CaseControl<Collection<Number>> {
     public abstract Collection<Number> map(ReadBackedPileup rbp );
 
     public Collection<Number> add(Collection<Number> left, Collection<Number> right) {
-        if ( left instanceof List) {
-            ((List) left).addAll(right);
+        if ( left instanceof ArrayList ) {
+            ((ArrayList) left).addAll(right);
             return left;
         } else if ( left instanceof Set) {
             ((Set) left).addAll(right);

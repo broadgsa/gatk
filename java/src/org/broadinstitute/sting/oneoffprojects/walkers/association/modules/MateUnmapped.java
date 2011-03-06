@@ -18,7 +18,7 @@ public class MateUnmapped extends ZStatistic  {
         int numMatedReads = 0;
         int numPairUnmapped = 0;
         for (PileupElement e : pileup ) {
-            if ( e.getRead().getProperPairFlag() ) {
+            if (e.getRead().getReadPairedFlag()  ) {
                 ++numMatedReads;
                 if ( e.getRead().getMateUnmappedFlag() ) {
                     ++numPairUnmapped;
@@ -26,7 +26,7 @@ public class MateUnmapped extends ZStatistic  {
             }
         }
 
-        return new Pair<Number,Number>(numMatedReads,numPairUnmapped);
+        return new Pair<Number,Number>(numPairUnmapped,numMatedReads);
     }
 
     public int getWindowSize() { return 100; }

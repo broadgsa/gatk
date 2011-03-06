@@ -3,6 +3,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers.association.modules;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.MapExtender;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.RegionalAssociationWalker;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.UStatistic;
 import org.broadinstitute.sting.utils.MathUtils;
@@ -39,16 +40,18 @@ public class SampleDepth extends UStatistic {
         }
     }
 
-    public Collection<Number> map(ReadBackedPileup pileup) {
-        Collection<Sample> samples = pileup.getSamples();
-        Sample sample;
-        if ( samples.size() > 1 ) {
-            throw new StingException("Multiple samples inside a sample-specific pileup");
-        } else if ( samples.size() == 0 ) {
-            return Arrays.asList();
-        } else {
-            sample = samples.iterator().next();
+    @Override
+    public Map<Sample,Object> mapLocus(MapExtender extender) {
+        Map<Sample,ReadBackedPileup> pileups = extender.getReadFilteredPileup();
+        Map<Sample,Object> maps = new HashMap<Sample,Object>(pileups.size());
+        for ( Map.Entry<Sample,ReadBackedPileup> samPileup : pileups.entrySet() ) {
+            maps.put(samPileup.getKey(),map(samPileup.getKey(),samPileup.getValue()));
         }
+
+        return maps;
+    }
+
+    public Collection<Number> map(Sample sample, ReadBackedPileup pileup) {
         Object stats = sampleStats.get(sample);
         double mn;
         double std;
@@ -67,6 +70,9 @@ public class SampleDepth extends UStatistic {
 
         return Arrays.asList((Number)((pileup.size()-mn)/std));
     }
+
+    // note: this is to satisfy the interface, and is never called due to override
+    public Collection<Number> map(ReadBackedPileup pileup) { return null; }
 
     public int getWindowSize() { return 25; }
     public int slideByValue() { return 5; }

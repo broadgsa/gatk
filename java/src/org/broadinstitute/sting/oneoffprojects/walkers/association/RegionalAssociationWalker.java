@@ -61,16 +61,14 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
         List<Class<? extends AssociationContext>> contexts = new PluginManager<AssociationContext>(AssociationContext.class).getPlugins();
         Map<String,Class<? extends AssociationContext>> classNameToClass = new HashMap<String,Class<? extends AssociationContext>>(contexts.size());
         for ( Class<? extends AssociationContext> clazz : contexts ) {
-            if (! Modifier.isAbstract(clazz.getModifiers())) {
-                classNameToClass.put(clazz.getSimpleName(),clazz);
-            }
+            classNameToClass.put(clazz.getSimpleName(),clazz);
         }
 
         Set<AssociationContext> validAssociations = new HashSet<AssociationContext>();
         for ( String s : associationsToUse ) {
             AssociationContext context;
             try {
-                context = classNameToClass.get(s).getConstructor(new Class[]{}).newInstance(new Object[]{});
+                context = classNameToClass.get(s).newInstance();
             } catch ( Exception e ) {
                 throw new StingException("The class "+s+" could not be instantiated.",e);
             }

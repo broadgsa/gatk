@@ -14,6 +14,8 @@ import java.util.TreeSet;
  */
 public class MannWhitneyU {
 
+    private static Normal STANDARD_NORMAL = new Normal(0.0,1.0,null);
+
     private TreeSet<Pair<Number,USet>> observations;
     private int sizeSet1;
     private int sizeSet2;
@@ -64,7 +66,7 @@ public class MannWhitneyU {
         double pval;
         if ( n > 8 && m > 8 ) {
             pval = calculatePNormalApproximation(n,m,u);
-        } else if ( n > 4 && m > 8 ) {
+        } else if ( n > 4 && m > 7 ) {
             pval = calculatePUniformApproximation(n,m,u);
         } else {
             pval = calculatePRecursively(n,m,u);
@@ -82,8 +84,9 @@ public class MannWhitneyU {
      */
     public static double calculatePNormalApproximation(int n,int m,int u) {
         double mean = ((double) m*n+1)/2;
-        Normal normal = new Normal( mean , ((double) n*m*(n+m+1))/12, null);
-        return u < mean ? normal.cdf(u) : 1.0-normal.cdf(u);
+        double var = (n*m*(n+m+1))/12;
+        double z = ( u - mean )/Math.sqrt(var);
+        return z < 0 ? STANDARD_NORMAL.cdf(z) : 1.0-STANDARD_NORMAL.cdf(z);
     }
 
     /**
@@ -134,18 +137,19 @@ public class MannWhitneyU {
         int uSet2DomSet1 = 0;
         USet previous = null;
         for ( Pair<Number,USet> dataPoint : observed ) {
-            if ( previous != null && previous != dataPoint.second ) {
-                if ( dataPoint.second == USet.SET1 ) {
-                    uSet2DomSet1 += set2SeenSoFar;
-                } else {
-                    uSet1DomSet2 += set1SeenSoFar;
-                }
-            }
 
             if ( dataPoint.second == USet.SET1 ) {
                 ++set1SeenSoFar;
             } else {
                 ++set2SeenSoFar;
+            }
+
+            if ( previous != null ) {
+                if ( dataPoint.second == USet.SET1 ) {
+                    uSet2DomSet1 += set2SeenSoFar;
+                } else {
+                    uSet1DomSet2 += set1SeenSoFar;
+                }
             }
 
             previous = dataPoint.second;
@@ -164,7 +168,7 @@ public class MannWhitneyU {
      * @return the probability under the hypothesis that all sequences are equally likely of finding a set-two entry preceding a set-one entry "u" times.
      */
     public static double calculatePRecursively(int n, int m, int u) {
-        if ( m > 6 && n > 4 || m + n > 16 ) { throw new StingException("Please use the appropriate (normal or sum of uniform) approximation"); }
+        if ( m + n > 16 ) { throw new StingException("Please use the appropriate (normal or sum of uniform) approximation"); }
         return cpr(n,m,u);
     }
 
@@ -185,7 +189,7 @@ public class MannWhitneyU {
         }
 
 
-        return (n/(n+m))*cpr(n-1,m,u-m) + (m/(n+m))*cpr(n,m-1,u);
+        return (((double)n)/(n+m))*cpr(n-1,m,u-m) + (((double)m)/(n+m))*cpr(n,m-1,u);
     }
 
     /**

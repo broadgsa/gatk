@@ -41,6 +41,13 @@ public class AssociationTestRunner {
     }
 
     public static String runStudentT(TStatistic context) {
+        Pair<Double,Double> stats = testStudentT(context);
+        double t = stats.first;
+        double p = stats.second;
+        return String.format("T: %.2f\tP: %.2e",t,p);
+    }
+
+    public static Pair<Double,Double> testStudentT(TStatistic context) {
         Map<CaseControl.Cohort,Collection<Number>> caseControlVectors = context.getCaseControl();
         double meanCase = MathUtils.average(caseControlVectors.get(CaseControl.Cohort.CASE));
         double varCase = MathUtils.variance(caseControlVectors.get(CaseControl.Cohort.CASE),meanCase);
@@ -55,10 +62,18 @@ public class AssociationTestRunner {
 
         StudentT studentT = new StudentT(df_num/df_denom,null);
         double p = t < 0 ? 2*studentT.cdf(t) : 2*(1-studentT.cdf(t));
-        return String.format("T: %.2f\tP: %.2e",t,p);
+
+        return new Pair<Double,Double>(t,p);
     }
 
     public static String runZ(ZStatistic context) {
+        Pair<Double,Double> stats = testZ(context);
+        double z = stats.first;
+        double p = stats.second;
+        return String.format("Z: %.2f\tP: %.2e",z,p);
+    }
+
+    public static Pair<Double,Double> testZ(ZStatistic context) {
         Map<CaseControl.Cohort,Pair<Number,Number>> caseControlCounts = context.getCaseControl();
         double pCase = caseControlCounts.get(CaseControl.Cohort.CASE).first.doubleValue()/caseControlCounts.get(CaseControl.Cohort.CASE).second.doubleValue();
         double pControl = caseControlCounts.get(CaseControl.Cohort.CONTROL).first.doubleValue()/caseControlCounts.get(CaseControl.Cohort.CONTROL).second.doubleValue();
@@ -66,15 +81,21 @@ public class AssociationTestRunner {
         double nControl = caseControlCounts.get(CaseControl.Cohort.CONTROL).second.doubleValue();
 
         double p2 = (caseControlCounts.get(CaseControl.Cohort.CASE).first.doubleValue()+caseControlCounts.get(CaseControl.Cohort.CONTROL).first.doubleValue())/
-                     (caseControlCounts.get(CaseControl.Cohort.CASE).second.doubleValue()+caseControlCounts.get(CaseControl.Cohort.CONTROL).first.doubleValue());
+                (caseControlCounts.get(CaseControl.Cohort.CASE).second.doubleValue()+caseControlCounts.get(CaseControl.Cohort.CONTROL).second.doubleValue());
         double se = Math.sqrt(p2*(1-p2)*(1/nCase + 1/nControl));
 
         double z = (pCase-pControl)/se;
         double p = z < 0 ? 2*standardNormal.cdf(z) : 2*(1-standardNormal.cdf(z));
-        return String.format("Z: %.2f\tP: %.2e",z,p);
+
+        return new Pair<Double,Double>(z,p);
     }
 
     public static String runU(UStatistic context) {
+        Pair<Integer,Double> results = mannWhitneyUTest(context);
+        return String.format("U: %d\tP: %.2e",results.first,results.second);
+    }
+
+    public static Pair<Integer,Double> mannWhitneyUTest(UStatistic context) {
         Map<CaseControl.Cohort,Collection<Number>> caseControlVectors = context.getCaseControl();
         MannWhitneyU mwu = new MannWhitneyU();
         for ( Number n : caseControlVectors.get(CaseControl.Cohort.CASE) ) {
@@ -83,8 +104,7 @@ public class AssociationTestRunner {
         for ( Number n : caseControlVectors.get(CaseControl.Cohort.CONTROL) ) {
             mwu.add(n,MannWhitneyU.USet.SET2);
         }
-        Pair<Integer,Double> results = mwu.runTwoSidedTest();
-        return String.format("U: %d\tP: %.2e",results.first,results.second);
+        return mwu.runTwoSidedTest();
     }
 
     public static String runFisherExact(AssociationContext context) {

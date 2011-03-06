@@ -24,9 +24,9 @@ public abstract class CaseControl<X> extends AssociationContext<X,X> {
         for ( Map<Sample,X> sampleXMap : window ) {
             for ( Map.Entry<Sample,X> entry : sampleXMap.entrySet() ) {
                 if ( entry.getKey().getProperty("cohort").equals("case") ) {
-                    accum(accumCase, entry.getValue());
+                    accumCase = accum(accumCase, entry.getValue());
                 } else if ( entry.getKey().getProperty("cohort").equals("control") ) {
-                    accum(accumControl,entry.getValue());
+                    accumControl = accum(accumControl,entry.getValue());
                 }
             }
         }

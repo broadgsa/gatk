@@ -147,13 +147,14 @@ class BootstrapCalls extends QScript {
     trait CombineArgs extends CombineVariants {
       this.reference_sequence = reference
       this.intervals :+= intervalFile
-      this.rodBind :+= new RodBind("hiCov","vcf",rm.noheadvcf)
-      this.rodBind :+= new RodBind("loCov","vcf",new File("/humgen/gsa-pipeline/PVQF4/all_batches_v001/batch_001/SnpCalls/ESPGO_Gabriel_NHLBI_EOMI_setone_EOMI_Project.cleaned.annotated.handfiltered.vcf"))
+      this.rodBind :+= new RodBind("loCov","vcf",rm.noheadvcf)
+      this.rodBind :+= new RodBind("hiCov","vcf",new File("/humgen/gsa-pipeline/PVQF4/all_batches_v001/batch_001/SnpCalls/ESPGO_Gabriel_NHLBI_EOMI_setone_EOMI_Project.cleaned.annotated.handfiltered.vcf"))
       this.variantMergeOptions = Some(VariantMergeType.UNION)
       this.genotypeMergeOptions = Some(GenotypeMergeType.PRIORITIZE)
       this.priority = "hiCov,loCov"
       this.out = swapExt(bootstrapMergedOut,".vcf",".merged.combined.vcf")
       this.jarFile = sting
+      this.memoryLimit = Some(6)
     }
 
     var combine : CombineVariants = new CombineVariants with CombineArgs
@@ -162,7 +163,9 @@ class BootstrapCalls extends QScript {
     trait EvalArgs extends VariantEval {
       this.reference_sequence = reference
       this.intervals :+= intervalFile
-      this.rodBind :+= new RodBind("eval","vcf",combine.out)
+      this.rodBind :+= new RodBind("evalCombined","vcf",combine.out)
+      //this.rodBind :+= new RodBind("evalCut","vcf",rm.noheadvcf)
+      //this.rodBind :+= new RodBind("evalFCP","vcf",new File("/humgen/gsa-pipeline/PVQF4/all_batches_v001/batch_001/SnpCalls/ESPGO_Gabriel_NHLBI_EOMI_setone_EOMI_Project.cleaned.annotated.handfiltered.vcf"))
       this.rodBind :+= new RodBind("dbsnp","vcf",dbsnp)
       this.jarFile = sting
       this.ST = List("Filter","Novelty","JexlExpression")
