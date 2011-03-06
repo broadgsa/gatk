@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.*;
 import java.io.PrintStream;
@@ -44,7 +45,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     private final static boolean DEBUG = false;
     private final static boolean PRINT_LIKELIHOODS = false;
     private final static int N_CYCLES = 1;
-    private SimpleTimer timerExpt = new SimpleTimer("linearExact");
+    private SimpleTimer timerExpt = new SimpleTimer("linearExactBanded");
     private SimpleTimer timerGS = new SimpleTimer("linearExactGS");
     private final static boolean COMPARE_TO_GS = false;
 
@@ -102,11 +103,11 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         if ( N_CYCLES > 1 ) {
             for ( int i = 0; i < N_CYCLES; i++) {
                 timerGS.restart();
-                linearExactClean(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.clone());
+                linearExact(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.clone());
                 timerGS.stop();
 
                 timerExpt.restart();
-                linearExact(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.clone());
+                linearExactBanded(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.clone());
                 timerExpt.stop();
             }
 
@@ -137,8 +138,9 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             if ( ! eq || PRINT_LIKELIHOODS ) {
                 System.out.printf("----------------------------------------%n");
                 for (int k=0; k < log10AlleleFrequencyPosteriors.length; k++) {
+                    double x = log10AlleleFrequencyPosteriors[k];
                     System.out.printf("  %d\t%.2f\t%.2f\t%b%n", k,
-                            log10AlleleFrequencyPosteriors[k], gsPosteriors[k],
+                            x < -1e10 ? Double.NEGATIVE_INFINITY : x, gsPosteriors[k],
                             log10AlleleFrequencyPosteriors[k] == gsPosteriors[k]);
                 }
                 System.out.printf("MAD_AC\t%d\t%d\t%.2f\t%.2f\t%.6f%n",
@@ -205,6 +207,84 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         final public double[] getkMinus0() {
             return kMinus0;
         }
+    }
+
+    // now with banding
+    public int linearExactBanded(Map<String, Genotype> GLs,
+                           double[] log10AlleleFrequencyPriors,
+                           double[] log10AlleleFrequencyPosteriors) {
+        throw new NotImplementedException();
+//        final int numSamples = GLs.size();
+//        final int numChr = 2*numSamples;
+//        final double[][] genotypeLikelihoods = getGLs(GLs);
+//
+//        final ExactACCache logY = new ExactACCache(numSamples+1);
+//        logY.getkMinus0()[0] = 0.0; // the zero case
+//
+//        double maxLog10L = Double.NEGATIVE_INFINITY;
+//        boolean done = false;
+//        int lastK = -1;
+//        final int BAND_SIZE = 10;
+//
+//        for (int k=0; k <= numChr && ! done; k++ ) {
+//            final double[] kMinus0 = logY.getkMinus0();
+//            int jStart = Math.max(k - BAND_SIZE, 1);
+//            int jStop = Math.min(k + BAND_SIZE, numSamples);
+//
+//            if ( k == 0 ) { // special case for k = 0
+//                for ( int j=1; j <= numSamples; j++ ) {
+//                    kMinus0[j] = kMinus0[j-1] + genotypeLikelihoods[j][GenotypeType.AA.ordinal()];
+//                }
+//            } else { // k > 0
+//                final double[] kMinus1 = logY.getkMinus1();
+//                final double[] kMinus2 = logY.getkMinus2();
+//                Arrays.fill(kMinus0,0);
+//
+//                for ( int j = jStart; j <= jStop; j++ ) {
+//                    final double[] gl = genotypeLikelihoods[j];
+//                    final double logDenominator = log10Cache[2*j] + log10Cache[2*j-1];
+//
+//                    double aa = Double.NEGATIVE_INFINITY;
+//                    double ab = Double.NEGATIVE_INFINITY;
+//                    if (k < 2*j-1)
+//                        aa = log10Cache[2*j-k] + log10Cache[2*j-k-1] + kMinus0[j-1] + gl[GenotypeType.AA.ordinal()];
+//
+//                    if (k < 2*j)
+//                        ab = log10Cache[2*k] + log10Cache[2*j-k]+ kMinus1[j-1] + gl[GenotypeType.AB.ordinal()];
+//
+//                    double log10Max;
+//                    if (k > 1) {
+//                        final double bb = log10Cache[k] + log10Cache[k-1] + kMinus2[j-1] + gl[GenotypeType.BB.ordinal()];
+//                        log10Max = approximateLog10SumLog10(aa, ab, bb);
+//                    } else {
+//                        // we know we aren't considering the BB case, so we can use an optimized log10 function
+//                        log10Max = approximateLog10SumLog10(aa, ab);
+//                    }
+//
+//                    // finally, update the L(j,k) value
+//                    kMinus0[j] = log10Max - logDenominator;
+//
+//                    String offset = Utils.dupString(' ',k);
+//                    System.out.printf("%s%3d %3d %.2f%n", offset, k, j, kMinus0[j]);
+//                }
+//            }
+//
+//            // update the posteriors vector
+//            final double log10LofK = kMinus0[jStop];
+//            log10AlleleFrequencyPosteriors[k] = log10LofK + log10AlleleFrequencyPriors[k];
+//
+//            // can we abort early?
+//            lastK = k;
+//            maxLog10L = Math.max(maxLog10L, log10LofK);
+//            if ( log10LofK < maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY ) {
+//                if ( DEBUG ) System.out.printf("  *** breaking early k=%d log10L=%.2f maxLog10L=%.2f%n", k, log10LofK, maxLog10L);
+//                done = true;
+//            }
+//
+//            logY.rotate();
+//        }
+//
+//        return lastK;
     }
 
     public int linearExact(Map<String, Genotype> GLs,
@@ -308,81 +388,6 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         //double z =Math.log10(1+Math.pow(10.0,-diff));
         //System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
         return big + jacobianLogTable[ind];
-    }
-
-    public int linearExactClean(Map<String, Genotype> GLs,
-                           double[] log10AlleleFrequencyPriors,
-                           double[] log10AlleleFrequencyPosteriors) {
-        int numSamples = GLs.size();
-        int numChr = 2*numSamples;
-        double[][] genotypeLikelihoods = getGLs(GLs); // todo -- remove me, not sure this is helping
-        double[] logNumerator = new double[3];
-
-        // set posteriors to negative infinity by default:
-        //Arrays.fill(log10AlleleFrequencyPosteriors, Double.NEGATIVE_INFINITY);
-
-        ExactACCache logY = new ExactACCache(numSamples+1);
-        logY.getkMinus0()[0] = 0.0; // the zero case
-
-        double maxLog10L = Double.NEGATIVE_INFINITY;
-        boolean done = false;
-        int lastK = -1;
-
-        // todo -- we may be able to start second loop some way down the calculation, since GdAs loop only
-        // todo -- considers part of the matrix as well
-        for (int k=0; k <= numChr && ! done; k++ ) {
-            double[] kMinus0 = logY.getkMinus0();
-            double[] kMinus1 = logY.getkMinus1();
-            double[] kMinus2 = logY.getkMinus2();
-
-            if ( k == 0 ) {
-                // special case for k = 0
-                for ( int j=1; j <= numSamples; j++ ) {
-                    kMinus0[j] = kMinus0[j-1] + genotypeLikelihoods[j][GenotypeType.AA.ordinal()];
-                }
-            } else { // k > 0
-                for ( int j=1; j <= numSamples; j++ ) {
-                    double[] gl = genotypeLikelihoods[j];
-                    double logDenominator = log10Cache[2*j] + log10Cache[2*j-1];
-
-                    if (k < 2*j-1)
-                        logNumerator[0] = log10Cache[2*j-k] + log10Cache[2*j-k-1] + kMinus0[j-1] +
-                                gl[GenotypeType.AA.ordinal()];
-                    else
-                        logNumerator[0] = Double.NEGATIVE_INFINITY;
-
-                    if (k < 2*j)
-                        logNumerator[1] = log10Cache[2*k] + log10Cache[2*j-k]+ kMinus1[j-1] +
-                                gl[GenotypeType.AB.ordinal()];
-                    else
-                        logNumerator[1] = Double.NEGATIVE_INFINITY;
-
-                    if (k > 1)
-                        logNumerator[2] = log10Cache[k] + log10Cache[k-1] + kMinus2[j-1] +
-                                gl[GenotypeType.BB.ordinal()];
-                    else
-                        logNumerator[2] = Double.NEGATIVE_INFINITY;
-
-                    kMinus0[j] = softMax(logNumerator) - logDenominator;
-                }
-            }
-
-            // update the posteriors vector
-            double log10LofK = kMinus0[numSamples];
-            log10AlleleFrequencyPosteriors[k] = log10LofK + log10AlleleFrequencyPriors[k];
-
-            // can we abort early?
-            lastK = k;
-            maxLog10L = Math.max(maxLog10L, log10LofK);
-            if ( log10LofK < maxLog10L - MAX_LOG10_ERROR_TO_STOP_EARLY ) {
-                if ( DEBUG ) System.out.printf("  *** breaking early k=%d log10L=%.2f maxLog10L=%.2f%n", k, log10LofK, maxLog10L);
-                done = true;
-            }
-
-            logY.rotate();
-        }
-
-        return lastK;
     }
 
 
