@@ -68,6 +68,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="doNotUseAllStandardStratifications", shortName="noST", doc="Do not use the standard stratification modules by default (instead, only those that are specified with the -S option)")
     protected Boolean NO_STANDARD_STRATIFICATIONS = false;
 
+    @Argument(fullName="onlyVariantsOfType", shortName="VT", doc="If provided, only variants of these types will be considered during the evaluation, in ", required=false)
+    protected Set<VariantContext.Type> typesToUse = null;
+
     // Evaluator arguments
     @Argument(fullName="evalModule", shortName="EV", doc="One or more specific eval modules to apply to the eval track(s) (in addition to the standard modules, unless -noE is specified)", required=false)
     protected String[] MODULES_TO_USE = {};
@@ -201,7 +204,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         if (tracker != null) {
             //      track           sample  vc
-            HashMap<String, HashMap<String, VariantContext>> vcs = variantEvalUtils.getVariantContexts(tracker, ref, compNames, evalNames);
+            HashMap<String, HashMap<String, VariantContext>> vcs = variantEvalUtils.getVariantContexts(tracker, ref, compNames, evalNames, typesToUse != null);
 
             for ( String compName : compNames ) {
                 VariantContext comp = vcs.containsKey(compName) && vcs.get(compName) != null && vcs.get(compName).containsKey(ALL_SAMPLE_NAME) ? vcs.get(compName).get(ALL_SAMPLE_NAME) : null;
@@ -209,6 +212,12 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                 for ( String evalName : evalNames ) {
                     for ( String sampleName : sampleNamesForStratification ) {
                         VariantContext eval = vcs.containsKey(evalName) && vcs.get(evalName) != null ? vcs.get(evalName).get(sampleName) : null;
+
+                        if ( typesToUse != null ) {
+                            if ( eval != null && ! typesToUse.contains(eval.getType()) ) eval = null;
+                            if ( comp != null && ! typesToUse.contains(comp.getType()) ) comp = null;
+//                            if ( eval != null ) logger.info("Keeping " + eval);
+                        }
 
                         HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();
                         for ( VariantStratifier vs : stratificationObjects ) {

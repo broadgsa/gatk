@@ -267,27 +267,35 @@ public class VariantEvalUtils {
      * @param evalNames the evaluation track names
      * @return the set of allowable variation types
      */
-    public EnumSet<VariantContext.Type> getAllowableVariationTypes(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> compNames, Set<String> evalNames) {
-        EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.NO_VARIATION);
+    public EnumSet<VariantContext.Type> getAllowableVariationTypes(RefMetaDataTracker tracker,
+                                                                   ReferenceContext ref,
+                                                                   Set<String> compNames,
+                                                                   Set<String> evalNames,
+                                                                   boolean dynamicSelectTypes ) {
+        if ( dynamicSelectTypes ) { // todo -- this code is really conceptually broken
+            EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.NO_VARIATION);
 
-        if (tracker != null) {
-            Collection<VariantContext> evalvcs = tracker.getVariantContexts(ref, evalNames, null, ref.getLocus(), true, false);
+            if (tracker != null) {
+                Collection<VariantContext> evalvcs = tracker.getVariantContexts(ref, evalNames, null, ref.getLocus(), true, false);
 
-            for (VariantContext vc : evalvcs) {
-                allowableTypes.add(vc.getType());
-            }
-
-            if (allowableTypes.size() == 1) {
-                // We didn't find any variation in the eval track, so now let's look at the comp track for allowable types
-                Collection<VariantContext> compvcs = tracker.getVariantContexts(ref, compNames, null, ref.getLocus(), true, false);
-
-                for (VariantContext vc : compvcs) {
+                for (VariantContext vc : evalvcs) {
                     allowableTypes.add(vc.getType());
                 }
-            }
-        }
 
-        return allowableTypes;
+                if (allowableTypes.size() == 1) {
+                    // We didn't find any variation in the eval track, so now let's look at the comp track for allowable types
+                    Collection<VariantContext> compvcs = tracker.getVariantContexts(ref, compNames, null, ref.getLocus(), true, false);
+
+                    for (VariantContext vc : compvcs) {
+                        allowableTypes.add(vc.getType());
+                    }
+                }
+            }
+
+            return allowableTypes;
+        } else {
+            return EnumSet.allOf(VariantContext.Type.class);
+        }
     }
 
     /**
@@ -345,10 +353,9 @@ public class VariantEvalUtils {
      * @param subsetBySample if false, do not separate the track into per-sample VCs
      * @param trackPerSample if false, don't stratify per sample (and don't cut up the VariantContext like we would need
      *                       to do this)
-     * @param allowNoCalls   if false, don't accept no-call loci from a variant track
      * @return a mapping of track names to a list of VariantContext objects
      */
-    public HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter, boolean subsetBySample, boolean trackPerSample, boolean allowNoCalls) {
+    public HashMap<String, HashMap<String, VariantContext>> bindVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> trackNames, EnumSet<VariantContext.Type> allowableTypes, boolean byFilter, boolean subsetBySample, boolean trackPerSample) {
         HashMap<String, HashMap<String, VariantContext>> bindings = new HashMap<String, HashMap<String, VariantContext>>();
 
         for (String trackName : trackNames) {
@@ -365,7 +372,7 @@ public class VariantEvalUtils {
                     vcsub = getSubsetOfVariantContext(vc, variantEvalWalker.getSampleNamesForEvaluation());
                 }
 
-                if ((byFilter || !vcsub.isFiltered()) && (allowNoCalls || vcsub.getType() != VariantContext.Type.NO_VARIATION)) {
+                if ((byFilter || !vcsub.isFiltered())) {
                     vcs.put(VariantEvalWalker.getAllSampleName(), vcsub);
                 }
 
@@ -374,7 +381,7 @@ public class VariantEvalUtils {
                     for (String sampleName : variantEvalWalker.getSampleNamesForEvaluation()) {
                         VariantContext samplevc = getSubsetOfVariantContext(vc, sampleName);
 
-                        if ((byFilter || !samplevc.isFiltered()) && (allowNoCalls || samplevc.getType() != VariantContext.Type.NO_VARIATION)) {
+                        if ((byFilter || !samplevc.isFiltered())) {
                             vcs.put(sampleName, samplevc);
                         }
                     }
@@ -397,10 +404,10 @@ public class VariantEvalUtils {
      * @param evalNames the list of eval names to process
      * @return a mapping of track names to a list of VariantContext objects
      */
-    public HashMap<String, HashMap<String, VariantContext>> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> compNames, Set<String> evalNames) {
+    public HashMap<String, HashMap<String, VariantContext>> getVariantContexts(RefMetaDataTracker tracker, ReferenceContext ref, Set<String> compNames, Set<String> evalNames, boolean dynamicSelectTypes) {
         HashMap<String, HashMap<String, VariantContext>> vcs = new HashMap<String, HashMap<String, VariantContext>>();
 
-        EnumSet<VariantContext.Type> allowableTypes = getAllowableVariationTypes(tracker, ref, compNames, evalNames);
+        EnumSet<VariantContext.Type> allowableTypes = getAllowableVariationTypes(tracker, ref, compNames, evalNames, dynamicSelectTypes);
 
         boolean byFilter = false;
         boolean perSampleIsEnabled = false;
@@ -412,8 +419,8 @@ public class VariantEvalUtils {
             }
         }
 
-        HashMap<String, HashMap<String, VariantContext>> evalBindings = bindVariantContexts(tracker, ref, evalNames, allowableTypes, byFilter, true, perSampleIsEnabled, true);
-        HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allowableTypes, byFilter, false, false, false);
+        HashMap<String, HashMap<String, VariantContext>> evalBindings = bindVariantContexts(tracker, ref, evalNames, allowableTypes, byFilter, true, perSampleIsEnabled);
+        HashMap<String, HashMap<String, VariantContext>> compBindings = bindVariantContexts(tracker, ref, compNames, allowableTypes, byFilter, false, false);
 
         vcs.putAll(compBindings);
         vcs.putAll(evalBindings);
