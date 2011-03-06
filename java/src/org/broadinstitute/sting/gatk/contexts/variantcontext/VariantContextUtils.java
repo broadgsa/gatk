@@ -113,26 +113,28 @@ public class VariantContextUtils {
             return;
         }
 
-        attributes.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getChromosomeCount());
+        if ( vc.hasGenotypes() ) {
+            attributes.put(VCFConstants.ALLELE_NUMBER_KEY, vc.getChromosomeCount());
 
-        // if there are alternate alleles, record the relevant tags
-        if ( vc.getAlternateAlleles().size() > 0 ) {
-            ArrayList<String> alleleFreqs = new ArrayList<String>();
-            ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
-            double totalChromosomes = (double)vc.getChromosomeCount();
-            for ( Allele allele : vc.getAlternateAlleles() ) {
-                int altChromosomes = vc.getChromosomeCount(allele);
-                alleleCounts.add(altChromosomes);
-                String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
-                alleleFreqs.add(freq);
+            // if there are alternate alleles, record the relevant tags
+            if ( vc.getAlternateAlleles().size() > 0 ) {
+                ArrayList<String> alleleFreqs = new ArrayList<String>();
+                ArrayList<Integer> alleleCounts = new ArrayList<Integer>();
+                double totalChromosomes = (double)vc.getChromosomeCount();
+                for ( Allele allele : vc.getAlternateAlleles() ) {
+                    int altChromosomes = vc.getChromosomeCount(allele);
+                    alleleCounts.add(altChromosomes);
+                    String freq = String.format(makePrecisionFormatStringFromDenominatorValue(totalChromosomes), ((double)altChromosomes / totalChromosomes));
+                    alleleFreqs.add(freq);
+                }
+
+                attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts.size() == 1 ? alleleCounts.get(0) : alleleCounts);
+                attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs.size() == 1 ? alleleFreqs.get(0) : alleleFreqs);
             }
-
-            attributes.put(VCFConstants.ALLELE_COUNT_KEY, alleleCounts);
-            attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, alleleFreqs);
-        }
-        else {
-            attributes.put(VCFConstants.ALLELE_COUNT_KEY, 0);
-            attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
+            else {
+                attributes.put(VCFConstants.ALLELE_COUNT_KEY, 0);
+                attributes.put(VCFConstants.ALLELE_FREQUENCY_KEY, 0.0);
+            }
         }
     }
 

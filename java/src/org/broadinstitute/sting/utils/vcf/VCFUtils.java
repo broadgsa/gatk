@@ -156,6 +156,13 @@ public class VCFUtils {
                                 // values varies, is unknown, or is unbounded, then this value should be '.'.
                                 if ( logger != null ) logger.warn("Promoting header field Number to . due to number differences in header lines: " + line + " " + other);
                                 compOther.setNumberToUnbounded();
+                            } else if ( compLine.getType() == VCFHeaderLineType.Integer && compOther.getType() == VCFHeaderLineType.Float ) {
+                                // promote key to Float
+                                if ( logger != null ) logger.warn("Promoting Integer to Float in header: " + compOther);
+                                map.put(key, compOther);
+                            } else if ( compLine.getType() == VCFHeaderLineType.Float && compOther.getType() == VCFHeaderLineType.Integer ) {
+                                // promote key to Float
+                                if ( logger != null ) logger.warn("Promoting Integer to Float in header: " + compOther);
                             } else {
                                 throw new IllegalStateException("Incompatible header types, collision between these two types: " + line + " " + other );
                             }

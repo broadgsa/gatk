@@ -87,7 +87,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
                         " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +
                         " -genotypeMergeOptions UNIQUIFY -L 1"),
                 1,
-                Arrays.asList("00c431243201e7dec99c2c1a1a863438"));
+                Arrays.asList("a07995587b855f3214fb71940bf23c0f"));
         executeTest("threeWayWithRefs", spec);
         
     }
