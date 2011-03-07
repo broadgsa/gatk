@@ -96,6 +96,7 @@
         <property name="ivy.settings.dir" value="settings"/>
         <property file="${ivy.settings.dir}/ivysettings.properties"/>
   
+      <mkdir dir="lib"/>
       <mkdir dir="${ivy.jar.dir}"/>
       <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
            dest="${ivy.jar.dir}/${ivy.jar.file}"
@@ -107,7 +108,11 @@
         <property name="init.resolve.done" value="true"/>
     </target>
 
-    <target name="resolve" depends="init.resolve,init"
+    <target name="init.gridengine" depends="init" if="include.gridengine">
+        <copy todir="lib" file="${env.SGE_ROOT}/lib/drmaa.jar"/>
+    </target>
+
+    <target name="resolve" depends="init.resolve,init,init.gridengine"
             description="locate and download library dependencies">
         <property name="ivy.conf" value="default"/>
       <ivy:retrieve file="ivy.xml" conf="${ivy.conf}" />
@@ -152,6 +157,12 @@
             <or>
                 <not><equals arg1="${scala.target}" arg2="none" /></not>
             </or>
+        </condition>
+
+        <!-- Include Grid Engine in the compile if SGE_ROOT is available. -->
+        <!-- Based off of http://wikis.sun.com/display/GridEngine/Automating+Grid+Engine+Functions+Through+DRMAA -->
+        <condition property="include.gridengine">
+            <isset property="env.SGE_ROOT"/>
         </condition>
 
         <!-- Get the pipeline run type.  Default to dry.  -->
@@ -260,6 +271,7 @@
             <src path="${scala.source.dir}" />
             <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala"/>
+            <exclude name="**/gridengine/**" unless="include.gridengine" />
         </scalac>
     </target>
 
@@ -530,6 +542,7 @@
         <echo message="Scala: Compiling test cases!"/>
         <scalac fork="true" jvmargs="-Xmx512m" srcdir="${scala.test.sources}" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
             <include name="**/*.scala"/>
+            <exclude name="**/gridengine/**" unless="include.gridengine" />
             <classpath>
                 <path refid="scala.dependencies"/>
                 <pathelement location="${scala.test.classes}"/>

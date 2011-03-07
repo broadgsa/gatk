@@ -52,12 +52,13 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
       function.deleteOutputs()
       function.mkOutputDirectories()
 
+      runner.init()
       runner.start()
     } catch {
       case e =>
         currentStatus = RunnerStatus.FAILED
         try {
-          runner.removeTemporaryFiles()
+          runner.cleanup()
           function.failOutputs.foreach(_.createNewFile())
           writeStackTrace(e)
         } catch {
@@ -78,7 +79,7 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
 
           if (currentStatus == RunnerStatus.FAILED) {
             try {
-              runner.removeTemporaryFiles()
+              runner.cleanup()
               function.failOutputs.foreach(_.createNewFile())
             } catch {
               case _ => /* ignore errors in the error handler */
@@ -87,7 +88,7 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
             tailError()
           } else if (currentStatus == RunnerStatus.DONE) {
             try {
-              runner.removeTemporaryFiles()
+              runner.cleanup()
               function.doneOutputs.foreach(_.createNewFile())
             } catch {
               case _ => /* ignore errors in the done handler */
@@ -98,7 +99,7 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
           case e =>
             currentStatus = RunnerStatus.FAILED
             try {
-              runner.removeTemporaryFiles()
+              runner.cleanup()
               function.failOutputs.foreach(_.createNewFile())
               writeStackTrace(e)
             } catch {

@@ -14,10 +14,8 @@ import org.broadinstitute.sting.queue.util.{Logging, CollectionUtils, IOUtils, R
  * Inputs are matched to other outputs by using .equals()
  */
 trait QFunction extends Logging {
-  /**
-   * Analysis function name
-   */
-  var analysisName: String = _
+  /** A short description of this step in the graph */
+  var analysisName: String = "<function>"
 
   /** Prefix for automatic job name creation */
   var jobNamePrefix: String = _

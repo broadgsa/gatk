@@ -1,6 +1,29 @@
-package org.broadinstitute.sting.queue.engine
+/*
+ * Copyright (c) 2011, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
 
-import java.io.File
+package org.broadinstitute.sting.queue.engine.lsf
+
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.queue.util._
 import org.broadinstitute.sting.queue.QException
@@ -10,6 +33,7 @@ import org.broadinstitute.sting.jna.clibrary.LibC
 import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.{submitReply, submit}
 import com.sun.jna.ptr.IntByReference
 import com.sun.jna.{StringArray, NativeLong}
+import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
 
 /**
  * Runs jobs on an LSF compute cluster.
@@ -38,50 +62,55 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
       for (i <- 0 until LibLsf.LSF_RLIM_NLIMITS)
         request.rLimits(i) = LibLsf.DEFAULT_RLIMIT;
 
+      // Set the display name of the job to the first 4000 characters
+      request.jobName = function.description.take(4000)
+      request.options |= LibBat.SUB_JOB_NAME
+
+      // Set the output file for stdout
       request.outFile = function.jobOutputFile.getPath
       request.options |= LibBat.SUB_OUT_FILE
 
+      // Set the current working directory
+      request.cwd = function.commandDirectory.getPath
+      request.options3 |= LibBat.SUB3_CWD
+
+      // If the error file is set specify the separate output for stderr
       if (function.jobErrorFile != null) {
         request.errFile = function.jobErrorFile.getPath
         request.options |= LibBat.SUB_ERR_FILE
       }
 
+      // If a project name is set specify the project name
       if (function.jobProject != null) {
         request.projectName = function.jobProject
         request.options |= LibBat.SUB_PROJECT_NAME
       }
 
+      // If the job queue is set specify the job queue
       if (function.jobQueue != null) {
         request.queue = function.jobQueue
         request.options |= LibBat.SUB_QUEUE
       }
 
-      if (IOUtils.absolute(new File(".")) != function.commandDirectory) {
-        request.cwd = function.commandDirectory.getPath
-        request.options3 |= LibBat.SUB3_CWD
-      }
-
+      // If the memory limit is set (GB) specify the memory limit
       if (function.memoryLimit.isDefined) {
         request.resReq = "rusage[mem=" + function.memoryLimit.get + "]"
         request.options |= LibBat.SUB_RES_REQ
       }
 
-      if (function.description != null) {
-        request.jobName = function.description.take(1000)
-        request.options |= LibBat.SUB_JOB_NAME
-      }
-
+      // If the priority is set (user specified Int) specify the priority
       if (function.jobPriority.isDefined) {
         request.userPriority = function.jobPriority.get
         request.options2 |= LibBat.SUB2_JOB_PRIORITY
       }
 
+      // LSF specific: get the max runtime for the jobQueue and pass it for this job
       request.rLimits(LibLsf.LSF_RLIMIT_RUN) = Lsf706JobRunner.getRlimitRun(function.jobQueue)
 
-      writeExec()
-      request.command = "sh " + exec
+      // Run the command as sh <jobScript>
+      request.command = "sh " + jobScript
 
-      // Allow advanced users to update the request.
+      // Allow advanced users to update the request via QFunction.updateJobRun()
       updateJobRun(request)
 
       updateStatus(RunnerStatus.RUNNING)
@@ -113,7 +142,7 @@ object Lsf706JobRunner extends Logging {
   /** Amount of time a job can go without status before giving up. */
   private val unknownStatusMaxSeconds = 5 * 60
 
-  init()
+  initLsf()
 
   /** The name of the default queue. */
   private var defaultQueue: String = _
@@ -124,7 +153,7 @@ object Lsf706JobRunner extends Logging {
   /**
    * Initialize the Lsf library.
    */
-  private def init() = {
+  private def initLsf() {
     lsfLibLock.synchronized {
       if (LibBat.lsb_init("Queue") < 0)
         throw new QException(LibBat.lsb_sperror("lsb_init() failed"))
@@ -132,12 +161,72 @@ object Lsf706JobRunner extends Logging {
   }
 
   /**
+   * Bulk updates job statuses.
+   * @param runners Runners to update.
+   */
+  def updateStatus(runners: Set[Lsf706JobRunner]) {
+    var updatedRunners = Set.empty[Lsf706JobRunner]
+
+    Lsf706JobRunner.lsfLibLock.synchronized {
+      val result = LibBat.lsb_openjobinfo(0L, null, null, null, null, LibBat.ALL_JOB)
+      if (result < 0) {
+        logger.error(LibBat.lsb_sperror("Unable to check LSF job info"))
+      } else {
+        try {
+          val more = new IntByReference(result)
+          while (more.getValue > 0) {
+            val jobInfo = LibBat.lsb_readjobinfo(more)
+            if (jobInfo == null) {
+              logger.error(LibBat.lsb_sperror("Unable to read LSF job info"))
+              more.setValue(0)
+            } else {
+              runners.find(runner => runner.jobId == jobInfo.jobId) match {
+                case Some(runner) =>
+                  updateRunnerStatus(runner, jobInfo)
+                  updatedRunners += runner
+                case None => /* not our job */
+              }
+            }
+          }
+        } finally {
+          LibBat.lsb_closejobinfo()
+        }
+      }
+    }
+
+    for (runner <- runners.diff(updatedRunners)) {
+      checkUnknownStatus(runner)
+    }
+  }
+
+  /**
+   * Tries to stop any running jobs.
+   * @param runners Runners to stop.
+   */
+  def tryStop(runners: Set[Lsf706JobRunner]) {
+    lsfLibLock.synchronized {
+      // lsb_killbulkjobs does not seem to forward SIGTERM,
+      // only SIGKILL, so send the Ctrl-C (SIGTERM) one by one.
+      for (runner <- runners.filterNot(_.jobId < 0)) {
+        try {
+          if (LibBat.lsb_signaljob(runner.jobId, SIGTERM) < 0)
+            logger.error(LibBat.lsb_sperror("Unable to kill job " + runner.jobId))
+        } catch {
+          case e =>
+            logger.error("Unable to kill job " + runner.jobId, e)
+        }
+      }
+    }
+  }
+
+
+  /**
    * Returns the run limit in seconds for the queue.
    * If the queue name is null returns the length of the default queue.
    * @param queue Name of the queue or null for the default queue.
    * @return the run limit in seconds for the queue.
    */
-  def getRlimitRun(queue: String) = {
+  private def getRlimitRun(queue: String) = {
     lsfLibLock.synchronized {
       if (queue == null) {
         if (defaultQueue != null) {
@@ -166,64 +255,6 @@ object Lsf706JobRunner extends Logging {
             val limit = queueInfo.rLimits(LibLsf.LSF_RLIMIT_RUN)
             queueRlimitRun += queue -> limit
             limit
-        }
-      }
-    }
-  }
-
-  /**
-   * Updates the status of a list of jobs.
-   */
-  def updateStatus(runners: List[Lsf706JobRunner]) {
-    var updatedRunners = List.empty[Lsf706JobRunner]
-
-    Lsf706JobRunner.lsfLibLock.synchronized {
-      val result = LibBat.lsb_openjobinfo(0L, null, null, null, null, LibBat.ALL_JOB)
-      if (result < 0) {
-        logger.error(LibBat.lsb_sperror("Unable to check LSF job info"))
-      } else {
-        try {
-          val more = new IntByReference(result)
-          while (more.getValue > 0) {
-            val jobInfo = LibBat.lsb_readjobinfo(more)
-            if (jobInfo == null) {
-              logger.error(LibBat.lsb_sperror("Unable to read LSF job info"))
-              more.setValue(0)
-            } else {
-              runners.find(runner => runner.jobId == jobInfo.jobId) match {
-                case Some(runner) =>
-                  updateRunnerStatus(runner, jobInfo)
-                  updatedRunners :+= runner
-                case None => /* not our job */
-              }
-            }
-          }
-        } finally {
-          LibBat.lsb_closejobinfo()
-        }
-      }
-    }
-
-    for (runner <- runners.diff(updatedRunners)) {
-      checkUnknownStatus(runner)
-    }
-  }
-
-  /**
-   * Tries to stop any running jobs.
-   * @param runners Runners to stop.
-   */
-  def tryStop(runners: List[Lsf706JobRunner]) {
-    lsfLibLock.synchronized {
-      // lsb_killbulkjobs does not seem to forward SIGTERM,
-      // only SIGKILL, so send the Ctrl-C (SIGTERM) one by one.
-      for (runner <- runners.filterNot(_.jobId < 0)) {
-        try {
-          if (LibBat.lsb_signaljob(runner.jobId, SIGTERM) < 0)
-            logger.error(LibBat.lsb_sperror("Unable to kill job " + runner.jobId))
-        } catch {
-          case e =>
-            logger.error("Unable to kill job " + runner.jobId, e)
         }
       }
     }

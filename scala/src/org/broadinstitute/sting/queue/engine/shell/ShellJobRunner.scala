@@ -22,42 +22,38 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.engine
+package org.broadinstitute.sting.queue.engine.shell
 
 import org.broadinstitute.sting.queue.function.CommandLineFunction
-import java.io.File
-import org.broadinstitute.sting.queue.util.{Logging, IOUtils}
+import org.broadinstitute.sting.queue.util.ShellJob
+import org.broadinstitute.sting.queue.engine.{RunnerStatus, CommandLineJobRunner}
 
 /**
- * Runs a command line function.
+ * Runs jobs one at a time locally
  */
-trait CommandLineJobRunner extends JobRunner[CommandLineFunction] with Logging {
+class ShellJobRunner(val function: CommandLineFunction) extends CommandLineJobRunner {
+  private var runStatus: RunnerStatus.Value = _
 
-  /** A generated exec shell script. */
-  protected var jobScript: File = _
+  /**
+   * Runs the function on the local shell.
+   * @param function Command to run.
+   */
+  def start() {
+    val job = new ShellJob
 
-  /** Which directory to use for the job status files. */
-  protected def jobStatusDir = function.jobTempDir
+    job.workingDir = function.commandDirectory
+    job.outputFile = function.jobOutputFile
+    job.errorFile = function.jobErrorFile
 
-  override def init() {
-    super.init()
-    var exec = new StringBuilder
-    
-    var dirs = Set.empty[File]
-    for (dir <- function.jobDirectories)
-      dirs += IOUtils.dirLevel(dir, 2)
-    if (dirs.size > 0) {
-      // prepend "cd '<dir_1>' [&& cd '<dir_n>']" to automount the directories.
-      exec.append(dirs.mkString("cd '", "' && cd '", "'"))
-      exec.append(" && cd '%s' && \\%n".format(function.commandDirectory))
-    }
-    exec.append(function.commandLine)
+    job.shellScript = jobScript
 
-    this.jobScript = IOUtils.writeTempFile(exec.toString, ".exec", "", jobStatusDir)
+    // Allow advanced users to update the job.
+    updateJobRun(job)
+
+    runStatus = RunnerStatus.RUNNING
+    job.run()
+    runStatus = RunnerStatus.DONE
   }
 
-  override def cleanup() {
-    super.cleanup()
-    IOUtils.tryDelete(jobScript)
-  }
+  def status = runStatus
 }

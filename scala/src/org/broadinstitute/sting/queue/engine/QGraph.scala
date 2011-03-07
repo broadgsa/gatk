@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2011, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.queue.engine
 
 import org.jgrapht.traverse.TopologicalOrderIterator
@@ -10,10 +34,10 @@ import java.io.File
 import org.jgrapht.event.{TraversalListenerAdapter, EdgeTraversalEvent}
 import org.broadinstitute.sting.queue.QException
 import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFunction, QFunction}
-import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, GatherFunction, ScatterGatherableFunction}
 import org.apache.commons.lang.StringUtils
 import org.broadinstitute.sting.queue.util._
 import collection.immutable.{TreeSet, TreeMap}
+import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, CloneFunction, GatherFunction, ScatterGatherableFunction}
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -39,9 +63,9 @@ class QGraph extends Logging {
 
   private val nl = "%n".format()
 
+  private val commandLinePluginManager = new CommandLinePluginManager
+  private var commandLineManager: CommandLineJobManager[CommandLineJobRunner] = _
   private val inProcessManager = new InProcessJobManager
-  private var commandLineManager: JobManager[CommandLineFunction, _<:JobRunner[CommandLineFunction]] = _
-
   private def managers = List[Any](inProcessManager, commandLineManager)
 
   /**
@@ -82,6 +106,10 @@ class QGraph extends Logging {
           logStatus()
         } else if (this.dryRun) {
           dryRunJobs()
+          if (running && isReady) {
+            logger.info("Dry run completed successfully!")
+            logger.info("Re-run with \"-run\" to execute the functions.")
+          }
         } else if (isReady) {
           logger.info("Running jobs.")
           runJobs()
@@ -89,11 +117,6 @@ class QGraph extends Logging {
 
         if (numMissingValues > 0) {
           logger.error("Total missing values: " + numMissingValues)
-        }
-
-        if (running && isReady && this.dryRun) {
-          logger.info("Dry run completed successfully!")
-          logger.info("Re-run with \"-run\" to execute the functions.")
         }
       }
     }
@@ -106,7 +129,7 @@ class QGraph extends Logging {
       renderToDot(settings.dotFile)
     validate()
 
-    if (running && numMissingValues == 0 && settings.bsubAllJobs) {
+    if (running && numMissingValues == 0) {
       logger.info("Generating scatter gather jobs.")
       val scatterGathers = jobGraph.edgeSet.filter(edge => scatterGatherable(edge))
 
@@ -302,10 +325,11 @@ class QGraph extends Logging {
    */
   private def runJobs() {
     try {
-      if (settings.bsubAllJobs)
-        commandLineManager = new Lsf706JobManager
-      else
-        commandLineManager = new ShellJobManager
+      if (settings.bsub)
+        settings.jobRunner = "Lsf706"
+      else if (settings.jobRunner == null)
+        settings.jobRunner = "Shell"
+      commandLineManager = commandLinePluginManager.createByName(settings.jobRunner)
 
       if (settings.startFromScratch) {
         logger.info("Removing outputs from previous runs.")
@@ -529,15 +553,20 @@ class QGraph extends Logging {
    * Tracks analysis status.
    */
   private class AnalysisStatus(val analysisName: String) {
-    var status = RunnerStatus.PENDING
-    var scatter = new ScatterGatherStatus
-    var gather = new ScatterGatherStatus
+    val jobs = new GroupStatus
+    val scatter = new GroupStatus
+    val gather = new GroupStatus
+
+    def total = jobs.total + scatter.total + gather.total
+    def done = jobs.done + scatter.done + gather.done
+    def failed = jobs.failed + scatter.failed + gather.failed
+    def skipped = jobs.skipped + scatter.skipped + gather.skipped
   }
 
   /**
-   * Tracks scatter gather status.
+   * Tracks status of a group of jobs.
    */
-  private class ScatterGatherStatus {
+  private class GroupStatus {
     var total = 0
     var done = 0
     var failed = 0
@@ -574,30 +603,33 @@ class QGraph extends Logging {
     })
 
     statuses.foreach(status => {
-      val sgTotal = status.scatter.total + status.gather.total
-      val sgDone = status.scatter.done + status.gather.done
-      val sgFailed = status.scatter.failed + status.gather.failed
-      val sgSkipped = status.scatter.skipped + status.gather.skipped
+      val total = status.total
+      val done = status.done
+      val failed = status.failed
+      val skipped = status.skipped
+      val jobsTotal = status.jobs.total
+      val jobsDone = status.jobs.done
       val gatherTotal = status.gather.total
       val gatherDone = status.gather.done
-      if (sgTotal > 0) {
-        var sgStatus = RunnerStatus.PENDING
-        if (sgFailed > 0)
-          sgStatus = RunnerStatus.FAILED
-        else if (gatherDone == gatherTotal)
-          sgStatus = RunnerStatus.DONE
-        else if (sgDone + sgSkipped == sgTotal)
-          sgStatus = RunnerStatus.SKIPPED
-        else if (sgDone > 0)
-          sgStatus = RunnerStatus.RUNNING
-        status.status = sgStatus
-      }
 
-      var info = ("%-" + maxWidth + "s [%s]")
-              .format(status.analysisName, StringUtils.center(status.status.toString, 7))
+      var summaryStatus = RunnerStatus.PENDING
+      if (failed > 0)
+        summaryStatus = RunnerStatus.FAILED
+      else if (gatherDone == gatherTotal && jobsDone == jobsTotal)
+        summaryStatus = RunnerStatus.DONE
+      else if (done + skipped == total)
+        summaryStatus = RunnerStatus.SKIPPED
+      else if (done > 0)
+        summaryStatus = RunnerStatus.RUNNING
+
+      var info = ("%-" + maxWidth + "s %7s")
+              .format(status.analysisName, "[" + summaryStatus.toString + "]")
+      if (status.jobs.total > 1) {
+        info += formatGroupStatus(status.jobs)
+      }
       if (status.scatter.total + status.gather.total > 1) {
-        info += formatSGStatus(status.scatter, "s")
-        info += formatSGStatus(status.gather, "g")
+        info += formatGroupStatus(status.scatter, "s:")
+        info += formatGroupStatus(status.gather, "g:")
       }
       statusFunc(info)
     })
@@ -607,21 +639,23 @@ class QGraph extends Logging {
    * Updates a status map with scatter/gather status information (e.g. counts)
    */
   private def updateAnalysisStatus(stats: AnalysisStatus, edge: FunctionEdge) {
-    if (edge.function.isInstanceOf[GatherFunction]) {
-      updateSGStatus(stats.gather, edge)
+    if (edge.function.isInstanceOf[ScatterFunction]) {
+      updateGroupStatus(stats.scatter, edge)
     } else if (edge.function.isInstanceOf[CloneFunction]) {
-      updateSGStatus(stats.scatter, edge)
+      updateGroupStatus(stats.scatter, edge)
+    } else if (edge.function.isInstanceOf[GatherFunction]) {
+      updateGroupStatus(stats.gather, edge)
     } else {
-      stats.status = edge.status
+      updateGroupStatus(stats.jobs, edge)
     }
   }
 
-  private def updateSGStatus(stats: ScatterGatherStatus, edge: FunctionEdge) {
-    stats.total += 1
+  private def updateGroupStatus(groupStatus: GroupStatus, edge: FunctionEdge) {
+    groupStatus.total += 1
     edge.status match {
-      case RunnerStatus.DONE => stats.done += 1
-      case RunnerStatus.FAILED => stats.failed += 1
-      case RunnerStatus.SKIPPED => stats.skipped += 1
+      case RunnerStatus.DONE => groupStatus.done += 1
+      case RunnerStatus.FAILED => groupStatus.failed += 1
+      case RunnerStatus.SKIPPED => groupStatus.skipped += 1
       /* can't tell the difference between pending and running right now! */
       case RunnerStatus.PENDING =>
       case RunnerStatus.RUNNING =>
@@ -631,8 +665,8 @@ class QGraph extends Logging {
   /**
    * Formats a status into nice strings
    */
-  private def formatSGStatus(stats: ScatterGatherStatus, prefix: String) = {
-    " %s:%dt/%dd/%df".format(
+  private def formatGroupStatus(stats: GroupStatus, prefix: String = "") = {
+    " %s%dt/%dd/%df".format(
       prefix, stats.total, stats.done, stats.failed)
   }
 
@@ -815,7 +849,7 @@ class QGraph extends Logging {
           .asInstanceOf[Set[JobRunner[QFunction]]]
         if (managerRunners.size > 0)
           try {
-            manager.updateStatus(managerRunners.toList)
+            manager.updateStatus(managerRunners)
           } catch {
             case e => /* ignore */
           }
@@ -846,13 +880,13 @@ class QGraph extends Logging {
             .asInstanceOf[Set[JobRunner[QFunction]]]
           if (managerRunners.size > 0)
             try {
-              manager.tryStop(managerRunners.toList)
+              manager.tryStop(managerRunners)
             } catch {
               case e => /* ignore */
             }
           for (runner <- managerRunners) {
             try {
-              runner.removeTemporaryFiles()
+              runner.cleanup()
             } catch {
               case e => /* ignore */
             }
