@@ -54,10 +54,11 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
                         "-L 22:10000000-20000000",
                         "-B:refseq,AnnotatorInputTable " + b37Refseq,
                         "-B:variant,VCF " + testFileWithIndels,
+                        "-NO_HEADER",
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("1f8189433e87cc0b986cddb6a9a74585")
+                Arrays.asList("cdf1037b5d17635398268f473160730c")
         );
         executeTest("testGenomicAnnotatorOnIndels", testOnIndels);
     }
@@ -71,6 +72,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
                         "-L 22:10000000-20000000",
                         "-B:refseq,AnnotatorInputTable " + b37Refseq,
                         "-B:variant,VCF " + testFileWithSNPsAndIndels,
+                        "-NO_HEADER",
                         "-o %s"
                 ),
                 1,
