@@ -42,6 +42,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
+import org.omg.PortableInterceptor.DISCARDING;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -71,10 +72,15 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci.", required=false)
     private boolean EXCLUDE_FILTERED = false;
 
+    @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called from a ROD comparison track. Use -disc ROD_NAME", required=false)
+    private String discordanceRodName = "";
+
     private ArrayList<String> selectNames = new ArrayList<String>();
     private List<VariantContextUtils.JexlVCMatchExp> jexls = null;
 
     private Set<String> samples = new HashSet<String>();
+
+    private boolean DISCORDANCE_ONLY = false;
 
     /**
      * Set up the VCF writer, the sample expressions and regexs, and the JEXL matcher
@@ -87,11 +93,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
+        DISCORDANCE_ONLY = discordanceRodName.length() > 0;
         samples = SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS);
-
         for (String sample : samples) {
             logger.info("Including sample '" + sample + "'");
         }
+        if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceRodName);
 
         // Initialize VCF header
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
@@ -121,13 +128,33 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             return 0;
 
         Collection<VariantContext> vcs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+
+        // If a discordance rod name was provided, we select the variants present in the discordance that
+        // are not present in the variant.
+        if (DISCORDANCE_ONLY) {
+            if (vcs == null || vcs.size() == 0) {
+                VariantContext compVC = tracker.getVariantContext(ref, discordanceRodName, context.getLocation());
+                if (compVC != null) {
+                    // if the genotype of any of the samples we're looking it is HET or HomVar, we write this variant
+                    for (String sample : samples) {
+                        Genotype g = compVC.getGenotype(sample);
+                        if ( g.isHet() || g.isHomVar() ) {
+                            vcfWriter.add(compVC, ref.getBase());
+                            return 1;
+                        }
+                    }
+                }
+            }
+            return 0;
+        }
+
         if ( vcs == null || vcs.size() == 0) {
             return 0;
         }
 
         for (VariantContext vc : vcs) {
             VariantContext sub = subsetRecord(vc, samples);
-    
+
             if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
                     //System.out.printf("%s%n",sub.toString());
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
