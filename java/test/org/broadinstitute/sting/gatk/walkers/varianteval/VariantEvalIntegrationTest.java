@@ -475,7 +475,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -noST -noEV -ST Novelty -EV CompOverlap" +
                            " -o %s";
 
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("3fced8e5fa7a1c952d08fead0accd3fb"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("d866d6ca41f917dee2635fe1506ad2cc"));
         executeTestParallel("testMultipleCompTracks",spec);
     }
 
