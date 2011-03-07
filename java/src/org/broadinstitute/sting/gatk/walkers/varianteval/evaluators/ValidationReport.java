@@ -28,7 +28,6 @@ import java.util.*;
 @Analysis(description = "Assess site accuracy and sensitivity of callset against follow-up validation assay")
 public class ValidationReport extends VariantEvaluator implements StandardEval {
     // todo -- note this isn't strictly allele away.  It's really focused on sites.  A/T call at a validated A/G site is currently counted as a TP
-
     @DataPoint(description = "nComp") int nComp = 0;
     @DataPoint(description = "TP") int TP = 0;
     @DataPoint(description = "FP") int FP = 0;
@@ -110,6 +109,7 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
                 counts[compStatus.ordinal()][evalStatus.ordinal()]++;
             }
         }
+
         return null; // we don't capture any interesting sites
     }
 
