@@ -35,12 +35,8 @@ class ContigScatterFunction extends GATKScatterFunction with InProcessFunction {
   // Include unmapped reads by default.
   this.includeUnmapped = true
 
-  protected override def maxIntervals = {
-    if (this.intervalFilesExist)
-      IntervalUtils.countIntervalArguments(this.referenceSequence, this.intervals, true)
-    else
-      this.scatterCount
-  }
+  protected override def maxIntervals =
+    IntervalUtils.countIntervalArguments(this.referenceSequence, this.intervals, true)
 
   def run() {
     IntervalUtils.scatterIntervalArguments(this.referenceSequence, this.intervals, this.scatterOutputFiles, true)

@@ -25,23 +25,24 @@
 package org.broadinstitute.sting.queue.extensions.gatk
 
 import java.io.File
-import org.broadinstitute.sting.queue.function.scattergather.CloneFunction
 import org.broadinstitute.sting.queue.function.InProcessFunction
+import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, CloneFunction}
+import org.broadinstitute.sting.commandline.Output
+import util.Random
 
 /**
  * An scatter function that uses the Distributed GATK.
  */
-class DistributedScatterFunction extends GATKScatterFunction with InProcessFunction {
-  private final val processingTracker = "processingTracker"
+class DistributedScatterFunction extends ScatterFunction with InProcessFunction {
+  @Output(doc="processingTracker")
+  var processingTracker: File = _
 
-  this.scatterOutputFiles = List(new File(processingTracker))
-
-  override def initCloneInputs(cloneFunction: CloneFunction, index: Int) {
-    cloneFunction.setFieldValue("processingTracker", new File(this.commandDirectory, this.processingTracker))
+  override def init() {
+    this.processingTracker = new File(this.commandDirectory, "processingTracker.%8d".format(Random.nextInt(100000000)))
   }
 
-  override def bindCloneInputs(cloneFunction: CloneFunction, index: Int) {
-    /* no further work needed after init. */
+  override def initCloneInputs(cloneFunction: CloneFunction, index: Int) {
+    cloneFunction.setFieldValue("processingTracker", this.processingTracker)
   }
 
   def run() {

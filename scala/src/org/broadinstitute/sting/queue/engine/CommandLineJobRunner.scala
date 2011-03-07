@@ -15,15 +15,6 @@ trait CommandLineJobRunner extends JobRunner[CommandLineFunction] with Logging {
   /** Which directory to use for the job status files. */
   protected def jobStatusDir = function.jobTempDir
 
-  /** The last time the status returned unknown. */
-  protected var firstUnknownTime: Option[Long] = None
-
-  /** Amount of time the status can return unknown before giving up. */
-  protected val unknownStatusMaxSeconds = 5 * 60
-
-  /** Number of seconds for a non-normal exit status before we give up on expecting LSF to retry the function. */
-  protected val retryExpiredSeconds = 5 * 60
-
   /**
    * Writes the function command line to an exec file.
    */

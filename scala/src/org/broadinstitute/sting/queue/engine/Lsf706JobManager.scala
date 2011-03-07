@@ -9,5 +9,7 @@ class Lsf706JobManager extends JobManager[CommandLineFunction, Lsf706JobRunner] 
   def runnerType = classOf[Lsf706JobRunner]
   def functionType = classOf[CommandLineFunction]
   def create(function: CommandLineFunction) = new Lsf706JobRunner(function)
+
+  override def updateStatus(runners: List[Lsf706JobRunner]) { Lsf706JobRunner.updateStatus(runners) }
   override def tryStop(runners: List[Lsf706JobRunner]) { Lsf706JobRunner.tryStop(runners) }
 }

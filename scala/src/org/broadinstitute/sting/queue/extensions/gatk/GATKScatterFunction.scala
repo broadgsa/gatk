@@ -28,21 +28,24 @@ import org.broadinstitute.sting.utils.interval.IntervalUtils
 import java.io.File
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.util.IOUtils
-import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, ScatterGatherableFunction, ScatterFunction}
+import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, ScatterFunction}
 import org.broadinstitute.sting.commandline.Output
 
 trait GATKScatterFunction extends ScatterFunction {
-  /** The total number of clone jobs that will be created. */
-  var scatterCount: Int = _
-
-  /** The reference sequence for the GATK function. */
-  protected var referenceSequence: File = _
-
   /** The runtime field to set for specifying an interval file. */
   private final val intervalsField = "intervals"
 
   /** The runtime field to set for specifying an interval string. */
   private final val intervalsStringField = "intervalsString"
+
+  @Output(doc="Scatter function outputs")
+  var scatterOutputFiles: List[File] = Nil
+
+  /** The original GATK function. */
+  protected var originalGATK: CommandLineGATK = _
+
+  /** The reference sequence for the GATK function. */
+  protected var referenceSequence: File = _
 
   /** The list of interval files ("/path/to/interval.list") or interval strings ("chr1", "chr2") to parse into smaller parts. */
   protected var intervals: List[String] = Nil
@@ -50,42 +53,28 @@ trait GATKScatterFunction extends ScatterFunction {
   /** Whether the last scatter job should also include any unmapped reads. */
   protected var includeUnmapped: Boolean = _
 
-  @Output(doc="Scatter function outputs")
-  var scatterOutputFiles: List[File] = Nil
+  /** The total number of clone jobs that will be created. */
+  override def scatterCount = if (intervalFilesExist) super.scatterCount min this.maxIntervals else super.scatterCount
 
-  /**
-   * Checks if the function is scatter gatherable.
-   * @param originalFunction Function to check.
-   * @return true if the function is a GATK function with the reference sequence set.
-   * @throws IllegalArgumentException if -BTI or -BTIMR are set.  QScripts should not try to scatter gather with those option set.
-   */
-  override def isScatterGatherable(originalFunction: ScatterGatherableFunction): Boolean = {
-    val gatk = originalFunction.asInstanceOf[CommandLineGATK]
-    if (gatk.BTI != null && gatk.BTIMR == null)
-      throw new IllegalArgumentException("BTI requires BTIMR for use with scatter-gather (recommended: INTERSECTION)")
-    gatk.reference_sequence != null
-  }
-
-  /**
-   * Sets the scatter gatherable function.
-   * @param originalFunction Function to bind.
-   */
-  override def setScatterGatherable(originalFunction: ScatterGatherableFunction) = {
-    val gatk = originalFunction.asInstanceOf[CommandLineGATK]
-    this.referenceSequence = gatk.reference_sequence
-    if (gatk.intervals.isEmpty && gatk.intervalsString.isEmpty) {
+  override def init() {
+    this.originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
+    this.referenceSequence = this.originalGATK.reference_sequence
+    if (this.originalGATK.intervals.isEmpty && this.originalGATK.intervalsString.isEmpty) {
       this.intervals ++= IntervalUtils.distinctContigs(this.referenceSequence).toList
     } else {
-      this.intervals ++= gatk.intervals.map(_.toString)
-      this.intervals ++= gatk.intervalsString.filterNot(interval => IntervalUtils.isUnmapped(interval))
-      this.includeUnmapped = gatk.intervalsString.exists(interval => IntervalUtils.isUnmapped(interval))
+      this.intervals ++= this.originalGATK.intervals.map(_.toString)
+      this.intervals ++= this.originalGATK.intervalsString.filterNot(interval => IntervalUtils.isUnmapped(interval))
+      this.includeUnmapped = this.originalGATK.intervalsString.exists(interval => IntervalUtils.isUnmapped(interval))
     }
-
-    this.scatterCount = originalFunction.scatterCount
-    this.scatterCount = this.scatterCount min this.maxIntervals
   }
 
-  def initCloneInputs(cloneFunction: CloneFunction, index: Int) = {
+  override def isScatterGatherable = {
+    if (this.originalGATK.BTI != null && this.originalGATK.BTIMR.isEmpty)
+      throw new IllegalArgumentException("BTI requires BTIMR for use with scatter-gather (recommended: INTERSECTION)")
+    this.originalGATK.reference_sequence != null
+  }
+
+  override def initCloneInputs(cloneFunction: CloneFunction, index: Int) {
     cloneFunction.setFieldValue(this.intervalsField, List(new File("scatter.intervals")))
     if (index == this.scatterCount && this.includeUnmapped)
       cloneFunction.setFieldValue(this.intervalsStringField, List("unmapped"))
@@ -93,7 +82,7 @@ trait GATKScatterFunction extends ScatterFunction {
       cloneFunction.setFieldValue(this.intervalsStringField, List.empty[String])
   }
 
-  def bindCloneInputs(cloneFunction: CloneFunction, index: Int) = {
+  override def bindCloneInputs(cloneFunction: CloneFunction, index: Int) {
     val scatterPart = cloneFunction.getFieldValue(this.intervalsField)
             .asInstanceOf[List[File]]
             .map(file => IOUtils.absolute(cloneFunction.commandDirectory, file))
@@ -112,5 +101,5 @@ trait GATKScatterFunction extends ScatterFunction {
    * Returns the maximum number of intervals or this.scatterCount if the maximum can't be determined ahead of time.
    * @return the maximum number of intervals or this.scatterCount if the maximum can't be determined ahead of time.
    */
-  protected def maxIntervals = this.scatterCount
+  protected def maxIntervals: Int
 }

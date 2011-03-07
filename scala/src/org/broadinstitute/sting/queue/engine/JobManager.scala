@@ -18,8 +18,15 @@ trait JobManager[TFunction <: QFunction, TRunner <: JobRunner[TFunction]] {
   def create(function: TFunction): TRunner
 
   /**
+   * Updates the status on a list of functions.
+   * @param runners Runners to update.
+   */
+  def updateStatus(runners: List[TRunner]) {
+  }
+
+  /**
    * Stops a list of functions.
-   * @param runner Runners to stop.
+   * @param runners Runners to stop.
    */
   def tryStop(runners: List[TRunner]) {
   }

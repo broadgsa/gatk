@@ -13,7 +13,7 @@ import org.broadinstitute.sting.queue.function.{InProcessFunction, CommandLineFu
 import org.broadinstitute.sting.queue.function.scattergather.{CloneFunction, GatherFunction, ScatterGatherableFunction}
 import org.apache.commons.lang.StringUtils
 import org.broadinstitute.sting.queue.util._
-import collection.immutable.TreeMap
+import collection.immutable.{TreeSet, TreeMap}
 
 /**
  * The internal dependency tracker between sets of function input and output files.
@@ -26,17 +26,23 @@ class QGraph extends Logging {
   private var numMissingValues = 0
 
   private val jobGraph = newGraph
+  private val functionOrdering = Ordering.by[FunctionEdge, Iterable[Int]](edge => -graphDepth(edge) +: edge.function.addOrder)
+  private val fileOrdering = Ordering.by[File,String](_.getAbsolutePath)
   // A map of nodes by list of files.
-  private var nodeMap = TreeMap.empty[Iterable[File], QNode](Ordering.Iterable(Ordering.by[File,String](_.getAbsolutePath)))
+  private var nodeMap = TreeMap.empty[Iterable[File], QNode](Ordering.Iterable(fileOrdering))
   // The next unique id for a node if not found in the nodeMap.
   private var nextNodeId = 0
 
   private var running = true
   private val runningLock = new Object
+  private var runningJobs = Set.empty[FunctionEdge]
+
   private val nl = "%n".format()
 
   private val inProcessManager = new InProcessJobManager
   private var commandLineManager: JobManager[CommandLineFunction, _<:JobRunner[CommandLineFunction]] = _
+
+  private def managers = List[Any](inProcessManager, commandLineManager)
 
   /**
    * Adds a QScript created CommandLineFunction to the graph.
@@ -48,8 +54,8 @@ class QGraph extends Logging {
         if (running) {
           command.qSettings = settings.qSettings
           command.freeze
-          val inputs = getQNode(command.inputs.toList.sortWith(_.compareTo(_) < 0))
-          val outputs = getQNode(command.outputs.toList.sortWith(_.compareTo(_) < 0))
+          val inputs = getQNode(command.inputs.toList.sorted(fileOrdering))
+          val outputs = getQNode(command.outputs.toList.sorted(fileOrdering))
           addEdge(new FunctionEdge(command, inputs, outputs))
         }
       }
@@ -143,19 +149,17 @@ class QGraph extends Logging {
   }
 
   /**
-   * Walks up the graph looking for the previous command line edges.
-   * @param function Function to examine for a previous command line job.
-   * @param qGraph The graph that contains the jobs.
-   * @return A list of prior jobs.
+   * Walks up the graph looking for the previous function edges.
+   * @param edge Graph edge to examine for the previous functions.
+   * @return A list of prior function edges.
    */
   private def previousFunctions(edge: QEdge): List[FunctionEdge] = {
     var previous = List.empty[FunctionEdge]
-
     val source = this.jobGraph.getEdgeSource(edge)
     for (incomingEdge <- this.jobGraph.incomingEdgesOf(source)) {
       incomingEdge match {
 
-        // Stop recursing when we find a job along the edge and return its job id
+        // Stop recursing when we find a function edge and return it
         case functionEdge: FunctionEdge => previous :+= functionEdge
 
         // For any other type of edge find the jobs preceding the edge
@@ -190,19 +194,12 @@ class QGraph extends Logging {
     })
   }
 
-  private def getReadyJobs = {
+  private def getReadyJobs(): Set[FunctionEdge] = {
     jobGraph.edgeSet.filter{
       case f: FunctionEdge =>
         this.previousFunctions(f).forall(_.status == RunnerStatus.DONE) && f.status == RunnerStatus.PENDING
       case _ => false
-    }.toList.asInstanceOf[List[FunctionEdge]].sortWith(compare(_,_))
-  }
-
-  private def getRunningJobs = {
-    jobGraph.edgeSet.filter{
-      case f: FunctionEdge => f.status == RunnerStatus.RUNNING
-      case _ => false
-    }.toList.asInstanceOf[List[FunctionEdge]].sortWith(compare(_,_))
+    }.toSet.asInstanceOf[Set[FunctionEdge]]
   }
 
   /**
@@ -260,8 +257,13 @@ class QGraph extends Logging {
    * Dry-runs the jobs by traversing the graph.
    */
   private def dryRunJobs() {
-    updateGraphStatus(false)
-    var readyJobs = getReadyJobs
+    if (settings.startFromScratch) {
+      logger.info("Will remove outputs from previous runs.")
+      foreachFunction(_.resetToPending(false))
+    } else
+      updateGraphStatus(false)
+
+    var readyJobs = getReadyJobs()
     while (running && readyJobs.size > 0) {
       logger.debug("+++++++")
       readyJobs.foreach(edge => {
@@ -270,7 +272,7 @@ class QGraph extends Logging {
           edge.markAsDone
         }
       })
-      readyJobs = getReadyJobs
+      readyJobs = getReadyJobs()
     }
   }
 
@@ -311,39 +313,45 @@ class QGraph extends Logging {
       } else
         updateGraphStatus(true)
 
-      var readyJobs = getReadyJobs
-      var runningJobs = Set.empty[FunctionEdge]
+      var readyJobs = TreeSet.empty[FunctionEdge](functionOrdering)
+      readyJobs ++= getReadyJobs()
+      runningJobs = Set.empty[FunctionEdge]
+      var lastRunningCheck = System.currentTimeMillis
+
       while (running && readyJobs.size + runningJobs.size > 0) {
-        var exitedJobs = List.empty[FunctionEdge]
+
+        while (running && readyJobs.size > 0 && nextRunningCheck(lastRunningCheck) > 0) {
+          val edge = readyJobs.head
+          edge.runner = newRunner(edge.function)
+          edge.start()
+          runningJobs += edge
+          readyJobs -= edge
+        }
+
+        if (readyJobs.size == 0 && runningJobs.size > 0)
+          Thread.sleep(nextRunningCheck(lastRunningCheck))
+
+        lastRunningCheck = System.currentTimeMillis
+        updateStatus()
+
+        var doneJobs = List.empty[FunctionEdge]
         var failedJobs = List.empty[FunctionEdge]
 
-        runningJobs.foreach(runner => runner.status match {
+        runningJobs.foreach(edge => edge.status match {
+          case RunnerStatus.DONE => doneJobs :+= edge
+          case RunnerStatus.FAILED => failedJobs :+= edge
           case RunnerStatus.RUNNING => /* do nothing while still running */
-          case RunnerStatus.FAILED => exitedJobs :+= runner; failedJobs :+= runner
-          case RunnerStatus.DONE => exitedJobs :+= runner
-        })
-        exitedJobs.foreach(runner => runningJobs -= runner)
-
-        readyJobs.foreach(f => {
-          if (running) {
-            f.runner = newRunner(f.function)
-            f.start()
-            f.status match {
-              case RunnerStatus.RUNNING => runningJobs += f
-              case RunnerStatus.FAILED => failedJobs :+= f
-              case RunnerStatus.DONE => /* do nothing and move on */
-            }
-          }
         })
 
-        if (failedJobs.size > 0) {
+        runningJobs --= doneJobs
+        runningJobs --= failedJobs
+
+        if (running && failedJobs.size > 0) {
           emailFailedJobs(failedJobs)
           checkRetryJobs(failedJobs)
         }
 
-        if (readyJobs.size == 0 && runningJobs.size > 0)
-          Thread.sleep(30000L)
-        readyJobs = getReadyJobs
+        readyJobs ++= getReadyJobs()
       }
 
       deleteIntermediateOutputs()
@@ -355,6 +363,8 @@ class QGraph extends Logging {
       emailStatus()
     }
   }
+
+  private def nextRunningCheck(lastRunningCheck: Long) = 0L max ((30 * 1000L) - (System.currentTimeMillis - lastRunningCheck))
 
   /**
    * Updates the status of edges in the graph.
@@ -389,6 +399,22 @@ class QGraph extends Logging {
   }
 
   /**
+   * Returns the graph depth for the function.
+   * @param edge Function edge to get the edge for.
+   * @return the graph depth for the function.
+   */
+  private def graphDepth(edge: FunctionEdge): Int = {
+    if (edge.depth < 0) {
+      val previous = previousFunctions(edge)
+      if (previous.size == 0)
+        edge.depth = 0
+      else
+        edge.depth = previous.map(f => graphDepth(f)).max + 1
+    }
+    edge.depth
+  }
+
+  /**
    * From the previous edges, resets any that are marked as skipped to pending.
    * If those that are reset have skipped edges, those skipped edges are recursively also set
    * to pending.
@@ -415,7 +441,7 @@ class QGraph extends Logging {
   }
 
   private def emailFailedJobs(failed: List[FunctionEdge]) {
-    if (running && settings.statusEmailTo.size > 0) {
+    if (settings.statusEmailTo.size > 0) {
       val emailMessage = new EmailMessage
       emailMessage.from = settings.statusEmailFrom
       emailMessage.to = settings.statusEmailTo
@@ -700,30 +726,8 @@ class QGraph extends Logging {
     jobGraph.edgeSet.toList
       .filter(_.isInstanceOf[FunctionEdge])
       .asInstanceOf[List[FunctionEdge]]
-      .sortWith(compare(_,_))
+      .sorted(functionOrdering)
       .foreach(edge => if (running) f(edge))
-  }
-
-  private def compare(f1: FunctionEdge, f2: FunctionEdge): Boolean =
-    compare(f1.function, f2.function)
-
-  private def compare(f1: QFunction, f2: QFunction): Boolean = {
-    val len1 = f1.addOrder.size
-    val len2 = f2.addOrder.size
-    val len = len1 min len2
-    
-    for (i <- 0 until len) {
-      val order1 = f1.addOrder(i)
-      val order2 = f2.addOrder(i)
-      if (order1 < order2)
-        return true
-      if (order1 > order2)
-        return false
-    }
-    if (len1 < len2)
-      return true
-    else
-      return false
   }
 
   /**
@@ -800,6 +804,25 @@ class QGraph extends Logging {
     })
   }
 
+
+  private def updateStatus() {
+    val runners = runningJobs.map(_.runner)
+    for (mgr <- managers) {
+      if (mgr != null) {
+        val manager = mgr.asInstanceOf[JobManager[QFunction,JobRunner[QFunction]]]
+        val managerRunners = runners
+          .filter(runner => manager.runnerType.isAssignableFrom(runner.getClass))
+          .asInstanceOf[Set[JobRunner[QFunction]]]
+        if (managerRunners.size > 0)
+          try {
+            manager.updateStatus(managerRunners.toList)
+          } catch {
+            case e => /* ignore */
+          }
+      }
+    }
+  }
+
   /**
    * Returns true if the graph was shutdown instead of exiting on its own.
    */
@@ -813,26 +836,29 @@ class QGraph extends Logging {
     running = false
     // Wait for the thread to finish and exit normally.
     runningLock.synchronized {
-      val runners = getRunningJobs.map(_.runner)
-      val manager = commandLineManager.asInstanceOf[JobManager[QFunction,JobRunner[QFunction]]]
-      if (manager != null) {
-        val managerRunners = runners
-          .filter(runner => manager.runnerType.isAssignableFrom(runner.getClass))
-          .asInstanceOf[List[JobRunner[QFunction]]]
-        if (managerRunners.size > 0)
-          try {
-            manager.tryStop(managerRunners)
-          } catch {
-            case e => /* ignore */
+      val runners = runningJobs.map(_.runner)
+      runningJobs = Set.empty[FunctionEdge]
+      for (mgr <- managers) {
+        if (mgr != null) {
+          val manager = mgr.asInstanceOf[JobManager[QFunction,JobRunner[QFunction]]]
+          val managerRunners = runners
+            .filter(runner => manager.runnerType.isAssignableFrom(runner.getClass))
+            .asInstanceOf[Set[JobRunner[QFunction]]]
+          if (managerRunners.size > 0)
+            try {
+              manager.tryStop(managerRunners.toList)
+            } catch {
+              case e => /* ignore */
+            }
+          for (runner <- managerRunners) {
+            try {
+              runner.removeTemporaryFiles()
+            } catch {
+              case e => /* ignore */
+            }
           }
-      }
-      runners.foreach(runner =>
-        try {
-          runner.removeTemporaryFiles()
-        } catch {
-          case e => /* ignore */
         }
-      )
+      }
     }
   }
 }

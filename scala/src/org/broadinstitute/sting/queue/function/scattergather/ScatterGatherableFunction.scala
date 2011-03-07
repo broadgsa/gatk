@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2011, The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.queue.function.scattergather
 
 import java.io.File
@@ -53,7 +77,40 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * and that the scatter function can scatter this instance.
    * @return true if the function is ready to be scatter / gathered.
    */
-  def scatterGatherable = this.scatterCount > 1 && scatterFunction.isScatterGatherable(this)
+  def scatterGatherable = this.scatterCount > 1 && scatterFunction.isScatterGatherable
+
+  /**
+   * Sets the scatter gather directory to the command directory if it is not already set.
+   */
+  override def freezeFieldValues = {
+    super.freezeFieldValues
+
+    if (this.scatterGatherDirectory == null) {
+      if (qSettings.jobScatterGatherDirectory != null) {
+        this.scatterGatherDirectory = IOUtils.absolute(qSettings.jobScatterGatherDirectory)
+      } else {
+        this.scatterGatherDirectory = IOUtils.absolute(this.commandDirectory, "queueScatterGather")
+      }
+    }
+  }
+
+  /**
+   * The scatter function.
+   */
+  private lazy val scatterFunction = {
+    val scatterFunction = newScatterFunction()
+    this.copySettingsTo(scatterFunction)
+    scatterFunction.originalFunction = this
+    scatterFunction.originalInputs = this.inputs
+    scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter")
+    scatterFunction.isIntermediate = true
+    scatterFunction.addOrder = this.addOrder :+ 1
+
+    initScatterFunction(scatterFunction)
+    scatterFunction.absoluteCommandDirectory()
+    scatterFunction.init()
+    scatterFunction
+  }
 
   /**
    * Returns a list of scatter / gather and clones of this function
@@ -70,14 +127,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     val outputFieldsWithValues = this.outputFields.filter(hasFieldValue(_))
 
     // Create the scatter function based on @Scatter
-    this.copySettingsTo(scatterFunction)
-    scatterFunction.addOrder = this.addOrder :+ 1
-    scatterFunction.commandDirectory = this.scatterGatherTempDir("scatter")
-    scatterFunction.originalInputs = this.inputs
-    scatterFunction.isIntermediate = true
-    scatterFunction.setScatterGatherable(this)
-    initScatterFunction(scatterFunction)
-    scatterFunction.absoluteCommandDirectory()
     functions :+= scatterFunction
 
     // Ask the scatter function how many clones to create.
@@ -93,20 +142,13 @@ trait ScatterGatherableFunction extends CommandLineFunction {
     var gatherOutputs = Map.empty[ArgumentSource, File]
     var gatherAddOrder = numClones + 2
     for (gatherField <- outputFieldsWithValues) {
-      val gatherFunction = this.newGatherFunction(gatherField)
       val gatherOutput = getFieldFile(gatherField)
-      this.copySettingsTo(gatherFunction)
-      gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
-      gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
-      gatherFunction.originalOutput = gatherOutput
-      gatherFunction.setScatterGatherable(this)
-      initGatherFunction(gatherFunction, gatherField)
-      gatherFunction.absoluteCommandDirectory()
-      functions :+= gatherFunction
-      gatherFunctions += gatherField -> gatherFunction
-      gatherOutputs += gatherField -> gatherOutput
-      gatherAddOrder += 1
 
+      val gatherFunction = this.newGatherFunction(gatherField)
+      this.copySettingsTo(gatherFunction)
+      gatherFunction.originalFunction = this
+      gatherFunction.originalOutput = gatherOutput
+      gatherFunction.commandDirectory = this.scatterGatherTempDir("gather-" + gatherField.field.getName)
       // If this is a gather for a log file, make the gather intermediate just in case the log file name changes
       // Otherwise have the regular output function wait on the log files to gather
       if (isLogFile(gatherOutput)) {
@@ -117,6 +159,17 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       } else {
         gatherFunction.originalLogFiles = logFiles
       }
+      gatherFunction.addOrder = this.addOrder :+ gatherAddOrder
+
+      initGatherFunction(gatherFunction, gatherField)
+      gatherFunction.absoluteCommandDirectory()
+      gatherFunction.init()
+
+      functions :+= gatherFunction
+      gatherFunctions += gatherField -> gatherFunction
+      gatherOutputs += gatherField -> gatherOutput
+
+      gatherAddOrder += 1
     }
 
     // Create the clone functions for running the parallel jobs
@@ -126,12 +179,12 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
       this.copySettingsTo(cloneFunction)
       cloneFunction.originalFunction = this
-      cloneFunction.index = i
+      cloneFunction.cloneIndex = i
+      cloneFunction.commandDirectory = this.scatterGatherTempDir("temp-"+i)
       cloneFunction.addOrder = this.addOrder :+ (i+1)
       cloneFunction.isIntermediate = true
 
       // Setup the fields on the clone function, outputting each as a relative file in the sg directory.
-      cloneFunction.commandDirectory = this.scatterGatherTempDir("temp-"+i)
       scatterFunction.initCloneInputs(cloneFunction, i)
       for (gatherField <- outputFieldsWithValues) {
         val gatherPart = new File(gatherOutputs(gatherField).getName)
@@ -158,21 +211,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
 
     // Return all the various created functions.
     functions
-  }
-
-  /**
-   * Sets the scatter gather directory to the command directory if it is not already set.
-   */
-  override def freezeFieldValues = {
-    super.freezeFieldValues
-
-    if (this.scatterGatherDirectory == null) {
-      if (qSettings.jobScatterGatherDirectory != null) {
-        this.scatterGatherDirectory = IOUtils.absolute(qSettings.jobScatterGatherDirectory)
-      } else {
-        this.scatterGatherDirectory = IOUtils.absolute(this.commandDirectory, "queueScatterGather")
-      }
-    }
   }
 
   /**
@@ -241,11 +279,6 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       if (this.setupCloneFunction.isDefinedAt(cloneFunction, index))
         this.setupCloneFunction(cloneFunction, index)
   }
-
-  /**
-   * The scatter function.
-   */
-  private lazy val scatterFunction = newScatterFunction()
 
   /**
    * Returns a temporary directory under this scatter gather directory.

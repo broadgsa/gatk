@@ -32,12 +32,8 @@ import org.broadinstitute.sting.queue.function.InProcessFunction
  * An interval scatter function.
  */
 class IntervalScatterFunction extends GATKScatterFunction with InProcessFunction {
-  protected override def maxIntervals = {
-    if (this.intervalFilesExist)
-      IntervalUtils.countIntervalArguments(this.referenceSequence, this.intervals, false)
-    else
-      this.scatterCount
-  }
+  protected override def maxIntervals =
+    IntervalUtils.countIntervalArguments(this.referenceSequence, this.intervals, false)
 
   def run() {
     IntervalUtils.scatterIntervalArguments(this.referenceSequence, this.intervals, this.scatterOutputFiles, false)

@@ -19,6 +19,11 @@ class FunctionEdge(val function: QFunction, val inputs: QNode, val outputs: QNod
   var retries = 0
 
   /**
+   * The depth of this edge in the graph.
+   */
+  var depth = -1
+
+  /**
    * Initializes with the current status of the function.
    */
   private var currentStatus = {

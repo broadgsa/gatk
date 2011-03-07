@@ -6409,7 +6409,28 @@ public class LibBat {
         /**
          * < Detail reservation information for each kind of resource
          */
-        public reserveItem.ByReference items;
+        /*
+          TODO: Go against the JNA recommendations at
+          http://jna.java.net/#structure_use and instead change each structure
+          to use Pointers instead of Structure.ByReference while also providing
+          Structure(Pointer) constructors for use for future API users.
+
+          LSF will often reuse memory for structure arrays but will set the
+          array size / count (reserveCnt above) to zero when the array should
+          not be accessed. When LSF has reused memory and points to a non-null
+          structure pointer (items) the inner structure may contain further
+          garbage pointers (especially items->resName).
+
+          When JNA sees a non-null Structure.ByReference it will autoRead() the
+          member. When autoRead() eventually gets to the items->resName trying
+          to run strlen on the bad memory address causes a SIGSEGV.
+
+          By using a Pointer instead of the Structure.ByReference JNA will not
+          automatically autoRead(), and the API user will have to pass the
+          pointer to the Structure on their own.
+        */
+        //public reserveItem.ByReference items;
+        public Pointer items;
 
         /**
          * < Absolute priority scheduling (APS) string set by administrators to denote ADMIN factor APS value.
