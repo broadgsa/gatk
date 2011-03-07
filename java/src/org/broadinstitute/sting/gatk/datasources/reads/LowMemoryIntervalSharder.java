@@ -103,22 +103,46 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
 
             for(SAMReaderID reader: dataSource.getReaderIDs()) {
                 GATKBAMIndex index = (GATKBAMIndex)dataSource.getIndex(reader);
-
                 BinTree binTree = getNextOverlappingBinTree(reader,(GATKBAMIndex)dataSource.getIndex(reader),currentLocus);
+
+                // No overlapping data at all.
                 if(binTree != null) {
                     coveredRegionStart = Math.max(coveredRegionStart,binTree.getStart());
                     coveredRegionStop = Math.min(coveredRegionStop,binTree.getStop());
                     coveredRegion = loci.getGenomeLocParser().createGenomeLoc(currentLocus.getContig(),coveredRegionStart,coveredRegionStop);
                 }
 
-                GATKBAMFileSpan fileSpan = generateFileSpan(reader,index,binTree,currentLocus);
+                // Only a partial overlap, and the interval list precedes the bin.  Force the bin tree to null.
+                // TODO: the only reason to do this is to generate shards with no data that are placeholders for the interval list.  Manage this externally.
+                if(coveredRegion != null && currentLocus.startsBefore(coveredRegion))
+                    binTree = null;
+
+                // Always create a file span, whether there was covered data or not.  If there was no covered data, then the binTree is empty.
+                GATKBAMFileSpan fileSpan = generateFileSpan(reader,index,currentLocus.getContigIndex(),binTree);
                 nextFilePointer.addFileSpans(reader,fileSpan);
             }
 
             // Early exit if no bins were found.
             if(coveredRegion == null) {
-                nextFilePointer.addLocation(currentLocus);
-                currentLocus = locusIterator.next();
+                if(currentLocus.size() > 16384) {
+                    GenomeLoc[] splitContigs = currentLocus.split(currentLocus.getStart()+16384);
+                    nextFilePointer.addLocation(splitContigs[0]);
+                    currentLocus = splitContigs[1];
+                }
+                else {
+                    nextFilePointer.addLocation(currentLocus);
+                    currentLocus = locusIterator.hasNext() ? locusIterator.next() : null;
+                }
+                continue;
+            }
+
+            // Early exit if only part of the first interval was found.
+            if(currentLocus.startsBefore(coveredRegion)) {
+                // for debugging only: maximum split is 16384.
+                int splitPoint = Math.min(coveredRegion.getStart()-currentLocus.getStart(),16384)+currentLocus.getStart();
+                GenomeLoc[] splitContigs = currentLocus.split(splitPoint);
+                nextFilePointer.addLocation(splitContigs[0]);
+                currentLocus = splitContigs[1];
                 continue;
             }
 
@@ -134,7 +158,7 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
                 }
 
                 // Chop off the uncovered portion of the locus.  Since we know that the covered region overlaps the current locus,
-                // we can simplify the interval creation process to the end of the covered region to the stop of the given interval.
+                  // we can simplify the interval creation process to the end of the covered region to the stop of the given interval.
                 if(coveredRegionStop < currentLocus.getStop())
                     currentLocus = loci.getGenomeLocParser().createGenomeLoc(currentLocus.getContig(),coveredRegionStop+1,currentLocus.getStop());
                 else if(locusIterator.hasNext())
@@ -174,47 +198,54 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
         if(!binTreeIterator.hasNext())
             return null;
 
+        // Peek the iterator along until finding the first binTree at or following the current locus.
         BinTree binTree = binTreeIterator.peek();
-        while(binTree.isBefore(locus)) {
-            binTreeIterator.next(); // Before the point of interest.  Consume this one.
-            binTree = binTreeIterator.peek();
-        }
-
-        if(binTree.overlaps(locus)) {
+        while(binTree != null && binTree.isBefore(locus)) {
             binTreeIterator.next();
-            return binTree;
-        }
+            binTree = binTreeIterator.hasNext() ? binTreeIterator.peek() : null;
+        }                                   
 
-        return null;
+        return (binTree != null && binTree.overlaps(locus)) ? binTree : null;
     }
 
     /**
      * Converts a bin list to a file span, trimmed based on the linear index and with overlapping regions removed.
      * @param index BAM index.
      * @param binTree Tree of data found to overlap the region.  binTree.overlaps(initialRegion) must return true.
-     * @param initialRegion The region to employ when trimming the linear index.
      * @return File span mapping to given region.
      */
-    private GATKBAMFileSpan generateFileSpan(final SAMReaderID reader, final GATKBAMIndex index, final BinTree binTree, final GenomeLoc initialRegion) {
+    private GATKBAMFileSpan generateFileSpan(final SAMReaderID reader, final GATKBAMIndex index, final int referenceSequence, final BinTree binTree) {
+        System.out.printf("Shard %d: index file = %s; reference sequence = %d; span = %d-%d; ",++shardNumber,index.getIndexFile(),referenceSequence,(shardNumber-1)*16384+1,shardNumber*16384);
+
         // Empty bin trees mean empty file spans.
-        if(binTree == null)
+        if(binTree == null) {
+            System.out.printf("bins = {}; minimumOffset = 0, chunks = {}%n");
             return new GATKBAMFileSpan();
-        
+        }
+
+        System.out.printf("bins = {");
         List<GATKChunk> chunks = new ArrayList<GATKChunk>(binTree.size());
         for(GATKBin bin: binTree.getBins()) {
             if(bin == null)
                 continue;
+            System.out.printf("%d,",bin.getBinNumber());
             // The optimizer below will mutate the chunk list.  Make sure each element is a clone of the reference sequence.
             for(GATKChunk chunk: bin.getChunkList())
                 chunks.add(chunk.clone());
         }
+        System.out.printf("}; ");
+
         final long linearIndexMinimumOffset = binTree.getLinearIndexEntry();
+        System.out.printf("minimumOffset = %d, ",linearIndexMinimumOffset);
 
         // Optimize the chunk list with a linear index optimization
         chunks = index.optimizeChunkList(chunks,linearIndexMinimumOffset);
 
         GATKBAMFileSpan fileSpan = new GATKBAMFileSpan(chunks.toArray(new GATKChunk[chunks.size()]));
+        System.out.printf("chunks = {%s}%n",fileSpan);
 
         return fileSpan;
     }
+
+    static long shardNumber = 0;
 }
