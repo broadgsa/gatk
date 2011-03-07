@@ -57,29 +57,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     private final static double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
 
     private boolean SIMPLE_GREEDY_GENOTYPER = false;
-    private static final double[] log10Cache;
-    private static final double[] jacobianLogTable;
-//    private static final int JACOBIAN_LOG_TABLE_SIZE = 100001;
-//    private static final double JACOBIAN_LOG_TABLE_STEP = 0.0001;
-    private static final int JACOBIAN_LOG_TABLE_SIZE = 101;
-    private static final double JACOBIAN_LOG_TABLE_STEP = 0.1;
-    private static final double MAX_JACOBIAN_TOLERANCE = 10.0;
-    private static final int MAXN = 10000; // todo -- warning, this might be hit at some point...
 
-    static {
-        log10Cache = new double[2*MAXN];
-        jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
-
-        log10Cache[0] = Double.NEGATIVE_INFINITY;
-        for (int k=1; k < 2*MAXN; k++)
-            log10Cache[k] = Math.log10(k);
-
-        for (int k=0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
-            jacobianLogTable[k] = Math.log10(1.0+Math.pow(10.0,-((double)k) * JACOBIAN_LOG_TABLE_STEP));
-
-        }
-
-    }
+ 
 
     final private ExactCalculation calcToUse;
     protected ExactAFCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
@@ -314,19 +293,19 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
                 for ( int j=1; j <= numSamples; j++ ) {
                     final double[] gl = genotypeLikelihoods[j];
-                    final double logDenominator = log10Cache[2*j] + log10Cache[2*j-1];
+                    final double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
 
                     double aa = Double.NEGATIVE_INFINITY;
                     double ab = Double.NEGATIVE_INFINITY;
                     if (k < 2*j-1)
-                        aa = log10Cache[2*j-k] + log10Cache[2*j-k-1] + kMinus0[j-1] + gl[GenotypeType.AA.ordinal()];
+                        aa = MathUtils.log10Cache[2*j-k] + MathUtils.log10Cache[2*j-k-1] + kMinus0[j-1] + gl[GenotypeType.AA.ordinal()];
 
                     if (k < 2*j)
-                        ab = log10Cache[2*k] + log10Cache[2*j-k]+ kMinus1[j-1] + gl[GenotypeType.AB.ordinal()];
+                        ab = MathUtils.log10Cache[2*k] + MathUtils.log10Cache[2*j-k]+ kMinus1[j-1] + gl[GenotypeType.AB.ordinal()];
 
                     double log10Max;
                     if (k > 1) {
-                        final double bb = log10Cache[k] + log10Cache[k-1] + kMinus2[j-1] + gl[GenotypeType.BB.ordinal()];
+                        final double bb = MathUtils.log10Cache[k] + MathUtils.log10Cache[k-1] + kMinus2[j-1] + gl[GenotypeType.BB.ordinal()];
                         log10Max = approximateLog10SumLog10(aa, ab, bb);
                     } else {
                         // we know we aren't considering the BB case, so we can use an optimized log10 function
@@ -372,7 +351,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         if (small == Double.NEGATIVE_INFINITY || big == Double.NEGATIVE_INFINITY )
             return big;
 
-        if (big >= small + MAX_JACOBIAN_TOLERANCE)
+        if (big >= small + MathUtils.MAX_JACOBIAN_TOLERANCE)
             return big;
 
         // OK, so |y-x| < tol: we use the following identity then:
@@ -383,14 +362,15 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         // with integer quantization
         // we have pre-stored correction for 0,0.1,0.2,... 10.0
         //final int ind = (int)(((big-small)/JACOBIAN_LOG_TABLE_STEP)); // hard rounding
-        int ind = (int)(Math.round((big-small)/JACOBIAN_LOG_TABLE_STEP)); // hard rounding
+        int ind = (int)(Math.round((big-small)/MathUtils.JACOBIAN_LOG_TABLE_STEP)); // hard rounding
 
         //double z =Math.log10(1+Math.pow(10.0,-diff));
         //System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
-        return big + jacobianLogTable[ind];
+        return big + MathUtils.jacobianLogTable[ind];
     }
 
 
+ 
     /**
      * Can be overridden by concrete subclasses
      * @param vc                   variant context with genotype likelihoods
@@ -549,7 +529,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             //double[] genotypeLikelihoods = MathUtils.normalizeFromLog10(GLs.get(sample).getLikelihoods());
             double[] genotypeLikelihoods = sample.getValue().getLikelihoods().getAsVector();
             //double logDenominator = Math.log10(2.0*j*(2.0*j-1));
-            double logDenominator = log10Cache[2*j] + log10Cache[2*j-1];
+            double logDenominator = MathUtils.log10Cache[2*j] + MathUtils.log10Cache[2*j-1];
 
             // special treatment for k=0: iteration reduces to:
             //YMatrix[j][0] = YMatrix[j-1][0]*genotypeLikelihoods[GenotypeType.AA.ordinal()];
@@ -561,25 +541,25 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                 double logNumerator[];
                 logNumerator = new double[3];
                 if (k < 2*j-1)
-                    logNumerator[0] = log10Cache[2*j-k] + log10Cache[2*j-k-1] + logYMatrix[j-1][k] +
+                    logNumerator[0] = MathUtils.log10Cache[2*j-k] + MathUtils.log10Cache[2*j-k-1] + logYMatrix[j-1][k] +
                             genotypeLikelihoods[GenotypeType.AA.ordinal()];
                 else
                     logNumerator[0] = Double.NEGATIVE_INFINITY;
 
 
                 if (k < 2*j)
-                    logNumerator[1] = log10Cache[2*k] + log10Cache[2*j-k]+ logYMatrix[j-1][k-1] +
+                    logNumerator[1] = MathUtils.log10Cache[2*k] + MathUtils.log10Cache[2*j-k]+ logYMatrix[j-1][k-1] +
                             genotypeLikelihoods[GenotypeType.AB.ordinal()];
                 else
                     logNumerator[1] = Double.NEGATIVE_INFINITY;
 
                 if (k > 1)
-                    logNumerator[2] = log10Cache[k] + log10Cache[k-1] + logYMatrix[j-1][k-2] +
+                    logNumerator[2] = MathUtils.log10Cache[k] + MathUtils.log10Cache[k-1] + logYMatrix[j-1][k-2] +
                             genotypeLikelihoods[GenotypeType.BB.ordinal()];
                 else
                     logNumerator[2] = Double.NEGATIVE_INFINITY;
 
-                double logNum = softMax(logNumerator);
+                double logNum = MathUtils.softMax(logNumerator);
 
                 //YMatrix[j][k] = num/den;
                 logYMatrix[j][k] = logNum - logDenominator;
@@ -602,47 +582,4 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
     }
 
-    double softMax(double[] vec) {
-        // compute naively log10(10^x[0] + 10^x[1]+...)
-        //        return Math.log10(MathUtils.sumLog10(vec));
-
-        // better approximation: do Jacobian logarithm function on data pairs
-        double a = softMaxPair(vec[0],vec[1]);
-        return softMaxPair(a,vec[2]);
-    }
-
-    static public double softMaxPair(double x, double y) {
-        if (Double.isInfinite(x))
-            return y;
-
-        if (Double.isInfinite(y))
-            return x;
-
-        if (y >= x + MAX_JACOBIAN_TOLERANCE)
-            return y;
-        if (x >= y + MAX_JACOBIAN_TOLERANCE)
-            return x;
-
-        // OK, so |y-x| < tol: we use the following identity then:
-        // we need to compute log10(10^x + 10^y)
-        // By Jacobian logarithm identity, this is equal to
-        // max(x,y) + log10(1+10^-abs(x-y))
-        // we compute the second term as a table lookup
-        // with integer quantization
-        double diff = Math.abs(x-y);
-        double t1 =x;
-        if (y > x)
-            t1 = y;
-        // t has max(x,y)
-        // we have pre-stored correction for 0,0.1,0.2,... 10.0
-        int ind = (int)Math.round(diff/JACOBIAN_LOG_TABLE_STEP);
-        double t2 = jacobianLogTable[ind];
-
-        // gdebug+
-        //double z =Math.log10(1+Math.pow(10.0,-diff));
-        //System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
-        //gdebug-
-        return t1+t2;
-        // return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
-    }
 }

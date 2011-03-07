@@ -6,9 +6,11 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 /*
   The topology of the profile HMM:
@@ -261,7 +263,26 @@ public class BAQ {
 			s[l_query+1] = sum; // the last scaling factor
 		}
 
+        //gdbebug+
+/*
+        double cac=0.;
+        // undo scaling of forward probabilities to obtain plain probability of observation given model
+        double[] su = new double[f[l_query].length];
+        {
+            double sum = 0.;
+            double[] logs = new double[s.length];
+            for (k=0; k < logs.length; k++) {
+                logs[k] = Math.log10(s[k]);
+                sum += logs[k];
+            }
+            for (k=0; k < f[l_query].length; k++)
+                su[k]= Math.log10(f[l_query][k])+ sum;
 
+            cac = MathUtils.softMax(su);
+        }                             
+        System.out.format("s:%f\n",cac);
+        // gdebug-
+       */
 		/*** backward ***/
 		// b[l_query] (b[l_query+1][0]=1 and thus \tilde{b}[][]=1/s[l_query+1]; this is where s[l_query+1] comes from)
 		for (k = 1; k <= l_ref; ++k) {
@@ -321,7 +342,7 @@ public class BAQ {
 			max /= sum; sum *= s[i]; // if everything works as is expected, sum == 1.0
 			if (state != null) state[qstart+i-1] = max_k;
 			if (q != null) {
-				k = (int)(-4.343 * Math.log(1. - max) + .499);
+				k = (int)(-4.343 * Math.log(1. - max) + .499); // = 10*log10(1-max)
 				q[qstart+i-1] = (byte)(k > 100? 99 : (k < minBaseQual ? minBaseQual : k));
 			}
 			//System.out.println("("+pb+","+sum+")"+" ("+(i-1)+","+(max_k>>2)+","+(max_k&3)+","+max+")");
@@ -457,28 +478,12 @@ public class BAQ {
         }
     }
 
-    private static int getFirstInsertionOffset(SAMRecord read) {
-        CigarElement e = read.getCigar().getCigarElement(0);
-        if ( e.getOperator() == CigarOperator.I )
-            return e.getLength();
-        else
-            return 0;
-    }
-
-    private static int getLastInsertionOffset(SAMRecord read) {
-        CigarElement e = read.getCigar().getCigarElement(read.getCigarLength()-1);
-        if ( e.getOperator() == CigarOperator.I )
-            return e.getLength();
-        else
-            return 0;
-    }
-
-    public BAQCalculationResult calcBAQFromHMM(SAMRecord read, IndexedFastaSequenceFile refReader) {
+     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, IndexedFastaSequenceFile refReader) {
         // start is alignment start - band width / 2 - size of first I element, if there is one.  Stop is similar
         int offset = getBandWidth() / 2;
         long readStart = includeClippedBases ? read.getUnclippedStart() : read.getAlignmentStart();
-        long start = Math.max(readStart - offset - getFirstInsertionOffset(read), 0);
-        long stop = (includeClippedBases ? read.getUnclippedEnd() : read.getAlignmentEnd()) + offset + getLastInsertionOffset(read);
+        long start = Math.max(readStart - offset - ReadUtils.getFirstInsertionOffset(read), 0);
+        long stop = (includeClippedBases ? read.getUnclippedEnd() : read.getAlignmentEnd()) + offset + ReadUtils.getLastInsertionOffset(read);
 
         if ( stop > refReader.getSequenceDictionary().getSequence(read.getReferenceName()).getSequenceLength() ) {
             return null;

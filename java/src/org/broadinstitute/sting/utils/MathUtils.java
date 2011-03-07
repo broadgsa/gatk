@@ -873,4 +873,85 @@ public class MathUtils {
 
     public static double ratio(int num, int denom)      { return ((double)num) / (Math.max(denom, 1)); }
     public static double ratio(long num, long denom)    { return ((double)num) / (Math.max(denom, 1)); }
+
+    public static final double[] log10Cache;
+    public static final double[] jacobianLogTable;
+    public static final int JACOBIAN_LOG_TABLE_SIZE = 101;
+    public static final double JACOBIAN_LOG_TABLE_STEP = 0.1;
+    public static final double MAX_JACOBIAN_TOLERANCE = 10.0;
+    private static final int MAXN = 10000;
+
+    static {
+        log10Cache = new double[2*MAXN];
+	    jacobianLogTable = new double[JACOBIAN_LOG_TABLE_SIZE];
+
+        log10Cache[0] = Double.NEGATIVE_INFINITY;
+        for (int k=1; k < 2*MAXN; k++)
+            log10Cache[k] = Math.log10(k);
+
+    	for (int k=0; k < JACOBIAN_LOG_TABLE_SIZE; k++) {
+	        jacobianLogTable[k] = Math.log10(1.0+Math.pow(10.0,-((double)k)
+						       * JACOBIAN_LOG_TABLE_STEP));
+
+	    }
     }
+
+    static public double softMax(double[] vec) {
+        double acc = vec[0];
+        for (int k=1; k < vec.length; k++)
+            acc = softMax(acc,vec[k]);
+
+        return acc;
+
+    }
+
+    static public double max(double x0, double x1, double x2) {
+        double a = Math.max(x0,x1);
+        return Math.max(a,x2);
+    }
+    
+    static public double softMax(double x0, double x1, double x2) {
+         // compute naively log10(10^x[0] + 10^x[1]+...)
+         //        return Math.log10(MathUtils.sumLog10(vec));
+
+         // better approximation: do Jacobian logarithm function on data pairs
+         double a = softMax(x0,x1);
+         return softMax(a,x2);
+    }
+
+     static public double softMax(double x, double y) {
+         if (Double.isInfinite(x))
+             return y;
+
+         if (Double.isInfinite(y))
+             return x;
+
+         if (y >= x + MAX_JACOBIAN_TOLERANCE)
+             return y;
+         if (x >= y + MAX_JACOBIAN_TOLERANCE)
+             return x;
+
+         // OK, so |y-x| < tol: we use the following identity then:
+         // we need to compute log10(10^x + 10^y)
+         // By Jacobian logarithm identity, this is equal to
+         // max(x,y) + log10(1+10^-abs(x-y))
+         // we compute the second term as a table lookup
+         // with integer quantization
+         double diff = Math.abs(x-y);
+         double t1 =x;
+         if (y > x)
+             t1 = y;
+         // t has max(x,y)
+         // we have pre-stored correction for 0,0.1,0.2,... 10.0
+         int ind = (int)Math.round(diff/JACOBIAN_LOG_TABLE_STEP);
+         double t2 = jacobianLogTable[ind];
+
+         // gdebug+
+         //double z =Math.log10(1+Math.pow(10.0,-diff));
+         //System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
+         //gdebug-
+         return t1+t2;
+         // return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
+     }
+
+}

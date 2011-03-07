@@ -40,8 +40,7 @@ public class Haplotype {
     protected double[] quals = null;
     private GenomeLoc genomeLocation = null;
     private boolean isReference = false;
-    public static final int LEFT_WINDOW_SIZE = 20;
-
+ 
     /**
      * Create a simple consensus sequence with provided bases and a uniform quality over all bases of qual
      *
@@ -100,11 +99,17 @@ public class Haplotype {
         return genomeLocation.getStart();
     }
 
+    public long getStopPosition() {
+        return genomeLocation.getStop();
+    }
+
+
     public boolean isReference() {
         return isReference;
     }
 
-    public static List<Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref, final int haplotypeSize) {
+    public static List<Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref,
+                                                               final int haplotypeSize, final int numPrefBases) {
 
 
         List<Haplotype> haplotypeList = new ArrayList<Haplotype>();
@@ -124,12 +129,11 @@ public class Haplotype {
 
         byte[] refBases = ref.getBases();
 
-        int numPrefBases = LEFT_WINDOW_SIZE;
 
         int startIdxInReference = (int)(1+startPos-numPrefBases-ref.getWindow().getStart());
         //int numPrefBases = (int)(vc.getStart()-ref.getWindow().getStart()+1); // indel vc starts one before event
 
- 
+
         byte[] basesBeforeVariant = Arrays.copyOfRange(refBases,startIdxInReference,startIdxInReference+numPrefBases);
         byte[] basesAfterVariant = Arrays.copyOfRange(refBases,
                 startIdxInReference+numPrefBases+ refAllele.getBases().length, refBases.length);

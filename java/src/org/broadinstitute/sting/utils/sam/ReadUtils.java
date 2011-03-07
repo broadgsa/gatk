@@ -228,4 +228,24 @@ public class ReadUtils {
             return Collections.emptyList();
         }
     }
+
+    public final static int getFirstInsertionOffset(SAMRecord read) {
+        CigarElement e = read.getCigar().getCigarElement(0);
+        if ( e.getOperator() == CigarOperator.I )
+            return e.getLength();
+        else
+            return 0;
+    }
+
+    public final static int getLastInsertionOffset(SAMRecord read) {
+        CigarElement e = read.getCigar().getCigarElement(read.getCigarLength()-1);
+        if ( e.getOperator() == CigarOperator.I )
+            return e.getLength();
+        else
+            return 0;
+    }
+
+
+
+
 }
