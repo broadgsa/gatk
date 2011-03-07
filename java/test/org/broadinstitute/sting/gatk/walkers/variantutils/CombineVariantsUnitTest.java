@@ -39,7 +39,7 @@ public class CombineVariantsUnitTest {
                 "##reference=NCBI36",
                 "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">",
                 "##INFO=<ID=DP, Number=1, Type=Integer, Description=\"Total number of reads in haplotype window\">",
-                "##INFO=<ID=AF, Number=1, Type=Integer, Description=\"Dindel estimated population allele frequency\">", // float to integer
+                "##INFO=<ID=AF, Number=1, Type=String, Description=\"Dindel estimated population allele frequency\">", // string to integer
                 "##FILTER=<ID=NoQCALL, Description=\"Variant called by Dindel but not confirmed by QCALL\">",
                 "##FORMAT=<ID=GT, Number=1, Type=String, Description=\"Genotype\">",
                 "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">",
