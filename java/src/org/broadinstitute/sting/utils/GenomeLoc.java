@@ -122,6 +122,17 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
                              Math.max( getStop(), that.getStop()) );
     }
 
+    /**
+     * Splits the contig into to regions: [start,split point) and [split point, end].
+     * @param splitPoint The point at which to split the contig.  Must be contained in the given interval.
+     * @return A two element array consisting of the genome loc before the split and the one after.
+     */
+    public GenomeLoc[] split(final int splitPoint) {
+        if(splitPoint < getStart() || splitPoint > getStop())
+            throw new ReviewedStingException(String.format("Unable to split contig %s at split point %d; split point is not contained in region.",this,splitPoint));
+        return new GenomeLoc[] { new GenomeLoc(getContig(),contigIndex,getStart(),splitPoint-1), new GenomeLoc(getContig(),contigIndex,splitPoint,getStop()) };
+    }
+
     public GenomeLoc intersect( GenomeLoc that ) throws ReviewedStingException {
         if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {
             if(! GenomeLoc.isUnmapped(this) || !GenomeLoc.isUnmapped(that))
@@ -169,6 +180,16 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Cloneable, Serializable
     public final boolean isBefore( GenomeLoc that ) {
         int comparison = this.compareContigs(that);
         return ( comparison == -1 || ( comparison == 0 && this.getStop() < that.getStart() ));        
+    }
+
+    /**
+     * Tests whether any portion of this contig is before that contig.
+     * @param that Other contig to test.
+     * @return True if the start of this contig is before the start of the that contig.
+     */
+    public final boolean startsBefore(final GenomeLoc that) {
+        int comparison = this.compareContigs(that);
+        return ( comparison == -1 || ( comparison == 0 && this.getStart() < that.getStart() ));
     }
 
     /**
