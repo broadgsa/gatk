@@ -334,7 +334,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000";
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
-                    1, Arrays.asList("4ae87d76a3b39cf0b80221f3bd681839"));
+                    1, Arrays.asList("9e74d649fcf1c884b324f0818e1d7395"));
             executeTestParallel("testSelect1", spec);
             //executeTest("testSelect1", spec);
         }
@@ -355,7 +355,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         for (String vcfFile : vcfFiles) {
             WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG -B:eval,VCF " + validationDataLocation + vcfFile + " -B:comp,VCF " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
                     1,
-                    Arrays.asList("1387fcf8d5c53ff2c820fe79cc999bcf"));
+                    Arrays.asList("86de930ab857e27717c80b11594808f3"));
             executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
             //executeTest("testVEGenotypeConcordance" + vcfFile, spec);
         }
@@ -365,8 +365,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000 -ST CpG", "b82f1ad442d354a5ed3c18ecef93553e");
-        expectations.put("-L 1:1-10,000,000 -ST CpG -family NA19238+NA19239=NA19240 -mvq 0 -EV MendelianViolationEvaluator", "dc3d34f5a03890217d1f548027a82028");
+        expectations.put("-L 1:1-10,000,000 -ST CpG", "9784b1fc319e856ad84678b6c8a4c15c");
+        expectations.put("-L 1:1-10,000,000 -ST CpG -family NA19238+NA19239=NA19240 -mvq 0 -EV MendelianViolationEvaluator", "374c06e9ba8ca3496698b3f95e241b82");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -389,9 +389,9 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B:comp_hapmap,VCF " + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
 
-        expectations.put("", "c3936ef2e7af52019ade05461fbf4180");
-        expectations.put(" -knownName comp_hapmap -knownName dbsnp", "e19bd1bc89463e558fa3b83e65f55ca5");
-        expectations.put(" -knownName comp_hapmap", "831d69ec830836f7d2ac8310713f1691");
+        expectations.put("", "48fcd7d9f3c8e347c70d7692c4b3cbff");
+        expectations.put(" -knownName comp_hapmap -knownName dbsnp", "308948e0e227425d73e35a6702bfefcb");
+        expectations.put(" -knownName comp_hapmap", "6f1383f3ea5b741215e8f7cbfcb47fb1");
         for (String tests : testsEnumerations) {
             for (Map.Entry<String, String> entry : expectations.entrySet()) {
                 String extraArgs2 = entry.getKey();
@@ -409,7 +409,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("132e0825d1ed6e54963da94784cf7803"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("3199177faa347fe3a78de17b83afd909"));
         executeTestParallel("testCompVsEvalAC",spec);
         //executeTest("testCompVsEvalAC",spec);
     }
@@ -429,7 +429,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompOverlap() {
         String extraArgs = "-T VariantEval -R " + b37KGReference + " -L " + validationDataLocation + "VariantEval/pacbio.hg19.intervals -B:comphapmap,vcf " + comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf -B:eval,vcf " + validationDataLocation + "VariantEval/pacbio.ts.recalibrated.vcf -noEV -EV CompOverlap -sn NA12878 -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("e8b5561eb60ea98a9be4a45abee00e07"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("70aa420929de7f888a6f48c2d01bbcda"));
         executeTestParallel("testCompOverlap",spec);
         //executeTest("testCompOverlap",spec);
     }
@@ -444,7 +444,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -D " + dbsnp +
                            " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("5d0d89c7cbcc7887e34447cee70c5bae"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("2ea5334cf0b004e0a6119a5b653bde4c"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
     }
 
@@ -458,7 +458,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " -B:evalBC,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("8dec8f384852876ba8ec4943ff953d2d"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("50fb57dddf7040a62e3befba30c5cb22"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 
