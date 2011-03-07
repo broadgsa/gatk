@@ -51,8 +51,13 @@ import java.util.*;
  * @help.summary Validates the calls on a ROD track using a BAM dataset.
  */
 
-//@Requires(value={DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_ORDERED_DATA})
+@Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="alleles",type=VariantContext.class))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
+
+// Ugly fix because RodWalkers don't have access to reads
+@By(DataSource.REFERENCE)
+@Reference(window=@Window(start=-200,stop=200))
+
 
 public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalker.CountedData, GenotypeAndValidateWalker.CountedData> {
 
@@ -70,17 +75,12 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
     private UnifiedGenotyperEngine snpEngine;
     private UnifiedGenotyperEngine indelEngine;
 
-
-    public static enum VARIANT_TYPE {
-        TRUE_POSITIVE,
-        FALSE_POSITIVE,
-    }
-
     public static class CountedData {
         private long numTP = 0L;
         private long numTN = 0L;
         private long numFP = 0L;
         private long numFN = 0L;
+        private long numUncovered = 0L;
         private long numConfidentCalls = 0L;
         private long numNotConfidentCalls = 0L;
 
@@ -93,6 +93,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             numTN += other.numTN;
             numFP += other.numFP;
             numFN += other.numFN;
+            numUncovered += other.numUncovered;
             numNotConfidentCalls += other.numNotConfidentCalls;
             numConfidentCalls    += other.numConfidentCalls;
         }
@@ -118,8 +119,8 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
         uac.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
-        if (mbq > 0) uac.MIN_BASE_QUALTY_SCORE = mbq;
-        if (deletions > 0) uac.MAX_DELETION_FRACTION = deletions;
+        if (mbq >= 0) uac.MIN_BASE_QUALTY_SCORE = mbq;
+        if (deletions >= 0) uac.MAX_DELETION_FRACTION = deletions;
         snpEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         // Adding the INDEL calling arguments for UG
@@ -142,38 +143,37 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             return counter;
 
         VariantContext vcComp = tracker.getVariantContext(ref, compName, null, context.getLocation(), false);
-        if( vcComp == null )
+        if( vcComp == null ){
             return counter;
-        vcComp = vcComp.subContextFromGenotypes( vcComp.getGenotypes().values() );
+        }
+
         if ((vcComp.getFilters().contains("TP") && vcComp.getFilters().contains("FP")) || (!vcComp.getFilters().contains("TP") && !vcComp.getFilters().contains("FP")))
             throw new UserException.BadInput("Variant has the wrong filter annotation -- either missing FP/TP or has both. " + vcComp.getChr() + ":" + vcComp.getStart());
 
         VariantCallContext call;
         if ( vcComp.isSNP() )
             call = snpEngine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
-
         else if ( vcComp.isIndel() )
             call = indelEngine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
-
-        else
+        else {
+            logger.info("Not SNP or INDEL " + vcComp.getChr() + ":" + vcComp.getStart() + " " + vcComp.getAlleles());
             return counter;
-
-        VARIANT_TYPE variantType;
-        if (vcComp.getFilters().contains("TP"))
-            variantType = VARIANT_TYPE.TRUE_POSITIVE;
-        else
-            variantType = VARIANT_TYPE.FALSE_POSITIVE;
+        }
 
         if (!call.confidentlyCalled) {
-            counter.numNotConfidentCalls = 1L;
-            if (variantType == VARIANT_TYPE.TRUE_POSITIVE)
-                counter.numFN = 1L;
+            if (context.hasReads()) {
+                counter.numNotConfidentCalls = 1L;
+                if (vcComp.getFilters().contains("TP"))
+                    counter.numFN = 1L;
+                else
+                    counter.numTN = 1L;
+            }
             else
-                counter.numTN = 1L;
+                counter.numUncovered = 1L;
         }
         else {
             counter.numConfidentCalls = 1L;
-            if (variantType == VARIANT_TYPE.TRUE_POSITIVE)
+            if (vcComp.getFilters().contains("TP"))
                 counter.numTP = 1L;
             else
                 counter.numFP = 1L;
@@ -201,7 +201,8 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         logger.info("TP = " + reduceSum.numTP);
         logger.info("TN = " + reduceSum.numTN);
         logger.info("FP = " + reduceSum.numFP);
-        logger.info("FN = " + (reduceSum.numFN) );
+        logger.info("FN = " + reduceSum.numFN);
+        logger.info("Uncovered = " + reduceSum.numUncovered);
         logger.info("confidently called = " + reduceSum.numConfidentCalls);
         logger.info("not confidently called = " + reduceSum.numNotConfidentCalls );
     }
