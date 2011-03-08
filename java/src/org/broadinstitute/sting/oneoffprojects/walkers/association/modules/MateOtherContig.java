@@ -14,8 +14,8 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
  */
 public class MateOtherContig extends ZStatistic {
 
-    public int getWindowSize() { return 200; }
-    public int slideByValue() { return 25; }
+    public int getWindowSize() { return 100; }
+    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return false; }
 
     public Pair<Number,Number> map(ReadBackedPileup pileup) {

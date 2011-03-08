@@ -26,7 +26,7 @@ public class BaseQualityScore extends TStatistic {
         return (Collection) baseQuals;
     }
 
-    public int getWindowSize() { return 200; }
-    public int slideByValue() { return 25; }
+    public int getWindowSize() { return 100; }
+    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return true; }
 }

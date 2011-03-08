@@ -135,7 +135,7 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
     public void writeWiggleHeaders(Set<AssociationContext> cons) {
         for ( AssociationContext con : cons ) {
             GenomeLoc first = getToolkit().getIntervals().iterator().next();
-            String header = String.format("fixedStep\tchrom=%s,start=%d,step=%d,span=%d",first.getContig(),first.getStart(),con.slideByValue(),con.getWindowSize());
+            String header = String.format("fixedStep chrom=%s start=%d step=%d span=%d",first.getContig(),first.getStart(),con.slideByValue(),con.getWindowSize());
             out.get(con.getClass()).printf("%s%n",header);
         }
     }

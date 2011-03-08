@@ -22,8 +22,13 @@ import org.broadinstitute.sting.utils.collections.Pair;
  * To change this template use File | Settings | File Templates.
  */
 public class AssociationTestRunner {
+    final static int MAX_Q_VALUE = 2000;
     // todo -- this was written when ACs could implement interfaces, now that they extend, there's no multiple inheritance
     static Normal standardNormal = new Normal(0.0,1.0,null);
+
+    private static int pToQ(double p) {
+        return Math.min((int) Math.floor(QualityUtils.phredScaleErrorRate(p)),MAX_Q_VALUE);
+    }
 
     public static String runTests(AssociationContext context) {
         List<String> results = new ArrayList<String>();
@@ -58,15 +63,15 @@ public class AssociationTestRunner {
      */
     public static int getQValue(AssociationContext context) {
         if ( context instanceof TStatistic ) {
-            return (int) Math.floor(QualityUtils.phredScaleErrorRate(testStudentT((TStatistic) context).second));
+            return pToQ(testStudentT((TStatistic) context).second);
         }
 
         if ( context instanceof ZStatistic ) {
-            return (int) Math.floor(QualityUtils.phredScaleErrorRate(testZ((ZStatistic) context).second));
+            return pToQ(testZ((ZStatistic) context).second);
         }
 
         if ( context instanceof UStatistic ) {
-            return (int) Math.floor(QualityUtils.phredScaleErrorRate(mannWhitneyUTest((UStatistic) context).second));
+            return pToQ(mannWhitneyUTest((UStatistic) context).second);
         }
 
         return -1;

@@ -75,8 +75,8 @@ public class SampleDepth extends UStatistic {
     // note: this is to satisfy the interface, and is never called due to override
     public Collection<Number> map(ReadBackedPileup pileup) { return null; }
 
-    public int getWindowSize() { return 200; }
-    public int slideByValue() { return 25; }
+    public int getWindowSize() { return 100; }
+    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return true; }
 
 

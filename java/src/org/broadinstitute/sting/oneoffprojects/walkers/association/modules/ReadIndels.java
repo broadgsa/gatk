@@ -17,7 +17,7 @@ import java.util.Collection;
  * Time: 1:54 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReadIndels extends TStatistic {
+public class ReadIndels extends UStatistic {
 
     public Collection<Number> map(ReadBackedPileup rbp) {
         ArrayList<Integer> indelElements = new ArrayList<Integer>(rbp.size());
@@ -33,7 +33,7 @@ public class ReadIndels extends TStatistic {
         return (Collection) indelElements;
     }
 
-    public int getWindowSize() { return 200; }
-    public int slideByValue() { return 25; }
+    public int getWindowSize() { return 100; }
+    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return false; }
 }
