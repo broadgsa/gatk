@@ -34,6 +34,8 @@
 
     <property environment="env"/>
 
+    <property name="drmaa.file" value="${env.SGE_ROOT}/lib/drmaa.jar" />
+
     <patternset id="java.source.pattern">
         <include name="**/*.java"/>
         <exclude name="**/playground/**" unless="include.playground" />
@@ -109,7 +111,7 @@
     </target>
 
     <target name="init.gridengine" depends="init" if="include.gridengine">
-        <copy todir="lib" file="${env.SGE_ROOT}/lib/drmaa.jar"/>
+        <copy todir="lib" file="${drmaa.file}"/>
     </target>
 
     <target name="resolve" depends="init.resolve,init,init.gridengine"
@@ -162,7 +164,7 @@
         <!-- Include Grid Engine in the compile if SGE_ROOT is available. -->
         <!-- Based off of http://wikis.sun.com/display/GridEngine/Automating+Grid+Engine+Functions+Through+DRMAA -->
         <condition property="include.gridengine">
-            <isset property="env.SGE_ROOT"/>
+            <available file="${drmaa.file}"/>
         </condition>
 
         <!-- Get the pipeline run type.  Default to dry.  -->
