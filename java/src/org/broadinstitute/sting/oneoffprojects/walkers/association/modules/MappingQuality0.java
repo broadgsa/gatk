@@ -26,8 +26,8 @@ public class MappingQuality0 extends ZStatistic {
         return new Pair<Number,Number>(mq0,total);
     }
 
-    public int getWindowSize() { return 50; }
-    public int slideByValue() { return 10; }
+    public int getWindowSize() { return 200; }
+    public int slideByValue() { return 25; }
     public boolean usePreviouslySeenReads() { return false; }
 
 }

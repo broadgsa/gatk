@@ -27,7 +27,7 @@ public class MateMappingQuality extends UStatistic {
         return (Collection) mateMapQ;
     }
 
-    public int getWindowSize() { return 40; }
-    public int slideByValue() { return 20; }
+    public int getWindowSize() { return 200; }
+    public int slideByValue() { return 25; }
     public boolean usePreviouslySeenReads() { return false; }
 }

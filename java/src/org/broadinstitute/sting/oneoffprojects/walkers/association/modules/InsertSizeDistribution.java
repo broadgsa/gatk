@@ -12,9 +12,9 @@ import java.util.List;
 /**
  * @author chartl
  */
-public class InsertSizeDistribution extends UStatistic {
-    public int getWindowSize() { return 100; }
-    public int slideByValue() { return 10; }
+public class InsertSizeDistribution extends TStatistic {
+    public int getWindowSize() { return 200; }
+    public int slideByValue() { return 25; }
     public boolean usePreviouslySeenReads() { return false; }
 
     public Collection<Number> map(ReadBackedPileup pileup) {

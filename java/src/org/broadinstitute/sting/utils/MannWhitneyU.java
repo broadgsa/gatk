@@ -71,12 +71,21 @@ public class MannWhitneyU {
         } else if ( n > 4 && m > 7 ) {
             // large m, small n - sum uniform approx
             pval = calculatePUniformApproximation(n,m,u);
+        } else if ( n > 5 || m > 5 ) {
+            pval = calculatePFromTable(n,m,u);
         } else {
             // small m [possibly small n] - full approx
             pval = calculatePRecursively(n,m,u);
         }
 
         return twoSided ? 2*pval : pval;
+    }
+
+    public static double calculatePFromTable(int n, int m, long u) {
+        // todo -- actually use a table for:
+        // todo      - n small, m large
+        // todo      - n large, m small
+        return calculatePUniformApproximation(n,m,u);
     }
 
     /**

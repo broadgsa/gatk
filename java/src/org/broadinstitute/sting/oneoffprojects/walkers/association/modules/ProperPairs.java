@@ -27,7 +27,7 @@ public class ProperPairs extends ZStatistic {
         return new Pair<Number,Number>(numPropPair,numReads);
     }
 
-    public int getWindowSize() { return 30; }
-    public int slideByValue() { return 10; }
+    public int getWindowSize() { return 200; }
+    public int slideByValue() { return 25; }
     public boolean usePreviouslySeenReads() { return false; }
 }

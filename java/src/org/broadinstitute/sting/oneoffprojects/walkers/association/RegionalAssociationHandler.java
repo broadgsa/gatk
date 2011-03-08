@@ -39,6 +39,31 @@ public class RegionalAssociationHandler {
     }
 
     /**
+     * Switches what formatting to use based on wiggle or standard
+     * @param wiggleFormat - use wiggle format (just Q) or standard (S: P: Q:)
+     * @return - test results in proper format
+     */
+    public Map<AssociationContext,String> runTests(boolean wiggleFormat) {
+        if ( wiggleFormat ) {
+            return runWiggleTests();
+        } else {
+            return runTests();
+        }
+    }
+
+    public Map<AssociationContext,String> runWiggleTests() {
+        // todo -- maybe the tdf should be the whole window rather than just the most recent loc?
+        Map<AssociationContext,String> testResults = new HashMap<AssociationContext,String>(associations.size());
+        for ( AssociationContext w : associations ) {
+            if ( w.isFull() ) {
+                testResults.put(w,String.format("%d",AssociationTestRunner.getQValue(w)));
+                w.slide();
+            }
+        }
+        return testResults;
+    }
+
+    /**
      * For those AssociationContexts with full windows:
      *  1) Run their associated test(s)
      *  2) Slide the windows

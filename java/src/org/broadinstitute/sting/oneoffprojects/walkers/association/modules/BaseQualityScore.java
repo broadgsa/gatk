@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.association.modules;
 
 import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.TStatistic;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.UStatistic;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -25,7 +26,7 @@ public class BaseQualityScore extends TStatistic {
         return (Collection) baseQuals;
     }
 
-    public int getWindowSize() { return 5; }
-    public int slideByValue() { return 1; }
+    public int getWindowSize() { return 200; }
+    public int slideByValue() { return 25; }
     public boolean usePreviouslySeenReads() { return true; }
 }

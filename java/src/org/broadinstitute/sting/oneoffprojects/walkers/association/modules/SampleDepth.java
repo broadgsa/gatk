@@ -17,7 +17,7 @@ import java.util.*;
 /**
  * @author chartl
  */
-public class SampleDepth extends TStatistic {
+public class SampleDepth extends UStatistic {
 
     public Map<Sample,Object> sampleStats = null;
 
@@ -32,8 +32,8 @@ public class SampleDepth extends TStatistic {
         Set<Sample> samples = walker.getSamples();
         for ( Sample s : samples ) {
             if ( s.hasProperty("doc.mean") && s.hasProperty("doc.std") ) {
-                double mn = Double.parseDouble((String) s.getProperty("doc.mean"));
-                double std = Double.parseDouble((String) s.getProperty("doc.std"));
+                double mn = (Double) s.getProperty("doc.mean");
+                double std = (Double) s.getProperty("doc.std");
                 sampleStats.put(s,new Pair<Double,Double>(mn,std));
             } else {
                 sampleStats.put(s,new MathUtils.RunningAverage());
@@ -75,8 +75,8 @@ public class SampleDepth extends TStatistic {
     // note: this is to satisfy the interface, and is never called due to override
     public Collection<Number> map(ReadBackedPileup pileup) { return null; }
 
-    public int getWindowSize() { return 25; }
-    public int slideByValue() { return 5; }
+    public int getWindowSize() { return 200; }
+    public int slideByValue() { return 25; }
     public boolean usePreviouslySeenReads() { return true; }
 
 

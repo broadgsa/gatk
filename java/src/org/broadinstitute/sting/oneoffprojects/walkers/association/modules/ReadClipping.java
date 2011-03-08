@@ -33,7 +33,7 @@ public class ReadClipping extends TStatistic {
         return (Collection) clipping;
     }
 
-    public int getWindowSize() { return 30; }
-    public int slideByValue() { return 5; }
+    public int getWindowSize() { return 200; }
+    public int slideByValue() { return 25; }
     public boolean usePreviouslySeenReads() { return false; }
 }
