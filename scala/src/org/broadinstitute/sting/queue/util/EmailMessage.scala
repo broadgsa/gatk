@@ -32,7 +32,7 @@ class EmailMessage extends Logging {
       email.setSslSmtpPort(settings.port.toString)
     }
 
-    if (settings.username != null && settings.password != null && settings.passwordFile != null) {
+    if (settings.username != null && (settings.password != null || settings.passwordFile != null)) {
       val password = {
         if (settings.passwordFile != null) {
           val reader = new FileReader(settings.passwordFile)
