@@ -210,7 +210,7 @@ public class UnifiedGenotyperEngine {
     private VariantContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
         VariantContext vc;
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
-            final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), false);
+            final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), true);
             if ( vcInput == null )
                 return null;
             vc = new VariantContext("UG_call", vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles());
