@@ -186,6 +186,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         }
     }
 
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // testing calls with SLX, 454, and SOLID data
@@ -203,4 +204,98 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
         executeTest(String.format("test multiple technologies"), spec);
     }
+
+    // --------------------------------------------------------------------------------------------------------------
+    //
+    // testing indel caller
+    //
+    // --------------------------------------------------------------------------------------------------------------
+    // Basic indel testing with SLX data
+    @Test
+    public void testSimpleIndels() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommand +
+                        " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam" +
+                        " -o %s" +
+                        " -glm DINDEL" + 
+                        " -L 1:10,000,000-10,500,000",
+                1,
+                Arrays.asList("a595df10d47a1fa7b2e1df2cd66d7ff0"));
+
+        executeTest(String.format("test indel caller in SLX"), spec);
+    }
+
+    // Basic indel testing with SLX data
+    @Test
+    public void testIndelsWithLowMinAlleleCnt() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommand +
+                        " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam" +
+                        " -o %s" +
+                        " -glm DINDEL -minIndelCnt 1" +
+                        " -L 1:10,000,000-10,100,000",
+                1,
+                Arrays.asList("e65e7be8bf736a39d86dbb9b51c89a8e"));
+
+        executeTest(String.format("test indel caller in SLX witn low min allele count"), spec);
+    }
+
+    @Test
+     public void testMultiTechnologyIndels() {
+         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                 baseCommand +
+                         " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" +
+                         " -o %s" +
+                         " -glm DINDEL" +
+                         " -L 1:10,000,000-10,500,000",
+                 1,
+                 Arrays.asList("8f853cc012d05d341eb55656a7354716"));
+
+         executeTest(String.format("test indel calling, multiple technologies"), spec);
+     }
+
+    // Indel parallelization
+    //@Test
+
+    // todo - test fails because for some reason when including -nt we get "PASS" instead of . in filter fields
+    public void testIndelParallelization() {
+        String md5 = "e65e7be8bf736a39d86dbb9b51c89a8e";
+
+        WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
+                baseCommand + " -I " + validationDataLocation +
+                        "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -glm DINDEL -o %s -L 1:10,000,000-10,100,000", 1,
+                Arrays.asList(md5));
+        executeTest("test indel caller parallelization (single thread)", spec1);
+
+        WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
+                baseCommand + " -I " + validationDataLocation +
+                        "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -glm DINDEL -o %s -L 1:10,000,000-10,100,000 -nt 2", 1,
+                Arrays.asList(md5));
+        executeTest("test indel caller parallelization (2 threads)", spec2);
+
+        WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
+                baseCommand + " -I " + validationDataLocation +
+                        "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -glm DINDEL -o %s -L 1:10,000,000-10,100,000 -nt 4", 1,
+                Arrays.asList(md5));
+        executeTest("test indel caller parallelization (4 threads)", spec3);
+    }
+
+    // todo - feature not yet fully working with indels
+    //@Test
+    public void testWithIndelAllelesPassedIn() {
+        WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
+                baseCommand + " --genotyping_mode GENOTYPE_GIVEN_ALLELES -B:alleles,vcf " + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
+                        "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000 -glm DINDEL", 1,
+                Arrays.asList("e95c545b8ae06f0721f260125cfbe1f0"));
+        executeTest("test MultiSample Pilot2 indels with alleles passed in", spec1);
+
+        WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
+                baseCommand + " --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -B:alleles,vcf "
+                        + validationDataLocation + "indelAllelesForUG.vcf -I " + validationDataLocation +
+                        "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,100,000 -glm DINDEL", 1,
+                Arrays.asList("6c96d76b9bc3aade0c768d7c657ae210"));
+        executeTest("test MultiSample Pilot2 indels with alleles passed in", spec2);
+    }
+
+
 }
