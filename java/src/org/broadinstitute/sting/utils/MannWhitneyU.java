@@ -71,7 +71,7 @@ public class MannWhitneyU {
         } else if ( n > 4 && m > 7 ) {
             // large m, small n - sum uniform approx
             pval = calculatePUniformApproximation(n,m,u);
-        } else if ( n > 5 || m > 5 ) {
+        } else if ( n > 8 || m > 8 ) {
             pval = calculatePFromTable(n,m,u);
         } else {
             // small m [possibly small n] - full approx
