@@ -125,7 +125,7 @@ class ReadDepthCNVanalysis extends QScript {
     @Output
     val outputDoCaverageCoverage: File = new File(outputDoC.getPath + DOC_MEAN_COVERAGE_OUTPUT)
 
-    var command: String = "~/CNV/wave1+2/scripts/mergeDoC.pl -gatk " + qscript.gatkJarFile.getPath.replaceFirst("dist/GenomeAnalysisTK.jar", "") + " -ref " + qscript.referenceFile + " -out " + outputDoCaverageCoverage
+    var command: String = "~fromer/CNV/wave1+2/scripts/mergeDoC.pl -gatk " + qscript.gatkJarFile.getPath.replaceFirst("dist/GenomeAnalysisTK.jar", "") + " -ref " + qscript.referenceFile + " -out " + outputDoCaverageCoverage
     for (input <- inputDoCfiles) {
       command += " " + input
     }

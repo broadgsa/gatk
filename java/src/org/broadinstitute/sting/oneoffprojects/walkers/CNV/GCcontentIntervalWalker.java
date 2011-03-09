@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.PrintStream;
@@ -42,13 +43,11 @@ import java.util.*;
  * Walks along reference and calculates the GC content for each interval defined in "intervals" ROD.
  */
 @Allows(value = {DataSource.REFERENCE})
-@Requires(value = {DataSource.REFERENCE}, referenceMetaData = {@RMD(name = GCcontentIntervalWalker.INTERVALS_ROD_NAME, type = ReferenceOrderedDatum.class)})
+@Requires(value = {DataSource.REFERENCE})
 
 public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
     @Output
     protected PrintStream out;
-
-    public final static String INTERVALS_ROD_NAME = "intervals";
 
     public boolean isReduceByInterval() {
         return true;
@@ -75,21 +74,7 @@ public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
         if (tracker == null)
             return null;
 
-        List<GATKFeature> interval = tracker.getGATKFeatureMetaData(INTERVALS_ROD_NAME, true);
-        if (interval.size() != 1) {
-            String error = "At " + ref.getLocus() + " : Must provide a track named '"+ INTERVALS_ROD_NAME  +"' with exactly ONE interval per locus in -L argument!";
-            if (interval.size() < 1)
-                throw new UserException(error);
-            else // interval.size() > 1
-                logger.warn(error);
-        }
-        GenomeLoc curInterval = interval.get(0).getLocation();
-
-        GCcounter counter = new GCcounter();
-        counter.calculateGCandAddIn(ref);
-        counter.loc = curInterval;
-
-        return counter;
+        return new GCcounter().calculateGCandAddIn(ref);
     }
 
     public GCcounter reduce(GCcounter add, GCcounter runningCount) {
@@ -100,39 +85,36 @@ public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
     }
 
     /**
-     * @param result the GC content observed.
+     * @param results the GC content observed for each interval.
      */
-    public void onTraversalDone(GCcounter result) {
-        if (result.loc == null)
-            return;
+    public void onTraversalDone(List<Pair<GenomeLoc, GCcounter>> results) {
+        for (Pair<GenomeLoc, GCcounter> result : results ) {
+            GenomeLoc loc = result.getFirst();
+            GCcounter counter = result.getSecond();
 
-        double gcContent = (double) result.GCcount / result.totalCount;
-        out.println(result.loc + "\t" + gcContent + "\t" + result.loc.size());
+            double gcContent = (double) counter.GCcount / counter.totalCount;
+            out.println(loc + "\t" + gcContent + "\t" + loc.size());
+        }
     }
 }
 
 class GCcounter {
     public int totalCount;
     public int GCcount;
-    public GenomeLoc loc;
 
     public GCcounter() {
         this.totalCount = 0;
         this.GCcount = 0;
-        this.loc = null;
     }
 
     public GCcounter addIn(GCcounter other) {
         this.totalCount += other.totalCount;
         this.GCcount += other.GCcount;
 
-        if (other.loc != null && this.loc == null)
-            this.loc = other.loc;
-
         return this;
     }
 
-    public void calculateGCandAddIn(ReferenceContext ref) {
+    public GCcounter calculateGCandAddIn(ReferenceContext ref) {
         for (byte base : ref.getBases()) {
             int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
 
@@ -144,6 +126,7 @@ class GCcounter {
                     GCcount++;
             }
         }
+
+        return this;
     }
 }
-

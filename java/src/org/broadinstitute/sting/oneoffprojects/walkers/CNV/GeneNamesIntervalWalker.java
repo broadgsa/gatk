@@ -33,6 +33,7 @@ import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTa
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.PrintStream;
@@ -41,17 +42,16 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Walks along reference and calculates the genes (from "" ROD) for each interval defined in "intervals" ROD.
+ * Walks along reference and calculates the genes (from "refseq" ROD) for each interval defined in "intervals" ROD.
  */
 @Allows(value = {DataSource.REFERENCE})
-@Requires(value = {DataSource.REFERENCE}, referenceMetaData = {@RMD(name = GeneNamesIntervalWalker.REFSEQ_ROD_NAME, type = AnnotatorInputTableFeature.class), @RMD(name = GeneNamesIntervalWalker.INTERVALS_ROD_NAME, type = ReferenceOrderedDatum.class)})
+@Requires(value = {DataSource.REFERENCE}, referenceMetaData = {@RMD(name = GeneNamesIntervalWalker.REFSEQ_ROD_NAME, type = AnnotatorInputTableFeature.class)})
 
 public class GeneNamesIntervalWalker extends RodWalker<GeneNames, GeneNames> {
     @Output
     protected PrintStream out;
 
     public final static String REFSEQ_ROD_NAME = "refseq";
-    public final static String INTERVALS_ROD_NAME = "intervals";
 
     public final static String REFSEQ_NAME2 = "name2";
 
@@ -81,21 +81,7 @@ public class GeneNamesIntervalWalker extends RodWalker<GeneNames, GeneNames> {
         if (tracker == null)
             return null;
 
-        List<GATKFeature> interval = tracker.getGATKFeatureMetaData(INTERVALS_ROD_NAME, true);
-        if (interval.size() != 1) {
-            String error = "At " + ref.getLocus() + " : Must provide a track named '"+ INTERVALS_ROD_NAME  +"' with exactly ONE interval per locus in -L argument!";
-            if (interval.size() < 1)
-                throw new UserException(error);
-            else // interval.size() > 1
-                logger.warn(error);
-        }
-        GenomeLoc curInterval = interval.get(0).getLocation();
-
-        GeneNames names = new GeneNames();
-        names.addGenes(tracker.getReferenceMetaData(REFSEQ_ROD_NAME));
-        names.loc = curInterval;
-
-        return names;
+        return new GeneNames().addGenes(tracker.getReferenceMetaData(REFSEQ_ROD_NAME));
     }
 
     public GeneNames reduce(GeneNames add, GeneNames runningCount) {
@@ -106,40 +92,39 @@ public class GeneNamesIntervalWalker extends RodWalker<GeneNames, GeneNames> {
     }
 
     /**
-     * @param result the genes in the interval.
+     * @param results the genes found in each interval.
      */
-    public void onTraversalDone(GeneNames result) {
-        if (result.loc == null)
-            return;
+    public void onTraversalDone(List<Pair<GenomeLoc, GeneNames>> results) {
+        for (Pair<GenomeLoc, GeneNames> result : results ) {
+            GenomeLoc loc = result.getFirst();
+            GeneNames names = result.getSecond();
 
-        out.println(result.loc + "\t" + result);
+            out.println(loc + "\t" + names);
+        }
     }
 }
 
 class GeneNames {
     public Set<String> geneNames;
-    public GenomeLoc loc;
 
     public GeneNames() {
         this.geneNames = new HashSet<String>();
-        this.loc = null;
     }
 
     public GeneNames addIn(GeneNames other) {
         this.geneNames.addAll(other.geneNames);
 
-        if (other.loc != null && this.loc == null)
-            this.loc = other.loc;
-
         return this;
     }
 
-    public void addGenes(List<Object> refSeqRODs) {
+    public GeneNames addGenes(List<Object> refSeqRODs) {
         for (Object refSeqObject : refSeqRODs) {
             AnnotatorInputTableFeature refSeqAnnotation = (AnnotatorInputTableFeature) refSeqObject;
             if (refSeqAnnotation.containsColumnName(GeneNamesIntervalWalker.REFSEQ_NAME2))
                 geneNames.add(refSeqAnnotation.getColumnValue(GeneNamesIntervalWalker.REFSEQ_NAME2));
         }
+
+        return this;
     }
 
     public String toString() {
