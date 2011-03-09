@@ -224,7 +224,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         empiricalMu = new double[numAnnotations];
         final double[][] sigmaVals = new double[numAnnotations][numAnnotations];
 
-
         for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
             empiricalMu[jjj] = 0.0;
             for( int ppp = jjj; ppp < numAnnotations; ppp++ ) {
@@ -268,7 +267,8 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         final int numAnnotations = data[0].annotations.length;
 
         for( int kkk = 0; kkk < maxGaussians; kkk++ ) {
-            mu[kkk] = data[rand.nextInt(numVariants)].annotations;
+            //mu[kkk] = data[rand.nextInt(numVariants)].annotations;
+            mu[kkk] = new double[numAnnotations];
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
                 mu[kkk][jjj] = -4.0 + 8.0 * rand.nextDouble();
             }
@@ -310,10 +310,13 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             int numAssigned = 0;
 
             for( int iii = 0; iii < numVariants; iii++ ) {
-                if(assignment[iii] == kkk) {
-                    numAssigned++;
-                    for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                        mu[kkk][jjj] += data[iii].annotations[jjj];
+                final VariantDatum datum = data[iii];
+                if(datum.weight > 0.0) {
+                    if(assignment[iii] == kkk) {
+                        numAssigned++;
+                        for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+                            mu[kkk][jjj] += data[iii].annotations[jjj];
+                        }
                     }
                 }
             }
@@ -924,6 +927,6 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
         return Math.log(x) - ( 1.0 / (2.0 * x) )
                            - ( 1.0 / (12.0 * Math.pow(x, 2.0)) )
                            + ( 1.0 / (120.0 * Math.pow(x, 4.0)) )
-                           - ( 1.0 / (252.0 * Math.pow(x, 6.0)) ); 
+                           - ( 1.0 / (252.0 * Math.pow(x, 6.0)) );
     }
 }

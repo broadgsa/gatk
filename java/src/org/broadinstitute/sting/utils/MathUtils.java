@@ -371,6 +371,14 @@ public class MathUtils {
         return Math.sqrt(rms);
     }
 
+    public static double distanceSquared( final double[] x, final double[] y ) {
+        double dist = 0.0;
+        for(int iii = 0; iii < x.length; iii++) {
+            dist += (x[iii] - y[iii]) * (x[iii] - y[iii]);
+        }
+        return dist;
+    }
+
     /**
      * normalizes the log10-based array.  ASSUMES THAT ALL ARRAY ENTRIES ARE <= 0 (<= 1 IN REAL-SPACE).
      *
@@ -401,6 +409,27 @@ public class MathUtils {
         return normalized;
     }
 
+    public static double[] normalizeFromLog10(List<Double> array, boolean takeLog10OfOutput) {
+        double[] normalized = new double[array.size()];
+
+        // for precision purposes, we need to add (or really subtract, since they're
+        // all negative) the largest value; also, we need to convert to normal-space.
+        double maxValue = MathUtils.arrayMax( array );
+        for (int i = 0; i < array.size(); i++)
+            normalized[i] = Math.pow(10, array.get(i) - maxValue);
+
+        // normalize
+        double sum = 0.0;
+        for (int i = 0; i < array.size(); i++)
+            sum += normalized[i];
+        for (int i = 0; i < array.size(); i++) {
+            double x = normalized[i] / sum;
+            if ( takeLog10OfOutput ) x = Math.log10(x);
+            normalized[i] = x;
+        }
+
+        return normalized;
+    }
     /**
      * normalizes the log10-based array.  ASSUMES THAT ALL ARRAY ENTRIES ARE <= 0 (<= 1 IN REAL-SPACE).
      *
@@ -409,6 +438,10 @@ public class MathUtils {
      * @return a newly allocated array corresponding the normalized values in array
     */
     public static double[] normalizeFromLog10(double[] array) {
+        return normalizeFromLog10(array, false);
+    }
+
+    public static double[] normalizeFromLog10(List<Double> array) {
         return normalizeFromLog10(array, false);
     }
 
@@ -466,6 +499,15 @@ public class MathUtils {
 
         int m = array.get(0);
         for ( int e : array ) m = Math.max(m, e);
+        return m;
+    }
+
+    public static double arrayMax(List<Double> array) {
+        if ( array == null ) throw new IllegalArgumentException("Array cannot be null!");
+        if ( array.size() == 0 ) throw new IllegalArgumentException("Array size cannot be 0!");
+
+        double m = array.get(0);
+        for ( double e : array ) m = Math.max(m, e);
         return m;
     }
 
@@ -812,6 +854,15 @@ public class MathUtils {
 
     public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
         return getQScoreOrderStatistic(reads, offsets, (int)Math.floor(reads.size()/2.));
+    }
+
+    // from http://en.wikipedia.org/wiki/Digamma_function
+    // According to J.M. Bernardo AS 103 algorithm the digamma function for x, a real number, can be approximated by:
+    public static double diGamma(final double x) {
+        return Math.log(x) - ( 1.0 / (2.0 * x) )
+                           - ( 1.0 / (12.0 * Math.pow(x, 2.0)) )
+                           + ( 1.0 / (120.0 * Math.pow(x, 4.0)) )
+                           - ( 1.0 / (252.0 * Math.pow(x, 6.0)) );
     }
 
     /** A utility class that computes on the fly average and standard deviation for a stream of numbers.

@@ -87,7 +87,7 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     private double QUAL_THRESHOLD = 100.0;
     @Argument(fullName="shrinkage", shortName="shrinkage", doc="The shrinkage parameter in variational Bayes algorithm.", required=false)
     private double SHRINKAGE = 0.0001;
-    @Argument(fullName="dirichlet", shortName="dirichlet", doc="The dirichlet parameter in variational Bayes algoirthm.", required=false)
+    @Argument(fullName="dirichlet", shortName="dirichlet", doc="The dirichlet parameter in variational Bayes algorithm.", required=false)
     private double DIRICHLET_PARAMETER = 1000.0;
 
     /////////////////////////////
