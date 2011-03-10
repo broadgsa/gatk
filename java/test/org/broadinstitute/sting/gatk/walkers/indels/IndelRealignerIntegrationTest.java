@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import org.broadinstitute.sting.WalkerTest;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -100,5 +101,29 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
                 1,
                 Arrays.asList("be859f9a98d738becee0526887cae42e"));
         executeTest("realigner long run", spec);
+    }
+
+    @Test(dependsOnMethods = { "testStats" })
+    public void testMaxReadsInMemory() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "--maxReadsInMemory 10000", "424271ca000442e8b338c67d95dadb82" );
+        e.put( "--maxReadsInMemory 40000",  base_md5 );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    baseCommand + entry.getKey(),
+                    1,
+                    Arrays.asList(entry.getValue()));
+            executeTest(String.format("realigner [%s]", entry.getKey()), spec);
+        }
+    }
+
+    @Test(expectedExceptions = { RuntimeException.class }, dependsOnMethods = { "testMaxReadsInMemory" })
+    public void testFailure() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommand + "--maxReadsInMemory 1000",
+                1,
+                Arrays.asList(""));
+        executeTest("realigner failure", spec);
     }
 }

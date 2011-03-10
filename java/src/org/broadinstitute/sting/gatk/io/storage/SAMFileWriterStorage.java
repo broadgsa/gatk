@@ -36,7 +36,6 @@ import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.sam.ConstrainedMateFixingSAMFileWriter;
 
 /**
  * Provides temporary storage for SAMFileWriters.
@@ -82,10 +81,6 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
         }
         else
             throw new UserException("Unable to write to SAM file; neither a target file nor a stream has been specified");
-
-        if ( stub.useConstrainedFileWriter() ) {
-            this.writer = new ConstrainedMateFixingSAMFileWriter(writer, stub.getMaxInsertSizeForMovingReadPairs(), stub.getMaxPositionalMoveAllowed());
-        }
     }
 
     public SAMFileHeader getFileHeader() {

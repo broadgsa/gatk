@@ -29,9 +29,7 @@ import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
-import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.Utils;
@@ -48,57 +46,9 @@ public class AlignmentUtils {
         public long mismatchQualities = 0;
     }
 
-    /** Returns number of mismatches in the alignment <code>r</code> to the reference sequence
-     * <code>refSeq</code> assuming the alignment starts at (ZERO-based) position <code>refIndex</code> on the
-     * specified reference sequence; in other words, <code>refIndex</code> is used in place of alignment's own
-     * getAlignmentStart() coordinate and the latter is never used. However, the structure of the alignment <code>r</code>
-     * (i.e. it's cigar string with all the insertions/deletions it may specify) is fully respected.
-     *
-     * THIS CODE ASSUMES THAT ALL BYTES COME FROM UPPERCASED CHARS.
-     * 
-     * @param r alignment
-     * @param refSeq chunk of reference sequence that subsumes the alignment completely (if alignment runs out of 
-     *                  the reference string, IndexOutOfBound exception will be thrown at runtime).
-     * @param refIndex zero-based position, at which the alignment starts on the specified reference string. 
-     * @return the number of mismatches
-     */
-    public static int numMismatches(SAMRecord r, byte[] refSeq, int refIndex) {
-        return getMismatchCount(r, refSeq, refIndex).numMismatches;
-    }
-
-    /** Same as #numMismatches(SAMRecord, byte[], refIndex), but counts mismatches only along the partial stretch
-     * on the read of length <code>nReadBases</code> starting at (0-based) position <code>readIndex</code>.
-     * @param r Aligned read to count mismatches for
-     * @param refSeq Chunk of reference sequence that subsumes the alignment
-     * @param refIndex Zero-based position on <code>refSeq</code> where the alignment for the whole read starts
-     * @param readIndex Zero-based position on the read, the mismatches will be counted only from this position on
-     * @param nReadBases Length of continuous stretch on the read, along which mismatches will be counted 
-     * @return
-     */
-    public static int numMismatches(SAMRecord r, byte[] refSeq, int refIndex, int readIndex, int nReadBases) {
-        if ( r.getReadUnmappedFlag() ) return 1000000;
-        return getMismatchCount(r, refSeq, refIndex,readIndex,nReadBases).numMismatches;
-    }
-
-    public static long mismatchingQualities(SAMRecord r, byte[] refSeq, int refIndex, int readIndex, int nReadBases) {
-        return getMismatchCount(r, refSeq, refIndex,readIndex,nReadBases).mismatchQualities;
-    }
-
-    @Deprecated
-    public static int numMismatches(SAMRecord r, String refSeq, int refIndex ) {
-        if ( r.getReadUnmappedFlag() ) return 1000000;
-        return numMismatches(r, StringUtil.stringToBytes(refSeq), refIndex);
-     }
-
     public static long mismatchingQualities(SAMRecord r, byte[] refSeq, int refIndex) {
         return getMismatchCount(r, refSeq, refIndex).mismatchQualities;
     }
-
-    @Deprecated
-    public static long mismatchingQualities(SAMRecord r, String refSeq, int refIndex ) {
-        if ( r.getReadUnmappedFlag() ) return 1000000;
-        return numMismatches(r, StringUtil.stringToBytes(refSeq), refIndex);
-     }
 
     public static MismatchCount getMismatchCount(SAMRecord r, byte[] refSeq, int refIndex) {
         return getMismatchCount(r,refSeq,refIndex,0,r.getReadLength());
@@ -191,8 +141,8 @@ public class AlignmentUtils {
     public static int mismatchesInRefWindow(PileupElement p, ReferenceContext ref, boolean ignoreTargetSite, boolean qualitySumInsteadOfMismatchCount) {
         int sum = 0;
 
-        int windowStart = (int)ref.getWindow().getStart();
-        int windowStop = (int)ref.getWindow().getStop();
+        int windowStart = ref.getWindow().getStart();
+        int windowStop = ref.getWindow().getStop();
         byte[] refBases = ref.getBases();
         byte[] readBases = p.getRead().getReadBases();
         byte[] readQualities = p.getRead().getBaseQualities();
@@ -262,11 +212,11 @@ public class AlignmentUtils {
         // it's possible we aren't starting at the beginning of a read,
         //  and we don't need to look at any of the previous context outside our window
         //  (although we do need future context)
-        int readStartPos = Math.max(read.getAlignmentStart(), (int)ref.getLocus().getStart() - windowSize);
+        int readStartPos = Math.max(read.getAlignmentStart(), ref.getLocus().getStart() - windowSize);
         int currentReadPos = read.getAlignmentStart();
 
         byte[] refBases = ref.getBases();
-        int refIndex = readStartPos - (int)ref.getWindow().getStart();
+        int refIndex = readStartPos - ref.getWindow().getStart();
         if ( refIndex < 0 ) {
             throw new IllegalStateException("When calculating mismatches, we somehow don't have enough previous reference context for read " + read.getReadName() + " at position " + ref.getLocus());
         }
@@ -379,46 +329,6 @@ public class AlignmentUtils {
         }
 
     	return n;
-    }
-
-    @Deprecated
-    public static char[] alignmentToCharArray( final Cigar cigar, final char[] read, final char[] ref ) {
-
-        final char[] alignment = new char[read.length];
-        int refPos = 0;
-        int alignPos = 0;
-
-        for ( int iii = 0 ; iii < cigar.numCigarElements() ; iii++ ) {
-
-            final CigarElement ce = cigar.getCigarElement(iii);
-            final int elementLength = ce.getLength();
-
-            switch( ce.getOperator() ) {
-            case I:
-            case S:
-                for ( int jjj = 0 ; jjj < elementLength; jjj++ ) {
-                    alignment[alignPos++] = '+';
-                }
-                break;
-            case D:
-            case N:
-                refPos++;
-                break;
-            case M:
-                for ( int jjj = 0 ; jjj < elementLength; jjj++ ) {
-                    alignment[alignPos] = ref[refPos];
-                    alignPos++;
-                    refPos++;
-                }
-                break;
-            case H:
-            case P:
-                break;
-            default:
-                throw new ReviewedStingException( "Unsupported cigar operator: " + ce.getOperator() );
-            }
-        }
-        return alignment;
     }
 
     public static byte[] alignmentToByteArray( final Cigar cigar, final byte[] read, final byte[] ref ) {

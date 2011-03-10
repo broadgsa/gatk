@@ -50,7 +50,6 @@ import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.interval.NwayIntervalMergingIterator;
-import org.broadinstitute.sting.utils.sam.ConstrainedMateFixingSAMFileWriter;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -85,8 +84,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     protected double MISMATCH_THRESHOLD = 0.15;
 
-    @Output(required=false, doc="Output bam")
+    @Output(required=true, doc="Output bam")
     protected StingSAMFileWriter writer = null;
+    protected ConstrainedMateFixingManager manager = null;
 
     @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs for constructing the alternate references.")
     protected boolean USE_KNOWN_INDELS_ONLY = false;
@@ -97,6 +97,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
 
     // ADVANCED OPTIONS FOLLOW
+
+    @Argument(fullName="maxReadsInMemory", shortName="maxInMemory", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
+                "Keep it low to minimize memory consumption (but the tool may skip realignment on regions with too much coverage.  If it is too low, it may generate errors during realignment); keep it high to maximize realignment (but make sure to give Java enough memory).", required=false)
+    protected int MAX_RECORDS_IN_MEMORY = 200000;
 
     @Argument(fullName="maxIsizeForMovement", shortName="maxIsize", doc="maximum insert size of read pairs that we attempt to realign", required=false)
     protected int MAX_ISIZE_FOR_MOVEMENT = 3000;
@@ -148,10 +152,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
 
     // DEPRECATED
-
-    @Deprecated
-    @Argument(fullName="maxReadsInRam", shortName="maxInRam", doc="This argument is no longer used.", required=false)
-    protected int DEPRECATED_MAX_IN_RAM = 0;
 
     @Deprecated
     @Argument(fullName="sortInCoordinateOrderEvenThoughItIsHighlyUnsafe", doc="This argument is no longer used.", required=false)
@@ -210,12 +210,13 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private FileWriter statsOutput = null;
     private FileWriter snpsOutput = null;
 
-    protected Map<SAMReaderID,SAMFileWriter> nwayWriters = null;
+    protected Map<SAMReaderID, ConstrainedMateFixingManager> nwayWriters = null;
 
     // debug info for lazy SW evaluation:
     private long exactMatchesFound = 0; // how many reads exactly matched a consensus we already had
     private long SWalignmentRuns = 0; // how many times (=for how many reads) we ran SW alignment
     private long SWalignmentSuccess = 0; // how many SW alignments were "successful" (i.e. found a workable indel and resulted in non-null consensus)
+
     public void initialize() {
 
         if ( LOD_THRESHOLD < 0.0 )
@@ -255,9 +256,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         if ( N_WAY_OUT != null ) {
 
-            if ( writer != null ) throw new UserException.BadInput("-nWayOut and -o arguments are mutually exclusive");
+            //if ( writer != null ) throw new UserException.BadInput("-nWayOut and -o arguments are mutually exclusive");
 
-            nwayWriters = new HashMap<SAMReaderID,SAMFileWriter>();
+            nwayWriters = new HashMap<SAMReaderID, ConstrainedMateFixingManager>();
 
             Map<String,String> fname_map = null;
 
@@ -316,15 +317,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 File f = new File(outName);
                 SAMFileHeader header = getToolkit().getSAMFileHeader(rid);
                 header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
-                SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, false, f);
-                nwayWriters.put(rid,sw);
+                SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, true, f);
+                nwayWriters.put(rid, new ConstrainedMateFixingManager(sw, getToolkit().getGenomeLocParser(), MAX_ISIZE_FOR_MOVEMENT, MAX_POS_MOVE_ALLOWED, MAX_RECORDS_IN_MEMORY));
             }
 
         }
 
-        // set up the output writer(s)
-        if ( writer != null )
-            setupWriter(getToolkit().getSAMFileHeader());
+        // set up the output writer
+        setupWriter(getToolkit().getSAMFileHeader());
+        manager = new ConstrainedMateFixingManager(writer, getToolkit().getGenomeLocParser(), MAX_ISIZE_FOR_MOVEMENT, MAX_POS_MOVE_ALLOWED, MAX_RECORDS_IN_MEMORY);
 
         if ( OUT_INDELS != null ) {
             try {
@@ -378,41 +379,32 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         writer.writeHeader(header);
         writer.setPresorted(true);
-
-        writer.setUseConstrainedFileWriter(true);
-        writer.setMaxInsertSizeForMovingReadPairs(MAX_ISIZE_FOR_MOVEMENT);
-        writer.setMaxPositionalMoveAllowed(MAX_POS_MOVE_ALLOWED);
     }
 
     private void emit(final SAMRecord read) {
         try {
-            if ( writer != null )
-                writer.addAlignment(read);
-            else if ( N_WAY_OUT != null ) {
+            if ( N_WAY_OUT != null ) {
                 SAMReaderID rid =  getToolkit().getReaderIDForRead(read);
-                SAMFileWriter w = nwayWriters.get(rid);
+                ConstrainedMateFixingManager m = nwayWriters.get(rid);
                 // reset read's read group from merged to original if read group id collision has happened in merging:
                 if ( getToolkit().getReadsDataSource().hasReadGroupCollisions() ) {
                     read.setAttribute("RG",
                             getToolkit().getReadsDataSource().getOriginalReadGroupId((String)read.getAttribute("RG")));
                 }
-                w.addAlignment(read);
+                m.addRead(read);
+            } else {
+                manager.addRead(read);
             }
         } catch (RuntimeIOException e) {
             throw new UserException.ErrorWritingBamFile(e.getMessage());
         }
     }
 
-    private void emit(final Collection<SAMRecord> reads) {
-        for ( SAMRecord read : reads )
-            emit(read);
-    }
-
     private void emitReadLists() {
         // pre-merge lists with priority queue for constrained SAMFileWriter
-        //logger.warn("EMIT currentInterval " + currentInterval);
         readsNotToClean.addAll(readsToClean.getReads());
-        emit(ReadUtils.coordinateSortReads(readsNotToClean));
+        for ( SAMRecord read : ReadUtils.coordinateSortReads(readsNotToClean) )
+            emit(read);
         readsToClean.clear();
         readsNotToClean.clear();
     }
@@ -475,11 +467,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 read.getReadFailsVendorQualityCheckFlag() ||
                 read.getMappingQuality() == 0 ||
                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
-                ConstrainedMateFixingSAMFileWriter.iSizeTooBigToMove(read, MAX_ISIZE_FOR_MOVEMENT);
+                ConstrainedMateFixingManager.iSizeTooBigToMove(read, MAX_ISIZE_FOR_MOVEMENT);
     }
 
     private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
-        clean(readsToClean);
+        if ( readsToClean.size() > 0 ) {
+            GenomeLoc earliestPossibleMove = getToolkit().getGenomeLocParser().createGenomeLoc(readsToClean.getReads().get(0));
+            if ( manager.canMoveReads(earliestPossibleMove) )
+                clean(readsToClean);
+        }
         knownIndelsToTry.clear();
         indelRodsSeen.clear();
 
@@ -507,13 +503,17 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     public void onTraversalDone(Integer result) {
-        if ( readsToClean.size() > 0 || readsNotToClean.size() > 0 ) {
-            clean(readsToClean);
-            knownIndelsToTry.clear();
-            indelRodsSeen.clear();
-
+        if ( readsToClean.size() > 0 ) {
+            GenomeLoc earliestPossibleMove = getToolkit().getGenomeLocParser().createGenomeLoc(readsToClean.getReads().get(0));
+            if ( manager.canMoveReads(earliestPossibleMove) )
+                clean(readsToClean);
             emitReadLists();
+        } else if ( readsNotToClean.size() > 0 ) {
+            emitReadLists();                            
         }
+
+        knownIndelsToTry.clear();
+        indelRodsSeen.clear();
 
         if ( OUT_INDELS != null ) {
             try {
@@ -539,12 +539,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         if ( N_WAY_OUT != null ) {
             try {
-                for ( SAMFileWriter w : nwayWriters.values() )
-                    w.close();
+                for ( ConstrainedMateFixingManager m : nwayWriters.values() )
+                    m.close();
             } catch (RuntimeIOException e) {
                 throw new UserException.ErrorWritingBamFile(e.getMessage());
             }
+        } else {
+            manager.close();    
         }
+
         if ( CHECKEARLY ) {
             logger.info("SW alignments runs: "+SWalignmentRuns);
             logger.info("SW alignments successfull: "+SWalignmentSuccess + " ("+SWalignmentSuccess/SWalignmentRuns+"% of SW runs)");
@@ -601,7 +604,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             return;
 
         byte[] reference = readsToClean.getReference(referenceReader);
-        int leftmostIndex = (int)readsToClean.getLocation().getStart();
+        int leftmostIndex = readsToClean.getLocation().getStart();
 
         final ArrayList<SAMRecord> refReads = new ArrayList<SAMRecord>();                 // reads that perfectly match ref
         final ArrayList<AlignedRead> altReads = new ArrayList<AlignedRead>();               // reads that don't perfectly match
