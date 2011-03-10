@@ -1,3 +1,27 @@
+<!--
+  ~ Copyright (c) 2011, The Broad Institute
+  ~
+  ~ Permission is hereby granted, free of charge, to any person
+  ~ obtaining a copy of this software and associated documentation
+  ~ files (the "Software"), to deal in the Software without
+  ~ restriction, including without limitation the rights to use,
+  ~ copy, modify, merge, publish, distribute, sublicense, and/or sell
+  ~ copies of the Software, and to permit persons to whom the
+  ~ Software is furnished to do so, subject to the following
+  ~ conditions:
+  ~
+  ~ The above copyright notice and this permission notice shall be
+  ~ included in all copies or substantial portions of the Software.
+  ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  ~ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+  ~ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  ~ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  ~ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+  ~ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  ~ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+  ~ OTHER DEALINGS IN THE SOFTWARE.
+  -->
+
 <project name="Sting" default="dist" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
     <description>Compile and distribute the Sting toolkit</description>
     <property name="build.sysclasspath" value="first" />
@@ -34,7 +58,7 @@
 
     <property environment="env"/>
 
-    <property name="drmaa.file" value="${env.SGE_ROOT}/lib/drmaa.jar" />
+    <property name="drmaa.jar" value="${env.SGE_ROOT}/lib/drmaa.jar" />
 
     <patternset id="java.source.pattern">
         <include name="**/*.java"/>
@@ -111,7 +135,7 @@
     </target>
 
     <target name="init.gridengine" depends="init" if="include.gridengine">
-        <copy todir="lib" file="${drmaa.file}"/>
+        <copy todir="lib" file="${drmaa.jar}"/>
     </target>
 
     <target name="resolve" depends="init.resolve,init,init.gridengine"
@@ -164,7 +188,7 @@
         <!-- Include Grid Engine in the compile if SGE_ROOT is available. -->
         <!-- Based off of http://wikis.sun.com/display/GridEngine/Automating+Grid+Engine+Functions+Through+DRMAA -->
         <condition property="include.gridengine">
-            <available file="${drmaa.file}"/>
+            <available file="${drmaa.jar}"/>
         </condition>
 
         <!-- Get the pipeline run type.  Default to dry.  -->
@@ -245,6 +269,7 @@
                 </not>
                 <uptodate targetfile="${queue-extensions.source.dir}">
                     <srcfiles refid="java.class.files"/>
+                    <srcfiles file="${queue-extensions.gatk.jar}"/>
                 </uptodate>
             </or>
         </condition>
@@ -254,11 +279,15 @@
     <target name="queue-extensions.generate" depends="extracthelp,init.queue-extensions.generate" unless="uptodate.queue-extensions.generate" description="generate GATK modules for Queue">
         <mkdir dir="${queue-extensions.source.dir}"/>
         <echo>Generating Queue GATK extensions...</echo>
-        <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" classpathref="scala.dependencies">
+        <java fork="true" failonerror="true" classname="org.broadinstitute.sting.queue.extensions.gatk.GATKExtensionsGenerator" >
             <arg value="-outDir" />
             <arg path="${queue-extensions.source.dir}" />
             <arg value="-l" />
             <arg value="WARN" />
+            <classpath>
+                <file file="${queue-extensions.gatk.jar}"/>
+                <path refid="scala.dependencies"/>
+            </classpath>
         </java>
         <touch>
             <file file="${queue-extensions.source.dir}"/>
