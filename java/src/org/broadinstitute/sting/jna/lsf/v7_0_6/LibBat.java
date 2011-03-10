@@ -29,6 +29,31 @@ import com.sun.jna.ptr.*;
 import org.broadinstitute.sting.jna.clibrary.JNAUtils;
 import org.broadinstitute.sting.jna.clibrary.LibC;
 
+/*
+  NOTE: This library uses Pointer for some Struct.ByReference members going
+  against the JNA recommendations at http://jna.java.net/#structure_use
+  Instead stuct arrays are Pointers and each structure contains a
+  constructor that can accept the Pointer iff the size of the array is
+  known to be greater than zero.
+
+  This was especially problematic in jobInfoEnt->items->resName. When
+  jobInfo->reserveCnt was zero jobInfoItems->items was not necessarily null.
+
+  LSF will often reuse memory for structure arrays but will set the
+  array size / count (reserveCnt above) to zero when the array should
+  not be accessed. When LSF has reused memory and points to a non-null
+  structure pointer (items) the inner structure may contain further
+  garbage pointers (especially items->resName).
+
+  When JNA sees a non-null Structure.ByReference it will autoRead() the
+  member. When autoRead() eventually gets to the items->resName trying
+  to run strlen on the bad memory address causes a SIGSEGV.
+
+  By using a Pointer instead of the Structure.ByReference JNA will not
+  automatically autoRead(), and the API user will have to pass the
+  pointer to the Structure on their own.
+*/
+
 /**
  * JNA wrappers for LSF's lsbatch.h and -lbat
  *
@@ -65,6 +90,9 @@ public class LibBat {
             LibC.setenv("BSUB_QUIET", "Y", 1);
         Native.register("bat");
     }
+
+    /** Max job name length as defined by 'man bsub'. */
+    public static final int MAX_JOB_NAME_LEN = 4094;
 
 /* if only everyone had <paths.h> */
     public static final String _PATH_NULL = "/dev/null";
@@ -4870,11 +4898,10 @@ public class LibBat {
      * \brief  xFile
      */
     public static class xFile extends Structure {
-        public static class ByReference extends xFile implements Structure.ByReference {
-        }
-
-        public static class ByValue extends xFile implements Structure.ByValue {
-        }
+        public static class ByReference extends xFile implements Structure.ByReference {}
+        public static class ByValue extends xFile implements Structure.ByValue {}
+        public xFile() {}
+        public xFile(Pointer p) { super(p); read(); }
 
 
         /**
@@ -5026,11 +5053,10 @@ public class LibBat {
      * \extend submit data structure
      */
     public static class submit_ext extends Structure {
-        public static class ByReference extends submit_ext implements Structure.ByReference {
-        }
-
-        public static class ByValue extends submit_ext implements Structure.ByValue {
-        }
+        public static class ByReference extends submit_ext implements Structure.ByReference {}
+        public static class ByValue extends submit_ext implements Structure.ByValue {}
+        public submit_ext() {}
+        public submit_ext(Pointer p) { super(p); read(); }
 
 
         /**
@@ -5056,11 +5082,10 @@ public class LibBat {
      * \brief  submit request structure.
      */
     public static class submit extends Structure {
-        public static class ByReference extends submit implements Structure.ByReference {
-        }
-
-        public static class ByValue extends submit implements Structure.ByValue {
-        }
+        public static class ByReference extends submit implements Structure.ByReference {}
+        public static class ByValue extends submit implements Structure.ByValue {}
+        public submit() {}
+        public submit(Pointer p) { super(p); read(); }
 
 
         /**
@@ -5183,7 +5208,7 @@ public class LibBat {
         /**
          * < The array of file transfer specifications. (The xFile structure is defined in <lsf/lsbatch.h>.)
          */
-        public xFile.ByReference xf;
+        public Pointer /* xFile.ByReference */ xf;
 
         /**
          * < The job pre-execution command.
@@ -5364,11 +5389,10 @@ public class LibBat {
      * \brief submit reply.
      */
     public static class submitReply extends Structure {
-        public static class ByReference extends submitReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends submitReply implements Structure.ByValue {
-        }
+        public static class ByReference extends submitReply implements Structure.ByReference {}
+        public static class ByValue extends submitReply implements Structure.ByValue {}
+        public submitReply() {}
+        public submitReply(Pointer p) { super(p); read(); }
 
 
         /**
@@ -5401,11 +5425,10 @@ public class LibBat {
      * \brief  submit migration request.
      */
     public static class submig extends Structure {
-        public static class ByReference extends submig implements Structure.ByReference {
-        }
-
-        public static class ByValue extends submig implements Structure.ByValue {
-        }
+        public static class ByReference extends submig implements Structure.ByReference {}
+        public static class ByValue extends submig implements Structure.ByValue {}
+        public submig() {}
+        public submig(Pointer p) { super(p); read(); }
 
 
         /**
@@ -5434,11 +5457,10 @@ public class LibBat {
 /* structure for lsb_addjgrp() call */
 
     public static class jgrpAdd extends Structure {
-        public static class ByReference extends jgrpAdd implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jgrpAdd implements Structure.ByValue {
-        }
+        public static class ByReference extends jgrpAdd implements Structure.ByReference {}
+        public static class ByValue extends jgrpAdd implements Structure.ByValue {}
+        public jgrpAdd() {}
+        public jgrpAdd(Pointer p) { super(p); read(); }
 
         public String groupSpec;
         public String timeEvent;
@@ -5452,11 +5474,10 @@ public class LibBat {
 /* structure for lsb_modjgrp() call */
 
     public static class jgrpMod extends Structure {
-        public static class ByReference extends jgrpMod implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jgrpMod implements Structure.ByValue {
-        }
+        public static class ByReference extends jgrpMod implements Structure.ByReference {}
+        public static class ByValue extends jgrpMod implements Structure.ByValue {}
+        public jgrpMod() {}
+        public jgrpMod(Pointer p) { super(p); read(); }
 
         public String destSpec;
         public jgrpAdd jgrp;
@@ -5467,11 +5488,10 @@ public class LibBat {
 /* structure for lsb_addjgrp() and lsb_modjgrp() call reply */
 
     public static class jgrpReply extends Structure {
-        public static class ByReference extends jgrpReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jgrpReply implements Structure.ByValue {
-        }
+        public static class ByReference extends jgrpReply implements Structure.ByReference {}
+        public static class ByValue extends jgrpReply implements Structure.ByValue {}
+        public jgrpReply() {}
+        public jgrpReply(Pointer p) { super(p); read(); }
 
         public String badJgrpName;
         public int num;
@@ -5484,11 +5504,10 @@ public class LibBat {
      * \brief Signal a group of jobs.
      */
     public static class signalBulkJobs extends Structure {
-        public static class ByReference extends signalBulkJobs implements Structure.ByReference {
-        }
-
-        public static class ByValue extends signalBulkJobs implements Structure.ByValue {
-        }
+        public static class ByReference extends signalBulkJobs implements Structure.ByReference {}
+        public static class ByValue extends signalBulkJobs implements Structure.ByValue {}
+        public signalBulkJobs() {}
+        public signalBulkJobs(Pointer p) { super(p); read(); }
 
 
         /**
@@ -5517,11 +5536,10 @@ public class LibBat {
 /* structure for lsb_ctrljgrp() call */
 
     public static class jgrpCtrl extends Structure {
-        public static class ByReference extends jgrpCtrl implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jgrpCtrl implements Structure.ByValue {
-        }
+        public static class ByReference extends jgrpCtrl implements Structure.ByReference {}
+        public static class ByValue extends jgrpCtrl implements Structure.ByValue {}
+        public jgrpCtrl() {}
+        public jgrpCtrl(Pointer p) { super(p); read(); }
 
         public String groupSpec;
         public String userSpec;
@@ -5905,11 +5923,10 @@ public class LibBat {
  */
 
     public static class jgrp extends Structure {
-        public static class ByReference extends jgrp implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jgrp implements Structure.ByValue {
-        }
+        public static class ByReference extends jgrp implements Structure.ByReference {}
+        public static class ByValue extends jgrp implements Structure.ByValue {}
+        public jgrp() {}
+        public jgrp(Pointer p) { super(p); read(); }
 
         public String name;
         public String path;
@@ -5924,11 +5941,10 @@ public class LibBat {
 /* Structure for lsb_setjobattr() call */
 
     public static class jobAttrInfoEnt extends Structure {
-        public static class ByReference extends jobAttrInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobAttrInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends jobAttrInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends jobAttrInfoEnt implements Structure.ByValue {}
+        public jobAttrInfoEnt() {}
+        public jobAttrInfoEnt(Pointer p) { super(p); read(); }
 
 
 /* id of the job */
@@ -5947,11 +5963,10 @@ public class LibBat {
      * \brief  job attribute setting log.
      */
     public static class jobAttrSetLog extends Structure {
-        public static class ByReference extends jobAttrSetLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobAttrSetLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobAttrSetLog implements Structure.ByReference {}
+        public static class ByValue extends jobAttrSetLog implements Structure.ByValue {}
+        public jobAttrSetLog() {}
+        public jobAttrSetLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -5986,11 +6001,10 @@ public class LibBat {
      * \brief  job information head.
      */
     public static class jobInfoHead extends Structure {
-        public static class ByReference extends jobInfoHead implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobInfoHead implements Structure.ByValue {
-        }
+        public static class ByReference extends jobInfoHead implements Structure.ByReference {}
+        public static class ByValue extends jobInfoHead implements Structure.ByValue {}
+        public jobInfoHead() {}
+        public jobInfoHead(Pointer p) { super(p); read(); }
 
 
         /**
@@ -6040,11 +6054,10 @@ public class LibBat {
      * \brief job Information head extent
      */
     public static class jobInfoHeadExt extends Structure {
-        public static class ByReference extends jobInfoHeadExt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobInfoHeadExt implements Structure.ByValue {
-        }
+        public static class ByReference extends jobInfoHeadExt implements Structure.ByReference {}
+        public static class ByValue extends jobInfoHeadExt implements Structure.ByValue {}
+        public jobInfoHeadExt() {}
+        public jobInfoHeadExt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -6064,11 +6077,10 @@ public class LibBat {
      * \brief structure reserveItem
      */
     public static class reserveItem extends Structure {
-        public static class ByReference extends reserveItem implements Structure.ByReference {
-        }
-
-        public static class ByValue extends reserveItem implements Structure.ByValue {
-        }
+        public static class ByReference extends reserveItem implements Structure.ByReference {}
+        public static class ByValue extends reserveItem implements Structure.ByValue {}
+        public reserveItem() {}
+        public reserveItem(Pointer p) { super(p); read(); }
 
 
         /**
@@ -6098,11 +6110,10 @@ public class LibBat {
      * \brief  job information entry.
      */
     public static class jobInfoEnt extends Structure {
-        public static class ByReference extends jobInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends jobInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends jobInfoEnt implements Structure.ByValue {}
+        public jobInfoEnt() {}
+        public jobInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -6409,28 +6420,7 @@ public class LibBat {
         /**
          * < Detail reservation information for each kind of resource
          */
-        /*
-          TODO: Go against the JNA recommendations at
-          http://jna.java.net/#structure_use and instead change each structure
-          to use Pointers instead of Structure.ByReference while also providing
-          Structure(Pointer) constructors for use for future API users.
-
-          LSF will often reuse memory for structure arrays but will set the
-          array size / count (reserveCnt above) to zero when the array should
-          not be accessed. When LSF has reused memory and points to a non-null
-          structure pointer (items) the inner structure may contain further
-          garbage pointers (especially items->resName).
-
-          When JNA sees a non-null Structure.ByReference it will autoRead() the
-          member. When autoRead() eventually gets to the items->resName trying
-          to run strlen on the bad memory address causes a SIGSEGV.
-
-          By using a Pointer instead of the Structure.ByReference JNA will not
-          automatically autoRead(), and the API user will have to pass the
-          pointer to the Structure on their own.
-        */
-        //public reserveItem.ByReference items;
-        public Pointer items;
+        public Pointer /* reserveItem.ByReference */ items;
 
         /**
          * < Absolute priority scheduling (APS) string set by administrators to denote ADMIN factor APS value.
@@ -6491,11 +6481,10 @@ public class LibBat {
      * \brief  job Information Request
      */
     public static class jobInfoReq extends Structure {
-        public static class ByReference extends jobInfoReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobInfoReq implements Structure.ByValue {
-        }
+        public static class ByReference extends jobInfoReq implements Structure.ByReference {}
+        public static class ByValue extends jobInfoReq implements Structure.ByValue {}
+        public jobInfoReq() {}
+        public jobInfoReq(Pointer p) { super(p); read(); }
 
 
         /**
@@ -6550,11 +6539,10 @@ public class LibBat {
      * \brief  user information entry.
      */
     public static class userInfoEnt extends Structure {
-        public static class ByReference extends userInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends userInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends userInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends userInfoEnt implements Structure.ByValue {}
+        public userInfoEnt() {}
+        public userInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -6618,11 +6606,10 @@ public class LibBat {
 /* UserEquivalent info */
 
     public static class userEquivalentInfoEnt extends Structure {
-        public static class ByReference extends userEquivalentInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends userEquivalentInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends userEquivalentInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends userEquivalentInfoEnt implements Structure.ByValue {}
+        public userEquivalentInfoEnt() {}
+        public userEquivalentInfoEnt(Pointer p) { super(p); read(); }
 
         public String equivalentUsers;
     }
@@ -6632,11 +6619,10 @@ public class LibBat {
 /* UserMapping info */
 
     public static class userMappingInfoEnt extends Structure {
-        public static class ByReference extends userMappingInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends userMappingInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends userMappingInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends userMappingInfoEnt implements Structure.ByValue {}
+        public userMappingInfoEnt() {}
+        public userMappingInfoEnt(Pointer p) { super(p); read(); }
 
 
 /* Users in the local cluster */
@@ -6658,11 +6644,10 @@ public class LibBat {
      * \brief  APS structures used for mapping between factors
      */
     public static class apsFactorMap extends Structure {
-        public static class ByReference extends apsFactorMap implements Structure.ByReference {
-        }
-
-        public static class ByValue extends apsFactorMap implements Structure.ByValue {
-        }
+        public static class ByReference extends apsFactorMap implements Structure.ByReference {}
+        public static class ByValue extends apsFactorMap implements Structure.ByValue {}
+        public apsFactorMap() {}
+        public apsFactorMap(Pointer p) { super(p); read(); }
 
 
         /**
@@ -6682,11 +6667,10 @@ public class LibBat {
      * \brief  APS structures used for mapping between factors
      */
     public static class apsLongNameMap extends Structure {
-        public static class ByReference extends apsLongNameMap implements Structure.ByReference {
-        }
-
-        public static class ByValue extends apsLongNameMap implements Structure.ByValue {
-        }
+        public static class ByReference extends apsLongNameMap implements Structure.ByReference {}
+        public static class ByValue extends apsLongNameMap implements Structure.ByValue {}
+        public apsLongNameMap() {}
+        public apsLongNameMap(Pointer p) { super(p); read(); }
 
 
         /**
@@ -6760,11 +6744,10 @@ public class LibBat {
      * queueInfoEnt  queue information entry.
      */
     public static class queueInfoEnt extends Structure {
-        public static class ByReference extends queueInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends queueInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends queueInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends queueInfoEnt implements Structure.ByValue {}
+        public queueInfoEnt() {}
+        public queueInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -7026,7 +7009,7 @@ public class LibBat {
         /**
          * < (Only used for queues with fairshare policy) a share account vector capturing the fairshare information of the users using the queue. The storage for the array of queueInfoEnt structures will be reused by the next call.
          */
-        public shareAcctInfoEnt.ByReference shareAccts;
+        public Pointer /* shareAcctInfoEnt.ByReference */ shareAccts;
 
         /**
          * < The directory where the checkpoint files are created.
@@ -7241,17 +7224,17 @@ public class LibBat {
         /**
          * < List of calculation factors for absolute priority scheduling (APS)
          */
-        public apsFactorInfo.ByReference apsFactorInfoList;
+        public Pointer /* apsFactorInfo.ByReference */ apsFactorInfoList;
 
         /**
          * < The mapping of factors to subfactors for absolute priority scheduling (APS).
          */
-        public apsFactorMap.ByReference apsFactorMaps;
+        public Pointer /* apsFactorMap.ByReference */ apsFactorMaps;
 
         /**
          * < The mapping of factors to their long names for absolute priority scheduling (APS).
          */
-        public apsLongNameMap.ByReference apsLongNames;
+        public Pointer /* apsLongNameMap.ByReference */ apsLongNames;
 
         /**
          * < Maximum number of job preempted times.
@@ -7332,11 +7315,10 @@ public class LibBat {
      * \brief  host information entry.
      */
     public static class hostInfoEnt extends Structure {
-        public static class ByReference extends hostInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends hostInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends hostInfoEnt implements Structure.ByValue {}
+        public hostInfoEnt() {}
+        public hostInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -7508,11 +7490,10 @@ public class LibBat {
      * \brief  Host information condition entry.
      */
     public static class condHostInfoEnt extends Structure {
-        public static class ByReference extends condHostInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends condHostInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends condHostInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends condHostInfoEnt implements Structure.ByValue {}
+        public condHostInfoEnt() {}
+        public condHostInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -7555,18 +7536,17 @@ public class LibBat {
         /**
          * < The status of each host in the host group
          */
-        public hostInfoEnt.ByReference hostInfo;
+        public Pointer /* hostInfoEnt.ByReference */ hostInfo;
 
     }
 
 
 
     public static class adjustParam extends Structure {
-        public static class ByReference extends adjustParam implements Structure.ByReference {
-        }
-
-        public static class ByValue extends adjustParam implements Structure.ByValue {
-        }
+        public static class ByReference extends adjustParam implements Structure.ByReference {}
+        public static class ByValue extends adjustParam implements Structure.ByValue {}
+        public adjustParam() {}
+        public adjustParam(Pointer p) { super(p); read(); }
 
 
 /* key name of share adjustment */
@@ -7627,11 +7607,10 @@ public class LibBat {
     //public String[] FairAdjustPairArrayName = new String[FAIR_ADJUST_KVPS_SUM];
 
     public static class shareAdjustPair extends Structure {
-        public static class ByReference extends shareAdjustPair implements Structure.ByReference {
-        }
-
-        public static class ByValue extends shareAdjustPair implements Structure.ByValue {
-        }
+        public static class ByReference extends shareAdjustPair implements Structure.ByReference {}
+        public static class ByValue extends shareAdjustPair implements Structure.ByValue {}
+        public shareAdjustPair() {}
+        public shareAdjustPair(Pointer p) { super(p); read(); }
 
 
 /* queue share account */
@@ -7656,7 +7635,7 @@ public class LibBat {
         public int numPair;
 
 /* share adjustment key value pair */
-        public adjustParam.ByReference adjustParam;
+        public Pointer /* adjustParam.ByReference */ adjustParam;
     }
 
 
@@ -7670,11 +7649,10 @@ public class LibBat {
      * \brief   gets user information about host partitions.
      */
     public static class hostPartUserInfo extends Structure {
-        public static class ByReference extends hostPartUserInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostPartUserInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends hostPartUserInfo implements Structure.ByReference {}
+        public static class ByValue extends hostPartUserInfo implements Structure.ByValue {}
+        public hostPartUserInfo() {}
+        public hostPartUserInfo(Pointer p) { super(p); read(); }
 
 
         /**
@@ -7726,11 +7704,10 @@ public class LibBat {
      * \brief  gets information entry about host partitions.
      */
     public static class hostPartInfoEnt extends Structure {
-        public static class ByReference extends hostPartInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostPartInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends hostPartInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends hostPartInfoEnt implements Structure.ByValue {}
+        public hostPartInfoEnt() {}
+        public hostPartInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -7751,7 +7728,7 @@ public class LibBat {
         /**
          * < An array of hostPartUserInfo structures which hold information on users in this host partition.
          */
-        public hostPartUserInfo.ByReference users;
+        public Pointer /* hostPartUserInfo.ByReference */ users;
     }
 
 
@@ -7762,11 +7739,10 @@ public class LibBat {
      * \brief Library rappresentation of the share account
      */
     public static class shareAcctInfoEnt extends Structure {
-        public static class ByReference extends shareAcctInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends shareAcctInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends shareAcctInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends shareAcctInfoEnt implements Structure.ByValue {}
+        public shareAcctInfoEnt() {}
+        public shareAcctInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -7830,11 +7806,10 @@ public class LibBat {
      * \brief The parameterInfo structure contains the following fields:
      */
     public static class parameterInfo extends Structure {
-        public static class ByReference extends parameterInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends parameterInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends parameterInfo implements Structure.ByReference {}
+        public static class ByValue extends parameterInfo implements Structure.ByValue {}
+        public parameterInfo() {}
+        public parameterInfo(Pointer p) { super(p); read(); }
 
 
         /**
@@ -8690,11 +8665,10 @@ public class LibBat {
      * \brief  calendar Information Entry.
      */
     public static class calendarInfoEnt extends Structure {
-        public static class ByReference extends calendarInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends calendarInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends calendarInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends calendarInfoEnt implements Structure.ByValue {}
+        public calendarInfoEnt() {}
+        public calendarInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -8775,11 +8749,10 @@ public class LibBat {
     public static final int EV_USER = 3;
 
     public static class loadInfoEnt extends Structure {
-        public static class ByReference extends loadInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends loadInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends loadInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends loadInfoEnt implements Structure.ByValue {}
+        public loadInfoEnt() {}
+        public loadInfoEnt(Pointer p) { super(p); read(); }
 
         public String hostName;
         public int status;
@@ -8789,11 +8762,10 @@ public class LibBat {
 
 
     public static class queuePairEnt extends Structure {
-        public static class ByReference extends queuePairEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends queuePairEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends queuePairEnt implements Structure.ByReference {}
+        public static class ByValue extends queuePairEnt implements Structure.ByValue {}
+        public queuePairEnt() {}
+        public queuePairEnt(Pointer p) { super(p); read(); }
 
         public String local;
         public String remote;
@@ -8804,11 +8776,10 @@ public class LibBat {
 
 
     public static class rmbCluAppEnt extends Structure {
-        public static class ByReference extends rmbCluAppEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends rmbCluAppEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends rmbCluAppEnt implements Structure.ByReference {}
+        public static class ByValue extends rmbCluAppEnt implements Structure.ByValue {}
+        public rmbCluAppEnt() {}
+        public rmbCluAppEnt(Pointer p) { super(p); read(); }
 
         public String name;
         public String description;
@@ -8833,11 +8804,10 @@ public class LibBat {
 /* consumer cluster status in lease model */
 
     public static class consumerCluEnt extends Structure {
-        public static class ByReference extends consumerCluEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends consumerCluEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends consumerCluEnt implements Structure.ByReference {}
+        public static class ByValue extends consumerCluEnt implements Structure.ByValue {}
+        public consumerCluEnt() {}
+        public consumerCluEnt(Pointer p) { super(p); read(); }
 
 
 /* consumer cluster name */
@@ -8851,11 +8821,10 @@ public class LibBat {
 /* provider cluster status in lease model */
 
     public static class providerCluEnt extends Structure {
-        public static class ByReference extends providerCluEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends providerCluEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends providerCluEnt implements Structure.ByReference {}
+        public static class ByValue extends providerCluEnt implements Structure.ByValue {}
+        public providerCluEnt() {}
+        public providerCluEnt(Pointer p) { super(p); read(); }
 
 
 /* provider cluster name */
@@ -8869,17 +8838,16 @@ public class LibBat {
 /* for remote batch model, its definition is same as  clusterInfoEnt*/
 
     public static class rmbCluInfoEnt extends Structure {
-        public static class ByReference extends rmbCluInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends rmbCluInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends rmbCluInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends rmbCluInfoEnt implements Structure.ByValue {}
+        public rmbCluInfoEnt() {}
+        public rmbCluInfoEnt(Pointer p) { super(p); read(); }
 
         public String cluster;
         public int numPairs;
-        public queuePairEnt.ByReference queues;
+        public Pointer /* queuePairEnt.ByReference */ queues;
         public int numApps;
-        public rmbCluAppEnt.ByReference apps;
+        public Pointer /* rmbCluAppEnt.ByReference */ apps;
     }
 
 
@@ -8887,11 +8855,10 @@ public class LibBat {
 /* for leasing model */
 
     public static class leaseCluInfoEnt extends Structure {
-        public static class ByReference extends leaseCluInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends leaseCluInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends leaseCluInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends leaseCluInfoEnt implements Structure.ByValue {}
+        public leaseCluInfoEnt() {}
+        public leaseCluInfoEnt(Pointer p) { super(p); read(); }
 
 
 /* 1, import from all if "allremote" defined in lease queue*/
@@ -8901,13 +8868,13 @@ public class LibBat {
         public int numConsumer;
 
 /* the consumer cluster array */
-        public consumerCluEnt.ByReference consumerClus;
+        public Pointer /* consumerCluEnt.ByReference */ consumerClus;
 
 /* the array size of provider cluster array */
         public int numProvider;
 
 /* the provider cluster array */
-        public providerCluEnt.ByReference providerClus;
+        public Pointer /* providerCluEnt.ByReference */ providerClus;
     }
 
 
@@ -8920,17 +8887,16 @@ public class LibBat {
  */
 
     public static class clusterInfoEnt extends Structure {
-        public static class ByReference extends clusterInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends clusterInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends clusterInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends clusterInfoEnt implements Structure.ByValue {}
+        public clusterInfoEnt() {}
+        public clusterInfoEnt(Pointer p) { super(p); read(); }
 
         public String cluster;
         public int numPairs;
-        public queuePairEnt.ByReference queues;
+        public Pointer /* queuePairEnt.ByReference */ queues;
         public int numApps;
-        public rmbCluAppEnt.ByReference apps;
+        public Pointer /* rmbCluAppEnt.ByReference */ apps;
     }
 
 
@@ -8939,11 +8905,10 @@ public class LibBat {
  */
 
     public static class clusterInfoEntEx extends Structure {
-        public static class ByReference extends clusterInfoEntEx implements Structure.ByReference {
-        }
-
-        public static class ByValue extends clusterInfoEntEx implements Structure.ByValue {
-        }
+        public static class ByReference extends clusterInfoEntEx implements Structure.ByReference {}
+        public static class ByValue extends clusterInfoEntEx implements Structure.ByValue {}
+        public clusterInfoEntEx() {}
+        public clusterInfoEntEx(Pointer p) { super(p); read(); }
 
 
 /* cluster status related to remote batch*/
@@ -8956,11 +8921,10 @@ public class LibBat {
 
 
     public static class eventInfoEnt extends Structure {
-        public static class ByReference extends eventInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends eventInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends eventInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends eventInfoEnt implements Structure.ByValue {}
+        public eventInfoEnt() {}
+        public eventInfoEnt(Pointer p) { super(p); read(); }
 
 
 /* name of event */
@@ -9056,11 +9020,10 @@ public class LibBat {
      * \brief Structure for representing the shares assigned to a user group.
      */
     public static class userShares extends Structure {
-        public static class ByReference extends userShares implements Structure.ByReference {
-        }
-
-        public static class ByValue extends userShares implements Structure.ByValue {
-        }
+        public static class ByReference extends userShares implements Structure.ByReference {}
+        public static class ByValue extends userShares implements Structure.ByValue {}
+        public userShares() {}
+        public userShares(Pointer p) { super(p); read(); }
 
 
         /**
@@ -9081,11 +9044,10 @@ public class LibBat {
      * \brief  group information entry.
      */
     public static class groupInfoEnt extends Structure {
-        public static class ByReference extends groupInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends groupInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends groupInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends groupInfoEnt implements Structure.ByValue {}
+        public groupInfoEnt() {}
+        public groupInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -9111,7 +9073,7 @@ public class LibBat {
         /**
          * < The user shares rappresentation
          */
-        public userShares.ByReference userShares;
+        public Pointer /* userShares.ByReference */ userShares;
 
         /**
          *  \addtogroup group_define group_define
@@ -9170,11 +9132,10 @@ public class LibBat {
      * \brief  run job request.
      */
     public static class runJobRequest extends Structure {
-        public static class ByReference extends runJobRequest implements Structure.ByReference {
-        }
-
-        public static class ByValue extends runJobRequest implements Structure.ByValue {
-        }
+        public static class ByReference extends runJobRequest implements Structure.ByReference {}
+        public static class ByValue extends runJobRequest implements Structure.ByValue {}
+        public runJobRequest() {}
+        public runJobRequest(Pointer p) { super(p); read(); }
 
 
         /**
@@ -9286,11 +9247,10 @@ public class LibBat {
      * define an external message of a job.
      */
     public static class jobExternalMsgReq extends Structure {
-        public static class ByReference extends jobExternalMsgReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobExternalMsgReq implements Structure.ByValue {
-        }
+        public static class ByReference extends jobExternalMsgReq implements Structure.ByReference {}
+        public static class ByValue extends jobExternalMsgReq implements Structure.ByValue {}
+        public jobExternalMsgReq() {}
+        public jobExternalMsgReq(Pointer p) { super(p); read(); }
 
 
         /**
@@ -9370,11 +9330,10 @@ public class LibBat {
      * define an external message reply.
      */
     public static class jobExternalMsgReply extends Structure {
-        public static class ByReference extends jobExternalMsgReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobExternalMsgReply implements Structure.ByValue {
-        }
+        public static class ByReference extends jobExternalMsgReply implements Structure.ByReference {}
+        public static class ByValue extends jobExternalMsgReply implements Structure.ByValue {}
+        public jobExternalMsgReply() {}
+        public jobExternalMsgReply(Pointer p) { super(p); read(); }
 
 
         /**
@@ -9425,11 +9384,10 @@ public class LibBat {
      * Data structures representing the symphony job status update request.
      */
     public static class symJobInfo extends Structure {
-        public static class ByReference extends symJobInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends symJobInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends symJobInfo implements Structure.ByReference {}
+        public static class ByValue extends symJobInfo implements Structure.ByValue {}
+        public symJobInfo() {}
+        public symJobInfo(Pointer p) { super(p); read(); }
 
 
 /* the service parititon that SSM works for */
@@ -9451,11 +9409,10 @@ public class LibBat {
 
 
     public static class symJobStatus extends Structure {
-        public static class ByReference extends symJobStatus implements Structure.ByReference {
-        }
-
-        public static class ByValue extends symJobStatus implements Structure.ByValue {
-        }
+        public static class ByReference extends symJobStatus implements Structure.ByReference {}
+        public static class ByValue extends symJobStatus implements Structure.ByValue {}
+        public symJobStatus() {}
+        public symJobStatus(Pointer p) { super(p); read(); }
 
 
 /* text description of the symphony job status */
@@ -9465,11 +9422,10 @@ public class LibBat {
 
 
     public static class symJobProgress extends Structure {
-        public static class ByReference extends symJobProgress implements Structure.ByReference {
-        }
-
-        public static class ByValue extends symJobProgress implements Structure.ByValue {
-        }
+        public static class ByReference extends symJobProgress implements Structure.ByReference {}
+        public static class ByValue extends symJobProgress implements Structure.ByValue {}
+        public symJobProgress() {}
+        public symJobProgress(Pointer p) { super(p); read(); }
 
 
 /* text description of the symphony job progress */
@@ -9480,11 +9436,10 @@ public class LibBat {
 
 
     public static class symJobStatusUpdateReq extends Structure {
-        public static class ByReference extends symJobStatusUpdateReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends symJobStatusUpdateReq implements Structure.ByValue {
-        }
+        public static class ByReference extends symJobStatusUpdateReq implements Structure.ByReference {}
+        public static class ByValue extends symJobStatusUpdateReq implements Structure.ByValue {}
+        public symJobStatusUpdateReq() {}
+        public symJobStatusUpdateReq(Pointer p) { super(p); read(); }
 
 
 /* the job to be update info into MBD */
@@ -9499,21 +9454,20 @@ public class LibBat {
         public int bitOption;
         public symJobInfo info;
         public int numOfJobStatus;
-        public symJobStatus.ByReference status;
+        public Pointer /* symJobStatus.ByReference */ status;
         public symJobProgress progress;
     }
 
 
 
     public static class symJobStatusUpdateReqArray extends Structure {
-        public static class ByReference extends symJobStatusUpdateReqArray implements Structure.ByReference {
-        }
-
-        public static class ByValue extends symJobStatusUpdateReqArray implements Structure.ByValue {
-        }
+        public static class ByReference extends symJobStatusUpdateReqArray implements Structure.ByReference {}
+        public static class ByValue extends symJobStatusUpdateReqArray implements Structure.ByValue {}
+        public symJobStatusUpdateReqArray() {}
+        public symJobStatusUpdateReqArray(Pointer p) { super(p); read(); }
 
         public int numOfJobReq;
-        public symJobStatusUpdateReq.ByReference symJobReqs;
+        public Pointer /* symJobStatusUpdateReq.ByReference */ symJobReqs;
     }
 
 
@@ -9524,11 +9478,10 @@ public class LibBat {
      */
 
     public static class symJobUpdateAck extends Structure {
-        public static class ByReference extends symJobUpdateAck implements Structure.ByReference {
-        }
-
-        public static class ByValue extends symJobUpdateAck implements Structure.ByValue {
-        }
+        public static class ByReference extends symJobUpdateAck implements Structure.ByReference {}
+        public static class ByValue extends symJobUpdateAck implements Structure.ByValue {}
+        public symJobUpdateAck() {}
+        public symJobUpdateAck(Pointer p) { super(p); read(); }
 
         public static int SYM_UPDATE_ACK_OK = 0;
         public static final int SYM_UPDATE_ACK_ERR = 1;
@@ -9541,11 +9494,10 @@ public class LibBat {
 
 
     public static class symJobStatusUpdateReply extends Structure {
-        public static class ByReference extends symJobStatusUpdateReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends symJobStatusUpdateReply implements Structure.ByValue {
-        }
+        public static class ByReference extends symJobStatusUpdateReply implements Structure.ByReference {}
+        public static class ByValue extends symJobStatusUpdateReply implements Structure.ByValue {}
+        public symJobStatusUpdateReply() {}
+        public symJobStatusUpdateReply(Pointer p) { super(p); read(); }
 
 
 /* the job to be update info into MBD */
@@ -9560,14 +9512,13 @@ public class LibBat {
 
 
     public static class symJobStatusUpdateReplyArray extends Structure {
-        public static class ByReference extends symJobStatusUpdateReplyArray implements Structure.ByReference {
-        }
-
-        public static class ByValue extends symJobStatusUpdateReplyArray implements Structure.ByValue {
-        }
+        public static class ByReference extends symJobStatusUpdateReplyArray implements Structure.ByReference {}
+        public static class ByValue extends symJobStatusUpdateReplyArray implements Structure.ByValue {}
+        public symJobStatusUpdateReplyArray() {}
+        public symJobStatusUpdateReplyArray(Pointer p) { super(p); read(); }
 
         public int numOfJobReply;
-        public symJobStatusUpdateReply.ByReference symJobReplys;
+        public Pointer /* symJobStatusUpdateReply.ByReference */ symJobReplys;
     }
 
 
@@ -9607,11 +9558,10 @@ public class LibBat {
      * \brief  requeued job
      */
     public static class jobrequeue extends Structure {
-        public static class ByReference extends jobrequeue implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobrequeue implements Structure.ByValue {
-        }
+        public static class ByReference extends jobrequeue implements Structure.ByReference {}
+        public static class ByValue extends jobrequeue implements Structure.ByValue {}
+        public jobrequeue() {}
+        public jobrequeue(Pointer p) { super(p); read(); }
 
 
         /**
@@ -9633,11 +9583,10 @@ public class LibBat {
 
 
     public static class requeueEStruct extends Structure {
-        public static class ByReference extends requeueEStruct implements Structure.ByReference {
-        }
-
-        public static class ByValue extends requeueEStruct implements Structure.ByValue {
-        }
+        public static class ByReference extends requeueEStruct implements Structure.ByReference {}
+        public static class ByValue extends requeueEStruct implements Structure.ByValue {}
+        public requeueEStruct() {}
+        public requeueEStruct(Pointer p) { super(p); read(); }
 
 
 /* requeue type: normal, exclude, other, prefer_other, etc. */
@@ -9662,14 +9611,13 @@ public class LibBat {
 
 
     public static class requeue extends Structure {
-        public static class ByReference extends requeue implements Structure.ByReference {
-        }
-
-        public static class ByValue extends requeue implements Structure.ByValue {
-        }
+        public static class ByReference extends requeue implements Structure.ByReference {}
+        public static class ByValue extends requeue implements Structure.ByValue {}
+        public requeue() {}
+        public requeue(Pointer p) { super(p); read(); }
 
         public int numReqValues;
-        public requeueEStruct.ByReference reqValues;
+        public Pointer /* requeueEStruct.ByReference */ reqValues;
     }
 
 
@@ -9683,11 +9631,10 @@ public class LibBat {
  */
 
     public static class serviceClass extends Structure {
-        public static class ByReference extends serviceClass implements Structure.ByReference {
-        }
-
-        public static class ByValue extends serviceClass implements Structure.ByValue {
-        }
+        public static class ByReference extends serviceClass implements Structure.ByReference {}
+        public static class ByValue extends serviceClass implements Structure.ByValue {}
+        public serviceClass() {}
+        public serviceClass(Pointer p) { super(p); read(); }
 
 
 /* SLA name */
@@ -9700,7 +9647,7 @@ public class LibBat {
         public int ngoals;
 
 /* The array of goals */
-        public objective.ByReference goals;
+        public Pointer /* objective.ByReference */ goals;
 
 /* Users allowed to use the SLA */
         public String userGroups;
@@ -9754,11 +9701,10 @@ public class LibBat {
  */
 
     public static class objective extends Structure {
-        public static class ByReference extends objective implements Structure.ByReference {
-        }
-
-        public static class ByValue extends objective implements Structure.ByValue {
-        }
+        public static class ByReference extends objective implements Structure.ByReference {}
+        public static class ByValue extends objective implements Structure.ByValue {}
+        public objective() {}
+        public objective(Pointer p) { super(p); read(); }
 
 
 /* goal specs from lsb.serviceclasses */
@@ -9791,11 +9737,10 @@ public class LibBat {
  */
 
     public static class slaControl extends Structure {
-        public static class ByReference extends slaControl implements Structure.ByReference {
-        }
-
-        public static class ByValue extends slaControl implements Structure.ByValue {
-        }
+        public static class ByReference extends slaControl implements Structure.ByReference {}
+        public static class ByValue extends slaControl implements Structure.ByValue {}
+        public slaControl() {}
+        public slaControl(Pointer p) { super(p); read(); }
 
 
 /* sla name */
@@ -9820,11 +9765,10 @@ public class LibBat {
 
 
     public static class slaControlExt extends Structure {
-        public static class ByReference extends slaControlExt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends slaControlExt implements Structure.ByValue {
-        }
+        public static class ByReference extends slaControlExt implements Structure.ByReference {}
+        public static class ByValue extends slaControlExt implements Structure.ByValue {}
+        public slaControlExt() {}
+        public slaControlExt(Pointer p) { super(p); read(); }
 
 
 /* whether exclusive allocation */
@@ -9843,11 +9787,10 @@ public class LibBat {
  */
 
     public static class appInfoEnt extends Structure {
-        public static class ByReference extends appInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends appInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends appInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends appInfoEnt implements Structure.ByValue {}
+        public appInfoEnt() {}
+        public appInfoEnt(Pointer p) { super(p); read(); }
 
 
 /* app name */
@@ -10097,11 +10040,10 @@ public class LibBat {
      * \brief The structure of queueCtrlReq
      */
     public static class queueCtrlReq extends Structure {
-        public static class ByReference extends queueCtrlReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends queueCtrlReq implements Structure.ByValue {
-        }
+        public static class ByReference extends queueCtrlReq implements Structure.ByReference {}
+        public static class ByValue extends queueCtrlReq implements Structure.ByValue {}
+        public queueCtrlReq() {}
+        public queueCtrlReq(Pointer p) { super(p); read(); }
 
 
         /**
@@ -10157,11 +10099,10 @@ public class LibBat {
      * \brief  Host control request.
      */
     public static class hostCtrlReq extends Structure {
-        public static class ByReference extends hostCtrlReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostCtrlReq implements Structure.ByValue {
-        }
+        public static class ByReference extends hostCtrlReq implements Structure.ByReference {}
+        public static class ByValue extends hostCtrlReq implements Structure.ByValue {}
+        public hostCtrlReq() {}
+        public hostCtrlReq(Pointer p) { super(p); read(); }
 
 
         /**
@@ -10187,11 +10128,10 @@ public class LibBat {
     public static final int HGHOST_DEL = 2;
 
     public static class hgCtrlReq extends Structure {
-        public static class ByReference extends hgCtrlReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hgCtrlReq implements Structure.ByValue {
-        }
+        public static class ByReference extends hgCtrlReq implements Structure.ByReference {}
+        public static class ByValue extends hgCtrlReq implements Structure.ByValue {}
+        public hgCtrlReq() {}
+        public hgCtrlReq(Pointer p) { super(p); read(); }
 
         public int opCode;
         public String grpname;
@@ -10203,11 +10143,10 @@ public class LibBat {
 
 
     public static class hgCtrlReply extends Structure {
-        public static class ByReference extends hgCtrlReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hgCtrlReply implements Structure.ByValue {
-        }
+        public static class ByReference extends hgCtrlReply implements Structure.ByReference {}
+        public static class ByValue extends hgCtrlReply implements Structure.ByValue {}
+        public hgCtrlReply() {}
+        public hgCtrlReply(Pointer p) { super(p); read(); }
 
         public int numsucc;
         public int numfail;
@@ -10243,11 +10182,10 @@ public class LibBat {
      * \brief  mbatchd control request.
      */
     public static class mbdCtrlReq extends Structure {
-        public static class ByReference extends mbdCtrlReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends mbdCtrlReq implements Structure.ByValue {
-        }
+        public static class ByReference extends mbdCtrlReq implements Structure.ByReference {}
+        public static class ByValue extends mbdCtrlReq implements Structure.ByValue {}
+        public mbdCtrlReq() {}
+        public mbdCtrlReq(Pointer p) { super(p); read(); }
 
 
         /**
@@ -10279,11 +10217,10 @@ public class LibBat {
 
 
     public static class perfmonMetricsEnt extends Structure {
-        public static class ByReference extends perfmonMetricsEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends perfmonMetricsEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends perfmonMetricsEnt implements Structure.ByReference {}
+        public static class ByValue extends perfmonMetricsEnt implements Structure.ByValue {}
+        public perfmonMetricsEnt() {}
+        public perfmonMetricsEnt(Pointer p) { super(p); read(); }
 
 /* metrice name */
         public String name;
@@ -10309,17 +10246,16 @@ public class LibBat {
 /*performance monitor info*/
 
     public static class perfmonInfo extends Structure {
-        public static class ByReference extends perfmonInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends perfmonInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends perfmonInfo implements Structure.ByReference {}
+        public static class ByValue extends perfmonInfo implements Structure.ByValue {}
+        public perfmonInfo() {}
+        public perfmonInfo(Pointer p) { super(p); read(); }
 
 /* number of metrics*/
         public int num;
 
 /* array of metrics counter */
-        public perfmonMetricsEnt.ByReference record;
+        public Pointer /* perfmonMetricsEnt.ByReference */ record;
 
 /* sample period */
         public int period;
@@ -10341,11 +10277,10 @@ public class LibBat {
      * \brief Records of logged events
      */
     public static class logSwitchLog extends Structure {
-        public static class ByReference extends logSwitchLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends logSwitchLog implements Structure.ByValue {
-        }
+        public static class ByReference extends logSwitchLog implements Structure.ByReference {}
+        public static class ByValue extends logSwitchLog implements Structure.ByValue {}
+        public logSwitchLog() {}
+        public logSwitchLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -10371,11 +10306,10 @@ public class LibBat {
      * \brief Records of job CPU data logged event
      */
     public static class dataLoggingLog extends Structure {
-        public static class ByReference extends dataLoggingLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends dataLoggingLog implements Structure.ByValue {
-        }
+        public static class ByReference extends dataLoggingLog implements Structure.ByReference {}
+        public static class ByValue extends dataLoggingLog implements Structure.ByValue {}
+        public dataLoggingLog() {}
+        public dataLoggingLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -10390,11 +10324,10 @@ public class LibBat {
      * \brief  new job group log.
      */
     public static class jgrpNewLog extends Structure {
-        public static class ByReference extends jgrpNewLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jgrpNewLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jgrpNewLog implements Structure.ByReference {}
+        public static class ByValue extends jgrpNewLog implements Structure.ByValue {}
+        public jgrpNewLog() {}
+        public jgrpNewLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -10469,11 +10402,10 @@ public class LibBat {
      * \brief  job group control log.
      */
     public static class jgrpCtrlLog extends Structure {
-        public static class ByReference extends jgrpCtrlLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jgrpCtrlLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jgrpCtrlLog implements Structure.ByReference {}
+        public static class ByValue extends jgrpCtrlLog implements Structure.ByValue {}
+        public jgrpCtrlLog() {}
+        public jgrpCtrlLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -10508,11 +10440,10 @@ public class LibBat {
      * \brief  job group status log.
      */
     public static class jgrpStatusLog extends Structure {
-        public static class ByReference extends jgrpStatusLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jgrpStatusLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jgrpStatusLog implements Structure.ByReference {}
+        public static class ByValue extends jgrpStatusLog implements Structure.ByValue {}
+        public jgrpStatusLog() {}
+        public jgrpStatusLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -10537,11 +10468,10 @@ public class LibBat {
      * \brief jobNewLog logged in lsb.events when a job is submitted.
      */
     public static class jobNewLog extends Structure {
-        public static class ByReference extends jobNewLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobNewLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobNewLog implements Structure.ByReference {}
+        public static class ByValue extends jobNewLog implements Structure.ByValue {}
+        public jobNewLog() {}
+        public jobNewLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -10727,7 +10657,7 @@ public class LibBat {
         /**
          * < The array of file transfer specifications. (The xFile structure is defined in <lsf/lsbatch.h>)
          */
-        public xFile.ByReference xf;
+        public Pointer /* xFile.ByReference */ xf;
 
         /**
          * < The command string to be pre_executed
@@ -10924,11 +10854,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job modified log.
      */
     public static class jobModLog extends Structure {
-        public static class ByReference extends jobModLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobModLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobModLog implements Structure.ByReference {}
+        public static class ByValue extends jobModLog implements Structure.ByValue {}
+        public jobModLog() {}
+        public jobModLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11102,7 +11031,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < The array of file transfer specifications.  (The xFile structure is defined in <lsf/lsbatch.h>)
          */
-        public xFile.ByReference xf;
+        public Pointer /* xFile.ByReference */ xf;
 
 
         /**
@@ -11275,11 +11204,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  logged in lsb.events when a job is started.
      */
     public static class jobStartLog extends Structure {
-        public static class ByReference extends jobStartLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobStartLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobStartLog implements Structure.ByReference {}
+        public static class ByValue extends jobStartLog implements Structure.ByValue {}
+        public jobStartLog() {}
+        public jobStartLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11364,11 +11292,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged in lsb.events when a job start request is accepted.
      */
     public static class jobStartAcceptLog extends Structure {
-        public static class ByReference extends jobStartAcceptLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobStartAcceptLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobStartAcceptLog implements Structure.ByReference {}
+        public static class ByValue extends jobStartAcceptLog implements Structure.ByValue {}
+        public jobStartAcceptLog() {}
+        public jobStartAcceptLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11398,11 +11325,11 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged in lsb.events when a job is executed.
      */
     public static class jobExecuteLog extends Structure {
-        public static class ByReference extends jobExecuteLog implements Structure.ByReference {
-        }
+        public static class ByReference extends jobExecuteLog implements Structure.ByReference {}
+        public static class ByValue extends jobExecuteLog implements Structure.ByValue {}
+        public jobExecuteLog() {}
+        public jobExecuteLog(Pointer p) { super(p); read(); }
 
-        public static class ByValue extends jobExecuteLog implements Structure.ByValue {
-        }
         /* logged in lsb.events when a job is executed */
 
         /**
@@ -11478,11 +11405,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged when a job's status is changed.
      */
     public static class jobStatusLog extends Structure {
-        public static class ByReference extends jobStatusLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobStatusLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobStatusLog implements Structure.ByReference {}
+        public static class ByValue extends jobStatusLog implements Structure.ByValue {}
+        public jobStatusLog() {}
+        public jobStatusLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11553,11 +11479,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged when a job's status is changed
      */
     public static class sbdJobStatusLog extends Structure {
-        public static class ByReference extends sbdJobStatusLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends sbdJobStatusLog implements Structure.ByValue {
-        }
+        public static class ByReference extends sbdJobStatusLog implements Structure.ByReference {}
+        public static class ByValue extends sbdJobStatusLog implements Structure.ByValue {}
+        public sbdJobStatusLog() {}
+        public sbdJobStatusLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11637,11 +11562,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief job status that we could send to MBD
      */
     public static class sbdUnreportedStatusLog extends Structure {
-        public static class ByReference extends sbdUnreportedStatusLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends sbdUnreportedStatusLog implements Structure.ByValue {
-        }
+        public static class ByReference extends sbdUnreportedStatusLog implements Structure.ByReference {}
+        public static class ByValue extends sbdUnreportedStatusLog implements Structure.ByValue {}
+        public sbdUnreportedStatusLog() {}
+        public sbdUnreportedStatusLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11751,11 +11675,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged when a job is switched to another queue
      */
     public static class jobSwitchLog extends Structure {
-        public static class ByReference extends jobSwitchLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobSwitchLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobSwitchLog implements Structure.ByReference {}
+        public static class ByValue extends jobSwitchLog implements Structure.ByValue {}
+        public jobSwitchLog() {}
+        public jobSwitchLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11790,11 +11713,11 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged when a job is moved to another position
      */
     public static class jobMoveLog extends Structure {
-        public static class ByReference extends jobMoveLog implements Structure.ByReference {
-        }
+        public static class ByReference extends jobMoveLog implements Structure.ByReference {}
+        public static class ByValue extends jobMoveLog implements Structure.ByValue {}
+        public jobMoveLog() {}
+        public jobMoveLog(Pointer p) { super(p); read(); }
 
-        public static class ByValue extends jobMoveLog implements Structure.ByValue {
-        }
         /* logged when a job is moved to another position */
 
         /**
@@ -11834,11 +11757,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  check point log.
      */
     public static class chkpntLog extends Structure {
-        public static class ByReference extends chkpntLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends chkpntLog implements Structure.ByValue {
-        }
+        public static class ByReference extends chkpntLog implements Structure.ByReference {}
+        public static class ByValue extends chkpntLog implements Structure.ByValue {}
+        public chkpntLog() {}
+        public chkpntLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11878,11 +11800,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job requeue log.
      */
     public static class jobRequeueLog extends Structure {
-        public static class ByReference extends jobRequeueLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobRequeueLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobRequeueLog implements Structure.ByReference {}
+        public static class ByValue extends jobRequeueLog implements Structure.ByValue {}
+        public jobRequeueLog() {}
+        public jobRequeueLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11902,11 +11823,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job clean log.
      */
     public static class jobCleanLog extends Structure {
-        public static class ByReference extends jobCleanLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobCleanLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobCleanLog implements Structure.ByReference {}
+        public static class ByValue extends jobCleanLog implements Structure.ByValue {}
+        public jobCleanLog() {}
+        public jobCleanLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11926,11 +11846,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job exception log.
      */
     public static class jobExceptionLog extends Structure {
-        public static class ByReference extends jobExceptionLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobExceptionLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobExceptionLog implements Structure.ByReference {}
+        public static class ByValue extends jobExceptionLog implements Structure.ByValue {}
+        public jobExceptionLog() {}
+        public jobExceptionLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -11970,11 +11889,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  signal action log.
      */
     public static class sigactLog extends Structure {
-        public static class ByReference extends sigactLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends sigactLog implements Structure.ByValue {
-        }
+        public static class ByReference extends sigactLog implements Structure.ByReference {}
+        public static class ByValue extends sigactLog implements Structure.ByValue {}
+        public sigactLog() {}
+        public sigactLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12029,11 +11947,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  migration log.
      */
     public static class migLog extends Structure {
-        public static class ByReference extends migLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends migLog implements Structure.ByValue {
-        }
+        public static class ByReference extends migLog implements Structure.ByReference {}
+        public static class ByValue extends migLog implements Structure.ByValue {}
+        public migLog() {}
+        public migLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12073,11 +11990,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  signal log.
      */
     public static class signalLog extends Structure {
-        public static class ByReference extends signalLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends signalLog implements Structure.ByValue {
-        }
+        public static class ByReference extends signalLog implements Structure.ByReference {}
+        public static class ByValue extends signalLog implements Structure.ByValue {}
+        public signalLog() {}
+        public signalLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12117,11 +12033,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged when bqc command is invoked.
      */
     public static class queueCtrlLog extends Structure {
-        public static class ByReference extends queueCtrlLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends queueCtrlLog implements Structure.ByValue {
-        }
+        public static class ByReference extends queueCtrlLog implements Structure.ByReference {}
+        public static class ByValue extends queueCtrlLog implements Structure.ByValue {}
+        public queueCtrlLog() {}
+        public queueCtrlLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12157,11 +12072,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
  */
 
     public static class newDebugLog extends Structure {
-        public static class ByReference extends newDebugLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends newDebugLog implements Structure.ByValue {
-        }
+        public static class ByReference extends newDebugLog implements Structure.ByReference {}
+        public static class ByValue extends newDebugLog implements Structure.ByValue {}
+        public newDebugLog() {}
+        public newDebugLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12201,11 +12115,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief log the host control information.
      */
     public static class hostCtrlLog extends Structure {
-        public static class ByReference extends hostCtrlLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostCtrlLog implements Structure.ByValue {
-        }
+        public static class ByReference extends hostCtrlLog implements Structure.ByReference {}
+        public static class ByValue extends hostCtrlLog implements Structure.ByValue {}
+        public hostCtrlLog() {}
+        public hostCtrlLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12240,11 +12153,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged when dynamic hosts are added to group.
      */
     public static class hgCtrlLog extends Structure {
-        public static class ByReference extends hgCtrlLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hgCtrlLog implements Structure.ByValue {
-        }
+        public static class ByReference extends hgCtrlLog implements Structure.ByReference {}
+        public static class ByValue extends hgCtrlLog implements Structure.ByValue {}
+        public hgCtrlLog() {}
+        public hgCtrlLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12288,11 +12200,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  mbatchd start log.
      */
     public static class mbdStartLog extends Structure {
-        public static class ByReference extends mbdStartLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends mbdStartLog implements Structure.ByValue {
-        }
+        public static class ByReference extends mbdStartLog implements Structure.ByReference {}
+        public static class ByValue extends mbdStartLog implements Structure.ByValue {}
+        public mbdStartLog() {}
+        public mbdStartLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12324,11 +12235,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class mbdSimStatusLog extends Structure {
-        public static class ByReference extends mbdSimStatusLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends mbdSimStatusLog implements Structure.ByValue {
-        }
+        public static class ByReference extends mbdSimStatusLog implements Structure.ByReference {}
+        public static class ByValue extends mbdSimStatusLog implements Structure.ByValue {}
+        public mbdSimStatusLog() {}
+        public mbdSimStatusLog(Pointer p) { super(p); read(); }
 
 
 /* simulator status */
@@ -12341,11 +12251,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  mbatchd die log.
      */
     public static class mbdDieLog extends Structure {
-        public static class ByReference extends mbdDieLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends mbdDieLog implements Structure.ByValue {
-        }
+        public static class ByReference extends mbdDieLog implements Structure.ByReference {}
+        public static class ByValue extends mbdDieLog implements Structure.ByValue {}
+        public mbdDieLog() {}
+        public mbdDieLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12375,11 +12284,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged before mbatchd dies.
      */
     public static class unfulfillLog extends Structure {
-        public static class ByReference extends unfulfillLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends unfulfillLog implements Structure.ByValue {
-        }
+        public static class ByReference extends unfulfillLog implements Structure.ByReference {}
+        public static class ByValue extends unfulfillLog implements Structure.ByValue {}
+        public unfulfillLog() {}
+        public unfulfillLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12461,11 +12369,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief logged in lsb.acct when a job finished.
      */
     public static class jobFinishLog extends Structure {
-        public static class ByReference extends jobFinishLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobFinishLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobFinishLog implements Structure.ByReference {}
+        public static class ByValue extends jobFinishLog implements Structure.ByValue {}
+        public jobFinishLog() {}
+        public jobFinishLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12777,11 +12684,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      */
 
     public static class loadIndexLog extends Structure {
-        public static class ByReference extends loadIndexLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends loadIndexLog implements Structure.ByValue {
-        }
+        public static class ByReference extends loadIndexLog implements Structure.ByReference {}
+        public static class ByValue extends loadIndexLog implements Structure.ByValue {}
+        public loadIndexLog() {}
+        public loadIndexLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12801,11 +12707,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  calendar log.
      */
     public static class calendarLog extends Structure {
-        public static class ByReference extends calendarLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends calendarLog implements Structure.ByValue {
-        }
+        public static class ByReference extends calendarLog implements Structure.ByReference {}
+        public static class ByValue extends calendarLog implements Structure.ByValue {}
+        public calendarLog() {}
+        public calendarLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12840,11 +12745,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job forward log.
      */
     public static class jobForwardLog extends Structure {
-        public static class ByReference extends jobForwardLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobForwardLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobForwardLog implements Structure.ByReference {}
+        public static class ByValue extends jobForwardLog implements Structure.ByValue {}
+        public jobForwardLog() {}
+        public jobForwardLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12884,11 +12788,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job accept log.
      */
     public static class jobAcceptLog extends Structure {
-        public static class ByReference extends jobAcceptLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobAcceptLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobAcceptLog implements Structure.ByReference {}
+        public static class ByValue extends jobAcceptLog implements Structure.ByValue {}
+        public jobAcceptLog() {}
+        public jobAcceptLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12923,11 +12826,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  status Ack log.
      */
     public static class statusAckLog extends Structure {
-        public static class ByReference extends statusAckLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends statusAckLog implements Structure.ByValue {
-        }
+        public static class ByReference extends statusAckLog implements Structure.ByReference {}
+        public static class ByValue extends statusAckLog implements Structure.ByValue {}
+        public statusAckLog() {}
+        public statusAckLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -12952,11 +12854,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job message log.
      */
     public static class jobMsgLog extends Structure {
-        public static class ByReference extends jobMsgLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobMsgLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobMsgLog implements Structure.ByReference {}
+        public static class ByValue extends jobMsgLog implements Structure.ByValue {}
+        public jobMsgLog() {}
+        public jobMsgLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13006,11 +12907,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job message ack log.
      */
     public static class jobMsgAckLog extends Structure {
-        public static class ByReference extends jobMsgAckLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobMsgAckLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobMsgAckLog implements Structure.ByReference {}
+        public static class ByValue extends jobMsgAckLog implements Structure.ByValue {}
+        public jobMsgAckLog() {}
+        public jobMsgAckLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13060,11 +12960,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job occupy request log. jobOccupyReqLog is for future use.
      */
     public static class jobOccupyReqLog extends Structure {
-        public static class ByReference extends jobOccupyReqLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobOccupyReqLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobOccupyReqLog implements Structure.ByReference {}
+        public static class ByValue extends jobOccupyReqLog implements Structure.ByValue {}
+        public jobOccupyReqLog() {}
+        public jobOccupyReqLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13104,11 +13003,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job vacate log.jobVacatedLog is for future use.
      */
     public static class jobVacatedLog extends Structure {
-        public static class ByReference extends jobVacatedLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobVacatedLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobVacatedLog implements Structure.ByReference {}
+        public static class ByValue extends jobVacatedLog implements Structure.ByValue {}
+        public jobVacatedLog() {}
+        public jobVacatedLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13138,11 +13036,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job force request log.
      */
     public static class jobForceRequestLog extends Structure {
-        public static class ByReference extends jobForceRequestLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobForceRequestLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobForceRequestLog implements Structure.ByReference {}
+        public static class ByValue extends jobForceRequestLog implements Structure.ByValue {}
+        public jobForceRequestLog() {}
+        public jobForceRequestLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13192,11 +13089,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job chunck log.
      */
     public static class jobChunkLog extends Structure {
-        public static class ByReference extends jobChunkLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobChunkLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobChunkLog implements Structure.ByReference {}
+        public static class ByValue extends jobChunkLog implements Structure.ByValue {}
+        public jobChunkLog() {}
+        public jobChunkLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13226,11 +13122,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job external message log.
      */
     public static class jobExternalMsgLog extends Structure {
-        public static class ByReference extends jobExternalMsgLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobExternalMsgLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobExternalMsgLog implements Structure.ByReference {}
+        public static class ByValue extends jobExternalMsgLog implements Structure.ByValue {}
+        public jobExternalMsgLog() {}
+        public jobExternalMsgLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13290,11 +13185,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  reservation request.
      */
     public static class rsvRes extends Structure {
-        public static class ByReference extends rsvRes implements Structure.ByReference {
-        }
-
-        public static class ByValue extends rsvRes implements Structure.ByValue {
-        }
+        public static class ByReference extends rsvRes implements Structure.ByReference {}
+        public static class ByValue extends rsvRes implements Structure.ByValue {}
+        public rsvRes() {}
+        public rsvRes(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13319,11 +13213,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief for advanced reservation.
      */
     public static class rsvFinishLog extends Structure {
-        public static class ByReference extends rsvFinishLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends rsvFinishLog implements Structure.ByValue {
-        }
+        public static class ByReference extends rsvFinishLog implements Structure.ByReference {}
+        public static class ByValue extends rsvFinishLog implements Structure.ByValue {}
+        public rsvFinishLog() {}
+        public rsvFinishLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13359,7 +13252,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < Allocation vector
          */
-        public rsvRes.ByReference alloc;
+        public Pointer /* rsvRes.ByReference */ alloc;
 
         /**
          * < Time window within which the reservation is active \n Two forms: int1-int2 or [day1]:hour1:0-[day2]:hour2:0
@@ -13383,11 +13276,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  CPU Profile Log
      */
     public static class cpuProfileLog extends Structure {
-        public static class ByReference extends cpuProfileLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends cpuProfileLog implements Structure.ByValue {
-        }
+        public static class ByReference extends cpuProfileLog implements Structure.ByReference {}
+        public static class ByValue extends cpuProfileLog implements Structure.ByValue {}
+        public cpuProfileLog() {}
+        public cpuProfileLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13423,11 +13315,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job resize start notify log.
      */
     public static class jobResizeNotifyStartLog extends Structure {
-        public static class ByReference extends jobResizeNotifyStartLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobResizeNotifyStartLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobResizeNotifyStartLog implements Structure.ByReference {}
+        public static class ByValue extends jobResizeNotifyStartLog implements Structure.ByValue {}
+        public jobResizeNotifyStartLog() {}
+        public jobResizeNotifyStartLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13462,11 +13353,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job resize accept notify log.
      */
     public static class jobResizeNotifyAcceptLog extends Structure {
-        public static class ByReference extends jobResizeNotifyAcceptLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobResizeNotifyAcceptLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobResizeNotifyAcceptLog implements Structure.ByReference {}
+        public static class ByValue extends jobResizeNotifyAcceptLog implements Structure.ByValue {}
+        public jobResizeNotifyAcceptLog() {}
+        public jobResizeNotifyAcceptLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13506,11 +13396,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job resize done notify log.
      */
     public static class jobResizeNotifyDoneLog extends Structure {
-        public static class ByReference extends jobResizeNotifyDoneLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobResizeNotifyDoneLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobResizeNotifyDoneLog implements Structure.ByReference {}
+        public static class ByValue extends jobResizeNotifyDoneLog implements Structure.ByValue {}
+        public jobResizeNotifyDoneLog() {}
+        public jobResizeNotifyDoneLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13540,11 +13429,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job resize release log.
      */
     public static class jobResizeReleaseLog extends Structure {
-        public static class ByReference extends jobResizeReleaseLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobResizeReleaseLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobResizeReleaseLog implements Structure.ByReference {}
+        public static class ByValue extends jobResizeReleaseLog implements Structure.ByValue {}
+        public jobResizeReleaseLog() {}
+        public jobResizeReleaseLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13599,11 +13487,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job resize cancel log.
      */
     public static class jobResizeCancelLog extends Structure {
-        public static class ByReference extends jobResizeCancelLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobResizeCancelLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobResizeCancelLog implements Structure.ByReference {}
+        public static class ByValue extends jobResizeCancelLog implements Structure.ByValue {}
+        public jobResizeCancelLog() {}
+        public jobResizeCancelLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13633,11 +13520,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief log the running rusage of a job in the lsb.stream file
      */
     public static class jobRunRusageLog extends Structure {
-        public static class ByReference extends jobRunRusageLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobRunRusageLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobRunRusageLog implements Structure.ByReference {}
+        public static class ByValue extends jobRunRusageLog implements Structure.ByValue {}
+        public jobRunRusageLog() {}
+        public jobRunRusageLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13662,11 +13548,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  SLA event log.
      */
     public static class slaLog extends Structure {
-        public static class ByReference extends slaLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends slaLog implements Structure.ByValue {
-        }
+        public static class ByReference extends slaLog implements Structure.ByReference {}
+        public static class ByValue extends slaLog implements Structure.ByValue {}
+        public slaLog() {}
+        public slaLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13706,11 +13591,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  a wrap of structure perfmonLog for performance metrics project
      */
     public static class perfmonLogInfo extends Structure {
-        public static class ByReference extends perfmonLogInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends perfmonLogInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends perfmonLogInfo implements Structure.ByReference {}
+        public static class ByValue extends perfmonLogInfo implements Structure.ByValue {}
+        public perfmonLogInfo() {}
+        public perfmonLogInfo(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13740,11 +13624,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief performance metrics log in lsb.stream
      */
     public static class perfmonLog extends Structure {
-        public static class ByReference extends perfmonLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends perfmonLog implements Structure.ByValue {
-        }
+        public static class ByReference extends perfmonLog implements Structure.ByReference {}
+        public static class ByValue extends perfmonLog implements Structure.ByValue {}
+        public perfmonLog() {}
+        public perfmonLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13814,11 +13697,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief task finish log.Task accounting record in ssched.acct
      */
     public static class taskFinishLog extends Structure {
-        public static class ByReference extends taskFinishLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends taskFinishLog implements Structure.ByValue {
-        }
+        public static class ByReference extends taskFinishLog implements Structure.ByReference {}
+        public static class ByValue extends taskFinishLog implements Structure.ByValue {}
+        public taskFinishLog() {}
+        public taskFinishLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13861,11 +13743,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * lsb.stream file.
      */
     public static class eventEOSLog extends Structure {
-        public static class ByReference extends eventEOSLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends eventEOSLog implements Structure.ByValue {
-        }
+        public static class ByReference extends eventEOSLog implements Structure.ByReference {}
+        public static class ByValue extends eventEOSLog implements Structure.ByValue {}
+        public eventEOSLog() {}
+        public eventEOSLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13880,11 +13761,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief job resize event: indicating a realized job allocation change
      */
     public static class jobResizeLog extends Structure {
-        public static class ByReference extends jobResizeLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobResizeLog implements Structure.ByValue {
-        }
+        public static class ByReference extends jobResizeLog implements Structure.ByReference {}
+        public static class ByValue extends jobResizeLog implements Structure.ByValue {}
+        public jobResizeLog() {}
+        public jobResizeLog(Pointer p) { super(p); read(); }
 
 
         /**
@@ -13954,12 +13834,6 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  Log event types.
      */
     public static class eventLog extends Union {
-        public static class ByReference extends eventLog implements Structure.ByReference {
-        }
-
-        public static class ByValue extends eventLog implements Structure.ByValue {
-        }
-
         /**
          * <  Job new event
          */
@@ -14254,11 +14128,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  event records.
      */
     public static class eventRec extends Structure {
-        public static class ByReference extends eventRec implements Structure.ByReference {
-        }
-
-        public static class ByValue extends eventRec implements Structure.ByValue {
-        }
+        public static class ByReference extends eventRec implements Structure.ByReference {}
+        public static class ByValue extends eventRec implements Structure.ByValue {}
+        public eventRec() {}
+        public eventRec(Pointer p) { super(p); read(); }
 
 
         /**
@@ -14285,11 +14158,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class eventLogFile extends Structure {
-        public static class ByReference extends eventLogFile implements Structure.ByReference {
-        }
-
-        public static class ByValue extends eventLogFile implements Structure.ByValue {
-        }
+        public static class ByReference extends eventLogFile implements Structure.ByReference {}
+        public static class ByValue extends eventLogFile implements Structure.ByValue {}
+        public eventLogFile() {}
+        public eventLogFile(Pointer p) { super(p); read(); }
 
 
 /* event file directory */
@@ -14302,11 +14174,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class eventLogHandle extends Structure {
-        public static class ByReference extends eventLogHandle implements Structure.ByReference {
-        }
-
-        public static class ByValue extends eventLogHandle implements Structure.ByValue {
-        }
+        public static class ByReference extends eventLogHandle implements Structure.ByReference {}
+        public static class ByValue extends eventLogHandle implements Structure.ByValue {}
+        public eventLogHandle() {}
+        public eventLogHandle(Pointer p) { super(p); read(); }
 
 
 /* open event file pointer */
@@ -14330,11 +14201,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 /* structures used to handle jobId index file */
 
     public static class jobIdIndexS extends Structure {
-        public static class ByReference extends jobIdIndexS implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobIdIndexS implements Structure.ByValue {
-        }
+        public static class ByReference extends jobIdIndexS implements Structure.ByReference {}
+        public static class ByValue extends jobIdIndexS implements Structure.ByValue {}
+        public jobIdIndexS() {}
+        public jobIdIndexS(Pointer p) { super(p); read(); }
 
 
 /* the index file name */
@@ -14378,11 +14248,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 /* structures used to hold one element of sorted int list */
 
     public static class sortIntList extends Structure {
-        public static class ByReference extends sortIntList implements Structure.ByReference {
-        }
-
-        public static class ByValue extends sortIntList implements Structure.ByValue {
-        }
+        public static class ByReference extends sortIntList implements Structure.ByReference {}
+        public static class ByValue extends sortIntList implements Structure.ByValue {}
+        public sortIntList() {}
+        public sortIntList(Pointer p) { super(p); read(); }
 
         public int value;
 
@@ -14396,11 +14265,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class nqsStatusReq extends Structure {
-        public static class ByReference extends nqsStatusReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends nqsStatusReq implements Structure.ByValue {
-        }
+        public static class ByReference extends nqsStatusReq implements Structure.ByReference {}
+        public static class ByValue extends nqsStatusReq implements Structure.ByValue {}
+        public nqsStatusReq() {}
+        public nqsStatusReq(Pointer p) { super(p); read(); }
 
         public long jobId;
         public int opCode;
@@ -14415,11 +14283,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class nqsStatusReply extends Structure {
-        public static class ByReference extends nqsStatusReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends nqsStatusReply implements Structure.ByValue {
-        }
+        public static class ByReference extends nqsStatusReply implements Structure.ByReference {}
+        public static class ByValue extends nqsStatusReply implements Structure.ByValue {}
+        public nqsStatusReply() {}
+        public nqsStatusReply(Pointer p) { super(p); read(); }
 
         public String orgHost;
         public String orgUser;
@@ -14442,11 +14309,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
     public static final int LSB_MAX_SD_LENGTH = 128;
 
     public static class lsbMsgHdr extends Structure {
-        public static class ByReference extends lsbMsgHdr implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsbMsgHdr implements Structure.ByValue {
-        }
+        public static class ByReference extends lsbMsgHdr implements Structure.ByReference {}
+        public static class ByValue extends lsbMsgHdr implements Structure.ByValue {}
+        public lsbMsgHdr() {}
+        public lsbMsgHdr(Pointer p) { super(p); read(); }
 
         public int usrId;
         public long jobId;
@@ -14459,11 +14325,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class lsbMsg extends Structure {
-        public static class ByReference extends lsbMsg implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsbMsg implements Structure.ByValue {
-        }
+        public static class ByReference extends lsbMsg implements Structure.ByReference {}
+        public static class ByValue extends lsbMsg implements Structure.ByValue {}
+        public lsbMsg() {}
+        public lsbMsg(Pointer p) { super(p); read(); }
 
         public lsbMsgHdr.ByReference header;
         public String msg;
@@ -14481,11 +14346,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
     public static final int CONF_HAS_CU = 0X10;
 
     public static class paramConf extends Structure {
-        public static class ByReference extends paramConf implements Structure.ByReference {
-        }
-
-        public static class ByValue extends paramConf implements Structure.ByValue {
-        }
+        public static class ByReference extends paramConf implements Structure.ByReference {}
+        public static class ByValue extends paramConf implements Structure.ByValue {}
+        public paramConf() {}
+        public paramConf(Pointer p) { super(p); read(); }
 
         public parameterInfo.ByReference param;
     }
@@ -14493,37 +14357,35 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class userConf extends Structure {
-        public static class ByReference extends userConf implements Structure.ByReference {
-        }
-
-        public static class ByValue extends userConf implements Structure.ByValue {
-        }
+        public static class ByReference extends userConf implements Structure.ByReference {}
+        public static class ByValue extends userConf implements Structure.ByValue {}
+        public userConf() {}
+        public userConf(Pointer p) { super(p); read(); }
 
         public int numUgroups;
-        public groupInfoEnt.ByReference ugroups;
+        public Pointer /* groupInfoEnt.ByReference */ ugroups;
         public int numUsers;
-        public userInfoEnt.ByReference users;
+        public Pointer /* userInfoEnt.ByReference */ users;
         public int numUserEquivalent;
-        public userEquivalentInfoEnt.ByReference userEquivalent;
+        public Pointer /* userEquivalentInfoEnt.ByReference */ userEquivalent;
         public int numUserMapping;
-        public userMappingInfoEnt.ByReference userMapping;
+        public Pointer /* userMappingInfoEnt.ByReference */ userMapping;
     }
 
 
 
     public static class hostConf extends Structure {
-        public static class ByReference extends hostConf implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostConf implements Structure.ByValue {
-        }
+        public static class ByReference extends hostConf implements Structure.ByReference {}
+        public static class ByValue extends hostConf implements Structure.ByValue {}
+        public hostConf() {}
+        public hostConf(Pointer p) { super(p); read(); }
 
         public int numHosts;
-        public hostInfoEnt.ByReference hosts;
+        public Pointer /* hostInfoEnt.ByReference */ hosts;
         public int numHparts;
-        public hostPartInfoEnt.ByReference hparts;
+        public Pointer /* hostPartInfoEnt.ByReference */ hparts;
         public int numHgroups;
-        public groupInfoEnt.ByReference hgroups;
+        public Pointer /* groupInfoEnt.ByReference */ hgroups;
     }
 
 
@@ -14532,11 +14394,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  lsb shared resource Instance.
      */
     public static class lsbSharedResourceInstance extends Structure {
-        public static class ByReference extends lsbSharedResourceInstance implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsbSharedResourceInstance implements Structure.ByValue {
-        }
+        public static class ByReference extends lsbSharedResourceInstance implements Structure.ByReference {}
+        public static class ByValue extends lsbSharedResourceInstance implements Structure.ByValue {}
+        public lsbSharedResourceInstance() {}
+        public lsbSharedResourceInstance(Pointer p) { super(p); read(); }
 
 
         /**
@@ -14566,11 +14427,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief lsb shared resource information.
      */
     public static class lsbSharedResourceInfo extends Structure {
-        public static class ByReference extends lsbSharedResourceInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsbSharedResourceInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends lsbSharedResourceInfo implements Structure.ByReference {}
+        public static class ByValue extends lsbSharedResourceInfo implements Structure.ByValue {}
+        public lsbSharedResourceInfo() {}
+        public lsbSharedResourceInfo(Pointer p) { super(p); read(); }
 
 
         /**
@@ -14586,20 +14446,19 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < List of instances
          */
-        public lsbSharedResourceInstance.ByReference instances;
+        public Pointer /* lsbSharedResourceInstance.ByReference */ instances;
     }
 
 
 
     public static class queueConf extends Structure {
-        public static class ByReference extends queueConf implements Structure.ByReference {
-        }
-
-        public static class ByValue extends queueConf implements Structure.ByValue {
-        }
+        public static class ByReference extends queueConf implements Structure.ByReference {}
+        public static class ByValue extends queueConf implements Structure.ByValue {}
+        public queueConf() {}
+        public queueConf(Pointer p) { super(p); read(); }
 
         public int numQueues;
-        public queueInfoEnt.ByReference queues;
+        public Pointer /* queueInfoEnt.ByReference */ queues;
     }
 
 
@@ -14608,11 +14467,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  frame element information.
      */
     public static class frameElementInfo extends Structure {
-        public static class ByReference extends frameElementInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends frameElementInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends frameElementInfo implements Structure.ByReference {}
+        public static class ByValue extends frameElementInfo implements Structure.ByValue {}
+        public frameElementInfo() {}
+        public frameElementInfo(Pointer p) { super(p); read(); }
 
 
         /**
@@ -14652,11 +14510,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  frame job Infomation.
      */
     public static class frameJobInfo extends Structure {
-        public static class ByReference extends frameJobInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends frameJobInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends frameJobInfo implements Structure.ByReference {}
+        public static class ByValue extends frameJobInfo implements Structure.ByValue {}
+        public frameJobInfo() {}
+        public frameJobInfo(Pointer p) { super(p); read(); }
 
 
         /**
@@ -14688,11 +14545,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class nqsRusageReq extends Structure {
-        public static class ByReference extends nqsRusageReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends nqsRusageReq implements Structure.ByValue {
-        }
+        public static class ByReference extends nqsRusageReq implements Structure.ByReference {}
+        public static class ByValue extends nqsRusageReq implements Structure.ByValue {}
+        public nqsRusageReq() {}
+        public nqsRusageReq(Pointer p) { super(p); read(); }
 
         public long jobId;
         public int mem;
@@ -14702,11 +14558,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class nqsRusageReply extends Structure {
-        public static class ByReference extends nqsRusageReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends nqsRusageReply implements Structure.ByValue {
-        }
+        public static class ByReference extends nqsRusageReply implements Structure.ByReference {}
+        public static class ByValue extends nqsRusageReply implements Structure.ByValue {}
+        public nqsRusageReply() {}
+        public nqsRusageReply(Pointer p) { super(p); read(); }
 
         public int status;
     }
@@ -14731,11 +14586,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
  */
 
     public static class _rsvEventInfo_prePost_t extends Structure {
-        public static class ByReference extends _rsvEventInfo_prePost_t implements Structure.ByReference {
-        }
-
-        public static class ByValue extends _rsvEventInfo_prePost_t implements Structure.ByValue {
-        }
+        public static class ByReference extends _rsvEventInfo_prePost_t implements Structure.ByReference {}
+        public static class ByValue extends _rsvEventInfo_prePost_t implements Structure.ByValue {}
+        public _rsvEventInfo_prePost_t() {}
+        public _rsvEventInfo_prePost_t(Pointer p) { super(p); read(); }
 
         public int shift;
     }
@@ -14752,11 +14606,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  reservation excution event
      */
     public static class _rsvExecEvent_t extends Structure {
-        public static class ByReference extends _rsvExecEvent_t implements Structure.ByReference {
-        }
-
-        public static class ByValue extends _rsvExecEvent_t implements Structure.ByValue {
-        }
+        public static class ByReference extends _rsvExecEvent_t implements Structure.ByReference {}
+        public static class ByValue extends _rsvExecEvent_t implements Structure.ByValue {}
+        public _rsvExecEvent_t() {}
+        public _rsvExecEvent_t(Pointer p) { super(p); read(); }
 
 
         /**
@@ -14781,11 +14634,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  reservation excution command
      */
     public static class _rsvExecCmd_t extends Structure {
-        public static class ByReference extends _rsvExecCmd_t implements Structure.ByReference {
-        }
-
-        public static class ByValue extends _rsvExecCmd_t implements Structure.ByValue {
-        }
+        public static class ByReference extends _rsvExecCmd_t implements Structure.ByReference {}
+        public static class ByValue extends _rsvExecCmd_t implements Structure.ByValue {}
+        public _rsvExecCmd_t() {}
+        public _rsvExecCmd_t(Pointer p) { super(p); read(); }
 
 
         /**
@@ -14801,7 +14653,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < Array of events that trigger -exec command
          */
-        public _rsvExecEvent_t.ByReference events;
+        public Pointer /* _rsvExecEvent_t.ByReference */ events;
     }
 
 
@@ -14920,11 +14772,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief add reservation request.
      */
     public static class addRsvRequest extends Structure {
-        public static class ByReference extends addRsvRequest implements Structure.ByReference {
-        }
-
-        public static class ByValue extends addRsvRequest implements Structure.ByValue {
-        }
+        public static class ByReference extends addRsvRequest implements Structure.ByReference {}
+        public static class ByValue extends addRsvRequest implements Structure.ByValue {}
+        public addRsvRequest() {}
+        public addRsvRequest(Pointer p) { super(p); read(); }
 
 
         /**
@@ -14992,11 +14843,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  remove reservation request.
      */
     public static class rmRsvRequest extends Structure {
-        public static class ByReference extends rmRsvRequest implements Structure.ByReference {
-        }
-
-        public static class ByValue extends rmRsvRequest implements Structure.ByValue {
-        }
+        public static class ByReference extends rmRsvRequest implements Structure.ByReference {}
+        public static class ByValue extends rmRsvRequest implements Structure.ByValue {}
+        public rmRsvRequest() {}
+        public rmRsvRequest(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15011,11 +14861,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  modifiy reservation request
      */
     public static class modRsvRequest extends Structure {
-        public static class ByReference extends modRsvRequest implements Structure.ByReference {
-        }
-
-        public static class ByValue extends modRsvRequest implements Structure.ByValue {
-        }
+        public static class ByReference extends modRsvRequest implements Structure.ByReference {}
+        public static class ByValue extends modRsvRequest implements Structure.ByValue {}
+        public modRsvRequest() {}
+        public modRsvRequest(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15040,11 +14889,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  host reservation infromation entry.
      */
     public static class hostRsvInfoEnt extends Structure {
-        public static class ByReference extends hostRsvInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostRsvInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends hostRsvInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends hostRsvInfoEnt implements Structure.ByValue {}
+        public hostRsvInfoEnt() {}
+        public hostRsvInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15084,11 +14932,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  reservation information entry.
      */
     public static class rsvInfoEnt extends Structure {
-        public static class ByReference extends rsvInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends rsvInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends rsvInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends rsvInfoEnt implements Structure.ByValue {}
+        public rsvInfoEnt() {}
+        public rsvInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15114,7 +14961,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * <  Info about the reserved hosts
          */
-        public hostRsvInfoEnt.ByReference rsvHosts;
+        public Pointer /* hostRsvInfoEnt.ByReference */ rsvHosts;
 
         /**
          * < Active time window for a recurring reservation. See the -t option of  brsvadd.
@@ -15167,11 +15014,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 /* backfill window related data structures and functions */
 
     public static class slotInfoRequest extends Structure {
-        public static class ByReference extends slotInfoRequest implements Structure.ByReference {
-        }
-
-        public static class ByValue extends slotInfoRequest implements Structure.ByValue {
-        }
+        public static class ByReference extends slotInfoRequest implements Structure.ByReference {}
+        public static class ByValue extends slotInfoRequest implements Structure.ByValue {}
+        public slotInfoRequest() {}
+        public slotInfoRequest(Pointer p) { super(p); read(); }
 
         /* options mask */
 
@@ -15189,11 +15035,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 /*copy from SRInfo*/
 
     public static class SRInfoEnt extends Structure {
-        public static class ByReference extends SRInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends SRInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends SRInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends SRInfoEnt implements Structure.ByValue {}
+        public SRInfoEnt() {}
+        public SRInfoEnt(Pointer p) { super(p); read(); }
 
 
 /*number of reserved slots*/
@@ -15206,11 +15051,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class hostSRInfoEnt extends Structure {
-        public static class ByReference extends hostSRInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostSRInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends hostSRInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends hostSRInfoEnt implements Structure.ByValue {}
+        public hostSRInfoEnt() {}
+        public hostSRInfoEnt(Pointer p) { super(p); read(); }
 
         public String host;
         public int hStatus;
@@ -15222,25 +15066,24 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         public int numUSUSP;
         public int numRESERVE;
         public int numSR;
-        public SRInfoEnt.ByReference SRInfo;
+        public Pointer /* SRInfoEnt.ByReference */ SRInfo;
     }
 
 
 
     public static class slotInfoReply extends Structure {
-        public static class ByReference extends slotInfoReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends slotInfoReply implements Structure.ByValue {
-        }
+        public static class ByReference extends slotInfoReply implements Structure.ByReference {}
+        public static class ByValue extends slotInfoReply implements Structure.ByValue {}
+        public slotInfoReply() {}
+        public slotInfoReply(Pointer p) { super(p); read(); }
 
 
 /* to store the time of Master host */
         public NativeLong masterTime;
         public int numHosts;
-        public hostSRInfoEnt.ByReference hostInfo;
+        public Pointer /* hostSRInfoEnt.ByReference */ hostInfo;
         public int numAR;
-        public rsvInfoEnt.ByReference ARInfo;
+        public Pointer /* rsvInfoEnt.ByReference */ ARInfo;
     }
 
 
@@ -15321,11 +15164,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  limit consumer
      */
     public static class _limitConsumer extends Structure {
-        public static class ByReference extends _limitConsumer implements Structure.ByReference {
-        }
-
-        public static class ByValue extends _limitConsumer implements Structure.ByValue {
-        }
+        public static class ByReference extends _limitConsumer implements Structure.ByReference {}
+        public static class ByValue extends _limitConsumer implements Structure.ByValue {}
+        public _limitConsumer() {}
+        public _limitConsumer(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15345,11 +15187,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  limit resource.
      */
     public static class _limitResource extends Structure {
-        public static class ByReference extends _limitResource implements Structure.ByReference {
-        }
-
-        public static class ByValue extends _limitResource implements Structure.ByValue {
-        }
+        public static class ByReference extends _limitResource implements Structure.ByReference {}
+        public static class ByValue extends _limitResource implements Structure.ByValue {}
+        public _limitResource() {}
+        public _limitResource(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15374,11 +15215,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief   limit information request
      */
     public static class _limitInfoReq extends Structure {
-        public static class ByReference extends _limitInfoReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends _limitInfoReq implements Structure.ByValue {
-        }
+        public static class ByReference extends _limitInfoReq implements Structure.ByReference {}
+        public static class ByValue extends _limitInfoReq implements Structure.ByValue {}
+        public _limitInfoReq() {}
+        public _limitInfoReq(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15394,7 +15234,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < Consumer name, queue/host/user/project
          */
-        public _limitConsumer.ByReference consumerV;
+        public Pointer /* _limitConsumer.ByReference */ consumerV;
     }
 
 
@@ -15403,11 +15243,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  limit item.
      */
     public static class _limitItem extends Structure {
-        public static class ByReference extends _limitItem implements Structure.ByReference {
-        }
-
-        public static class ByValue extends _limitItem implements Structure.ByValue {
-        }
+        public static class ByReference extends _limitItem implements Structure.ByReference {}
+        public static class ByValue extends _limitItem implements Structure.ByValue {}
+        public _limitItem() {}
+        public _limitItem(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15418,7 +15257,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < Consumers, such as queue, host, user or project
          */
-        public _limitConsumer.ByReference consumerV;
+        public Pointer /* _limitConsumer.ByReference */ consumerV;
 
         /**
          * < Number of resources
@@ -15428,7 +15267,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < Resources list
          */
-        public _limitResource.ByReference resourceV;
+        public Pointer /* _limitResource.ByReference */ resourceV;
     }
 
 
@@ -15437,11 +15276,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  limit information entry .
      */
     public static class _limitInfoEnt extends Structure {
-        public static class ByReference extends _limitInfoEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends _limitInfoEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends _limitInfoEnt implements Structure.ByReference {}
+        public static class ByValue extends _limitInfoEnt implements Structure.ByValue {}
+        public _limitInfoEnt() {}
+        public _limitInfoEnt(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15462,7 +15300,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < Limit dynamic usage info array
          */
-        public _limitItem.ByReference usageInfo;
+        public Pointer /* _limitItem.ByReference */ usageInfo;
 
     }
 
@@ -15479,11 +15317,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 /* Structure to hold thresholds defined based on host's type/model */
 
     public static class thresholdEntry extends Structure {
-        public static class ByReference extends thresholdEntry implements Structure.ByReference {
-        }
-
-        public static class ByValue extends thresholdEntry implements Structure.ByValue {
-        }
+        public static class ByReference extends thresholdEntry implements Structure.ByReference {}
+        public static class ByValue extends thresholdEntry implements Structure.ByValue {}
+        public thresholdEntry() {}
+        public thresholdEntry(Pointer p) { super(p); read(); }
 
 
 /* Name of type or model */
@@ -15622,11 +15459,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  job resize release.
      */
     public static class job_resize_release extends Structure {
-        public static class ByReference extends job_resize_release implements Structure.ByReference {
-        }
-
-        public static class ByValue extends job_resize_release implements Structure.ByValue {
-        }
+        public static class ByReference extends job_resize_release implements Structure.ByReference {}
+        public static class ByValue extends job_resize_release implements Structure.ByValue {}
+        public job_resize_release() {}
+        public job_resize_release(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15663,11 +15499,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class job_resize_request extends Structure {
-        public static class ByReference extends job_resize_request implements Structure.ByReference {
-        }
-
-        public static class ByValue extends job_resize_request implements Structure.ByValue {
-        }
+        public static class ByReference extends job_resize_request implements Structure.ByReference {}
+        public static class ByValue extends job_resize_request implements Structure.ByValue {}
+        public job_resize_request() {}
+        public job_resize_request(Pointer p) { super(p); read(); }
 
         public long jobId;
         public int options;
@@ -15723,11 +15558,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      */
 
     public static class jobDepRequest extends Structure {
-        public static class ByReference extends jobDepRequest implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobDepRequest implements Structure.ByValue {
-        }
+        public static class ByReference extends jobDepRequest implements Structure.ByReference {}
+        public static class ByValue extends jobDepRequest implements Structure.ByValue {}
+        public jobDepRequest() {}
+        public jobDepRequest(Pointer p) { super(p); read(); }
 
         /**
          * < Job ID of the queried job or job array.
@@ -15752,11 +15586,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  queried jobs.
      */
     public static class queriedJobs extends Structure {
-        public static class ByReference extends queriedJobs implements Structure.ByReference {
-        }
-
-        public static class ByValue extends queriedJobs implements Structure.ByValue {
-        }
+        public static class ByReference extends queriedJobs implements Structure.ByReference {}
+        public static class ByValue extends queriedJobs implements Structure.ByValue {}
+        public queriedJobs() {}
+        public queriedJobs(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15798,11 +15631,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      */
 
     public static class dependJobs extends Structure {
-        public static class ByReference extends dependJobs implements Structure.ByReference {
-        }
-
-        public static class ByValue extends dependJobs implements Structure.ByValue {
-        }
+        public static class ByReference extends dependJobs implements Structure.ByReference {}
+        public static class ByValue extends dependJobs implements Structure.ByValue {}
+        public dependJobs() {}
+        public dependJobs(Pointer p) { super(p); read(); }
 
         /**
          * < Job ID. By default, it is the parent job of the queried job. Modify to child job by setting QUERY_DEPEND_CHILD in options of JobDepRequest.
@@ -15852,11 +15684,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      */
 
     public static class jobDependInfo extends Structure {
-        public static class ByReference extends jobDependInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobDependInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends jobDependInfo implements Structure.ByReference {}
+        public static class ByValue extends jobDependInfo implements Structure.ByValue {}
+        public jobDependInfo() {}
+        public jobDependInfo(Pointer p) { super(p); read(); }
 
 
         /**
@@ -15872,7 +15703,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < The jobs you queried.
          */
-        public queriedJobs.ByReference queriedJobs;
+        public Pointer /* queriedJobs.ByReference */ queriedJobs;
 
         /**
          * < The number of levels returned.
@@ -15887,7 +15718,7 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
         /**
          * < The returned dependency jobs.
          */
-        public dependJobs.ByReference depJobs;
+        public Pointer /* dependJobs.ByReference */ depJobs;
     }
 
 
@@ -15958,11 +15789,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
     public static final int PRINT_MCPU_HOSTS = 0x04;
 
     public static class nameList extends Structure {
-        public static class ByReference extends nameList implements Structure.ByReference {
-        }
-
-        public static class ByValue extends nameList implements Structure.ByValue {
-        }
+        public static class ByReference extends nameList implements Structure.ByReference {}
+        public static class ByValue extends nameList implements Structure.ByValue {}
+        public nameList() {}
+        public nameList(Pointer p) { super(p); read(); }
 
 
 /* number of names */
@@ -19027,11 +18857,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
  */
 
     public static class jobExtschInfoReq extends Structure {
-        public static class ByReference extends jobExtschInfoReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobExtschInfoReq implements Structure.ByValue {
-        }
+        public static class ByReference extends jobExtschInfoReq implements Structure.ByReference {}
+        public static class ByValue extends jobExtschInfoReq implements Structure.ByValue {}
+        public jobExtschInfoReq() {}
+        public jobExtschInfoReq(Pointer p) { super(p); read(); }
 
         public int qCnt;
         public Pointer queues;
@@ -19040,11 +18869,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class jobExtschInfo extends Structure {
-        public static class ByReference extends jobExtschInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobExtschInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends jobExtschInfo implements Structure.ByReference {}
+        public static class ByValue extends jobExtschInfo implements Structure.ByValue {}
+        public jobExtschInfo() {}
+        public jobExtschInfo(Pointer p) { super(p); read(); }
 
         public long jobId;
         public int status;
@@ -19055,11 +18883,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class jobExtschInfoReply extends Structure {
-        public static class ByReference extends jobExtschInfoReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jobExtschInfoReply implements Structure.ByValue {
-        }
+        public static class ByReference extends jobExtschInfoReply implements Structure.ByReference {}
+        public static class ByValue extends jobExtschInfoReply implements Structure.ByValue {}
+        public jobExtschInfoReply() {}
+        public jobExtschInfoReply(Pointer p) { super(p); read(); }
 
         public int jobCnt;
         public PointerByReference jobs;
@@ -19082,11 +18909,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
  */
 
     public static class diagnoseJobReq extends Structure {
-        public static class ByReference extends diagnoseJobReq implements Structure.ByReference {
-        }
-
-        public static class ByValue extends diagnoseJobReq implements Structure.ByValue {
-        }
+        public static class ByReference extends diagnoseJobReq implements Structure.ByReference {}
+        public static class ByValue extends diagnoseJobReq implements Structure.ByValue {}
+        public diagnoseJobReq() {}
+        public diagnoseJobReq(Pointer p) { super(p); read(); }
 
         public int jobCnt;
         public LongByReference jobId;
@@ -19103,11 +18929,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
  */
 
     public static class simStatusReply extends Structure {
-        public static class ByReference extends simStatusReply implements Structure.ByReference {
-        }
-
-        public static class ByValue extends simStatusReply implements Structure.ByValue {
-        }
+        public static class ByReference extends simStatusReply implements Structure.ByReference {}
+        public static class ByValue extends simStatusReply implements Structure.ByValue {}
+        public simStatusReply() {}
+        public simStatusReply(Pointer p) { super(p); read(); }
 
         public int simStatus;
         public NativeLong curTime;
@@ -19205,11 +19030,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
 
 
     public static class rmsextschedoption extends Structure {
-        public static class ByReference extends rmsextschedoption implements Structure.ByReference {
-        }
-
-        public static class ByValue extends rmsextschedoption implements Structure.ByValue {
-        }
+        public static class ByReference extends rmsextschedoption implements Structure.ByReference {}
+        public static class ByValue extends rmsextschedoption implements Structure.ByValue {}
+        public rmsextschedoption() {}
+        public rmsextschedoption(Pointer p) { super(p); read(); }
 
         public /*rmsAllocType_t*/ int alloc_type;
         public /*rmsTopology_t*/ int topology;
@@ -19239,11 +19063,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  Stream interface.
      */
     public static class lsbStream extends Structure {
-        public static class ByReference extends lsbStream implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsbStream implements Structure.ByValue {
-        }
+        public static class ByReference extends lsbStream implements Structure.ByReference {}
+        public static class ByValue extends lsbStream implements Structure.ByValue {}
+        public lsbStream() {}
+        public lsbStream(Pointer p) { super(p); read(); }
 
         public static interface trsFunc extends Callback {
             int invoke(String string1);
@@ -19631,11 +19454,10 @@ public static class ByValue extends jobArrayElementLog implements Structure.ByVa
      * \brief  APS factor information
      */
     public static class apsFactorInfo extends Structure {
-        public static class ByReference extends apsFactorInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends apsFactorInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends apsFactorInfo implements Structure.ByReference {}
+        public static class ByValue extends apsFactorInfo implements Structure.ByValue {}
+        public apsFactorInfo() {}
+        public apsFactorInfo(Pointer p) { super(p); read(); }
 
 
         /**

@@ -31,6 +31,31 @@ import com.sun.jna.ptr.PointerByReference;
 import org.broadinstitute.sting.jna.clibrary.JNAUtils;
 import org.broadinstitute.sting.jna.clibrary.LibC.*;
 
+/*
+  NOTE: This library uses Pointer for some Struct.ByReference members going
+  against the JNA recommendations at http://jna.java.net/#structure_use
+  Instead stuct arrays are Pointers and each structure contains a
+  constructor that can accept the Pointer iff the size of the array is
+  known to be greater than zero.
+
+  This was especially problematic in jobInfoEnt->items->resName. When
+  jobInfo->reserveCnt was zero jobInfoItems->items was not necessarily null.
+
+  LSF will often reuse memory for structure arrays but will set the
+  array size / count (reserveCnt above) to zero when the array should
+  not be accessed. When LSF has reused memory and points to a non-null
+  structure pointer (items) the inner structure may contain further
+  garbage pointers (especially items->resName).
+
+  When JNA sees a non-null Structure.ByReference it will autoRead() the
+  member. When autoRead() eventually gets to the items->resName trying
+  to run strlen on the bad memory address causes a SIGSEGV.
+
+  By using a Pointer instead of the Structure.ByReference JNA will not
+  automatically autoRead(), and the API user will have to pass the
+  pointer to the Structure on their own.
+*/
+
 /**
  * JNA wrappers for LSF's lsf.h and -llsf
  *
@@ -83,11 +108,10 @@ public class LibLsf {
     }
 
     public static class rlimit extends Structure {
-        public static class ByReference extends rlimit implements Structure.ByReference {
-        }
-
-        public static class ByValue extends rlimit implements Structure.ByValue {
-        }
+        public static class ByReference extends rlimit implements Structure.ByReference {}
+        public static class ByValue extends rlimit implements Structure.ByValue {}
+        public rlimit() {}
+        public rlimit(Pointer p) { super(p); read(); }
 
         public NativeLong rlim_cur;
         public NativeLong rlim_max;
@@ -96,11 +120,10 @@ public class LibLsf {
 
 
     public static class rusage extends Structure {
-        public static class ByReference extends rusage implements Structure.ByReference {
-        }
-
-        public static class ByValue extends rusage implements Structure.ByValue {
-        }
+        public static class ByReference extends rusage implements Structure.ByReference {}
+        public static class ByValue extends rusage implements Structure.ByValue {}
+        public rusage() {}
+        public rusage(Pointer p) { super(p); read(); }
 
         public timeval ru_utime;
         public timeval ru_stime;
@@ -345,11 +368,10 @@ public class LibLsf {
 
 
     public static class connectEnt extends Structure {
-        public static class ByReference extends connectEnt implements Structure.ByReference {
-        }
-
-        public static class ByValue extends connectEnt implements Structure.ByValue {
-        }
+        public static class ByReference extends connectEnt implements Structure.ByReference {}
+        public static class ByValue extends connectEnt implements Structure.ByValue {}
+        public connectEnt() {}
+        public connectEnt(Pointer p) { super(p); read(); }
 
         public String hostname;
         public int[] csock = new int[2];
@@ -447,11 +469,10 @@ public class LibLsf {
 
 
     public static class placeInfo extends Structure {
-        public static class ByReference extends placeInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends placeInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends placeInfo implements Structure.ByReference {}
+        public static class ByValue extends placeInfo implements Structure.ByValue {}
+        public placeInfo() {}
+        public placeInfo(Pointer p) { super(p); read(); }
 
         public byte[] hostName = new byte[MAXHOSTNAMELEN];
         public int numtask;
@@ -461,11 +482,10 @@ public class LibLsf {
 
 
     public static class hostLoad extends Structure {
-        public static class ByReference extends hostLoad implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostLoad implements Structure.ByValue {
-        }
+        public static class ByReference extends hostLoad implements Structure.ByReference {}
+        public static class ByValue extends hostLoad implements Structure.ByValue {}
+        public hostLoad() {}
+        public hostLoad(Pointer p) { super(p); read(); }
 
         public byte[] hostName = new byte[MAXHOSTNAMELEN];
         public IntByReference status;
@@ -503,11 +523,10 @@ public class LibLsf {
 
 
     public static class resItem extends Structure {
-        public static class ByReference extends resItem implements Structure.ByReference {
-        }
-
-        public static class ByValue extends resItem implements Structure.ByValue {
-        }
+        public static class ByReference extends resItem implements Structure.ByReference {}
+        public static class ByValue extends resItem implements Structure.ByValue {}
+        public resItem() {}
+        public resItem(Pointer p) { super(p); read(); }
 
         public byte[] name = new byte[MAXLSFNAMELEN];
         public byte[] des = new byte[MAXRESDESLEN];
@@ -521,11 +540,10 @@ public class LibLsf {
 
 
     public static class lsInfo extends Structure {
-        public static class ByReference extends lsInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends lsInfo implements Structure.ByReference {}
+        public static class ByValue extends lsInfo implements Structure.ByValue {}
+        public lsInfo() {}
+        public lsInfo(Pointer p) { super(p); read(); }
 
         // The current version of JNA's Structure.getNativeAlignment passes a "null" to
         // Native.getNativeSize() when accessing the contents of a 2D array.
@@ -533,7 +551,7 @@ public class LibLsf {
         // comments so when we upgrade don't want to have specialized code floating around.
 
         public int nRes;
-        public resItem.ByReference resTable;
+        public Pointer /* resItem.ByReference */ resTable;
         public int nTypes;
         public byte[] hostTypes = new byte[MAXTYPES * MAXLSFNAMELEN];
         public int nModels;
@@ -560,11 +578,10 @@ public class LibLsf {
 
 
     public static class clusterInfo extends Structure {
-        public static class ByReference extends clusterInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends clusterInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends clusterInfo implements Structure.ByReference {}
+        public static class ByValue extends clusterInfo implements Structure.ByValue {}
+        public clusterInfo() {}
+        public clusterInfo(Pointer p) { super(p); read(); }
 
         public byte[] clusterName = new byte[MAXLSFNAMELEN];
         public int status;
@@ -591,11 +608,10 @@ public class LibLsf {
 
 
     public static class hostInfo extends Structure {
-        public static class ByReference extends hostInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends hostInfo implements Structure.ByReference {}
+        public static class ByValue extends hostInfo implements Structure.ByValue {}
+        public hostInfo() {}
+        public hostInfo(Pointer p) { super(p); read(); }
 
         public byte[] hostName = new byte[MAXHOSTNAMELEN];
         public String hostType;
@@ -677,11 +693,10 @@ public class LibLsf {
 
 
     public static class config_param extends Structure {
-        public static class ByReference extends config_param implements Structure.ByReference {
-        }
-
-        public static class ByValue extends config_param implements Structure.ByValue {
-        }
+        public static class ByReference extends config_param implements Structure.ByReference {}
+        public static class ByValue extends config_param implements Structure.ByValue {}
+        public config_param() {}
+        public config_param(Pointer p) { super(p); read(); }
 
         public String paramName;
         public String paramValue;
@@ -690,11 +705,10 @@ public class LibLsf {
 
 
     public static class lsfRusage extends Structure {
-        public static class ByReference extends lsfRusage implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsfRusage implements Structure.ByValue {
-        }
+        public static class ByReference extends lsfRusage implements Structure.ByReference {}
+        public static class ByValue extends lsfRusage implements Structure.ByValue {}
+        public lsfRusage() {}
+        public lsfRusage(Pointer p) { super(p); read(); }
 
         public double ru_utime;
         public double ru_stime;
@@ -721,11 +735,10 @@ public class LibLsf {
 
 
     public static class lsfAcctRec extends Structure {
-        public static class ByReference extends lsfAcctRec implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsfAcctRec implements Structure.ByValue {
-        }
+        public static class ByReference extends lsfAcctRec implements Structure.ByReference {}
+        public static class ByValue extends lsfAcctRec implements Structure.ByValue {}
+        public lsfAcctRec() {}
+        public lsfAcctRec(Pointer p) { super(p); read(); }
 
         public int pid;
         public String username;
@@ -743,11 +756,10 @@ public class LibLsf {
 
 
     public static class confNode extends Structure {
-        public static class ByReference extends confNode implements Structure.ByReference {
-        }
-
-        public static class ByValue extends confNode implements Structure.ByValue {
-        }
+        public static class ByReference extends confNode implements Structure.ByReference {}
+        public static class ByValue extends confNode implements Structure.ByValue {}
+        public confNode() {}
+        public confNode(Pointer p) { super(p); read(); }
 
         public confNode.ByReference leftPtr;
         public confNode.ByReference rightPtr;
@@ -762,11 +774,10 @@ public class LibLsf {
 
 
     public static class pStack extends Structure {
-        public static class ByReference extends pStack implements Structure.ByReference {
-        }
-
-        public static class ByValue extends pStack implements Structure.ByValue {
-        }
+        public static class ByReference extends pStack implements Structure.ByReference {}
+        public static class ByValue extends pStack implements Structure.ByValue {}
+        public pStack() {}
+        public pStack(Pointer p) { super(p); read(); }
 
         public int top;
         public int size;
@@ -776,11 +787,10 @@ public class LibLsf {
 
 
     public static class confHandle extends Structure {
-        public static class ByReference extends confHandle implements Structure.ByReference {
-        }
-
-        public static class ByValue extends confHandle implements Structure.ByValue {
-        }
+        public static class ByReference extends confHandle implements Structure.ByReference {}
+        public static class ByValue extends confHandle implements Structure.ByValue {}
+        public confHandle() {}
+        public confHandle(Pointer p) { super(p); read(); }
 
         public confNode.ByReference rootNode;
         public String fname;
@@ -792,11 +802,10 @@ public class LibLsf {
 
 
     public static class lsConf extends Structure {
-        public static class ByReference extends lsConf implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsConf implements Structure.ByValue {
-        }
+        public static class ByReference extends lsConf implements Structure.ByReference {}
+        public static class ByValue extends lsConf implements Structure.ByValue {}
+        public lsConf() {}
+        public lsConf(Pointer p) { super(p); read(); }
 
         public confHandle.ByReference confhandle;
         public int numConds;
@@ -807,11 +816,10 @@ public class LibLsf {
 
 
     public static class sharedConf extends Structure {
-        public static class ByReference extends sharedConf implements Structure.ByReference {
-        }
-
-        public static class ByValue extends sharedConf implements Structure.ByValue {
-        }
+        public static class ByReference extends sharedConf implements Structure.ByReference {}
+        public static class ByValue extends sharedConf implements Structure.ByValue {}
+        public sharedConf() {}
+        public sharedConf(Pointer p) { super(p); read(); }
 
         public lsInfo.ByReference lsinfo;
         public int numCls;
@@ -823,11 +831,10 @@ public class LibLsf {
 
 
     public static class lsSharedResourceInstance extends Structure {
-        public static class ByReference extends lsSharedResourceInstance implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsSharedResourceInstance implements Structure.ByValue {
-        }
+        public static class ByReference extends lsSharedResourceInstance implements Structure.ByReference {}
+        public static class ByValue extends lsSharedResourceInstance implements Structure.ByValue {}
+        public lsSharedResourceInstance() {}
+        public lsSharedResourceInstance(Pointer p) { super(p); read(); }
 
         public String value;
         public int nHosts;
@@ -839,43 +846,40 @@ public class LibLsf {
 
 
     public static class lsSharedResourceInfo extends Structure {
-        public static class ByReference extends lsSharedResourceInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsSharedResourceInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends lsSharedResourceInfo implements Structure.ByReference {}
+        public static class ByValue extends lsSharedResourceInfo implements Structure.ByValue {}
+        public lsSharedResourceInfo() {}
+        public lsSharedResourceInfo(Pointer p) { super(p); read(); }
 
         public String resourceName;
         public int nInstances;
-        public lsSharedResourceInstance.ByReference instances;
+        public Pointer /* lsSharedResourceInstance.ByReference */ instances;
     }
 
 
 
     public static class clusterConf extends Structure {
-        public static class ByReference extends clusterConf implements Structure.ByReference {
-        }
-
-        public static class ByValue extends clusterConf implements Structure.ByValue {
-        }
+        public static class ByReference extends clusterConf implements Structure.ByReference {}
+        public static class ByValue extends clusterConf implements Structure.ByValue {}
+        public clusterConf() {}
+        public clusterConf(Pointer p) { super(p); read(); }
 
         public clusterInfo.ByReference clinfo;
         public int numHosts;
-        public hostInfo.ByReference hosts;
+        public Pointer /* hostInfo.ByReference */ hosts;
         public int defaultFeatures;
         public int numShareRes;
-        public lsSharedResourceInfo.ByReference shareRes;
+        public Pointer /* lsSharedResourceInfo.ByReference */ shareRes;
     }
 
 
 
 
     public static class pidInfo extends Structure {
-        public static class ByReference extends pidInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends pidInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends pidInfo implements Structure.ByReference {}
+        public static class ByValue extends pidInfo implements Structure.ByValue {}
+        public pidInfo() {}
+        public pidInfo(Pointer p) { super(p); read(); }
 
         public int pid;
         public int ppid;
@@ -887,18 +891,17 @@ public class LibLsf {
 
 
     public static class jRusage extends Structure {
-        public static class ByReference extends jRusage implements Structure.ByReference {
-        }
-
-        public static class ByValue extends jRusage implements Structure.ByValue {
-        }
+        public static class ByReference extends jRusage implements Structure.ByReference {}
+        public static class ByValue extends jRusage implements Structure.ByValue {}
+        public jRusage() {}
+        public jRusage(Pointer p) { super(p); read(); }
 
         public int mem;
         public int swap;
         public int utime;
         public int stime;
         public int npids;
-        public pidInfo.ByReference pidInfo;
+        public Pointer /* pidInfo.ByReference */ pidInfo;
 
         public int npgids;
         public IntByReference pgid;
@@ -913,11 +916,10 @@ public class LibLsf {
     public static final int NUM_CLASS_TYPE = 3;
 
     public static class licUsage extends Structure {
-        public static class ByReference extends licUsage implements Structure.ByReference {
-        }
-
-        public static class ByValue extends licUsage implements Structure.ByValue {
-        }
+        public static class ByReference extends licUsage implements Structure.ByReference {}
+        public static class ByValue extends licUsage implements Structure.ByValue {}
+        public licUsage() {}
+        public licUsage(Pointer p) { super(p); read(); }
 
         public int licDisplayMask;
         public int usingDemoLicense;
@@ -928,11 +930,10 @@ public class LibLsf {
 
 
     public static class hostClassInfo extends Structure {
-        public static class ByReference extends hostClassInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends hostClassInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends hostClassInfo implements Structure.ByReference {}
+        public static class ByValue extends hostClassInfo implements Structure.ByValue {}
+        public hostClassInfo() {}
+        public hostClassInfo(Pointer p) { super(p); read(); }
 
         public int numHosts;
         public int numCpus;
@@ -942,11 +943,10 @@ public class LibLsf {
 
 
     public static class lsfLicUsage extends Structure {
-        public static class ByReference extends lsfLicUsage implements Structure.ByReference {
-        }
-
-        public static class ByValue extends lsfLicUsage implements Structure.ByValue {
-        }
+        public static class ByReference extends lsfLicUsage implements Structure.ByReference {}
+        public static class ByValue extends lsfLicUsage implements Structure.ByValue {}
+        public lsfLicUsage() {}
+        public lsfLicUsage(Pointer p) { super(p); read(); }
 
         public licUsage licUsage;
         public hostClassInfo[] hostInfo = new hostClassInfo[NUM_CLASS_TYPE];
@@ -960,11 +960,10 @@ public class LibLsf {
 
 
     public static class param_entry extends Structure {
-        public static class ByReference extends param_entry implements Structure.ByReference {
-        }
-
-        public static class ByValue extends param_entry implements Structure.ByValue {
-        }
+        public static class ByReference extends param_entry implements Structure.ByReference {}
+        public static class ByValue extends param_entry implements Structure.ByValue {}
+        public param_entry() {}
+        public param_entry(Pointer p) { super(p); read(); }
 
         public static int HAS_PARAM_VALUE = 0x001;
         public static final int HAS_PARAM_DEFAULT = 0x002;
@@ -978,15 +977,14 @@ public class LibLsf {
 
 
     public static class params_key_value_pair extends Structure {
-        public static class ByReference extends params_key_value_pair implements Structure.ByReference {
-        }
-
-        public static class ByValue extends params_key_value_pair implements Structure.ByValue {
-        }
+        public static class ByReference extends params_key_value_pair implements Structure.ByReference {}
+        public static class ByValue extends params_key_value_pair implements Structure.ByValue {}
+        public params_key_value_pair() {}
+        public params_key_value_pair(Pointer p) { super(p); read(); }
 
         public int num_params;
         public String daemon_time;
-        public param_entry.ByReference param;
+        public Pointer /* param_entry.ByReference */ param;
     }
 
 
@@ -1149,11 +1147,10 @@ public class LibLsf {
     */
 
     public static class ls_timeval extends Structure {
-        public static class ByReference extends ls_timeval implements Structure.ByReference {
-        }
-
-        public static class ByValue extends ls_timeval implements Structure.ByValue {
-        }
+        public static class ByReference extends ls_timeval implements Structure.ByReference {}
+        public static class ByValue extends ls_timeval implements Structure.ByValue {}
+        public ls_timeval() {}
+        public ls_timeval(Pointer p) { super(p); read(); }
 
         public float rtime;
         public float utime;
@@ -1489,11 +1486,10 @@ public class LibLsf {
     public static native int ls_postmultievent(int int1, String string1, Pointer stringArray1, int int2, int int3);
 
     public static class extResInfo extends Structure {
-        public static class ByReference extends extResInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends extResInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends extResInfo implements Structure.ByReference {}
+        public static class ByValue extends extResInfo implements Structure.ByValue {}
+        public extResInfo() {}
+        public extResInfo(Pointer p) { super(p); read(); }
 
         public String name;
         public String type;
@@ -1578,11 +1574,10 @@ public class LibLsf {
 
 
     public static class nioEvent extends Structure {
-        public static class ByReference extends nioEvent implements Structure.ByReference {
-        }
-
-        public static class ByValue extends nioEvent implements Structure.ByValue {
-        }
+        public static class ByReference extends nioEvent implements Structure.ByReference {}
+        public static class ByValue extends nioEvent implements Structure.ByValue {}
+        public nioEvent() {}
+        public nioEvent(Pointer p) { super(p); read(); }
 
         public int tid;
         public *//*nioType*//* int type;
@@ -1592,25 +1587,23 @@ public class LibLsf {
 
 
     public static class nioInfo extends Structure {
-        public static class ByReference extends nioInfo implements Structure.ByReference {
-        }
-
-        public static class ByValue extends nioInfo implements Structure.ByValue {
-        }
+        public static class ByReference extends nioInfo implements Structure.ByReference {}
+        public static class ByValue extends nioInfo implements Structure.ByValue {}
+        public nioInfo() {}
+        public nioInfo(Pointer p) { super(p); read(); }
 
         public int num;
-        public nioEvent.ByReference ioTask;
+        public Pointer / * nioEvent.ByReference * / ioTask;
     }
 
 
     public static final int FD_SETSIZE = 64;
 
     public static class fd_set extends Structure {
-        public static class ByReference extends fd_set implements Structure.ByReference {
-        }
-
-        public static class ByValue extends fd_set implements Structure.ByValue {
-        }
+        public static class ByReference extends fd_set implements Structure.ByReference {}
+        public static class ByValue extends fd_set implements Structure.ByValue {}
+        public fd_set() {}
+        public fd_set(Pointer p) { super(p); read(); }
 
         public int count;
         public int[] fd = new int[FD_SETSIZE];
