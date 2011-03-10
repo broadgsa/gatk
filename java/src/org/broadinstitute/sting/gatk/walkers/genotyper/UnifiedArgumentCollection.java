@@ -29,7 +29,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 
 
-public class    UnifiedArgumentCollection {
+public class UnifiedArgumentCollection {
 
     // control the various models to be used
     @Argument(fullName = "genotype_likelihoods_model", shortName = "glm", doc = "Genotype likelihoods calculation model to employ -- SNP is the default option, while DINDEL is also available for calling indels.", required = false)

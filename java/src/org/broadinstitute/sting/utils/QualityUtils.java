@@ -78,7 +78,7 @@ public class QualityUtils {
     }
 
     static public double phredScaleErrorRate(double errorRate) {
-        return -10.0*Math.log10(errorRate);
+        return Math.abs(-10.0*Math.log10(errorRate));
     }
 
     static public double lodToPhredScaleErrorRate(double lod) {
