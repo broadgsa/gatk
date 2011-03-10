@@ -155,9 +155,9 @@ public class RecalDataManager {
     }
 
     /**
-     * Loop over all the collapsed tables and turn the recalDatums found there into an empricial quality score
+     * Loop over all the collapsed tables and turn the recalDatums found there into an empirical quality score
      *   that will be used in the sequential calculation in TableRecalibrationWalker
-     * @param smoothing The smoothing paramter that goes into empirical quality score calculation
+     * @param smoothing The smoothing parameter that goes into empirical quality score calculation
      * @param maxQual At which value to cap the quality scores
      */
     public final void generateEmpiricalQualities( final int smoothing, final int maxQual ) {

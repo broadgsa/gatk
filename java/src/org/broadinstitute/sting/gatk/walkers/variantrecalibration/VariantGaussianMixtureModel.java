@@ -231,16 +231,21 @@ public final class VariantGaussianMixtureModel extends VariantOptimizationModel 
             }
         }
 
+        double sumWeight = 0.0;
         for(int iii = 0; iii < numVariants; iii++) {
+            sumWeight += data[iii].weight;           
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
-                empiricalMu[jjj] += data[iii].annotations[jjj] / ((double) numVariants);
+                empiricalMu[jjj] += data[iii].annotations[jjj] * data[iii].weight;
             }
+        }
+        for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
+            empiricalMu[jjj] /= sumWeight;
         }
 
         for(int iii = 0; iii < numVariants; iii++) {
             for( int jjj = 0; jjj < numAnnotations; jjj++ ) {
                 for( int ppp = 0; ppp < numAnnotations; ppp++ ) {
-                    if( jjj == ppp ) {
+                    if( jjj == ppp ) {                        
                         sigmaVals[jjj][ppp] = 1.0; //0.01 * numAnnotations;
                     } else {
                         sigmaVals[jjj][ppp] = 0.0;

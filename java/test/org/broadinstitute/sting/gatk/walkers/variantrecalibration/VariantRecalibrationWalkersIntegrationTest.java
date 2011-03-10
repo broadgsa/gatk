@@ -29,13 +29,13 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
     }
 
     VRTest yriTrio = new VRTest("yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
-            "e14079c3a02c112665a6c194fd4f5d5c",  // cluster file
+            "f65c27ee40053adc72dd0bfbb628e4d7",  // cluster file
             "dce581b880ffb6ea39cbada1ecc95915",  // tranches
             "c3e8a2f43656eab7d847dbf850f844a6",  // recalVCF
             "50f752a72643db9ad0aa94b3fc4e23d6"); // cut VCF
 
     VRTest lowPass = new VRTest("lowpass.N3.chr1.raw.vcf",
-            "b0c0f8c8d9fe3d1ed2bde0b1eb82a22d",  // cluster file
+            "bda8f17cfc19d23e7e51f99e547f4b3d",  // cluster file
             "66edae83c50f4e8601fef7fafba774af",  // tranches
             "0123537e373657386068a534c0f5c91b",  // recalVCF
             "2172368e8585841e5ad96c95d0827c4b"); // cut VCF
