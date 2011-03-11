@@ -21,9 +21,9 @@ def recalibrate(fname,hist,out):
     denom = sum(hist.values())
     cumQuals = dict()
     for key1 in hist:
-        sumMore = 1
+        sumMore = 0
         for key2 in hist:
-            if ( key2 > key1 ):
+            if ( key2 >= key1 ):
                 sumMore += hist[key2]
         cumQuals[key1] = min(int(-10*log10((0.0+sumMore)/denom)),150)
     use = parseTDF
