@@ -60,8 +60,6 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     @Output(doc="File to which BEAGLE input should be written",required=true)
     protected PrintStream  beagleWriter = null;
 
-    @Argument(fullName = "genotypes_file", shortName = "genotypes", doc = "File to print reference genotypes for error analysis", required = false)
-    public PrintStream beagleGenotypesWriter  = null;
     @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)
     public double insertedNoCallRate  = 0;
     @Argument(fullName = "validation_genotype_ptrue", shortName = "valp", doc = "Flat probability to assign to validation genotypes. Will override GL field.", required = false)
@@ -81,7 +79,6 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     private Set<String> samples = null;
     private Set<String> BOOTSTRAP_FILTER = new HashSet<String>( Arrays.asList("bootstrap") );
     private Random generator;
-    private int bootstrapCount = -1;
     private int bootstrapSetSize = 0;
     private int testSetSize = 0;
 
@@ -95,8 +92,6 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             beagleWriter.print(String.format(" %s %s %s", sample, sample, sample));
 
         beagleWriter.println();
-        if (beagleGenotypesWriter != null)
-            beagleGenotypesWriter.println("dummy header");
 
         if ( bootstrapVCFOutput != null ) {
             initializeVcfWriter();
@@ -137,7 +132,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     public boolean goodSite(VariantContext v) {
-       return v != null && ! v.isFiltered() && v.isBiallelic() && v.hasGenotypes();
+        return v != null && ! v.isFiltered() && v.isBiallelic() && v.hasGenotypes();
     }
 
     public boolean useValidation(VariantContext variant, VariantContext validation, ReferenceContext ref) {
@@ -165,13 +160,14 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         }
     }
 
+    private final static double[] HAPLOID_FLAT_LOG10_LIKELIHOODS = MathUtils.toLog10(new double[]{ 0.5, 0.0, 0.5 });
+    private final static double[] DIPLOID_FLAT_LOG10_LIKELIHOODS = MathUtils.toLog10(new double[]{ 0.33, 0.33, 0.33 });
+
     public void writeBeagleOutput(VariantContext preferredVC, VariantContext otherVC, boolean isValidationSite, double prior) {
         GenomeLoc currentLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),preferredVC);
-        beagleWriter.print(String.format("%s:%d ",currentLoc.getContig(),currentLoc.getStart()));
-        if ( beagleGenotypesWriter != null ) {
-            beagleGenotypesWriter.print(String.format("%s ",VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),preferredVC).toString()));
-        }
+        StringBuffer beagleOut = new StringBuffer();
 
+        beagleOut.append(String.format("%s:%d ",currentLoc.getContig(),currentLoc.getStart()));
         for ( Allele allele : preferredVC.getAlleles() ) {
             String bglPrintString;
             if (allele.isNoCall() || allele.isNull())
@@ -179,18 +175,16 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
             else
                 bglPrintString = allele.getBaseString();  // get rid of * in case of reference allele
 
-            beagleWriter.print(String.format("%s ", bglPrintString));
+            beagleOut.append(String.format("%s ", bglPrintString));
         }
 
         Map<String,Genotype> preferredGenotypes = preferredVC.getGenotypes();
         Map<String,Genotype> otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
-        boolean isValidation;
         for ( String sample : samples ) {
-            boolean isMaleOnChrX = false;
-            if( CHECK_IS_MALE_ON_CHR_X && getToolkit().getSampleById(sample).isMale() ) {
-                isMaleOnChrX = true;
-            }
+            boolean isMaleOnChrX = CHECK_IS_MALE_ON_CHR_X && getToolkit().getSampleById(sample).isMale();
+
             Genotype genotype;
+            boolean isValidation;
             // use sample as key into genotypes structure
             if ( preferredGenotypes.keySet().contains(sample) ) {
                 genotype = preferredGenotypes.get(sample);
@@ -202,36 +196,22 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 // there is magically no genotype for this sample.
                 throw new StingException("Sample "+sample+" arose with no genotype in variant or validation VCF. This should never happen.");
             }
-            /**
+
+            /*
              * Use likelihoods if: is validation, prior is negative; or: is not validation, has genotype key
              */
+            double [] log10Likelihoods = null;
             if ( (isValidation && prior < 0.0) || genotype.hasLikelihoods() ) {
-                double[] likeArray = genotype.getLikelihoods().getAsVector();
-                if( isMaleOnChrX ) {
-                    likeArray[1] = -255;
-                }
-                double[] normalizedLikelihoods = MathUtils.normalizeFromLog10(likeArray);
+                log10Likelihoods = genotype.getLikelihoods().getAsVector();
+
                 // see if we need to randomly mask out genotype in this position.
-                Double d = generator.nextDouble();
-                if (d > insertedNoCallRate ) {
-//                    System.out.format("%5.4f ", d);
-                    for (Double likeVal: normalizedLikelihoods)
-                        beagleWriter.print(String.format("%5.4f ",likeVal));
-                }
-                else {
+                if ( generator.nextDouble() <= insertedNoCallRate ) {
                     // we are masking out this genotype
-                    if( isMaleOnChrX ) {
-                        beagleWriter.print("0.5 0.0 0.5 ");
-                    } else {
-                        beagleWriter.print("0.33 0.33 0.33 ");
-                    }
+                    log10Likelihoods = isMaleOnChrX ? HAPLOID_FLAT_LOG10_LIKELIHOODS : DIPLOID_FLAT_LOG10_LIKELIHOODS;
                 }
 
-                if ( beagleGenotypesWriter != null && genotype.isCalled() ) {
-                    char a = genotype.getAllele(0).toString().charAt(0);
-                    char b = genotype.getAllele(0).toString().charAt(0);
-
-                    beagleGenotypesWriter.format("%c %c ", a, b);
+                if( isMaleOnChrX ) {
+                    log10Likelihoods[1] = -255;  // todo -- warning this is dangerous for multi-allele case
                 }
             }
             /**
@@ -248,33 +228,28 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 else if (genotype.isHet()) { AB = prior; }
                 else if (genotype.isHomVar()) { BB = prior; }
 
-                if( isMaleOnChrX ) {
-                    beagleWriter.printf("%.2f %.2f %.2f ", AA, 0.0, BB);
-                } else {
-                    beagleWriter.printf("%.2f %.2f %.2f ", AA, AB, BB);
-                }
-
-                if (beagleGenotypesWriter != null) {
-                    char a = genotype.getAllele(0).toString().charAt(0);
-                    char b = genotype.getAllele(0).toString().charAt(0);
-
-                    beagleGenotypesWriter.format("%c %c ", a, b);
-                }
+                log10Likelihoods = MathUtils.toLog10(new double[]{ AA, isMaleOnChrX ? 0.0 : AB, BB });
             }
             else  {
-                if( isMaleOnChrX ) {
-                    beagleWriter.print("0.5 0.0 0.5 ");
-                } else {
-                    beagleWriter.print("0.33 0.33 0.33 ");
-                } // write 1/3 likelihoods for uncalled genotypes.
-                if (beagleGenotypesWriter != null)
-                    beagleGenotypesWriter.print(". . ");
+                log10Likelihoods = isMaleOnChrX ? HAPLOID_FLAT_LOG10_LIKELIHOODS : DIPLOID_FLAT_LOG10_LIKELIHOODS;
             }
+
+            writeSampleLikelihoods(beagleOut, log10Likelihoods);
         }
 
-        beagleWriter.println();
-        if (beagleGenotypesWriter != null)
-            beagleGenotypesWriter.println();
+        beagleWriter.println(beagleOut.toString());
+    }
+
+    private void writeSampleLikelihoods( StringBuffer out, double[] log10Likelihoods ) {
+        double[] normalizedLog10Likelihoods = MathUtils.normalizeFromLog10(log10Likelihoods);
+        // see if we need to randomly mask out genotype in this position.
+        // todo -- remove me after testing
+        if ( log10Likelihoods == HAPLOID_FLAT_LOG10_LIKELIHOODS || log10Likelihoods == DIPLOID_FLAT_LOG10_LIKELIHOODS )
+            for (double likeVal: normalizedLog10Likelihoods)
+                out.append(String.format("%.2f ",likeVal));
+        else
+            for (double likeVal: normalizedLog10Likelihoods)
+                out.append(String.format("%5.4f ",likeVal));
     }
 
 

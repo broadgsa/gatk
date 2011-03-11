@@ -82,6 +82,19 @@ public class MathUtils {
         return s;
     }
 
+
+    /**
+     * Converts a real space array of probabilities into a log10 array
+     * @param prRealSpace
+     * @return
+     */
+    public static double[] toLog10(double[] prRealSpace) {
+        double[] log10s = new double[prRealSpace.length];
+        for ( int i = 0; i < prRealSpace.length; i++ )
+            log10s[i] = Math.log10(prRealSpace[i]);
+        return log10s;
+    }
+
     public static double log10sumLog10(double[] log10p, int start) {
         double sum = 0.0;
 
