@@ -20,7 +20,7 @@ public class IndelUtils {
 
 
     static {
-        COLUMN_KEYS= new String[41];
+        COLUMN_KEYS= new String[51];
         COLUMN_KEYS[0] = "Novel_A";
         COLUMN_KEYS[1] = "Novel_C";
         COLUMN_KEYS[2] = "Novel_G";
@@ -51,17 +51,27 @@ public class IndelUtils {
         COLUMN_KEYS[27] = "RepeatExpansion_TA";
         COLUMN_KEYS[28] = "RepeatExpansion_TC";
         COLUMN_KEYS[29] = "RepeatExpansion_TG";
-        COLUMN_KEYS[30] = "RepeatExpansion_1";
-        COLUMN_KEYS[31] = "RepeatExpansion_2";
-        COLUMN_KEYS[32] = "RepeatExpansion_3";
-        COLUMN_KEYS[33] = "RepeatExpansion_4";
-        COLUMN_KEYS[34] = "RepeatExpansion_5";
-        COLUMN_KEYS[35] = "RepeatExpansion_6";
-        COLUMN_KEYS[36] = "RepeatExpansion_7";
-        COLUMN_KEYS[37] = "RepeatExpansion_8";
-        COLUMN_KEYS[38] = "RepeatExpansion_9";
-        COLUMN_KEYS[39] = "RepeatExpansion_10orMore";
-        COLUMN_KEYS[40] = "Other";
+        COLUMN_KEYS[30] = "EventLength_1";
+        COLUMN_KEYS[31] = "EventLength_2";
+        COLUMN_KEYS[32] = "EventLength_3";
+        COLUMN_KEYS[33] = "EventLength_4";
+        COLUMN_KEYS[34] = "EventLength_5";
+        COLUMN_KEYS[35] = "EventLength_6";
+        COLUMN_KEYS[36] = "EventLength_7";
+        COLUMN_KEYS[37] = "EventLength_8";
+        COLUMN_KEYS[38] = "EventLength_9";
+        COLUMN_KEYS[39] = "EventLength_10orMore";
+        COLUMN_KEYS[40] = "NumRepetitions_1";
+        COLUMN_KEYS[41] = "NumRepetitions_2";
+        COLUMN_KEYS[42] = "NumRepetitions_3";
+        COLUMN_KEYS[43] = "NumRepetitions_4";
+        COLUMN_KEYS[44] = "NumRepetitions_5";
+        COLUMN_KEYS[45] = "NumRepetitions_6";
+        COLUMN_KEYS[46] = "NumRepetitions_7";
+        COLUMN_KEYS[47] = "NumRepetitions_8";
+        COLUMN_KEYS[48] = "NumRepetitions_9";
+        COLUMN_KEYS[49] = "NumRepetitions_10orMore";
+        COLUMN_KEYS[50] = "Other";
 
     }
 
@@ -75,7 +85,9 @@ public class IndelUtils {
     private static final int STOP_IND_FOR_REPEAT_EXPANSION_2 = 29;
     private static final int START_IND_FOR_REPEAT_EXPANSION_COUNTS = 30;
     private static final int STOP_IND_FOR_REPEAT_EXPANSION_COUNTS = 39;
-    private static final int IND_FOR_OTHER_EVENT = 40;
+    private static final int START_IND_FOR_NUM_REPETITION_COUNTS = 40;
+    private static final int STOP_IND_FOR_NUM_REPETITION_COUNTS = 49;
+    private static final int IND_FOR_OTHER_EVENT = 50;
     private static final int START_IND_NOVEL_PER_BASE = 0;
     private static final int STOP_IND_NOVEL_PER_BASE = 3;
 
@@ -182,11 +194,18 @@ public class IndelUtils {
             }
         }
         else {
-            int ind = START_IND_FOR_REPEAT_EXPANSION_COUNTS + (numRepetitions-1);
-            if (ind > STOP_IND_FOR_REPEAT_EXPANSION_COUNTS)
-                ind = STOP_IND_FOR_REPEAT_EXPANSION_COUNTS;
+            // log number of repetition counts
+            int ind = START_IND_FOR_NUM_REPETITION_COUNTS + (numRepetitions-1);
+            if (ind > STOP_IND_FOR_NUM_REPETITION_COUNTS)
+                ind = STOP_IND_FOR_NUM_REPETITION_COUNTS;
             inds.add(ind);
 
+            ind = START_IND_FOR_REPEAT_EXPANSION_COUNTS + (eventLength - 1);
+            if (ind > STOP_IND_FOR_REPEAT_EXPANSION_COUNTS)
+                    ind = STOP_IND_FOR_REPEAT_EXPANSION_COUNTS;
+            inds.add(ind);
+            
+            // log event length
             if (eventLength<=2) {
                 // for single or dinucleotide indels, we further log the base in which they occurred
                 String keyStr = "RepeatExpansion_" + indelAlleleString;
@@ -198,6 +217,7 @@ public class IndelUtils {
                 // log now event
                 inds.add(k);
             }
+
 
         }
 
