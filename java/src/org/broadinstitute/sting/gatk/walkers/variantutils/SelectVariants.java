@@ -73,7 +73,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="family", shortName="fam", doc="If provided, genotypes in will be examined for mendelian violations: this argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
     private String FAMILY_STRUCTURE = "";
 
-    @Argument(fullName="mendelian_violation_quality", shortName="mvq", fullName="mendelianViolationQualThreshold", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
+    @Argument(fullName="mendelianViolationQualThreshold", shortName="mvq", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
     private double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
 
 
