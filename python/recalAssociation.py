@@ -21,11 +21,11 @@ def recalibrate(fname,hist,out):
     denom = sum(hist.values())
     cumQuals = dict()
     for key1 in hist:
-        sumLess = 0
+        sumMore = 1
         for key2 in hist:
-            if ( key2 <= key1 ):
-                sumLess += hist[key2]
-        cumQuals[key1] = int(-10*log10((0.0+sumLess)/denom))
+            if ( key2 > key1 ):
+                sumMore += hist[key2]
+        cumQuals[key1] = min(int(-10*log10((0.0+sumMore)/denom)),150)
     use = parseTDF
     if ( fname.endswith(".wig") ):
         use = parseWiggle
