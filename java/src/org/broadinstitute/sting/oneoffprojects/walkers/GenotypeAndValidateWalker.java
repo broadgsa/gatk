@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import com.google.common.collect.ImmutableSet;
+import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
@@ -45,6 +46,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
+import sun.management.counter.Variability;
 
 import java.util.*;
 
@@ -199,7 +201,13 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             else
                 counter.numFP = 1L;
         }
-        vcfWriter.add(vcComp, ref.getBase());
+        if (!vcComp.hasAttribute("callStatus")) {
+            MutableVariantContext mvc = new MutableVariantContext(vcComp);
+            mvc.putAttribute("callStatus", call.confidentlyCalled ? "confident" : "notConfident" );
+            vcfWriter.add(mvc, ref.getBase());
+        }
+        else
+            vcfWriter.add(vcComp, ref.getBase());
         return counter;
     }
 
@@ -224,7 +232,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         logger.info("FP = " + reduceSum.numFP);
         logger.info("FN = " + reduceSum.numFN);
         logger.info("PPV = " + ((double) reduceSum.numTP /( reduceSum.numTP + reduceSum.numFP)));
-        logger.info("FPV = " + ((double) reduceSum.numTN /( reduceSum.numTN + reduceSum.numFN)));
+        logger.info("NPV = " + ((double) reduceSum.numTN /( reduceSum.numTN + reduceSum.numFN)));
         logger.info("Uncovered = " + reduceSum.numUncovered);
         logger.info("confidently called = " + reduceSum.numConfidentCalls);
         logger.info("not confidently called = " + reduceSum.numNotConfidentCalls );
