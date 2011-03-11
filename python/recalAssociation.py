@@ -18,7 +18,7 @@ def recalibrateJointly(files,JECDF):
 def recalibrate(fname,hist,out):
     print(fname)
     output = open(out + "." + fname.rsplit(".",1)[0].rsplit(".",1)[1], 'w')
-    denom = sum(hist)
+    denom = sum(hist.values())
     cumQuals = dict()
     for key1 in hist:
         sumLess = 0
