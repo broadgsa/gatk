@@ -28,6 +28,8 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
+import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.util.Arrays;
@@ -147,6 +149,11 @@ public class UserException extends ReviewedStingException {
         }
     }
 
+    public static class VariantContextMissingRequiredField extends UserException {
+        public VariantContextMissingRequiredField(String field, VariantContext vc) {
+            super(String.format("Variant at %s:%d is is missing the required field %s", vc.getChr(), vc.getStart(), field));
+        }
+    }
 
     public static class MissortedFile extends UserException {
         public MissortedFile(File file, String message, Exception e) {

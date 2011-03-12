@@ -98,7 +98,8 @@ class StandardVariantEvaluation extends QScript {
     //
     // SNP call sets
     //
-    addEval(new Eval("gatk", "snps", "EUR+.phase1.chr20.broad.recal.vrcut1p0.sites.vcf"))
+    addEval(new Eval("1000G.gatk.eurPlus.phase1", "snps", "EUR+.phase1.chr20.broad.recal.vrcut1p0.sites.vcf"))
+    addEval(new Eval("1000G.high_specificity.phase1", "snps", "ALL.phase1.chr20.projectConsensus.highSpecificity.snps.genotypes.sites.vcf"))
     // todo -- are there other good call sets for evaluation?
     // todo -- add hg19 na12878 64x
   }

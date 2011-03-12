@@ -31,6 +31,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -39,12 +40,14 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
+import org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration.VQSRCalibrationCurve;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -59,6 +62,19 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     @Output(doc="File to which BEAGLE input should be written",required=true)
     protected PrintStream  beagleWriter = null;
+
+    @Hidden
+    @Input(doc="VQSqual calibration file", shortName = "cc", required=false)
+    protected File VQSRCalibrationFile = null;
+    protected VQSRCalibrationCurve VQSRCalibrator = null;
+
+    @Hidden
+    @Argument(doc="VQSqual key", shortName = "vqskey", required=false)
+    protected String VQSLOD_KEY = "VQSqual";
+
+//    @Hidden
+//    @Argument(doc="Include filtered records", shortName = "ifr", fullName = "IncludeFilteredRecords", required=false)
+//    protected boolean includeFilteredRecords = false;
 
     @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)
     public double insertedNoCallRate  = 0;
@@ -95,6 +111,12 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
         if ( bootstrapVCFOutput != null ) {
             initializeVcfWriter();
+        }
+
+        if ( VQSRCalibrationFile != null ) {
+            VQSRCalibrator = VQSRCalibrationCurve.readFromFile(VQSRCalibrationFile);
+            logger.info("Read calibration curve");
+            VQSRCalibrator.printInfo(logger);
         }
     }
 
@@ -133,6 +155,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     public boolean goodSite(VariantContext v) {
         return v != null && ! v.isFiltered() && v.isBiallelic() && v.hasGenotypes();
+        //return v != null && (includeFilteredRecords || ! v.isFiltered()) && v.isBiallelic() && v.hasGenotypes();
     }
 
     public boolean useValidation(VariantContext variant, VariantContext validation, ReferenceContext ref) {
@@ -234,13 +257,16 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 log10Likelihoods = isMaleOnChrX ? HAPLOID_FLAT_LOG10_LIKELIHOODS : DIPLOID_FLAT_LOG10_LIKELIHOODS;
             }
 
-            writeSampleLikelihoods(beagleOut, log10Likelihoods);
+            writeSampleLikelihoods(beagleOut, preferredVC, log10Likelihoods);
         }
 
         beagleWriter.println(beagleOut.toString());
     }
 
-    private void writeSampleLikelihoods( StringBuffer out, double[] log10Likelihoods ) {
+    private void writeSampleLikelihoods( StringBuffer out, VariantContext vc, double[] log10Likelihoods ) {
+        if ( VQSRCalibrator != null )
+            log10Likelihoods = VQSRCalibrator.includeErrorRateInLikelihoods(VQSLOD_KEY, vc, log10Likelihoods);
+
         double[] normalizedLog10Likelihoods = MathUtils.normalizeFromLog10(log10Likelihoods);
         // see if we need to randomly mask out genotype in this position.
         // todo -- remove me after testing
