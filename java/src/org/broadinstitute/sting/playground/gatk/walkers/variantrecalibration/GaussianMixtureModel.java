@@ -28,8 +28,9 @@ public class GaussianMixtureModel {
     private final ArrayList<MultivariateGaussian> gaussians;
     private final double shrinkage;
     private final double dirichletParameter;
+    private final double degreesOfFreedom;
     private final double[] empiricalMu; // BUGBUG: move these to VariantData class
-    private final Matrix empiricalSigma;
+    private final Matrix empiricalSigma; // BUGBUG: move these to VariantData class
     public boolean isModelReadyForEvaluation;
 
     public GaussianMixtureModel( final int numGaussians, final int numAnnotations,
@@ -42,6 +43,7 @@ public class GaussianMixtureModel {
         }
         this.shrinkage = shrinkage;
         this.dirichletParameter = dirichletParameter;
+        degreesOfFreedom = numAnnotations;
         empiricalMu = new double[numAnnotations];
         empiricalSigma = new Matrix(numAnnotations, numAnnotations);
         isModelReadyForEvaluation = false;
@@ -57,27 +59,49 @@ public class GaussianMixtureModel {
             for( int iii = 0; iii < annotationLines.size(); iii++ ) {
                 gaussian.mu[iii] = Double.parseDouble(vals[2+iii]); //BUGBUG: recreated here to match the integration tests
                 for( int jjj = 0; jjj < annotationLines.size(); jjj++ ) {
-                    gaussian.sigma.set(iii, jjj, Double.parseDouble(vals[2+annotationLines.size()+(iii*annotationLines.size())+jjj]) * 1.3); // BUGBUG: VRAC backOff, or get rid of this completely!?
+                    gaussian.sigma.set(iii, jjj, 1.3*Double.parseDouble(vals[2+annotationLines.size()+(iii*annotationLines.size())+jjj])); //BUGBUG: VRAC backoff
                 }
             }
             gaussians.add( gaussian );
         }
 
-        this.shrinkage = 0.0; // not used when evaluating data, BUGBUG: move this to VariantData class
-        this.dirichletParameter = 0.0; // not used when evaluating data
+        shrinkage = 0.0; // not used when evaluating data, BUGBUG: move this to VariantData class
+        dirichletParameter = 0.0; // not used when evaluating data
+        degreesOfFreedom = 0.0; // not used when evaluating data
         empiricalMu = null; // not used when evaluating data
         empiricalSigma = null; // not used when evaluating data
         isModelReadyForEvaluation = false;
     }
 
     public void cacheEmpiricalStats( final List<VariantDatum> data ) {
+        //final double[][] tmpSigmaVals = new double[empiricalMu.length][empiricalMu.length];
+        for( int iii = 0; iii < empiricalMu.length; iii++ ) {
+            empiricalMu[iii] = 0.0;
+            //for( int jjj = iii; jjj < empiricalMu.length; jjj++ ) {
+            //    tmpSigmaVals[iii][jjj] = 0.0;
+            //}
+        }
+
         for( final VariantDatum datum : data ) {
-            for( int jjj = 0; jjj < empiricalMu.length; jjj++ ) {
-                empiricalMu[jjj] += datum.annotations[jjj] / ((double) data.size());
+            for( int iii = 0; iii < empiricalMu.length; iii++ ) {
+                empiricalMu[iii] += datum.annotations[iii] / ((double) data.size());
             }
         }
-        empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, Matrix.identity(empiricalMu.length, empiricalMu.length)); // BUGBUG: why does the identity matrix work best here?
-                               // is it because of a bug in the old implementation in which std>X variants were still counted in this calculation??
+
+        /*
+        for( final VariantDatum datum : data ) {
+            for( int iii = 0; iii < empiricalMu.length; iii++ ) {
+                for( int jjj = 0; jjj < empiricalMu.length; jjj++ ) {
+                    tmpSigmaVals[iii][jjj] += (datum.annotations[iii]-empiricalMu[iii]) * (datum.annotations[jjj]-empiricalMu[jjj]);
+                }
+            }
+        }
+
+        empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, new Matrix(tmpSigmaVals));
+        empiricalSigma.timesEquals( 1.0 / ((double) data.size()) );
+        empiricalSigma.timesEquals( 1.0 / (Math.pow(gaussians.size(), 2.0 / ((double) empiricalMu.length))) );
+        */
+        empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, Matrix.identity(empiricalMu.length, empiricalMu.length));
     }
 
     public void initializeRandomModel( final List<VariantDatum> data, final Random rand ) {
@@ -94,7 +118,7 @@ public class GaussianMixtureModel {
         for( final MultivariateGaussian gaussian : gaussians ) {
             gaussian.pMixtureLog10 = Math.log10( 1.0 / ((double) gaussians.size()) );
             gaussian.initializeRandomSigma( rand );
-            gaussian.hyperParameter_a = gaussian.mu.length;
+            gaussian.hyperParameter_a = degreesOfFreedom;
             gaussian.hyperParameter_b = shrinkage;
             gaussian.hyperParameter_lambda = dirichletParameter;            
         }
@@ -164,7 +188,7 @@ public class GaussianMixtureModel {
 
     public void maximizationStep( final List<VariantDatum> data ) {
         for( final MultivariateGaussian gaussian : gaussians ) {
-            gaussian.maximizeGaussian( data, empiricalMu, empiricalSigma, shrinkage, dirichletParameter );
+            gaussian.maximizeGaussian( data, empiricalMu, empiricalSigma, shrinkage, dirichletParameter, degreesOfFreedom );
         }
     }
 
@@ -186,9 +210,9 @@ public class GaussianMixtureModel {
                 for(int jjj = 0; jjj < gaussian.mu.length; jjj++ ) {
                     clusterFile.print(String.format(",%.8f", gaussian.mu[jjj]));
                 }
-                for(int jjj = 0; jjj < gaussian.mu.length; jjj++ ) {
-                    for(int ppp = 0; ppp < gaussian.mu.length; ppp++ ) {
-                        clusterFile.print(String.format(",%.8f", (sigmaVals[jjj][ppp] / gaussian.hyperParameter_a) )); // BUGBUG: this is a bug which should be fixed after passing integration tests
+                for(int iii = 0; iii < gaussian.mu.length; iii++ ) {
+                    for(int jjj = 0; jjj < gaussian.mu.length; jjj++ ) {
+                        clusterFile.print(String.format(",%.8f", (sigmaVals[iii][jjj] / gaussian.hyperParameter_a)));
                     }
                 }
                 clusterFile.println();

@@ -40,7 +40,7 @@ public class VariantRecalibratorEngine {
     }
 
     public GaussianMixtureModel generateModel( final List<VariantDatum> data ) {
-        final GaussianMixtureModel model = new GaussianMixtureModel( 4, 3, 0.0001, 1000.0 ); //BUGBUG: VRAC.maxGaussians, VRAC.numAnnotations
+        final GaussianMixtureModel model = new GaussianMixtureModel( 4, 3, 0.0001, 1000.0 ); //BUGBUG: VRAC arguments
         variationalBayesExpectationMaximization( model, data );
         return model;
     }

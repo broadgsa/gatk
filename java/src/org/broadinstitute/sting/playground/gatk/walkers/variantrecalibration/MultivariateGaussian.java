@@ -18,7 +18,6 @@ public class MultivariateGaussian {
     public double pMixtureLog10;
     final public double[] mu;
     final public Matrix sigma;
-    private double cachedDeterminant;
     public double hyperParameter_a;
     public double hyperParameter_b;
     public double hyperParameter_lambda;
@@ -65,7 +64,6 @@ public class MultivariateGaussian {
         Matrix tmp = new Matrix( randSigma );
         tmp = tmp.times(tmp.transpose());
         sigma.setMatrix(0, mu.length - 1, 0, mu.length - 1, tmp);
-        cachedDeterminant = sigma.det();
     }
 
     public double calculateDistanceFromMeanSquared( final VariantDatum datum ) {
@@ -90,9 +88,7 @@ public class MultivariateGaussian {
 
     public void precomputeDenominatorForEvaluation() {
         cachedSigmaInverse = sigma.inverse();
-        cachedDenomLog10 = -1.0 * ( Math.log10(Math.pow(2.0 * Math.PI, ((double) mu.length) / 2.0)) + Math.log10(Math.pow(sigma.det(), 0.5)) );
-        //BUGBUG: This should be determinant of sigma inverse?
-        //BUGBUG: Denom --> constant factor log10
+        cachedDenomLog10 = Math.log10(Math.pow(2.0 * Math.PI, -1.0 * ((double) mu.length) / 2.0)) + Math.log10(Math.pow(sigma.det(), -0.5)) ;
     }
 
     public void precomputeDenominatorForVariationalBayes( final double sumHyperParameterLambda ) {
@@ -102,7 +98,7 @@ public class MultivariateGaussian {
         for(int jjj = 1; jjj < mu.length; jjj++) {
             sum += MathUtils.diGamma( (hyperParameter_a + 1.0 - jjj) / 2.0 );
         }
-        sum -= Math.log( cachedDeterminant );
+        sum -= Math.log( sigma.det() );
         sum += Math.log(2.0) * mu.length;
         final double gamma = 0.5 * sum;
         final double pi = MathUtils.diGamma( hyperParameter_lambda ) - MathUtils.diGamma( sumHyperParameterLambda );
@@ -135,7 +131,7 @@ public class MultivariateGaussian {
     }
 
     public void maximizeGaussian( final List<VariantDatum> data, final double[] empiricalMu, final Matrix empiricalSigma,
-                                  final double SHRINKAGE, final double DIRICHLET_PARAMETER ) {
+                                  final double SHRINKAGE, final double DIRICHLET_PARAMETER, final double DEGREES_OF_FREEDOM ) {
         double sumProb = 0.0;
         Matrix wishart = new Matrix(mu.length, mu.length);
         zeroOutMu();
@@ -173,11 +169,10 @@ public class MultivariateGaussian {
 
         sigma.plusEquals( empiricalSigma );
         sigma.plusEquals( wishart );
-        cachedDeterminant = sigma.det();
 
         pMixtureLog10 = sumProb; // will be normalized later by GaussianMixtureModel so no need to do it every iteration
 
-        hyperParameter_a = sumProb + mu.length;
+        hyperParameter_a = sumProb + DEGREES_OF_FREEDOM;
         hyperParameter_b = sumProb + SHRINKAGE;
         hyperParameter_lambda = sumProb + DIRICHLET_PARAMETER;
 
