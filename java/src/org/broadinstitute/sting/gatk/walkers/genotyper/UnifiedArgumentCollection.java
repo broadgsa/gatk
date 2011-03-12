@@ -114,6 +114,8 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
     public int INDEL_HAPLOTYPE_SIZE = 80;
+    @Argument(fullName = "doContextDependentGapPenalties", shortName = "doCDP", doc = "Vary gap penalties by context", required = false)
+     public boolean DO_CONTEXT_DEPENDENT_PENALTIES = false;
     //gdebug+
     @Hidden
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
@@ -167,7 +169,8 @@ public class UnifiedArgumentCollection {
         uac.INDEL_GAP_CONTINUATION_PENALTY = INDEL_GAP_CONTINUATION_PENALTY;
         uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
-
+        uac.DO_CONTEXT_DEPENDENT_PENALTIES = DO_CONTEXT_DEPENDENT_PENALTIES;
+        
         // todo- arguments to remove
         uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
         uac.INSERTION_START_PROBABILITY = INSERTION_START_PROBABILITY;

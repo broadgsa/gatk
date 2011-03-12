@@ -31,6 +31,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -71,7 +72,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         super(UAC, logger);
         if (UAC.newlike) {
             pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,
-                    UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.S1, UAC.S2, UAC.dovit);
+                    UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.DO_CONTEXT_DEPENDENT_PENALTIES, UAC.S1, UAC.S2, UAC.dovit);
             newLike = true;
         }
         else
@@ -88,7 +89,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
     private ArrayList<Allele> computeConsensusAlleles(ReferenceContext ref,
                                                       Map<String, StratifiedAlignmentContext> contexts,
                                                       StratifiedAlignmentContext.StratifiedContextType contextType) {
-        Allele refAllele, altAllele;
+        Allele refAllele=null, altAllele=null;
         GenomeLoc loc = ref.getLocus();
         ArrayList<Allele> aList = new ArrayList<Allele>();
 
@@ -235,19 +236,33 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
             // get ref bases of accurate deletion
             int startIdxInReference = (int)(1+loc.getStart()-ref.getWindow().getStart());
 
+            //System.out.println(new String(ref.getBases()));
             byte[] refBases = Arrays.copyOfRange(ref.getBases(),startIdxInReference,startIdxInReference+dLen);
-            refAllele = Allele.create(refBases,true);
-            altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
+            boolean ok = true;
+            for (int i=0; i < refBases.length; i++)
+                if (!BaseUtils.isRegularBase(refBases[i]))
+                    ok = false;
+
+            if (ok) {
+                refAllele = Allele.create(refBases,true);
+                altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
+            }
         }
         else {
             // insertion case
-            refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
-            altAllele = Allele.create(bestAltAllele, false);
+            boolean ok = true;
+            for (int i=0; i < bestAltAllele.length(); i++)
+                if (!BaseUtils.isRegularBase(bestAltAllele.getBytes()[i]))
+                    ok = false;
+            if (ok)  {
+                refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
+                altAllele = Allele.create(bestAltAllele, false);
+            }
         }
-
-        aList.add(0,refAllele);
-        aList.add(1,altAllele);
-
+        if (refAllele != null && altAllele != null) {
+            aList.add(0,refAllele);
+            aList.add(1,altAllele);
+        }
         return aList;
 
     }
@@ -310,6 +325,9 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         if ( !(priors instanceof DiploidIndelGenotypePriors) )
             throw new StingException("Only diploid-based Indel priors are supported in the DINDEL GL model");
 
+        if (alleleList.isEmpty())
+            return null;
+        
         refAllele = alleleList.get(0);
         altAllele = alleleList.get(1);
         int eventLength = refAllele.getBaseString().length() - altAllele.getBaseString().length();

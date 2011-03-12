@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -95,6 +96,7 @@ public class PairHMMIndelErrorModel {
     private boolean doViterbi = false;
     private final boolean useSoftClippedBases = false;
     private final boolean useAffineGapModel = true;
+    private boolean doContextDependentPenalties = false;
 
     private String s1;
     private String s2;
@@ -117,19 +119,19 @@ public class PairHMMIndelErrorModel {
         }
     }
 
-    public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, String s1, String s2, boolean dovit) {
-        this(indelGOP, indelGCP, deb);
+    public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean doCDP, String s1, String s2, boolean dovit) {
+        this(indelGOP, indelGCP, deb, doCDP);
         this.s1 = s1;
         this.s2 = s2;
         this.doViterbi = dovit;
     }
 
-    public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb) {
+    public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean doCDP) {
 
 
         this.logGapOpenProbability = -indelGOP/10.0; // QUAL to log prob
         this.logGapContinuationProbability = -indelGCP/10.0; // QUAL to log prob
-
+        this.doContextDependentPenalties = doCDP;
         this.DEBUG = deb;
 
 
@@ -264,6 +266,36 @@ public class PairHMMIndelErrorModel {
 
     }
 
+    private Pair<Double,Double> getGapPenalties(final int indI, final int indJ, final int X_METRIC_LENGTH,
+                                                final int Y_METRIC_LENGTH, final int tableToUpdate) {
+
+        double c=0.0,d=0.0;
+
+        if (doContextDependentPenalties) {
+            // todo- fill me!!
+        }   else {
+            switch (tableToUpdate) {
+                case MATCH_OFFSET:
+
+                    break;
+                case X_OFFSET:
+                    c = (indJ==Y_METRIC_LENGTH-1? 0: logGapOpenProbability);
+                    d = (indJ==Y_METRIC_LENGTH-1? 0: logGapContinuationProbability);
+
+                    break;
+
+                case Y_OFFSET:
+                    c = (indI==X_METRIC_LENGTH-1? 0: logGapOpenProbability);
+                    d = (indI==X_METRIC_LENGTH-1? 0: logGapContinuationProbability);
+
+                    break;
+                default:
+                    throw new StingException("BUG!! Invalid table offset");
+            }
+        }
+        return new Pair<Double,Double>(Double.valueOf(c),Double.valueOf(d));
+    }
+
     public double computeReadLikelihoodGivenHaplotypeAffineGaps(byte[] haplotypeBases, byte[] readBases, byte[] readQuals) {
 
         final int X_METRIC_LENGTH = readBases.length+1;
@@ -318,7 +350,6 @@ public class PairHMMIndelErrorModel {
                 double pBaseRead =  (x == y)? baseMatchArray[(int)qual]:baseMismatchArray[(int)qual];
 
 
-                double c,d;
                 double[] metrics = new double[3];
 
                 // update match array
@@ -339,10 +370,11 @@ public class PairHMMIndelErrorModel {
                 // update X array
                  // State X(i,j): X(1:i) aligned to a gap in Y(1:j).
                 // When in last column of X, ie X(1:i) aligned to full Y, we don't want to penalize gaps
-                c = (indJ==Y_METRIC_LENGTH-1? 0: logGapOpenProbability);
-                d = (indJ==Y_METRIC_LENGTH-1? 0: logGapContinuationProbability);
-                metrics[MATCH_OFFSET] = matchMetricArray[indI-1][indJ] + c;
-                metrics[X_OFFSET] = XMetricArray[indI-1][indJ] + d;
+                Pair<Double,Double> p = getGapPenalties(indI, indJ, X_METRIC_LENGTH,
+                                                Y_METRIC_LENGTH, X_OFFSET);
+
+                metrics[MATCH_OFFSET] = matchMetricArray[indI-1][indJ] + p.first;
+                metrics[X_OFFSET] = XMetricArray[indI-1][indJ] + p.second;
                 metrics[Y_OFFSET] = Double.NEGATIVE_INFINITY; //YMetricArray[indI-1][indJ] + logGapOpenProbability;
 
                 if (doViterbi) {
@@ -356,12 +388,12 @@ public class PairHMMIndelErrorModel {
                 bestActionArrayX[indI][indJ] = ACTIONS_X[bestMetricIdx];
 
                 // update Y array
-                c = (indI==X_METRIC_LENGTH-1? 0: logGapOpenProbability);
-                d = (indI==X_METRIC_LENGTH-1? 0: logGapContinuationProbability);
+                p = getGapPenalties(indI, indJ, X_METRIC_LENGTH,
+                                                 Y_METRIC_LENGTH, Y_OFFSET);
 
-                metrics[MATCH_OFFSET] = matchMetricArray[indI][indJ-1] + c;
+                metrics[MATCH_OFFSET] = matchMetricArray[indI][indJ-1] + p.first;
                 metrics[X_OFFSET] = Double.NEGATIVE_INFINITY; //XMetricArray[indI][indJ-1] + logGapOpenProbability;
-                metrics[Y_OFFSET] = YMetricArray[indI][indJ-1] + d;
+                metrics[Y_OFFSET] = YMetricArray[indI][indJ-1] + p.second;
 
                 if (doViterbi) {
                     bestMetricIdx = MathUtils.maxElementIndex(metrics);
@@ -437,11 +469,7 @@ public class PairHMMIndelErrorModel {
                     i--; j--;
                 }
 
- /*               if (j<0 || i < 0)
-                {
-                    int k=1;
-                }*/
-            }
+             }
 
 
 
@@ -687,87 +715,5 @@ public class PairHMMIndelErrorModel {
 
     }
 
-    /* Retrieves bases and qualities from a read that align to a start and stop position within a given contig */
-    public static Pair<byte[],byte[]> getBasesBetweenPositions(SAMRecord read, long startPos, long endPos ) {
-
-        final Cigar cigar = read.getCigar();
-        final byte[] bases = read.getReadBases();
-        final byte[] quals = read.getBaseQualities();
-        //     final byte[] alignment = new byte[alignmentLength];
-        long alignStartPos = startPos;
-        long readStartPos = read.getUnclippedStart();
-
-        if (alignStartPos < readStartPos )
-            alignStartPos = readStartPos;
-
-        long alignEndPos = endPos;
-        long readEndPos = read.getUnclippedEnd();
-
-        if (alignEndPos > readEndPos )
-            alignEndPos = readEndPos;
-
-        // We need to now locate read bases between alignStartPos and alignEndPos
-
-        //first see how many bytes will we require for output
-        final byte[] readAlignment = new byte[bases.length];
-        final byte[] qualAlignment = new byte[bases.length];
-
-        int outPos = 0;
-        int readPos = 0;
-        int alignPos = 0;
-        for ( int iii = 0 ; iii < cigar.numCigarElements() ; iii++ ) {
-
-            final CigarElement ce = cigar.getCigarElement(iii);
-            final int elementLength = ce.getLength();
-
-            switch( ce.getOperator() ) {
-                case I:
-                    for ( int jjj = 0; jjj < elementLength; jjj++ ) {
-                        // check if insertion falls before window we're looking for
-                        if (readStartPos +readPos >= alignStartPos) {
-                            readAlignment[outPos] = bases[readPos];
-                            qualAlignment[outPos] = quals[readPos];
-                            outPos++;
-                        }
-                        readPos++;
-                    }
-                    break;
-                case D:
-                case N:
-                    for ( int jjj = 0; jjj < elementLength; jjj++ ) {
-                        alignPos++;
-                        if (alignStartPos + alignPos > alignEndPos)
-                            break;
-                    }
-                    break;
-                case S:
-                case M:
-                    for ( int jjj = 0; jjj < elementLength; jjj++ ) {
-                        if (readStartPos +readPos >= alignStartPos) {
-                            readAlignment[outPos] = bases[readPos];
-                            qualAlignment[outPos] = quals[readPos];
-                            outPos++;
-                            alignPos++;
-                        }
-
-                        readPos++;
-
-                        if (alignStartPos + alignPos > alignEndPos)
-                            break;
-                    }
-                    break;
-                case H:
-                case P:
-                    break;
-                default:
-                    throw new ReviewedStingException( "Unsupported cigar operator: " + ce.getOperator() );
-            }
-            // if we're already beyong of edge of window of interest, nothing more to do
-            if (alignStartPos + alignPos > alignEndPos)
-                break;
-
-        }
-        return new Pair(Arrays.copyOf(readAlignment,outPos), Arrays.copyOf(qualAlignment,outPos));
-    }
-
+ 
 }
