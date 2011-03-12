@@ -39,6 +39,8 @@ import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
+import org.broadinstitute.sting.gatk.walkers.PartitionBy;
+import org.broadinstitute.sting.gatk.walkers.PartitionType;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
@@ -209,10 +211,10 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      * @return The scatter type for the walker.
      */
     private String getScatterClass(Class<? extends Walker> walkerType) {
-        if (ReadWalker.class.isAssignableFrom(walkerType))
-            return "ContigScatterFunction";
-        else
-            return "IntervalScatterFunction";
+        PartitionType partitionType = walkerType.getAnnotation(PartitionBy.class).value();
+        if (partitionType == PartitionType.None)
+            return null;
+        return partitionType.name() + "ScatterFunction";
     }
 
     /**

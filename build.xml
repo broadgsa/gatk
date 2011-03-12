@@ -339,13 +339,13 @@
           <pathelement location="${java.classes}" />
         </path>
 
-      <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
-	       docletpathref="doclet.classpath"
-	       classpathref="external.dependencies"
-	       additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${resource.path} -quiet">
-	    <fileset refid="java.source.files"/>
-        <fileset refid="external.source.files"/>
-      </javadoc>
+        <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
+                 docletpathref="doclet.classpath"
+                 classpathref="external.dependencies"
+                 additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${resource.path} -quiet">
+            <sourcepath path="${java.source.dir}"/>
+            <sourcepath path="${external.dir}"/>
+        </javadoc>
     </target>
 
     <target name="sting.compile" depends="gatk.compile, scala.compile" />
@@ -710,12 +710,12 @@
     </target>
 
     <target name="javadoc" depends="init.buildall,resolve,queue-extensions.generate,init.scala.compile" description="generates javadoc">
-      <mkdir dir="javadoc"/>
-      <javadoc destdir="javadoc"
-               classpathref="external.dependencies">
-            <fileset refid="java.source.files"/>
-            <fileset refid="external.source.files"/>
-      </javadoc>
+        <mkdir dir="javadoc"/>
+        <javadoc destdir="javadoc"
+                 classpathref="external.dependencies">
+            <sourcepath path="${java.source.dir}"/>
+            <sourcepath path="${external.dir}"/>
+        </javadoc>
         <mkdir dir="scaladoc"/>
         <scaladoc srcdir="" destdir="scaladoc" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
             <src path="${scala.source.dir}"/>

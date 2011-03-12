@@ -12,6 +12,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
  * To change this template use File | Settings | File Templates.
  */
 @Requires({DataSource.READS, DataSource.REFERENCE_BASES})
+@PartitionBy(PartitionType.Contig)
 public abstract class ReadWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     public boolean requiresOrderedReads() { return false; }
     

@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
  * To change this template use File | Settings | File Templates.
  */
 @ReadFilters(MalformedReadFilter.class)
+@PartitionBy(PartitionType.None)
 @BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 public abstract class Walker<MapType, ReduceType> {
     final protected static Logger logger = Logger.getLogger(Walker.class);

@@ -19,6 +19,7 @@ import java.util.Arrays;
  */
 @By(DataSource.READS)
 @Requires({DataSource.READS,DataSource.REFERENCE, DataSource.REFERENCE_BASES})
+@PartitionBy(PartitionType.Interval)
 @ReadFilters({UnmappedReadFilter.class,NotPrimaryAlignmentReadFilter.class,DuplicateReadFilter.class,FailsVendorQualityCheckReadFilter.class})
 public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, ReduceType> {
     // Do we actually want to operate on the context?
