@@ -555,11 +555,9 @@ class ACStats extends SampleStats {
 class SampleSummaryStats implements TableType {
     protected final static String ALL_SAMPLES_KEY = "allSamples";
     protected final static String[] COLUMN_KEYS = new String[]{
-            "percent_comp_ref_called_var",
+            "percent_comp_ref_called_ref",
             "percent_comp_het_called_het",
-            "percent_comp_het_called_var",
             "percent_comp_hom_called_hom",
-            "percent_comp_hom_called_var",
             "percent_non_reference_sensitivity",
             "percent_overall_genotype_concordance",
             "percent_non_reference_discrepancy_rate"};
@@ -661,8 +659,8 @@ class SampleSummaryStats implements TableType {
 
             long numer, denom;
 
-            // Summary 0: % ref called as var
-            numer = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HOM_REF), allVariantGenotypes);
+            // Summary 0: % ref called as ref
+            numer = stats[Genotype.Type.HOM_REF.ordinal()][Genotype.Type.HOM_REF.ordinal()];
             denom = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HOM_REF), allGenotypes);
             updateSummaries(0, summary,  numer, denom);
 
@@ -671,40 +669,30 @@ class SampleSummaryStats implements TableType {
             denom = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HET), allGenotypes);
             updateSummaries(1, summary,  numer, denom);
 
-            // Summary 2: % het called as var
-            numer = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HET), allVariantGenotypes);
-            denom = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HET), allGenotypes);
-            updateSummaries(2, summary,  numer, denom);
-
-            // Summary 3: % homVar called as homVar
+            // Summary 2: % homVar called as homVar
             numer = stats[Genotype.Type.HOM_VAR.ordinal()][Genotype.Type.HOM_VAR.ordinal()];
             denom = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HOM_VAR), allGenotypes);
-            updateSummaries(3, summary,  numer, denom);
+            updateSummaries(2, summary,  numer, denom);
 
-            // Summary 4: % homVars called as var
-            numer = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HOM_VAR), allVariantGenotypes);
-            denom = sumStatsAllPairs(stats, EnumSet.of(Genotype.Type.HOM_VAR), allGenotypes);
-            updateSummaries(4, summary,  numer, denom);
-
-            // Summary 5: % non-ref called as non-ref
+            // Summary 3: % non-ref called as non-ref
             // MAD: this is known as the non-reference sensitivity (# non-ref according to comp found in eval / # non-ref in comp)
             numer = sumStatsAllPairs(stats, allVariantGenotypes, allVariantGenotypes);
             denom = sumStatsAllPairs(stats, allVariantGenotypes, allGenotypes);
-            updateSummaries(5, summary,  numer, denom);
+            updateSummaries(3, summary,  numer, denom);
 
-            // Summary 6: overall genotype concordance of sites called in eval track
+            // Summary 4: overall genotype concordance of sites called in eval track
             // MAD: this is the tradition genotype concordance
             numer = sumStatsDiag(stats, allCalledGenotypes);
             denom = sumStatsAllPairs(stats, allCalledGenotypes, allCalledGenotypes);
-            updateSummaries(6, summary,  numer, denom);
+            updateSummaries(4, summary,  numer, denom);
 
-            // Summary 7: overall genotype concordance of sites called non-ref in eval track
+            // Summary 5: overall genotype concordance of sites called non-ref in eval track
             long homrefConcords = stats[Genotype.Type.HOM_REF.ordinal()][Genotype.Type.HOM_REF.ordinal()];
             long diag = sumStatsDiag(stats, allVariantGenotypes);
             long allNoHomRef = sumStatsAllPairs(stats, allCalledGenotypes, allCalledGenotypes) - homrefConcords;
             numer = allNoHomRef - diag;
             denom = allNoHomRef;
-            updateSummaries(7, summary,  numer, denom);
+            updateSummaries(5, summary,  numer, denom);
         }
 
         // update the final summary stats

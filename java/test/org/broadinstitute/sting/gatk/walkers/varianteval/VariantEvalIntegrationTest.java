@@ -355,7 +355,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         for (String vcfFile : vcfFiles) {
             WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG -B:eval,VCF " + validationDataLocation + vcfFile + " -B:comp,VCF " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
                     1,
-                    Arrays.asList("86de930ab857e27717c80b11594808f3"));
+                    Arrays.asList("732d32997b19d9c4f0291287858c56d2"));
             executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
             //executeTest("testVEGenotypeConcordance" + vcfFile, spec);
         }
@@ -409,7 +409,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("3199177faa347fe3a78de17b83afd909"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("06cd5618ec23fe83a0ddb2a3e8622a16"));
         executeTestParallel("testCompVsEvalAC",spec);
         //executeTest("testCompVsEvalAC",spec);
     }
