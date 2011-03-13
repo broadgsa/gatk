@@ -168,9 +168,7 @@ public class UnifiedGenotyperEngine {
         if ( vc == null )
             return null;
 
-        VariantCallContext vcc = calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc);
-        vcc.vc = GLsToPLs(vcc.vc);
-        return vcc;
+        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc);
     }
 
     /**
@@ -186,8 +184,7 @@ public class UnifiedGenotyperEngine {
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
         if ( stratifiedContexts == null )
             return null;
-        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, alternateAlleleToUse);
-        return GLsToPLs(vc);
+        return calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, alternateAlleleToUse);
     }
 
     private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse) {
@@ -253,9 +250,10 @@ public class UnifiedGenotyperEngine {
             }
 
             HashMap<String, Object> attributes = new HashMap<String, Object>();
-            GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
+            //GenotypeLikelihoods likelihoods = new GenotypeLikelihoods(GL.getLikelihoods());
+            GenotypeLikelihoods likelihoods = GenotypeLikelihoods.fromLog10Likelihoods(GL.getLikelihoods());
             attributes.put(VCFConstants.DEPTH_KEY, GL.getDepth());
-            attributes.put(VCFConstants.GENOTYPE_LIKELIHOODS_KEY, likelihoods);
+            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, likelihoods);
 
             genotypes.put(GL.getSample(), new Genotype(GL.getSample(), noCall, Genotype.NO_NEG_LOG_10PERROR, null, attributes, false));
         }
@@ -272,20 +270,6 @@ public class UnifiedGenotyperEngine {
                 VariantContext.NO_NEG_LOG_10PERROR,
                 null,
                 null);
-    }
-
-    private static VariantContext GLsToPLs(VariantContext vc) {
-        if ( vc == null )
-            return null;
-
-        HashMap<String, Genotype> calls = new HashMap<String, Genotype>();
-        for ( Map.Entry<String, Genotype> genotype : vc.getGenotypes().entrySet() ) {
-            HashMap<String, Object> attributes = new HashMap<String, Object>(genotype.getValue().getAttributes());
-            attributes.remove(VCFConstants.GENOTYPE_LIKELIHOODS_KEY);
-            attributes.put(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, GenotypeLikelihoods.GLsToPLs(genotype.getValue().getLikelihoods().getAsVector()));
-            calls.put(genotype.getKey(), Genotype.modifyAttributes(genotype.getValue(), attributes));
-        }
-        return VariantContext.modifyGenotypes(vc, calls);
     }
 
     /**

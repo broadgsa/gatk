@@ -157,7 +157,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         }
 
         // FORMAT and INFO fields
-        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY));
+        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings());
 
         // FILTER fields
         if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING )
