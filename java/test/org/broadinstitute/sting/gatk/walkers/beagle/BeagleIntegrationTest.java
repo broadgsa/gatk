@@ -60,7 +60,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                 "-T ProduceBeagleInput -B:variant,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_HSQ_chr22_14-16m.vcf "+
                         "-B:validation,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/NA12878_OMNI_chr22_14-16m.vcf "+
                         "-L 22:14000000-16000000 -o %s -bvcf %s -bs 0.8 -valp 0.98 -R /humgen/1kg/reference/human_g1k_v37.fasta -NO_HEADER ",2,
-                Arrays.asList("44d28b6b092d5f4c0ae59af442612ea3","223fb977e8db567dcaf632c6ee51f294"));
+                Arrays.asList("660986891b30cdc937e0f2a3a5743faa","223fb977e8db567dcaf632c6ee51f294"));
         executeTest("test BeagleInputWithBootstrap",spec);
     }
 

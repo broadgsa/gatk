@@ -73,11 +73,6 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     @Argument(doc="VQSqual key", shortName = "vqskey", required=false)
     protected String VQSLOD_KEY = "VQSqual";
 
-    @Hidden
-    @Argument(doc="REMOVE ME", shortName = "rcwpio", required=false)
-    private static final boolean REMAIN_COMPATIBLE_WITH_PREVIOUS_IO = false;
-
-
 //    @Hidden
 //    @Argument(doc="Include filtered records", shortName = "ifr", fullName = "IncludeFilteredRecords", required=false)
 //    protected boolean includeFilteredRecords = false;
@@ -275,14 +270,9 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
         double[] normalizedLikelihoods = MathUtils.normalizeFromLog10(log10Likelihoods);
         // see if we need to randomly mask out genotype in this position.
-        // todo -- remove me after testing
-        if ( REMAIN_COMPATIBLE_WITH_PREVIOUS_IO && (log10Likelihoods == HAPLOID_FLAT_LOG10_LIKELIHOODS || log10Likelihoods == DIPLOID_FLAT_LOG10_LIKELIHOODS) )
-            for (double likeVal: normalizedLikelihoods)
-                out.append(String.format("%.2f ",likeVal));
-        else
-            for (double likeVal: normalizedLikelihoods) {
-                out.append(String.format("%5.4f ",likeVal));
-            }
+        for (double likeVal: normalizedLikelihoods) {
+            out.append(String.format("%5.4f ",likeVal));
+        }
     }
 
 
