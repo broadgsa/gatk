@@ -743,7 +743,7 @@
               <include name="${executable}.xml" />
           </fileset>
 
-          <fileset dir="${external.dir}">
+          <fileset dir="${external.dir}" erroronmissingdir="false">
               <include name="*/${executable}.xml" />
           </fileset>
 
