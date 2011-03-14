@@ -52,7 +52,7 @@ public class NestedHashMap{
         return null;
     }
 
-    public synchronized void put( final Object value, final Object... keys ) {
+    public synchronized void put( final Object value, final Object... keys ) { // WARNING! value comes before the keys!
         this.put(value, false, keys );
     }
 

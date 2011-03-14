@@ -3,17 +3,10 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 import Jama.Matrix;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.XReadLines;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.regex.Pattern;
 
 /**
  * Created by IntelliJ IDEA.
@@ -29,8 +22,8 @@ public class GaussianMixtureModel {
     private final double shrinkage;
     private final double dirichletParameter;
     private final double degreesOfFreedom;
-    private final double[] empiricalMu; // BUGBUG: move these to VariantData class
-    private final Matrix empiricalSigma; // BUGBUG: move these to VariantData class
+    private final double[] empiricalMu;
+    private final Matrix empiricalSigma;
     public boolean isModelReadyForEvaluation;
 
     public GaussianMixtureModel( final int numGaussians, final int numAnnotations,
@@ -43,43 +36,19 @@ public class GaussianMixtureModel {
         }
         this.shrinkage = shrinkage;
         this.dirichletParameter = dirichletParameter;
-        degreesOfFreedom = numAnnotations;
+        degreesOfFreedom = numAnnotations + 2;
         empiricalMu = new double[numAnnotations];
         empiricalSigma = new Matrix(numAnnotations, numAnnotations);
         isModelReadyForEvaluation = false;
     }
 
-    public GaussianMixtureModel( final List<String> annotationLines, final List<String> gaussianLines ) { //BUGBUG: recreated here to match the integration tests
-
-        gaussians = new ArrayList<MultivariateGaussian>( gaussianLines.size() );
-        for( final String line : gaussianLines ) {
-            final MultivariateGaussian gaussian = new MultivariateGaussian( annotationLines.size() );
-            final String[] vals = line.split(",");
-            gaussian.pMixtureLog10 = Math.log10( Double.parseDouble(vals[1]) );
-            for( int iii = 0; iii < annotationLines.size(); iii++ ) {
-                gaussian.mu[iii] = Double.parseDouble(vals[2+iii]); //BUGBUG: recreated here to match the integration tests
-                for( int jjj = 0; jjj < annotationLines.size(); jjj++ ) {
-                    gaussian.sigma.set(iii, jjj, 1.3*Double.parseDouble(vals[2+annotationLines.size()+(iii*annotationLines.size())+jjj])); //BUGBUG: VRAC backoff
-                }
-            }
-            gaussians.add( gaussian );
-        }
-
-        shrinkage = 0.0; // not used when evaluating data, BUGBUG: move this to VariantData class
-        dirichletParameter = 0.0; // not used when evaluating data
-        degreesOfFreedom = 0.0; // not used when evaluating data
-        empiricalMu = null; // not used when evaluating data
-        empiricalSigma = null; // not used when evaluating data
-        isModelReadyForEvaluation = false;
-    }
-
     public void cacheEmpiricalStats( final List<VariantDatum> data ) {
-        //final double[][] tmpSigmaVals = new double[empiricalMu.length][empiricalMu.length];
+        final double[][] tmpSigmaVals = new double[empiricalMu.length][empiricalMu.length];
         for( int iii = 0; iii < empiricalMu.length; iii++ ) {
             empiricalMu[iii] = 0.0;
-            //for( int jjj = iii; jjj < empiricalMu.length; jjj++ ) {
-            //    tmpSigmaVals[iii][jjj] = 0.0;
-            //}
+            for( int jjj = iii; jjj < empiricalMu.length; jjj++ ) {
+                tmpSigmaVals[iii][jjj] = 0.0;
+            }
         }
 
         for( final VariantDatum datum : data ) {
@@ -88,19 +57,17 @@ public class GaussianMixtureModel {
             }
         }
 
-        /*
-        for( final VariantDatum datum : data ) {
-            for( int iii = 0; iii < empiricalMu.length; iii++ ) {
-                for( int jjj = 0; jjj < empiricalMu.length; jjj++ ) {
-                    tmpSigmaVals[iii][jjj] += (datum.annotations[iii]-empiricalMu[iii]) * (datum.annotations[jjj]-empiricalMu[jjj]);
-                }
-            }
-        }
+        //for( final VariantDatum datum : data ) {
+        //    for( int iii = 0; iii < empiricalMu.length; iii++ ) {
+        //        for( int jjj = 0; jjj < empiricalMu.length; jjj++ ) {
+        //            tmpSigmaVals[iii][jjj] += (datum.annotations[iii]-empiricalMu[iii]) * (datum.annotations[jjj]-empiricalMu[jjj]);
+        //        }
+        //    }
+        //}
 
-        empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, new Matrix(tmpSigmaVals));
-        empiricalSigma.timesEquals( 1.0 / ((double) data.size()) );
-        empiricalSigma.timesEquals( 1.0 / (Math.pow(gaussians.size(), 2.0 / ((double) empiricalMu.length))) );
-        */
+        //empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, new Matrix(tmpSigmaVals));
+        //empiricalSigma.timesEquals( 1.0 / ((double) data.size()) );
+        //empiricalSigma.timesEquals( 1.0 / (Math.pow(gaussians.size(), 2.0 / ((double) empiricalMu.length))) );
         empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, Matrix.identity(empiricalMu.length, empiricalMu.length));
     }
 
@@ -112,7 +79,9 @@ public class GaussianMixtureModel {
         }
 
         // initialize means using K-means algorithm
-        initializeMeansUsingKMeans( data, 60, rand ); // BUGBUG: a VRAC argument?
+        final int numKMeansIterations = 10; // BUGBUG: VRAC argument
+        logger.info( "Initializing model with " + numKMeansIterations + " k-means iterations..." );
+        initializeMeansUsingKMeans( data, numKMeansIterations, rand );
 
         // initialize uniform mixture coefficients, random covariance matrices, and initial hyperparameters
         for( final MultivariateGaussian gaussian : gaussians ) {
@@ -134,7 +103,7 @@ public class GaussianMixtureModel {
                 datum.assignment = minGaussian;
                 for( final MultivariateGaussian gaussian : gaussians ) {
                     final double dist = gaussian.calculateDistanceFromMeanSquared( datum );
-                    if(dist < minDistance) {
+                    if( dist < minDistance ) {
                         minDistance = dist;
                         minGaussian = gaussian;
                     }
@@ -152,7 +121,7 @@ public class GaussianMixtureModel {
                         gaussian.incrementMu( datum );
                     }
                 }
-                if(numAssigned != 0) {
+                if( numAssigned != 0 ) {
                     gaussian.divideEqualsMu( ((double) numAssigned) );
                 } else {
                     gaussian.initializeRandomMu( rand );
@@ -173,17 +142,18 @@ public class GaussianMixtureModel {
             for( final MultivariateGaussian gaussian : gaussians ) {
                 final double pVarLog10 = gaussian.evaluateDatumLog10( datum );
                 pVarInGaussianLog10.add( pVarLog10 );
-                likelihood += Math.pow( 10.0, pVarLog10 ); //BUGBUG: output recreated here to match the integration tests
+                likelihood += pVarLog10;
             }
-            final double[] pVarInGaussianReals = MathUtils.normalizeFromLog10( pVarInGaussianLog10 );
+            final double[] pVarInGaussianNormalized = MathUtils.normalizeFromLog10( pVarInGaussianLog10 );
             int iii = 0;
             for( final MultivariateGaussian gaussian : gaussians ) {
-                gaussian.assignPVarInGaussian( pVarInGaussianReals[iii++] ); //BUGBUG: to clean up
+                gaussian.assignPVarInGaussian( pVarInGaussianNormalized[iii++] ); //BUGBUG: to clean up
             }
         }
 
-        logger.info("explained likelihood = " + String.format( "%.5f", likelihood / ((double) data.size()) ));
-        return likelihood / ((double) data.size());
+        final double scaledTotalLikelihoodLog10 = likelihood / ((double) data.size());
+        logger.info( "sum Log10 likelihood = " + String.format("%.5f", scaledTotalLikelihoodLog10) );
+        return scaledTotalLikelihoodLog10;
     }
 
     public void maximizationStep( final List<VariantDatum> data ) {
@@ -200,24 +170,11 @@ public class GaussianMixtureModel {
         return sum;
     }
 
-    public void output( final PrintStream clusterFile ) { //BUGBUG: output recreated here to match the integration tests
-        normalizePMixtureLog10(); //BUGBUG: output recreated here to match the integration tests
+    public void evaluateFinalModelParameters( final List<VariantDatum> data ) {
         for( final MultivariateGaussian gaussian : gaussians ) {
-            if( Math.pow(10.0, gaussian.pMixtureLog10) > 1E-4 ) {
-                final double sigmaVals[][] = gaussian.sigma.getArray();
-                clusterFile.print("@!CLUSTER");
-                clusterFile.print(String.format(",%.8f", Math.pow(10.0, gaussian.pMixtureLog10)));
-                for(int jjj = 0; jjj < gaussian.mu.length; jjj++ ) {
-                    clusterFile.print(String.format(",%.8f", gaussian.mu[jjj]));
-                }
-                for(int iii = 0; iii < gaussian.mu.length; iii++ ) {
-                    for(int jjj = 0; jjj < gaussian.mu.length; jjj++ ) {
-                        clusterFile.print(String.format(",%.8f", (sigmaVals[iii][jjj] / gaussian.hyperParameter_a)));
-                    }
-                }
-                clusterFile.println();
-            }
+            gaussian.evaluateFinalModelParameters( data );
         }
+        normalizePMixtureLog10();
     }
 
     private void normalizePMixtureLog10() {

@@ -1,10 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
-import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.List;
 import java.util.Random;
@@ -28,7 +24,7 @@ public class VariantRecalibratorEngine {
 
     private final static long RANDOM_SEED = 91801305;
     private final Random rand = new Random( RANDOM_SEED );
-    private final static double MIN_PROB_CONVERGENCE = 1E-5;
+    private final static double MIN_PROB_CONVERGENCE_LOG10 = 1.0;
 
     /////////////////////////////
     // Public Methods to interface with the Engine
@@ -40,21 +36,21 @@ public class VariantRecalibratorEngine {
     }
 
     public GaussianMixtureModel generateModel( final List<VariantDatum> data ) {
-        final GaussianMixtureModel model = new GaussianMixtureModel( 4, 3, 0.0001, 1000.0 ); //BUGBUG: VRAC arguments
+        final GaussianMixtureModel model = new GaussianMixtureModel( 32, 4, 0.0001, 0.0001 ); //BUGBUG: VRAC arguments
         variationalBayesExpectationMaximization( model, data );
         return model;
     }
 
-    public void evaluateData( final List<VariantDatum> data, final GaussianMixtureModel model ) {
+    public void evaluateData( final List<VariantDatum> data, final GaussianMixtureModel model, final boolean evaluateContrastively ) {
         if( !model.isModelReadyForEvaluation ) {
             model.precomputeDenominatorForEvaluation();
         }
+        
+        logger.info("Evaluating full set of " + data.size() + " variants...");
         for( final VariantDatum datum : data ) {
-            datum.pVarGivenModel = evaluateDatum( datum, model );
+            final double thisLod = evaluateDatum( datum, model );
+            datum.lod = ( evaluateContrastively ? (datum.prior + datum.lod - thisLod) : thisLod );
         }
-    }
-
-    public void evaluateDataContrastively( final List<VariantDatum> data, final GaussianMixtureModel goodModel, final GaussianMixtureModel badModel ) {
     }
 
     /////////////////////////////
@@ -74,21 +70,24 @@ public class VariantRecalibratorEngine {
         model.initializeRandomModel( data, rand );
 
         // The VBEM loop
-        double previousLikelihood = -1E20;
+        double previousLikelihood = model.expectationStep( data );
         double currentLikelihood;
-        int iteration = 1;
-        while( iteration < 200 ) { //BUGBUG: VRAC.maxIterations
-            currentLikelihood = model.expectationStep( data );
+        int iteration = 0;
+        logger.info("Finished iteration " + iteration );
+        while( iteration < 100 ) { //BUGBUG: VRAC.maxIterations
+            iteration++;
             model.maximizationStep( data );
+            currentLikelihood = model.expectationStep( data );
 
             logger.info("Finished iteration " + iteration );
-            iteration++;          
-            if( Math.abs(currentLikelihood - previousLikelihood) < MIN_PROB_CONVERGENCE ) {
+            if( Math.abs(currentLikelihood - previousLikelihood) < MIN_PROB_CONVERGENCE_LOG10 ) {
                 logger.info("Convergence!");
-                return; // Early return here because we have converged!
+                break;
             }
             previousLikelihood = currentLikelihood;
         }
+
+        model.evaluateFinalModelParameters( data );
     }
 
     /////////////////////////////

@@ -133,7 +133,7 @@ public class MultivariateGaussian {
     public void maximizeGaussian( final List<VariantDatum> data, final double[] empiricalMu, final Matrix empiricalSigma,
                                   final double SHRINKAGE, final double DIRICHLET_PARAMETER, final double DEGREES_OF_FREEDOM ) {
         double sumProb = 0.0;
-        Matrix wishart = new Matrix(mu.length, mu.length);
+        final Matrix wishart = new Matrix(mu.length, mu.length);
         zeroOutMu();
         zeroOutSigma();
         
@@ -143,10 +143,7 @@ public class MultivariateGaussian {
             sumProb += prob;
             incrementMu( datum, prob );
         }
-
-        for( int iii = 0; iii < mu.length; iii++ ) {
-            mu[iii] = (mu[iii] + SHRINKAGE * empiricalMu[iii]) / (sumProb + SHRINKAGE);
-        }
+        divideEqualsMu( sumProb );
 
         final double shrinkageFactor = (SHRINKAGE * sumProb) / (SHRINKAGE + sumProb);
         for( int iii = 0; iii < mu.length; iii++ ) {
@@ -170,12 +167,46 @@ public class MultivariateGaussian {
         sigma.plusEquals( empiricalSigma );
         sigma.plusEquals( wishart );
 
+        for( int iii = 0; iii < mu.length; iii++ ) {
+            mu[iii] = (sumProb * mu[iii] + SHRINKAGE * empiricalMu[iii]) / (sumProb + SHRINKAGE);
+        }
+
         pMixtureLog10 = sumProb; // will be normalized later by GaussianMixtureModel so no need to do it every iteration
 
         hyperParameter_a = sumProb + DEGREES_OF_FREEDOM;
         hyperParameter_b = sumProb + SHRINKAGE;
         hyperParameter_lambda = sumProb + DIRICHLET_PARAMETER;
 
+        resetPVarInGaussian(); // clean up some memory
+    }
+
+    public void evaluateFinalModelParameters( final List<VariantDatum> data ) {
+        double sumProb = 0.0;
+        zeroOutMu();
+        zeroOutSigma();
+
+        int datumIndex = 0;
+        for( final VariantDatum datum : data ) {
+            final double prob = pVarInGaussian.get(datumIndex++);
+            sumProb += prob;
+            incrementMu( datum, prob );
+        }
+        divideEqualsMu( sumProb );
+
+        datumIndex = 0;
+        final Matrix pVarSigma = new Matrix(mu.length, mu.length);
+        for( final VariantDatum datum : data ) {
+            final double prob = pVarInGaussian.get(datumIndex++);
+            for( int iii = 0; iii < mu.length; iii++ ) {
+                for( int jjj = 0; jjj < mu.length; jjj++ ) {
+                    pVarSigma.set(iii, jjj, prob * (datum.annotations[iii]-mu[iii]) * (datum.annotations[jjj]-mu[jjj]));
+                }
+            }
+            sigma.plusEquals( pVarSigma );
+        }
+        sigma.timesEquals( 1.0 / sumProb );
+
+        pMixtureLog10 = sumProb; // will be normalized later by GaussianMixtureModel so no need to do it here
         resetPVarInGaussian(); // clean up some memory
     }
 }
