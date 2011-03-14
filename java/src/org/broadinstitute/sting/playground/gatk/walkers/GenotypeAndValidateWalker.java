@@ -166,8 +166,10 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             return counter;
 
         // Do not operate on variants that are not covered to the optional minimum depth
-        if (!context.hasReads() || minDepth > 0 && context.getBasePileup().getBases().length < minDepth) {
-            counter.numUncovered = 1L;
+        if (!context.hasReads() || (minDepth > 0 && context.getBasePileup().getBases().length < minDepth)) {
+            // don't count indel extended events multiple times as uncovered.
+        //    if (vcComp.getStart() == ref.getLocus().getStart())                  //todo - not sure I want this, may be misleading to filter anything.
+                counter.numUncovered = 1L;
             return counter;
         }
 
@@ -179,15 +181,15 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             call = snpEngine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
         else if ( vcComp.isIndel() ) {
             call = indelEngine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
-            if (call.vc == null) // variant context will be null on an extended indel event and I just want to call it one event.
-                return counter;
+//            if (call.vc == null) // variant context will be null on an extended indel event and I just want to call it one event.
+//                return counter;
         }
         else {
             logger.info("Not SNP or INDEL " + vcComp.getChr() + ":" + vcComp.getStart() + " " + vcComp.getAlleles());
             return counter;
         }
 
-        if (!call.confidentlyCalled) {
+        if (!call.confidentlyCalled) {                                           //todo - maybe filter extended indel events to count as one only if it's entirely successful?
             counter.numNotConfidentCalls = 1L;
             if (vcComp.getFilters().contains("TP"))
                 counter.numFN = 1L;
@@ -227,14 +229,15 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
     }
 
     public void onTraversalDone( CountedData reduceSum ) {
-        logger.info("TP = " + reduceSum.numTP);
-        logger.info("TN = " + reduceSum.numTN);
-        logger.info("FP = " + reduceSum.numFP);
-        logger.info("FN = " + reduceSum.numFN);
-        logger.info("PPV = " + ((double) reduceSum.numTP /( reduceSum.numTP + reduceSum.numFP)));
-        logger.info("NPV = " + ((double) reduceSum.numTN /( reduceSum.numTN + reduceSum.numFN)));
-        logger.info("Uncovered = " + reduceSum.numUncovered);
+        logger.info("(status / truth)");
+        logger.info("called / true      = " + reduceSum.numTP);
+        logger.info("not called / false = " + reduceSum.numTN);
+        logger.info("called /false      = " + reduceSum.numFP);
+        logger.info("not called / true = " + reduceSum.numFN);
+        logger.info("PPV = " + 100 * ((double) reduceSum.numTP /( reduceSum.numTP + reduceSum.numFP)) + "%");
+        logger.info("NPV = " + 100 * ((double) reduceSum.numTN /( reduceSum.numTN + reduceSum.numFN)) + "%");
         logger.info("confidently called = " + reduceSum.numConfidentCalls);
         logger.info("not confidently called = " + reduceSum.numNotConfidentCalls );
+        logger.info("Uncovered = " + reduceSum.numUncovered);
     }
 }
