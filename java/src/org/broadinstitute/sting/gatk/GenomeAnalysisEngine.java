@@ -34,6 +34,7 @@ import org.broadinstitute.sting.commandline.ArgumentSource;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.commandline.ParsingEngine;
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
@@ -651,6 +652,15 @@ public class GenomeAnalysisEngine {
      */
     public void addOutput(Stub<?> stub) {
         outputs.add(stub);
+    }
+
+    /**
+     * Returns the tag associated with a given command-line argument.
+     * @param key Object for which to inspect the tag.
+     * @return Tags object associated with the given key, or an empty Tag structure if none are present. 
+     */
+    public Tags getTags(Object key)  {
+        return parsingEngine.getTags(key);
     }
 
     protected void initializeDataSources() {
