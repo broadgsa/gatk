@@ -25,7 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.Genotype;
-import org.broad.tribble.util.variantcontext.MendelianViolation;
+import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broad.tribble.vcf.VCFHeader;
@@ -70,8 +70,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called from a ROD comparison track. Use -disc ROD_NAME", required=false)
     private String discordanceRodName = "";
 
-    @Argument(fullName="family", shortName="fam", doc="If provided, genotypes in will be examined for mendelian violations: this argument is a string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+    @Deprecated
+    @Argument(fullName="family", shortName="fam", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
     private String FAMILY_STRUCTURE = "";
+
+    @Argument(fullName="mendelianViolation", shortName="mv", doc="output mendelian violation sites only. Sample metadata information will be taken from YAML file (passed with -SM)", required=false)
+    private Boolean MENDELIAN_VIOLATIONS = false;
 
     @Argument(fullName="mendelianViolationQualThreshold", shortName="mvq", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
     private double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
@@ -85,7 +89,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private boolean DISCORDANCE_ONLY = false;
 
     private MendelianViolation mv;
-    private boolean MENDELIAN_VIOLATIONS = false;
 
 
     /**
@@ -107,10 +110,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         DISCORDANCE_ONLY = discordanceRodName.length() > 0;
         if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceRodName);
 
-        if (!FAMILY_STRUCTURE.isEmpty()) {
+        if (MENDELIAN_VIOLATIONS)
+            mv = new MendelianViolation(getToolkit(), MENDELIAN_VIOLATION_QUAL_THRESHOLD);
+        else if (!FAMILY_STRUCTURE.isEmpty())
             mv = new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD);
-            MENDELIAN_VIOLATIONS = true;
-        }
 
         // Initialize VCF header
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
