@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
 
@@ -14,7 +13,7 @@ public class FunctionalClass extends VariantStratifier {
     private ArrayList<String> states;
 
     @Override
-    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
+    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames) {
         states = new ArrayList<String>();
         states.add("all");
         states.add("silent");

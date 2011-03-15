@@ -15,7 +15,7 @@ public class JexlExpression extends VariantStratifier implements StandardStratif
     private ArrayList<String> states;
 
     @Override
-    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames) {
+    public void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames) {
         this.jexlExpressions = jexlExpressions;
 
         states = new ArrayList<String>();

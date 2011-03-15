@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 
+import net.sf.samtools.SAMSequenceRecord;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.*;
@@ -90,7 +91,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
-        for ( Tranche t : Tranche.readTranches(TRANCHES_FILE) ) {
+        for ( final Tranche t : Tranche.readTranches(TRANCHES_FILE) ) {
             if ( t.fdr >= FDR_FILTER_LEVEL) {
                 tranches.add(t);
                 //statusMsg = "Keeping, above FDR threshold";
@@ -99,7 +100,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
         }
         Collections.reverse(tranches); // this algorithm wants the tranches ordered from worst to best
 
-        for( ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
+        for( final ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
             if( d.getName().startsWith("input") ) {
                 inputNames.add(d.getName());
                 logger.info("Found input variant track with name " + d.getName());
@@ -115,6 +116,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
+        hInfo.add(new VCFInfoHeaderLine(ContrastiveRecalibrator.VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "log10-scaled probability of variant being true under the trained gaussian mixture model"));
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
@@ -166,7 +168,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
                 if( !vc.isFiltered() ) {
                     try {
                         for( int i = tranches.size() - 1; i >= 0; i-- ) {
-                            Tranche tranche = tranches.get(i);
+                            final Tranche tranche = tranches.get(i);
                             if( lod >= tranche.minVQSLod ) {
                                 if (i == tranches.size() - 1) {
                                     filterString = VCFConstants.PASSES_FILTERS_v4;
@@ -182,7 +184,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
                         }
 
                         if ( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
-                            Set<String> filters = new HashSet<String>();
+                            final Set<String> filters = new HashSet<String>();
                             filters.add(filterString);
                             vc = VariantContext.modifyFilters(vc, filters);
                         }
@@ -192,14 +194,14 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
                 }
 
                 final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-
                 if(lod != null) {
                     attrs.put(ContrastiveRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
                 }
-                VariantContext newVC = VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), new HashSet<String>(), attrs);
-                vcfWriter.add( newVC, ref.getBase() );
+
+                vcfWriter.add( VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), vc.getFilters(), attrs), ref.getBase() );
             }
         }
+
         return 1; // This value isn't used for anything
     }
 

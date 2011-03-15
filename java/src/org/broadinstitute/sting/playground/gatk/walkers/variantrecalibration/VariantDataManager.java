@@ -170,7 +170,7 @@ public class VariantDataManager {
         return value;
     }
 
-    public void parseTrainingSets( final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context, final VariantContext evalVC, final VariantDatum datum ) {
+    public void parseTrainingSets( final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context, final VariantContext evalVC, final VariantDatum datum, final boolean TRUST_ALL_POLYMORPHIC ) {
         datum.isKnown = false;
         datum.atTruthSite = false;
         datum.atTrainingSite = false;
@@ -178,7 +178,7 @@ public class VariantDataManager {
         for( final TrainingSet trainingSet : trainingSets ) {
             final Collection<VariantContext> vcs = tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), false, true );
             final VariantContext trainVC = ( vcs.size() != 0 ? vcs.iterator().next() : null );
-            if( trainVC != null && trainVC.isVariant() && !trainVC.isFiltered() && ((evalVC.isSNP() && trainVC.isSNP()) || (evalVC.isIndel() && trainVC.isIndel())) && (!trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {
+            if( trainVC != null && trainVC.isVariant() && !trainVC.isFiltered() && ((evalVC.isSNP() && trainVC.isSNP()) || (evalVC.isIndel() && trainVC.isIndel())) && (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {
                 datum.isKnown = datum.isKnown || trainingSet.isKnown;
                 datum.atTruthSite = datum.atTruthSite || trainingSet.isTruth;
                 datum.atTrainingSite = datum.atTrainingSite || trainingSet.isTraining;

@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -81,6 +82,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="If true, assume input VCFs have identical sample sets and disjoint calls so that one can simply perform a merge sort to combine the VCFs into one, drastically reducing the runtime.", required=false)
     public boolean ASSUME_IDENTICAL_SAMPLES = false;
+
+    @Hidden
+    @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
+    public boolean MERGE_INFO_WITH_MAX_AC = false;
 
     private List<String> priority = null;
 
@@ -143,7 +148,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
              mergedVC = VariantContextUtils.masterMerge(vcs, "master");
         } else {
             mergedVC = VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(),vcs, priority, variantMergeOption,
-                    genotypeMergeOption, true, printComplexMerges, ref.getBase(), SET_KEY, filteredAreUncalled);
+                    genotypeMergeOption, true, printComplexMerges, ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC);
         }
 
         //out.printf("   merged => %s%nannotated => %s%n", mergedVC, annotatedMergedVC);

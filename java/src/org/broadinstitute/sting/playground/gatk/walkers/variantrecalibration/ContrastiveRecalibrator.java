@@ -81,6 +81,10 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
     @Hidden
     @Argument(fullName = "debugFile", shortName = "debugFile", doc = "Print debugging information here", required=false)
     private File DEBUG_FILE = null;
+    @Hidden
+    @Argument(fullName = "trustAllPolymorphic", shortName = "allPoly", doc = "Trust that all the input training sets' unfiltered records contain only polymorphic sites to drastically speed up the computation.", required = false)
+    protected Boolean TRUST_ALL_POLYMORPHIC = false;
+
 
     /////////////////////////////
     // Private Member Variables
@@ -147,31 +151,19 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
             return mapList;
         }
 
-        VariantContext thisVC = null;
-        int maxAC = -1;
         for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
-            if( vc != null ) {
-                final int ac = vc.getAttributeAsInt("AC");
-                if( ac > maxAC ) {
-                    thisVC = vc;
-                    maxAC = ac;
-                }
-            }
-        }
-
-        //for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
-            if( thisVC != null ) { // BUGBUG: filtered?
+            if( vc != null ) { // BUGBUG: filtered?
                 final VariantDatum datum = new VariantDatum();
-                datum.annotations = dataManager.decodeAnnotations( ref.getGenomeLocParser(), thisVC, true ); //BUGBUG: when run with HierarchicalMicroScheduler this is non-deterministic because order of calls depends on load of machine  
+                datum.annotations = dataManager.decodeAnnotations( ref.getGenomeLocParser(), vc, true ); //BUGBUG: when run with HierarchicalMicroScheduler this is non-deterministic because order of calls depends on load of machine
                 datum.pos = context.getLocation();
-                datum.originalQual = thisVC.getPhredScaledQual();
-                datum.isTransition = thisVC.isSNP() && ( VariantContextUtils.getSNPSubstitutionType(thisVC).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0 );
-                dataManager.parseTrainingSets( tracker, ref, context, thisVC, datum );
+                datum.originalQual = vc.getPhredScaledQual();
+                datum.isTransition = vc.isSNP() && ( VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0 );
+                dataManager.parseTrainingSets( tracker, ref, context, vc, datum, TRUST_ALL_POLYMORPHIC );
                 final double priorFactor = QualityUtils.qualToProb( datum.prior );
                 datum.prior = Math.log10( priorFactor ) - Math.log10( 1.0 - priorFactor );
                 mapList.add( datum );
             }
-        //}
+        }
 
         return mapList;
     }

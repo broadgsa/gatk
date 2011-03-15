@@ -1,12 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 
 import org.broadinstitute.sting.WalkerTest;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
 
 import java.util.*;
-import java.io.File;
 
 public class VariantRecalibrationWalkersV2IntegrationTest extends WalkerTest {
     static HashMap<String, String> clusterFiles = new HashMap<String, String>();
@@ -29,12 +27,12 @@ public class VariantRecalibrationWalkersV2IntegrationTest extends WalkerTest {
     VRTest yriTrio = new VRTest("yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
             "aa211561e6e9b1e323dec4eeaa318088",  // tranches
             "226adf939e90ad20599108e77ad25dae",  // recal file
-            "345a159fd54f5c38500bb20f2de13737"); // cut VCF
+            "943cb30cad3bc23e4d945b523e1a67cd"); // cut VCF
 
     VRTest lowPass = new VRTest("lowpass.N3.chr1.raw.vcf",
             "f4f2057a8c010206f0f56deff0602452",  // tranches
             "dd36d252a6dc6e3207addddae731dd88",  // recal file
-            "f1ffd3bb1da3863ccb298a3373d6590a"); // cut VCF
+            "c142f2a3524dcd7a1a16233670aa5772"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -53,6 +51,7 @@ public class VariantRecalibrationWalkersV2IntegrationTest extends WalkerTest {
                         " -B:input,VCF " + params.inVCF +
                         " -L 1:50,000,000-120,000,000" +
                         " -an QD -an MQ -an SB -an AF" +
+                        " --trustAllPolymorphic" +
                         " -recalFile %s" +
                         " -tranchesFile %s",
                 Arrays.asList(params.recalMD5, params.tranchesMD5));

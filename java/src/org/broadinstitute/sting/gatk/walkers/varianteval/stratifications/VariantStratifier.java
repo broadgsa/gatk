@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Set;
 
 public abstract class VariantStratifier implements Comparable {
-    public abstract void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames);
+    public abstract void initialize(Set<SortableJexlVCMatchExp> jexlExpressions, Set<String> compNames, Set<String> knownNames, Set<String> evalNames, Set<String> sampleNames, Set<String> contigNames);
 
     public ArrayList<String> getAllStates() {
         return new ArrayList<String>();

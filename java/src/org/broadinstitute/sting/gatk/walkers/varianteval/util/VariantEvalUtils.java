@@ -103,7 +103,7 @@ public class VariantEvalUtils {
 
                 try {
                     VariantStratifier vs = c.newInstance();
-                    vs.initialize(variantEvalWalker.getJexlExpressions(), variantEvalWalker.getCompNames(), variantEvalWalker.getKnownNames(), variantEvalWalker.getEvalNames(), variantEvalWalker.getSampleNamesForStratification());
+                    vs.initialize(variantEvalWalker.getJexlExpressions(), variantEvalWalker.getCompNames(), variantEvalWalker.getKnownNames(), variantEvalWalker.getEvalNames(), variantEvalWalker.getSampleNamesForStratification(), variantEvalWalker.getContigNames());
 
                     strats.add(vs);
                 } catch (InstantiationException e) {

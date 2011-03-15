@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval;
 
+import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
@@ -381,4 +382,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     public Set<String> getCompNames() { return compNames; }
 
     public Set<SortableJexlVCMatchExp> getJexlExpressions() { return jexlExpressions; }
+
+    public Set<String> getContigNames() {
+        final TreeSet<String> contigs = new TreeSet<String>();
+        for( final SAMSequenceRecord r :  getToolkit().getReferenceDataSource().getReference().getSequenceDictionary().getSequences()) {
+            contigs.add(r.getSequenceName());
+        }
+        return contigs;
+    }
+
 }
