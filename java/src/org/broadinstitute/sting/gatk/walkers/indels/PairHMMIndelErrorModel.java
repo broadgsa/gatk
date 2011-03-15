@@ -85,6 +85,13 @@ public class PairHMMIndelErrorModel {
 
     private final static double LOG_ONE_THIRD;
     private final static double LOG_ONE_HALF;
+
+    private static final int START_HRUN_GAP_IDX = 4;
+    private static final int MAX_HRUN_GAP_IDX = 20;
+
+    private static final double MIN_GAP_PENALTY = 20.0;
+    private static final double GAP_PENALTY_HRUN_STEP = 2.0; // each increase in hrun decreases gap penalty by this.
+
     /*
    private final double c;
    private final double d;
@@ -100,6 +107,15 @@ public class PairHMMIndelErrorModel {
 
     private String s1;
     private String s2;
+
+    private double[][] contextLogGapOpenProbabilities;
+    private double[][] contextLogGapContinuationProbabilities;
+
+    private double[] currentContextGOP;
+    private double[] currentContextGCP;
+
+    private final double[] GAP_OPEN_PROB_TABLE;
+    private final double[] GAP_CONT_PROB_TABLE;
 
  //   private BAQ baq;
 
@@ -135,6 +151,32 @@ public class PairHMMIndelErrorModel {
         this.DEBUG = deb;
 
 
+        // fill gap penalty table, affine naive model:
+        this.GAP_CONT_PROB_TABLE = new double[MAX_HRUN_GAP_IDX];
+        this.GAP_OPEN_PROB_TABLE = new double[MAX_HRUN_GAP_IDX];
+
+        for (int i = 0; i < START_HRUN_GAP_IDX; i++) {
+            GAP_OPEN_PROB_TABLE[i] = logGapOpenProbability;
+            GAP_CONT_PROB_TABLE[i] = logGapContinuationProbability;
+        }
+
+        double gop = logGapOpenProbability;
+        double gcp = logGapContinuationProbability;
+        double step = GAP_PENALTY_HRUN_STEP/10.0;
+
+        double maxGP = -MIN_GAP_PENALTY/10.0;  // phred to log prob
+
+        for (int i=START_HRUN_GAP_IDX; i < MAX_HRUN_GAP_IDX; i++) {
+            gop += step;
+            if (gop > maxGP)
+               gop = maxGP;
+
+            gcp += step;
+            if(gcp > maxGP)
+               gcp = maxGP;
+            GAP_OPEN_PROB_TABLE[i] = gop;
+            GAP_CONT_PROB_TABLE[i] = gcp;
+        }
 //        baq = new BAQ(Math.pow(10.0,logGapOpenProbability),Math.pow(10.0,logGapContinuationProbability),
   //              3,(byte)BASE_QUAL_THRESHOLD,true);
 
@@ -266,13 +308,61 @@ public class PairHMMIndelErrorModel {
 
     }
 
+    private void getContextHomopolymerLength(final byte[] refBytes, int[] hrunArray) {
+        // compute forward hrun length, example:
+        // AGGTGACCCCCCTGAGAG
+        // 001000012345000000
+        int runCount = 0;
+        hrunArray[0] = 0;
+        int[] hforward = new int[hrunArray.length];
+        int[] hreverse = new int[hrunArray.length];
+
+        for (int i = 1; i < refBytes.length; i++) {
+            if (refBytes[i] == refBytes[i-1])
+                hforward[i] = hforward[i-1]+1;
+            else
+                hforward[i] = 0;
+        }
+
+        // do similar thing for reverse length, example:
+        // AGGTGACCCCCCTGAGAG
+        // 021000543210000000
+        // and then accumulate with forward values.
+        // Total:
+        // AGGTGACCCCCCTGAGAG
+        // 022000555555000000
+        for (int i=refBytes.length-1; i > 0; i--) {
+            if (refBytes[i-1] == refBytes[i])
+                hreverse[i-1] += hreverse[i]+1;
+        }
+
+        for (int i = 1; i < refBytes.length; i++)
+            hrunArray[i] = hforward[i]+hreverse[i];
+    }
     private Pair<Double,Double> getGapPenalties(final int indI, final int indJ, final int X_METRIC_LENGTH,
                                                 final int Y_METRIC_LENGTH, final int tableToUpdate) {
 
         double c=0.0,d=0.0;
 
         if (doContextDependentPenalties) {
-            // todo- fill me!!
+            switch (tableToUpdate) {
+                case MATCH_OFFSET:
+
+                    break;
+                case X_OFFSET:
+                    c = (indJ==Y_METRIC_LENGTH-1? 0: currentContextGOP[indJ-1]);
+                    d = (indJ==Y_METRIC_LENGTH-1? 0: currentContextGCP[indJ-1]);
+
+                    break;
+
+                case Y_OFFSET:
+                    c = (indI==X_METRIC_LENGTH-1? 0: currentContextGOP[indJ-1]);
+                    d = (indI==X_METRIC_LENGTH-1? 0: currentContextGCP[indJ-1]);
+
+                    break;
+                default:
+                    throw new StingException("BUG!! Invalid table offset");
+            }
         }   else {
             switch (tableToUpdate) {
                 case MATCH_OFFSET:
@@ -488,7 +578,19 @@ public class PairHMMIndelErrorModel {
 
     }
 
-
+    private void getGapProbabilities(int hIndex, int[] hrunProfile) {
+        // fill based on lookup table
+        for (int i = 0; i < hrunProfile.length; i++) {
+            if (hrunProfile[i] >= MAX_HRUN_GAP_IDX) {
+                contextLogGapOpenProbabilities[hIndex][i] = GAP_OPEN_PROB_TABLE[MAX_HRUN_GAP_IDX-1];
+                contextLogGapContinuationProbabilities[hIndex][i] = GAP_CONT_PROB_TABLE[MAX_HRUN_GAP_IDX-1];
+            }
+            else {
+                contextLogGapOpenProbabilities[hIndex][i] = GAP_OPEN_PROB_TABLE[hrunProfile[i]];
+                contextLogGapContinuationProbabilities[hIndex][i] = GAP_CONT_PROB_TABLE[hrunProfile[i]];
+            }                
+        }
+    }
     public double[][] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, List<Haplotype> haplotypesInVC, ReferenceContext ref){
         double[][] haplotypeLikehoodMatrix = new double[haplotypesInVC.size()][haplotypesInVC.size()];
         double readLikelihoods[][] = new double[pileup.getReads().size()][haplotypesInVC.size()];
@@ -497,6 +599,28 @@ public class PairHMMIndelErrorModel {
         if (DEBUG) {
             System.out.println("Reference bases:");
             System.out.println(new String(ref.getBases()));
+        }
+
+
+        for (int j=0; j < haplotypesInVC.size(); j++) {
+            Haplotype haplotype = haplotypesInVC.get(j);
+            byte[] haplotypeBases = haplotype.getBasesAsBytes();
+            if (contextLogGapOpenProbabilities == null) {
+                contextLogGapOpenProbabilities = new double[haplotypesInVC.size()][haplotypeBases.length];
+                contextLogGapContinuationProbabilities = new double[haplotypesInVC.size()][haplotypeBases.length];
+            }
+            // get homopolymer length profile for current haplotype
+            int[] hrunProfile = new int[haplotypeBases.length];
+            getContextHomopolymerLength(haplotypeBases,hrunProfile);
+            if (DEBUG) {
+                System.out.println("Haplotype bases:");
+                System.out.println(new String(haplotypeBases));
+                for (int i=0; i < hrunProfile.length; i++)
+                    System.out.format("%d",hrunProfile[i]);
+                System.out.println();
+            }
+            getGapProbabilities(j, hrunProfile);
+
         }
         for (SAMRecord read : pileup.getReads()) {
 
@@ -607,7 +731,6 @@ public class PairHMMIndelErrorModel {
                 for (int j=0; j < haplotypesInVC.size(); j++) {
                     Haplotype haplotype = haplotypesInVC.get(j);
 
-
                     // cut haplotype bases
                     //long indStart = start - haplotype.getStartPosition();
                     //long indStop =  stop - haplotype.getStartPosition();
@@ -646,8 +769,12 @@ public class PairHMMIndelErrorModel {
                         System.out.println(new String(haplotypeBases));
                     }
 
-                    if (useAffineGapModel)
+                    if (useAffineGapModel) {
+                        currentContextGOP = contextLogGapOpenProbabilities[j];
+                        currentContextGCP = contextLogGapContinuationProbabilities[j];
                         readLikelihoods[readIdx][j]= computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals);
+
+                    }
                     else
                         readLikelihoods[readIdx][j]= computeReadLikelihoodGivenHaplotype(haplotypeBases, readBases, readQuals);
 

@@ -170,6 +170,7 @@ public class UnifiedArgumentCollection {
         uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
         uac.DO_CONTEXT_DEPENDENT_PENALTIES = DO_CONTEXT_DEPENDENT_PENALTIES;
+
         
         // todo- arguments to remove
         uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
@@ -179,6 +180,7 @@ public class UnifiedArgumentCollection {
         uac.S1 = S1;
         uac.S2 = S2;
         uac.dovit = dovit;
+        uac.newlike = newlike;
         
         return uac;
     }
