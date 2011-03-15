@@ -264,4 +264,7 @@ public class IndelUtils {
 
     }
 
+    public static boolean isInsideExtendedIndel(VariantContext vc, ReferenceContext ref) {
+        return (vc.getStart() != ref.getLocus().getStart());
+    }
 }

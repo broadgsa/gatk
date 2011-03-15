@@ -23,9 +23,8 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.oneoffprojects.walkers;
+package org.broadinstitute.sting.playground.gatk.walkers;
 
-import com.google.common.collect.ImmutableSet;
 import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
@@ -46,9 +45,10 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
-import sun.management.counter.Variability;
 
 import java.util.*;
+
+import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
 
 /**
  * Validates the calls on a ROD track using a BAM dataset.
@@ -76,6 +76,12 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
 
     @Argument(fullName="maximum_deletion_fraction", shortName="deletions", doc="Maximum deletion fraction for calling a genotype", required=false)
     private double deletions = -1;
+
+    @Argument(fullName="standard_min_confidence_threshold_for_calling", shortName="stand_call_conf", doc="he minimum phred-scaled Qscore threshold to separate high confidence from low confidence calls", required=false)
+    private double callConf = -1;
+
+    @Argument(fullName="standard_min_confidence_threshold_for_emitting", shortName="stand_emit_conf", doc="the minimum phred-scaled Qscore threshold to emit low confidence calls", required=false)
+    private double emitConf = -1;
 
     @Argument(fullName="condition_on_depth", shortName="depth", doc="Condition validation on a minimum depth of coverage by the reads", required=false)
     private int minDepth = -1;
@@ -140,6 +146,10 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         uac.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         if (mbq >= 0) uac.MIN_BASE_QUALTY_SCORE = mbq;
         if (deletions >= 0) uac.MAX_DELETION_FRACTION = deletions;
+        if (callConf >= 0) uac.STANDARD_CONFIDENCE_FOR_CALLING = callConf;
+        if (emitConf >= 0) uac.STANDARD_CONFIDENCE_FOR_EMITTING = emitConf;
+
+
         snpEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         // Adding the INDEL calling arguments for UG
@@ -165,16 +175,18 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         if( vcComp == null )
             return counter;
 
+        //todo - not sure I want this, may be misleading to filter extended indel events.
+        if (isInsideExtendedIndel(vcComp,  ref))
+            return counter;
+
         // Do not operate on variants that are not covered to the optional minimum depth
         if (!context.hasReads() || (minDepth > 0 && context.getBasePileup().getBases().length < minDepth)) {
-            // don't count indel extended events multiple times as uncovered.
-        //    if (vcComp.getStart() == ref.getLocus().getStart())                  //todo - not sure I want this, may be misleading to filter anything.
-                counter.numUncovered = 1L;
+            counter.numUncovered = 1L;
             return counter;
         }
 
-        if ((vcComp.getFilters().contains("TP") && vcComp.getFilters().contains("FP")) || (!vcComp.getFilters().contains("TP") && !vcComp.getFilters().contains("FP")))
-            throw new UserException.BadInput("Variant has the wrong filter annotation -- either missing FP/TP or has both. " + vcComp.getChr() + ":" + vcComp.getStart());
+        if (!vcComp.hasAttribute("GV"))
+            throw new UserException.BadInput("Variant has no GV annotation in the INFO field. " + vcComp.getChr() + ":" + vcComp.getStart());
 
         VariantCallContext call;
         if ( vcComp.isSNP() )
@@ -189,16 +201,16 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             return counter;
         }
 
-        if (!call.confidentlyCalled) {                                           //todo - maybe filter extended indel events to count as one only if it's entirely successful?
+        if (!call.confidentlyCalled) {
             counter.numNotConfidentCalls = 1L;
-            if (vcComp.getFilters().contains("TP"))
+            if (vcComp.getAttribute("GV").equals("T"))
                 counter.numFN = 1L;
             else
                 counter.numTN = 1L;
         }
         else {
             counter.numConfidentCalls = 1L;
-            if (vcComp.getFilters().contains("TP"))
+            if (vcComp.getAttribute("GV").equals("T"))
                 counter.numTP = 1L;
             else
                 counter.numFP = 1L;
@@ -229,7 +241,23 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
     }
 
     public void onTraversalDone( CountedData reduceSum ) {
-        logger.info("(status / truth)");
+        double ppv = 100 * ((double) reduceSum.numTP /( reduceSum.numTP + reduceSum.numFP));
+        double npv = 100 * ((double) reduceSum.numTN /( reduceSum.numTN + reduceSum.numFN));
+        logger.info(String.format("Resulting Truth Table Output\n\n" +
+                                  "---------------------------------------------------\n" +
+                                  "\t\t|\tT\t|\tF\t\n"  +
+                                  "---------------------------------------------------\n" +
+                                  "called alt\t|\t%d\t|\t%d\n" +
+                                  "called ref\t|\t%d\t|\t%d\n" +
+                                  "---------------------------------------------------\n" +
+                                  "positive predictive value: %f%%\n" +
+                                  "negative predictive value: %f%%\n" +
+                                  "---------------------------------------------------\n" +
+                                  "uncovered: %d\n" +
+                                  "---------------------------------------------------\n", reduceSum.numTP, reduceSum.numFP, reduceSum.numFN, reduceSum.numTN, ppv, npv, reduceSum.numUncovered));
+
+        /*
+
         logger.info("called / true      = " + reduceSum.numTP);
         logger.info("not called / false = " + reduceSum.numTN);
         logger.info("called /false      = " + reduceSum.numFP);
@@ -239,5 +267,6 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         logger.info("confidently called = " + reduceSum.numConfidentCalls);
         logger.info("not confidently called = " + reduceSum.numNotConfidentCalls );
         logger.info("Uncovered = " + reduceSum.numUncovered);
+        */
     }
 }
