@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
  */
 public class MendelianViolation {
 
+
+
     String sampleMom;
     String sampleDad;
     String sampleChild;
@@ -28,6 +30,23 @@ public class MendelianViolation {
     double minGenotypeQuality;
 
     private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
+
+
+    public String getSampleMom() {
+        return sampleMom;
+    }
+
+    public String getSampleDad() {
+        return sampleDad;
+    }
+
+    public String getSampleChild() {
+        return sampleChild;
+    }
+
+    public double getMinGenotypeQuality() {
+        return minGenotypeQuality;
+    }
 
     /**
      *
@@ -97,10 +116,13 @@ public class MendelianViolation {
 
 
     /**
+     * This method prepares the object to evaluate for violation. Typically you won't call it directly, a call to
+     * isViolation(vc) will take care of this. But if you want to know whether your site was a valid comparison site
+     * before evaluating it for mendelian violation, you can call setAlleles and then isViolation().
      * @param vc - the variant context to extract the genotypes and alleles for mom, dad and child.
      * @return false if couldn't find the genotypes or context has empty alleles. True otherwise.
      */
-    private boolean setAlleles (VariantContext vc)
+    public boolean setAlleles (VariantContext vc)
     {
         Genotype gMom = vc.getGenotypes(sampleMom).get(sampleMom);
         Genotype gDad = vc.getGenotypes(sampleDad).get(sampleDad);
@@ -138,7 +160,7 @@ public class MendelianViolation {
     /**
      * @return whether or not there is a mendelian violation at the site.
      */
-    private boolean isViolation() {
+    public boolean isViolation() {
         if (allelesMom.contains(allelesChild.get(0)) && allelesDad.contains(allelesChild.get(1)) ||
             allelesMom.contains(allelesChild.get(1)) && allelesDad.contains(allelesChild.get(0)))
             return false;

@@ -18,7 +18,6 @@ import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedArgumentCollection;
 import org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.VariantCallContext;
-import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.MendelianViolationEvaluator;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -58,16 +57,18 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
      *********** PRIVATE CLASSES
      */
 
-    public class ExtendedTrioStructure extends MendelianViolationEvaluator.TrioStructure {
+    public class ExtendedTrioStructure {
+        public String mom, dad, child;
         public HashMap<String,HomozygosityRegion> homozygousRegions;
         public HashMap<String,Integer> homozygousRegionCounts;
         public HashMap<String,MendelianInfoKey> regionKeys;
+        public org.broadinstitute.sting.utils.MendelianViolation mvObject;
 
         public ExtendedTrioStructure(String family) {
-            MendelianViolationEvaluator.TrioStructure struct = MendelianViolationEvaluator.parseTrioDescription(family);
-            this.child = struct.child;
-            this.mom = struct.mom;
-            this.dad = struct.dad;
+            mvObject = new org.broadinstitute.sting.utils.MendelianViolation(family, 0);
+            this.child = mvObject.getSampleChild();
+            this.mom = mvObject.getSampleMom();
+            this.dad = mvObject.getSampleDad();
             homozygousRegions = new HashMap<String,HomozygosityRegion>(3);
             homozygousRegionCounts = new HashMap<String,Integer>(3);
             homozygousRegions.put(child,null);
@@ -414,7 +415,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
     private MendelianViolation assessViolation(VariantContext varContext, RefMetaDataTracker tracker, ReferenceContext reference, AlignmentContext context) {
         MendelianViolation violation;
         if ( varContext != null ) {
-            if ( isComplete(varContext) && MendelianViolationEvaluator.isViolation(varContext,trioStructure) ) {
+            if ( isComplete(varContext) && trioStructure.mvObject.isViolation(varContext) ) {
                 if ( isDeNovo(varContext) ) {
                     violation = assessDeNovo(varContext,tracker,reference,context);
                 } else if ( isOppositeHomozygote(varContext) ) {

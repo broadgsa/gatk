@@ -70,8 +70,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called from a ROD comparison track. Use -disc ROD_NAME", required=false)
     private String discordanceRodName = "";
 
-    @Deprecated
-    @Argument(fullName="family", shortName="fam", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+    @Argument(fullName="family_structure", shortName="family", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
     private String FAMILY_STRUCTURE = "";
 
     @Argument(fullName="mendelianViolation", shortName="mv", doc="output mendelian violation sites only. Sample metadata information will be taken from YAML file (passed with -SM)", required=false)
@@ -112,8 +111,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         if (MENDELIAN_VIOLATIONS)
             mv = new MendelianViolation(getToolkit(), MENDELIAN_VIOLATION_QUAL_THRESHOLD);
-        else if (!FAMILY_STRUCTURE.isEmpty())
+        else if (!FAMILY_STRUCTURE.isEmpty()) {
             mv = new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD);
+            MENDELIAN_VIOLATIONS = true;
+        }
 
         // Initialize VCF header
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);

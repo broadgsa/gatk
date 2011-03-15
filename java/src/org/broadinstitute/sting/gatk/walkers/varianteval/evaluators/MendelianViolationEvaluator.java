@@ -9,6 +9,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
+import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Arrays;
@@ -47,7 +48,6 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
 
     @DataPoint(description = "Number of mendelian variants found")
     long nVariants;
-
     @DataPoint(description = "Number of mendelian violations found")
     long nViolations;
 
@@ -60,45 +60,15 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
     @DataPoint(description = "number of child hom variant calls where the parent was hom ref")
     long KidHomVar_ParentHomRef;
 
-    TrioStructure trio;
-    double mendelianViolationQualThreshold;
+    MendelianViolation mv;
 
-    private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
-
-    public static class TrioStructure {
-        public String mom, dad, child;
-    }
-
-    public static TrioStructure parseTrioDescription(String family) {
-        Matcher m = FAMILY_PATTERN.matcher(family);
-        if (m.matches()) {
-            TrioStructure trio = new TrioStructure();
-            //System.out.printf("Found a family pattern: %s%n", parent.FAMILY_STRUCTURE);
-            trio.mom = m.group(1);
-            trio.dad = m.group(2);
-            trio.child = m.group(3);
-            return trio;
-        } else {
-            throw new IllegalArgumentException("Malformatted family structure string: " + family + " required format is mom+dad=child");
-        }
-    }
-
-    // todo: fix
     public void initialize(VariantEvalWalker walker) {
-        trio = parseTrioDescription(walker.getFamilyStructure());
-        mendelianViolationQualThreshold = walker.getMendelianViolationQualThreshold();
+        mv = new MendelianViolation(walker.getFamilyStructure(), walker.getMendelianViolationQualThreshold());
     }
-
 
     public boolean enabled() {
         //return getVEWalker().FAMILY_STRUCTURE != null;
         return true;
-    }
-
-    private double getQThreshold() {
-        //return getVEWalker().MENDELIAN_VIOLATION_QUAL_THRESHOLD / 10;  // we aren't 10x scaled in the GATK a la phred
-        return mendelianViolationQualThreshold / 10;  // we aren't 10x scaled in the GATK a la phred
-        //return 0.0;
     }
 
     public String getName() {
@@ -111,19 +81,14 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
 
     public String update1(VariantContext vc, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (vc.isBiallelic() && vc.hasGenotypes()) { // todo -- currently limited to biallelic loci
-            Genotype momG = vc.getGenotype(trio.mom);
-            Genotype dadG = vc.getGenotype(trio.dad);
-            Genotype childG = vc.getGenotype(trio.child);
-
-            if (includeGenotype(momG) && includeGenotype(dadG) && includeGenotype(childG)) {
+            if (mv.setAlleles(vc)) {
                 nVariants++;
 
-                if (momG == null || dadG == null || childG == null)
-                    throw new IllegalArgumentException(String.format("VariantContext didn't contain genotypes for expected trio members: mom=%s dad=%s child=%s", trio.mom, trio.dad, trio.child));
+                Genotype momG = vc.getGenotype(mv.getSampleMom());
+                Genotype dadG = vc.getGenotype(mv.getSampleDad());
+                Genotype childG = vc.getGenotype(mv.getSampleChild());
 
-                // all genotypes are good, so let's see if child is a violation
-
-                if (isViolation(vc, momG, dadG, childG)) {
+                if (mv.isViolation()) {
                     nViolations++;
 
                     String label;
@@ -149,6 +114,42 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
         }
 
         return null; // we don't capture any intersting sites
+    }
+
+
+/*
+    private double getQThreshold() {
+        //return getVEWalker().MENDELIAN_VIOLATION_QUAL_THRESHOLD / 10;  // we aren't 10x scaled in the GATK a la phred
+        return mendelianViolationQualThreshold / 10;  // we aren't 10x scaled in the GATK a la phred
+        //return 0.0;
+    }
+
+    TrioStructure trio;
+    double mendelianViolationQualThreshold;
+
+    private static Pattern FAMILY_PATTERN = Pattern.compile("(.*)\\+(.*)=(.*)");
+
+    public static class TrioStructure {
+        public String mom, dad, child;
+    }
+
+    public static TrioStructure parseTrioDescription(String family) {
+        Matcher m = FAMILY_PATTERN.matcher(family);
+        if (m.matches()) {
+            TrioStructure trio = new TrioStructure();
+            //System.out.printf("Found a family pattern: %s%n", parent.FAMILY_STRUCTURE);
+            trio.mom = m.group(1);
+            trio.dad = m.group(2);
+            trio.child = m.group(3);
+            return trio;
+        } else {
+            throw new IllegalArgumentException("Malformatted family structure string: " + family + " required format is mom+dad=child");
+        }
+    }
+
+    public void initialize(VariantEvalWalker walker) {
+        trio = parseTrioDescription(walker.getFamilyStructure());
+        mendelianViolationQualThreshold = walker.getMendelianViolationQualThreshold();
     }
 
     private boolean includeGenotype(Genotype g) {
@@ -181,4 +182,9 @@ public class MendelianViolationEvaluator extends VariantEvaluator {
 
         return true;
     }
+
+
+*/
+
+
 }
