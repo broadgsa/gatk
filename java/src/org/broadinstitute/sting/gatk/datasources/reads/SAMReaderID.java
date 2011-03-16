@@ -10,7 +10,7 @@ import java.io.File;
  * @author mhanna
  * @version 0.1
  */
-public class SAMReaderID {
+public class SAMReaderID implements Comparable {
     /**
      * The SAM file at the heart of this reader.  SAMReaderID
      * currently supports only file-based readers.
@@ -68,5 +68,9 @@ public class SAMReaderID {
      */
     public int hashCode() {
         return samFile.hashCode();
+    }
+
+    public int compareTo(Object other) {
+        return this.samFile.getAbsolutePath().compareTo(((SAMReaderID)other).samFile.getAbsolutePath());
     }
 }

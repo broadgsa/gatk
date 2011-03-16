@@ -131,7 +131,7 @@ public class SAMDataSource {
     /**
      * Whether to enable the new low-memory sharding mechanism.
      */
-    private static boolean enableLowMemorySharding = false;
+    private boolean enableLowMemorySharding = false;
 
     /**
      * Create a new SAM data source given the supplied read metadata.
@@ -147,6 +147,7 @@ public class SAMDataSource {
                 null,
                 new ValidationExclusion(),
                 new ArrayList<SamRecordFilter>(),
+                false,
                 false,
                 false);
     }
@@ -164,7 +165,8 @@ public class SAMDataSource {
             ValidationExclusion exclusionList,
             Collection<SamRecordFilter> supplementalFilters,
             boolean includeReadsWithDeletionAtLoci,
-            boolean generateExtendedEvents) {
+            boolean generateExtendedEvents,
+            boolean enableLowMemorySharding) {
         this(   samFiles,
                 genomeLocParser,
                 useOriginalBaseQualities,
@@ -178,8 +180,8 @@ public class SAMDataSource {
                 BAQ.CalculationMode.OFF,
                 BAQ.QualityMode.DONT_MODIFY,
                 null, // no BAQ
-                (byte) -1
-                );
+                (byte) -1,
+                enableLowMemorySharding);
         }
 
     /**
@@ -213,7 +215,9 @@ public class SAMDataSource {
             BAQ.CalculationMode cmode,
             BAQ.QualityMode qmode,
             IndexedFastaSequenceFile refReader,
-            byte defaultBaseQualities) {
+            byte defaultBaseQualities,
+            boolean enableLowMemorySharding) {
+        this.enableLowMemorySharding(enableLowMemorySharding);
         this.readMetrics = new ReadMetrics();
         this.genomeLocParser = genomeLocParser;
 
@@ -309,7 +313,7 @@ public class SAMDataSource {
      * Enable experimental low-memory sharding.
      * @param enable True to enable sharding.  False otherwise.
      */
-    public static void enableLowMemorySharding(final boolean enable) {
+    public void enableLowMemorySharding(final boolean enable) {
         enableLowMemorySharding = enable;
     }
 
@@ -317,7 +321,7 @@ public class SAMDataSource {
      * Returns whether low-memory sharding is enabled.
      * @return True if enabled, false otherwise.
      */
-    public static boolean isLowMemoryShardingEnabled() {
+    public boolean isLowMemoryShardingEnabled() {
         return enableLowMemorySharding;
     }
 

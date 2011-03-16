@@ -96,7 +96,7 @@ public class ReadShardStrategy implements ShardStrategy {
         this.locations = locations;
 
         if(locations != null)
-            filePointerIterator = SAMDataSource.isLowMemoryShardingEnabled() ? new LowMemoryIntervalSharder(this.dataSource,locations) : IntervalSharder.shardIntervals(this.dataSource,locations);
+            filePointerIterator = dataSource.isLowMemoryShardingEnabled() ? new LowMemoryIntervalSharder(this.dataSource,locations) : IntervalSharder.shardIntervals(this.dataSource,locations);
         else
             filePointerIterator = filePointers.iterator();
 

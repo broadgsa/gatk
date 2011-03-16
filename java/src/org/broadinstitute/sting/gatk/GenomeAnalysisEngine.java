@@ -210,7 +210,7 @@ public class GenomeAnalysisEngine {
         // create the output streams                     "
         initializeOutputStreams(microScheduler.getOutputTracker());
 
-        ShardStrategy shardStrategy = getShardStrategy(microScheduler.getReference());
+        ShardStrategy shardStrategy = getShardStrategy(readsDataSource,microScheduler.getReference(),intervals);
 
         // execute the microscheduler, storing the results
         Object result =  microScheduler.execute(this.walker, shardStrategy);
@@ -376,9 +376,7 @@ public class GenomeAnalysisEngine {
      * @param drivingDataSource Data on which to shard.
      * @return the sharding strategy
      */
-    protected ShardStrategy getShardStrategy(ReferenceSequenceFile drivingDataSource) {
-        GenomeLocSortedSet intervals = this.getIntervals();
-        SAMDataSource readsDataSource = this.getReadsDataSource();
+    protected ShardStrategy getShardStrategy(SAMDataSource readsDataSource, ReferenceSequenceFile drivingDataSource, GenomeLocSortedSet intervals) {
         ValidationExclusion exclusions = (readsDataSource != null ? readsDataSource.getReadsInfo().getValidationExclusionList() : null);
         ReferenceDataSource referenceDataSource = this.getReferenceDataSource();
         // Use monolithic sharding if no index is present.  Monolithic sharding is always required for the original
@@ -673,7 +671,7 @@ public class GenomeAnalysisEngine {
         setReferenceDataSource(argCollection.referenceFile);
 
         validateSuppliedReads();
-        readsDataSource = createReadsDataSource(genomeLocParser, referenceDataSource.getReference());
+        readsDataSource = createReadsDataSource(argCollection,genomeLocParser,referenceDataSource.getReference());
 
         sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
 
@@ -840,16 +838,13 @@ public class GenomeAnalysisEngine {
      *
      * @return A data source for the given set of reads.
      */
-    private SAMDataSource createReadsDataSource(GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
+    private SAMDataSource createReadsDataSource(GATKArgumentCollection argCollection, GenomeLocParser genomeLocParser, IndexedFastaSequenceFile refReader) {
         DownsamplingMethod method = getDownsamplingMethod();
 
         if ( getWalkerBAQApplicationTime() == BAQ.ApplicationTime.FORBIDDEN && argCollection.BAQMode != BAQ.CalculationMode.OFF)
             throw new UserException.BadArgumentValue("baq", "Walker cannot accept BAQ'd base qualities, and yet BAQ mode " + argCollection.BAQMode + " was requested.");
 
-        // TEMPORARY: Force low-memory sharding to be available.
-        SAMDataSource.enableLowMemorySharding(argCollection.enableLowMemorySharding);
-
-        return new SAMDataSource(
+        SAMDataSource dataSource = new SAMDataSource(
                 samReaderIDs,
                 genomeLocParser,
                 argCollection.useOriginalBaseQualities,
@@ -863,7 +858,8 @@ public class GenomeAnalysisEngine {
                 getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
                 getWalkerBAQQualityMode(),
                 refReader,
-                argCollection.defaultBaseQualities);
+                argCollection.defaultBaseQualities,argCollection.enableLowMemorySharding);
+        return dataSource;
     }
 
     /**

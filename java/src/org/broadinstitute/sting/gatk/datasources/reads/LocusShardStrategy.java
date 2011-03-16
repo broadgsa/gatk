@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import net.sf.samtools.GATKBAMFileSpan;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -59,7 +60,7 @@ public class LocusShardStrategy implements ShardStrategy {
      * @param reads Data source from which to load index data.
      * @param locations List of locations for which to load data.
      */
-    LocusShardStrategy(SAMDataSource reads, IndexedFastaSequenceFile reference, GenomeLocParser genomeLocParser, GenomeLocSortedSet locations) {
+    public LocusShardStrategy(SAMDataSource reads, IndexedFastaSequenceFile reference, GenomeLocParser genomeLocParser, GenomeLocSortedSet locations) {
         this.reads = reads;
         this.genomeLocParser = genomeLocParser;
 
@@ -83,8 +84,16 @@ public class LocusShardStrategy implements ShardStrategy {
             else
                 intervals = locations;
 
-            if(SAMDataSource.isLowMemoryShardingEnabled())
+            if(reads.isLowMemoryShardingEnabled()) {
+                /*
+                Iterator<FilePointer> filePointerIterator = new LowMemoryIntervalSharder(this.reads,intervals);
+                List<FilePointer> filePointers = new ArrayList<FilePointer>();
+                while(filePointerIterator.hasNext())
+                    filePointers.add(filePointerIterator.next());
+                this.filePointerIterator = filePointers.iterator();
+                */
                 this.filePointerIterator = new LowMemoryIntervalSharder(this.reads,intervals);
+            }
             else
                 this.filePointerIterator = IntervalSharder.shardIntervals(this.reads,intervals);
         }
@@ -122,6 +131,8 @@ public class LocusShardStrategy implements ShardStrategy {
         return filePointerIterator.hasNext();
     }
 
+    public long shardNumber = 0;
+
     /**
      * gets the next Shard
      *
@@ -130,6 +141,23 @@ public class LocusShardStrategy implements ShardStrategy {
     public LocusShard next() {
         FilePointer nextFilePointer = filePointerIterator.next();
         Map<SAMReaderID,SAMFileSpan> fileSpansBounding = nextFilePointer.fileSpans != null ? nextFilePointer.fileSpans : null;
+
+        /*
+        System.out.printf("Shard %d: interval = {",++shardNumber);
+        for(GenomeLoc locus: nextFilePointer.locations)
+            System.out.printf("%s;",locus);
+        System.out.printf("}; ");
+
+        if(fileSpansBounding == null)
+            System.out.printf("no shard data%n");
+        else {
+            SortedMap<SAMReaderID,SAMFileSpan> sortedSpans = new TreeMap<SAMReaderID,SAMFileSpan>(fileSpansBounding);
+            for(Map.Entry<SAMReaderID,SAMFileSpan> entry: sortedSpans.entrySet()) {
+                System.out.printf("Shard %d:%s = {%s}%n",shardNumber,entry.getKey().samFile,entry.getValue());
+            }
+        }
+        */
+
         return new LocusShard(genomeLocParser, reads,nextFilePointer.locations,fileSpansBounding);
     }
 
