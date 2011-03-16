@@ -60,7 +60,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     /////////////////////////////
     // Inputs
     /////////////////////////////
-    @Output(fullName="recal_file", shortName="recalFile", doc="The output recal file used by ApplyRecalibration", required=true)
+    @Input(fullName="recal_file", shortName="recalFile", doc="The output recal file used by ApplyRecalibration", required=true)
     private File RECAL_FILE;
     @Input(fullName="tranches_file", shortName="tranchesFile", doc="The input tranches file describing where to cut the data", required=true)
     private File TRANCHES_FILE;
