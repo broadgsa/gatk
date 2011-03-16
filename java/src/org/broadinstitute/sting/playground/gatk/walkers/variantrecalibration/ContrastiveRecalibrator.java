@@ -157,7 +157,7 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
                 datum.annotations = dataManager.decodeAnnotations( ref.getGenomeLocParser(), vc, true ); //BUGBUG: when run with HierarchicalMicroScheduler this is non-deterministic because order of calls depends on load of machine
                 datum.pos = context.getLocation();
                 datum.originalQual = vc.getPhredScaledQual();
-                datum.isTransition = vc.isSNP() && vc.isBiallelic() && ( VariantContextUtils.getSNPSubstitutionType(vc).compareTo(BaseUtils.BaseSubstitutionType.TRANSITION) == 0 );
+                datum.isTransition = vc.isSNP() && vc.isBiallelic() && VariantContextUtils.isTransition(vc);
                 dataManager.parseTrainingSets( tracker, ref, context, vc, datum, TRUST_ALL_POLYMORPHIC );
                 final double priorFactor = QualityUtils.qualToProb( datum.prior );
                 datum.prior = Math.log10( priorFactor ) - Math.log10( 1.0 - priorFactor );

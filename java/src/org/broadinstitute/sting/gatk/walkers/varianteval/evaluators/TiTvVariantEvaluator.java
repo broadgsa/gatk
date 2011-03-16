@@ -48,7 +48,7 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
         if (vc1 != null) updateTiTv(vc1, false);
         if (vc2 != null) updateTiTv(vc2, true);
 
-        return null; // we don't capture any intersting sites
+        return null; // we don't capture any interesting sites
     }
 
     @Override
