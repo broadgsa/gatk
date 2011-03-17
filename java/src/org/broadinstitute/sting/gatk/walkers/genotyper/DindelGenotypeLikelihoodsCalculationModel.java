@@ -320,7 +320,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
             return null;
 
         // check if there is enough reference window to create haplotypes (can be an issue at end of contigs)
-        if (ref.getWindow().getStop() <= loc.getStop()+HAPLOTYPE_SIZE)
+        if (ref.getWindow().getStop() < loc.getStop()+HAPLOTYPE_SIZE)
             return null;
         if ( !(priors instanceof DiploidIndelGenotypePriors) )
             throw new StingException("Only diploid-based Indel priors are supported in the DINDEL GL model");
@@ -330,16 +330,19 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         
         refAllele = alleleList.get(0);
         altAllele = alleleList.get(1);
-        int eventLength = refAllele.getBaseString().length() - altAllele.getBaseString().length();
+        int eventLength = altAllele.getBaseString().length() - refAllele.getBaseString().length();
         // assume only one alt allele for now
-        if (eventLength<0)
-            eventLength = - eventLength;
 
-        // int numSamples = getNSamples(contexts);
         List<Haplotype> haplotypesInVC;
-        if (newLike)
+        if (newLike) {
+            int hsize = (int)ref.getWindow().size()-Math.abs(eventLength)-1;
+            int numPrefBases = ref.getLocus().getStart()-ref.getWindow().getStart()+1;
+            if (DEBUG)
+                System.out.format("hsize: %d eventLength: %d refSize: %d, locStart: %d numpr: %d\n",hsize,eventLength,
+                        (int)ref.getWindow().size(), loc.getStart(), numPrefBases);
             haplotypesInVC = Haplotype.makeHaplotypeListFromAlleles( alleleList, loc.getStart(),
-                ref, HAPLOTYPE_SIZE, HAPLOTYPE_SIZE/2);
+                ref, hsize, numPrefBases);
+        }
         else
             haplotypesInVC = Haplotype.makeHaplotypeListFromAlleles( alleleList, loc.getStart(),
                 ref, HAPLOTYPE_SIZE, 20);
@@ -351,13 +354,6 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
 
         double[][] haplotypeLikehoodMatrix;
 
-        if (useFlatPriors) {
-            priors = new DiploidIndelGenotypePriors();
-        }
-        else
-            priors = new DiploidIndelGenotypePriors(indelHeterozygosity,eventLength,HAPLOTYPE_SIZE);
-
-        //double[] priorLikelihoods = priors.getPriors();
 
         for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
             AlignmentContext context = sample.getValue().getContext(contextType);
@@ -371,7 +367,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
             if (pileup != null ) {
 
                 if (newLike)
-                    haplotypeLikehoodMatrix = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypesInVC, ref);
+                    haplotypeLikehoodMatrix = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypesInVC, ref, HAPLOTYPE_SIZE, eventLength);
                 else
                     haplotypeLikehoodMatrix = model.computeReadHaplotypeLikelihoods( pileup, haplotypesInVC);
 
