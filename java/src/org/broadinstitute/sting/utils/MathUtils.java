@@ -38,7 +38,6 @@ import net.sf.samtools.SAMRecord;
  * @author Kiran Garimella
  */
 public class MathUtils {
-
     /** Public constants - used for the Lanczos approximation to the factorial function
      *  (for the calculation of the binomial/multinomial probability in logspace)
      * @param LANC_SEQ[] - an array holding the constants which correspond to the product
