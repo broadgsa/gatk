@@ -362,12 +362,12 @@ public class GATKRunReport {
     }
 
     private void exceptDuringRunReport(String msg, Throwable e) {
-        logger.warn("An occurred during GATK run reporting [everything is fine, but no report could be generated].  Message is: " + msg + ".  Error message is: " + e.getMessage());
+        logger.warn("A problem occurred during GATK run reporting [*** everything is fine, but no report could be generated; please do not post this to the support forum ***].  Message is: " + msg + ".  Error message is: " + e.getMessage());
         //e.printStackTrace();
     }
 
     private void exceptDuringRunReport(String msg) {
-        logger.warn("An occurred during GATK run reporting [everything is fine, but no report could be generated].  Message is " + msg);
+        logger.warn("A problem occurred during GATK run reporting [*** everything is fine, but no report could be generated; please do not post this to the support forum ***].  Message is " + msg);
     }
 
 
