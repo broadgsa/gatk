@@ -184,6 +184,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     // the current interval in the list
     private GenomeLoc currentInterval = null;
+    private boolean sawReadInCurrentInterval = false;
 
     // the reads and known indels that fall into the current interval
     private final ReadBin readsToClean = new ReadBin();
@@ -428,12 +429,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( readLoc.getStop() == 0 )
             readLoc = getToolkit().getGenomeLocParser().createGenomeLoc(readLoc.getContig(), readLoc.getStart(), readLoc.getStart());
 
-        if ( readLoc.isBefore(currentInterval) || ReadUtils.is454Read(read) ) {
-            // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
-            emit(read);
-            return 0;
+        if ( readLoc.isBefore(currentInterval) ) {
+            if ( !sawReadInCurrentInterval )
+                emit(read);
+            else
+                readsNotToClean.add(read);
         }
         else if ( readLoc.overlapsP(currentInterval) ) {
+            sawReadInCurrentInterval = true;
+
             if ( doNotTryToClean(read) ) {
                 readsNotToClean.add(read);
             } else {
@@ -458,7 +462,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private void abortCleanForCurrentInterval() {
         emitReadLists();
         currentInterval = intervals.hasNext() ? intervals.next() : null;
-
+        sawReadInCurrentInterval = false;
     }
 
     private boolean doNotTryToClean(SAMRecord read) {
@@ -467,7 +471,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 read.getReadFailsVendorQualityCheckFlag() ||
                 read.getMappingQuality() == 0 ||
                 read.getAlignmentStart() == SAMRecord.NO_ALIGNMENT_START ||
-                ConstrainedMateFixingManager.iSizeTooBigToMove(read, MAX_ISIZE_FOR_MOVEMENT);
+                ConstrainedMateFixingManager.iSizeTooBigToMove(read, MAX_ISIZE_FOR_MOVEMENT) ||
+                ReadUtils.is454Read(read);
+        // TODO -- it would be nice if we could use indels from 454 reads as alternate consenses
     }
 
     private void cleanAndCallMap(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker, GenomeLoc readLoc) {
@@ -488,7 +494,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         } catch (ReviewedStingException e) {
             throw new UserException.MissortedFile(new File(intervalsFile), " *** Are you sure that your interval file is sorted? If not, you must use the --targetIntervalsAreNotSorted argument. ***", e);
         }
-
+        sawReadInCurrentInterval = false;
 
         // call back into map now that the state has been updated
         map(ref, read, metaDataTracker);
