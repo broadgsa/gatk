@@ -40,7 +40,7 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Performs local assembly.  Not to be used yet.
+ * Performs local assembly.  Not to be used yet.  Example: java -jar dist/GenomeAnalysisTK.jar -I /seq/picard_aggregation/EXT1/NA12878/v3/NA12878.bam -R /humgen/1kg/reference/human_g1k_v37.fasta -T WindowedAssembly -et NO_ET -o foo.out -B:variant,vcf AssemblyTestAlleles.vcf -BTI variant
  */
 public class WindowedAssemblyWalker extends ReadWalker<SAMRecord, Integer> {
 
@@ -97,10 +97,10 @@ public class WindowedAssemblyWalker extends ReadWalker<SAMRecord, Integer> {
     }
 
     public SAMRecord map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
-        return currentInterval == null || doNotTryToClean(read) ? null : read;
+        return currentInterval == null || doNotTryToAssemble(read) ? null : read;
     }
 
-    private boolean doNotTryToClean(SAMRecord read) {
+    private boolean doNotTryToAssemble(SAMRecord read) {
         return read.getNotPrimaryAlignmentFlag() ||
                 read.getReadFailsVendorQualityCheckFlag() ||
                 read.getDuplicateReadFlag() ||
