@@ -27,6 +27,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.validation;
 import com.sun.tools.corba.se.idl.constExpr.Not;
 import com.sun.tools.internal.xjc.reader.xmlschema.bindinfo.BIConversion;
 import org.broad.tribble.Feature;
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
@@ -38,11 +39,14 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.bed.BedParser;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
+import javax.activation.*;
+import java.beans.VetoableChangeSupport;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.util.*;
@@ -52,7 +56,7 @@ import java.util.*;
  * Declares the validity of variants in a vcf as either true or false. For use with the IGV crowd-sourcing bed generation
  */
 
-
+@Requires(value={},referenceMetaData=@RMD(name="validated", type=VariantContext.class))
 public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
 
 
@@ -66,8 +70,12 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
     @Argument(fullName = "Note", shortName = "N", doc = "Annotation to be included in FP field", required = false)
     String Note =".";
 
-    @Argument(fullName = "Source", shortName = "s", doc = "Source of annotation", required = false)
+    @Argument(fullName = "Source", shortName = "s", doc = "Institutional source of annotation", required = false)
     String Source = ".";
+
+    @Argument(fullName = "Build", shortName = "bld", doc = "Genome build", required = false)
+    String build = ".";
+
 
     @Override
     public Integer reduceInit() {
@@ -81,25 +89,44 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
         protected long start;
         protected long stop;
         protected boolean TPorFP;
+        protected Allele refBase;
+        protected Allele altBase;
         protected String Note;
         protected String Source;
         protected String Build;
         protected String user;
 
-        public ValidityDeclaration(GenomeLoc Loc, Boolean TPorFP, String Note, String Source){   //Constructor expects  1 based
+        public String getBuild(){
+        String refPath = getToolkit().getArguments().referenceFile.getPath();
+        if (refPath.contains("19")) {return "hg19";}
+        else if (refPath.contains("18")) {return "hg18";}
+        else if (refPath.contains("36")) {return "b36";}
+        else if (refPath.contains("37")) {return "b37";}
+        else {return "unknown";}
+    }
+
+        public ValidityDeclaration(GenomeLoc Loc, VariantContext Con, Boolean TPorFP, String Note, String Source, String Build){   //Constructor expects  1 based
             this.contig=Loc.getContig();
             this.start=Loc.getStart()-1;
-            this.stop=Loc.getStop()-1;
+            this.stop=Loc.getStop();
             this.TPorFP =TPorFP;
+            this.altBase = Con.getAlternateAllele(0);
+            if (Con.getAlternateAlleles().toArray().length >1)
+            {
+                logger.warn("***NOTE: Only the first alternate allele in a VCF will be declared as " +TPorFP+"***");
+            }
+            this.refBase = Con.getReference();
             this.Note = Note;
             this.Source = Source;
             this.user = System.getenv("USER");
-            //is there a better way to get the build than this?:
-            if (this.contig.contains("chr")) {this.Build="hg18";}
-            else {this.Build="hg19";}
+            if (Build == "."){
+                this.Build=getBuild();
+            }
+            else{this.Build = Build; }
+
         }
         public String toString() {
-            return String.format("%s\t%d\t%d\t%b positive\t%s\t%s\t%s\t%s\n", contig, start, stop, TPorFP, user, Build, Note, Source);
+            return String.format("%s\t%d\t%d\t%s\t%s\t%b positive\t%s\t%s\t%s\t%s", contig, start, stop, refBase,altBase, TPorFP, user, Build, Note, Source);
         }
     }
  /**
@@ -113,9 +140,15 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
          if ( tracker == null )
             return 0;
 
+
+         VariantContext current = tracker.getVariantContext(ref, "validated", context.getLocation());
+         if (current == null) {
+             return 0;}
+
+
          Boolean tpOrFp = !isFP;
-         ValidityDeclaration bedLine = new ValidityDeclaration(ref.getLocus(), tpOrFp, Note, Source);
-         out.append(bedLine.toString());
+         ValidityDeclaration bedLine = new ValidityDeclaration(ref.getLocus(), current, tpOrFp, Note, Source, build);
+         out.println(bedLine);
          return 1;
      }
 
