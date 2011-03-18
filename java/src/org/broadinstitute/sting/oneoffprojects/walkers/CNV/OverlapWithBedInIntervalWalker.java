@@ -31,23 +31,24 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.PrintStream;
-import java.util.*;
+import java.util.List;
 
 /**
- * Walks along reference and calculates the GC content for each interval.
+ * Walks along reference and calculates the percent overlap with the BED file intervals for each -L interval.
  */
 @Allows(value = {DataSource.REFERENCE})
-@Requires(value = {DataSource.REFERENCE})
+@Requires(value = {DataSource.REFERENCE}, referenceMetaData = {@RMD(name = OverlapWithBedInIntervalWalker.INTERVALS_ROD_NAME, type = ReferenceOrderedDatum.class)})
 
-public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
+public class OverlapWithBedInIntervalWalker extends RodWalker<CumulativeBaseOverlapCount, CumulativeBaseOverlapCount> {
     @Output
     protected PrintStream out;
+
+    public final static String INTERVALS_ROD_NAME = "intervals";
+
 
     public boolean isReduceByInterval() {
         return true;
@@ -60,8 +61,8 @@ public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
         return false;
     }
 
-    public GCcounter reduceInit() {
-        return new GCcounter();
+    public CumulativeBaseOverlapCount reduceInit() {
+        return new CumulativeBaseOverlapCount();
     }
 
     /**
@@ -70,63 +71,59 @@ public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
      * @param context the context for the given locus
      * @return statistics of and list of all phased VariantContexts and their base pileup that have gone out of cacheWindow range.
      */
-    public GCcounter map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+    public CumulativeBaseOverlapCount map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (tracker == null)
             return null;
 
-        return new GCcounter().calculateGCandAddIn(ref);
+        return new CumulativeBaseOverlapCount().addIntervals(tracker.getGATKFeatureMetaData(INTERVALS_ROD_NAME, true));
     }
 
-    public GCcounter reduce(GCcounter add, GCcounter runningCount) {
+    public CumulativeBaseOverlapCount reduce(CumulativeBaseOverlapCount add, CumulativeBaseOverlapCount runningCount) {
         if (add == null)
-            add = new GCcounter();
+            add = new CumulativeBaseOverlapCount();
 
         return runningCount.addIn(add);
     }
 
     /**
-     * @param results the GC content observed for each interval.
+     * @param results the genes found in each interval.
      */
-    public void onTraversalDone(List<Pair<GenomeLoc, GCcounter>> results) {
-        for (Pair<GenomeLoc, GCcounter> result : results ) {
+    public void onTraversalDone(List<Pair<GenomeLoc, CumulativeBaseOverlapCount>> results) {
+        for (Pair<GenomeLoc, CumulativeBaseOverlapCount> result : results ) {
             GenomeLoc loc = result.getFirst();
-            GCcounter counter = result.getSecond();
 
-            double gcContent = (double) counter.GCcount / counter.totalCount;
-            out.println(loc + "\t" + gcContent + "\t" + loc.size());
+            CumulativeBaseOverlapCount overlapCount = result.getSecond();
+            double meanOverlap = ((double) overlapCount.totalOverlapCount) / loc.size();
+
+            out.println(loc + "\t" + meanOverlap);
         }
     }
 }
 
-class GCcounter {
-    public int totalCount;
-    public int GCcount;
+class CumulativeBaseOverlapCount {
+    public int totalOverlapCount;
 
-    public GCcounter() {
-        this.totalCount = 0;
-        this.GCcount = 0;
+    public CumulativeBaseOverlapCount() {
+        this.totalOverlapCount = 0;
     }
 
-    public GCcounter addIn(GCcounter other) {
-        this.totalCount += other.totalCount;
-        this.GCcount += other.GCcount;
+    public CumulativeBaseOverlapCount addIn(CumulativeBaseOverlapCount other) {
+        this.totalOverlapCount += other.totalOverlapCount;
 
         return this;
     }
 
-    public GCcounter calculateGCandAddIn(ReferenceContext ref) {
-        for (byte base : ref.getBases()) {
-            int baseIndex = BaseUtils.simpleBaseToBaseIndex(base);
-
-            boolean baseIsGC = (baseIndex == BaseUtils.gIndex || baseIndex == BaseUtils.cIndex);
-            boolean baseIsAT = (baseIndex == BaseUtils.aIndex || baseIndex == BaseUtils.tIndex);
-            if (baseIsGC || baseIsAT) {
-                totalCount++;
-                if (baseIsGC)
-                    GCcount++;
-            }
-        }
+    public CumulativeBaseOverlapCount addIntervals(List<GATKFeature> interval) {
+        totalOverlapCount += interval.size();
 
         return this;
+    }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(totalOverlapCount);
+
+        return sb.toString();
     }
 }
