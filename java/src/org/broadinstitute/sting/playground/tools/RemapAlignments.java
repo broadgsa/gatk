@@ -52,13 +52,15 @@ import net.sf.samtools.SAMFileReader.ValidationStringency;
 public class RemapAlignments extends CommandLineProgram {
 
     // Usage and parameters
-    @Usage(programVersion="1.0") public String USAGE = "Investigates indels called in the alignment data\n";
+    @Usage(programVersion="1.0") public String USAGE = "Remaps custom-reference (e.g. transcriptome) alignments onto the genomic reference\n";
 	@Option(shortName="M", 
-			doc="Map file: from the reference the reads were aligned to, to the master reference the alignments should be remapped to", 
+			doc="Map file: from the reference the reads were aligned to, to the master reference the alignments should be remapped to. "+
+            "In other words, for each custom-reference contig C this map must provide a (possibly disjoint) list of intervals "+
+            "on the target reference, onto which C maps base-by-base. ",
 			optional=false)
 	public File MAP_FILE = null;
 	@Option(shortName="I", 
-			doc="Input file (bam or sam) with alignments to be remapped", 
+			doc="Input file (bam or sam) with alignments to be remapped",
 			optional=false)
 	public File IN = null;
 	@Option(shortName="O", 
@@ -66,14 +68,15 @@ public class RemapAlignments extends CommandLineProgram {
 			optional=false)
 	public File OUT = null;
 	@Option(shortName="R", 
-			doc="Reference to remap alignments onto.", 
+			doc="Target reference to remap alignments onto.",
 			optional=false)
 	public File REFERENCE = null;
 	@Option(
 			doc="If a read has multiple alignments that are exactly the same after remapping, "+
-			"keep only one copy of such alignment in output file. Multiple alignments that are "+
-			"not equivalent after remaping are not affected by this flag. "+
-			"Multiple alignments for the same query must be grouped on adjacent lines of the input file to be detected," +
+			"then keep only one copy of such alignment in output file. Multiple alignments that are "+
+			"not equivalent after remapping are not affected by this flag. "+
+			"Multiple alignments for the same query must be grouped on adjacent lines of the input file to be detected "+
+            "(i.e. input file must be sorted by read name), " +
 			"otherwise REDUCE will have no effect.", 
 			optional=true)
 	public boolean REDUCE = false;
