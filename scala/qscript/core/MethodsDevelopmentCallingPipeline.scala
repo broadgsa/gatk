@@ -1,3 +1,4 @@
+import org.broadinstitute.sting.commandline.Hidden
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
@@ -5,7 +6,6 @@ import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
 
   // ToDos:
   // reduce the scope of the datasets so the script is more nimble
-  // figure out how to give names to all the Queue-LSF logs (other than Q-1931@node1434-24.out) so that it is easier to find logs for certain steps
   // create gold standard BAQ'd bam files, no reason to always do it on the fly
 
   // Analysis to add at the end of the script:
@@ -35,9 +35,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="noBAQ", doc="turns off BAQ calculation", required=false)
   var noBAQ: Boolean = false
 
-  @Argument(shortName="noMASK", doc="turns off MASK calculation", required=false)
-  var noMASK: Boolean = false
-
   @Argument(shortName="eval", doc="adds the VariantEval walker to the pipeline", required=false)
   var eval: Boolean = false
 
@@ -50,12 +47,16 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="LOCAL_ET", doc="Doesn't use the AWS S3 storage for ET option", required=false)
   var LOCAL_ET: Boolean = false
 
-  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK {
-    logging_level = "INFO";
-    jarFile = gatkJarFile;
-    memoryLimit = Some(3);
-    phone_home = Some(if ( LOCAL_ET ) GATKRunReport.PhoneHomeOption.STANDARD else GATKRunReport.PhoneHomeOption.AWS_S3)
-  }
+  @Argument(shortName="mbq", doc="The minimum Phred-Scaled quality score threshold to be considered a good base.", required=false)
+  var minimumBaseQuality: Int = -1
+
+  @Argument(shortName="deletions", doc="Maximum deletion fraction allowed at a site to call a genotype.", required=false)
+  var deletions: Double = -1
+
+  @Argument(shortName="sample", doc="Samples to include in Variant Eval", required=false)
+  var samples: List[String] = Nil
+
+
 
   class Target(
           val baseName: String,
@@ -73,12 +74,13 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val clusterFile = new File(name + ".clusters")
     val rawVCF = new File(name + ".raw.vcf")
     val rawIndelVCF = new File(name + ".raw.indel.vcf")
-    val filteredVCF = new File(name + ".filtered.vcf")
     val filteredIndelVCF = new File(name + ".filtered.indel.vcf")
-    val tsRecalibratedVCF = new File(name + ".ts.recalibrated.vcf")
-    val tsTranchesFile = new File(name + ".ts.tranches")
-    val goldStandardTsRecalibratedVCF = new File(name + "goldStandard.ts.recalibrated.vcf")
-    val goldStandardTsTranchesFile = new File(name + "goldStandard.ts.tranches")
+    val recalibratedVCF = new File(name + ".recalibrated.vcf")
+    val tranchesFile = new File(name + ".tranches")
+    val recalFile = new File(name + ".tranches.recal")
+    val goldStandardRecalibratedVCF = new File(name + "goldStandard.recalibrated.vcf")
+    val goldStandardTranchesFile = new File(name + "goldStandard.tranches")
+    val goldStandardRecalFile = new File(name + "goldStandard.tranches.recal")
     val cutVCF = new File(name + ".cut.vcf")
     val evalFile = new File(name + ".snp.eval")
     val evalIndelFile = new File(name + ".indel.eval")
@@ -105,7 +107,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   val lowPass: Boolean = true
   val indels: Boolean = true
-  val useMask: Boolean = !noMASK
   val useCut: Boolean = !noCut
 
   val queueLogDir = ".qlog/"
@@ -158,9 +159,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     var targets: List[Target] = List()
     if (!datasets.isEmpty)
       for (ds <- datasets)
-        targets ::= targetDataSets(ds)                  // Could check if ds was mispelled, but this way an exception will be thrown, maybe it's better this way?
+        targets ::= targetDataSets(ds)
     else                                                // If -dataset is not specified, all datasets are used.
-      for (targetDS <- targetDataSets.valuesIterator)   // for Scala 2.7 or older, use targetDataSets.values
+      for (targetDS <- targetDataSets.valuesIterator)
         targets ::= targetDS
 
     val goldStandard = true
@@ -168,21 +169,27 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       if( !skipCalling ) {
         if (callIndels) add(new indelCall(target), new indelFilter(target), new indelEvaluation(target))
         add(new snpCall(target))
-        add(new snpFilter(target))
-        add(new GenerateClusters(target, !goldStandard))
-        add(new VariantRecalibratorNRS(target, !goldStandard))
+        add(new VQSR(target, !goldStandard))
+        add(new applyVQSR(target, !goldStandard))
         if (!noCut) add(new VariantCut(target))
         if (eval) add(new snpEvaluation(target))
       }
       if ( !skipGoldStandard ) {
-        add(new GenerateClusters(target, goldStandard))
-        add(new VariantRecalibratorNRS(target, goldStandard))
+        add(new VQSR(target, goldStandard))
+        add(new applyVQSR(target, goldStandard))
       }
     }
   }
 
-  def bai(bam: File) = new File(bam + ".bai")
 
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK {
+    logging_level = "INFO";
+    jarFile = gatkJarFile;
+    memoryLimit = Some(4);
+    phone_home = Some(if ( LOCAL_ET ) GATKRunReport.PhoneHomeOption.STANDARD else GATKRunReport.PhoneHomeOption.AWS_S3)
+  }
+
+  def bai(bam: File) = new File(bam + ".bai")
   val FiltersToIgnore = List("DPFilter", "ABFilter", "ESPStandard", "QualByDepth", "StrandBias", "HomopolymerRun")
 
   // 1.) Unified Genotyper Base
@@ -202,6 +209,10 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 1a.) Call SNPs with UG
   class snpCall (t: Target) extends GenotyperBase(t) {
+    if (minimumBaseQuality >= 0)
+      this.min_base_quality_score = Some(minimumBaseQuality)
+    if (qscript.deletions >= 0)
+      this.max_deletion_fraction = Some(qscript.deletions)
     this.out = t.rawVCF
     this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY})
     this.analysisName = t.name + "_UGs"
@@ -217,29 +228,13 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.jobName =  queueLogDir + t.name + ".indelcall"
   }
 
-  // 2.) Hard Filtering Base
-  class FilterBase (t: Target) extends VariantFiltration with UNIVERSAL_GATK_ARGS {
+  // 2.) Hard Filtering for indels
+  class indelFilter (t: Target) extends VariantFiltration with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 10
     this.filterName ++= List("HARD_TO_VALIDATE")
     this.filterExpression ++= List("\"MQ0 >= 4 && (MQ0 / (1.0 * DP)) > 0.1\"")
-  }
-
-  // 2a.) Hard Filter for SNPs (soon to be obsolete)
-  class snpFilter (t: Target) extends FilterBase(t) {
-    this.variantVCF = t.rawVCF
-    this.out = t.filteredVCF
-    if (useMask) {
-      this.rodBind :+= RodBind("mask", "Bed", t.maskFile)
-      this.maskName = "InDel"
-    }
-    this.analysisName = t.name + "_VF"
-    this.jobName =  queueLogDir + t.name + ".snpfilter"
-  }
-
-   // 2b.) Hard Filter for Indels
-  class indelFilter (t: Target) extends FilterBase(t) {
     this.variantVCF = t.rawIndelVCF
     this.out = t.filteredIndelVCF
     this.filterName ++= List("LowQual", "StrandBias", "QualByDepth", "HomopolymerRun")
@@ -250,6 +245,43 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.analysisName = t.name + "_VF"
     this.jobName =  queueLogDir + t.name + ".indelfilter"
   }
+
+  // 3.) Variant Quality Score Recalibration - Generate Recalibration table
+  class VQSR(t: Target, goldStandard: Boolean) extends ContrastiveRecalibrator with UNIVERSAL_GATK_ARGS {
+    this.memoryLimit = Some(6)
+    this.intervalsString ++= List(t.intervals)
+    this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
+    this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
+    if( t.hapmapFile.contains("b37") )
+      this.rodBind :+= RodBind("1kg", "VCF", omni_b37)
+    else if( t.hapmapFile.contains("b36") )
+      this.rodBind :+= RodBind("1kg", "VCF", omni_b36)
+    if (t.dbsnpFile.endsWith(".rod"))
+      this.DBSNP = new File(t.dbsnpFile)
+    else if (t.dbsnpFile.endsWith(".vcf"))
+      this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+    this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
+    this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile }
+    this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
+    this.allPoly = true
+    this.tranche ++= List("0.1", "0.5", "0.7", "1.0", "1.1", "1.2", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0", "2.1", "2.2", "2.5","3.0", "5.0", "10.0")
+    this.jobName =  queueLogDir + t.name + ".VQSR"
+  }
+
+  // 4.) Apply the recalibration table to the appropriate tranches
+  class applyVQSR (t: Target, goldStandard: Boolean) extends ApplyRecalibration with UNIVERSAL_GATK_ARGS {
+    this.memoryLimit = Some(4)
+    this.intervalsString ++= List(t.intervals)
+    this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
+    this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile}
+    this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
+    this.fdr_filter_level = Some(2.0)
+    this.out = t.recalibratedVCF
+    this.jobName =  queueLogDir + t.name + ".applyVQSR"
+  }
+
+/*
+ * Obsolete
 
   // 3.) VQSR part1 Generate Gaussian clusters based on truth sites
   class GenerateClusters(t: Target, goldStandard: Boolean) extends GenerateVariantClusters with UNIVERSAL_GATK_ARGS {
@@ -308,13 +340,15 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.trustAllPolymorphic = true
   }
 
+*/
+
    // 5.) Variant Cut filter out the variants marked by recalibration to the 99% tranche
   class VariantCut(t: Target) extends ApplyVariantCuts with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
-    this.rodBind :+= RodBind("input", "VCF",  t.tsRecalibratedVCF )
+    this.rodBind :+= RodBind("input", "VCF",  t.recalibratedVCF )
     this.intervalsString ++= List(t.intervals)
     this.out = t.cutVCF
-    this.tranchesFile = t.tsTranchesFile
+    this.tranchesFile = t.tranchesFile
     this.fdr_filter_level = Some(t.trancheTarget)
     this.analysisName = t.name + "_VC"
     this.jobName =  queueLogDir + t.name + ".cut"
@@ -333,12 +367,13 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.DBSNP = new File(t.dbsnpFile)
     else if (t.dbsnpFile.endsWith(".vcf"))
       this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+    this.sample = samples
   }
 
   // 6a.) SNP Evaluation (OPTIONAL) based on the cut vcf
   class snpEvaluation(t: Target) extends EvalBase(t) {
     if (t.reference == b37 || t.reference == hg19) this.rodBind :+= RodBind("compomni", "VCF", omni_b37)
-    this.rodBind :+= RodBind("eval", "VCF", if (useCut) {t.cutVCF} else {t.tsRecalibratedVCF} )
+    this.rodBind :+= RodBind("eval", "VCF", if (useCut) {t.cutVCF} else {t.recalibratedVCF} )
     this.out =  t.evalFile
     this.analysisName = t.name + "_VEs"
     this.jobName =  queueLogDir + t.name + ".snp.eval"
