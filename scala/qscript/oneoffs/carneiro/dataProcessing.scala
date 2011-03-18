@@ -207,8 +207,8 @@ class dataProcessing extends QScript {
   this.jobName = queueLogDir + outBamList + ".bamList"
   }
 
-  class joinBams(inBams: File, outBam: String) extends PrintReads {
-  this.input_file :+= inBams
+  class joinBams(inBams: String, outBam: String) extends PrintReads {
+  this.input_file :+= new File(inBams)
   this.out = new File(outBam)
   this.jobName = queueLogDir + inBams + ".joinBams"
   }

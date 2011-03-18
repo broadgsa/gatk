@@ -1,5 +1,7 @@
-import org.broadinstitute.sting.queue.extensions.gatk.{RealignerTargetCreator, RodBind, IndelRealigner}
 import org.broadinstitute.sting.queue.QScript
+import org.broadinstitute.sting.queue.extensions.gatk.{RealignerTargetCreator, RodBind, IndelRealigner}
+import org.broadinstitute.sting.commandline.ArgumentSource
+import org.broadinstitute.sting.queue.extensions.gatk.BamGatherFunction
 
 /**
  * Created by IntelliJ IDEA.
@@ -21,7 +23,6 @@ class justClean extends QScript {
   @Input(doc="Reference fasta file", shortName="R", required=false)
   var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
-
   @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)
   var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
@@ -34,8 +35,10 @@ class justClean extends QScript {
 
   def script = {
 
+    println(GATKjar)
+
     val outBam = swapExt(input, ".bam", ".Qclean.bam")
-    val tIntervals = swapExt(input, ".bam", ".Qall_indels.intervals")
+    val tIntervals = swapExt(input, ".bam", ".all_indels.intervals")
 
     val target = new RealignerTargetCreator()
     target.input_file :+= input
@@ -49,6 +52,8 @@ class justClean extends QScript {
     target.jarFile = GATKjar
     target.scatterCount = 84
     
+
+
     val clean = new IndelRealigner()
     clean.input_file :+= input
     clean.targetIntervals = tIntervals
@@ -64,6 +69,13 @@ class justClean extends QScript {
     clean.memoryLimit = Some(6)
     clean.scatterCount = 84
 
-    add(target, clean);
+    clean.setupGatherFunction = {
+      case (gather: BamGatherFunction, source: ArgumentSource) =>
+        gather.memoryLimit = Some(6) // Memory limit you expect for the job
+        gather.jarFile = new File("/seq/software/picard/current/bin/MergeSamFiles.jar")
+    }
+
+
+    add(clean);
   }
 }

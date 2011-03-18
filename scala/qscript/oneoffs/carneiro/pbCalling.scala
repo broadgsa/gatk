@@ -1,4 +1,3 @@
-import org.broadinstitute.sting.gatk.CommandLineGATK
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 
@@ -34,8 +33,8 @@ class pbCalling extends QScript {
     val filteredVCF = new File(name + ".filtered.vcf")
     val titvRecalibratedVCF = new File(name + ".titv.recalibrated.vcf")
     val titvTranchesFile = new File(name + ".titv.tranches")
-    val tsRecalibratedVCF = new File(name + ".ts.recalibrated.vcf")
-    val tsTranchesFile = new File(name + ".ts.tranches")
+    val recalibratedVCF = new File(name + ".ts.recalibrated.vcf")
+    val tranchesFile = new File(name + ".ts.tranches")
     val cutVCF = new File(name + ".cut.vcf")
     val evalFile = new File(name + ".eval")
     val goldStandardName = qscript.outputDir + "goldStandard/" + baseName
@@ -142,9 +141,8 @@ class pbCalling extends QScript {
     for (target <- targets) {
       add(new UnifiedGenotyper(target))
       add(new VariantFiltration(target))
-      add(new GenerateVariantClusters(target, !goldStandard))
-//        add(new VariantRecalibratorTiTv(target, !goldStandard))
-      add(new VariantRecalibratorNRS(target, !goldStandard))
+      add(new VQSR(target, !goldStandard))
+      add(new applyVQSR(target, !goldStandard))
       add(new VariantCut(target))
       add(new VariantEvaluation(target))
     }
@@ -189,83 +187,45 @@ class pbCalling extends QScript {
     this.analysisName = t.name + "_VF"
   }
 
-  // 3.) VQSR part1 Generate Gaussian clusters based on truth sites
-  class GenerateVariantClusters(t: Target, goldStandard: Boolean) extends org.broadinstitute.sting.queue.extensions.gatk.GenerateVariantClusters {
-      this.jarFile = gatkJarFile
-      val name: String = if ( goldStandard ) { t.goldStandardName } else { t.name }
-      this.reference_sequence = t.reference
-      this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
-      if( t.hapmapFile.contains("b37") )
-        this.rodBind :+= RodBind("1kg", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/ALL.low_coverage.2010_07.hg19.vcf")
-      this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
-      this.clusterFile = if ( goldStandard ) { t.goldStandardClusterFile } else { t.clusterFile }
-      if (t.isCCS)
-        this.use_annotation ++= List("QD", "HaplotypeScore", "HRun")
-      else
-        this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
-      this.analysisName = name + "_GVC"
-      this.intervalsString ++= List(t.intervals)
-      this.qual = Some(350) // clustering parameters to be updated soon pending new experimentation results
-      this.std = Some(3.5)
-      this.mG = Some(10)
-      this.ignoreFilter ++= FiltersToIgnore
-      if (t.dbsnpFile.endsWith(".rod"))
-        this.DBSNP = new File(t.dbsnpFile)
-      else if (t.dbsnpFile.endsWith(".vcf"))
-        this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+  class VQSR(t: Target, goldStandard: Boolean) extends ContrastiveRecalibrator {
+    this.memoryLimit = Some(6)
+    this.intervalsString ++= List(t.intervals)
+    this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
+    this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
+    if( t.hapmapFile.contains("b37") )
+      this.rodBind :+= RodBind("1kg", "VCF", omni_b37)
+    else if( t.hapmapFile.contains("b36") )
+      this.rodBind :+= RodBind("1kg", "VCF", omni_b36)
+    if (t.dbsnpFile.endsWith(".rod"))
+      this.DBSNP = new File(t.dbsnpFile)
+    else if (t.dbsnpFile.endsWith(".vcf"))
+      this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+    this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
+    this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile }
+    this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
+    this.allPoly = true
+    this.tranche ++= List("0.1", "0.5", "0.7", "1.0", "1.1", "1.2", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0", "2.1", "2.2", "2.5","3.0", "5.0", "10.0")
   }
 
- // 4.) VQSR part2 Calculate new LOD for all input SNPs by evaluating the Gaussian clusters
-  class VariantRecalibratorBase(t: Target, goldStandard: Boolean) extends org.broadinstitute.sting.queue.extensions.gatk.VariantRecalibrator {
-      this.jarFile = gatkJarFile
-      val name: String = if ( goldStandard ) { t.goldStandardName } else { t.name }
-      this.reference_sequence = t.reference
-      if( t.hapmapFile.contains("b37") )
-        this.rodBind :+= RodBind("1kg", "VCF", "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/ALL.low_coverage.2010_07.hg19.vcf")
-      this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
-      this.rodBind :+= RodBind("truth", "VCF", t.hapmapFile)
-      this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
-      this.clusterFile = if ( goldStandard ) { t.goldStandardClusterFile } else { t.clusterFile }
-      this.analysisName = name + "_VR"
-      this.intervalsString ++= List(t.intervals)
-      this.ignoreFilter ++= FiltersToIgnore
-      this.ignoreFilter ++= List("HARD_TO_VALIDATE")
-      this.target_titv = Some(t.titvTarget)
-      if (t.dbsnpFile.endsWith(".rod"))
-        this.DBSNP = new File(t.dbsnpFile)
-      else if (t.dbsnpFile.endsWith(".vcf"))
-        this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
-  }
-
-  // 4a.) Choose VQSR tranches based on novel ti/tv
-  class VariantRecalibratorTiTv(t: Target, goldStandard: Boolean) extends VariantRecalibratorBase(t, goldStandard) {
-      this.jarFile = gatkJarFile
-      this.tranche ++= List("0.1", "1.0", "10.0", "100.0")
-      this.out = t.titvRecalibratedVCF
-      this.tranchesFile = t.titvTranchesFile
-  }
-
-  // 4b.) Choose VQSR tranches based on sensitivity to truth set
-  class VariantRecalibratorNRS(t: Target, goldStandard: Boolean) extends VariantRecalibratorBase(t, goldStandard) {
-      this.jarFile = gatkJarFile
-      this.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
-      this.tranche ++= List("0.1", "1.0", "10.0", "100.0")
-      this.out = t.tsRecalibratedVCF
-      this.priorDBSNP = Some(2.0)
-      this.priorHapMap = Some(2.0)
-      this.prior1KG = Some(2.0)
-      this.tranchesFile = t.tsTranchesFile
+  class applyVQSR (t: Target, goldStandard: Boolean) extends ApplyRecalibration {
+    this.memoryLimit = Some(4)
+    this.intervalsString ++= List(t.intervals)
+    this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
+    this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile}
+    this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
+    this.fdr_filter_level = Some(2.0)
+    this.out = t.recalibratedVCF
   }
 
   // 5.) Variant Cut filter out the variants marked by recalibration to the 99% tranche
   class VariantCut(t: Target) extends org.broadinstitute.sting.queue.extensions.gatk.ApplyVariantCuts {
       this.jarFile = gatkJarFile
       this.reference_sequence = t.reference
-      this.rodBind :+= RodBind("input", "VCF",  t.tsRecalibratedVCF )
+      this.rodBind :+= RodBind("input", "VCF",  t.recalibratedVCF )
       this.analysisName = t.name + "_VC"
       this.intervalsString ++= List(t.intervals)
       this.out = t.cutVCF
-      this.tranchesFile = t.tsTranchesFile
+      this.tranchesFile = t.tranchesFile
       this.fdr_filter_level = Some(1.0)
       if (t.dbsnpFile.endsWith(".rod"))
         this.DBSNP = new File(t.dbsnpFile)
