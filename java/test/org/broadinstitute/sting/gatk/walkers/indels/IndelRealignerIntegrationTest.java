@@ -117,13 +117,4 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
             executeTest(String.format("realigner [%s]", entry.getKey()), spec);
         }
     }
-
-    @Test(expectedExceptions = { RuntimeException.class }, dependsOnMethods = { "testMaxReadsInMemory" })
-    public void testFailure() {
-        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                baseCommand + "--maxReadsInMemory 1000",
-                1,
-                Arrays.asList(""));
-        executeTest("realigner failure", spec);
-    }
 }

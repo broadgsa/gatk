@@ -216,17 +216,9 @@ public class ReadUtils {
      * @param reads
      * @return
      */
-    public final static List<SAMRecord> coordinateSortReads(Collection<SAMRecord> reads) {
-        final int n = reads.size();
-
-        if ( n > 0 ) {
-            final SAMRecordComparator comparer = new SAMRecordCoordinateComparator();
-            final Queue<SAMRecord> sorted = new PriorityQueue<SAMRecord>(reads.size(), comparer);
-            sorted.addAll(reads);
-            return new ArrayList<SAMRecord>(sorted);
-        } else {
-            return Collections.emptyList();
-        }
+    public final static void coordinateSortReads(List<SAMRecord> reads) {
+        final SAMRecordComparator comparer = new SAMRecordCoordinateComparator();
+        Collections.sort(reads, comparer);
     }
 
     public final static int getFirstInsertionOffset(SAMRecord read) {

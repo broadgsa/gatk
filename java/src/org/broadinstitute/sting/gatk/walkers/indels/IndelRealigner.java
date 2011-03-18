@@ -402,9 +402,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private void emitReadLists() {
-        // pre-merge lists with priority queue for constrained SAMFileWriter
+        // pre-merge lists to sort them in preparation for constrained SAMFileWriter
         readsNotToClean.addAll(readsToClean.getReads());
-        for ( SAMRecord read : ReadUtils.coordinateSortReads(readsNotToClean) )
+        ReadUtils.coordinateSortReads(readsNotToClean);
+        for ( SAMRecord read : readsNotToClean )
             emit(read);
         readsToClean.clear();
         readsNotToClean.clear();
