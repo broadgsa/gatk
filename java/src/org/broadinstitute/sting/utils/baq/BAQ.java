@@ -39,7 +39,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
  */
 public class BAQ {
     private final static boolean DEBUG = false;
-    public final static int MAG = 1; // todo -- remove me for performance testing only
+    public static int MAG = 1; // todo -- remove me for performance testing only
 
     public enum CalculationMode {
         OFF,                        // don't apply a BAQ at all, the default
