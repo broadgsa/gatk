@@ -291,7 +291,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
             if (getAlleleListFromVCF) {
 
                  for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", null, ref.getLocus(), false, false) ) {
-                     if( vc_input != null && vc_input.isIndel() && ref.getLocus().getStart() == vc_input.getStart()) {
+                     if( vc_input != null && ! vc_input.isFiltered() && vc_input.isIndel() && ref.getLocus().getStart() == vc_input.getStart()) {
                          vc = vc_input;
                          break;
                      }
