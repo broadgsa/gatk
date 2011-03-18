@@ -448,11 +448,11 @@ public class GenomeLocParser {
     private void exceptionOnInvalidGenomeLocBounds(GenomeLoc locus) {
         int contigSize = contigInfo.getSequence(locus.getContigIndex()).getSequenceLength();
         if(locus.getStart() > contigSize)
-            throw new ReviewedStingException(String.format("GenomeLoc is invalid: locus start %d is after the end of contig %s",locus.getStart(),locus.getContig()));
+            throw new UserException.MalformedGenomeLoc("GenomeLoc is invalid: locus start is after the end of contig",locus);
         if(locus.getStop() > contigSize)
-            throw new ReviewedStingException(String.format("GenomeLoc is invalid: locus stop %d is after the end of contig %s",locus.getStop(),locus.getContig()));
+            throw new UserException.MalformedGenomeLoc("GenomeLoc is invalid: locus stop is after the end of contig",locus);
         if (locus.getStart() > locus.getStop()) {
-            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the start position is greater than the end position");
+            throw new UserException.MalformedGenomeLoc("Parameters to GenomeLocParser are incorrect: the start position is greater than the end position", locus);
         }
     }
 
