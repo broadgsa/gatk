@@ -448,7 +448,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
 
             if ( readsToClean.size() + readsNotToClean.size() >= MAX_READS ) {
-                logger.info("We are aborting the realignment in interval " + currentInterval + " because there are too many reads (see --maxReadsForRealignment for details)");
+                logger.info("Not attempting realignment in interval " + currentInterval + " because there are too many reads.");
                 abortCleanForCurrentInterval();
             }
         }
@@ -1409,7 +1409,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             // no indel?
             String str = cigar.toString();
             if ( !str.contains("D") && !str.contains("I") ) {
-                logger.info("Modifying a read with no associated indel; although this is possible, it is highly unlikely.  Perhaps this region should be double-checked: " + read.getReadName() + " near " + read.getReferenceName() + ":" + read.getAlignmentStart());
+                logger.debug("Modifying a read with no associated indel; although this is possible, it is highly unlikely.  Perhaps this region should be double-checked: " + read.getReadName() + " near " + read.getReferenceName() + ":" + read.getAlignmentStart());
                 //    newCigar = null;
                 //    return;
             }
@@ -1444,7 +1444,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( newStart == -1 )
                 newStart = read.getAlignmentStart();
             else if ( Math.abs(newStart - read.getAlignmentStart()) > MAX_POS_MOVE_ALLOWED ) {
-                logger.warn(String.format("Attempting to realign read %s at %d more than %d bases to %d.", read.getReadName(), read.getAlignmentStart(), MAX_POS_MOVE_ALLOWED, newStart));
+                logger.debug(String.format("Attempting to realign read %s at %d more than %d bases to %d.", read.getReadName(), read.getAlignmentStart(), MAX_POS_MOVE_ALLOWED, newStart));
                 return false;
             }
 
