@@ -45,6 +45,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.File;
@@ -64,6 +65,10 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     @Output(doc="File to which BEAGLE input should be written",required=true)
     protected PrintStream  beagleWriter = null;
 
+    @Output(doc="File to which BEAGLE markers should be written", shortName="markers", fullName = "markers", required = false)
+    protected PrintStream  markers = null;
+    int markerCounter = 1;
+
     @Hidden
     @Input(doc="VQSqual calibration file", shortName = "cc", required=false)
     protected File VQSRCalibrationFile = null;
@@ -72,10 +77,6 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     @Hidden
     @Argument(doc="VQSqual key", shortName = "vqskey", required=false)
     protected String VQSLOD_KEY = "VQSqual";
-
-//    @Hidden
-//    @Argument(doc="Include filtered records", shortName = "ifr", fullName = "IncludeFilteredRecords", required=false)
-//    protected boolean includeFilteredRecords = false;
 
     @Argument(fullName = "inserted_nocall_rate", shortName = "nc_rate", doc = "Rate (0-1) at which genotype no-calls will be randomly inserted, for testing", required = false)
     public double insertedNoCallRate  = 0;
@@ -92,12 +93,13 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName = "variant_genotype_ptrue", shortName = "varp", doc = "Flat probability prior to assign to variant (not validation) genotypes. Does not override GL field.", required = false)
     public double variantPrior = 0.96;
 
-
     private Set<String> samples = null;
     private Set<String> BOOTSTRAP_FILTER = new HashSet<String>( Arrays.asList("bootstrap") );
     private Random generator;
     private int bootstrapSetSize = 0;
     private int testSetSize = 0;
+    private CachingFormatter formatter = new CachingFormatter("%5.4f ", 100000);
+    private int certainFPs = 0;
 
     public void initialize() {
         generator = new Random();
@@ -122,17 +124,15 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     public Integer map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
-
         if( tracker != null ) {
             GenomeLoc loc = context.getLocation();
-            VariantContext variant_eval;
-            VariantContext validation_eval;
+            VariantContext variant_eval = tracker.getVariantContext(ref, ROD_NAME, null, loc, true);
+            VariantContext validation_eval = tracker.getVariantContext(ref,VALIDATION_ROD_NAME,null,loc, true);
 
-            variant_eval = tracker.getVariantContext(ref, ROD_NAME, null, loc, true);
-            validation_eval = tracker.getVariantContext(ref,VALIDATION_ROD_NAME,null,loc, true);
             if ( goodSite(variant_eval,validation_eval) ) {
-                if ( useValidation(variant_eval,validation_eval, ref) ) {
-                    writeBeagleOutput(validation_eval,variant_eval,true,validationPrior);
+                if ( useValidation(validation_eval, ref) ) {
+                    writeBeagleOutput(validation_eval, variant_eval, true, validationPrior);
+                    return 1;
                 } else {
                     if ( goodSite(variant_eval) ) {
                         writeBeagleOutput(variant_eval,validation_eval,false,variantPrior);
@@ -141,7 +141,6 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                         return 0;
                     }
                 }
-                return 1;
             } else {
                 return 0;
             }
@@ -155,11 +154,23 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     public boolean goodSite(VariantContext v) {
-        return v != null && ! v.isFiltered() && v.isBiallelic() && v.hasGenotypes();
-        //return v != null && (includeFilteredRecords || ! v.isFiltered()) && v.isBiallelic() && v.hasGenotypes();
+        if ( canBeOutputToBeagle(v) ) {
+            if ( VQSRCalibrator != null && VQSRCalibrator.certainFalsePositive(VQSLOD_KEY, v) ) {
+                certainFPs++;
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return false;
+        }
     }
 
-    public boolean useValidation(VariantContext variant, VariantContext validation, ReferenceContext ref) {
+    public static boolean canBeOutputToBeagle(VariantContext v) {
+        return v != null && ! v.isFiltered() && v.isBiallelic() && v.hasGenotypes();
+    }
+
+    public boolean useValidation(VariantContext validation, ReferenceContext ref) {
         if( goodSite(validation) ) {
             // if using record keeps us below expected proportion, use it
             logger.debug(String.format("boot: %d, test: %d, total: %d", bootstrapSetSize, testSetSize, bootstrapSetSize+testSetSize+1));
@@ -167,7 +178,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 if ( bootstrapVCFOutput != null ) {
                     bootstrapVCFOutput.add(VariantContext.modifyFilters(validation, BOOTSTRAP_FILTER), ref.getBase() );
                 }
-                bootstrapSetSize ++;
+                bootstrapSetSize++;
                 return true;
             } else {
                 if ( bootstrapVCFOutput != null ) {
@@ -191,7 +202,9 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         GenomeLoc currentLoc = VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(),preferredVC);
         StringBuffer beagleOut = new StringBuffer();
 
-        beagleOut.append(String.format("%s:%d ",currentLoc.getContig(),currentLoc.getStart()));
+        String marker = String.format("%s:%d ",currentLoc.getContig(),currentLoc.getStart());
+        beagleOut.append(marker);
+        if ( markers != null ) markers.append(marker).append("\t").append(Integer.toString(markerCounter++)).append("\t");
         for ( Allele allele : preferredVC.getAlleles() ) {
             String bglPrintString;
             if (allele.isNoCall() || allele.isNull())
@@ -200,7 +213,9 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 bglPrintString = allele.getBaseString();  // get rid of * in case of reference allele
 
             beagleOut.append(String.format("%s ", bglPrintString));
+            if ( markers != null ) markers.append(bglPrintString).append("\t");
         }
+        if ( markers != null ) markers.append("\n");
 
         Map<String,Genotype> preferredGenotypes = preferredVC.getGenotypes();
         Map<String,Genotype> otherGenotypes = goodSite(otherVC) ? otherVC.getGenotypes() : null;
@@ -265,13 +280,15 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     private void writeSampleLikelihoods( StringBuffer out, VariantContext vc, double[] log10Likelihoods ) {
-        if ( VQSRCalibrator != null )
+        if ( VQSRCalibrator != null ) {
             log10Likelihoods = VQSRCalibrator.includeErrorRateInLikelihoods(VQSLOD_KEY, vc, log10Likelihoods);
+        }
 
         double[] normalizedLikelihoods = MathUtils.normalizeFromLog10(log10Likelihoods);
         // see if we need to randomly mask out genotype in this position.
         for (double likeVal: normalizedLikelihoods) {
-            out.append(String.format("%5.4f ",likeVal));
+            out.append(formatter.format(likeVal));
+//            out.append(String.format("%5.4f ",likeVal));
         }
     }
 
@@ -281,11 +298,13 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
     }
 
     public Integer reduce( Integer value, Integer sum ) {
-        return 0; // Nothing to do here
+        return value + sum; // count up the sites
     }
 
-    public void onTraversalDone( Integer sum ) {
-
+    public void onTraversalDone( Integer includedSites ) {
+        logger.info("Sites included in beagle likelihoods file             : " + includedSites);
+        logger.info(String.format("Certain false positive found from recalibration curve : %d (%.2f%%)",
+                certainFPs, (100.0 * certainFPs) / (Math.max(certainFPs + includedSites, 1))));
     }
 
     private void initializeVcfWriter() {
@@ -301,4 +320,114 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
         bootstrapVCFOutput.writeHeader(new VCFHeader(hInfo, SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames)));
     }
 
+    public static class CachingFormatter {
+        private int maxCacheSize = 0;
+        private String format;
+        private LRUCache<Double, String> cache;
+
+        public String getFormat() {
+            return format;
+        }
+
+        public String format(double value) {
+            String f = cache.get(value);
+            if ( f == null ) {
+                f = String.format(format, value);
+                cache.put(value, f);
+//                if ( cache.usedEntries() < maxCacheSize ) {
+//                    System.out.printf("CACHE size %d%n", cache.usedEntries());
+//                } else {
+//                    System.out.printf("CACHE is full %f%n", value);
+//                }
+//            }
+//            } else {
+//                System.out.printf("CACHE hit %f%n", value);
+//            }
+            }
+
+            return f;
+        }
+
+        public CachingFormatter(String format, int maxCacheSize) {
+            this.maxCacheSize = maxCacheSize;
+            this.format = format;
+            this.cache = new LRUCache<Double, String>(maxCacheSize);
+        }
+    }
+
+    /**
+    * An LRU cache, based on <code>LinkedHashMap</code>.
+    *
+    * <p>
+    * This cache has a fixed maximum number of elements (<code>cacheSize</code>).
+    * If the cache is full and another entry is added, the LRU (least recently used) entry is dropped.
+    *
+    * <p>
+    * This class is thread-safe. All methods of this class are synchronized.
+    *
+    * <p>
+    * Author: Christian d'Heureuse, Inventec Informatik AG, Zurich, Switzerland<br>
+    * Multi-licensed: EPL / LGPL / GPL / AL / BSD.
+    */
+    public static class LRUCache<K,V> {
+
+    private static final float   hashTableLoadFactor = 0.75f;
+
+    private LinkedHashMap<K,V>   map;
+    private int                  cacheSize;
+
+    /**
+    * Creates a new LRU cache.
+    * @param cacheSize the maximum number of entries that will be kept in this cache.
+    */
+    public LRUCache (int cacheSize) {
+       this.cacheSize = cacheSize;
+       int hashTableCapacity = (int)Math.ceil(cacheSize / hashTableLoadFactor) + 1;
+       map = new LinkedHashMap<K,V>(hashTableCapacity, hashTableLoadFactor, true) {
+          // (an anonymous inner class)
+          private static final long serialVersionUID = 1;
+          @Override protected boolean removeEldestEntry (Map.Entry<K,V> eldest) {
+             return size() > LRUCache.this.cacheSize; }}; }
+
+    /**
+    * Retrieves an entry from the cache.<br>
+    * The retrieved entry becomes the MRU (most recently used) entry.
+    * @param key the key whose associated value is to be returned.
+    * @return    the value associated to this key, or null if no value with this key exists in the cache.
+    */
+    public synchronized V get (K key) {
+       return map.get(key); }
+
+    /**
+    * Adds an entry to this cache.
+    * The new entry becomes the MRU (most recently used) entry.
+    * If an entry with the specified key already exists in the cache, it is replaced by the new entry.
+    * If the cache is full, the LRU (least recently used) entry is removed from the cache.
+    * @param key    the key with which the specified value is to be associated.
+    * @param value  a value to be associated with the specified key.
+    */
+    public synchronized void put (K key, V value) {
+       map.put (key, value); }
+
+    /**
+    * Clears the cache.
+    */
+    public synchronized void clear() {
+       map.clear(); }
+
+    /**
+    * Returns the number of used entries in the cache.
+    * @return the number of entries currently in the cache.
+    */
+    public synchronized int usedEntries() {
+       return map.size(); }
+
+    /**
+    * Returns a <code>Collection</code> that contains a copy of all cache entries.
+    * @return a <code>Collection</code> with a copy of the cache content.
+    */
+    public synchronized Collection<Map.Entry<K,V>> getAll() {
+       return new ArrayList<Map.Entry<K,V>>(map.entrySet()); }
+
+    } // end class LRUCache
 }

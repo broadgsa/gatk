@@ -22,6 +22,7 @@ import java.util.List;
 public class VQSRCalibrationCurve {
     private final static boolean DEBUG = false;
     List<VQSRRange> points;
+    public static final double CERTAIN_FALSE_POSITIVE = -1;
 
     private static class VQSRRange {
         double start, stop, truePositiveRate;
@@ -52,7 +53,9 @@ public class VQSRCalibrationCurve {
             for ( String line : new XReadLines(source).readLines() ) {
                 if ( ! line.trim().isEmpty() ) {
                     String[] parts = line.split("\\s+");
-                    points.add(new VQSRRange(Double.parseDouble(parts[0]), Double.parseDouble(parts[1]), 1 - Double.parseDouble(parts[2])));
+                    double fpRate = Double.parseDouble(parts[2]);
+                    double tpRate = fpRate >= 1.0 ? CERTAIN_FALSE_POSITIVE : 1.0 - fpRate;
+                    points.add(new VQSRRange(Double.parseDouble(parts[0]), Double.parseDouble(parts[1]), tpRate));
                 }
             }
         } catch ( FileNotFoundException e ) {
@@ -69,6 +72,11 @@ public class VQSRCalibrationCurve {
     protected VQSRCalibrationCurve(List<VQSRRange> points) {
         this.points = points;
     }
+
+    public boolean certainFalsePositive(String VQSRQualKey, VariantContext vc) {
+        return probTrueVariant(VQSRQualKey, vc) == CERTAIN_FALSE_POSITIVE;
+    }
+
 
     public double probTrueVariant(double VQSRqual) {
         for ( VQSRRange r : points ) {
@@ -90,21 +98,33 @@ public class VQSRCalibrationCurve {
         }
     }
 
+    /**
+     * Returns a likelihoods vector adjusted by the probability that the site is an error.  Returns a
+     * null vector if the probability of the site being real is 0.0
+     * @param VQSRQualKey
+     * @param vc
+     * @param log10Likelihoods
+     * @return
+     */
     public double[] includeErrorRateInLikelihoods(String VQSRQualKey, VariantContext vc, double[] log10Likelihoods) {
         double[] updated = new double[log10Likelihoods.length];
 
         double alpha = probTrueVariant(VQSRQualKey, vc);
-        double qual = vc.getAttributeAsDouble(VQSRQualKey); // todo -- remove me
-        double noInfoPr = 1.0 / 3;
-        if ( DEBUG ) System.out.printf("------------------------------%n");
-        for ( int i = 0; i < log10Likelihoods.length; i++) {
-            double p = Math.pow(10, log10Likelihoods[i]);
-            double q = alpha * p + (1-alpha) * noInfoPr;
-            if ( DEBUG ) System.out.printf("  vqslod = %.2f, p = %.2e, alpha = %.2e, q = %.2e%n", qual, p, alpha, q);
-            updated[i] = Math.log10(q);
-        }
 
-        return updated;
+        if ( alpha == CERTAIN_FALSE_POSITIVE )
+            return null;
+        else {
+            double noInfoPr = 1.0 / 3;
+            if ( DEBUG ) System.out.printf("------------------------------%n");
+            for ( int i = 0; i < log10Likelihoods.length; i++) {
+                double p = Math.pow(10, log10Likelihoods[i]);
+                double q = alpha * p + (1-alpha) * noInfoPr;
+                if ( DEBUG ) System.out.printf("  vqslod = %.2f, p = %.2e, alpha = %.2e, q = %.2e%n", vc.getAttributeAsDouble(VQSRQualKey), p, alpha, q);
+                updated[i] = Math.log10(q);
+            }
+
+            return updated;
+        }
     }
 
 

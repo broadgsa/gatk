@@ -68,6 +68,9 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
     @Deprecated
     protected String oldOutputArg;
 
+    @Argument(fullName="dont_mark_monomorphic_sites_as_filtered", shortName="keep_monomorphic", doc="If provided, we won't filter sites that beagle tags as monomorphic.  Useful for imputing a sample's genotypes from a reference panel" ,required=false)
+    public boolean DONT_FILTER_MONOMORPHIC_SITES = false;
+
     @Argument(fullName="no" +
             "call_threshold", shortName="ncthr", doc="Threshold of confidence at which a genotype won't be called", required=false)
     private double noCallThreshold = 0.0;
@@ -304,7 +307,7 @@ public class BeagleOutputToVCFWalker  extends RodWalker<Integer, Integer> {
         }
 
         VariantContext filteredVC;
-        if ( beagleVarCounts > 0)
+        if ( beagleVarCounts > 0 || DONT_FILTER_MONOMORPHIC_SITES )
             filteredVC = new VariantContext("outputvcf", vc_input.getChr(), vc_input.getStart(), vc_input.getEnd(), vc_input.getAlleles(), genotypes, vc_input.getNegLog10PError(), vc_input.filtersWereApplied() ? vc_input.getFilters() : null, vc_input.getAttributes());
         else {
             Set<String> removedFilters = vc_input.filtersWereApplied() ? new HashSet<String>(vc_input.getFilters()) : new HashSet<String>(1);
