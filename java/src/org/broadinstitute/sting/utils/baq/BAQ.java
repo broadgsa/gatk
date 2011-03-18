@@ -39,6 +39,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
  */
 public class BAQ {
     private final static boolean DEBUG = false;
+    public final static int MAG = 1; // todo -- remove me for performance testing only
 
     public enum CalculationMode {
         OFF,                        // don't apply a BAQ at all, the default
@@ -169,6 +170,9 @@ public class BAQ {
         if ( query == null ) throw new ReviewedStingException("BUG: query sequence is null");
         if ( _iqual == null ) throw new ReviewedStingException("BUG: query quality vector is null");
         if ( query.length != _iqual.length ) throw new ReviewedStingException("BUG: read sequence length != qual length");
+        if ( l_query < 1 ) throw new ReviewedStingException("BUG: length of query sequence < 0: " + l_query);
+        if ( qstart < 0 ) throw new ReviewedStingException("BUG: query sequence start < 0: " + qstart);
+
         //if ( q != null && q.length != state.length ) throw new ReviewedStingException("BUG: BAQ quality length != read sequence length");
         //if ( state != null && state.length != l_query ) throw new ReviewedStingException("BUG: state length != read sequence length");
 
@@ -494,7 +498,6 @@ public class BAQ {
         }
     }
 
-    public static int MAG = 1; // todo -- remove me for performance testing only
     public BAQCalculationResult calcBAQFromHMM(byte[] ref, byte[] query, byte[] quals, int queryStart, int queryEnd ) {
         if ( queryStart < 0 ) throw new ReviewedStingException("BUG: queryStart < 0: " + queryStart);
         if ( queryEnd < 0 ) throw new ReviewedStingException("BUG: queryEnd < 0: " + queryEnd);
@@ -515,22 +518,10 @@ public class BAQ {
      * @return
      */
     private final Pair<Integer,Integer> calculateQueryRange(SAMRecord read) {
-        return calculateQueryRangeCigar(read);
-        // comparison of old and new way of doing it
-//        Pair<Integer, Integer> cigarResult = calculateQueryRangeCigar(read);
-//        Pair<Integer, Integer> prevResult = calculateQueryRangeAlignment(read);
-//
-//        if ( ! cigarResult.equals(prevResult) ) {
-//            throw new ReviewedStingException("BUG: cigar and prev results differ at read " + read + ", aligment start " + read.getAlignmentStart());
-//        }
-//
-//        return true ? cigarResult : prevResult;
-    }
-
-    private final Pair<Integer,Integer> calculateQueryRangeCigar(SAMRecord read) {
         int queryStart = -1, queryStop = -1;
         int readI = 0;
 
+        // iterate over the cigar elements to determine the start and stop of the read bases for the BAQ calculation
         for ( CigarElement elt : read.getCigar().getCigarElements() ) {
             switch (elt.getOperator()) {
                 case N:  return null; // cannot handle these
@@ -549,20 +540,22 @@ public class BAQ {
                 default: throw new ReviewedStingException("BUG: Unexpected CIGAR element " + elt + " in read " + read.getReadName());
             }
         }
-        return new Pair<Integer, Integer>(queryStart, queryStop);
-    }
 
-    private final Pair<Integer,Integer> calculateQueryRangeAlignment(SAMRecord read) {
-        int queryStart = includeClippedBases ? 0 : read.getAlignmentStart() - read.getUnclippedStart();
-        int queryEnd = read.getReadLength() - (includeClippedBases ? 0 : read.getUnclippedEnd() - read.getAlignmentEnd());
-        return new Pair<Integer, Integer>(queryStart, queryEnd);
+        if ( queryStop == queryStart ) {
+            // this read is completely clipped away, and yet is present in the file for some reason
+            // usually they are flagged as non-PF, but it's possible to push them through the BAM
+            //System.err.printf("WARNING -- read is completely clipped away: " + read.format());
+            return null;
+        }
+
+        return new Pair<Integer, Integer>(queryStart, queryStop);
     }
 
     // we need to bad ref by at least the bandwidth / 2 on either side
     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, byte[] ref, int refOffset) {
         // todo -- need to handle the case where the cigar sum of lengths doesn't cover the whole read
         Pair<Integer, Integer> queryRange = calculateQueryRange(read);
-        if ( queryRange == null ) return null; // read has Ns
+        if ( queryRange == null ) return null; // read has Ns, or is completely clipped away
 
         int queryStart = queryRange.getFirst();
         int queryEnd = queryRange.getSecond();
