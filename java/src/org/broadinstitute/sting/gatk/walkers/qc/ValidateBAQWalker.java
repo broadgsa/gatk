@@ -108,9 +108,8 @@ public class ValidateBAQWalker extends ReadWalker<Integer, Integer> {
         baqReadTimer.stop();
 
         glocalTimer.restart();
-        BAQ.MAG = magnification;
-        baqHMM.baqRead(read, refReader, BAQ.CalculationMode.RECALCULATE, BAQ.QualityMode.DONT_MODIFY);
-        BAQ.MAG = 1;
+        for ( int i = 0; i < magnification; i++ )
+            baqHMM.baqRead(read, refReader, BAQ.CalculationMode.RECALCULATE, BAQ.QualityMode.DONT_MODIFY);
         glocalTimer.stop();
     }
 

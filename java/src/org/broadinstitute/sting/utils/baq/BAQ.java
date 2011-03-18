@@ -39,7 +39,6 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
  */
 public class BAQ {
     private final static boolean DEBUG = false;
-    public static int MAG = 1; // todo -- remove me for performance testing only
 
     public enum CalculationMode {
         OFF,                        // don't apply a BAQ at all, the default
@@ -506,8 +505,7 @@ public class BAQ {
         // note -- assumes ref is offset from the *CLIPPED* start
         BAQCalculationResult baqResult = new BAQCalculationResult(query, quals, ref);
         int queryLen = queryEnd - queryStart;
-        for ( int i = 0; i < MAG; i++ )
-            hmm_glocal(baqResult.refBases, baqResult.readBases, queryStart, queryLen, baqResult.rawQuals, baqResult.state, baqResult.bq);
+        hmm_glocal(baqResult.refBases, baqResult.readBases, queryStart, queryLen, baqResult.rawQuals, baqResult.state, baqResult.bq);
         return baqResult;
     }
 
