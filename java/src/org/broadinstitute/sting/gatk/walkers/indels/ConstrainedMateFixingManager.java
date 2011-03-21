@@ -197,13 +197,19 @@ public class ConstrainedMateFixingManager {
         if ( newRead.getReadPairedFlag() ) {
             SAMRecord mate = forMateMatching.get(newRead.getReadName());
             if ( mate != null ) {
-                // Frustratingly, Picard's setMateInfo() method unaligns (by setting the reference contig
+                // 1. Frustratingly, Picard's setMateInfo() method unaligns (by setting the reference contig
                 // to '*') read pairs when both of their flags have the unmapped bit set.  This is problematic
                 // when trying to emit reads in coordinate order because all of a sudden we have reads in the
                 // middle of the bam file that now belong at the end - and any mapped reads that get emitted
                 // after them trigger an exception in the writer.  For our purposes, because we shouldn't be
                 // moving read pairs when they are both unmapped anyways, we'll just not run fix mates on them.
-                boolean doNotFixMates = newRead.getReadUnmappedFlag() && mate.getReadUnmappedFlag();
+                // 2. Furthermore, when reads get mapped to the junction of two chromosomes (e.g. MT since it
+                // is actually circular DNA), their unmapped bit is set, but they are given legitimate coordinates.
+                // The Picard code will come in and move the read all the way back to its mate (which can be
+                // arbitrarily far away).  However, we do still want to move legitimately unmapped reads whose
+                // mates are mapped, so the compromise will be that if the mate is still in the queue then we'll
+                // move the read and otherwise we won't.
+                boolean doNotFixMates = newRead.getReadUnmappedFlag() && (mate.getReadUnmappedFlag() || !waitingReads.contains(mate));
                 if ( !doNotFixMates ) {
 
                     boolean reQueueMate = mate.getReadUnmappedFlag() && ! newRead.getReadUnmappedFlag();
