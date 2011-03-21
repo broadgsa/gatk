@@ -1,14 +1,19 @@
 package org.broadinstitute.sting.queue.extensions.gatk
 
 import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
+import org.broadinstitute.sting.queue.extensions.picard.PicardBamEmbeddedFunction
 
 /**
- * Merges BAM files using Picards MergeSamFiles.jar.
- * At the Broad the jar can be found at /seq/software/picard/current/bin/MergeSamFiles.jar.  Outside the broad see http://picard.sourceforge.net/")
+ * Merges BAM files using Picards net.sf.picard.sam.MergeSamFiles.
  */
-class BamGatherFunction extends GatherFunction with PicardBamJarFunction {
+class BamGatherFunction extends GatherFunction with PicardBamEmbeddedFunction {
+  this.mainClass = "net.sf.picard.sam.MergeSamFiles"
   this.assumeSorted = Some(true)
   protected def inputBams = gatherParts
   protected def outputBam = originalOutput
+
+  override def init() {
+    // Whatever the original function can handle, merging *should* do less.
+    this.memoryLimit = originalFunction.memoryLimit
+  }
 }

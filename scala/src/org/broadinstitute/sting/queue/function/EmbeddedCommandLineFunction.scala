@@ -22,16 +22,24 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.extensions.picard
+package org.broadinstitute.sting.queue.function
 
-import org.broadinstitute.sting.queue.function.JarCommandLineFunction
+import java.io.File
+import org.broadinstitute.sting.queue.util.IOUtils
+import org.broadinstitute.sting.commandline.Argument
 
 /**
- * Wraps a Picard jar that operates on BAM files.
- * See http://picard.sourceforge.net/ for more info.
- *
- * Since the jar files take slightly different arguments
- * some values are optional.
+ * Defines a command line function that runs java code from inside the existing class path.
  */
-trait PicardBamJarFunction extends JarCommandLineFunction with PicardBamFunction {
+trait EmbeddedCommandLineFunction extends JavaCommandLineFunction {
+  @Argument(doc="Main class to run from the current classpath")
+  var mainClass: String = null
+
+  def javaExecutable = "-cp %s %s".format(EmbeddedCommandLineFunction.classpath, mainClass)
+}
+
+object EmbeddedCommandLineFunction {
+  private val classpath = System.getProperty("java.class.path")
+    .split(File.pathSeparatorChar).map(path => IOUtils.absolute(new File(path)))
+    .mkString("\"", "\"" + File.pathSeparator + "\"", "\"")
 }

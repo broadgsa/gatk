@@ -24,14 +24,28 @@
 
 package org.broadinstitute.sting.queue.extensions.picard
 
-import org.broadinstitute.sting.queue.function.JarCommandLineFunction
+import java.io.File
+import org.broadinstitute.sting.queue.function.CommandLineFunction
 
 /**
- * Wraps a Picard jar that operates on BAM files.
+ * Wraps a Picard function that operates on BAM files.
  * See http://picard.sourceforge.net/ for more info.
  *
- * Since the jar files take slightly different arguments
+ * Since the various BAM utilities take slightly different arguments
  * some values are optional.
  */
-trait PicardBamJarFunction extends JarCommandLineFunction with PicardBamFunction {
+trait PicardBamFunction extends CommandLineFunction {
+  var validationStringency = "SILENT"
+  var sortOrder = "coordinate"
+  var compressionLevel: Option[Int] = None
+  var maxRecordsInRam: Option[Int] = None
+  var assumeSorted: Option[Boolean] = None
+
+  protected def inputBams: List[File]
+  protected def outputBam: File
+
+  abstract override def commandLine = super.commandLine +
+    Array(optional(" COMPRESSION_LEVEL=", compressionLevel), optional(" VALIDATION_STRINGENCY=", validationStringency),
+      optional(" SO=", sortOrder), optional( " MAX_RECORDS_IN_RAM=", maxRecordsInRam), optional(" ASSUME_SORTED=", assumeSorted),
+      " OUTPUT=" + outputBam, repeat(" INPUT=", inputBams), " TMP_DIR=" + jobTempDir).mkString
 }

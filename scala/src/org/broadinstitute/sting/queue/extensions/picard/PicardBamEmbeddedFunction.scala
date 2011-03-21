@@ -24,14 +24,14 @@
 
 package org.broadinstitute.sting.queue.extensions.picard
 
-import org.broadinstitute.sting.queue.function.JarCommandLineFunction
+import org.broadinstitute.sting.queue.function.EmbeddedCommandLineFunction
 
 /**
- * Wraps a Picard jar that operates on BAM files.
+ * Wraps a Picard embedded class that operates on BAM files.
  * See http://picard.sourceforge.net/ for more info.
  *
- * Since the jar files take slightly different arguments
+ * Since the command lines take slightly different arguments
  * some values are optional.
  */
-trait PicardBamJarFunction extends JarCommandLineFunction with PicardBamFunction {
+trait PicardBamEmbeddedFunction extends EmbeddedCommandLineFunction with PicardBamFunction {
 }

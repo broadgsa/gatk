@@ -1,7 +1,5 @@
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk.{RealignerTargetCreator, RodBind, IndelRealigner}
-import org.broadinstitute.sting.commandline.ArgumentSource
-import org.broadinstitute.sting.queue.extensions.gatk.BamGatherFunction
 
 /**
  * Created by IntelliJ IDEA.
@@ -68,13 +66,6 @@ class justClean extends QScript {
     clean.jarFile = GATKjar
     clean.memoryLimit = Some(6)
     clean.scatterCount = 84
-
-    clean.setupGatherFunction = {
-      case (gather: BamGatherFunction, source: ArgumentSource) =>
-        gather.memoryLimit = Some(6) // Memory limit you expect for the job
-        gather.jarFile = new File("/seq/software/picard/current/bin/MergeSamFiles.jar")
-    }
-
 
     add(clean);
   }

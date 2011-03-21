@@ -1,7 +1,7 @@
 import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
+import org.broadinstitute.sting.queue.extensions.picard.PicardBamEmbeddedFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, CloneFunction, ScatterFunction}
@@ -15,9 +15,6 @@ class FullCallingPipeline extends QScript {
 
   @Argument(doc="the YAML file specifying inputs, interval lists, reference sequence, etc.", shortName="Y")
   var yamlFile: File = _
-
-  @Input(doc="path to Picard FixMateInformation.jar.  See http://picard.sourceforge.net/ .", shortName="P", required=false)
-  var picardFixMatesJar: File = new java.io.File("/seq/software/picard/current/bin/FixMateInformation.jar")
 
   @Input(doc="path to GATK jar", shortName="G")
   var gatkJar: File = _
@@ -38,6 +35,8 @@ class FullCallingPipeline extends QScript {
   var tearScript: File = _
 
   private var pipeline: Pipeline = _
+
+  private final val picardFixMatesClass = "net.sf.picard.sam.FixMateInformation"
 
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.intervals = List(qscript.pipeline.getProject.getIntervalList)
@@ -110,7 +109,7 @@ class FullCallingPipeline extends QScript {
               gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
               gather.jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
               gather.memoryLimit = Some(6)
-              gather.jarFile = qscript.picardFixMatesJar
+              gather.mainClass = picardFixMatesClass
               gather.assumeSorted = None
             case (gather: GatherFunction, source: ArgumentSource) =>
               gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
@@ -123,7 +122,7 @@ class FullCallingPipeline extends QScript {
           realigner.isIntermediate = true
 
           // Explicitly run fix mates if the function won't be scattered.
-          val fixMates = new PicardBamJarFunction {
+          val fixMates = new PicardBamEmbeddedFunction {
             @Input(doc="unfixed bam") var unfixed: File = _
             @Output(doc="fixed bam") var fixed: File = _
             def inputBams = List(unfixed)
@@ -132,7 +131,7 @@ class FullCallingPipeline extends QScript {
 
           fixMates.jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
           fixMates.memoryLimit = Some(6)
-          fixMates.jarFile = qscript.picardFixMatesJar
+          fixMates.mainClass = picardFixMatesClass
           fixMates.unfixed = realigner.out
           fixMates.fixed = cleaned_bam
           fixMates.analysisName = "FixMates_"+sampleId

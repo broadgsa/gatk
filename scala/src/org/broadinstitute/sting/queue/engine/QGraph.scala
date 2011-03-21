@@ -310,11 +310,10 @@ class QGraph extends Logging {
    * Dry-runs the jobs by traversing the graph.
    */
   private def dryRunJobs() {
-    if (settings.startFromScratch) {
+    if (settings.startFromScratch)
       logger.info("Will remove outputs from previous runs.")
-      foreachFunction(_.resetToPending(false))
-    } else
-      updateGraphStatus(false)
+
+    updateGraphStatus(false)
 
     var readyJobs = getReadyJobs()
     while (running && readyJobs.size > 0) {
@@ -361,11 +360,10 @@ class QGraph extends Logging {
         settings.jobRunner = "Shell"
       commandLineManager = commandLinePluginManager.createByName(settings.jobRunner)
 
-      if (settings.startFromScratch) {
+      if (settings.startFromScratch)
         logger.info("Removing outputs from previous runs.")
-        foreachFunction(_.resetToPending(true))
-      } else
-        updateGraphStatus(true)
+
+      updateGraphStatus(true)
 
       var readyJobs = TreeSet.empty[FunctionEdge](functionOrdering)
       readyJobs ++= getReadyJobs()
@@ -458,7 +456,10 @@ class QGraph extends Logging {
    * @param cleanOutputs If true will delete outputs when setting edges to pending.
    */
   private def updateGraphStatus(cleanOutputs: Boolean) {
-    traverseFunctions(edge => checkDone(edge, cleanOutputs))
+    if (settings.startFromScratch)
+      foreachFunction(edge => edge.resetToPending(cleanOutputs))
+    else
+      traverseFunctions(edge => checkDone(edge, cleanOutputs))
     traverseFunctions(edge => recheckDone(edge))
   }
 

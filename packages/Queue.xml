@@ -15,6 +15,9 @@
             <!-- Scala -->
             <package name="scala.**" />
 
+            <!-- Picard -->
+            <package name="net.sf.picard.**" />
+
             <!-- JNA, including embedded native libraries -->
             <dir name="com/sun/jna" />
         </dependencies>
