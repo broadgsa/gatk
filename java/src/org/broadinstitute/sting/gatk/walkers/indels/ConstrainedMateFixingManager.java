@@ -183,8 +183,9 @@ public class ConstrainedMateFixingManager {
                 writeRead(waitingReads.remove());
             }
 
-            lastLocFlushed = genomeLocParser.createGenomeLoc(waitingReads.peek());
-            writeRead(waitingReads.remove());
+            SAMRecord lastRead = waitingReads.remove();
+            lastLocFlushed = (lastRead.getReferenceIndex() == -1) ? null : genomeLocParser.createGenomeLoc(lastRead);
+            writeRead(lastRead);
 
             if ( !tooManyReads )
                 forMateMatching.clear();
