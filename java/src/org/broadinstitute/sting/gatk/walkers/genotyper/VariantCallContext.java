@@ -64,4 +64,26 @@ public class VariantCallContext extends VariantContext {
     public void setRefBase(byte ref) {
         this.refBase = ref;
     }
+
+    /* these methods are only implemented for GENOTYPE_GIVEN_ALLELES MODE */
+    //todo -- expand these methods to all modes
+
+    /**
+     *
+     * @param callConfidenceThreshold the Unified Argument Collection STANDARD_CONFIDENCE_FOR_CALLING
+     * @return true if call was confidently ref
+     */
+    public boolean isCalledRef(double callConfidenceThreshold) {
+        return (confidentlyCalled && (getPhredScaledQual() < callConfidenceThreshold));
+    }
+
+    /**
+     *
+     * @param callConfidenceThreshold the Unified Argument Collection STANDARD_CONFIDENCE_FOR_CALLING
+     * @return true if call was confidently alt
+     */
+    public boolean isCalledAlt(double callConfidenceThreshold) {
+        return (confidentlyCalled && (getPhredScaledQual() > callConfidenceThreshold));
+    }
+
 }

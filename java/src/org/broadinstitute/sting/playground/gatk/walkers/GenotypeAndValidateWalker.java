@@ -25,6 +25,8 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
@@ -66,10 +68,13 @@ import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
 @Reference(window=@Window(start=-200,stop=200))
 
 
-public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalker.CountedData, GenotypeAndValidateWalker.CountedData> {
+public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalker.CountedData, GenotypeAndValidateWalker.CountedData> implements TreeReducible<GenotypeAndValidateWalker.CountedData> {
 
-    @Output(doc="File to which validated variants should be written", required=true)
+    @Output(doc="File to which validated variants should be written", required=false)
     protected VCFWriter vcfWriter = null;
+
+    @Argument(fullName ="set_bam_truth", shortName ="bt", doc="Use the calls on the reads (bam file) as the truth dataset and validate the calls on the VCF", required=false)
+    private boolean bamIsTruth = false;
 
     @Argument(fullName="minimum_base_quality_score", shortName="mbq", doc="Minimum base quality score for calling a genotype", required=false)
     private int mbq = -1;
@@ -86,32 +91,35 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
     @Argument(fullName="condition_on_depth", shortName="depth", doc="Condition validation on a minimum depth of coverage by the reads", required=false)
     private int minDepth = -1;
 
+    @Argument(fullName ="sample", shortName ="sn", doc="Name of the sample to validate (in case your VCF/BAM has more than one sample)", required=false)
+    private String sample = "";
+
+
+
 
     private String compName = "alleles";
     private UnifiedGenotyperEngine snpEngine;
     private UnifiedGenotyperEngine indelEngine;
 
     public static class CountedData {
-        private long numTP = 0L;
-        private long numTN = 0L;
-        private long numFP = 0L;
-        private long numFN = 0L;
-        private long numUncovered = 0L;
-        private long numConfidentCalls = 0L;
-        private long numNotConfidentCalls = 0L;
+        private long nAltCalledAlt = 0L;
+        private long nAltCalledRef = 0L;
+        private long nRefCalledAlt = 0L;
+        private long nRefCalledRef = 0L;
+        private long nNotConfidentCalls = 0L;
+        private long nUncovered = 0L;
 
         /**
          * Adds the values of other to this, returning this
          * @param other the other object
          */
         public void add(CountedData other) {
-            numTP += other.numTP;
-            numTN += other.numTN;
-            numFP += other.numFP;
-            numFN += other.numFN;
-            numUncovered += other.numUncovered;
-            numNotConfidentCalls += other.numNotConfidentCalls;
-            numConfidentCalls    += other.numConfidentCalls;
+            nAltCalledAlt += other.nAltCalledAlt;
+            nAltCalledRef += other.nAltCalledRef;
+            nRefCalledAlt += other.nRefCalledAlt;
+            nRefCalledRef += other.nRefCalledRef;
+            nUncovered += other.nUncovered;
+            nNotConfidentCalls += other.nNotConfidentCalls;
         }
     }
 
@@ -133,28 +141,31 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
 
 
         // Initialize VCF header
-        Map<String, VCFHeader> header = VCFUtils.getVCFHeadersFromRodPrefix(getToolkit(), compName);
-        Set<String> samples = SampleUtils.getSampleList(header, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
-        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(header.values(), logger);
-        headerLines.add(new VCFHeaderLine("source", "GenotypeAndValidate"));
-        vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
-
+        if (vcfWriter != null) {
+            Map<String, VCFHeader> header = VCFUtils.getVCFHeadersFromRodPrefix(getToolkit(), compName);
+            Set<String> samples = SampleUtils.getSampleList(header, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
+            Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(header.values(), logger);
+            headerLines.add(new VCFHeaderLine("source", "GenotypeAndValidate"));
+            vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
+        }
 
         // Filling in SNP calling arguments for UG
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
         uac.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
-        uac.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
+        if (!bamIsTruth) uac.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         if (mbq >= 0) uac.MIN_BASE_QUALTY_SCORE = mbq;
         if (deletions >= 0) uac.MAX_DELETION_FRACTION = deletions;
-        if (callConf >= 0) uac.STANDARD_CONFIDENCE_FOR_CALLING = callConf;
         if (emitConf >= 0) uac.STANDARD_CONFIDENCE_FOR_EMITTING = emitConf;
-
+        if (callConf >= 0) uac.STANDARD_CONFIDENCE_FOR_CALLING = callConf;
 
         snpEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         // Adding the INDEL calling arguments for UG
         uac.GLmodel = GenotypeLikelihoodsCalculationModel.Model.DINDEL;
         indelEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
+
+        // make sure we have callConf set to the threshold set by the UAC so we can use it later.
+        callConf = uac.STANDARD_CONFIDENCE_FOR_CALLING;
     }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -181,47 +192,74 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
 
         // Do not operate on variants that are not covered to the optional minimum depth
         if (!context.hasReads() || (minDepth > 0 && context.getBasePileup().getBases().length < minDepth)) {
-            counter.numUncovered = 1L;
+            counter.nUncovered = 1L;
             return counter;
         }
-
-        if (!vcComp.hasAttribute("GV"))
-            throw new UserException.BadInput("Variant has no GV annotation in the INFO field. " + vcComp.getChr() + ":" + vcComp.getStart());
 
         VariantCallContext call;
         if ( vcComp.isSNP() )
             call = snpEngine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
         else if ( vcComp.isIndel() ) {
             call = indelEngine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
-//            if (call.vc == null) // variant context will be null on an extended indel event and I just want to call it one event.
-//                return counter;
         }
         else {
             logger.info("Not SNP or INDEL " + vcComp.getChr() + ":" + vcComp.getStart() + " " + vcComp.getAlleles());
             return counter;
         }
 
-        if (!call.confidentlyCalled) {
-            counter.numNotConfidentCalls = 1L;
-            if (vcComp.getAttribute("GV").equals("T"))
-                counter.numFN = 1L;
-            else
-                counter.numTN = 1L;
+        if (bamIsTruth) {
+            if (call.confidentlyCalled) {
+                // If truth is a confident REF call
+                if (call.isVariant()) {
+                    if (vcComp.isVariant())
+                        counter.nAltCalledAlt = 1L;  // todo -- may wanna check if the alts called are the same?
+                    else
+                        counter.nAltCalledRef = 1L;
+                }
+                // If truth is a confident ALT call
+                else {
+                    if (vcComp.isVariant())
+                        counter.nRefCalledAlt = 1L;
+                    else
+                        counter.nRefCalledRef = 1L;
+                }
+            }
+            else {
+                counter.nNotConfidentCalls = 1L;
+            }
         }
         else {
-            counter.numConfidentCalls = 1L;
-            if (vcComp.getAttribute("GV").equals("T"))
-                counter.numTP = 1L;
+            if (!vcComp.hasAttribute("GV"))
+                throw new UserException.BadInput("Variant has no GV annotation in the INFO field. " + vcComp.getChr() + ":" + vcComp.getStart());
+
+
+
+            if (call.isCalledAlt(callConf)) {
+                if (vcComp.getAttribute("GV").equals("T"))
+                    counter.nAltCalledAlt = 1L;
+                else
+                    counter.nRefCalledAlt = 1L;
+            }
+            else if (call.isCalledRef(callConf)) {
+                if (vcComp.getAttribute("GV").equals("T"))
+                    counter.nAltCalledRef = 1L;
+                else
+                    counter.nRefCalledRef = 1L;
+            }
+            else {
+                counter.nNotConfidentCalls = 1L;
+            }
+        }
+
+        if (vcfWriter != null) {
+            if (!vcComp.hasAttribute("callStatus")) {
+                MutableVariantContext mvc = new MutableVariantContext(vcComp);
+                mvc.putAttribute("callStatus", call.isCalledAlt(callConf) ? "ALT" : "REF" );
+                vcfWriter.add(mvc, ref.getBase());
+            }
             else
-                counter.numFP = 1L;
+                vcfWriter.add(vcComp, ref.getBase());
         }
-        if (!vcComp.hasAttribute("callStatus")) {
-            MutableVariantContext mvc = new MutableVariantContext(vcComp);
-            mvc.putAttribute("callStatus", call.confidentlyCalled ? "confident" : "notConfident" );
-            vcfWriter.add(mvc, ref.getBase());
-        }
-        else
-            vcfWriter.add(vcComp, ref.getBase());
         return counter;
     }
 
@@ -235,17 +273,22 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         return new CountedData();
     }
 
+    public CountedData treeReduce( final CountedData sum1, final CountedData sum2) {
+        sum2.add(sum1);
+        return sum2;
+    }
+
     public CountedData reduce( final CountedData mapValue, final CountedData reduceSum ) {
         reduceSum.add(mapValue);
         return reduceSum;
     }
 
     public void onTraversalDone( CountedData reduceSum ) {
-        double ppv = 100 * ((double) reduceSum.numTP /( reduceSum.numTP + reduceSum.numFP));
-        double npv = 100 * ((double) reduceSum.numTN /( reduceSum.numTN + reduceSum.numFN));
+        double ppv = 100 * ((double) reduceSum.nAltCalledAlt /( reduceSum.nAltCalledAlt + reduceSum.nRefCalledAlt));
+        double npv = 100 * ((double) reduceSum.nRefCalledRef /( reduceSum.nRefCalledRef + reduceSum.nAltCalledRef));
         logger.info(String.format("Resulting Truth Table Output\n\n" +
                                   "---------------------------------------------------\n" +
-                                  "\t\t|\tT\t|\tF\t\n"  +
+                                  "\t\t|\tALT\t|\tREF\t\n"  +
                                   "---------------------------------------------------\n" +
                                   "called alt\t|\t%d\t|\t%d\n" +
                                   "called ref\t|\t%d\t|\t%d\n" +
@@ -253,20 +296,8 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
                                   "positive predictive value: %f%%\n" +
                                   "negative predictive value: %f%%\n" +
                                   "---------------------------------------------------\n" +
-                                  "uncovered: %d\n" +
-                                  "---------------------------------------------------\n", reduceSum.numTP, reduceSum.numFP, reduceSum.numFN, reduceSum.numTN, ppv, npv, reduceSum.numUncovered));
-
-        /*
-
-        logger.info("called / true      = " + reduceSum.numTP);
-        logger.info("not called / false = " + reduceSum.numTN);
-        logger.info("called /false      = " + reduceSum.numFP);
-        logger.info("not called / true = " + reduceSum.numFN);
-        logger.info("PPV = " + 100 * ((double) reduceSum.numTP /( reduceSum.numTP + reduceSum.numFP)) + "%");
-        logger.info("NPV = " + 100 * ((double) reduceSum.numTN /( reduceSum.numTN + reduceSum.numFN)) + "%");
-        logger.info("confidently called = " + reduceSum.numConfidentCalls);
-        logger.info("not confidently called = " + reduceSum.numNotConfidentCalls );
-        logger.info("Uncovered = " + reduceSum.numUncovered);
-        */
+                                  "not confident: %d\n" +
+                                  "not covered: %d\n" +
+                                  "---------------------------------------------------\n", reduceSum.nAltCalledAlt, reduceSum.nRefCalledAlt, reduceSum.nAltCalledRef, reduceSum.nRefCalledRef, ppv, npv, reduceSum.nNotConfidentCalls, reduceSum.nUncovered));
     }
 }
