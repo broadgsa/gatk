@@ -120,8 +120,8 @@ public class SnpCallRateByCoverageWalker extends LocusWalker<List<String>, Strin
 
                         VariantCallContext calls = UG.calculateLikelihoodsAndGenotypes(tracker, ref, subContext);
 
-                        if (calls != null && calls.vc != null && calls.vc.getNSamples() > 0 && calls.confidentlyCalled) {
-                            Genotype evCall = calls.vc.getGenotype(0);
+                        if (calls != null && calls.getNSamples() > 0 && calls.confidentlyCalled) {
+                            Genotype evCall = calls.getGenotype(0);
                             vcCall = vc.getGenotype(evCall.getSampleName());
 
                             if ((evCall.isHet() || evCall.isHomVar()) && (vcCall.isHet() || vcCall.isHomVar())) {

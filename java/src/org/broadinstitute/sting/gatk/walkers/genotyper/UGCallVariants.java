@@ -110,13 +110,13 @@ public class UGCallVariants extends RodWalker<VariantCallContext, Integer> {
     public Integer reduceInit() { return 0; }
 
     public Integer reduce(VariantCallContext value, Integer sum) {
-        if ( value == null || value.vc == null )
+        if ( value == null )
             return sum;
 
         try {
-            Map<String, Object> attrs = new HashMap<String, Object>(value.vc.getAttributes());
-            VariantContextUtils.calculateChromosomeCounts(value.vc, attrs, true);
-            writer.add(VariantContext.modifyAttributes(value.vc, attrs), value.refBase);
+            Map<String, Object> attrs = new HashMap<String, Object>(value.getAttributes());
+            VariantContextUtils.calculateChromosomeCounts(value, attrs, true);
+            writer.add(VariantContext.modifyAttributes(value, attrs), value.refBase);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

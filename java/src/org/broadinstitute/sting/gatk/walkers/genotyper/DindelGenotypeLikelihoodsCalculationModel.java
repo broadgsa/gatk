@@ -33,8 +33,6 @@ import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.Haplotype;

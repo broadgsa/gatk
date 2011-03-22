@@ -178,7 +178,7 @@ public class ValidationGenotyper extends LocusWalker<ValidationGenotyper.Counted
         }
         else if( evalStatus == VARIANT_STATUS.CALLED && compStatus == VARIANT_STATUS.MISSING ) {
             VariantCallContext call = engine.calculateLikelihoodsAndGenotypes(tracker, ref, context);
-            if( call != null && call.confidentlyCalled && call.vc != null && call.vc.getType() == VariantContext.Type.NO_VARIATION ) {
+            if( call != null && call.confidentlyCalled && call.getType() == VariantContext.Type.NO_VARIATION ) {
                 counter.numFP = 1L;
                 if( printStream!= null ) {
                     printStream.println(vcEval.getChr() + ":" + vcEval.getStart() ); // Used to create interval lists of FP variants

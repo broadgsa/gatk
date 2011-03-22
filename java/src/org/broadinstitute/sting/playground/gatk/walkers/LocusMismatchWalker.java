@@ -199,10 +199,10 @@ public class LocusMismatchWalker extends LocusWalker<String,Integer> implements 
 
     private Genotype getGenotype( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
         VariantCallContext calls = ug.calculateLikelihoodsAndGenotypes(tracker,ref,context);
-        if ( calls == null || calls.vc == null || calls.vc.getNSamples() == 0 || !calls.vc.isSNP() )
+        if ( calls == null || calls.getNSamples() == 0 || !calls.isSNP() )
             return null;
         else {
-            return calls.vc.getGenotype(0);
+            return calls.getGenotype(0);
         }
     }
 

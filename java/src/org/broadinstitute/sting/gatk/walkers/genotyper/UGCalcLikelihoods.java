@@ -111,11 +111,11 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
     }
 
     public Integer reduce(VariantCallContext value, Integer sum) {
-        if ( value == null || value.vc == null )
+        if ( value == null )
             return sum;
 
         try {
-            writer.add(value.vc, value.refBase);
+            writer.add(value, value.refBase);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }
