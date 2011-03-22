@@ -349,7 +349,7 @@ public abstract class CommandLineProgram {
         errorPrintf("------------------------------------------------------------------------------------------%n");
         errorPrintf("A GATK RUNTIME ERROR has occurred (version %s):%n", CommandLineGATK.getVersionNumber());
         errorPrintf("%n");
-        errorPrintf("Please visit to wiki to see if this is a known problem%n");
+        errorPrintf("Please visit the wiki to see if this is a known problem%n");
         errorPrintf("If not, please post the error, with stack trace, to the GATK forum%n");
         printDocumentationReference();
         if ( msg == null ) // some exceptions don't have detailed messages
