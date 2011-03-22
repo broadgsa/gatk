@@ -125,7 +125,7 @@ awk '
 
         # add hg19 specific files to awk associative arrays
         genotypeDbsnps["Homo_sapiens_assembly19.fasta"] = dbsnpDir "dbsnp_132_b37.vcf"
-        evalDbsnps["Homo_sapiens_assembly19.fasta"] = dbsnpDir "dbsnp_129_b37.rod"
+        evalDbsnps["Homo_sapiens_assembly19.fasta"] = dbsnpDir "dbsnp_129_b37.vcf"
         refseqs["Homo_sapiens_assembly19.fasta"] = refseqDir "refGene-big-table-hg19.txt"
 
         printf "{"
