@@ -160,7 +160,7 @@ public class ConstrainedMateFixingManager {
         try {
             writer.addAlignment(read);
         } catch (IllegalArgumentException e) {
-            throw new UserException("If the maximum allowable reads in memory is too small, it may cause reads to be written out of order when trying to write the BAM; please see the --maxReadsInMemory argument for details.  " + e.getMessage(), e);    
+            throw new UserException("If the maximum allowable reads in memory is too small, it may cause reads to be written out of order when trying to write the BAM; please see the --maxReadsInMemory argument for details.  " + e.getMessage(), e);
         }
     }
 
@@ -176,7 +176,7 @@ public class ConstrainedMateFixingManager {
         // if the new read is on a different contig or we have too many reads, then we need to flush the queue and clear the map
         boolean tooManyReads = getNReadsInQueue() >= MAX_RECORDS_IN_MEMORY;
         if ( tooManyReads || (getNReadsInQueue() > 0 && waitingReads.peek().getReferenceIndex() != newRead.getReferenceIndex()) ) {
-            if ( DEBUG ) logger.warn("Flushing queue on " + (tooManyReads ? "too many reads" : ("move to new contig: " + newRead.getReferenceName())) + " at " + newRead.getAlignmentStart());
+            if ( DEBUG ) logger.warn("Flushing queue on " + (tooManyReads ? "too many reads" : ("move to new contig: " + newRead.getReferenceName() + " from " + waitingReads.peek().getReferenceName())) + " at " + newRead.getAlignmentStart());
 
             while ( getNReadsInQueue() > 1 ) {
                 // emit to disk
