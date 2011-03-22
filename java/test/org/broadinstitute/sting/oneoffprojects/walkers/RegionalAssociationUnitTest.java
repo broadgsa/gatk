@@ -76,22 +76,22 @@ public class RegionalAssociationUnitTest extends BaseTest {
         UTest test1 = new UTest();
         test1.setCaseData((Collection) Arrays.asList(2,4,5,6,8));
         test1.setControlData((Collection) Arrays.asList(1,3,7,9,10,11,12,13));
-        Assert.assertEquals((long) AssociationTestRunner.mannWhitneyUTest(test1).first,10l);
+        Assert.assertEquals((double) AssociationTestRunner.mannWhitneyUTest(test1).first,-1.537,1e-4);
         Assert.assertEquals(AssociationTestRunner.mannWhitneyUTest(test1).second,0.092292,5e-2); // z-approximation, off by about 0.05
         Assert.assertEquals(AssociationTestRunner.mannWhitneyUTest(test1).second,0.044444,1e-3); // recursive calculation
         UTest test2 = new UTest();
         test2.setCaseData((Collection) Arrays.asList(1,7,8,9,10,11,15,18));
         test2.setControlData((Collection) Arrays.asList(2,3,4,5,6,12,13,14,16,17));
-        Assert.assertEquals((long) AssociationTestRunner.mannWhitneyUTest(test2).first,37l);
+        Assert.assertEquals((double) AssociationTestRunner.mannWhitneyUTest(test2).first,-0.3109831608,1e-10);
         UTest test3 = new UTest();
         test3.setCaseData((Collection)Arrays.asList(13,14,7,18,5,2,9,17,8,10,3,15,19,6,20,16,11,4,12,1));
         test3.setControlData((Collection) Arrays.asList(29,21,14,10,12,11,28,19,18,13,7,27,20,5,17,16,9,23,22,26));
-        Assert.assertEquals((long) AssociationTestRunner.mannWhitneyUTest(test3).first,93l);
+        Assert.assertEquals((double) AssociationTestRunner.mannWhitneyUTest(test3).first,-2.907884571802469,1e-14);
         Assert.assertEquals(AssociationTestRunner.mannWhitneyUTest(test3).second,2*0.00302,1e-3);
         UTest test4 = new UTest();
         test4.setCaseData((Collection) Arrays.asList(1,2,4,5,6,9));
         test4.setControlData((Collection) Arrays.asList(3,8,11,12,13));
-        Assert.assertEquals((long) AssociationTestRunner.mannWhitneyUTest(test4).first,5l);
+        Assert.assertEquals((double) AssociationTestRunner.mannWhitneyUTest(test4).first,-1.9170289512680814,1e-14);
         Assert.assertEquals(AssociationTestRunner.mannWhitneyUTest(test4).second,0.0303,1e-4);
 
     }

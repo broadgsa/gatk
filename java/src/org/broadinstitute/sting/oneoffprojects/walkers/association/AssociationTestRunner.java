@@ -134,14 +134,16 @@ public class AssociationTestRunner {
     }
 
     public static String runU(UStatistic context) {
-        Pair<Long,Double> results = mannWhitneyUTest(context);
-        return String.format("U: %d\tP: %.2e\tQ: %d",results.first,results.second,(int)Math.floor(QualityUtils.phredScaleErrorRate(results.second)));
+        // note: u statistic (U) is relatively useless for recalibrating outside of the context of m and n
+        // thus we report V = (U - (m*n+1)/2)/(n*m*(n+m+1)/12)
+        Pair<Double,Double> results = mannWhitneyUTest(context);
+        return String.format("V: %.2f\tP: %.2e\tQ: %d",results.first,results.second,(int)Math.floor(QualityUtils.phredScaleErrorRate(results.second)));
     }
 
-    public static Pair<Long,Double> mannWhitneyUTest(UStatistic context) {
+    public static Pair<Double,Double> mannWhitneyUTest(UStatistic context) {
         Map<CaseControl.Cohort,Collection<Number>> caseControlVectors = context.getCaseControl();
         if ( caseControlVectors == null || caseControlVectors.get(CaseControl.Cohort.CASE) == null || caseControlVectors.get(CaseControl.Cohort.CONTROL) == null ) {
-            return new Pair<Long,Double>(-1l,Double.NaN);
+            return new Pair<Double,Double>(Double.NaN,Double.NaN);
         }
         MannWhitneyU mwu = new MannWhitneyU();
         for ( Number n : caseControlVectors.get(CaseControl.Cohort.CASE) ) {

@@ -45,13 +45,13 @@ public class MannWhitneyU {
      * returns the u and p values.
      * @Returns a pair holding the u and p-value.
      */
-    public Pair<Long,Double> runTwoSidedTest() {
+    public Pair<Double,Double> runTwoSidedTest() {
         Pair<Long,USet> uPair = calculateTwoSidedU(observations);
         long u = uPair.first;
         int n = uPair.second == USet.SET1 ? sizeSet1 : sizeSet2;
         int m = uPair.second == USet.SET1 ? sizeSet2 : sizeSet1;
         double pval = calculateP(n,m,u,true);
-        return new Pair<Long,Double>(u,pval);
+        return new Pair<Double,Double>(getZApprox(n,m,u),pval);
     }
 
     /**
@@ -65,7 +65,9 @@ public class MannWhitneyU {
      */
     public static double calculateP(int n, int m, long u, boolean twoSided) {
         double pval;
-        if ( n > 8 && m > 8 ) {
+        if ( m == 0 || n == 0 ) {
+            pval = 1.0;
+        } else if ( n > 8 && m > 8 ) {
             // large m and n - normal approx
             pval = calculatePNormalApproximation(n,m,u);
         } else if ( n > 4 && m > 7 ) {
@@ -96,10 +98,22 @@ public class MannWhitneyU {
      * @return p-value associated with the normal approximation
      */
     public static double calculatePNormalApproximation(int n,int m,long u) {
+        double z = getZApprox(n,m,u);
+        return z < 0 ? STANDARD_NORMAL.cdf(z) : 1.0-STANDARD_NORMAL.cdf(z);
+    }
+
+    /**
+     * Calculates the Z-score approximation of the u-statistic
+     * @param n - The number of entries in the DOMINATED set
+     * @param m - The number of entries in the DOMINANT set
+     * @param u - the Mann-Whitney U value
+     * @return z-score associated with the normal approximation
+     */
+    private static double getZApprox(int n, int m, long u) {
         double mean = ( ((long)m)*n+1.0)/2;
         double var = (((long) n)*m*(n+m+1.0))/12;
         double z = ( u - mean )/Math.sqrt(var);
-        return z < 0 ? STANDARD_NORMAL.cdf(z) : 1.0-STANDARD_NORMAL.cdf(z);
+        return z;
     }
 
     /**
