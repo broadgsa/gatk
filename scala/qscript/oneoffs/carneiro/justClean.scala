@@ -64,7 +64,7 @@ class justClean extends QScript {
     clean.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update clean with the last consensus between Tim, Matt and Eric. This is ugly!
     clean.jobName = queueLogDir + outBam + ".clean"
     clean.jarFile = GATKjar
-    clean.memoryLimit = Some(6)
+    clean.memoryLimit = Some(12)
     clean.scatterCount = 84
 
     add(clean);
