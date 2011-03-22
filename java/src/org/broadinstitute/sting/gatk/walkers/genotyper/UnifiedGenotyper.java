@@ -202,14 +202,14 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         // the base was confidently callable
         sum.nBasesCalledConfidently += value.confidentlyCalled ? 1 : 0;
 
-        // can't make a confident variant call here
-        if ( value.vc == null )
+        // can't make a call here
+        if ( !value.shouldEmit )
             return sum;
 
         try {
             // we are actually making a call
             sum.nCallsMade++;
-            writer.add(value.vc, value.refBase);
+            writer.add(value, value.refBase);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(e.getMessage() + "; this is often caused by using the --assume_single_sample_reads argument with the wrong sample name");
         }

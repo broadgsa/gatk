@@ -35,26 +35,29 @@ import org.broad.tribble.util.variantcontext.VariantContext;
  *
  * Useful helper class to communicate the results of calculateGenotype to framework
  */
-public class VariantCallContext {
-    public VariantContext vc = null;
+public class VariantCallContext extends VariantContext {
     public byte refBase;
 
     // Was the site called confidently, either reference or variant?
     public boolean confidentlyCalled = false;
 
+    // Should this site be emitted?
+    public boolean shouldEmit = true;
+
     VariantCallContext(VariantContext vc, boolean confidentlyCalledP) {
-        this.vc = vc;
+        super(vc);
         this.confidentlyCalled = confidentlyCalledP;
+    }
+
+    VariantCallContext(VariantContext vc, boolean confidentlyCalledP, boolean shouldEmit) {
+        super(vc);
+        this.confidentlyCalled = confidentlyCalledP;
+        this.shouldEmit = shouldEmit;
     }
 
     VariantCallContext(VariantContext vc, byte ref, boolean confidentlyCalledP) {
-        this.vc = vc;
+        super(vc);
         this.refBase = ref;
-        this.confidentlyCalled = confidentlyCalledP;
-    }
-
-    // blank variant context => we're a ref site
-    VariantCallContext(boolean confidentlyCalledP) {
         this.confidentlyCalled = confidentlyCalledP;
     }
 

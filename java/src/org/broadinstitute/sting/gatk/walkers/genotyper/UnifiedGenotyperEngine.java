@@ -297,7 +297,7 @@ public class UnifiedGenotyperEngine {
         // estimate our confidence in a reference call and return
         if ( vc.getNSamples() == 0 )
             return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ?
-                    estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), false, 1.0) :
+                    estimateReferenceConfidence(vc, stratifiedContexts, genotypePriors.getHeterozygosity(), false, 1.0) :
                     new VariantCallContext(generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext), refContext.getBase(), false));
 
         // 'zero' out the AFs (so that we don't have to worry if not all samples have reads at this position)
@@ -336,7 +336,7 @@ public class UnifiedGenotyperEngine {
         if ( UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES && !passesEmitThreshold(phredScaledConfidence, bestAFguess) ) {
             // technically, at this point our confidence in a reference call isn't accurately estimated
             //  because it didn't take into account samples with no data, so let's get a better estimate
-            return estimateReferenceConfidence(stratifiedContexts, genotypePriors.getHeterozygosity(), true, 1.0 - PofF);
+            return estimateReferenceConfidence(vc, stratifiedContexts, genotypePriors.getHeterozygosity(), true, 1.0 - PofF);
         }
 
         // create the genotypes
@@ -423,7 +423,7 @@ public class UnifiedGenotyperEngine {
             vcCall = variantContexts.iterator().next(); // we know the collection will always have exactly 1 element.
         }
 
-        VariantCallContext call = new VariantCallContext(vcCall, passesCallThreshold(phredScaledConfidence));
+        VariantCallContext call = new VariantCallContext(vcCall, confidentlyCalled(phredScaledConfidence, PofF));
         call.setRefBase(refContext.getBase());
         return call;
     }
@@ -491,7 +491,7 @@ public class UnifiedGenotyperEngine {
             AFs[i] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
     }
 
-    private VariantCallContext estimateReferenceConfidence(Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples, double initialPofRef) {
+    private VariantCallContext estimateReferenceConfidence(VariantContext vc, Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples, double initialPofRef) {
         if ( contexts == null )
             return null;
 
@@ -518,7 +518,7 @@ public class UnifiedGenotyperEngine {
             P_of_ref *= 1.0 - (theta / 2.0) * MathUtils.binomialProbability(0, depth, 0.5);
         }
 
-        return new VariantCallContext(QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING);
+        return new VariantCallContext(vc, QualityUtils.phredScaleErrorRate(1.0 - P_of_ref) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING, false);
     }
 
     protected void printVerboseData(String pos, VariantContext vc, double PofF, double phredScaledConfidence, double[] normalizedPosteriors) {
@@ -649,6 +649,11 @@ public class UnifiedGenotyperEngine {
 
     protected boolean passesCallThreshold(double conf) {
         return conf >= UAC.STANDARD_CONFIDENCE_FOR_CALLING;
+    }
+
+    protected boolean confidentlyCalled(double conf, double PofF) {
+        return conf >= UAC.STANDARD_CONFIDENCE_FOR_CALLING ||
+                (UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES && QualityUtils.phredScaleErrorRate(PofF) >= UAC.STANDARD_CONFIDENCE_FOR_CALLING);
     }
 
     protected void computeAlleleFrequencyPriors(int N) {
