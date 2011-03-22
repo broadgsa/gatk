@@ -13,52 +13,52 @@ import org.broadinstitute.sting.commandline.ArgumentSource
 class dataProcessingV2 extends QScript {
   qscript =>
 
-  @Input(doc="path to GenomeAnalysisTK.jar", shortName="gatk", required=true)
+  @Input(doc="path to GenomeAnalysisTK.jar", fullName="path_to_gatk_jar", shortName="gatk", required=true)
   var GATKjar: File = _
 
-  @Input(doc="path to AnalyzeCovariates.jar", shortName="ac", required=true)
+  @Input(doc="path to AnalyzeCovariates.jar", fullName="path_to_ac_jar", shortName="ac", required=true)
   var ACJar: File = _
 
-  @Input(doc="path to Picard's MarkDuplicates.jar", shortName="dedup", required=true)
+  @Input(doc="path to Picard's MarkDuplicates.jar", fullName="path_to_dedup_jar", shortName="dedup", required=true)
   var dedupJar: File = _
 
-  @Input(doc="path to Picard's MergeSamFiles.jar", shortName="merge", required=true)
+  @Input(doc="path to Picard's MergeSamFiles.jar", fullName="path_to_merge_jar", shortName="merge", required=true)
   var mergeBamJar: File = _
 
-  @Input(doc="path to R resources folder inside the Sting repository", shortName="r", required=true)
+  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=true)
   var R: String = _
 
-  @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", shortName="bwa", required=false)
+  @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
 
-  @Input(doc="input BAM file - or list of BAM files", shortName="i", required=true)
+  @Input(doc="input BAM file - or list of BAM files", fullName="input", shortName="i", required=true)
   var input: File = _
 
-  @Input(doc="Reference fasta file", shortName="R", required=false)
+  @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=false)
   var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
-  @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)
+  @Input(doc="dbsnp ROD to use (VCF)", fullName="dbsnp", shortName="D", required=false)
   var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
-  @Input(doc="extra VCF files to use as reference indels for Indel Realignment", shortName="indels", required=false)
+  @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
   var indels: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf")
 
-  @Input(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", shortName="p", required=false)
-  var projectName: String = "combined"
+  @Input(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", fullName="project", shortName="p", required=false)
+  var projectName: String = "project"
 
-  @Input(doc="Perform cleaning on knowns only", shortName="knowns", required=false)
+  @Input(doc="Perform cleaning on knowns only", fullname="knowns_only", shortName="knowns", required=false)
   var knownsOnly: Boolean = false
 
-  @Input(doc="Perform cleaning on using Smith Waterman", shortName="sw", required=false)
+  @Input(doc="Perform cleaning using Smith Waterman", fullName="use_smith_waterman", shortName="sw", required=false)
   var useSW: Boolean = false
 
-  @Input(doc="output path", shortName="outputDir", required=false)
+  @Input(doc="Output path for the processed BAM files.", fullName="output_directory", shortName="outputDir", required=false)
   var outputDir: String = ""
 
-  @Input(doc="the -L interval string to be used by GATK - output bams at interval only", shortName="L", required=false)
+  @Input(doc="the -L interval string to be used by GATK - output bams at interval only", fullName="gatk_interval_string", shortName="L", required=false)
   var intervalString: String = ""
 
-  @Input(doc="output bams at intervals only", shortName="intervals", required=false)
+  @Input(doc="an intervals file to be used by GATK - output bams at intervals only", fullName="gatk_interval_file", shortName="intervals", required=false)
   var intervals: File = _
 
   // Gracefully hide Queue's output

@@ -70,7 +70,7 @@ import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
 
 public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalker.CountedData, GenotypeAndValidateWalker.CountedData> implements TreeReducible<GenotypeAndValidateWalker.CountedData> {
 
-    @Output(doc="File to which validated variants should be written", required=false)
+    @Output(doc="Generate a VCF file with the variants considered by the walker, with a new annotation \"callStatus\" which will carry the value called in the validation VCF or BAM file", required=false)
     protected VCFWriter vcfWriter = null;
 
     @Argument(fullName ="set_bam_truth", shortName ="bt", doc="Use the calls on the reads (bam file) as the truth dataset and validate the calls on the VCF", required=false)
