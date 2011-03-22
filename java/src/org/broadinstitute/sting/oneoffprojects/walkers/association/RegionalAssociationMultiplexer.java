@@ -16,12 +16,12 @@ import java.util.*;
 public class RegionalAssociationMultiplexer implements Multiplexer<Class<? extends AssociationContext>> {
 
     Set<Class<? extends AssociationContext>> contexts = null;
-    boolean wigOut = false;
+    boolean bedGraphOut = false;
 
     public RegionalAssociationMultiplexer(String[] toUse, boolean wiggleOutput) {
         super();
         contexts = getAssociations(toUse);
-        wigOut = wiggleOutput;
+        bedGraphOut = wiggleOutput;
     }
 
     public Collection<Class<? extends AssociationContext>> multiplex() {
@@ -29,8 +29,8 @@ public class RegionalAssociationMultiplexer implements Multiplexer<Class<? exten
     }
 
     public String transformArgument(final Class<? extends AssociationContext> context, String arg) {
-        if ( wigOut ) {
-            return String.format("%s.%s.wig",arg,context.getSimpleName());
+        if ( bedGraphOut ) {
+            return String.format("%s.%s.bedgraph",arg,context.getSimpleName());
         }
         return String.format("%s.%s.tdf", arg, context.getSimpleName());
     }

@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.association;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.collections.Pair;
 
 import java.util.*;
 
@@ -40,41 +41,23 @@ public class RegionalAssociationHandler {
 
     /**
      * Switches what formatting to use based on wiggle or standard
-     * @param wiggleFormat - use wiggle format (just Q) or standard (S: P: Q:)
+     * @param bedGraphFormat - use bedgraph format (s p q) or standard (S: s P: p Q: q)
      * @return - test results in proper format
      */
-    public Map<AssociationContext,String> runTests(boolean wiggleFormat) {
-        if ( wiggleFormat ) {
-            return runWiggleTests();
-        } else {
-            return runTests();
-        }
-    }
-
-    public Map<AssociationContext,String> runWiggleTests() {
+    public Map<AssociationContext,String> runTests(boolean bedGraphFormat) {
         // todo -- maybe the tdf should be the whole window rather than just the most recent loc?
         Map<AssociationContext,String> testResults = new HashMap<AssociationContext,String>(associations.size());
         for ( AssociationContext w : associations ) {
             if ( w.isFull() ) {
-                testResults.put(w,String.format("%d",AssociationTestRunner.getQValue(w)));
-                w.slide();
-            }
-        }
-        return testResults;
-    }
-
-    /**
-     * For those AssociationContexts with full windows:
-     *  1) Run their associated test(s)
-     *  2) Slide the windows
-     */
-    public Map<AssociationContext,String> runTests() {
-        // todo -- maybe the tdf should be the whole window rather than just the most recent loc?
-        Map<AssociationContext,String> testResults = new HashMap<AssociationContext,String>(associations.size());
-        for ( AssociationContext w : associations ) {
-            if ( w.isFull() ) {
+                String outVal;
+                if ( bedGraphFormat ) {
+                    Pair<Double,Pair<Double,Integer>> vals = AssociationTestRunner.getTestValues(w);
+                    outVal = String.format("%.2f\t%.2e\t%d",vals.first,vals.second.first,vals.second.second);
+                } else {
+                    outVal = AssociationTestRunner.runTests(w);
+                }
                 testResults.put(w,String.format("%s\t%d\t%d\t%s",maps.getReferenceContext().getLocus().getContig(),
-                        maps.getReferenceContext().getLocus().getStart(),maps.getReferenceContext().getLocus().getStart()+1,AssociationTestRunner.runTests(w)));
+                        maps.getReferenceContext().getLocus().getStart()-w.getWindowSize()-1,maps.getReferenceContext().getLocus().getStart()+1, outVal));
                 w.slide();
             }
         }

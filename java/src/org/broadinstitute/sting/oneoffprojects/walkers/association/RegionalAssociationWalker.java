@@ -31,22 +31,19 @@ import java.util.*;
 public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAssociationHandler> implements TreeReducible<RegionalAssociationHandler> {
     @Argument(doc="Association type(s) to use. Supports multiple arguments (-AT thing1 -AT thing2).",shortName="AT",fullName="associationType",required=false)
     public String[] associationsToUse = null;
-    @Argument(doc="Change output file to wiggle format (will only see phred-scaled Q values, not STAT: x P: y Q: z",shortName="w",fullName="wiggle",required=false)
-    public boolean wiggleFormat = false;
+    @Argument(doc="Change output file to bedgraph format (s p q, not STAT: s P: p Q: q",shortName="bg",fullName="bedgraph",required=false)
+    public boolean bedGraph = false;
 
     @Output
-    @Multiplex(value=RegionalAssociationMultiplexer.class,arguments={"associationsToUse","wiggleFormat"})
+    @Multiplex(value=RegionalAssociationMultiplexer.class,arguments={"associationsToUse","bedGraph"})
     Map<AssociationContext,PrintStream> out;
 
     public void initialize() {
-        if ( wiggleFormat && getToolkit().getIntervals().size() > 1 ) {
-            throw new UserException("Wiggle format (fixedStep) is only consistent with a contiguous region (one interval) on one contig. Otherwise use the default output.");
-        }
 
         Set<AssociationContext> validAssociations = getAssociations();
 
-        if ( wiggleFormat ) {
-            writeWiggleHeaders(validAssociations);
+        if ( bedGraph ) {
+            writeBedGraphHeaders(validAssociations);
         }
     }
 
@@ -68,7 +65,7 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
         } catch (Exception e) {
             throw new StingException("Error in map reduce",e);
         }
-        Map<AssociationContext,String> testsHere = rac.runTests(wiggleFormat);
+        Map<AssociationContext,String> testsHere = rac.runTests(bedGraph);
         // todo -- really awful shitty formatting
         if ( testsHere.size() > 0 ) {
             for ( Map.Entry<AssociationContext,String> result : testsHere.entrySet() ) {
@@ -132,10 +129,10 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
         return getToolkit().getSAMFileSamples();
     }
 
-    public void writeWiggleHeaders(Set<AssociationContext> cons) {
+    public void writeBedGraphHeaders(Set<AssociationContext> cons) {
         for ( AssociationContext con : cons ) {
             GenomeLoc first = getToolkit().getIntervals().iterator().next();
-            String header = String.format("fixedStep chrom=%s start=%d step=%d span=%d",first.getContig(),first.getStart(),con.slideByValue(),con.getWindowSize());
+            String header = String.format("track type=bedGraph name=%s",con.getClass().getSimpleName());
             out.get(con.getClass()).printf("%s%n",header);
         }
     }

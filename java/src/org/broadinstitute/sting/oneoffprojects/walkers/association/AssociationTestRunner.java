@@ -22,12 +22,31 @@ import org.broadinstitute.sting.utils.collections.Pair;
  * To change this template use File | Settings | File Templates.
  */
 public class AssociationTestRunner {
-    final static int MAX_Q_VALUE = 2000;
+    final static int MAX_Q_VALUE = Integer.MAX_VALUE;
     // todo -- this was written when ACs could implement interfaces, now that they extend, there's no multiple inheritance
     static Normal standardNormal = new Normal(0.0,1.0,null);
 
     private static int pToQ(double p) {
         return Math.min((int) Math.floor(QualityUtils.phredScaleErrorRate(p)),MAX_Q_VALUE);
+    }
+
+    public static Pair<Double,Pair<Double,Integer>> getTestValues(AssociationContext context) {
+        if ( context instanceof TStatistic) {
+            Pair<Double,Double> t = testStudentT((TStatistic) context);
+            return new Pair<Double,Pair<Double,Integer>> (t.first,new Pair<Double,Integer>(t.second,pToQ(t.second)));
+        }
+
+        if ( context instanceof ZStatistic) {
+            Pair<Double,Double> z = testZ((ZStatistic) context);
+            return new Pair<Double,Pair<Double,Integer>> (z.first,new Pair<Double,Integer>(z.second,pToQ(z.second)));
+        }
+
+        if ( context instanceof UStatistic ) {
+            Pair<Double,Double> u = mannWhitneyUTest((UStatistic) context);
+            return new Pair<Double,Pair<Double,Integer>> ( u.first, new Pair<Double,Integer>(u.second,pToQ(u.second)));
+        }
+
+        return null;
     }
 
     public static String runTests(AssociationContext context) {
@@ -56,32 +75,12 @@ public class AssociationTestRunner {
         return buf.toString();
     }
 
-    /**
-     * Just gets the Q value associated with a particular association context.
-     * @param context
-     * @return
-     */
-    public static int getQValue(AssociationContext context) {
-        if ( context instanceof TStatistic ) {
-            return pToQ(testStudentT((TStatistic) context).second);
-        }
-
-        if ( context instanceof ZStatistic ) {
-            return pToQ(testZ((ZStatistic) context).second);
-        }
-
-        if ( context instanceof UStatistic ) {
-            return pToQ(mannWhitneyUTest((UStatistic) context).second);
-        }
-
-        return -1;
-    }
 
     public static String runStudentT(TStatistic context) {
         Pair<Double,Double> stats = testStudentT(context);
         double t = stats.first;
         double p = stats.second;
-        return String.format("T: %.2f\tP: %.2e\tQ: %d",t,p,(int)Math.floor(QualityUtils.phredScaleErrorRate(p)));
+        return String.format("T: %.2f\tP: %.2e\tQ: %d",t,p,pToQ(p));
     }
 
     public static Pair<Double,Double> testStudentT(TStatistic context) {
@@ -110,7 +109,7 @@ public class AssociationTestRunner {
         Pair<Double,Double> stats = testZ(context);
         double z = stats.first;
         double p = stats.second;
-        return String.format("Z: %.2f\tP: %.2e\tQ: %d",z,p,(int)Math.floor(QualityUtils.phredScaleErrorRate(p)));
+        return String.format("Z: %.2f\tP: %.2e\tQ: %d",z,p,pToQ(p));
     }
 
     public static Pair<Double,Double> testZ(ZStatistic context) {
@@ -137,7 +136,7 @@ public class AssociationTestRunner {
         // note: u statistic (U) is relatively useless for recalibrating outside of the context of m and n
         // thus we report V = (U - (m*n+1)/2)/(n*m*(n+m+1)/12)
         Pair<Double,Double> results = mannWhitneyUTest(context);
-        return String.format("V: %.2f\tP: %.2e\tQ: %d",results.first,results.second,(int)Math.floor(QualityUtils.phredScaleErrorRate(results.second)));
+        return String.format("V: %.2f\tP: %.2e\tQ: %d",results.first,results.second,pToQ(results.second));
     }
 
     public static Pair<Double,Double> mannWhitneyUTest(UStatistic context) {
