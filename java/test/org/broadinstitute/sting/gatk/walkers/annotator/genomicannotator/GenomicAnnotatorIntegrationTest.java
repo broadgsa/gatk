@@ -29,7 +29,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
         */
 
 
-        String[] md5WithDashSArg = {"02446497a685fac98a8abc45f596af04"};
+        String[] md5WithDashSArg = {"3d3b61a83c1189108eabb2df04218099"};
         WalkerTestSpec specWithSArg = new WalkerTestSpec(
                 "-T GenomicAnnotator -R " + b36KGReference +
                 " -B:variant,vcf /humgen/gsa-hpprojects/GATK/data/Annotations/examples/CEU_hapmap_nogt_23_subset.vcf" +
@@ -58,7 +58,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("cdf1037b5d17635398268f473160730c")
+                Arrays.asList("dbc179b47bf846d17ce8baf51f3864d2")
         );
         executeTest("testGenomicAnnotatorOnIndels", testOnIndels);
     }
@@ -76,7 +76,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("e9e93fb1d2700e000bd0e9493524dc4c")
+                Arrays.asList("a4cf76f08fa90284b6988a464b6e0c17")
         );
         executeTest("testGenomicAnnotatorOnSNPsAndIndels", testOnSNPsAndIndels);
     }
