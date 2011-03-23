@@ -30,8 +30,13 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -43,16 +48,20 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
 
     private final SAMDataSource dataSource;
 
+    private final Map<SAMReaderID,GATKBAMIndex> indices = new HashMap<SAMReaderID,GATKBAMIndex>();
+
+    private FilePointer nextFilePointer = null;
+
     private final GenomeLocSortedSet loci;
 
     private final PeekableIterator<GenomeLoc> locusIterator;
 
-    private GenomeLoc currentLocus;
-
-    private FilePointer nextFilePointer = null;
+    private GenomeLoc currentLocus;    
 
     public LowMemoryIntervalSharder(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
         this.dataSource = dataSource;
+        for(SAMReaderID reader: dataSource.getReaderIDs())
+            indices.put(reader,(GATKBAMIndex)dataSource.getIndex(reader));
         this.loci = loci;
         locusIterator = new PeekableIterator<GenomeLoc>(loci.iterator());
         if(locusIterator.hasNext())
@@ -97,28 +106,26 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
             int coveredRegionStop = Integer.MAX_VALUE;
             GenomeLoc coveredRegion = null;
 
-            for(SAMReaderID reader: dataSource.getReaderIDs()) {
-                BAMScheduleEntry scheduleEntry = getNextOverlappingBAMScheduleEntry(reader,(GATKBAMIndex)dataSource.getIndex(reader),currentLocus);
+            BAMScheduleEntry scheduleEntry = getNextOverlappingBAMScheduleEntry(indices,currentLocus);
 
-                // No overlapping data at all.
-                if(scheduleEntry != null) {
-                    coveredRegionStart = Math.max(coveredRegionStart,scheduleEntry.start);
-                    coveredRegionStop = Math.min(coveredRegionStop,scheduleEntry.stop);
-                    coveredRegion = loci.getGenomeLocParser().createGenomeLoc(currentLocus.getContig(),coveredRegionStart,coveredRegionStop);
-                }
-
-                // Only a partial overlap, and the interval list precedes the bin.  Force the bin tree to null.
-                // TODO: the only reason to do this is to generate shards with no data that are placeholders for the interval list.  Manage this externally.
-                if(coveredRegion != null && currentLocus.startsBefore(coveredRegion))
-                    scheduleEntry = null;
+            // No overlapping data at all.
+            if(scheduleEntry != null) {
+                coveredRegionStart = Math.max(coveredRegionStart,scheduleEntry.start);
+                coveredRegionStop = Math.min(coveredRegionStop,scheduleEntry.stop);
+                coveredRegion = loci.getGenomeLocParser().createGenomeLoc(currentLocus.getContig(),coveredRegionStart,coveredRegionStop);
 
                 // Always create a file span, whether there was covered data or not.  If there was no covered data, then the binTree is empty.
                 //System.out.printf("Shard: index file = %s; reference sequence = %d; ",index.getIndexFile(),currentLocus.getContigIndex());
-                nextFilePointer.addFileSpans(reader,scheduleEntry != null ? scheduleEntry.fileSpan : new GATKBAMFileSpan());
+                nextFilePointer.addFileSpans(scheduleEntry.fileSpans);
+            }
+            else {
+                for(SAMReaderID reader: indices.keySet())
+                    nextFilePointer.addFileSpans(reader,new GATKBAMFileSpan());
             }
 
             // Early exit if no bins were found.
             if(coveredRegion == null) {
+                // for debugging only: maximum split is 16384.                
                 if(currentLocus.size() > 16384) {
                     GenomeLoc[] splitContigs = currentLocus.split(currentLocus.getStart()+16384);
                     nextFilePointer.addLocation(splitContigs[0]);
@@ -165,41 +172,51 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
         }
     }
 
+    
     /**
      * The last reference sequence processed by this iterator.
      */
-    private Map<SAMReaderID,Integer> lastReferenceSequenceLoaded = new HashMap<SAMReaderID,Integer>();
+    private Integer lastReferenceSequenceLoaded = null;
 
     /**
      * The stateful iterator used to progress through the genoem.
      */
-    private Map<SAMReaderID, PeekableIterator<BAMScheduleEntry>> bamScheduleIterators = new HashMap<SAMReaderID, PeekableIterator<BAMScheduleEntry>>();
+    private PeekableIterator<BAMScheduleEntry> bamScheduleIterator = null;
+
     /**
      * Get the next overlapping tree of bins associated with the given BAM file.
-     * @param index BAM index representation.
-     * @param locus Locus for which to grab the bin tree, if available.
-     * @return The BinTree overlapping the given locus.
+     * @param indices BAM index representation.
+     * @param currentLocus The actual locus for which to check overlap.
+     * @return The next schedule entry overlapping with the given list of loci.
      */
-    private BAMScheduleEntry getNextOverlappingBAMScheduleEntry(final SAMReaderID reader, final GATKBAMIndex index, final GenomeLoc locus) {
+    private BAMScheduleEntry getNextOverlappingBAMScheduleEntry(final Map<SAMReaderID,GATKBAMIndex> indices, final GenomeLoc currentLocus) {
         // Stale reference sequence or first invocation.  (Re)create the binTreeIterator.
-        if(!lastReferenceSequenceLoaded.containsKey(reader) || lastReferenceSequenceLoaded.get(reader) != locus.getContigIndex()) {
-            if(bamScheduleIterators.containsKey(reader))
-                bamScheduleIterators.get(reader).close();
-            lastReferenceSequenceLoaded.put(reader,locus.getContigIndex());
-            bamScheduleIterators.put(reader,new PeekableIterator<BAMScheduleEntry>(new BAMSchedule(index, locus.getContigIndex())));
+        if(lastReferenceSequenceLoaded == null || lastReferenceSequenceLoaded != currentLocus.getContigIndex()) {
+            if(bamScheduleIterator != null)
+                bamScheduleIterator.close();
+            lastReferenceSequenceLoaded = currentLocus.getContigIndex();
+
+            // Naive algorithm: find all elements in current contig for proper schedule creation.
+            List<GenomeLoc> lociInContig = new LinkedList<GenomeLoc>();
+            for(GenomeLoc locus: loci) {
+                if(locus.getContigIndex() == lastReferenceSequenceLoaded)
+                    lociInContig.add(locus);
+            }
+
+            bamScheduleIterator = new PeekableIterator<BAMScheduleEntry>(new BAMSchedule(indices,lociInContig));
         }
 
-        PeekableIterator<BAMScheduleEntry> bamScheduleIterator = bamScheduleIterators.get(reader);
         if(!bamScheduleIterator.hasNext())
             return null;
 
         // Peek the iterator along until finding the first binTree at or following the current locus.
         BAMScheduleEntry bamScheduleEntry = bamScheduleIterator.peek();
-        while(bamScheduleEntry != null && bamScheduleEntry.isBefore(locus)) {
+        while(bamScheduleEntry != null && bamScheduleEntry.isBefore(currentLocus)) {
             bamScheduleIterator.next();
             bamScheduleEntry = bamScheduleIterator.hasNext() ? bamScheduleIterator.peek() : null;
         }                                   
 
-        return (bamScheduleEntry != null && bamScheduleEntry.overlaps(locus)) ? bamScheduleEntry : null;
+        return (bamScheduleEntry != null && bamScheduleEntry.overlaps(currentLocus)) ? bamScheduleEntry : null;
     }
+
 }

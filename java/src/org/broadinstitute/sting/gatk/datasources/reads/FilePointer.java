@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.SAMFileSpan;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
@@ -65,11 +66,15 @@ class FilePointer {
         this(referenceSequence,null);
     }
 
-    public void addLocation(GenomeLoc location) {
+    public void addLocation(final GenomeLoc location) {
         locations.add(location);
     }
 
-    public void addFileSpans(SAMReaderID id, SAMFileSpan fileSpan) {
+    public void addFileSpans(final SAMReaderID id, final SAMFileSpan fileSpan) {
         this.fileSpans.put(id,fileSpan);
+    }
+
+    public void addFileSpans(final Map<SAMReaderID, GATKBAMFileSpan> fileSpans) {
+        this.fileSpans.putAll(fileSpans);
     }
 }
