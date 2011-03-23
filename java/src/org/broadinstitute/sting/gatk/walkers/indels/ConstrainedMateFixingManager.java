@@ -175,7 +175,7 @@ public class ConstrainedMateFixingManager {
 
         // if the new read is on a different contig or we have too many reads, then we need to flush the queue and clear the map
         boolean tooManyReads = getNReadsInQueue() >= MAX_RECORDS_IN_MEMORY;
-        if ( tooManyReads || (getNReadsInQueue() > 0 && waitingReads.peek().getReferenceIndex() != newRead.getReferenceIndex()) ) {
+        if ( tooManyReads || (getNReadsInQueue() > 0 && !waitingReads.peek().getReferenceIndex().equals(newRead.getReferenceIndex())) ) {
             if ( DEBUG ) logger.warn("Flushing queue on " + (tooManyReads ? "too many reads" : ("move to new contig: " + newRead.getReferenceName() + " from " + waitingReads.peek().getReferenceName())) + " at " + newRead.getAlignmentStart());
 
             while ( getNReadsInQueue() > 1 ) {
