@@ -28,6 +28,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.assembly;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
@@ -52,6 +53,10 @@ public class WindowedAssemblyWalker extends ReadWalker<SAMRecord, Integer> {
 
     @Argument(fullName = "assembler", shortName = "assembler", doc = "Assembler to use; currently only SIMPLE_DE_BRUIJN is available.", required = false)
     protected LocalAssemblyEngine.ASSEMBLER ASSEMBLER_TO_USE = LocalAssemblyEngine.ASSEMBLER.SIMPLE_DE_BRUIJN;
+
+    @Hidden
+    @Argument(fullName = "readsToUse", shortName = "readsToUse", doc = "For debugging: how many reads to use")
+    protected int numReadsToUse = -1;
 
     // the assembly engine
     LocalAssemblyEngine assemblyEngine = null;
@@ -90,7 +95,7 @@ public class WindowedAssemblyWalker extends ReadWalker<SAMRecord, Integer> {
     private LocalAssemblyEngine makeAssembler(LocalAssemblyEngine.ASSEMBLER type, IndexedFastaSequenceFile referenceReader) {
         switch ( type ) {
             case SIMPLE_DE_BRUIJN:
-                return new SimpleDeBruijnAssembler(graphWriter, referenceReader);
+                return new SimpleDeBruijnAssembler(graphWriter, referenceReader, numReadsToUse);
             default:
                 throw new UserException.BadInput("Assembler type " + type + " is not valid/supported");
         }
