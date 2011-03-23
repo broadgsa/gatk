@@ -289,7 +289,7 @@ public class GenomicAnnotation implements InfoFieldAnnotation {
 
 
     public List<VCFInfoHeaderLine> getDescriptions() {
-        return Arrays.asList(new VCFInfoHeaderLine("GenericAnnotation", 1, VCFHeaderLineType.Integer, "For each variant in the 'variants' ROD, finds all entries in the other -B files that overlap the variant's position. "));
+        return Arrays.asList(new VCFInfoHeaderLine("GenericAnnotation", 1, VCFHeaderLineType.Integer, "For each variant in the 'variants' ROD, finds all entries in the other -B files that overlap the variant's position."));
     }
 
     public List<String> getKeyNames() {
