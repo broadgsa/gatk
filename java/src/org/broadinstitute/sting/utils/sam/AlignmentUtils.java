@@ -722,7 +722,7 @@ public class AlignmentUtils {
         byte[] alt = new byte[refSeq.length + (indelLength * (indel.getOperator() == CigarOperator.D ? -1 : 1))];
 
         // add the bases before the indel, making sure it's not aligned off the end of the reference
-        if ( refIndex > alt.length )
+        if ( refIndex > alt.length || refIndex > refSeq.length )
             return null;
         System.arraycopy(refSeq, 0, alt, 0, refIndex);
         int currentPos = refIndex;
