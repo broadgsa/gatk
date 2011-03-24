@@ -46,7 +46,7 @@ class dataProcessingV2 extends QScript {
   @Input(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", fullName="project", shortName="p", required=false)
   var projectName: String = "project"
 
-  @Input(doc="Perform cleaning on knowns only", fullname="knowns_only", shortName="knowns", required=false)
+  @Input(doc="Perform cleaning on knowns only", fullName="knowns_only", shortName="knowns", required=false)
   var knownsOnly: Boolean = false
 
   @Input(doc="Perform cleaning using Smith Waterman", fullName="use_smith_waterman", shortName="sw", required=false)
@@ -78,6 +78,18 @@ class dataProcessingV2 extends QScript {
     return nContigs == n
   }
 
+  def hasMultipleSamples(readGroups: java.util.List[SAMReadGroupRecord]): Boolean = {
+    var sample: String = ""
+    for (r <- readGroups) {
+      if (sample.isEmpty)
+        sample = r.getSample()
+      else if (sample != r.getSample())
+          return true;
+    }
+    return false
+  }
+
+
   def createSampleFiles(): Map[String, File] = {
     val outName: String         = qscript.outputDir + qscript.projectName
 
@@ -93,7 +105,7 @@ class dataProcessingV2 extends QScript {
 
       // only allow one sample per file. Bam files with multiple samples would require pre-processing of the file
       // with PrintReads to separate the samples. Tell user to do it himself!
-      assert(hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
+      assert(!hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
 
       // Fill out the sample table with the readgroups in this file
       for (rg <- readGroups) {
@@ -169,32 +181,19 @@ class dataProcessingV2 extends QScript {
     add(writeList(cohortList, cohortFile))
   }
 
-  // General arguments to all programs
+  // General arguments to GATK walkers
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.jarFile = qscript.GATKjar
     this.reference_sequence = qscript.reference
-    this.memoryLimit = 4
+    this.memoryLimit = Some(4)
     this.isIntermediate = true
-  }
-
-  case class joinBams (inBams: List[File], outBam: File) extends PicardBamFunction {
-    @Input(doc="input bam list") var join = inBams
-    @Output(doc="joined bam") var joined = outBam
-    @Output(doc="joined bam index") var joinedIndex = new File(outBam + "bai")
-    override def inputBams = join
-    override def outputBam = joined
-    override def commandLine = super.commandLine + " CREATE_INDEX=true"
-    this.jarFile = qscript.mergeBamJar
-    this.isIntermediate = true
-    this.analysisName = queueLogDir + outBam + ".joinBams"
-    this.jobName = queueLogDir + outBam + ".joinBams"
   }
 
   case class target (inBams: File, outIntervals: File) extends RealignerTargetCreator with CommandLineGATKArgs {
     if (!knownsOnly)
       this.input_file :+= inBams
     this.out = outIntervals
-    this.mismatchFraction = 0.0
+    this.mismatchFraction = Some(0.0)
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.rodBind :+= RodBind("indels", "VCF", indels)
     this.scatterCount = nContigs
@@ -210,26 +209,11 @@ class dataProcessingV2 extends QScript {
     this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
     this.useOnlyKnownIndels = knownsOnly
     this.doNotUseSW = useSW
-    this.compress = 0
-    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
+    this.compress = Some(0)
+    this.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outBam + ".clean"
     this.jobName = queueLogDir + outBam + ".clean"
-  }
-
-  case class dedup (inBam: File, outBam: File, metricsFile: File) extends PicardBamFunction {
-    @Input(doc="fixed bam") var clean = inBam
-    @Output(doc="deduped bam") var deduped = outBam
-    @Output(doc="deduped bam index") var dedupedIndex = new File(outBam + ".bai")
-    @Output(doc="metrics file") var metrics = metricsFile
-    override def inputBams = List(clean)
-    override def outputBam = deduped
-    override def commandLine = super.commandLine + " M=" + metricsFile + " CREATE_INDEX=true"
-    sortOrder = null
-    this.memoryLimit = 6
-    this.jarFile = qscript.dedupJar
-    this.analysisName = queueLogDir + outBam + ".dedup"
-    this.jobName = queueLogDir + outBam + ".dedup"
   }
 
   //todo -- add scatter gather capability (waiting for khalid's modifications to the queue base
@@ -246,16 +230,19 @@ class dataProcessingV2 extends QScript {
     @Output(doc="recalibrated bam index") var recalIndex = new File(outBam + ".bai")
     this.input_file :+= inBam
     this.recal_file = inRecalFile
-    this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY
+    this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
     this.out = outBam
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
-    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
-    this.index_output_bam_on_the_fly = true
+    this.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
+    this.index_output_bam_on_the_fly = Some(true)
+    this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
     this.jobName = queueLogDir + outBam + ".recalibration"
 
   }
+
+  // Outside tools (not GATK walkers)
 
   case class analyzeCovariates (inRecalFile: File, outPath: File) extends AnalyzeCovariates {
     this.jarFile = qscript.ACJar
@@ -264,6 +251,35 @@ class dataProcessingV2 extends QScript {
     this.output_dir = outPath.toString
     this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"
     this.jobName = queueLogDir + inRecalFile + ".analyze_covariates"
+  }
+
+  case class dedup (inBam: File, outBam: File, metricsFile: File) extends PicardBamFunction {
+    @Input(doc="fixed bam") var clean = inBam
+    @Output(doc="deduped bam") var deduped = outBam
+    @Output(doc="deduped bam index") var dedupedIndex = new File(outBam + ".bai")
+    @Output(doc="metrics file") var metrics = metricsFile
+    override def inputBams = List(clean)
+    override def outputBam = deduped
+    override def commandLine = super.commandLine + " M=" + metricsFile + " CREATE_INDEX=true"
+    sortOrder = null
+    this.memoryLimit = Some(6)
+    this.isIntermediate = true
+    this.jarFile = qscript.dedupJar
+    this.analysisName = queueLogDir + outBam + ".dedup"
+    this.jobName = queueLogDir + outBam + ".dedup"
+  }
+
+  case class joinBams (inBams: List[File], outBam: File) extends PicardBamFunction {
+    @Input(doc="input bam list") var join = inBams
+    @Output(doc="joined bam") var joined = outBam
+    @Output(doc="joined bam index") var joinedIndex = new File(outBam + "bai")
+    override def inputBams = join
+    override def outputBam = joined
+    override def commandLine = super.commandLine + " CREATE_INDEX=true"
+    this.jarFile = qscript.mergeBamJar
+    this.isIntermediate = true
+    this.analysisName = queueLogDir + outBam + ".joinBams"
+    this.jobName = queueLogDir + outBam + ".joinBams"
   }
 
   case class writeList(inBams: List[File], outBamList: File) extends ListWriterFunction {
