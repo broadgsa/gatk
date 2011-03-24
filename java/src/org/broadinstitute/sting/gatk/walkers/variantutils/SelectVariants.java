@@ -67,8 +67,11 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci.", required=false)
     private boolean EXCLUDE_FILTERED = false;
 
-    @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called from a ROD comparison track. Use -disc ROD_NAME", required=false)
+    @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track. Use -disc ROD_NAME", required=false)
     private String discordanceRodName = "";
+
+    @Argument(fullName="concordance", shortName =  "conc", doc="Output variants that were also called on a ROD comparison track. Use -conc ROD_NAME", required=false)
+    private String concordanceRodName = "";
 
     @Argument(fullName="family_structure", shortName="family", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
     private String FAMILY_STRUCTURE = "";
@@ -86,8 +89,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private Set<String> samples = new HashSet<String>();
 
     private boolean DISCORDANCE_ONLY = false;
+    private boolean CONCORDANCE_ONLY = false;
 
     private MendelianViolation mv;
+
+    /* default name for the variant dataset (VCF) */
+    private final String variantRodName = "variant";
 
 
     /**
@@ -96,7 +103,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     public void initialize() {
         // Get list of samples to include in the output
         ArrayList<String> rodNames = new ArrayList<String>();
-        rodNames.add("variant");
+        rodNames.add(variantRodName);
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
@@ -108,6 +115,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         DISCORDANCE_ONLY = discordanceRodName.length() > 0;
         if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceRodName);
+
+        CONCORDANCE_ONLY = concordanceRodName.length() > 0;
+        if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceRodName);
 
         if (MENDELIAN_VIOLATIONS)
             mv = new MendelianViolation(getToolkit(), MENDELIAN_VIOLATION_QUAL_THRESHOLD);
@@ -143,7 +153,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if ( tracker == null )
             return 0;
 
-        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, false);
+        Collection<VariantContext> vcs = tracker.getVariantContexts(ref, variantRodName, null, context.getLocation(), true, false);
 
         // If a discordance rod name was provided, we select the variants present in the discordance that
         // are not present in the variant.
@@ -167,11 +177,18 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             return 0;
         }
 
-
         for (VariantContext vc : vcs) {
             if (MENDELIAN_VIOLATIONS) {
                 if (mv.isViolation(vc)) {
                     vcfWriter.add(vc, ref.getBase());
+                }
+            }
+
+            else if (CONCORDANCE_ONLY) {
+                VariantContext compVC = tracker.getVariantContext(ref, concordanceRodName, context.getLocation());
+                if (compVC != null) {
+                    vcfWriter.add(vc, ref.getBase());
+                    break; // we only want one line per event in this case.
                 }
             }
 
