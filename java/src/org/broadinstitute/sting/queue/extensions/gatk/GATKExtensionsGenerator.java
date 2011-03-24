@@ -41,7 +41,6 @@ import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescripto
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.walkers.PartitionBy;
 import org.broadinstitute.sting.gatk.walkers.PartitionType;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -213,9 +212,9 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      */
     private String getScatterClass(Class<? extends Walker> walkerType) {
         PartitionType partitionType = walkerType.getAnnotation(PartitionBy.class).value();
-        if (partitionType == PartitionType.None)
+        if (partitionType == PartitionType.NONE)
             return null;
-        return partitionType.name() + "ScatterFunction";
+        return StringUtils.capitalize(partitionType.name().toLowerCase()) + "ScatterFunction";
     }
 
     /**

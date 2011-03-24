@@ -32,23 +32,23 @@ public enum PartitionType {
     /**
      * Do not partition the walker inputs.
      */
-    None,
+    NONE,
 
     /**
      * The walker inputs can be chunked down to the
      * per-locus level.
      */
-    Locus,
+    LOCUS,
 
     /**
      * The walker inputs should be processed as complete
      * intervals defined -L or the reference contigs.
      */
-    Interval,
+    INTERVAL,
 
     /**
      * The walker inputs should always be processed as complete
      * contigs, even if there are multiple intervals per contig.
      */
-    Contig
+    CONTIG
 }

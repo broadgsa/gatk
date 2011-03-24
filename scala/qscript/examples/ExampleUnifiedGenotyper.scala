@@ -4,7 +4,6 @@ import org.broadinstitute.sting.queue.extensions.gatk._
 /**
  * An example building on the intro ExampleCountReads.scala.
  * Runs an INCOMPLETE version of the UnifiedGenotyper with VariantEval and optional VariantFiltration.
- * If run on a compute cluster, splits the UnifiedGenotyper into 3 parts.
  */
 class ExampleUnifiedGenotyper extends QScript {
   // Create an alias 'qscript' to be able to access variables
