@@ -55,7 +55,7 @@ public class WindowedAssemblyWalker extends ReadWalker<SAMRecord, Integer> {
     protected LocalAssemblyEngine.ASSEMBLER ASSEMBLER_TO_USE = LocalAssemblyEngine.ASSEMBLER.SIMPLE_DE_BRUIJN;
 
     @Hidden
-    @Argument(fullName = "readsToUse", shortName = "readsToUse", doc = "For debugging: how many reads to use")
+    @Argument(fullName = "readsToUse", shortName = "readsToUse", doc = "For debugging: how many reads to use", required = false)
     protected int numReadsToUse = -1;
 
     // the assembly engine

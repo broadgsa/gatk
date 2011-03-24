@@ -17,13 +17,13 @@ public class SimpleDeBruijnAssembler extends LocalAssemblyEngine {
     private static final boolean DEBUG = true;
 
     // k-mer length
-    private static final int KMER_LENGTH = 19;
+    private static final int KMER_LENGTH = 9;
 
     // minimum base quality required in a contiguous stretch of a given read to be used in the assembly
     private static final int MIN_BASE_QUAL_TO_USE = 20;
 
     // minimum clipped sequence length to consider using
-    private static final int MIN_SEQUENCE_LENGTH = 30;
+    private static final int MIN_SEQUENCE_LENGTH = 25;
 
     // minimum multiplicity to consider using
     // private static final int MIN_MULTIPLICITY_TO_USE = 2;
@@ -33,23 +33,6 @@ public class SimpleDeBruijnAssembler extends LocalAssemblyEngine {
 
     // the deBruijn graph object
     private DefaultDirectedGraph<DeBruijnVertex, DeBruijnEdge> graph = null;
-
-    // simple edge class for connecting nodes in the graph
-    protected class DeBruijnEdge {
-        private int multiplicity;
-
-        public DeBruijnEdge() {
-            multiplicity = 1;
-        }
-
-        public int getMultiplicity() {
-            return multiplicity;
-        }
-
-        public void setMultiplicity(int value) {
-            multiplicity = value;
-        }
-    }
 
 
     public SimpleDeBruijnAssembler(PrintStream out, IndexedFastaSequenceFile referenceReader, int numReadsToUse) {
@@ -68,12 +51,15 @@ public class SimpleDeBruijnAssembler extends LocalAssemblyEngine {
         // create the graph
         createDeBruijnGraph(sequences);
 
+        // find the 2 best paths in the graph
+        findBestPaths();
+
         // assign reads to the graph
         assignReadsToGraph(sequences);
     }
 
-    // This method takes the base sequences from the SAM records and clips both ends so that
-    // soft-clipped bases - plus all bases until the first Q20 (on either end) - are removed.
+    // This method takes the base sequences from the SAM records and pulls
+    // out runs of bases that are not soft-clipped and are all at least Q20s.
     // Clipped sequences that are overly clipped are not used.
     private List<byte[]> clipReads(List<SAMRecord> reads) {
         List<byte[]> sequences = new ArrayList<byte[]>(reads.size());
@@ -91,73 +77,48 @@ public class SimpleDeBruijnAssembler extends LocalAssemblyEngine {
             byte[] sequencedReadBases = read.getReadBases();
             byte[] sequencedBaseQuals = read.getBaseQualities();
 
-            int fromIndex = 0;
-            boolean sawQ20 = false;
+            int curIndex = 0, firstQ20Index = -1;
+
             for ( CigarElement ce : read.getCigar().getCigarElements() ) {
-                if ( sawQ20 )
-                    break;
 
                 int elementLength = ce.getLength();
                 switch ( ce.getOperator() ) {
                     case S:
                         // skip soft-clipped bases
-                        fromIndex += elementLength;
+                        curIndex += elementLength;
                         break;
                     case M:
                     case I:
                         for (int i = 0; i < elementLength; i++) {
-                            if ( sequencedBaseQuals[fromIndex] >= MIN_BASE_QUAL_TO_USE ) {
-                                sawQ20 = true;
-                                break;
+                            if ( sequencedBaseQuals[curIndex] >= MIN_BASE_QUAL_TO_USE ) {
+                                if ( firstQ20Index == -1 )
+                                    firstQ20Index = curIndex;
+                            } else if ( firstQ20Index != -1 ) {
+                                int sequenceLength = curIndex - firstQ20Index;
+                                if ( sequenceLength > MIN_SEQUENCE_LENGTH ) {
+                                    byte[] sequence = new byte[sequenceLength];
+                                    System.arraycopy(sequencedReadBases, firstQ20Index, sequence, 0, sequenceLength);
+                                    sequences.add(sequence);
+                                }
+                                firstQ20Index = -1;
                             }
-                            fromIndex++;
+                            curIndex++;
                         }
+                    case N:
+                        // TODO -- implement me (cut the sequence)
                     default:
                         break;
                 }
             }
 
-            int toIndex = sequencedReadBases.length - 1;
-            sawQ20 = false;
-            for (int ceIdx = read.getCigar().numCigarElements() - 1; ceIdx >= 0; ceIdx--) {
-                if ( sawQ20 )
-                    break;
-
-                CigarElement ce = read.getCigar().getCigarElement(ceIdx);
-                int elementLength = ce.getLength();
-                switch ( ce.getOperator() ) {
-                    case S:
-                        // skip soft-clipped bases
-                        toIndex -= elementLength;
-                        break;
-                    case M:
-                    case I:
-                        for (int i = 0; i < elementLength; i++) {
-                            if ( sequencedBaseQuals[toIndex] >= MIN_BASE_QUAL_TO_USE ) {
-                                sawQ20 = true;
-                                break;
-                            }
-                            toIndex--;
-                        }
-                    default:
-                        break;
+            if ( firstQ20Index != -1 ) {
+                int sequenceLength = curIndex - firstQ20Index;
+                if ( sequenceLength > MIN_SEQUENCE_LENGTH ) {
+                    byte[] sequence = new byte[sequenceLength];
+                    System.arraycopy(sequencedReadBases, firstQ20Index, sequence, 0, sequenceLength);
+                    sequences.add(sequence);
                 }
             }
-
-            int sequenceLength = toIndex - fromIndex + 1;
-            if ( sequenceLength < MIN_SEQUENCE_LENGTH ) {
-                if ( DEBUG ) System.out.println("Read " + read.getReadName() + " is overly clipped");
-                continue;
-            }
-
-            //if ( DEBUG ) {
-            //    System.out.println("Read " + read.getReadName() + ": " + read.getCigar());
-            //    System.out.println("Clipping from " + fromIndex + " to " + toIndex);
-            //}
-
-            byte[] sequence = new byte[sequenceLength];
-            System.arraycopy(sequencedReadBases, fromIndex, sequence, 0, sequenceLength);
-            sequences.add(sequence);
         }
 
         return sequences;
@@ -322,6 +283,7 @@ public class SimpleDeBruijnAssembler extends LocalAssemblyEngine {
         }
 
         // move common suffixes from incoming nodes to this one
+
         while ( true ) {
 
             boolean graphWasModified = false;
@@ -421,6 +383,8 @@ public class SimpleDeBruijnAssembler extends LocalAssemblyEngine {
     private void printGraph() {
 
         for ( DeBruijnVertex source : graph.vertexSet() ) {
+            if ( graph.inDegreeOf(source) == 0 )
+                getOutputStream().print("* ");
             getOutputStream().print(source + " -> ");
             for ( DeBruijnEdge edge : graph.outgoingEdgesOf(source) ) {
                 getOutputStream().print(graph.getEdgeTarget(edge) + " (" + edge.getMultiplicity() + "), ");
@@ -428,6 +392,32 @@ public class SimpleDeBruijnAssembler extends LocalAssemblyEngine {
             getOutputStream().println();
         }
         getOutputStream().println("------------\n");
+    }
+
+    private void findBestPaths() {
+
+        // find them
+        List<KBestPaths.Path> bestPaths = KBestPaths.getKBestPaths(graph, 2);
+
+        // print them out
+        for ( KBestPaths.Path path : bestPaths ) {
+
+            List<DeBruijnEdge> edges = path.getEdges();
+            for (int i = 0; i < edges.size(); i++) {
+
+                DeBruijnEdge edge = edges.get(i);
+
+                if ( i == 0 )
+                    getOutputStream().print(graph.getEdgeSource(edge));
+
+                getOutputStream().print(graph.getEdgeTarget(edge));
+            }
+
+            if ( edges.size() == 0 )
+                getOutputStream().print(path.getLastVertexInPath());
+
+            getOutputStream().println(" (score=" + path.getScore() + ", lowestEdge=" + path.getLowestEdge() +")");
+        }
     }
 
     private void assignReadsToGraph(List<byte[]> reads) {
