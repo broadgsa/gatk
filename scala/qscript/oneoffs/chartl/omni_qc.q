@@ -5,7 +5,6 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
@@ -201,7 +200,7 @@ class omni_qc extends QScript {
     eval1KG_exclude.evalModule :+= "GenotypeConcordance"
     eval1KG_exclude.evalModule :+= "SimpleMetricsBySample"
     eval1KG_exclude.reference_sequence = b36_ref
-    eval1KG_exclude.reportType = Some(VE2TemplateType.CSV)
+    eval1KG_exclude.reportType = VE2TemplateType.CSV
     eval1KG_exclude.intervalsString :+= pilot3_interval_list
     eval1KG_exclude.out = new File(eval_dir+"%s_vs_%s.%s".format("OMNI_764","Pilot3","exclude.mixups.eval.csv"))
 
@@ -222,7 +221,7 @@ class omni_qc extends QScript {
     combine.rodBind :+= new RodBind("CEU","VCF",gunzip_p1_ceu.outFile)
     combine.rodBind :+= new RodBind("ASN","VCF",gunzip_p1_chb.outFile)
     combine.rodBind :+= new RodBind("YRI","VCF",gunzip_p1_yri.outFile)
-    combine.genotypeMergeOptions = Some(VariantContextUtils.GenotypeMergeType.UNIQUIFY)
+    combine.genotypeMergeOptions = VariantContextUtils.GenotypeMergeType.UNIQUIFY
     combine.priority = "%s,%s,%s".format("CEU","ASN","YRI")
     combine.out = new File(vcf_dir+"Pilot1_Populations_Combined.vcf")
 
@@ -257,7 +256,7 @@ class omni_qc extends QScript {
     vEval.evalModule :+= "SimpleMetricsBySample"
     vEval.intervalsString :+= intervals
     vEval.reference_sequence = reference
-    vEval.reportType = Some(VE2TemplateType.CSV)
+    vEval.reportType = VE2TemplateType.CSV
 
     vEval.out = new File(eval_dir+base+".eval.csv")
 
@@ -318,8 +317,8 @@ class omni_qc extends QScript {
       panelCombine.priority = if ( panelCombine.priority.equals("") ) p else panelCombine.priority + "," + p
     }
     panelCombine.out = OMNI_b36_panel_vcf
-    panelCombine.genotypeMergeOptions = Some(VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE)
-    panelCombine.variantMergeOptions = Some(VariantContextUtils.VariantMergeType.UNION)
+    panelCombine.genotypeMergeOptions = VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE
+    panelCombine.variantMergeOptions = VariantContextUtils.VariantMergeType.UNION
     panelCombine.setKey = "panel"
 
     add(panelCombine)
@@ -348,7 +347,7 @@ class omni_qc extends QScript {
     eval.rodBind :+= new RodBind("comp%s".format(cBase),"VCF",compVCF)
     eval.noStandard = true
     eval.E :+= "AlleleFrequencyComparison"
-    eval.reportType = Some(VE2TemplateType.CSV)
+    eval.reportType = VE2TemplateType.CSV
     eval.out = new File(eval_dir+"%s_vs_%s_allele_frequency.eval".format(eBase,cBase))
 
     add(eval)
@@ -358,7 +357,7 @@ class omni_qc extends QScript {
     combine.rodBind :+= new RodBind(eBase,"VCF",evalVCF)
     combine.rodBind :+= new RodBind(cBase,"VCF",compVCF)
     combine.out = new File(vcf_dir+"%s_plus_%s.vcf".format(eBase,cBase))
-    combine.genotypeMergeOptions = Some(VariantContextUtils.GenotypeMergeType.UNIQUIFY)
+    combine.genotypeMergeOptions = VariantContextUtils.GenotypeMergeType.UNIQUIFY
     combine.priority = "%s,%s".format(eBase,cBase)
 
     //add(combine)
@@ -386,8 +385,8 @@ class omni_qc extends QScript {
         combine.priority = "%s%s".format("beagle",c)
       }
     }
-    combine.genotypeMergeOptions = Some(VariantContextUtils.GenotypeMergeType.PRIORITIZE)
-    combine.variantMergeOptions = Some(VariantContextUtils.VariantMergeType.UNION)
+    combine.genotypeMergeOptions = VariantContextUtils.GenotypeMergeType.PRIORITIZE
+    combine.variantMergeOptions = VariantContextUtils.VariantMergeType.UNION
 
     combine.out = swapExt(pilot1_with_na12878_vcf,".vcf",".beagle_refined_with_omni.vcf")
 
@@ -408,7 +407,7 @@ class omni_qc extends QScript {
     eval.E :+= "GenotypeConcordance"
     eval.out = new File(eval_dir+"NA12878.lowpass.beagle.vs.HiSeq.eval")
     eval.excludeIntervals :+= new File(pilot1_interval_list)
-    eval.reportType = Some(VE2TemplateType.CSV)
+    eval.reportType = VE2TemplateType.CSV
 
     add(eval)
 
@@ -420,7 +419,7 @@ class omni_qc extends QScript {
     eval2.sample :+= "NA12878"
     eval2.out = new File(eval_dir+"NA12878.lowpass.nochip.vs.Hiseq.eval")
     eval2.excludeIntervals :+= new File(pilot1_interval_list)
-    eval2.reportType = Some(VE2TemplateType.CSV)
+    eval2.reportType = VE2TemplateType.CSV
 
     add(eval2)
 
@@ -432,7 +431,7 @@ class omni_qc extends QScript {
     eval3.sample :+= "NA12878"
     eval3.out = new File(eval_dir+"NA12878.lowpass.nochip.norefined.vs.Hiseq.eval")
     eval3.excludeIntervals :+= new File(pilot1_interval_list)
-    eval3.reportType = Some(VE2TemplateType.CSV)
+    eval3.reportType = VE2TemplateType.CSV
 
     add(eval3)
   }
@@ -443,7 +442,7 @@ class omni_qc extends QScript {
     beagleInput.intervalsString :+= chr
     beagleInput.variantVCF = pilot1_with_na12878_vcf
     beagleInput.rodBind :+= new RodBind("validation","VCF",omnivcf)
-    beagleInput.validation_genotype_ptrue = Some(0.99)
+    beagleInput.validation_genotype_ptrue = 0.99
     beagleInput.out = new File(scratch_dir+"/"+swapExt(beagleInput.variantVCF.getName,".vcf",".%s.beagle".format(chr)))
     println (beagleInput.out.getAbsolutePath)
 
@@ -451,7 +450,7 @@ class omni_qc extends QScript {
     runBeagle.beagleInput = beagleInput.out
     runBeagle.beagleOutputBase = "Pilot1_NA12878_Beagle_with_OMNI_chr%s".format(chr)
     runBeagle.beagleMemoryGigs = 6
-    runBeagle.memoryLimit = Some(6)
+    runBeagle.memoryLimit = 6
     runBeagle.beagleOutputDir = ""
     runBeagle.freezeOutputs
 

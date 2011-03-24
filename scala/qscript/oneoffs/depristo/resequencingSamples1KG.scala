@@ -20,8 +20,8 @@ class resequencingSamples1KG extends QScript {
     this.intervals = List(new File(TARGET_INTERVAL));
     this.reference_sequence = referenceFile;
     this.jobQueue = "gsa";
-    this.et = Option(org.broadinstitute.sting.gatk.phonehome.GATKRunReport.PhoneHomeOption.STANDARD);
-    this.dcov = Option(50);
+    this.et = org.broadinstitute.sting.gatk.phonehome.GATKRunReport.PhoneHomeOption.STANDARD;
+    this.dcov = 50;
   }
 
   def script = {
@@ -30,10 +30,10 @@ class resequencingSamples1KG extends QScript {
   }
 
   class MyQSample(@Input(doc="foo") bamList: File) extends QSample with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = Some(4)
+    this.memoryLimit = 4
     this.input_file :+= bamList
     //this.BTI = "genotypes"
-    this.nt = Option(10)
+    this.nt = 10
     this.rodBind :+= RodBind("genotypes", "VCF", HM3)
     this.o = new File("%s.qsample".format(bamList.getName))
   }

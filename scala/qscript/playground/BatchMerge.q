@@ -48,22 +48,22 @@ class batchMergePipeline extends QScript {
 
     trait CalcLikelihoodArgs extends UGCalcLikelihoods {
       this.reference_sequence = batchMerge.ref
-      this.max_mismatches_in_40bp_window = Some(batchMerge.mmb)
-      this.min_base_quality_score = Some(batchMerge.mbq)
-      this.min_mapping_quality_score = Some(batchMerge.mmq)
+      this.max_mismatches_in_40bp_window = batchMerge.mmb
+      this.min_base_quality_score = batchMerge.mbq
+      this.min_mapping_quality_score = batchMerge.mmq
       if ( batchMerge.baq >= 0 ) {
-        this.baqGapOpenPenalty = Some(batchMerge.baq)
-        this.baq = Some(BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
+        this.baqGapOpenPenalty = batchMerge.baq
+        this.baq = BAQ.CalculationMode.CALCULATE_AS_NECESSARY
       }
       this.intervals :+= extractIntervals.listOut
       this.alleleVCF = combineVCFs.outVCF
       this.jarFile = new File(stingDir+"/dist/GenomeAnalysisTK.jar")
-      this.memoryLimit = Some(4)
+      this.memoryLimit = 4
       this.scatterCount = 60
-      this.output_mode = Some(UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES)
-      this.genotyping_mode = Some(GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
+      this.output_mode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES
+      this.genotyping_mode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES
       if ( batchMerge.indelMode ) {
-        this.genotype_likelihoods_model = Some(GenotypeLikelihoodsCalculationModel.Model.DINDEL)
+        this.genotype_likelihoods_model = GenotypeLikelihoodsCalculationModel.Model.DINDEL
       }
     }
 
@@ -82,11 +82,11 @@ class batchMergePipeline extends QScript {
       this.intervals :+= extractIntervals.listOut
       this.jarFile = new File(stingDir+"/dist/GenomeAnalysisTK.jar")
       this.scatterCount = 30
-      this.memoryLimit = Some(8)
-      this.output_mode = Some(UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES)
-      this.genotyping_mode = Some(GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
+      this.memoryLimit = 8
+      this.output_mode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES
+      this.genotyping_mode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES
       if ( batchMerge.indelMode ) {
-        this.genotype_likelihoods_model = Some(GenotypeLikelihoodsCalculationModel.Model.DINDEL)
+        this.genotype_likelihoods_model = GenotypeLikelihoodsCalculationModel.Model.DINDEL
       }
     }
 
@@ -100,7 +100,7 @@ class batchMergePipeline extends QScript {
       this.intervals :+= extractIntervals.listOut
       this.jarFile = new File(batchMerge.stingDir+"/dist/GenomeAnalysisTK.jar")
       this.scatterCount = 10
-      this.memoryLimit=Some(4)
+      this.memoryLimit=4
     }
 
     var combine : CombineVariants = new CombineVariants with CombineVariantsArgs

@@ -3,7 +3,6 @@ import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
@@ -69,7 +68,7 @@ class RefineGenotypesAndMerge extends QScript {
     refine.beagleInput = beagleInput.out
     refine.beagleOutputBase = beagleBase
     refine.beagleMemoryGigs = 6
-    refine.memoryLimit = Some(6)
+    refine.memoryLimit = 6
     refine.freezeOutputs
 
     var unzipPhased = new GunzipFile(refine.beaglePhasedFile,swapExt(refine.beaglePhasedFile,".gz",".bgl"))
@@ -94,8 +93,8 @@ class RefineGenotypesAndMerge extends QScript {
   def mergeVCFs(vcfs: List[File], outputVCF: File) : CombineVariants = {
     var cv = new CombineVariants with GATKArgs
     cv.out = outputVCF
-    cv.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNSORTED)
-    cv.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
+    cv.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNSORTED
+    cv.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
     cv.priority = (vcfs.foldLeft[List[String]](Nil)( (bNames,vcf) => bNames ::: List[String](swapExt(vcf,".vcf","").getName))).mkString(",")
     cv.rodBind = vcfs.foldLeft[List[RodBind]](Nil)( (rods,vcf) => rods ::: List[RodBind](new RodBind(swapExt(vcf,".vcf","").getName,"VCF",vcf)))
 

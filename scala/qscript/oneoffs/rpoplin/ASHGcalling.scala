@@ -3,7 +3,6 @@ import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeCalculationModel.Model
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
@@ -42,7 +41,7 @@ class ASHGcalling extends QScript {
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.reference
-    this.memoryLimit = Some(2)
+    this.memoryLimit = 2
     this.DBSNP = qscript.dbSNP
     this.jobTempDir = qscript.tmpDir
   }
@@ -84,8 +83,8 @@ class ASHGcalling extends QScript {
     combineVariants = new CombineVariants with CommandLineGATKArgs
     combineVariants.rodBind = vcfChunks
     combineVariants.out = new TaggedFile(qscript.baseName + ".chr" + qscript.chr.toString + ".filtered.vcf", "vcf")
-    combineVariants.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
-    combineVariants.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNSORTED)
+    combineVariants.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
+    combineVariants.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNSORTED
     combineVariants.setKey = "null"
     add(combineVariants)
     */
@@ -104,16 +103,16 @@ class ASHGcalling extends QScript {
       // 1.) Clean at known indels
       var clean = new IndelRealigner with CommandLineGATKArgs
       val cleanedBam = new File(baseTmpName + "cleaned.bam")
-      clean.memoryLimit = Some(4)
+      clean.memoryLimit = 4
       clean.input_file :+= bamList
       clean.intervalsString :+= interval
       clean.targetIntervals = qscript.targetIntervals
       clean.out = cleanedBam
       clean.rodBind :+= RodBind("indels", "VCF", qscript.dindelCalls)
       clean.knownsOnly = true
-      clean.LOD = Some(1.0)
+      clean.LOD = 1.0
       clean.sortInCoordinateOrderEvenThoughItIsHighlyUnsafe = true
-      clean.compress = Some(2)
+      clean.compress = 2
       clean.jobName = baseName + population + ".clean"
       //clean.stripBam = true
       //clean.fileSystemUsage = "indium"
@@ -121,7 +120,7 @@ class ASHGcalling extends QScript {
       // 2.) Apply BAQ calculation
       var baq = new SamtoolsBaqFunction
       val baqedBam = new File(baseTmpName + "cleaned.baq.bam")
-      baq.memoryLimit = Some(4)
+      baq.memoryLimit = 4
       baq.in_bam = cleanedBam
       baq.out_bam = baqedBam
       baq.jobName = baseName + population + ".baq"
@@ -154,22 +153,22 @@ class ASHGcalling extends QScript {
     }
 
     // 4.) Call with UGv2
-    call.memoryLimit = Some(4)
+    call.memoryLimit = 4
     call.intervalsString :+= interval
     call.out = rawCalls
-    call.dcov = Some(50)
-    call.standard_min_confidence_threshold_for_calling = Some(50)
-    call.standard_min_confidence_threshold_for_emitting = Some(30)
-    call.min_mapping_quality_score = Some(20)
-    call.min_base_quality_score = Some(20)
-    call.pnrm = Some(org.broadinstitute.sting.playground.gatk.walkers.genotyper.AlleleFrequencyCalculationModel.Model.GRID_SEARCH)
+    call.dcov = 50
+    call.standard_min_confidence_threshold_for_calling = 50
+    call.standard_min_confidence_threshold_for_emitting = 30
+    call.min_mapping_quality_score = 20
+    call.min_base_quality_score = 20
+    call.pnrm = org.broadinstitute.sting.playground.gatk.walkers.genotyper.AlleleFrequencyCalculationModel.Model.GRID_SEARCH
     call.jobName = baseName + "call"
     //call.fileSystemUsage = "iodine"
 
     // 5b.) Filter near indels and HARD_TO_VALIDATE
     var filter = new VariantFiltration with CommandLineGATKArgs
     val filteredCalls = new File(baseName + "filtered.vcf")
-    filter.memoryLimit = Some(1)
+    filter.memoryLimit = 1
     filter.out = filteredCalls
     filter.intervalsString :+= interval
     filter.variantVCF = rawCalls

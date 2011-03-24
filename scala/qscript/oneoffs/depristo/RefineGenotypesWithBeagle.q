@@ -36,7 +36,7 @@ class RefineGenotypesWithBeagle extends QScript {
   trait GATKArgs extends CommandLineGATK {
     this.reference_sequence = qscript.reference
     this.jarFile = qscript.gatkJarFile
-    this.memoryLimit = Some(2)
+    this.memoryLimit = 2
   }
 
   // --------------------------------------------------------------------------------
@@ -48,9 +48,9 @@ class RefineGenotypesWithBeagle extends QScript {
   class GenotypeBAMAtSites(@Input bam: File, @Input sitesVCF: File, @Output genotypesVCF: File) extends UnifiedGenotyper with GATKArgs {
     this.input_file = List(bam)
     this.o = genotypesVCF
-    this.stand_call_conf = Some(0.0)
-    this.out_mode = Some(org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES)
-    this.gt_mode = Some(org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
+    this.stand_call_conf = 0.0
+    this.out_mode = org.broadinstitute.sting.gatk.walkers.genotyper.UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES
+    this.gt_mode = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES
     this.rodBind :+= new RodBind("alleles","VCF",sitesVCF)
 
     // we only want chromosome counts annotations
@@ -62,7 +62,7 @@ class RefineGenotypesWithBeagle extends QScript {
     // make sure we have the right intervals
     if ( interval != null ) {
       this.intervalsString = List(interval)
-      this.BTIMR = Some(org.broadinstitute.sting.utils.interval.IntervalSetRule.INTERSECTION)
+      this.BTIMR = org.broadinstitute.sting.utils.interval.IntervalSetRule.INTERSECTION
     }
   }
 
@@ -73,7 +73,7 @@ class RefineGenotypesWithBeagle extends QScript {
   // --------------------------------------------------------------------------------
 
   class BeagleCommand(outputBase: String) extends CommandLineFunction {
-    this.memoryLimit = Some(BEAGLE_MEM_IN_GB)
+    this.memoryLimit = BEAGLE_MEM_IN_GB
 
     // Note: These get set
     @Output val beaglePhasedFile: File = new File(outputBase +".phased.gz")
@@ -151,7 +151,7 @@ class RefineGenotypesWithBeagle extends QScript {
     if ( interval != null ) evalBeagle.intervalsString = List(interval)
     evalBeagle.variantVCF = evalVCF
     evalBeagle.out = swapExt(outputVCF,".vcf",".unphased.beagle")
-    evalBeagle.bs = Some(percentLeftOut)
+    evalBeagle.bs = percentLeftOut
     evalBeagle.bsvcf = swapExt(outputVCF,".vcf",".missing.vcf")
     evalBeagle.missing = MISSING_KEY
     //evalBeagle.isIntermediate = true

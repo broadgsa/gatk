@@ -22,16 +22,20 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.extensions.picard
+package org.broadinstitute.sting.queue.function.scattergather
 
-import org.broadinstitute.sting.queue.function.JarCommandLineFunction
+import org.broadinstitute.sting.commandline.Gatherer
+import org.broadinstitute.sting.queue.function.InProcessFunction
+import collection.JavaConversions._
 
 /**
- * Wraps a Picard jar that operates on BAM files.
- * See http://picard.sourceforge.net/ for more info.
- *
- * Since the jar files take slightly different arguments
- * some values are optional.
+ * Runs a Gatherer in process.
  */
-trait PicardBamJarFunction extends JarCommandLineFunction with PicardBamFunction {
+class GathererFunction(gathererClass: Class[_ <: Gatherer]) extends InProcessFunction with GatherFunction {
+  def run() {
+    val gatherer = gathererClass.newInstance
+    if (gatherer.waitForInputs)
+      waitForGatherParts
+    gatherer.gather(this.gatherParts, this.originalOutput)
+  }
 }

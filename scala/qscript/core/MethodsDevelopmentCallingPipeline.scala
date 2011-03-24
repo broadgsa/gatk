@@ -185,8 +185,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   trait UNIVERSAL_GATK_ARGS extends CommandLineGATK {
     logging_level = "INFO";
     jarFile = gatkJarFile;
-    memoryLimit = Some(4);
-    phone_home = Some(if ( LOCAL_ET ) GATKRunReport.PhoneHomeOption.STANDARD else GATKRunReport.PhoneHomeOption.AWS_S3)
+    memoryLimit = 4;
+    phone_home = if ( LOCAL_ET ) GATKRunReport.PhoneHomeOption.STANDARD else GATKRunReport.PhoneHomeOption.AWS_S3
   }
 
   def bai(bam: File) = new File(bam + ".bai")
@@ -197,9 +197,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
-    this.dcov = Some( if ( t.isLowpass ) { 50 } else { 250 } )
-    this.stand_call_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
-    this.stand_emit_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
+    this.dcov = if ( t.isLowpass ) { 50 } else { 250 }
+    this.stand_call_conf = if ( t.isLowpass ) { 4.0 } else { 30.0 }
+    this.stand_emit_conf = if ( t.isLowpass ) { 4.0 } else { 30.0 }
     this.input_file :+= t.bamList
     if (t.dbsnpFile.endsWith(".rod"))
       this.DBSNP = new File(t.dbsnpFile)
@@ -210,11 +210,11 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // 1a.) Call SNPs with UG
   class snpCall (t: Target) extends GenotyperBase(t) {
     if (minimumBaseQuality >= 0)
-      this.min_base_quality_score = Some(minimumBaseQuality)
+      this.min_base_quality_score = minimumBaseQuality
     if (qscript.deletions >= 0)
-      this.max_deletion_fraction = Some(qscript.deletions)
+      this.max_deletion_fraction = qscript.deletions
     this.out = t.rawVCF
-    this.baq = Some( if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY})
+    this.baq = if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY}
     this.analysisName = t.name + "_UGs"
     this.jobName =  queueLogDir + t.name + ".snpcall"
   }
@@ -222,8 +222,8 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // 1b.) Call Indels with UG
   class indelCall (t: Target) extends GenotyperBase(t) {
     this.out = t.rawIndelVCF
-    this.glm = Some(org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL)
-    this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF)
+    this.glm = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL
+    this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF
     this.analysisName = t.name + "_UGi"
     this.jobName =  queueLogDir + t.name + ".indelcall"
   }
@@ -248,7 +248,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 3.) Variant Quality Score Recalibration - Generate Recalibration table
   class VQSR(t: Target, goldStandard: Boolean) extends ContrastiveRecalibrator with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = Some(6)
+    this.memoryLimit = 6
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
@@ -272,13 +272,13 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 4.) Apply the recalibration table to the appropriate tranches
   class applyVQSR (t: Target, goldStandard: Boolean) extends ApplyRecalibration with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = Some(4)
+    this.memoryLimit = 4
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
     this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile}
     this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
-    this.fdr_filter_level = Some(2.0)
+    this.fdr_filter_level = 2.0
     this.out = t.recalibratedVCF
     this.analysisName = t.name + "_AVQSR"
     this.jobName =  queueLogDir + t.name + ".applyVQSR"
@@ -293,7 +293,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.intervalsString ++= List(t.intervals)
     this.out = t.cutVCF
     this.tranchesFile = t.tranchesFile
-    this.fdr_filter_level = Some(t.trancheTarget)
+    this.fdr_filter_level = t.trancheTarget
     if (t.dbsnpFile.endsWith(".rod"))
       this.DBSNP = new File(t.dbsnpFile)
     else if (t.dbsnpFile.endsWith(".vcf"))

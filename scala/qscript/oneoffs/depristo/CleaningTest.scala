@@ -4,8 +4,8 @@ package oneoffs.depristo
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import collection.JavaConversions._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
-import org.broadinstitute.sting.queue.function.JarCommandLineFunction
+import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
+import org.broadinstitute.sting.queue.function.JavaCommandLineFunction
 
 
 class CleaningTest extends QScript {
@@ -45,7 +45,7 @@ class CleaningTest extends QScript {
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.reference
-    this.memoryLimit = Some(4)
+    this.memoryLimit = 4
     this.jobTempDir = qscript.tmpDir
   }
 
@@ -62,7 +62,7 @@ class CleaningTest extends QScript {
     target.input_file :+= bamList
     target.intervalsString :+= interval
     target.out = targetIntervals
-    target.mismatchFraction = Some(0.0)
+    target.mismatchFraction = 0.0
     target.rodBind :+= RodBind("dbsnp", "VCF", qscript.dbSNP)
     target.rodBind :+= RodBind("indels3", "VCF", qscript.dindelEURCalls)
     //target.jobName = baseName + ".target"
@@ -79,7 +79,7 @@ class CleaningTest extends QScript {
       clean.out = if ( cm ) cleanedBam else new File(cleanedBam + ".intermediate.bam")
       clean.doNotUseSW = true
       clean.constrainMovement = cm
-      clean.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF)
+      clean.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF
       clean.rodBind :+= RodBind("dbsnp", "VCF", qscript.dbSNP)
       clean.rodBind :+= RodBind("indels3", "VCF", qscript.dindelEURCalls)
       //clean.sortInCoordinateOrderEvenThoughItIsHighlyUnsafe = true
@@ -90,7 +90,7 @@ class CleaningTest extends QScript {
 
       if ( ! cm ) {
           // Explicitly run fix mates if the function won't be scattered.
-          val fixMates = new PicardBamJarFunction {
+          val fixMates = new PicardBamFunction {
             // Declare inputs/outputs for dependency tracking.
             @Input(doc="unfixed bam") var unfixed: File = _
             @Output(doc="fixed bam") var fixed: File = _
@@ -99,7 +99,7 @@ class CleaningTest extends QScript {
           }
 
           //fixMates.jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
-          fixMates.memoryLimit = Some(4)
+          fixMates.memoryLimit = 4
           fixMates.jarFile = qscript.picardFixMatesJar
           fixMates.unfixed = clean.out
           fixMates.fixed = cleanedBam
@@ -110,7 +110,7 @@ class CleaningTest extends QScript {
           add(fixMates)
       }
 
-      val validate = new JarCommandLineFunction {
+      val validate = new JavaCommandLineFunction {
         // Declare inputs/outputs for dependency tracking.
         @Input(doc="unfixed bam") var unfixed: File = _
         def inputBams = List(unfixed)
@@ -119,12 +119,12 @@ class CleaningTest extends QScript {
       }
 
       //fixMates.jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
-      validate.memoryLimit = Some(2)
+      validate.memoryLimit = 2
       validate.jarFile = qscript.picardValidateJar
       validate.unfixed = cleanedBam
       add(validate)
 
-      val toQueryName = new PicardBamJarFunction {
+      val toQueryName = new PicardBamFunction {
         // Declare inputs/outputs for dependency tracking.
         @Input(doc="coordiante bam") var cobam: File = _
         @Output(doc="query bam") var qnbam: File = _
@@ -133,7 +133,7 @@ class CleaningTest extends QScript {
       }
 
       //fixMates.jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
-      toQueryName.memoryLimit = Some(4)
+      toQueryName.memoryLimit = 4
       toQueryName.jarFile = qscript.picardSortSamJar
       toQueryName.cobam = cleanedBam
       toQueryName.qnbam = new File(cleanedBam.getAbsolutePath + ".qn.bam")

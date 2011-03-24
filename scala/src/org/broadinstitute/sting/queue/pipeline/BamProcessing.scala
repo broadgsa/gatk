@@ -2,7 +2,7 @@ package org.broadinstitute.sting.queue.pipeline
 
 import org.broadinstitute.sting.queue.extensions.gatk._
 import java.io.File
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
+import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
 import org.broadinstitute.sting.queue.function.CommandLineFunction
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
@@ -125,7 +125,7 @@ class BamProcessing(attribs: Pipeline, gatkJar: File, fixMatesJar: File) {
     return pfm
   }
 
-  class PicardFixMates extends PicardBamJarFunction {
+  class PicardFixMates extends PicardBamFunction {
     @Input(doc="input bam files") var bams: List[File] = Nil
     @Output(doc="output bam file") var outBam: File = null
 

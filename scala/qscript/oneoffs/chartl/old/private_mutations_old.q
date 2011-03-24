@@ -165,8 +165,8 @@ class private_mutations_old extends QScript {
     getVennExS.intervals :+= exome_single.out_list
     getVennExS.reference_sequence = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
     getVennExS.jarFile = new File("/humgen/gsa-scr1/chartl/sting/dist/GenomeAnalysisTK.jar")
-    getVennExS.genotypeMergeOptions = Some(VariantContextUtils.GenotypeMergeType.UNIQUIFY)
-    getVennExS.variantMergeOptions = Some(VariantContextUtils.VariantMergeType.UNION)
+    getVennExS.genotypeMergeOptions = VariantContextUtils.GenotypeMergeType.UNIQUIFY
+    getVennExS.variantMergeOptions = VariantContextUtils.VariantMergeType.UNION
     getVennExS.out = new File(VCF_DIR + "g1k_exome_plus_lowpass.singlesample.merged.exome.sites.vcf")
 
     //add(getVennExS)
@@ -178,8 +178,8 @@ class private_mutations_old extends QScript {
     getVennLPS.intervals :+= lowpass_single.out_list
     getVennLPS.reference_sequence = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
     getVennLPS.jarFile = new File("/humgen/gsa-scr1/chartl/sting/dist/GenomeAnalysisTK.jar")
-    getVennLPS.genotypeMergeOptions = Some(VariantContextUtils.GenotypeMergeType.UNIQUIFY)
-    getVennLPS.variantMergeOptions = Some(VariantContextUtils.VariantMergeType.UNION)
+    getVennLPS.genotypeMergeOptions = VariantContextUtils.GenotypeMergeType.UNIQUIFY
+    getVennLPS.variantMergeOptions = VariantContextUtils.VariantMergeType.UNION
     getVennLPS.out = new File(VCF_DIR + "g1k_exome_plus_lowpass.singlesample.merged.lowpass.sites.vcf")
 
     add(getVennLPS)
@@ -397,7 +397,7 @@ class private_mutations_old extends QScript {
       genotype.intervals :+= sites.out_list
       genotype.out = new File(VCF_DIR+"g1k_lowpass.%s.exome_sites.vcf".format(s))
       genotype.input_file :+= bamList.outList
-      genotype.memoryLimit = Some(3)
+      genotype.memoryLimit = 3
       genotype.output_all_callable_bases = true
 
       add(genotype)

@@ -1,5 +1,5 @@
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
+import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 import scala.io.Source
@@ -55,7 +55,7 @@ class dataProcessing extends QScript {
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.jarFile = qscript.GATKjar
     this.reference_sequence = qscript.reference
-    this.memoryLimit = Some(4)
+    this.memoryLimit = 4
     this.isIntermediate = true
   }
 
@@ -127,7 +127,7 @@ class dataProcessing extends QScript {
 
   class TargetBase (outIntervals: String) extends RealignerTargetCreator with CommandLineGATKArgs {
       this.out = new File(outIntervals)
-      this.mismatchFraction = Some(0.0)
+      this.mismatchFraction = 0.0
       this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
       this.rodBind :+= RodBind("indels", "VCF", indels)
 
@@ -139,7 +139,7 @@ class dataProcessing extends QScript {
 
   class allTargets (inBams: String, outIntervals: String) extends TargetBase(outIntervals) {
       this.input_file :+= new File(inBams)
-      this.memoryLimit = Some(6)
+      this.memoryLimit = 6
       this.jobName = queueLogDir + outIntervals + ".atarget"
   }
 
@@ -151,16 +151,16 @@ class dataProcessing extends QScript {
     this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
     this.useOnlyKnownIndels = knownsOnly
     this.doNotUseSW = true
-    this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
-    this.compress = Some(0)
-    this.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
+    this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY
+    this.compress = 0
+    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
     this.isIntermediate = intermediate
     this.jobName = queueLogDir + outBam + ".clean"
     if (!intermediate && !qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     if (!intermediate && qscript.intervals != null) this.intervals :+= qscript.intervals
   }
 
-  class dedup (inBam: String, outBam: String, metricsFile: String) extends PicardBamJarFunction {
+  class dedup (inBam: String, outBam: String, metricsFile: String) extends PicardBamFunction {
     @Input(doc="fixed bam") var clean: File = new File(inBam)
     @Output(doc="deduped bam") var deduped: File = new File(outBam)
     @Output(doc="deduped bam index") var dedupedIndex: File = new File(outBam + ".bai")
@@ -169,7 +169,7 @@ class dataProcessing extends QScript {
     override def outputBam = deduped
     override def commandLine = super.commandLine + " M=" + metricsFile + " CREATE_INDEX=true"
     sortOrder = null
-    this.memoryLimit = Some(6)
+    this.memoryLimit = 6
     this.jarFile = qscript.dedupJar
     this.isIntermediate = true
     this.jobName = queueLogDir + outBam + ".dedup"
@@ -188,8 +188,8 @@ class dataProcessing extends QScript {
     this.input_file :+= new File (inBam)
     this.recal_file = new File(inRecalFile)
     this.out = new File(outBam)
-    this.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
-    this.index_output_bam_on_the_fly = Some(true)
+    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
+    this.index_output_bam_on_the_fly = true
     this.jobName = queueLogDir + outBam + ".recalibration"
   }
 

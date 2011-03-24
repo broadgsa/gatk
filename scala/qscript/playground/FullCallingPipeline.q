@@ -1,7 +1,7 @@
 import org.broadinstitute.sting.commandline.ArgumentSource
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamEmbeddedFunction
+import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, CloneFunction, ScatterFunction}
@@ -42,7 +42,7 @@ class FullCallingPipeline extends QScript {
     this.intervals = List(qscript.pipeline.getProject.getIntervalList)
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.pipeline.getProject.getReferenceFile
-    this.memoryLimit = Some(4)
+    this.memoryLimit = 4
   }
 
 
@@ -77,7 +77,7 @@ class FullCallingPipeline extends QScript {
         targetCreator.analysisName = "CreateTargets_"+sampleId
         targetCreator.input_file :+= bam
         targetCreator.out = indel_targets
-        targetCreator.memoryLimit = Some(2)
+        targetCreator.memoryLimit = 2
         targetCreator.isIntermediate = true
 
         val realigner = new IndelRealigner with CommandLineGATKArgs
@@ -108,8 +108,8 @@ class FullCallingPipeline extends QScript {
             case (gather: BamGatherFunction, source: ArgumentSource) =>
               gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
               gather.jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
-              gather.memoryLimit = Some(6)
-              gather.mainClass = picardFixMatesClass
+              gather.memoryLimit = 6
+              gather.javaMainClass = picardFixMatesClass
               gather.assumeSorted = None
             case (gather: GatherFunction, source: ArgumentSource) =>
               gather.commandDirectory = new File("CleanedBams/IntermediateFiles/%s/ScatterGather/Gather_%s".format(sampleId, source.field.getName))
@@ -122,7 +122,7 @@ class FullCallingPipeline extends QScript {
           realigner.isIntermediate = true
 
           // Explicitly run fix mates if the function won't be scattered.
-          val fixMates = new PicardBamEmbeddedFunction {
+          val fixMates = new PicardBamFunction {
             @Input(doc="unfixed bam") var unfixed: File = _
             @Output(doc="fixed bam") var fixed: File = _
             def inputBams = List(unfixed)
@@ -130,8 +130,8 @@ class FullCallingPipeline extends QScript {
           }
 
           fixMates.jobOutputFile = new File(".queue/logs/Cleaning/%s/FixMates.out".format(sampleId))
-          fixMates.memoryLimit = Some(6)
-          fixMates.mainClass = picardFixMatesClass
+          fixMates.memoryLimit = 6
+          fixMates.javaMainClass = picardFixMatesClass
           fixMates.unfixed = realigner.out
           fixMates.fixed = cleaned_bam
           fixMates.analysisName = "FixMates_"+sampleId
@@ -173,9 +173,9 @@ class FullCallingPipeline extends QScript {
     val indels = new UnifiedGenotyper with CommandLineGATKArgs with ExpandedIntervals
     indels.analysisName = base + "_indels"
     indels.jobOutputFile = new File(".queue/logs/IndelCalling/UnifiedGenotyper.indels.out")
-    indels.memoryLimit = Some(6)
-    indels.downsample_to_coverage = Some(600)
-    indels.genotype_likelihoods_model = Option(org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL)
+    indels.memoryLimit = 6
+    indels.downsample_to_coverage = 600
+    indels.genotype_likelihoods_model = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL
     indels.input_file = bamFiles
     indels.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
     indels.out = new File("IndelCalls", base+".indels.vcf")
@@ -210,8 +210,8 @@ class FullCallingPipeline extends QScript {
     val snps = new UnifiedGenotyper with CommandLineGATKArgs with ExpandedIntervals
     snps.analysisName = base+"_snps"
     snps.jobOutputFile = new File(".queue/logs/SNPCalling/UnifiedGenotyper.snps.out")
-    snps.memoryLimit = Some(6)
-    snps.downsample_to_coverage = Some(600)
+    snps.memoryLimit = 6
+    snps.downsample_to_coverage = 600
     snps.input_file = bamFiles
     snps.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
     snps.out = new File("SnpCalls", base+".snps.vcf")
@@ -239,8 +239,8 @@ class FullCallingPipeline extends QScript {
     filteredSNPs.jobOutputFile = new File(".queue/logs/SNPCalling/VariantFiltration.snps.out")
     filteredSNPs.filterName ++= List("SNPSBFilter","SNPQDFilter","SNPHRunFilter")
     filteredSNPs.filterExpression ++= List("\"SB>=0.10\"","\"QD<5.0\"","\"HRun>=4\"")
-    filteredSNPs.clusterWindowSize = Some(10)
-    filteredSNPs.clusterSize = Some(3)
+    filteredSNPs.clusterWindowSize = 10
+    filteredSNPs.clusterSize = 3
     filteredSNPs.rodBind :+= RodBind("mask", "VCF", filteredIndels.out)
     filteredSNPs.variantVCF = snps.out
     filteredSNPs.out = swapExt("SnpCalls",snps.out,".vcf",".filtered.vcf")
@@ -249,7 +249,7 @@ class FullCallingPipeline extends QScript {
     val combineAll = new CombineVariants with CommandLineGATKArgs with ExpandedIntervals
     combineAll.analysisName = base + "_combineAll"
     combineAll.jobOutputFile = new File(".queue/logs/Combined/CombineVariants.out")
-    combineAll.variantMergeOptions = Option(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
+    combineAll.variantMergeOptions = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
     combineAll.rod_priority_list = "Indels,SNPs"
     combineAll.rodBind :+= RodBind("Indels", "VCF", filteredIndels.out)
     combineAll.rodBind :+= RodBind("SNPs", "VCF", filteredSNPs.out)

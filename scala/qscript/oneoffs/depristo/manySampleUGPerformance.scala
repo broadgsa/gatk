@@ -29,7 +29,7 @@ class ManySampleUGPerformanceTesting extends QScript {
     this.intervals = List(new File(TARGET_INTERVAL));
     this.reference_sequence = referenceFile;
     this.jobQueue = "gsa";
-    this.memoryLimit = Some(4)
+    this.memoryLimit = 4
     //this.commandDirectory = new File("results");
   }
 
@@ -52,11 +52,11 @@ class ManySampleUGPerformanceTesting extends QScript {
       // SNP calling
       //add(new Call(sublist.list, nSamples, "dynamic_merge"))
       val gt = new Call(bams, nSamples, name);
-      gt.exactCalculation = Some(org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel.ExactCalculation.N2_GOLD_STANDARD)
+      gt.exactCalculation = org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel.ExactCalculation.N2_GOLD_STANDARD
       add(gt)
 
       val gtLinear = new Call(bams, nSamples, name + "_linear");
-      gtLinear.exactCalculation = Some(org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL)
+      gtLinear.exactCalculation = org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL
       add(gtLinear)
 
       // SNP calling -- no annotations
@@ -74,24 +74,24 @@ class ManySampleUGPerformanceTesting extends QScript {
   }
 
   class MergeBAMs(bamList: File) extends PrintReads with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = Some(3)
+    this.memoryLimit = 3
     this.input_file :+= bamList
-    this.memoryLimit = Some(16)
+    this.memoryLimit = 16
     this.o = new File(MERGED_DIR + "/" + bamList.getName + ".bam")
   }
 
   class Call(@Input(doc="foo") bamList: File, n: Int, name: String) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
     @Output(doc="foo") var outVCF: File = new File("%s.%d.%s.vcf".format(bamList.getName, n, name))
     this.input_file :+= bamList
-    this.stand_call_conf = Option(10.0)
-    this.dcov = Option(DCOV);
+    this.stand_call_conf = 10.0
+    this.dcov = DCOV;
     this.o = outVCF
   }
 
   class MyCountLoci(@Input(doc="foo") bamList: File, n: Int, name: String) extends CountLoci with UNIVERSAL_GATK_ARGS {
     @Output(doc="foo") var outFile: File = new File("%s.%d.%s.txt".format(bamList.getName, n, name))
     this.input_file :+= bamList
-    this.dcov = Option(DCOV);
+    this.dcov = DCOV;
     this.o = outFile
   }
 

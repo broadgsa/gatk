@@ -42,10 +42,10 @@ class justClean extends QScript {
     target.input_file :+= input
     target.out = tIntervals
     target.reference_sequence = reference
-    target.mismatchFraction = Some(0.0)
+    target.mismatchFraction = 0.0
     target.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     target.rodBind :+= RodBind("indels", "VCF", indels)
-    target.memoryLimit = Some(6)
+    target.memoryLimit = 6
     target.jobName = queueLogDir + tIntervals + ".atarget"
     target.jarFile = GATKjar
     target.scatterCount = 84
@@ -60,11 +60,11 @@ class justClean extends QScript {
     clean.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     clean.rodBind :+= RodBind("indels", "VCF", indels)
     clean.doNotUseSW = true
-    clean.compress = Some(0)
-    clean.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update clean with the last consensus between Tim, Matt and Eric. This is ugly!
+    clean.compress = 0
+    clean.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update clean with the last consensus between Tim, Matt and Eric. This is ugly!
     clean.jobName = queueLogDir + outBam + ".clean"
     clean.jarFile = GATKjar
-    clean.memoryLimit = Some(12)
+    clean.memoryLimit = 12
     clean.scatterCount = 84
 
     add(clean);

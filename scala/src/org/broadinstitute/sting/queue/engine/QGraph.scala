@@ -318,7 +318,7 @@ class QGraph extends Logging {
     var readyJobs = getReadyJobs()
     while (running && readyJobs.size > 0) {
       logger.debug("+++++++")
-      readyJobs.foreach(edge => {
+      foreachFunction(readyJobs.toList, edge => {
         if (running) {
           logEdge(edge)
           edge.markAsDone
@@ -870,12 +870,17 @@ class QGraph extends Logging {
    * Utility function for running a method over all function edges.
    * @param edgeFunction Function to run for each FunctionEdge.
    */
-  private def foreachFunction(f: (FunctionEdge) => Unit) = {
-    jobGraph.edgeSet.toList
-      .filter(_.isInstanceOf[FunctionEdge])
-      .asInstanceOf[List[FunctionEdge]]
-      .sorted(functionOrdering)
-      .foreach(edge => if (running) f(edge))
+  private def foreachFunction(f: (FunctionEdge) => Unit) {
+    foreachFunction(jobGraph.edgeSet.toList.filter(_.isInstanceOf[FunctionEdge]).asInstanceOf[List[FunctionEdge]], f)
+  }
+
+  /**
+   * Utility function for running a method over a list of function edges.
+   * @param edegs Edges to traverse.
+   * @param edgeFunction Function to run for each FunctionEdge.
+   */
+  private def foreachFunction(edges: List[FunctionEdge], f: (FunctionEdge) => Unit) {
+    edges.sorted(functionOrdering).foreach(edge => if (running) f(edge))
   }
 
   /**

@@ -49,10 +49,10 @@ class LinearIndexBinTests extends QScript {
 
             countRod.jarFile = qscript.gatkJar
             countRod.reference_sequence = reference
-            countRod.memoryLimit = Some(memoryLimit)
+            countRod.memoryLimit = memoryLimit
 
             // Some of the BED files don't have a chrM, which makes the GATK angry.  Run unsafe.
-            countRod.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.ALL)
+            countRod.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.ALL
 
             for ((rodFile, index) <- rodFiles.zipWithIndex) {
                val rodType = rodFile.getName.split("\\.").last

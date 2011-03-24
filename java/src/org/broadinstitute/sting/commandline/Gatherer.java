@@ -22,16 +22,25 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.extensions.picard
+package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.queue.function.EmbeddedCommandLineFunction
+import java.io.File;
+import java.util.List;
 
 /**
- * Wraps a Picard embedded class that operates on BAM files.
- * See http://picard.sourceforge.net/ for more info.
- *
- * Since the command lines take slightly different arguments
- * some values are optional.
+ * Combines a list of files into a single output.
  */
-trait PicardBamEmbeddedFunction extends EmbeddedCommandLineFunction with PicardBamFunction {
+public abstract class Gatherer {
+    /**
+     * Gathers a list of files into a single output.
+     * @param inputs Files to combine.
+     * @param output Path to output file.
+     */
+    public abstract void gather(List<File> inputs, File output);
+
+    /**
+     * Returns true if the caller should wait for the input files to propagate over NFS before running gather().
+     * @return true if the caller should wait for the input files to propagate over NFS before running gather().
+     */
+    public boolean waitForInputs() { return true; }
 }

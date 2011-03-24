@@ -48,7 +48,7 @@ import java.io.*;
  * Create collapsed versions of the recal csv file and call R scripts to plot residual error versus the various covariates.
  */
 
-class AnalyzeCovariatesCLP extends CommandLineProgram {
+public class AnalyzeCovariates extends CommandLineProgram {
 
     /////////////////////////////
     // Command Line Arguments
@@ -311,12 +311,14 @@ class AnalyzeCovariatesCLP extends CommandLineProgram {
             }
         }
     }
-}
 
-public class AnalyzeCovariates {
-    public static void main(String args[]) throws Exception {
-        AnalyzeCovariatesCLP clp = new AnalyzeCovariatesCLP();
-        CommandLineProgram.start( clp, args );
-        System.exit(0);
+    public static void main(String args[]) {
+        try {
+            AnalyzeCovariates clp = new AnalyzeCovariates();
+            start(clp, args);
+            System.exit(CommandLineProgram.result);
+        } catch (Exception e) {
+            exitSystemWithError(e);
+        }
     }
 }

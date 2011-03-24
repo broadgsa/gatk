@@ -158,20 +158,20 @@ class pbCalling extends QScript {
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
-    this.dcov = Some( if ( t.isLowpass ) { 50 } else { 250 } )
-    this.stand_call_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
-    this.stand_emit_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
+    this.dcov = if ( t.isLowpass ) { 50 } else { 250 }
+    this.stand_call_conf = if ( t.isLowpass ) { 4.0 } else { 30.0 }
+    this.stand_emit_conf = if ( t.isLowpass ) { 4.0 } else { 30.0 }
     this.input_file :+= t.bamList
     this.out = t.rawVCF
-    this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
+    this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY
     this.analysisName = t.name + "_UG"
     if (t.dbsnpFile.endsWith(".rod"))
       this.DBSNP = new File(t.dbsnpFile)
     else if (t.dbsnpFile.endsWith(".vcf"))
       this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
     // Ridiculous workaround to get pacbio data to run.. never commit this!
-    this.deletions = Some(0.5)
-    this.mbq = Some(10)
+    this.deletions = 0.5
+    this.mbq = 10
   }
 
   // 2.) Filter SNPs
@@ -188,7 +188,7 @@ class pbCalling extends QScript {
   }
 
   class VQSR(t: Target, goldStandard: Boolean) extends ContrastiveRecalibrator {
-    this.memoryLimit = Some(6)
+    this.memoryLimit = 6
     this.intervalsString ++= List(t.intervals)
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
     this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
@@ -208,12 +208,12 @@ class pbCalling extends QScript {
   }
 
   class applyVQSR (t: Target, goldStandard: Boolean) extends ApplyRecalibration {
-    this.memoryLimit = Some(4)
+    this.memoryLimit = 4
     this.intervalsString ++= List(t.intervals)
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )
     this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile}
     this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
-    this.fdr_filter_level = Some(2.0)
+    this.fdr_filter_level = 2.0
     this.out = t.recalibratedVCF
   }
 
@@ -226,7 +226,7 @@ class pbCalling extends QScript {
       this.intervalsString ++= List(t.intervals)
       this.out = t.cutVCF
       this.tranchesFile = t.tranchesFile
-      this.fdr_filter_level = Some(1.0)
+      this.fdr_filter_level = 1.0
       if (t.dbsnpFile.endsWith(".rod"))
         this.DBSNP = new File(t.dbsnpFile)
 	    else if (t.dbsnpFile.endsWith(".vcf"))

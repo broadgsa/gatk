@@ -140,9 +140,10 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                     continue;
 
                 String clpClassName = clpManager.getName(clp);
+                String clpConstructor = String.format("analysisName = \"%s\"%njavaMainClass = \"%s\"%n", clpClassName, clp.getName());
 
-                writeClass("org.broadinstitute.sting.queue.function.JarCommandLineFunction", clpClassName,
-                        false, "", ArgumentDefinitionField.getArgumentFields(parser,clp), dependents);
+                writeClass("org.broadinstitute.sting.queue.function.JavaCommandLineFunction", clpClassName,
+                        false, clpConstructor, ArgumentDefinitionField.getArgumentFields(parser,clp), dependents);
 
                 if (clp == CommandLineGATK.class) {
                     for (Entry<String, Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage(false).entrySet()) {
@@ -359,7 +360,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
             baseClass += " with ScatterGatherableFunction";
         }
         if (isGather)
-            importSet.add("import org.broadinstitute.sting.queue.function.scattergather.Gather");
+            importSet.add("import org.broadinstitute.sting.commandline.Gather");
 
         // Sort the imports so that the are always in the same order.
         List<String> sortedImports = new ArrayList<String>(importSet);

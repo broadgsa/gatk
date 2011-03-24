@@ -2,7 +2,6 @@ import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
@@ -43,7 +42,7 @@ class Phase1Cleaning extends QScript {
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.reference
-    this.memoryLimit = Some(2)
+    this.memoryLimit = 2
     this.jobTempDir = qscript.tmpDir
   }
 
@@ -62,11 +61,11 @@ class Phase1Cleaning extends QScript {
 
       // 1.) Create cleaning targets
       var target = new RealignerTargetCreator with CommandLineGATKArgs
-      target.memoryLimit = Some(4)
+      target.memoryLimit = 4
       target.input_file :+= bamList
       target.intervalsString :+= interval
       target.out = targetIntervals
-      target.mismatchFraction = Some(0.0)
+      target.mismatchFraction = 0.0
       target.rodBind :+= RodBind("dbsnp", "VCF", qscript.dbSNP)
       target.rodBind :+= RodBind("indels1", "VCF", qscript.dindelPilotCalls)
       target.rodBind :+= RodBind("indels2", "VCF", qscript.dindelAFRCalls)
@@ -77,13 +76,13 @@ class Phase1Cleaning extends QScript {
       // 2.) Clean without SW
       var clean = new IndelRealigner with CommandLineGATKArgs
       val cleanedBam = new File(baseTmpName + "cleaned.bam")
-      clean.memoryLimit = Some(4)
+      clean.memoryLimit = 4
       clean.input_file :+= bamList
       clean.intervalsString :+= interval
       clean.targetIntervals = targetIntervals
       clean.out = cleanedBam
       clean.doNotUseSW = true
-      clean.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE)
+      clean.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE
       clean.rodBind :+= RodBind("dbsnp", "VCF", qscript.dbSNP)
       clean.rodBind :+= RodBind("indels1", "VCF", qscript.dindelPilotCalls)
       clean.rodBind :+= RodBind("indels2", "VCF", qscript.dindelAFRCalls)

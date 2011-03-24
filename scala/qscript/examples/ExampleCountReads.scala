@@ -7,9 +7,6 @@ import org.broadinstitute.sting.queue.extensions.gatk._
  * All bams must have the same reference.
  */
 class ExampleCountReads extends QScript {
-  @Input(doc="The path to the GenomeAnalysisTK.jar file.", shortName="gatk")
-  var gatkJar: File = null
-
   @Input(doc="The reference file for the bam files.", shortName="R")
   var referenceFile: File = null
 
@@ -33,9 +30,6 @@ class ExampleCountReads extends QScript {
     // The names of walkers are the same as you would use for '-T <WalkerName>'
     val jointCountReads = new CountReads
 
-    // Set the GATK jar file for this command.
-    jointCountReads.jarFile = gatkJar
-
     // Each field in the extensions is based off of the full form of the arguments.
     // To get the list of arguments and their descriptions run
     // java -jar <path to GenomeAnalysisTK.jar> -T <WalkerName> -help
@@ -52,7 +46,6 @@ class ExampleCountReads extends QScript {
     if (bamFiles.size > 1) {
       for (bamFile <- bamFiles) {
         val singleCountReads = new CountReads
-        singleCountReads.jarFile = gatkJar
         singleCountReads.reference_sequence = referenceFile
         // ':+' is the scala List append operator
         singleCountReads.input_file :+= bamFile

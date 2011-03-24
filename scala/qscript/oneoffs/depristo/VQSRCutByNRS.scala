@@ -1,4 +1,3 @@
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 import org.broadinstitute.sting.queue.QScript
@@ -18,7 +17,7 @@ class VQSRCutByNRS extends QScript {
   @Argument(fullName = "prefix", doc="Prefix argument", required=false)
   var prefix: String = ""
 
-  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(3) }
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = 3 }
 
 class Target(val name: String, val reference: File, val rodName: String, val VCF: File, val intervals: Option[String], val titvTarget: Double) {
     def clusterFile = new File(name + ".clusters")
@@ -67,9 +66,9 @@ class GenerateVariantClusters(t: Target) extends org.broadinstitute.sting.queue.
     this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
     this.analysisName = t.name + "_Cluster"
     if ( t.intervals != None ) this.intervalsString ++= List(t.intervals.get)
-    this.qual = Some(300)
-    this.std = Some(3.5)
-    this.mG = Some(16) // v2 calls
+    this.qual = 300
+    this.std = 3.5
+    this.mG = 16 // v2 calls
     // ignores
     this.ignoreFilter ++= FiltersToIgnore
 }
@@ -86,8 +85,8 @@ class VariantRecalibratorBase(t: Target, ans: List[String]) extends org.broadins
     if ( t.intervals != None ) this.intervalsString ++= List(t.intervals.get)
     this.ignoreFilter ++= FiltersToIgnore
     this.ignoreFilter ++= List("HARD_TO_VALIDATE")
-    this.priorDBSNP = Some(2.0)
-    this.priorHapMap = Some(2.0)
+    this.priorDBSNP = 2.0
+    this.priorHapMap = 2.0
     this.target_titv = t.titvTarget
     this.use_annotation ++= ans
     this.out = new File("/dev/null")
@@ -100,7 +99,7 @@ class VariantRecalibratorTiTv(t: Target, ans: List[String], prefix: String) exte
 }
 
 class VariantRecalibratorNRS(t: Target, ans: List[String], prefix: String) extends VariantRecalibratorBase(t,ans) {
-    this.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
+    this.sm = org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY
     this.tranche ++= List("50", "25", "10", "5", "2", "1", "0.5", "0.1")
     //this.out = new File(t.name + ".ts.recalibrated.vcf")
     this.tranchesFile = new File(t.name + prefix + ".ts.tranches")

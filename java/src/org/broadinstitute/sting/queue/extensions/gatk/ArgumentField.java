@@ -217,7 +217,7 @@ public abstract class ArgumentField {
      * @return true if option should be used.
      */
     protected static boolean useOption(Class<?> argType) {
-        return (argType.isPrimitive()) || (Number.class.isAssignableFrom(argType)) || (argType.isEnum());
+        return (argType.isPrimitive()) || (Number.class.isAssignableFrom(argType));
     }
 
     /**

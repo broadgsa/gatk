@@ -5,9 +5,6 @@ import org.broadinstitute.sting.queue.extensions.gatk._
  * An introductory pipeline with integration tests testing the MD5 of the @Output.
  */
 class ExampleCountLoci extends QScript {
-  @Input(doc="The path to the GenomeAnalysisTK.jar file.", shortName="gatk")
-  var gatkJar: File = null
-
   @Input(doc="The reference file for the bam files.", shortName="R")
   var referenceFile: File = null
 
@@ -22,12 +19,11 @@ class ExampleCountLoci extends QScript {
 
   def script = {
     val countLoci = new CountLoci
-    countLoci.jarFile = gatkJar
     countLoci.reference_sequence = referenceFile
     countLoci.input_file = bamFiles
     countLoci.intervalsString = intervals
     countLoci.out = out
-    countLoci.memoryLimit = Some(1)
+    countLoci.memoryLimit = 1
     add(countLoci)
   }
 }

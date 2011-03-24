@@ -69,7 +69,7 @@ trait GATKScatterFunction extends ScatterFunction {
   }
 
   override def isScatterGatherable = {
-    if (this.originalGATK.BTI != null && this.originalGATK.BTIMR.isEmpty)
+    if (this.originalGATK.BTI != null && this.originalGATK.BTIMR == null)
       throw new IllegalArgumentException("BTI requires BTIMR for use with scatter-gather (recommended: INTERSECTION)")
     this.originalGATK.reference_sequence != null
   }

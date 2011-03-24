@@ -1,7 +1,7 @@
 package oneoffs.carneiro
 
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
+import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 
@@ -173,11 +173,11 @@ class dataProcessingV2 extends QScript {
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.jarFile = qscript.GATKjar
     this.reference_sequence = qscript.reference
-    this.memoryLimit = Some(4)
+    this.memoryLimit = 4
     this.isIntermediate = true
   }
 
-  case class joinBams (inBams: List[File], outBam: File) extends PicardBamJarFunction {
+  case class joinBams (inBams: List[File], outBam: File) extends PicardBamFunction {
     @Input(doc="input bam list") var join = inBams
     @Output(doc="joined bam") var joined = outBam
     @Output(doc="joined bam index") var joinedIndex = new File(outBam + "bai")
@@ -194,7 +194,7 @@ class dataProcessingV2 extends QScript {
     if (!knownsOnly)
       this.input_file :+= inBams
     this.out = outIntervals
-    this.mismatchFraction = Some(0.0)
+    this.mismatchFraction = 0.0
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.rodBind :+= RodBind("indels", "VCF", indels)
     this.scatterCount = nContigs
@@ -210,14 +210,14 @@ class dataProcessingV2 extends QScript {
     this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
     this.useOnlyKnownIndels = knownsOnly
     this.doNotUseSW = useSW
-    this.compress = Some(0)
-    this.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
+    this.compress = 0
+    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outBam + ".clean"
     this.jobName = queueLogDir + outBam + ".clean"
   }
 
-  case class dedup (inBam: File, outBam: File, metricsFile: File) extends PicardBamJarFunction {
+  case class dedup (inBam: File, outBam: File, metricsFile: File) extends PicardBamFunction {
     @Input(doc="fixed bam") var clean = inBam
     @Output(doc="deduped bam") var deduped = outBam
     @Output(doc="deduped bam index") var dedupedIndex = new File(outBam + ".bai")
@@ -226,7 +226,7 @@ class dataProcessingV2 extends QScript {
     override def outputBam = deduped
     override def commandLine = super.commandLine + " M=" + metricsFile + " CREATE_INDEX=true"
     sortOrder = null
-    this.memoryLimit = Some(6)
+    this.memoryLimit = 6
     this.jarFile = qscript.dedupJar
     this.analysisName = queueLogDir + outBam + ".dedup"
     this.jobName = queueLogDir + outBam + ".dedup"
@@ -246,12 +246,12 @@ class dataProcessingV2 extends QScript {
     @Output(doc="recalibrated bam index") var recalIndex = new File(outBam + ".bai")
     this.input_file :+= inBam
     this.recal_file = inRecalFile
-    this.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
+    this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY
     this.out = outBam
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
-    this.U = Some(org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION)  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
-    this.index_output_bam_on_the_fly = Some(true)
+    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
+    this.index_output_bam_on_the_fly = true
     this.analysisName = queueLogDir + outBam + ".recalibration"
     this.jobName = queueLogDir + outBam + ".recalibration"
 

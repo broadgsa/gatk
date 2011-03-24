@@ -48,7 +48,7 @@ class ReadDepthCNVanalysis extends QScript {
     this.intervalsString = List(qscript.intervals)
     this.jarFile = qscript.gatkJarFile
     this.reference_sequence = qscript.referenceFile
-    //this.memoryLimit = Some(3)
+    //this.memoryLimit = 3
     this.logging_level = "INFO"
   }
 
@@ -98,8 +98,8 @@ class ReadDepthCNVanalysis extends QScript {
 
     this.input_file = t.bams
 
-    this.downsample_to_coverage = Some(MAX_DEPTH)
-    this.downsampling_type = Some(DownsampleType.BY_SAMPLE)
+    this.downsample_to_coverage = MAX_DEPTH
+    this.downsampling_type = DownsampleType.BY_SAMPLE
 
     this.scatterCount = scatterCountInput
     this.scatterClass = classOf[IntervalScatterFunction]
@@ -132,6 +132,6 @@ class ReadDepthCNVanalysis extends QScript {
     def commandLine = command
 
     // Since loading ALL of the output into the perl script can take significant memory:
-    this.memoryLimit = Some(9)
+    this.memoryLimit = 9
   }
 }

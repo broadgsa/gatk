@@ -2,7 +2,6 @@ import net.sf.picard.reference.FastaSequenceFile
 import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.DownsampleType
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
@@ -51,7 +50,7 @@ class Phase1Calling extends QScript {
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.reference
-    this.memoryLimit = Some(3)
+    this.memoryLimit = 3
     this.jobTempDir = qscript.tmpDir
     this.DBSNP = qscript.dbSNP
   }
@@ -79,12 +78,12 @@ class Phase1Calling extends QScript {
       var call = new UnifiedGenotyper with CommandLineGATKArgs
       call.intervalsString ++= List(qscript.intervals)
       call.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
-      call.dcov = Some( 50 )
-      call.stand_call_conf = Some( 4.0 )
-      call.stand_emit_conf = Some( 4.0 )
+      call.dcov = 50
+      call.stand_call_conf = 4.0
+      call.stand_emit_conf = 4.0
       call.input_file :+= bamList
       call.out = rawCalls
-      call.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY)
+      call.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY
       call.analysisName = baseName + "_UG"
 
       var filter = new VariantFiltration with CommandLineGATKArgs
@@ -106,9 +105,9 @@ class Phase1Calling extends QScript {
       gvc.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
       gvc.analysisName = baseName + "_GVC"
       gvc.intervalsString ++= List(qscript.intervals)
-      gvc.qual = Some(100) // clustering parameters to be updated soon pending new experimentation results
-      gvc.std = Some(4.5)
-      gvc.mG = Some(6)
+      gvc.qual = 100 // clustering parameters to be updated soon pending new experimentation results
+      gvc.std = 4.5
+      gvc.mG = 6
 
       var vr = new VariantRecalibrator with CommandLineGATKArgs
       vr.rodBind :+= RodBind("1kg", "VCF", qscript.omni)
@@ -120,13 +119,13 @@ class Phase1Calling extends QScript {
       vr.analysisName = baseName + "_VR"
       vr.intervalsString ++= List(qscript.intervals)
       vr.ignoreFilter ++= List("HARD_TO_VALIDATE")
-      vr.target_titv = Some(2.3)
-      vr.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
+      vr.target_titv = 2.3
+      vr.sm = org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY
       vr.tranche ++= List("0.1", "1.0", "2.0", "3.0", "5.0", "10.0", "100.0")
       vr.out = recalibratedCalls
-      vr.priorDBSNP = Some(10.0)
-      vr.priorHapMap = Some(12.0)
-      vr.prior1KG = Some(12.0)
+      vr.priorDBSNP = 10.0
+      vr.priorHapMap = 12.0
+      vr.prior1KG = 12.0
       vr.tranchesFile = tranchesFile      
 
       add(call, filter, gvc, vr)

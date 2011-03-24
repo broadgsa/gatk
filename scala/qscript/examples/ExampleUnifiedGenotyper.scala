@@ -15,9 +15,6 @@ class ExampleUnifiedGenotyper extends QScript {
 
   // Required arguments.  All initialized to empty values.
 
-  @Input(doc="The path to the GenomeAnalysisTK.jar file.", shortName="gatk")
-  var gatkJar: File = null // The command line must pass the gatk jar to this script via -gatk.
-
   @Input(doc="The reference file for the bam files.", shortName="R")
   var referenceFile: File = _ // _ is scala shorthand for null
 
@@ -39,12 +36,11 @@ class ExampleUnifiedGenotyper extends QScript {
   // This trait allows us set the variables below in one place,
   // and then reuse this trait on each CommandLineGATK function below.
   trait UnifiedGenotyperArguments extends CommandLineGATK {
-    this.jarFile = qscript.gatkJar
     this.reference_sequence = qscript.referenceFile
     this.intervals = List(qscript.intervals)
-    // Some() is how you set the value for an scala Option.
+    //  is how you set the value for an scala Option.
     // Set the memory limit to 2 gigabytes on each command.
-    this.memoryLimit = Some(2)
+    this.memoryLimit = 2
   }
 
 

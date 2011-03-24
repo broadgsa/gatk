@@ -22,13 +22,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.function.scattergather;
+package org.broadinstitute.sting.commandline;
 
 import java.lang.annotation.*;
 
 /**
- * Specifies the class type of the CommandLineFunction to gather an @Output
- * Written in java because scala doesn't support RetentionPolicy.RUNTIME
+ * Specifies the class type to gather an @Output
  */
 @Documented
 @Inherited

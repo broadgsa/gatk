@@ -39,14 +39,14 @@ class expanded_targets extends QScript {
       rtc.out = swapExt(userDir,u,".bam",".clean.targets.interval_list")
       rtc.input_file :+= u.getAbsoluteFile
       rtc.intervals :+= cleanIntervals.outList
-      rtc.memoryLimit = Some(6)
+      rtc.memoryLimit = 6
       rtc
     })
     val clean : List[IndelRealigner] = realign.map( u => {
       var cleaner : IndelRealigner = new IndelRealigner with GATKArgs
       cleaner.targetIntervals = u.out
       cleaner.input_file = u.input_file
-      cleaner.memoryLimit = Some(6)
+      cleaner.memoryLimit = 6
       cleaner.out = new File(userDir+"/"+swapExt(u.out,".bam",".expanded.targets.bam").getName)
       cleaner.intervals :+= cleanIntervals.outList
       cleaner
@@ -71,10 +71,10 @@ class expanded_targets extends QScript {
     var call : UnifiedGenotyper = new UnifiedGenotyper with GATKArgs
     call.input_file = bams
     call.out = swapExt(iList,".interval_list",".raw.vcf")
-    call.trig_emit_conf = Some(0.0)
+    call.trig_emit_conf = 0.0
     call.rodBind :+= new RodBind("trigger","vcf",thisTrigger)
     call.scatterCount = 10
-    call.memoryLimit = Some(6)
+    call.memoryLimit = 6
     var filter : VariantFiltration = new VariantFiltration with GATKArgs
     filter.rodBind :+= new RodBind("variant","vcf",call.out)
     filter.filterExpression :+= "\"QD<5.0\""
@@ -87,7 +87,7 @@ class expanded_targets extends QScript {
     callHiseq.input_file = List(new File("/seq/picard_aggregation/EXT1/NA12878/v3/NA12878.bam"))
     callHiseq.rodBind :+= new RodBind("trigger","vcf",filter.out)
     callHiseq.out = swapExt(iList,".interval_list",".hiSeq.genotypes.vcf")
-    callHiseq.trig_emit_conf = Some(0.0)
+    callHiseq.trig_emit_conf = 0.0
     callHiseq.scatterCount = 5
 
     add(call,filter,callHiseq)
@@ -98,8 +98,8 @@ class expanded_targets extends QScript {
     eval.rodBind :+= new RodBind("compHiSeq_atSites","vcf",callHiseq.out)
     eval.rodBind :+= new RodBind("compOMNI","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/764samples.deduped.b37.annot.vcf"))
     eval.out = swapExt(iList,".interval_list",".eval")
-    eval.reportType = Option(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
-    eval.memoryLimit = Some(4)
+    eval.reportType = org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV
+    eval.memoryLimit = 4
 
     add(eval)
     eval.out

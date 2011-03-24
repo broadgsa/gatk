@@ -65,7 +65,7 @@ class StandardVariantEvaluation extends QScript {
     this.jarFile = gatkJarFile;
     this.intervalsString = List(TARGET_INTERVAL);
     this.reference_sequence = referenceFile;
-    this.memoryLimit = Some(2)
+    this.memoryLimit = 2
   }
 
   def initializeStandardDataFiles() = {

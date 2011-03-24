@@ -111,15 +111,19 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     public static List<? extends ArgumentField> getArgumentFields(ParsingEngine parsingEngine,Class<?> classType) {
         List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
         for (ArgumentSource argumentSource: parsingEngine.extractArgumentSources(classType))
-            if (!argumentSource.isDeprecated())
+            if (!argumentSource.isDeprecated()) {
+                Class<?> gatherer = null;
+                if (argumentSource.field.isAnnotationPresent(Gather.class))
+                    gatherer = argumentSource.field.getAnnotation(Gather.class).value();
                 for (ArgumentDefinition argumentDefinition: argumentSource.createArgumentDefinitions())
-                    argumentFields.addAll(getArgumentFields(argumentDefinition));
+                    argumentFields.addAll(getArgumentFields(argumentDefinition, gatherer));
+            }
         return argumentFields;
     }
 
     private static final List<String> intervalFields = Arrays.asList("intervals", "excludeIntervals", "targetIntervals");
 
-    private static List<? extends ArgumentField> getArgumentFields(ArgumentDefinition argumentDefinition) {
+    private static List<? extends ArgumentField> getArgumentFields(ArgumentDefinition argumentDefinition, Class<?> gatherer) {
         if (intervalFields.contains(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Arrays.asList(
                     new IntervalFileArgumentField(argumentDefinition),
@@ -138,7 +142,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
             return Collections.singletonList(new InputArgumentField(argumentDefinition));
 
         } else if (argumentDefinition.ioType == ArgumentIOType.OUTPUT) {
-            return Collections.singletonList(new OutputArgumentField(argumentDefinition));
+            return Collections.singletonList(new OutputArgumentField(argumentDefinition, gatherer));
 
         } else if (argumentDefinition.isFlag) {
             return Collections.singletonList(new FlagArgumentField(argumentDefinition));
@@ -224,8 +228,10 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     // if (argumentDefinition.ioType == ArgumentIOType.OUTPUT)
     // Map all outputs to files.
     private static class OutputArgumentField extends ArgumentDefinitionField {
-        public OutputArgumentField(ArgumentDefinition argumentDefinition) {
+        private final Class<?> gatherer;
+        public OutputArgumentField(ArgumentDefinition argumentDefinition, Class<?> gatherer) {
             super(argumentDefinition);
+            this.gatherer = gatherer;
         }
 
         @Override protected Class<?> getInnerType() { return File.class; }
@@ -235,7 +241,9 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         @Override public boolean isGather() { return true; }
         @Override protected String getGatherAnnotation() {
             String gather;
-            if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+            if (gatherer != null)
+                gather = "@Gather(classOf[" + gatherer.getName() + "])%n";
+            else if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
                 gather = "@Gather(classOf[BamGatherFunction])%n";
             else if (VCFWriter.class.isAssignableFrom(argumentDefinition.argumentType))
                 gather = "@Gather(classOf[VcfGatherFunction])%n";
@@ -272,7 +280,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     }
 
     // if (!argumentDefinition.required && useOption(argumentDefinition.argumentType))
-    // Any optional arguments that are primitives / enums are wrapped in options.
+    // Any optional arguments that are primitives are wrapped in options.
     private static class OptionedArgumentField extends ArgumentDefinitionField {
         private final boolean useFormatter;
 

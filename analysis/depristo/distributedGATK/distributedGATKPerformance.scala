@@ -1,4 +1,3 @@
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 import org.broadinstitute.sting.queue.QScript
@@ -40,7 +39,7 @@ class DistributedGATKPerformance extends QScript {
   @Argument(shortName="trackerDir", doc="root directory for distributed tracker files", required=false)
   var trackerDir: String = "" // "/humgen/gsa-scr1/depristo/tmp/"
 
-  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "DEBUG"; jarFile = gatkJarFile; memoryLimit = Some(2); }
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "DEBUG"; jarFile = gatkJarFile; memoryLimit = 2; }
 
   class Target(
           val baseName: String,
@@ -154,9 +153,9 @@ class DistributedGATKPerformance extends QScript {
 
           def addUG(ug: UnifiedGenotyper) = {
             if ( ! long )
-              ug.jobLimitSeconds = Some(60 * 60 * 4)
+              ug.jobLimitSeconds = 60 * 60 * 4
             if ( limitTo30Min )
-              ug.jobLimitSeconds = Some(60 * 30)
+              ug.jobLimitSeconds = 60 * 30
             add(ug);
           }
 
@@ -171,7 +170,7 @@ class DistributedGATKPerformance extends QScript {
               var ug: UnifiedGenotyper = new UnifiedGenotyper(target, aname + ".part" + part)
               ug.intervalsString ++= getTargetInterval(target)
               ug.processingTracker = new File(trackerDir + target.name + "." + aname + ".distributed.txt")
-              ug.processingTrackerID = Some(part)
+              ug.processingTrackerID = part
               if ( part == 1 )
                 ug.performanceLog = new File("%s.%s.pf.log".format(target.name, aname))
               ug.processingTrackerStatusFile = new File("%s.%s.%d.ptstatus.log".format(target.name, aname, part))
@@ -186,12 +185,12 @@ class DistributedGATKPerformance extends QScript {
   // 1.) Call SNPs with UG
   class UnifiedGenotyper(t: Target, aname: String) extends org.broadinstitute.sting.queue.extensions.gatk.UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
-    this.dcov = Some( if ( t.isLowpass ) { 50 } else { 250 } )
-    this.stand_call_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
-    this.stand_emit_conf = Some( if ( t.isLowpass ) { 4.0 } else { 30.0 } )
+    this.dcov =  if ( t.isLowpass ) { 50 } else { 250 }
+    this.stand_call_conf =  if ( t.isLowpass ) { 4.0 } else { 30.0 }
+    this.stand_emit_conf =  if ( t.isLowpass ) { 4.0 } else { 30.0 }
     this.input_file :+= t.bamList
     this.out = t.rawVCF(aname)
-    this.baq = Some( if (t.useBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF})
+    this.baq =  if (t.useBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF}
     this.analysisName = t.name + "_UG." + aname
     if (t.dbsnpFile.endsWith(".rod"))
       this.DBSNP = new File(t.dbsnpFile)

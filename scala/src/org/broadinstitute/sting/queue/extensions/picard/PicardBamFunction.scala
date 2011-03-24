@@ -25,7 +25,9 @@
 package org.broadinstitute.sting.queue.extensions.picard
 
 import java.io.File
-import org.broadinstitute.sting.queue.function.CommandLineFunction
+import org.broadinstitute.sting.queue.function.JavaCommandLineFunction
+import net.sf.samtools.SAMFileReader.ValidationStringency
+import net.sf.samtools.SAMFileHeader.SortOrder
 
 /**
  * Wraps a Picard function that operates on BAM files.
@@ -34,9 +36,9 @@ import org.broadinstitute.sting.queue.function.CommandLineFunction
  * Since the various BAM utilities take slightly different arguments
  * some values are optional.
  */
-trait PicardBamFunction extends CommandLineFunction {
-  var validationStringency = "SILENT"
-  var sortOrder = "coordinate"
+trait PicardBamFunction extends JavaCommandLineFunction {
+  var validationStringency: ValidationStringency = ValidationStringency.SILENT
+  var sortOrder: SortOrder = SortOrder.coordinate
   var compressionLevel: Option[Int] = None
   var maxRecordsInRam: Option[Int] = None
   var assumeSorted: Option[Boolean] = None
@@ -45,7 +47,13 @@ trait PicardBamFunction extends CommandLineFunction {
   protected def outputBam: File
 
   abstract override def commandLine = super.commandLine +
-    Array(optional(" COMPRESSION_LEVEL=", compressionLevel), optional(" VALIDATION_STRINGENCY=", validationStringency),
-      optional(" SO=", sortOrder), optional( " MAX_RECORDS_IN_RAM=", maxRecordsInRam), optional(" ASSUME_SORTED=", assumeSorted),
-      " OUTPUT=" + outputBam, repeat(" INPUT=", inputBams), " TMP_DIR=" + jobTempDir).mkString
+    Array(
+      repeat(" INPUT=", inputBams),
+      " OUTPUT=" + outputBam,
+      " TMP_DIR=" + jobTempDir,
+      optional(" COMPRESSION_LEVEL=", compressionLevel),
+      optional(" VALIDATION_STRINGENCY=", validationStringency),
+      optional(" SO=", sortOrder),
+      optional(" MAX_RECORDS_IN_RAM=", maxRecordsInRam),
+      optional(" ASSUME_SORTED=", assumeSorted)).mkString
 }

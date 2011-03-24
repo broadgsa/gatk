@@ -38,7 +38,7 @@ class PhaseSamples extends QScript {
     this.intervalsString = List(qscript.intervals)
     this.jarFile = qscript.gatkJarFile
     this.reference_sequence = qscript.referenceFile
-    this.memoryLimit = Some(3)
+    this.memoryLimit = 3
     this.logging_level = "INFO"
   }
 
@@ -102,7 +102,7 @@ class PhaseSamples extends QScript {
 
     // add the master call:
     this.rodBind :+= RodBind("master", "VCF", masterCalls)
-    this.variantMergeOptions = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.MASTER)
+    this.variantMergeOptions = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.MASTER
 
     this.out = outputPhased
   }

@@ -1,4 +1,3 @@
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 import org.broadinstitute.sting.queue.QScript
@@ -19,7 +18,7 @@ class VQSR_parameterSearch extends QScript {
   @Argument(shortName="skipCalling", doc="If true, skip the calling part of the pipeline and only run VQSR on preset, gold standard VCF files", required=false)
   var skipCalling: Boolean = false
 
-  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = Some(2); }
+  trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; memoryLimit = 2; }
 
   class Target(val baseName: String, val reference: File, val rodName: String, val bamList: File, val goldStandard_VCF: File, val intervals: String, val titvTarget: Double, val isLowpass: Boolean) {
     def name = qscript.outputDir + baseName
@@ -309,12 +308,12 @@ class VQSR_parameterSearch extends QScript {
       }
       this.analysisName = name + "_GVC"
       this.intervalsString ++= List(t.intervals)
-      this.qual = Some(t.qualCutoff)
-      this.std = Some(t.std)
-      this.mG = Some(t.gaussian)
+      this.qual = t.qualCutoff
+      this.std = t.std
+      this.mG = t.gaussian
       this.ignoreFilter ++= FiltersToIgnore
-      this.dirichlet = Some(t.dirichlet)
-      this.shrinkage = Some(t.shrinkage)
+      this.dirichlet = t.dirichlet
+      this.shrinkage = t.shrinkage
   }
 
   // 4.) VQSR part2 Calculate new LOD for all input SNPs by evaluating the Gaussian clusters
@@ -336,8 +335,8 @@ class VQSR_parameterSearch extends QScript {
       this.intervalsString ++= List(t.intervals)
       this.ignoreFilter ++= FiltersToIgnore
       this.ignoreFilter ++= List("HARD_TO_VALIDATE")
-      this.target_titv = Some(t.titvTarget)
-      this.backOff = Some(t.backoff)
+      this.target_titv = t.titvTarget
+      this.backOff = t.backoff
   }
 
   // 4a.) Choose VQSR tranches based on novel ti/tv
@@ -350,7 +349,7 @@ class VQSR_parameterSearch extends QScript {
 
   // 4b.) Choose VQSR tranches based on sensitivity to truth set
   class VariantRecalibratorNRS(t: Target, goldStandard: Boolean) extends VariantRecalibratorBase(t, goldStandard) {
-      this.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
+      this.sm = org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY
       if(t.trainOmni == 0 ) {
         this.tranche ++= List("1.0")
       } else {

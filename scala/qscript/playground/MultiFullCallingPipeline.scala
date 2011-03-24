@@ -1,5 +1,5 @@
 import collection.JavaConversions
-import org.broadinstitute.sting.queue.function.JarCommandLineFunction
+import org.broadinstitute.sting.queue.function.JavaCommandLineFunction
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.util.IOUtils
 import org.broadinstitute.sting.utils.text.XReadLines
@@ -69,7 +69,7 @@ class MultiFullCallingPipeline extends QScript {
      * Runs a yaml in a pipeline only after a previous pipeline
      * run has produced the passed in output file.
      */
-    class RunPipeline(yamlFile: File, lastOutput: File) extends JarCommandLineFunction {
+    class RunPipeline(yamlFile: File, lastOutput: File) extends JavaCommandLineFunction {
       private var yamlName = yamlFile.getName.stripSuffix(".yaml")
 
       @Input(doc="output file to wait for", required=false)
@@ -81,7 +81,7 @@ class MultiFullCallingPipeline extends QScript {
       commandDirectory = yamlFile.getParentFile
       jobOutputFile = IOUtils.absolute(commandDirectory, yamlName + ".queue.txt")
       jarFile = queueJar
-      memoryLimit = Some(1)
+      memoryLimit = 1
 
       override def commandLine = super.commandLine +
         optional(" -statusTo ", qscript.pipelineStatusTo) +

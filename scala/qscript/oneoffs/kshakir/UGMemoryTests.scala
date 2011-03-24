@@ -35,13 +35,13 @@ class UGMemoryTests extends QScript {
         snps.jobOutputFile = new File(dir, "UnifiedGenotyper.out")
         snps.out = new File(dir, "UnifiedGenotyper.vcf")
         snps.input_file = squid1Bams.take(numBams/2) ++ squid2Bams.take(numBams/2)
-        snps.memoryLimit = Some(memoryLimit)
+        snps.memoryLimit = memoryLimit
 
         snps.jarFile = qscript.gatkJar
         snps.reference_sequence = pipeline.getProject.getReferenceFile
         snps.intervals = List(pipeline.getProject.getIntervalList)
         snps.rodBind :+= new RodBind("dbsnp", pipeline.getProject.getGenotypeDbsnpType, pipeline.getProject.getGenotypeDbsnp)
-        snps.downsample_to_coverage = Some(qscript.downsampling_coverage)
+        snps.downsample_to_coverage = qscript.downsampling_coverage
         snps.annotation ++= List("AlleleBalance")
         snps.group :+= "Standard"
 

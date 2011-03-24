@@ -35,14 +35,14 @@ class DoC extends QScript {
     this.jarFile = DoC.this.gatkJar
     this.reference_sequence = DoC.this.referenceFile
     this.intervalsString = DoC.this.intervalsString
-    this.memoryLimit = Some(8)
+    this.memoryLimit = 8
   }
 
 
   def script = {
     // Create the four function that we can run.
     val doc = new DepthOfCoverage with DepthOfCoverageArguments
-    doc.downsampling_type = Some(DownsampleType.NONE)
+    doc.downsampling_type = DownsampleType.NONE
     doc.omitLocusTable = true
     doc.omitIntervals = true
     doc.omitSampleSummary = true        

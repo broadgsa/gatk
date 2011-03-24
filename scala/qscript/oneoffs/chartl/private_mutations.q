@@ -61,7 +61,7 @@ class private_mutations extends QScript {
     eval_all.noStandard = true
     eval_all.E :+= "ACTransitionTable"
     eval_all.out = swapExt(finalMergedVCF,".vcf",".perm.csv")
-    eval_all.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+    eval_all.reportType = org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV
 
     add(eval_all)
 
@@ -70,7 +70,7 @@ class private_mutations extends QScript {
     eval_afr.rodBind :+= new RodBind("compEUR","VCF",extract_eur.outputVCF)
     eval_afr.E :+= "ACTransitionTable"
     eval_afr.out = swapExt(extract_afr.outputVCF,".vcf",".perm.csv")
-    eval_afr.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+    eval_afr.reportType = org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV
     eval_afr.noStandard = true
 
     add(eval_afr)
@@ -80,7 +80,7 @@ class private_mutations extends QScript {
     eval_eur.rodBind :+= new RodBind("evalEUR","VCF",extract_eur.outputVCF)
     eval_eur.E :+= "ACTransitionTable"
     eval_eur.out = swapExt(extract_eur.outputVCF,".vcf",".perm.csv")
-    eval_eur.reportType = Some(org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV)
+    eval_eur.reportType = org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV
     eval_eur.noStandard = true
 
     add(eval_eur)

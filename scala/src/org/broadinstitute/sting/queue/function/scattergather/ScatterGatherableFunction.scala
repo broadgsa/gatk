@@ -26,7 +26,7 @@ package org.broadinstitute.sting.queue.function.scattergather
 
 import java.io.File
 import org.broadinstitute.sting.queue.util._
-import org.broadinstitute.sting.commandline.ArgumentSource
+import org.broadinstitute.sting.commandline.{Gatherer, Gather, ArgumentSource}
 import org.broadinstitute.sting.queue.function.{QFunction, CommandLineFunction}
 import org.broadinstitute.sting.queue.QException
 
@@ -240,14 +240,29 @@ trait ScatterGatherableFunction extends CommandLineFunction {
    * @return A GatherFunction instantiated from @Gather.
    */
   protected def newGatherFunction(gatherField: ArgumentSource) : GatherFunction = {
-    var gatherClass: Class[_ <: GatherFunction] = null
+    var gatherClass: Class[_] = null
+
+    // Check if there is a function that will return the gather class for this field.
     if (this.gatherClass != null)
       if (this.gatherClass.isDefinedAt(gatherField))
         gatherClass = this.gatherClass(gatherField)
-    if (gatherClass == null)
-      gatherClass = ReflectionUtils.getAnnotation(gatherField.field, classOf[Gather])
-              .value.asSubclass(classOf[GatherFunction])
-    gatherClass.newInstance.asInstanceOf[GatherFunction]
+
+    // Check for an annotation defining the gather class.
+    if (gatherClass == null) {
+      if (ReflectionUtils.hasAnnotation(gatherField.field, classOf[Gather])) {
+        gatherClass = ReflectionUtils.getAnnotation(gatherField.field, classOf[Gather]).value
+      } else {
+        throw new QException("Missing @Gather annotation: " + gatherField.field.getName)
+      }
+    }
+
+    if (classOf[GatherFunction].isAssignableFrom(gatherClass)) {
+      gatherClass.newInstance.asInstanceOf[GatherFunction]
+    } else if (classOf[Gatherer].isAssignableFrom(gatherClass)) {
+      new GathererFunction(gatherClass.asSubclass(classOf[Gatherer]))
+    } else {
+      throw new QException("Unsupported @Gather class type: " + gatherClass)
+    }
   }
 
   /**

@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.queue
 
-import org.broadinstitute.sting.queue.util.Logging
+import util.{PrimitiveOptionConversions, Logging}
 import org.broadinstitute.sting.queue.function.QFunction
 import org.broadinstitute.sting.utils.text.XReadLines
 import annotation.target.field
@@ -32,7 +32,8 @@ import annotation.target.field
 /**
  * Defines a Queue pipeline as a collection of CommandLineFunctions.
  */
-trait QScript extends Logging {
+trait QScript extends Logging with PrimitiveOptionConversions {
+
   // Type aliases so users don't have to import
   type File = java.io.File
   type CommandLineFunction = org.broadinstitute.sting.queue.function.CommandLineFunction
@@ -49,7 +50,7 @@ trait QScript extends Logging {
   type Output = org.broadinstitute.sting.commandline.Output @field
   type Argument = org.broadinstitute.sting.commandline.Argument @field
   type ArgumentCollection = org.broadinstitute.sting.commandline.ArgumentCollection @field
-  type Gather = org.broadinstitute.sting.queue.function.scattergather.Gather @field
+  type Gather = org.broadinstitute.sting.commandline.Gather @field
 
   /**
    * Builds the CommandLineFunctions that will be used to run this script and adds them to this.functions directly or using the add() utility method.

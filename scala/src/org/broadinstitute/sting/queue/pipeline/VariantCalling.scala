@@ -57,7 +57,7 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
     ug.input_file = bams
     ug.out = output
     ug.downsample_to_coverage = Some(300)
-    ug.dt = Some(DownsampleType.BY_SAMPLE)
+    ug.dt = DownsampleType.BY_SAMPLE
     ug.scatterCount = 50
 
     if ( bams.size > 40 ) {
@@ -105,8 +105,8 @@ class VariantCalling(attribs: Pipeline,gatkJar: File) {
   def StandardIndelCombine( igList : List[IndelGenotyperV2], output : File ) : CombineVariants = {
     var cv = new CombineVariants with StandardCommandLineGATK
     cv.out = output
-    cv.genotypemergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNIQUIFY)
-    cv.variantmergeoption = Some(org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION)
+    cv.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.UNIQUIFY
+    cv.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
     cv.analysisName = "IndelGenotyper"
     cv.priority = (igList.map[String,List[String]](ig => swapExt(ig.out,".vcf","").getAbsolutePath)).mkString(",")
     //cv.priority = (igList.foldLeft[List[String]](Nil)( (prLs, ig) =>  prLs ::: List(swapExt(ig.out,".vcf","").getAbsolutePath))).mkString(",")
@@ -408,7 +408,7 @@ object VariantCalling {
     ugTokens.foreach( addEntry(_) )
 
     myUG.reference_sequence = new File(ugMap("reference_sequence"))
-    myUG.baq = Some(org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.valueOf(ugMap("baq")))
+    myUG.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.valueOf(ugMap("baq"))
     myUG.baqGapOpenPenalty = Some(ugMap("baqGapOpenPenalty").toDouble)
     myUG.DBSNP = new File(ugMap("DBSNP"))
 

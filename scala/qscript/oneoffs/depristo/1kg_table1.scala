@@ -127,10 +127,10 @@ class VariantEval(vcfIn: String, evalOut: String, vcfType: String = "VCF") exten
     this.rodBind :+= RodBind("eval", vcfType, vcfFile)
     this.out = new File(evalOut)
     this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_b36.rod")
-    this.reportType = Some(VE2TemplateType.Grep)
+    this.reportType = VE2TemplateType.Grep
     this.noStandard = true;
     this.evalModule :+= "CompOverlap"
-    this.memoryLimit = Some(3)
+    this.memoryLimit = 3
 
     override def dotString = "VariantEval: " + vcfFile.getName
 }
@@ -147,8 +147,8 @@ class StatPop(target: Target) extends CommandLineFunction {
 class Combine(vcfsInArg: List[String], vcfOutPath: String) extends org.broadinstitute.sting.queue.extensions.gatk.CombineVariants with UNIVERSAL_GATK_ARGS {
   val vcfs = vcfsInArg.map((x: String) => new File(x))
   val vcfFile = new File(vcfOutPath)
-  this.variantmergeoption = Some(VariantMergeType.UNION)
-  this.genotypemergeoption = Some(GenotypeMergeType.PRIORITIZE)
+  this.variantmergeoption = VariantMergeType.UNION
+  this.genotypemergeoption = GenotypeMergeType.PRIORITIZE
   this.out = vcfFile
   this.rodBind ++= vcfs.map( input => RodBind(input.getName,"VCF",input) )
   this.rod_priority_list = vcfs.map( _.getName ).mkString(",")
@@ -164,8 +164,8 @@ class DepthOfCoverage(bam: String, docOutPath: String, interval: String) extends
   val bamFile = new File(bam)
   this.omitIntervalStatistics = true
   this.omitDepthOutputAtEachBase = true
-  this.minBaseQuality = Some(0)
-  this.minMappingQuality = Some(0)
+  this.minBaseQuality = 0
+  this.minMappingQuality = 0
   this.out = new File(docOutPath)
   this.input_file :+= bamFile
   if (interval != null) {

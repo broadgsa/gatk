@@ -1,4 +1,3 @@
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamJarFunction
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.samtools.SamtoolsIndexFunction
 import org.broadinstitute.sting.queue.QScript
@@ -23,9 +22,6 @@ class recalibrate extends QScript {
   @Argument(shortName = "R", doc="ref")
   var referenceFile: File = _
 
-  @Argument(doc="X", required=false)
-  var picardMergeSamFilesJar: File = new File("/seq/software/picard/current/bin/MergeSamFiles.jar")
-
   trait UNIVERSAL_GATK_ARGS extends CommandLineGATK { logging_level = "INFO"; jarFile = gatkJarFile; reference_sequence = referenceFile;  }
 
 def script = {
@@ -40,13 +36,11 @@ def script = {
       val tableRecal = new TableRecalibrate(bamIn, recalData, recalBam) { useOriginalQualities = true }
       if ( scatter ) {
           tableRecal.intervals = List(new File("/humgen/gsa-hpprojects/GATK/data/chromosomes.hg18.interval_list"))
-	  //tableRecal.scatterClass = classOf[ContigScatterFunction]
-	  tableRecal.setupGatherFunction = { case (f: PicardBamJarFunction, _) => f.jarFile = picardMergeSamFilesJar; f.memoryLimit = Some(4) }
       	  tableRecal.scatterCount = 25
       }
       add(tableRecal)
       add(new Index(recalBam))
-      add(new CountCovariates(recalBam, recalRecalData) { num_threads = Some(4) })
+      add(new CountCovariates(recalBam, recalRecalData) { num_threads = 4 })
       add(new AnalyzeCovariates(recalData, new File(recalData.getPath() + ".analyzeCovariates")))
       add(new AnalyzeCovariates(recalRecalData, new File(recalRecalData.getPath() + ".analyzeCovariates")))
     }
@@ -65,7 +59,7 @@ class CountCovariates(bamIn: File, recalDataIn: File) extends org.broadinstitute
     this.DBSNP = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_hg18.rod")
     this.logging_level = "INFO"
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
-    this.memoryLimit = Some(3)
+    this.memoryLimit = 3
     
     override def dotString = "CountCovariates: %s [args %s]".format(bamIn.getName, if (this.num_threads.isDefined) "-nt " + this.num_threads else "")
 }
@@ -76,7 +70,7 @@ class TableRecalibrate(bamInArg: File, recalDataIn: File, bamOutArg: File) exten
     this.recal_file = recalDataIn
     this.out = bamOutArg
     this.logging_level = "INFO"
-    this.memoryLimit = Some(2)
+    this.memoryLimit = 2
     this.skipUQUpdate = skipUQUpdateArg
 
     override def dotString = "TableRecalibrate: %s => %s".format(bamInArg.getName, bamOutArg.getName, if (this.useOriginalQualities) " -OQ" else "")
@@ -87,9 +81,9 @@ class AnalyzeCovariates(recalDataIn: File, outputDir: File) extends  org.broadin
     this.recal_file = recalDataIn
     this.output_dir = outputDir.toString
     this.path_to_resources = "/home/radon01/depristo/dev/GenomeAnalysisTK/trunk/R/"
-    this.ignoreQ = Some(5)
+    this.ignoreQ = 5
     this.path_to_Rscript = "/broad/software/free/Linux/redhat_5_x86_64/pkgs/r_2.7.2/bin/Rscript"
-    this.memoryLimit = Some(2)
+    this.memoryLimit = 2
 
     override def dotString = "AnalyzeCovariates: %s".format(recalDataIn.getName)
 }

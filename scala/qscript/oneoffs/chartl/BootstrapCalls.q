@@ -37,14 +37,14 @@ class BootstrapCalls extends QScript {
     trait UGArgs extends UnifiedGenotyper {
       this.input_file = bams
       this.reference_sequence = reference
-      this.dcov = Some(downsamplingLevel)
+      this.dcov = downsamplingLevel
       this.intervals :+= intervalFile
-      this.stand_call_conf = Some(standCallConf)
-      this.stand_emit_conf = Some(standCallConf)
+      this.stand_call_conf = standCallConf
+      this.stand_emit_conf = standCallConf
       this.rodBind :+= new RodBind("dbsnp","vcf",dbsnp)
       this.scatterCount = 20
       this.jarFile = sting
-      this.memoryLimit = Some(4)
+      this.memoryLimit = 4
     }
 
     val bootstrapBase = swapExt(bootstrapMergedOut,".vcf",".boot%d.vcf").getAbsolutePath
@@ -63,7 +63,7 @@ class BootstrapCalls extends QScript {
       this.intervals :+= intervalFile
       this.scatterCount = 40
       this.jarFile = sting
-      this.memoryLimit = Some(4)
+      this.memoryLimit = 4
       this.rodBind ++= calls.map(u => u.out).zipWithIndex.map(u => new RodBind("bootstrap_%d".format(u._2),"vcf",u._1))
       this.out = bootstrapMergedOut
     }
@@ -81,11 +81,11 @@ class BootstrapCalls extends QScript {
       this.rodBind :+= new RodBind("truth1kg","vcf", new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/1212samples.b37.sites.vcf"))
       this.cluster_file = swapExt(bootstrapMergedOut,"vcf","cluster")
       this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
-      this.qual = Some(100)
-      this.std = Some(3.5)
-      this.mG = Some(8)
+      this.qual = 100
+      this.std = 3.5
+      this.mG = 8
       this.trustAllPolymorphic = true
-      this.memoryLimit = Some(8)
+      this.memoryLimit = 8
       this.jarFile = sting
     }
 
@@ -102,11 +102,11 @@ class BootstrapCalls extends QScript {
       this.rodBind :+= new RodBind("truthHapMap","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf"))
       this.rodBind :+= new RodBind("truth1kg","vcf", new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/1212samples.b37.sites.vcf"))
       this.cluster_file = swapExt(bootstrapMergedOut,"vcf","cluster")
-      this.sm = Some(org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY)
+      this.sm = org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator.SelectionMetricType.TRUTH_SENSITIVITY
       this.tranche ++= List("0.1", "0.5", "0.7", "1.0", "3.0", "5.0", "10.0", "100.0")
       this.trustAllPolymorphic = true
       this.tranchesFile = swapExt(bootstrapMergedOut,"vcf","tranche")
-      this.memoryLimit=Some(8)
+      this.memoryLimit=8
       this.jarFile = sting
       this.rodBind :+= new RodBind("dbsnp","vcf",dbsnp)
     }
@@ -119,10 +119,10 @@ class BootstrapCalls extends QScript {
       this.intervals :+= intervalFile
       this.rodBind :+= new RodBind("input","vcf",recal.out)
       this.tranchesFile = recal.tranchesFile
-      this.fdr_filter_level = Some(1.0)
+      this.fdr_filter_level = 1.0
       this.out = swapExt(bootstrapMergedOut,".vcf",".recal.cut.vcf")
       this.jarFile = sting
-      this.memoryLimit = Some(4)
+      this.memoryLimit = 4
       this.scatterCount = 5
     }
 
@@ -149,12 +149,12 @@ class BootstrapCalls extends QScript {
       this.intervals :+= intervalFile
       this.rodBind :+= new RodBind("loCov","vcf",rm.noheadvcf)
       this.rodBind :+= new RodBind("hiCov","vcf",new File("/humgen/gsa-pipeline/PVQF4/all_batches_v001/batch_001/SnpCalls/ESPGO_Gabriel_NHLBI_EOMI_setone_EOMI_Project.cleaned.annotated.handfiltered.vcf"))
-      this.variantMergeOptions = Some(VariantMergeType.UNION)
-      this.genotypeMergeOptions = Some(GenotypeMergeType.PRIORITIZE)
+      this.variantMergeOptions = VariantMergeType.UNION
+      this.genotypeMergeOptions = GenotypeMergeType.PRIORITIZE
       this.priority = "hiCov,loCov"
       this.out = swapExt(bootstrapMergedOut,".vcf",".merged.combined.vcf")
       this.jarFile = sting
-      this.memoryLimit = Some(6)
+      this.memoryLimit = 6
     }
 
     var combine : CombineVariants = new CombineVariants with CombineArgs
@@ -175,8 +175,8 @@ class BootstrapCalls extends QScript {
                               "\"set == 'hiCov'\"","\"set == 'FilteredInAll'\"")
       this.EV = List("TiTvVariantEvaluator","CountVariants","CompOverlap")
       this.out = swapExt(bootstrapMergedOut,".vcf",".merged.combined.eval")
-      this.nt = Some(8)
-      this.memoryLimit = Some(12)
+      this.nt = 8
+      this.memoryLimit = 12
     }
 
     var eval : VariantEval = new VariantEval with EvalArgs
