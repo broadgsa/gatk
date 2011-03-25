@@ -211,7 +211,12 @@ public class VariantAnnotatorEngine {
     private void annotateDBs(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc, Map<String, Object> infoAnnotations) {
         for ( Map.Entry<String, String> dbSet : dbAnnotations.entrySet() ) {
             if ( dbSet.getKey().equals(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME) ) {
-                String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                String rsID = null;
+
+                if (vc.isSNP())
+                    rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+                else if (vc.isIndel())
+                    rsID = DbSNPHelper.rsIDOfFirstRealIndel(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                 infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID == null ? false : true);
                 // annotate dbsnp id if available and not already there
                 if ( rsID != null && (!vc.hasID() || vc.getID().equals(VCFConstants.EMPTY_ID_FIELD)) )
