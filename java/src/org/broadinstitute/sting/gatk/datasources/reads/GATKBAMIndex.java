@@ -73,9 +73,6 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
 
     private SAMSequenceDictionary mBamDictionary = null;
 
-    private Integer mLastReferenceRetrieved = null;
-    private WeakHashMap<Integer,BAMIndexContent> mQueriesByReference = new WeakHashMap<Integer,BAMIndexContent>();
-
     public GATKBAMIndex(final File file, final SAMSequenceDictionary dictionary) {
         mFile = file;
         mBamDictionary = dictionary;
@@ -466,32 +463,8 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
      * @return The index information for this reference.
      */
     protected BAMIndexContent getQueryResults(final int referenceIndex) {
-        // WeakHashMap is a bit weird in that its lookups are done via equals() equality, but expirations must be
-        // handled via == equality.  This implementation jumps through a few hoops to make sure that == equality still
-        // holds even in the context of boxing/unboxing.
-
-        // If this query is for the same reference index as the last query, return it.
-        if(mLastReferenceRetrieved!=null && mLastReferenceRetrieved == referenceIndex)
-            return mQueriesByReference.get(referenceIndex);
-
-        // If not, check to see whether it's available in the cache.
-        BAMIndexContent queryResults = mQueriesByReference.get(referenceIndex);
-        if(queryResults != null) {
-            mLastReferenceRetrieved = referenceIndex;
-            mQueriesByReference.put(referenceIndex,queryResults);
-            return queryResults;
-        }
-
         // If not in the cache, attempt to load it from disk.
-        queryResults = query(referenceIndex,1,-1);
-        if(queryResults != null) {
-            mLastReferenceRetrieved = referenceIndex;
-            mQueriesByReference.put(referenceIndex,queryResults);
-            return queryResults;
-        }
-
-        // Not even available on disk.
-        return null;
+        return query(referenceIndex,1,-1);
     }
 
     /**
