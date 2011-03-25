@@ -355,16 +355,6 @@ public class UnifiedGenotyperEngine {
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         HashMap<String, Object> attributes = new HashMap<String, Object>();
 
-        String rsID = null;
-
-        if (vc.isSNP())
-            rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-        else if (vc.isIndel())
-            rsID = DbSNPHelper.rsIDOfFirstRealIndel(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-
-        if ( rsID != null )
-            attributes.put(VariantContext.ID_KEY, rsID);
-
         // if the site was downsampled, record that fact
         if ( rawContext.hasPileupBeenDownsampled() )
             attributes.put(VCFConstants.DOWNSAMPLED_KEY, true);
