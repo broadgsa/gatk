@@ -37,9 +37,10 @@ import net.sf.samtools.SAMFileHeader.SortOrder
  * some values are optional.
  */
 trait PicardBamFunction extends JavaCommandLineFunction {
-  var validationStringency: ValidationStringency = ValidationStringency.SILENT
-  var sortOrder: SortOrder = SortOrder.coordinate
+  var validationStringency = ValidationStringency.SILENT
+  var sortOrder = SortOrder.coordinate
   var compressionLevel: Option[Int] = None
+  var createIndex: Option[Boolean] = None
   var maxRecordsInRam: Option[Int] = None
   var assumeSorted: Option[Boolean] = None
 
@@ -55,5 +56,6 @@ trait PicardBamFunction extends JavaCommandLineFunction {
       optional(" VALIDATION_STRINGENCY=", validationStringency),
       optional(" SO=", sortOrder),
       optional(" MAX_RECORDS_IN_RAM=", maxRecordsInRam),
-      optional(" ASSUME_SORTED=", assumeSorted)).mkString
+      optional(" ASSUME_SORTED=", assumeSorted),
+      optional(" CREATE_INDEX=", createIndex)).mkString
 }

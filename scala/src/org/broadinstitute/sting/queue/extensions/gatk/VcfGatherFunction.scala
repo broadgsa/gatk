@@ -25,6 +25,8 @@
 package org.broadinstitute.sting.queue.extensions.gatk
 
 import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
+import org.broadinstitute.sting.queue.function.QFunction
+import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor
 
 /**
  * Merges a vcf text file.
@@ -33,7 +35,7 @@ class VcfGatherFunction extends CombineVariants with GatherFunction {
 
   private lazy val originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
 
-  override def freezeFieldValues = {
+  override def freezeFieldValues {
     this.memoryLimit = Some(1)
 
     this.jarFile = this.originalGATK.jarFile
@@ -45,6 +47,15 @@ class VcfGatherFunction extends CombineVariants with GatherFunction {
     this.rod_priority_list = (0 until this.gatherParts.size).map("input"+_).mkString(",")
     this.out = this.originalOutput
     this.assumeIdenticalSamples = true
+
+    // NO_HEADER and sites_only from VCFWriterArgumentTypeDescriptor
+    // are added by the GATKExtensionsGenerator to the subclass of CommandLineGATK
+
+    val noHeader = QFunction.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.NO_HEADER_ARG_NAME)
+    this.NO_HEADER = originalGATK.getFieldValue(noHeader).asInstanceOf[Boolean]
+
+    val sitesOnly = QFunction.findField(originalFunction.getClass, VCFWriterArgumentTypeDescriptor.SITES_ONLY_ARG_NAME)
+    this.sites_only = originalGATK.getFieldValue(sitesOnly).asInstanceOf[Boolean]
 
     super.freezeFieldValues
   }

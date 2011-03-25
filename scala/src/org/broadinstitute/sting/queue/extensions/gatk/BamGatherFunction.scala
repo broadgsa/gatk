@@ -26,9 +26,11 @@ package org.broadinstitute.sting.queue.extensions.gatk
 
 import org.broadinstitute.sting.queue.function.scattergather.GatherFunction
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
+import org.broadinstitute.sting.queue.function.QFunction
+import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor
 
 /**
- * Merges BAM files using Picards net.sf.picard.sam.MergeSamFiles.
+ * Merges BAM files using net.sf.picard.sam.MergeSamFiles.
  */
 class BamGatherFunction extends GatherFunction with PicardBamFunction {
   this.javaMainClass = "net.sf.picard.sam.MergeSamFiles"
@@ -36,8 +38,21 @@ class BamGatherFunction extends GatherFunction with PicardBamFunction {
   protected def inputBams = gatherParts
   protected def outputBam = originalOutput
 
-  override def init() {
+  override def freezeFieldValues {
+    val originalGATK = originalFunction.asInstanceOf[CommandLineGATK]
+
     // Whatever the original function can handle, merging *should* do less.
     this.memoryLimit = originalFunction.memoryLimit
+
+    // bam_compression and index_output_bam_on_the_fly from SAMFileWriterArgumentTypeDescriptor
+    // are added by the GATKExtensionsGenerator to the subclass of CommandLineGATK
+
+    val compression = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.COMPRESSION_FULLNAME)
+    this.compressionLevel = originalGATK.getFieldValue(compression).asInstanceOf[Option[Int]]
+
+    val indexBam = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.CREATE_INDEX_FULLNAME)
+    this.createIndex = originalGATK.getFieldValue(indexBam).asInstanceOf[Option[Boolean]]
+
+    super.freezeFieldValues
   }
 }

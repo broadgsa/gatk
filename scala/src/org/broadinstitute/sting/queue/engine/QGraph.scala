@@ -60,7 +60,7 @@ class QGraph extends Logging {
   private var running = true
   private val runningLock = new Object
   private var runningJobs = Set.empty[FunctionEdge]
-  private var intermediatesJobs = Set.empty[FunctionEdge]
+  private var cleanupJobs = Set.empty[FunctionEdge]
 
   private val nl = "%n".format()
 
@@ -394,7 +394,7 @@ class QGraph extends Logging {
           logStatusCounts
         logNextStatusCounts = false
 
-        deleteDoneIntermediates(lastRunningCheck)
+        deleteCleanup(lastRunningCheck)
 
         if (readyJobs.size == 0 && runningJobs.size > 0)
           Thread.sleep(nextRunningCheck(lastRunningCheck))
@@ -410,8 +410,8 @@ class QGraph extends Logging {
 
         runningJobs --= doneJobs
         runningJobs --= failedJobs
-        if (!settings.keepIntermediates)
-          intermediatesJobs ++= doneJobs.filter(_.function.isIntermediate)
+
+        addCleanup(doneJobs)
 
         statusCounts.running -= doneJobs.size
         statusCounts.running -= failedJobs.size
@@ -430,7 +430,7 @@ class QGraph extends Logging {
       }
 
       logStatusCounts
-      deleteDoneIntermediates(-1)
+      deleteCleanup(-1)
     } catch {
       case e =>
         logger.error("Uncaught error running jobs.", e)
@@ -503,19 +503,36 @@ class QGraph extends Logging {
     
     if (edge.status == RunnerStatus.DONE || edge.status == RunnerStatus.SKIPPED) {
       logger.debug("Already done: " + edge.function.description)
-      if (!settings.keepIntermediates && edge.function.isIntermediate)
-        intermediatesJobs += edge
+      addCleanup(edge)
     }
+  }
+
+  /**
+   * Checks if the functions should have their outptus removed after they finish running
+   * @param edges Functions to check
+   */
+  private def addCleanup(edges: Traversable[FunctionEdge]) {
+    edges.foreach(addCleanup(_))
+  }
+
+  /**
+   * Checks if the function should have their outptus removed after they finish running
+   * @param edges Function to check
+   */
+  private def addCleanup(edge: FunctionEdge) {
+    if (!settings.keepIntermediates)
+      if (edge.function.isIntermediate && edge.function.deleteIntermediateOutputs)
+        cleanupJobs += edge
   }
 
   /**
    * Continues deleting the outputs of intermediate jobs that are no longer needed until it's time to recheck running status.
    * @param lastRunningCheck The last time the status was checked.
    */
-  private def deleteDoneIntermediates(lastRunningCheck: Long) {
+  private def deleteCleanup(lastRunningCheck: Long) {
     var doneJobs = Set.empty[FunctionEdge]
 
-    for (edge <- intermediatesJobs) {
+    for (edge <- cleanupJobs) {
       val nextDone = nextFunctions(edge).forall(next => {
         val status = next.status
         (status == RunnerStatus.DONE || status == RunnerStatus.SKIPPED)
@@ -529,7 +546,7 @@ class QGraph extends Logging {
       if (running && !readyRunningCheck(lastRunningCheck)) {
         logger.debug("Deleting intermediates:" + edge.function.description)
         edge.function.deleteOutputs()
-        intermediatesJobs -= edge
+        cleanupJobs -= edge
       }
     }
   }

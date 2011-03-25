@@ -42,13 +42,13 @@ import java.io.OutputStream;
  * Insert a SAMFileWriterStub  instead of a full-fledged concrete OutputStream implementations.
  */
 public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
-    private static final String DEFAULT_ARGUMENT_FULLNAME = "outputBAM";
-    private static final String DEFAULT_ARGUMENT_SHORTNAME = "ob";
+    public static final String DEFAULT_ARGUMENT_FULLNAME = "outputBAM";
+    public static final String DEFAULT_ARGUMENT_SHORTNAME = "ob";
 
-    private static final String COMPRESSION_FULLNAME = "bam_compression";
-    private static final String COMPRESSION_SHORTNAME = "compress";
+    public static final String COMPRESSION_FULLNAME = "bam_compression";
+    public static final String COMPRESSION_SHORTNAME = "compress";
 
-    private static final String CREATE_INDEX_FULLNAME = "index_output_bam_on_the_fly";
+    public static final String CREATE_INDEX_FULLNAME = "index_output_bam_on_the_fly";
 
     /**
      * The engine into which output stubs should be fed.

@@ -41,9 +41,9 @@ import java.util.*;
  * @version 0.1
  */
 public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
-    private static final String NO_HEADER_ARG_NAME = "NO_HEADER";
-    private static final String SITES_ONLY_ARG_NAME = "sites_only";
-    private static final HashSet<String> SUPPORTED_ZIPPED_SUFFIXES = new HashSet<String>();
+    public static final String NO_HEADER_ARG_NAME = "NO_HEADER";
+    public static final String SITES_ONLY_ARG_NAME = "sites_only";
+    public static final HashSet<String> SUPPORTED_ZIPPED_SUFFIXES = new HashSet<String>();
 
     //
     // static list of zipped suffixes supported by this system.
