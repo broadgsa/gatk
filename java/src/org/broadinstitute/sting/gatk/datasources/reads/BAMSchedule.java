@@ -159,6 +159,9 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
             final long readerStopOffset = position();
 
             scheduleIterators.add(new PeekableIterator<BAMScheduleEntry>(new BAMScheduleIterator(reader,readerStartOffset,readerStopOffset,maxChunkCount)));
+
+            // Iterator initialization might move the file pointer.  Make sure it gets reset back to where it was before iterator initialization.
+            position(readerStopOffset);
         }
 
         advance();
@@ -296,6 +299,8 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
     private void write(final ByteBuffer buffer) {
         try {
             scheduleFileChannel.write(buffer);
+            if(buffer.remaining() > 0)
+                throw new ReviewedStingException("Unable to write entire buffer to file.");
         }
         catch(IOException ex) {
             throw new ReviewedStingException("Unable to write data to BAM schedule file.",ex);
