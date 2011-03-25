@@ -160,6 +160,12 @@ public class UnifiedGenotyperEngine {
         if ( UAC.COVERAGE_AT_WHICH_TO_ABORT > 0 && rawContext.size() > UAC.COVERAGE_AT_WHICH_TO_ABORT )
             return null;
 
+        // special case handling - avoid extended event pileups when calling indels if we're genotyping given alleles
+        // TODO - is this the right solution? otherwise we trigger twice and we get duplicate entries
+ /*       if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL && rawContext.hasExtendedEventPileup()
+                && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
+            return null;
+   */
         Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
         if ( stratifiedContexts == null )
             return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ? null : new VariantCallContext(generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext), refContext.getBase(), false));
@@ -349,7 +355,13 @@ public class UnifiedGenotyperEngine {
         // *** note that calculating strand bias involves overwriting data structures, so we do that last
         HashMap<String, Object> attributes = new HashMap<String, Object>();
 
-        String rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+        String rsID = null;
+
+        if (vc.isSNP())
+            rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+        else if (vc.isIndel())
+            rsID = DbSNPHelper.rsIDOfFirstRealIndel(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
+
         if ( rsID != null )
             attributes.put(VariantContext.ID_KEY, rsID);
 

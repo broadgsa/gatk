@@ -56,6 +56,28 @@ public class DbSNPHelper {
         return rsID;
     }
 
+    public static String rsIDOfFirstRealIndel(List<Object> featureList) {
+        if (featureList == null)
+            return null;
+
+        String rsID = null;
+        for ( Object d : featureList ) {
+            if ( d instanceof DbSNPFeature ) {
+                if ( DbSNPHelper.isIndel((DbSNPFeature)d) ) {
+                    rsID = ((DbSNPFeature)d).getRsID();
+                    break;
+                }
+            } else if ( d instanceof VariantContext) {
+                if ( ((VariantContext)d).isIndel() ) {
+                    rsID = ((VariantContext)d).getID();
+                    break;
+                }
+            }
+        }
+
+        return rsID;
+    }
+
     /**
      * get the -1 * (log 10 of the error value)
      *
