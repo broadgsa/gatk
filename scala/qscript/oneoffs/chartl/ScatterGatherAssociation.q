@@ -23,7 +23,7 @@ class ScatterGatherAssociation extends QScript {
   @Argument(fullName="memoryLimit",shortName="M",doc="Memory limit for SG jobs",required=false)
   var memLimit : Int = 4
   @Argument(fullName="scatterJobs",shortName="SJ",doc="Number of scatter jobs",required=false)
-  var scatterJobs : Int = 75
+  var scatterJobs : Int = 125
 
   val ASSOCIATION_TESTS = List("BaseQualityScore","InsertSizeDistribution","MappingQuality0",
     "MateMappingQuality","MateOtherContig","MateSameStrand","MateUnmapped","MismatchRate",
@@ -32,6 +32,9 @@ class ScatterGatherAssociation extends QScript {
 
   class RegionalAssociationSG(base : String, ext : String) extends CommandLineGATK with ScatterGatherableFunction{
     this.analysis_type = "RegionalAssociation"
+
+    @Argument(doc="useBed")
+    var useBed : Boolean = true
 
     // the rest are output files implicitly constructed by the multiplexer
 
@@ -78,7 +81,13 @@ class ScatterGatherAssociation extends QScript {
     @Gather(classOf[SimpleTextGatherFunction])
     var sd : File = new File(String.format("%s.%s.%s",base,"SampleDepth",ext))
 
-    override def commandLine = super.commandLine + " -AT ALL -o %s".format(base)
+    override def commandLine = {
+      var bedStr : String = ""
+      if ( useBed ) {
+        bedStr = " -bg "
+      }
+      super.commandLine + " -AT ALL -o %s%s".format(base,bedStr)
+    }
   }
 
   def script = {
@@ -91,6 +100,8 @@ class ScatterGatherAssociation extends QScript {
     }
 
     var association = new RegionalAssociationSG(outBase,ext)
+    association.useBed = ! dontUseBedGraph
+    association.sample_metadata :+= metaData
     association.intervals :+= intervalsFile
     association.reference_sequence = referenceFile
     association.jarFile = gatkJar

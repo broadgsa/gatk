@@ -26,7 +26,7 @@ public class AssociationTestRunner {
     // todo -- this was written when ACs could implement interfaces, now that they extend, there's no multiple inheritance
     static Normal standardNormal = new Normal(0.0,1.0,null);
 
-    private static int pToQ(double p) {
+    public static int pToQ(double p) {
         return Math.min((int) Math.floor(QualityUtils.phredScaleErrorRate(p)),MAX_Q_VALUE);
     }
 

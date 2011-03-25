@@ -18,6 +18,7 @@ import java.util.*;
 public class TableCodec implements ReferenceDependentFeatureCodec {
     private String delimiterRegex = "\\s+";
     private String headerDelimiter = "HEADER";
+    private String igvHeaderDelimiter = "track";
     private String commentDelimiter = "#";
     private ArrayList<String> header = new ArrayList<String>();
 
@@ -43,7 +44,7 @@ public class TableCodec implements ReferenceDependentFeatureCodec {
 
     @Override
     public Feature decode(String line) {
-        if (line.startsWith(headerDelimiter) || line.startsWith(commentDelimiter))
+        if (line.startsWith(headerDelimiter) || line.startsWith(commentDelimiter) || line.startsWith(igvHeaderDelimiter))
             return null;
         String[] split = line.split(delimiterRegex);
         if (split.length < 1)

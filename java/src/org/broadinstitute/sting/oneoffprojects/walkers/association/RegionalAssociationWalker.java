@@ -40,6 +40,13 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
 
     public void initialize() {
 
+        for ( Sample s : getSamples() ) {
+            if ( s.getProperty("cohort") == null ) {
+                throw new UserException("Sample "+s.getId()+" does not have a cohort property associated with it. "+
+                "Please ensure that metadata is bound with -SM and that sample "+s.getId()+" has the cohort property assigned.");
+            }
+        }
+
         Set<AssociationContext> validAssociations = getAssociations();
 
         if ( bedGraph ) {
