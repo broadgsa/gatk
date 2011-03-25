@@ -4,10 +4,24 @@ import java.lang.management.ManagementFactory
 import java.net.InetAddress
 
 /**
- * A collection of various system utilites.
+ * A collection of various system utilities.
  */
 object SystemUtils {
-  val pidAtHost = ManagementFactory.getRuntimeMXBean.getName
+  val inetAddress = InetAddress.getLocalHost.getHostAddress
   val hostName = InetAddress.getLocalHost.getCanonicalHostName
-  val domainName = hostName.split('.').takeRight(2).mkString(".")
+
+  val domainName = {
+    if (hostName == inetAddress)
+      inetAddress
+    else
+      hostName.split('.').takeRight(2).mkString(".")
+  }
+
+  val pidAtHost = {
+    val mxBeanName = ManagementFactory.getRuntimeMXBean.getName
+    if (hostName == inetAddress)
+      mxBeanName
+    else
+      mxBeanName.split('.').head
+  }
 }

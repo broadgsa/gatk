@@ -65,5 +65,5 @@ class QSettings {
  */
 object QSettings {
   /** A semi-unique job prefix using the host name and the process id. */
-  private val processNamePrefix = "Q-" + SystemUtils.pidAtHost.split('.')(0)
+  private val processNamePrefix = "Q-" + SystemUtils.pidAtHost
 }
