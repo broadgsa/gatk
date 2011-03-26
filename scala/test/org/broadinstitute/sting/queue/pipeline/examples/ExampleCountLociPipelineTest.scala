@@ -31,12 +31,14 @@ import org.broadinstitute.sting.BaseTest
 class ExampleCountLociPipelineTest {
   @Test
   def testCountLoci {
-    var testOut = "count.out"
+    val testOut = "count.out"
     val spec = new PipelineTestSpec
     spec.name = "countloci"
-    spec.args = "-S scala/qscript/examples/ExampleCountLoci.scala -R %s -I %s -o %s".format(
-      BaseTest.hg18Reference, BaseTest.validationDataLocation + "small_bam_for_countloci.bam", testOut
-    )
+    spec.args = Array(
+      " -S scala/qscript/examples/ExampleCountLoci.scala",
+      " -R " + BaseTest.hg18Reference,
+      " -I " + BaseTest.validationDataLocation + "small_bam_for_countloci.bam",
+      " -o " + testOut).mkString
     spec.fileMD5s += testOut -> "67823e4722495eb10a5e4c42c267b3a6"
     PipelineTest.executeTest(spec)
   }

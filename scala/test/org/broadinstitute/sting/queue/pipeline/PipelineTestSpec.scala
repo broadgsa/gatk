@@ -19,6 +19,9 @@ class PipelineTestSpec(var name: String = null) {
   /** Expected exception from the test. */
   var expectedException: Class[_ <: Exception] = null
 
+  /** If true will check the MD5s without failing. */
+  var parameterize = false
+
   def this(args: String, fileMD5s: Traversable[(String, String)]) = {
     this()
     this.args = args

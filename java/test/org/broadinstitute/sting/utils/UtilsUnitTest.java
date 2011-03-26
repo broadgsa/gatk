@@ -86,6 +86,18 @@ public class UtilsUnitTest extends BaseTest {
     public void testEscapeExpressions() {
         String[] expected, actual;
 
+        expected = new String[] {"one", "two", "three"};
+        actual = Utils.escapeExpressions("one two three");
+        Assert.assertEquals(actual, expected);
+        actual = Utils.escapeExpressions(" one two three");
+        Assert.assertEquals(actual, expected);
+        actual = Utils.escapeExpressions("one two three ");
+        Assert.assertEquals(actual, expected);
+        actual = Utils.escapeExpressions(" one two three ");
+        Assert.assertEquals(actual, expected);
+        actual = Utils.escapeExpressions("  one  two  three  ");
+        Assert.assertEquals(actual, expected);
+
         expected = new String[] {"one", "two", "three four", "five", "six"};
         actual = Utils.escapeExpressions("one two 'three four' five six");
         Assert.assertEquals(actual, expected);
@@ -94,6 +106,8 @@ public class UtilsUnitTest extends BaseTest {
         actual = Utils.escapeExpressions("one two 'three four' five six ");
         Assert.assertEquals(actual, expected);
         actual = Utils.escapeExpressions(" one two 'three four' five six ");
+        Assert.assertEquals(actual, expected);
+        actual = Utils.escapeExpressions("  one  two  'three four'  five  six  ");
         Assert.assertEquals(actual, expected);
 
         expected = new String[] {"one two", "three", "four"};
@@ -105,6 +119,8 @@ public class UtilsUnitTest extends BaseTest {
         Assert.assertEquals(actual, expected);
         actual = Utils.escapeExpressions(" 'one two' three four ");
         Assert.assertEquals(actual, expected);
+        actual = Utils.escapeExpressions("  'one two'  three  four  ");
+        Assert.assertEquals(actual, expected);
 
         expected = new String[] {"one", "two", "three four"};
         actual = Utils.escapeExpressions("one two 'three four'");
@@ -114,6 +130,8 @@ public class UtilsUnitTest extends BaseTest {
         actual = Utils.escapeExpressions("one two 'three four' ");
         Assert.assertEquals(actual, expected);
         actual = Utils.escapeExpressions(" one two 'three four' ");
+        Assert.assertEquals(actual, expected);
+        actual = Utils.escapeExpressions("  one  two  'three four'  ");
         Assert.assertEquals(actual, expected);
     }
 }

@@ -319,7 +319,7 @@ public class Utils {
         else if (args.indexOf('\"') != -1)
             return escapeExpressions(args, "\"");
         else
-            return args.split(" ");
+            return args.trim().split(" +");
     }
 
     /**
@@ -335,13 +335,13 @@ public class Utils {
         for (int i = 0; i < split.length - 1; i += 2) {
             arg = split[i].trim();
             if (arg.length() > 0) // if the unescaped arg has a size
-                command = Utils.concatArrays(command, arg.split(" "));
+                command = Utils.concatArrays(command, arg.split(" +"));
             command = Utils.concatArrays(command, new String[]{split[i + 1]});
         }
         arg = split[split.length - 1].trim();
         if (split.length % 2 == 1) // if the command ends with a delimiter
             if (arg.length() > 0) // if the last unescaped arg has a size
-                command = Utils.concatArrays(command, arg.split(" "));
+                command = Utils.concatArrays(command, arg.split(" +"));
         return command;
     }
 

@@ -150,7 +150,7 @@ object PipelineTest extends BaseTest with Logging {
     println(Utils.dupString('-', 80));
     executeTest(name, pipelineTest.args, pipelineTest.jobQueue, pipelineTest.expectedException)
     if (run) {
-      assertMatchingMD5s(name, pipelineTest.fileMD5s.map{case (file, md5) => new File(runDir(name), file) -> md5})
+      assertMatchingMD5s(name, pipelineTest.fileMD5s.map{case (file, md5) => new File(runDir(name), file) -> md5}, pipelineTest.parameterize)
       if (pipelineTest.evalSpec != null)
         validateEval(name, pipelineTest.evalSpec)
       println("  => %s PASSED".format(name))
@@ -159,11 +159,11 @@ object PipelineTest extends BaseTest with Logging {
       println("  => %s PASSED DRY RUN".format(name))
   }
 
-  private def assertMatchingMD5s(name: String, fileMD5s: Traversable[(File, String)]) {
+  private def assertMatchingMD5s(name: String, fileMD5s: Traversable[(File, String)], parameterize: Boolean) {
     var failed = 0
     for ((file, expectedMD5) <- fileMD5s) {
-      val calculatedMD5 = BaseTest.testFileMD5(name, file, expectedMD5, false)
-      if (expectedMD5 != "" && expectedMD5 != calculatedMD5)
+      val calculatedMD5 = BaseTest.testFileMD5(name, file, expectedMD5, parameterize)
+      if (!parameterize && expectedMD5 != "" && expectedMD5 != calculatedMD5)
         failed += 1
     }
     if (failed > 0)
