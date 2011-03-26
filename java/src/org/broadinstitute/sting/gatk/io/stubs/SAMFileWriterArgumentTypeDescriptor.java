@@ -48,6 +48,9 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public static final String COMPRESSION_FULLNAME = "bam_compression";
     public static final String COMPRESSION_SHORTNAME = "compress";
 
+    public static final String SIMPLIFY_BAM_FULLNAME = "simplifyBAM";
+    public static final String SIMPLIFY_BAM_SHORTNAME = SIMPLIFY_BAM_FULLNAME;
+
     public static final String CREATE_INDEX_FULLNAME = "index_output_bam_on_the_fly";
 
     /**
@@ -79,7 +82,8 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
         return Arrays.asList( createBAMArgumentDefinition(source),
                               createBAMCompressionArgumentDefinition(source),
-                              createWriteIndexArgumentDefinition(source));
+                              createWriteIndexArgumentDefinition(source),
+                              createSimplifyBAMArgumentDefinition(source));
     }
 
     @Override
@@ -114,6 +118,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
             stub.setCompressionLevel(compressionLevel);
 
         stub.setIndexOnTheFly(argumentIsPresent(createWriteIndexArgumentDefinition(source),matches));
+        stub.setSimplifyBAM(argumentIsPresent(createSimplifyBAMArgumentDefinition(source),matches));
 
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(stub,getArgumentTags(matches));
@@ -172,6 +177,22 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        CREATE_INDEX_FULLNAME,
                                        null,
                                        "Create a BAM index on-the-fly while writing the resulting file.",
+                                       false,
+                                       false,
+                                       false,
+                                       source.isHidden(),
+                                       null,
+                                       null,
+                                       null,
+                                       null );
+    }
+
+    private ArgumentDefinition createSimplifyBAMArgumentDefinition(ArgumentSource source) {
+        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
+                                       boolean.class,
+                                       SIMPLIFY_BAM_FULLNAME,
+                                       SIMPLIFY_BAM_SHORTNAME,
+                                       "If provided, output BAM files will be simplified to include just key reads for downstream variation discovery analyses (removing duplicates, PF-, non-primary reads), as well stripping all extended tags from the kept reads except the read group identifier",
                                        false,
                                        false,
                                        false,

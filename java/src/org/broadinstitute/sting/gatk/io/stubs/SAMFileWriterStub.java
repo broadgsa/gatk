@@ -108,6 +108,11 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
     BAQ baqHMM = new BAQ();
 
     /**
+     * Should we simplify the BAM file while writing it out?
+     */
+    private boolean simplifyBAM = false;
+
+    /**
      * Create a new stub given the requested SAM file and compression level.
      * @param engine source of header data, maybe other data about input files.
      * @param samFile SAM file to (ultimately) create.
@@ -138,7 +143,11 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
     }
 
     public boolean simplifyBAM() {
-        return engine.getArguments().simplifyBAM;
+        return simplifyBAM;
+    }
+
+    public void setSimplifyBAM(boolean v) {
+        simplifyBAM = v;
     }
 
     public OutputStream getSAMOutputStream() {
