@@ -118,6 +118,10 @@ public class GATKArgumentCollection {
     @Input(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
     public String DBSNPFile = null;
 
+    @Element(required = false)
+    @Argument(fullName = "simplifyBAM", shortName = "simplifyBAM", doc = "If provided, output BAM files will be simplified to include just key reads for downstream variation discovery analyses (removing duplicates, PF-, non-primary reads), as well stripping all extended tags from the kept reads except the read group identifier", required = false)
+    public boolean simplifyBAM = false;
+
     /**
      * The override mechanism in the GATK, by default, populates the command-line arguments, then
      * the defaults from the walker annotations.  Unfortunately, walker annotations should be trumped
@@ -433,6 +437,9 @@ public class GATKArgumentCollection {
             return false;
 
         if (enableLowMemorySharding != other.enableLowMemorySharding)
+            return false;
+
+        if ( simplifyBAM != other.simplifyBAM )
             return false;
 
         return true;

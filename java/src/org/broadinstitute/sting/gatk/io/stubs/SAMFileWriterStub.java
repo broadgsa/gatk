@@ -137,6 +137,10 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
         return samFile;
     }
 
+    public boolean simplifyBAM() {
+        return engine.getArguments().simplifyBAM;
+    }
+
     public OutputStream getSAMOutputStream() {
         return samOutputStream;
     }
