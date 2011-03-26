@@ -27,12 +27,12 @@ public class VariantRecalibrationWalkersV2IntegrationTest extends WalkerTest {
     VRTest yriTrio = new VRTest("yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
             "aa211561e6e9b1e323dec4eeaa318088",  // tranches
             "226adf939e90ad20599108e77ad25dae",  // recal file
-            "943cb30cad3bc23e4d945b523e1a67cd"); // cut VCF
+            "06c2335e860e19f23bcacff8d4ab906d"); // cut VCF
 
     VRTest lowPass = new VRTest("lowpass.N3.chr1.raw.vcf",
             "f4f2057a8c010206f0f56deff0602452",  // tranches
             "dd36d252a6dc6e3207addddae731dd88",  // recal file
-            "c142f2a3524dcd7a1a16233670aa5772"); // cut VCF
+            "af4fe8bd0c2eca92d1990b1a49fae810"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -64,6 +64,7 @@ public class VariantRecalibrationWalkersV2IntegrationTest extends WalkerTest {
                 "-R " + b36KGReference +
                         " -T ApplyRecalibration" +
                         " -L 1:60,000,000-115,000,000" +
+                        " -NO_HEADER" +
                         " -B:input,VCF " + params.inVCF +
                         " -o %s" +
                         " -tranchesFile " + getFileForMD5(params.tranchesMD5) +
