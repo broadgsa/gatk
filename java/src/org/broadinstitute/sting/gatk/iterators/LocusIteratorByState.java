@@ -309,7 +309,7 @@ public class LocusIteratorByState extends LocusIterator {
 
     public void printState() {
         for(Sample sample: samples) {
-            Iterator<SAMRecordState> iterator = readStates.iteratorForSample(sample);
+            Iterator<SAMRecordState> iterator = readStates.iterator(sample);
             while(iterator.hasNext()) {
                 SAMRecordState state = iterator.next();
                 logger.debug(String.format("printState():"));
@@ -367,9 +367,9 @@ public class LocusIteratorByState extends LocusIterator {
 
                 boolean hasBeenSampled = false;
                 for(Sample sample: samples) {
-                    ReadStateManager.PerSampleReadStateManager psrsm = readStates.readStatesBySample.get(sample);
-                    ArrayList<ExtendedEventPileupElement> indelPile = new ArrayList<ExtendedEventPileupElement>(psrsm.size());
-                    hasBeenSampled |= loc.getStart() <= psrsm.getDownsamplingExtent();
+                    Iterator<SAMRecordState> iterator = readStates.iterator(sample);
+                    List<ExtendedEventPileupElement> indelPile = new ArrayList<ExtendedEventPileupElement>(readStates.size(sample));
+                    hasBeenSampled |= loc.getStart() <= readStates.getDownsamplingExtent(sample);
 
                     size = 0;
                     nDeletions = 0;
@@ -377,7 +377,8 @@ public class LocusIteratorByState extends LocusIterator {
                     nMQ0Reads = 0;
                     int maxDeletionLength = 0;
 
-                    for ( SAMRecordState state : psrsm ) {
+                    while(iterator.hasNext()) {
+                        SAMRecordState state = iterator.next();
                         if ( state.hadIndel() ) {
                             size++;
                             if ( state.getEventBases() == null ) {
@@ -432,16 +433,17 @@ public class LocusIteratorByState extends LocusIterator {
                 Map<Sample,ReadBackedPileupImpl> fullPileup = new HashMap<Sample,ReadBackedPileupImpl>();
 
                 boolean hasBeenSampled = false;
-                for ( Sample sample: samples ) {
-                    ReadStateManager.PerSampleReadStateManager psrsm = readStates.readStatesBySample.get(sample);
-                    ArrayList<PileupElement> pile = new ArrayList<PileupElement>(psrsm.size());
-                    hasBeenSampled |= location.getStart() <= psrsm.getDownsamplingExtent();
+                for(Sample sample: samples) {
+                    Iterator<SAMRecordState> iterator = readStates.iterator(sample);
+                    List<PileupElement> pile = new ArrayList<PileupElement>(readStates.size(sample));
+                    hasBeenSampled |= location.getStart() <= readStates.getDownsamplingExtent(sample);
 
                     size = 0;
                     nDeletions = 0;
                     nMQ0Reads = 0;
 
-                    for ( SAMRecordState state : psrsm ) {
+                    while(iterator.hasNext()) {
+                        SAMRecordState state = iterator.next();
                         if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
                             if ( filterRead(state.getRead(), location.getStart(), filters ) ) {
                                 //discarded_bases++;
@@ -496,7 +498,7 @@ public class LocusIteratorByState extends LocusIterator {
 
     private void updateReadStates() {
         for(Sample sample: samples) {
-            Iterator<SAMRecordState> it = readStates.iteratorForSample(sample);
+            Iterator<SAMRecordState> it = readStates.iterator(sample);
             while ( it.hasNext() ) {
                 SAMRecordState state = it.next();
                 CigarOperator op = state.stepForwardOnGenome();
@@ -548,7 +550,13 @@ public class LocusIteratorByState extends LocusIterator {
             samplePartitioner = new SamplePartitioner(readSelectors);
         }
 
-        public Iterator<SAMRecordState> iteratorForSample(final Sample sample) {
+        /**
+         * Returns a iterator over all the reads associated with the given sample.  Note that remove() is implemented
+         * for this iterator; if present, total read states will be decremented.
+         * @param sample The sample.
+         * @return Iterator over the reads associated with that sample.
+         */
+        public Iterator<SAMRecordState> iterator(final Sample sample) {
             return new Iterator<SAMRecordState>() {
                 private Iterator<SAMRecordState> wrappedIterator = readStatesBySample.get(sample).iterator();
 
@@ -571,8 +579,31 @@ public class LocusIteratorByState extends LocusIterator {
             return totalReadStates == 0;
         }
 
+        /**
+         * Retrieves the total number of reads in the manager across all samples.
+         * @return Total number of reads over all samples.
+         */
         public int size() {
             return totalReadStates;
+        }
+
+        /**
+         * Retrieves the total number of reads in the manager in the given sample.
+         * @param sample The sample.
+         * @return Total number of reads in the given sample.
+         */
+        public int size(final Sample sample) {
+            return readStatesBySample.get(sample).size();
+        }
+
+        /**
+         * The extent of downsampling; basically, the furthest base out which has 'fallen
+         * victim' to the downsampler.
+         * @param sample Sample, downsampled independently.
+         * @return Integer stop of the furthest undownsampled region.
+         */
+        public int getDownsamplingExtent(final Sample sample) {
+            return readStatesBySample.get(sample).getDownsamplingExtent();
         }
 
         public SAMRecordState getFirst() {
@@ -785,7 +816,7 @@ public class LocusIteratorByState extends LocusIterator {
                         if(currentCounter.getCount() == 0)
                             counterIterator.remove();
                         removedCount++;
-                        toPurge = elements.nextSetBit(toPurge+1);                        
+                        toPurge = elements.nextSetBit(toPurge+1);
                     }
 
                     readIndex++;
