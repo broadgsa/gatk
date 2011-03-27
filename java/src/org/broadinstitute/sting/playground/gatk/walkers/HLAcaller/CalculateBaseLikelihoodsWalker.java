@@ -36,6 +36,7 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.pileup.FragmentPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 
 import java.util.ArrayList;
@@ -120,11 +121,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
             for ( PileupElement p : context.getBasePileup() ) {
                 byte base = p.getBase();
                 if (!ReadsToDiscard.contains(p.getRead().getReadName()) && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
-
-                    // TODO-- move this outside, e.g. to ReadBackedPileup
-                    HashSet<PileupElement> fragment = new HashSet<PileupElement>();
-                    fragment.add(p);
-                    G.add(new PerFragmentPileupElement(fragment), true, false);
+                    G.add(p, true, false);
                     //if (DEBUG){
                         if (base == 'A'){numAs++;}
                         else if (base == 'C'){numCs++;}

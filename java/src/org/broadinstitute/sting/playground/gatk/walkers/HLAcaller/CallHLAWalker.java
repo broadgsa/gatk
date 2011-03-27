@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.pileup.FragmentPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -368,10 +369,7 @@ public class CallHLAWalker extends LocusWalker<Integer, Pair<Long, Long>>{
                         }
                     }else{
                         //consider base in likelihood calculations if it looks good and has high mapping score
-                        // TODO-- move this outside, e.g. to ReadBackedPileup
-                        HashSet<PileupElement> fragment = new HashSet<PileupElement>();
-                        fragment.add(p);
-                        G.add(new PerFragmentPileupElement(fragment), true, false);
+                        G.add(p, true, false);
                         if (!AllReadNames.contains(readname)){AllReadNames.add(readname); AllReads.add(p.getRead());}
                         if (base == 'A'){numAs++; depth++;}
                         else if (base == 'C'){numCs++; depth++;}
