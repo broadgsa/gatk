@@ -4,10 +4,6 @@ import org.broadinstitute.sting.gatk.filters.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.iterators.LocusIteratorFilter;
-
-import java.util.List;
-import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -28,16 +24,4 @@ public abstract class LocusWalker<MapType, ReduceType> extends Walker<MapType, R
 
     // Map over the org.broadinstitute.sting.gatk.contexts.AlignmentContext
     public abstract MapType map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context);
-
-    /**
-     * Returns the set of locus iterator discards that this walker wants the engine to discard automatically
-     *
-     * By default, locus walkers ignore adaptor bases but still see the both bases in the overlapping but non-adaptor
-     * parts of the reads.
-     * @return
-     */
-    public List<LocusIteratorFilter> getDiscards() {
-        LocusIteratorFilter filter = new InAdaptorFilter();
-        return Arrays.asList(filter);
-    }
 }

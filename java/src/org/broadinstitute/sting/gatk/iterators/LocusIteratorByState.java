@@ -38,6 +38,7 @@ import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.*;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
 
@@ -45,13 +46,6 @@ import java.util.*;
 public class LocusIteratorByState extends LocusIterator {
 //    private static long discarded_bases = 0L;
 //    private static long observed_bases = 0L;
-
-    //
-    // todo -- eric, add your UG filters here
-    //
-    //public enum Discard { ADAPTOR_BASES }
-    //public static final EnumSet<Discard> NO_DISCARDS = EnumSet.noneOf(Discard.class);
-    public static final List<LocusIteratorFilter> NO_FILTERS = Arrays.asList();
 
     /** our log, which we want to capture anything from this class */
     private static Logger logger = Logger.getLogger(LocusIteratorByState.class);
@@ -269,7 +263,6 @@ public class LocusIteratorByState extends LocusIterator {
     //final boolean DEBUG2 = false && DEBUG;
     private ReadProperties readInfo;
     private AlignmentContext nextAlignmentContext;
-    private List<LocusIteratorFilter> filters = new ArrayList<LocusIteratorFilter>();    
 
     // -----------------------------------------------------------------------------------------------------------------
     //
@@ -278,14 +271,9 @@ public class LocusIteratorByState extends LocusIterator {
     // -----------------------------------------------------------------------------------------------------------------
 
     public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, GenomeLocParser genomeLocParser, SampleDataSource sampleData ) {
-        this(samIterator, readInformation, genomeLocParser, sampleData, NO_FILTERS);
-    }
-
-    public LocusIteratorByState(final Iterator<SAMRecord> samIterator, ReadProperties readInformation, GenomeLocParser genomeLocParser, SampleDataSource sampleData, List<LocusIteratorFilter> filters ) {
         this.readInfo = readInformation;
         this.genomeLocParser = genomeLocParser;
-        this.filters = filters;
-        
+
         // get the list of samples
         this.samples = new ArrayList<Sample>(sampleData.getSamples());
         
@@ -445,7 +433,7 @@ public class LocusIteratorByState extends LocusIterator {
                     while(iterator.hasNext()) {
                         SAMRecordState state = iterator.next();
                         if ( state.getCurrentCigarOperator() != CigarOperator.D && state.getCurrentCigarOperator() != CigarOperator.N ) {
-                            if ( filterRead(state.getRead(), location.getStart(), filters ) ) {
+                            if ( filterBaseInRead(state.getRead(), location.getStart()) ) {
                                 //discarded_bases++;
                                 //printStatus("Adaptor bases", discarded_adaptor_bases);
                                 continue;
@@ -487,13 +475,15 @@ public class LocusIteratorByState extends LocusIterator {
         }
     }
 
-    private static boolean filterRead(SAMRecord rec, long pos, List<LocusIteratorFilter> filters) {
-        for ( LocusIteratorFilter filter : filters ) {
-            if ( filter.filterOut(rec, pos) ) {
-                return true;
-            }
-        }
-        return false;
+    /**
+     * Generic place to put per-base filters appropriate to LocusIteratorByState
+     *
+     * @param rec
+     * @param pos
+     * @return
+     */
+    private static boolean filterBaseInRead(SAMRecord rec, long pos) {
+        return ReadUtils.readPairBaseOverlapType(rec, pos) == ReadUtils.OverlapType.IN_ADAPTOR;
     }
 
     private void updateReadStates() {
