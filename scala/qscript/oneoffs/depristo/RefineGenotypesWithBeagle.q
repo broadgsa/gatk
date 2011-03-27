@@ -16,17 +16,20 @@ class RefineGenotypesWithBeagle extends QScript {
   @Argument(doc="Reference file",required=true,shortName="R") var reference: File = _
   @Argument(doc="Beagle interval",required=false,shortName="L") var interval: String = null
   @Argument(doc="Evaluation interval",required=false,shortName="Le") var EvalInterval: String = null
-  @Argument(doc="Memory in GB for beagle",required=false,shortName="BM") var BEAGLE_MEM_IN_GB: Int = 6
+  @Argument(doc="Memory in GB for beagle",required=false,shortName="BM") var BEAGLE_MEM_IN_GB: Int = 12
   @Argument(doc="X",required=false,shortName="cc") var CALIBRATION_CURVE: File = new File("vqsr.calibration.curve")
 
   @Argument(doc="X",required=false,shortName="test") var TEST: Boolean = false
+  @Argument(doc="If provided, we'll skip over creating the reference panels, even if apparently required",required=false,shortName="assumeReferencePanelsExist") var assumeReferencePanelsExist: Boolean = false
   @Argument(doc="Tmpdir",required=false,shortName="tmpdir") var TMPDIR: File = new File("./")
 
   // assessing imputation performance
+  @Argument(doc="VCF sites and alleles for genotyping assessment",required=false,shortName="assessmentSites") var assessmentSites: File = null
   @Argument(doc="BAM File for genotyping",required=false, shortName="bam") var bam: File = null
   @Argument(doc="Percent of sites that should be left out of BAM VCF to assess imputation", required=false, shortName="flo")
   var fractionsLeftOut: List[Double] = List(0.1, 0.2, 0.5, 0.9)
   // todo -- this might be best to think about in a different unit -- marker density per bp
+
 
   val MISSING_KEY = "?"
   val HM3_VCF: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf")
@@ -116,14 +119,11 @@ class RefineGenotypesWithBeagle extends QScript {
     beagleInput.out = swapExt(outputVCF,".vcf",".beagle")
     if ( useCalibrationCurve ) beagleInput.cc = CALIBRATION_CURVE
     beagleInput.markers = swapExt(outputVCF, ".vcf", ".markers.txt")
-    beagleInput.isIntermediate = true
 
     val refine = new RefineGenotypesWithBeagle(beagleInput.out, moreBeagleArgs)
 
     val unzipPhased = new GunzipFile(refine.beaglePhasedFile,swapExt(refine.beaglePhasedFile,".gz",".bgl"))
     val unzipProbs = new GunzipFile(refine.beagleLikelihoods,swapExt(refine.beagleLikelihoods,".gz",".bgl"))
-    //unzipPhased.isIntermediate = true
-    //unzipProbs.isIntermediate = true
 
     val vcfConvert = new BeagleOutputToVCF with GATKArgs
     vcfConvert.variantVCF = inputVCF
@@ -200,27 +200,29 @@ class RefineGenotypesWithBeagle extends QScript {
   }
 
   def script = {
-    for ( vcf <- vcfsToBeagle ) {
-      var bamGenotypes: File = null
-      if ( bam != null ) {
-        bamGenotypes = new File(swapExt(bam, ".bam", "_genotyped_at." + vcf.getName).getName)
-        add(new GenotypeBAMAtSites(bam, vcf, bamGenotypes))
-      }
+    var bamGenotypes: File = null
 
+    if ( bam != null ) {
+      bamGenotypes = new File(swapExt(bam, ".bam", "_genotyped_at." + assessmentSites.getName).getName)
+      add(new GenotypeBAMAtSites(bam, assessmentSites, bamGenotypes))
+    }
+
+    for ( vcf <- vcfsToBeagle ) {
       if ( ! TEST ) add(new EvalPanelAtChipSites(vcf))
       for ( useCalibrationCurve <- List(true, false) ) {
         for ( niter <- List(10, 20, 50) ) {
           if ( ! TEST || (niter == 10 && ! useCalibrationCurve)) {
-            val refine_out = swapExt(vcf, ".vcf", ".refined.niter_%d_cc_%b.vcf".format(niter, useCalibrationCurve))
+            val refineFilenamePart = "niter_%d_cc_%b".format(niter, useCalibrationCurve)
+            val refine_out = swapExt(vcf, ".vcf", ".refined.%s.vcf".format(refineFilenamePart))
             val refPanel = new ReferencePanelBuilder(vcf, refine_out, useCalibrationCurve, "niterations=%d".format(niter))
-            refPanel.enqueueCommands()
+            if ( ! assumeReferencePanelsExist ) refPanel.enqueueCommands()
 
             // start up VE
             add(new EvalPanelAtChipSites(refine_out))
 
             if ( bamGenotypes != null ) {
-              for ( fractionLeftOut <- fractionsLeftOut ) {
-                val bamGenotypesImputed = swapExt(bamGenotypes, ".vcf", "_flo_%.2f.imputed.vcf".format(fractionLeftOut))
+              for ( fractionLeftOut <- if ( TEST ) List(0.1) else fractionsLeftOut ) {
+                val bamGenotypesImputed = swapExt(bamGenotypes, ".vcf", "_flo_%.2f.imputed_with_%s".format(fractionLeftOut, refine_out))
                 val args = "niterations=%d missing=\"%s\"".format(niter, MISSING_KEY)
                 val panelEval = new EvaluateReferencePanel(bamGenotypes, bamGenotypesImputed, refPanel, fractionLeftOut, args)
                 panelEval.enqueueCommands()
