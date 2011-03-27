@@ -21,6 +21,9 @@ class ManySampleUGPerformanceTesting extends QScript {
   @Argument(shortName = "dcov", doc="dcov", required=false)
   val DCOV: Int = 50;
 
+  @Argument(shortName = "exome", doc="exome ",required=false)
+  val EXOME_NSAMPLES: Boolean = false;
+
   val MERGED_DIR = new File("/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/manySampleUGPerformance/")
 
   trait UNIVERSAL_GATK_ARGS extends CommandLineGATK {
@@ -29,13 +32,12 @@ class ManySampleUGPerformanceTesting extends QScript {
     this.intervals = List(new File(TARGET_INTERVAL));
     this.reference_sequence = referenceFile;
     this.jobQueue = "gsa";
-    this.memoryLimit = 4
+    this.memoryLimit = 8
     //this.commandDirectory = new File("results");
   }
 
   def script = {
-    for (nSamples <- List(1, 2, 4, 8, 16, 32, 60)) {
-//      for (nSamples <- List(1, 2, 5, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900)) {
+    for (nSamples <- if ( EXOME_NSAMPLES) List(1, 2, 4, 8, 16, 32, 60) else List(1, 2, 5, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900) ) {
 //    for (nSamples <- List(10)) {
       val sublist = new SliceList(nSamples)
       val mergeSublist = new MergeBAMs(sublist.list)
@@ -52,12 +54,7 @@ class ManySampleUGPerformanceTesting extends QScript {
       // SNP calling
       //add(new Call(sublist.list, nSamples, "dynamic_merge"))
       val gt = new Call(bams, nSamples, name);
-      gt.exactCalculation = org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel.ExactCalculation.N2_GOLD_STANDARD
       add(gt)
-
-      val gtLinear = new Call(bams, nSamples, name + "_linear");
-      gtLinear.exactCalculation = org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL
-      add(gtLinear)
 
       // SNP calling -- no annotations
       //add(new Call(bams.list, nSamples, "dynamic_merge_no_annotations") { this.G :+= "None"; })
