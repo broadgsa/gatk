@@ -34,10 +34,6 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
 
@@ -240,6 +236,14 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         return getPriors()[g.ordinal()];
     }
 
+    // -------------------------------------------------------------------------------------
+    //
+    // add() routines.  These are the workhorse routines for calculating the overall genotype
+    // likelihoods given observed bases and reads.  Includes high-level operators all the
+    // way down to single base and qual functions.
+    //
+    // -------------------------------------------------------------------------------------
+
     public int add(ReadBackedPileup pileup) {
         return add(pileup, false, false);
     }
@@ -258,59 +262,58 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
         int n = 0;
 
         // for each fragment, add to the likelihoods
-        for ( FragmentPileup.PerFragmentPileupElement fragment : new FragmentPileup(pileup) ) {
-            n += add(fragment, ignoreBadBases, capBaseQualsAtMappingQual);
-        }
+        FragmentPileup fpile = new FragmentPileup(pileup);
+
+        for ( PileupElement p : fpile.getOneReadPileup() )
+            n += add(p, ignoreBadBases, capBaseQualsAtMappingQual);
+
+        for ( FragmentPileup.TwoReadPileupElement twoRead : fpile.getTwoReadPileup() )
+            n += add(twoRead, ignoreBadBases, capBaseQualsAtMappingQual);
 
         return n;
     }
     public int add(PileupElement elt, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
-        return add(new FragmentPileup.PerFragmentPileupElement(elt), ignoreBadBases, capBaseQualsAtMappingQual);
+        byte obsBase = elt.getBase();
+        byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual);
+        return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0) : 0;
     }
 
-    private final static byte qualToUse(PileupElement p, boolean capBaseQualsAtMappingQual) {
-        byte qual = p.getQual();
+    public int add(FragmentPileup.TwoReadPileupElement twoRead, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
+        final byte observedBase1 = twoRead.getFirst().getBase();
+        final byte qualityScore1 = qualToUse(twoRead.getFirst(), ignoreBadBases, capBaseQualsAtMappingQual);
+        final byte observedBase2 = twoRead.getSecond().getBase();
+        final byte qualityScore2 = qualToUse(twoRead.getSecond(), ignoreBadBases, capBaseQualsAtMappingQual);
 
-        if ( qual > SAMUtils.MAX_PHRED_SCORE )
-            throw new UserException.MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
-        if ( capBaseQualsAtMappingQual )
-            qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
-
-        return qual;
+        if ( qualityScore1 == 0 ) {
+            if ( qualityScore2 == 0 ) // abort early if we didn't see any good bases
+                return 0;
+            else {
+                return add(observedBase2, qualityScore2, (byte)0, (byte)0);
+            }
+        } else {
+            return add(observedBase1, qualityScore1, observedBase2, qualityScore2);
+        }
     }
 
-    public int add(FragmentPileup.PerFragmentPileupElement fragment, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
+    /**
+     *
+     * @param obsBase1
+     * @param qual1
+     * @param obsBase2
+     * @param qual2 can be 0, indicating no second base was observed for this fragment
+     * @return
+     */
+    private int add(byte obsBase1, byte qual1, byte obsBase2, byte qual2) {
         // TODO-- Right now we assume that there are at most 2 reads per fragment.  This assumption is fine
         // TODO--   given the current state of next-gen sequencing, but may need to be fixed in the future.
         // TODO--   However, when that happens, we'll need to be a lot smarter about the caching we do here.
-        byte observedBase1 = 0, observedBase2 = 0, qualityScore1 = 0, qualityScore2 = 0;
-
-        if ( usableBase(fragment.getFirst(), ignoreBadBases) ) {
-            observedBase1 = fragment.getFirst().getBase();
-            qualityScore1 = qualToUse(fragment.getFirst(), capBaseQualsAtMappingQual);
-        }
-
-        if ( fragment.hasSecond() && usableBase(fragment.getSecond(), ignoreBadBases) ) {
-            observedBase2 = fragment.getSecond().getBase();
-            qualityScore2 = qualToUse(fragment.getSecond(), capBaseQualsAtMappingQual);
-        }
-
-        if ( observedBase1 == 0 ) {
-            if ( observedBase2 == 0 ) // abort early if we didn't see any good bases
-                return 0;
-            else { // otherwise make 2 1
-                observedBase1 = observedBase2;
-                qualityScore1 = qualityScore2;
-                observedBase2 = qualityScore2 = 0;
-            }
-        }
 
         // Just look up the cached result if it's available, or compute and store it
         DiploidSNPGenotypeLikelihoods gl;
-        if ( ! inCache(observedBase1, qualityScore1, observedBase2, qualityScore2, FIXED_PLOIDY) ) {
-            gl = calculateCachedGenotypeLikelihoods(observedBase1, qualityScore1, observedBase2, qualityScore2, FIXED_PLOIDY);
+        if ( ! inCache(obsBase1, qual1, obsBase2, qual2, FIXED_PLOIDY) ) {
+            gl = calculateCachedGenotypeLikelihoods(obsBase1, qual1, obsBase2, qual2, FIXED_PLOIDY);
         } else {
-            gl = getCachedGenotypeLikelihoods(observedBase1, qualityScore1, observedBase2, qualityScore2, FIXED_PLOIDY);
+            gl = getCachedGenotypeLikelihoods(obsBase1, qual1, obsBase2, qual2, FIXED_PLOIDY);
         }
 
         // for bad bases, there are no likelihoods
@@ -333,6 +336,12 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
 
         return 1;
     }
+
+    // -------------------------------------------------------------------------------------
+    //
+    // Dealing with the cache routines
+    //
+    // -------------------------------------------------------------------------------------
 
     static DiploidSNPGenotypeLikelihoods[][][][][] CACHE = new DiploidSNPGenotypeLikelihoods[BaseUtils.BASES.length][QualityUtils.MAX_QUAL_SCORE+1][BaseUtils.BASES.length+1][QualityUtils.MAX_QUAL_SCORE+1][MAX_PLOIDY];
 
@@ -473,6 +482,31 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
 
         //System.out.printf("%c %c %d => %f%n", observedBase, chromBase, qual, logP);
         return logP;
+    }
+
+    /**
+     * Helper function that returns the phred-scaled base quality score we should use for calculating
+     * likelihoods for a pileup element.  May return 0 to indicate that the observation is bad, and may
+     * cap the quality score by the mapping quality of the read itself.
+     *
+     * @param p
+     * @param ignoreBadBases
+     * @param capBaseQualsAtMappingQual
+     * @return
+     */
+    private final static byte qualToUse(PileupElement p, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
+        if ( ! usableBase(p, ignoreBadBases) ) {
+            return 0;
+        } else {
+            byte qual = p.getQual();
+
+            if ( qual > SAMUtils.MAX_PHRED_SCORE )
+                throw new UserException.MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
+            if ( capBaseQualsAtMappingQual )
+                qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
+
+            return qual;
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------
