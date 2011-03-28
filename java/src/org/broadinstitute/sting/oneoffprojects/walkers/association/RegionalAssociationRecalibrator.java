@@ -136,10 +136,12 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
         Arrays.sort(normRanks);
         for ( LocHashingPair lhp : normByLoc ) {
             int rank = Arrays.binarySearch(normRanks,lhp.second);
+            // note - equal values will always be assigned the same rank -- however
+            // it is proper, no need for random assignment.
             double prob = ((double) rank)/((double)normRanks.length);
             int qual = AssociationTestRunner.pToQ(prob);
-            out.printf("%s\t%d\t%d\t%d\t%.2e\t%d",lhp.getFirst().getContig(),lhp.getFirst().getStart(),lhp.getFirst().getStop(),
-                    qual,prob,rank);
+            out.printf("%s\t%d\t%d\t%d\t%.2e\t%d\t%.2e%n",lhp.getFirst().getContig(),lhp.getFirst().getStart(),lhp.getFirst().getStop(),
+                    qual,prob,rank,lhp.getSecond());
         }
     }
 
