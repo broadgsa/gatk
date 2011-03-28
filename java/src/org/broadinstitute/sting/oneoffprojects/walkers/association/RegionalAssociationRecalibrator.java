@@ -14,15 +14,21 @@ import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.features.table.BedTableCodec;
 import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.bed.BedParser;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -33,40 +39,54 @@ import java.util.*;
  * Time: 11:05 AM
  * To change this template use File | Settings | File Templates.
  */
-public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociationRecalibrator.LocHashingPair,Set<RegionalAssociationRecalibrator.LocHashingPair>> {
+public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociationRecalibrator.LocHashingPair,Set<RegionalAssociationRecalibrator.LocHashingPair>> implements TreeReducible<Set<RegionalAssociationRecalibrator.LocHashingPair>> {
 
     @Argument(shortName="w",fullName="whiteningFile",doc="File containing the mean, max vectors and covariance matrix",required=false)
     File whitenFile = null;
     @Argument(shortName="p",fullName="normParameter",doc="Exponent for vector norm; p > 4 will induce a p=infinity approximation",required=false)
     double pNorm = 1.0;
-    @Hidden
-    @Argument(shortName="cg",fullName="capacityGuess",doc="this is hidden",required = false)
-    int initialCapacity = 3500000;
 
     @Output
     public PrintStream out;
 
     private DataWhitener whitener;
     private double[] dataHolder;
+    private int boundTables = 0;
 
     public void initialize() {
+
+        for ( ReferenceOrderedDataSource source : getToolkit().getRodDataSources() ) {
+            logger.debug(source.getType().getSimpleName());
+            if ( source.getType().equals(BedTableCodec.class)) {
+                ++boundTables;
+                if ( ! source.getFile().getName().endsWith(".bedgraph") ) {
+                    throw new UserException("Regional association requires bedgraph files. The file "+source.getFile().getAbsolutePath()+" does not have the proper extension.");
+                }
+            }
+        }
+
         if ( whitenFile != null ) {
             whitener = getWhitenerFromFile(whitenFile);
         }
     }
 
-    public Set<LocHashingPair> reduceInit() { return new HashSet<LocHashingPair>(initialCapacity); }
+    public Set<LocHashingPair> reduceInit() { return new TreeSet<LocHashingPair>(); }
 
     public LocHashingPair map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext ali ) {
         if ( tracker == null ) { return null; }
 
-        ArrayList<TableFeature> features = new ArrayList<TableFeature>(7);
+        ArrayList<TableFeature> features = new ArrayList<TableFeature>(boundTables);
 
-        for ( GATKFeature feature : tracker.getAllRods() ) {
+        for ( GATKFeature feature : tracker.getAllRods()) {
             Object uo = feature.getUnderlyingObject();
-            if ( uo instanceof TableFeature ) {
+            if ( uo instanceof TableFeature && feature.getLocation().getStart() == ref.getLocus().getStart()) {
                 features.add((TableFeature)uo);
             }
+        }
+
+        if ( features.size() == 0 ) { return null; }
+        if ( features.size() != boundTables ) {
+            throw new UserException("Features do not line up at position "+ref.getLocus().toString());
         }
 
         if ( dataHolder == null ) {
@@ -95,6 +115,17 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
         return red;
     }
 
+    public Set<LocHashingPair> treeReduce(Set<LocHashingPair> left, Set<LocHashingPair> right) {
+        if ( left == null ) {
+            return right;
+        } else if ( right == null ) {
+            return left;
+        } else {
+            left.addAll(right);
+            return left;
+        }
+    }
+
     public void onTraversalDone(Set<LocHashingPair> normByLoc) {
         double[] normRanks = new double[(normByLoc.size())];
         int offset = 0;
@@ -112,9 +143,49 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
         }
     }
 
-    private static DataWhitener getWhitenerFromFile(File file) {
-        // todo -- implement me
-        return null;
+    private DataWhitener getWhitenerFromFile(File file){
+        XReadLines lineReader;
+        try {
+            lineReader = new XReadLines(file);
+        } catch (FileNotFoundException e) {
+            throw new UserException("The provided whiten file could not be found",e);
+        }
+
+        // first line is the mean vector
+        String[] meanLine = lineReader.next().split("\t");
+        if ( meanLine.length != boundTables ) {
+            String msg = String.format("The number of bound bedgraphs does not match the size of the mean value in the whitening file. bound: %d mean : %d",boundTables,meanLine.length);
+            throw new UserException(msg);
+        }
+        double[] mean = new double[meanLine.length];
+        for ( int i = 0 ; i < meanLine.length; i ++ ) {
+            mean[i] = Double.parseDouble(meanLine[i]);
+        }
+        // skip
+        lineReader.next();
+        // now the max
+        String[] maxLine = lineReader.next().split("\t");
+        double[] max = new double[maxLine.length];
+        for ( int i = 0; i < maxLine.length ; i++ ) {
+            max[i] = Double.parseDouble(maxLine[i]);
+        }
+        // skip
+        lineReader.next();
+        // now the covariance matrix
+        double[][] cov = new double[max.length][max.length];
+        for ( int i = 0; i < max.length; i ++ ) {
+            String[] row = lineReader.next().split("\t");
+            for ( int j = 0; j < max.length; j ++ ) {
+                cov[i][j] = Double.parseDouble(row[j]);
+            }
+        }
+
+        DataWhitener dataWhitener = new DataWhitener();
+        dataWhitener.setCov(cov);
+        dataWhitener.setMaxs(max);
+        dataWhitener.setMeans(mean);
+
+        return dataWhitener;
     }
 
     private static double calculateNorm(double[] vec, double p) {
@@ -130,8 +201,14 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
 
         private final Algebra ALGEBRA = new Algebra();
         private final DoubleDoubleFunction SUBTRACT = new DoubleDoubleFunction() {
+            // note: want vectors that have NaN to have norm calculated within the
+            //    n-k dimensional subspace. This is equivalent to setting the NaNs to
+            //    a post-whitening value of zero.
             @Override
             public double apply(double v, double v1) {
+                if ( v == Double.NaN ) {
+                    return 0.0;
+                }
                 return v - v1;
             }
         };
@@ -153,8 +230,9 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
 
         public void setCov(double[][] cov) {
             EigenvalueDecomposition decomp = new EigenvalueDecomposition(new DenseDoubleMatrix2D(cov));
+            // todo -- this bastard gets sorted, so we're going to have to match the mean, max, and data to this sorting (somehow?)
             DoubleMatrix2D diag = decomp.getD();
-            for ( int i = 0; i < diag.size(); i ++ ) {
+            for ( int i = 0; i < diag.rows(); i ++ ) {
                 diag.set(i,i, Math.pow(diag.get(i,i),-0.5));
             }
             transform = ALGEBRA.mult(diag,ALGEBRA.transpose(decomp.getV()));
@@ -166,12 +244,20 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
         }
     }
 
-    class LocHashingPair extends Pair<GenomeLoc,Double> {
+    class LocHashingPair extends Pair<GenomeLoc,Double> implements Comparable {
 
         public LocHashingPair(GenomeLoc g, Double d) {
             super(g,d);
         }
 
         public int hashCode() { return first.hashCode(); }
+
+        public int compareTo(Object o) {
+            if ( o instanceof LocHashingPair ) {
+                return this.first.compareTo(((LocHashingPair) o).first);
+            } else {
+                return Integer.MIN_VALUE;
+            }
+        }
     }
 }

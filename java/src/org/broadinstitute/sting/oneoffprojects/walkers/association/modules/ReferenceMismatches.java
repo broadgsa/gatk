@@ -43,6 +43,6 @@ public class ReferenceMismatches extends ZStatistic {
     }
 
     public int getWindowSize() { return 100; }
-    public int slideByValue() { return 25; }
+    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return true; }
 }

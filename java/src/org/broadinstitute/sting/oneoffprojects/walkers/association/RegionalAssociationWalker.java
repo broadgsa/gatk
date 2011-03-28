@@ -26,6 +26,9 @@ import java.util.*;
  * @Author chartl
  * @Date 2011-02-23
  * Generalized framework for regional (windowed) associations
+ * -- todos --
+ * : todo --
+ *      Cap statistics output (sometimes see Infinity or -Infinity) [fixed cap, or by k*max_seen_so_far]
  */
 @Downsample(by= DownsampleType.NONE)
 public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAssociationHandler> implements TreeReducible<RegionalAssociationHandler> {

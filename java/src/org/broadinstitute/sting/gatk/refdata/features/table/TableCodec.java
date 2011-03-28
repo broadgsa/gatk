@@ -16,16 +16,16 @@ import java.util.*;
  * implementation of a simple table (tab or comma delimited format) input files
  */
 public class TableCodec implements ReferenceDependentFeatureCodec {
-    private String delimiterRegex = "\\s+";
-    private String headerDelimiter = "HEADER";
-    private String igvHeaderDelimiter = "track";
-    private String commentDelimiter = "#";
-    private ArrayList<String> header = new ArrayList<String>();
+    protected String delimiterRegex = "\\s+";
+    protected String headerDelimiter = "HEADER";
+    protected String igvHeaderDelimiter = "track";
+    protected String commentDelimiter = "#";
+    protected ArrayList<String> header = new ArrayList<String>();
 
     /**
      * The parser to use when resolving genome-wide locations.
      */
-    private GenomeLocParser genomeLocParser;
+    protected GenomeLocParser genomeLocParser;
 
     /**
      * Set the parser to use when resolving genetic data.
