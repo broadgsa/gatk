@@ -120,7 +120,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     "HiSeq19" -> new Target("NA12878.HiSeq19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 0.5, !lowPass),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 3.0, !lowPass),
     "GA2hg19" -> new Target("NA12878.GA2.hg19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
@@ -278,7 +278,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
     this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile}
     this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
-    this.fdr_filter_level = 2.0
+    this.fdr_filter_level = t.trancheTarget
     this.out = t.recalibratedVCF
     this.analysisName = t.name + "_AVQSR"
     this.jobName =  queueLogDir + t.name + ".applyVQSR"
