@@ -63,11 +63,11 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
     @Output(doc = "Write bed to this file instead of standard out")
     public PrintStream out;
 
-    @Argument(fullName = "DeclareFalse", shortName = "isFP",
-            doc = "Argument to create a bed file of with loci annotated as false positive", required = false)
-    boolean isFP = false;
+    @Argument(fullName = "validity", shortName = "V",
+            doc = "Rank of variant validity on a 0-4 scale where 0 is definitely false positive; 4 is definitely true positive.")
+    int validity;
 
-    @Argument(fullName = "Note", shortName = "N", doc = "Annotation to be included in FP field", required = false)
+    @Argument(fullName = "Note", shortName = "N", doc = "Annotation to be included in FP/TP field", required = false)
     String Note =".";
 
     @Argument(fullName = "Source", shortName = "s", doc = "Institutional source of annotation", required = false)
@@ -88,7 +88,7 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
         protected String contig;
         protected long start;
         protected long stop;
-        protected boolean TPorFP;
+        protected int valid;
         protected Allele refBase;
         protected Allele altBase;
         protected String Note;
@@ -105,15 +105,15 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
         else {return "unknown";}
     }
 
-        public ValidityDeclaration(GenomeLoc Loc, VariantContext Con, Boolean TPorFP, String Note, String Source, String Build){   //Constructor expects  1 based
+        public ValidityDeclaration(GenomeLoc Loc, VariantContext Con, int validity, String Note, String Source, String Build){   //Constructor expects  1 based
             this.contig=Loc.getContig();
             this.start=Loc.getStart()-1;
             this.stop=Loc.getStop();
-            this.TPorFP =TPorFP;
+            this.valid =validity;
             this.altBase = Con.getAlternateAllele(0);
             if (Con.getAlternateAlleles().toArray().length >1)
             {
-                logger.warn("***NOTE: Only the first alternate allele in a VCF will be declared as " +TPorFP+"***");
+                logger.warn("***NOTE: Only the first alternate allele in a VCF will be declared as " +valid+"***");
             }
             this.refBase = Con.getReference();
             this.Note = Note;
@@ -126,7 +126,7 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
 
         }
         public String toString() {
-            return String.format("%s\t%d\t%d\t%s\t%s\t%b positive\t%s\t%s\t%s\t%s", contig, start, stop, refBase,altBase, TPorFP, user, Build, Note, Source);
+            return String.format("%s\t%d\t%d\t%s\t%s\t%d\t%s\t%s\t%s\t%s", contig, start, stop, refBase,altBase, validity, user, Build, Note, Source);
         }
     }
  /**
@@ -146,8 +146,7 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
              return 0;}
 
 
-         Boolean tpOrFp = !isFP;
-         ValidityDeclaration bedLine = new ValidityDeclaration(ref.getLocus(), current, tpOrFp, Note, Source, build);
+         ValidityDeclaration bedLine = new ValidityDeclaration(ref.getLocus(), current, validity, Note, Source, build);
          out.println(bedLine);
          return 1;
      }
