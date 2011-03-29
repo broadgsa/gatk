@@ -2,6 +2,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 
 import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.UStatistic;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.ZStatistic;
+import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.AssociationTestRunner;
@@ -93,6 +94,27 @@ public class RegionalAssociationUnitTest extends BaseTest {
         test4.setControlData((Collection) Arrays.asList(3,8,11,12,13));
         Assert.assertEquals((double) AssociationTestRunner.mannWhitneyUTest(test4).first,-1.9170289512680814,1e-14);
         Assert.assertEquals(AssociationTestRunner.mannWhitneyUTest(test4).second,0.0303,1e-4);
+
+    }
+
+    @Test
+    private void testMWU() {
+        logger.warn("Testing MWU");
+        MannWhitneyU mwu = new MannWhitneyU();
+        mwu.add(0, MannWhitneyU.USet.SET1);
+        mwu.add(1,MannWhitneyU.USet.SET2);
+        mwu.add(2,MannWhitneyU.USet.SET2);
+        mwu.add(3,MannWhitneyU.USet.SET2);
+        mwu.add(4,MannWhitneyU.USet.SET2);
+        mwu.add(5,MannWhitneyU.USet.SET2);
+        mwu.add(6,MannWhitneyU.USet.SET1);
+        mwu.add(7,MannWhitneyU.USet.SET1);
+        mwu.add(8,MannWhitneyU.USet.SET1);
+        mwu.add(9,MannWhitneyU.USet.SET1);
+        mwu.add(10,MannWhitneyU.USet.SET1);
+        mwu.add(11,MannWhitneyU.USet.SET2);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu.getObservations(), MannWhitneyU.USet.SET1),11l);
+        Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu.getObservations(),MannWhitneyU.USet.SET2),25l);
 
     }
 

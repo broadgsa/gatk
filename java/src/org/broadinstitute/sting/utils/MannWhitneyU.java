@@ -41,8 +41,22 @@ public class MannWhitneyU {
     }
 
     /**
-     * temporary method that will be generalized. Runs the standard two-sided test,
-     * returns the u and p values.
+     * Runs the one-sided test under the hypothesis that the data in set "lessThanOther" stochastically
+     * dominates the other set
+     * @param lessThanOther - either Set1 or Set2
+     * @return - u-based z-approximation, and p-value associated with the test (p-value is exact for small n,m)
+     */
+    public Pair<Double,Double> runOneSidedTest(USet lessThanOther) {
+        long u = calculateOneSidedU(observations, lessThanOther);
+        int n = lessThanOther == USet.SET1 ? sizeSet1 : sizeSet2;
+        int m = lessThanOther == USet.SET1 ? sizeSet2 : sizeSet1;
+        double pval = calculateP(n,m,u,false);
+        return new Pair<Double,Double>(getZApprox(n,m,u),pval);
+    }
+
+    /**
+     * Runs the standard two-sided test,
+     * returns the u-based z-approximate and p values.
      * @Returns a pair holding the u and p-value.
      */
     public Pair<Double,Double> runTwoSidedTest() {
@@ -186,6 +200,27 @@ public class MannWhitneyU {
     }
 
     /**
+     * Calculates the U-statistic associated with the one-sided hypothesis that "dominator" stochastically dominates
+     * the other U-set
+     * @param observed - the observed data points, tagged by each set
+     * @param dominator - the set that is hypothesized to be stochastically dominating
+     * @return the u-statistic associated with the hypothesis
+     */
+    public static long calculateOneSidedU(TreeSet<Pair<Number,USet>> observed,USet dominator) {
+        long domninatorBeforeOther = 0l;
+        int domSeenSoFar = 0;
+        for ( Pair<Number,USet> dataPoint : observed ) {
+            if ( dataPoint.second == dominator ) {
+                ++domSeenSoFar;
+            } else {
+                domninatorBeforeOther += domSeenSoFar;
+            }
+        }
+
+        return domninatorBeforeOther;
+    }
+
+    /**
      * The Mann-Whitney U statistic follows a recursive equation (that enumerates the proportion of possible
      * binary strings of "n" zeros, and "m" ones, where a one precedes a zero "u" times). This accessor
      * calls into that recursive calculation.
@@ -217,6 +252,16 @@ public class MannWhitneyU {
 
 
         return (((double)n)/(n+m))*cpr(n-1,m,u-m) + (((double)m)/(n+m))*cpr(n,m-1,u);
+    }
+
+    /**
+     * hook into the data tree, for testing purposes only
+     * @return  observations
+     * @deprecated - only for testing
+     */
+    @Deprecated
+    public TreeSet<Pair<Number,USet>> getObservations() {
+        return observations;
     }
 
     /**
