@@ -162,16 +162,16 @@ class dataProcessingV2 extends QScript {
 
   // Takes a list of processed BAM files, revert them to unprocessed and realigns each lane, producing a list of
   // per-lane aligned bam files, ready to be processed.
-  def performAlignment(bamFiles: List[File]): List[File] = {
+  def performAlignment(bamList: File): List[File] = {
     return List()
   }
 
   def createListFromFile(in: File):List[File] = {
     if (in.toString.endsWith("bam"))
       return List(in)
-    val l: List[File] = List()
+    var l: List[File] = List()
     for (bam <- fromFile(in).getLines)
-      l :+= bam
+      l :+= new File(bam)
     return l
   }
 
@@ -185,7 +185,7 @@ class dataProcessingV2 extends QScript {
   def script = {
 
     //todo -- (option - BWA) run BWA on each bam file (per lane bam file) before performing per sample processing
-    val perLaneAlignedBamFiles: List[File] = if (useBWApe || useBWAse) {performAlignment(input)} else {createListFromFile(input)}
+    val perLaneAlignedBamFiles: List[File] = if (useBWApe || useBWAse) { performAlignment(input) } else { createListFromFile(input) }
 
     // Generate a BAM file per sample joining all per lane files if necessary
     val sampleBamFiles = createSampleFiles(perLaneAlignedBamFiles)
@@ -360,7 +360,7 @@ class dataProcessingV2 extends QScript {
   }
 
   case class sortSam (inSam: File, outBam: File) extends PicardBamFunction {
-    @Input(doc="input unsorted sam file") var sam = inBams
+    @Input(doc="input unsorted sam file") var sam = inSam
     @Output(doc="sorted bam") var bam = outBam
     @Output(doc="sorted bam index") var bamIndex = new File(outBam + "bai")
     override def inputBams = List(sam)
@@ -403,8 +403,8 @@ class dataProcessingV2 extends QScript {
     @Output(doc="output sai file") var sai = outSai
     def commandLine = bwaPath + " aln -q 5 " + reference + " -b " + bam + " > " + sai
     this.isIntermediate = true
-    this.analysisName = queueLogDir + outBam + ".bwa_aln_se"
-    this.jobName = queueLogDir + outBam + ".bwa_aln_se"
+    this.analysisName = queueLogDir + outSai + ".bwa_aln_se"
+    this.jobName = queueLogDir + outSai + ".bwa_aln_se"
   }
 
   case class bwa_aln_pe1 (inBam: File, outSai1: File) extends CommandLineFunction {
@@ -412,8 +412,8 @@ class dataProcessingV2 extends QScript {
     @Output(doc="output sai file for 1st mating pair") var sai = outSai1
     def commandLine = bwaPath + " aln -q 5 " + reference + " -b1 " + bam + " > " + sai
     this.isIntermediate = true
-    this.analysisName = queueLogDir + outBam + ".bwa_aln_pe1"
-    this.jobName = queueLogDir + outBam + ".bwa_aln_pe1"
+    this.analysisName = queueLogDir + outSai1 + ".bwa_aln_pe1"
+    this.jobName = queueLogDir + outSai1 + ".bwa_aln_pe1"
   }
 
   case class bwa_aln_pe2 (inBam: File, outSai2: File) extends CommandLineFunction {
@@ -421,8 +421,8 @@ class dataProcessingV2 extends QScript {
     @Output(doc="output sai file for 2nd mating pair") var sai = outSai2
     def commandLine = bwaPath + " aln -q 5 " + reference + " -b2 " + bam + " > " + sai
     this.isIntermediate = true
-    this.analysisName = queueLogDir + outBam + ".bwa_aln_pe2"
-    this.jobName = queueLogDir + outBam + ".bwa_aln_pe2"
+    this.analysisName = queueLogDir + outSai2 + ".bwa_aln_pe2"
+    this.jobName = queueLogDir + outSai2 + ".bwa_aln_pe2"
   }
 
   case class bwa_sam_se (inBam: File, inSai: File, outBam: File, readGroup: String) extends CommandLineFunction {

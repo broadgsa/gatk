@@ -38,9 +38,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   @Argument(shortName="eval", doc="adds the VariantEval walker to the pipeline", required=false)
   var eval: Boolean = false
 
-  @Argument(shortName="noCut", doc="removes the ApplyVariantCut walker from the pipeline", required=false)
-  var noCut: Boolean = false
-
   @Argument(shortName="indels", doc="calls indels with the Unified Genotyper", required=false)
   var callIndels: Boolean = false
 
@@ -81,7 +78,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val goldStandardRecalibratedVCF = new File(name + "goldStandard.recalibrated.vcf")
     val goldStandardTranchesFile = new File(name + "goldStandard.tranches")
     val goldStandardRecalFile = new File(name + "goldStandard.tranches.recal")
-    val cutVCF = new File(name + ".cut.vcf")
     val evalFile = new File(name + ".snp.eval")
     val evalIndelFile = new File(name + ".indel.eval")
     val goldStandardName = qscript.outputDir + "goldStandard/" + baseName
@@ -171,7 +167,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
         add(new snpCall(target))
         add(new VQSR(target, !goldStandard))
         add(new applyVQSR(target, !goldStandard))
-        if (!noCut) add(new VariantCut(target))
         if (eval) add(new snpEvaluation(target))
       }
       if ( !skipGoldStandard ) {
@@ -285,23 +280,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
 
-
-   // 5.) Variant Cut filter out the variants marked by recalibration to the 99% tranche
-  class VariantCut(t: Target) extends ApplyVariantCuts with UNIVERSAL_GATK_ARGS {
-    this.reference_sequence = t.reference
-    this.rodBind :+= RodBind("input", "VCF",  t.recalibratedVCF )
-    this.intervalsString ++= List(t.intervals)
-    this.out = t.cutVCF
-    this.tranchesFile = t.tranchesFile
-    this.fdr_filter_level = t.trancheTarget
-    if (t.dbsnpFile.endsWith(".rod"))
-      this.DBSNP = new File(t.dbsnpFile)
-    else if (t.dbsnpFile.endsWith(".vcf"))
-      this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
-    this.analysisName = t.name + "_VC"
-    this.jobName =  queueLogDir + t.name + ".cut"
-  }
-
   // 6.) Variant Evaluation Base(OPTIONAL)
   class EvalBase(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
     this.reference_sequence = t.reference
@@ -317,7 +295,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // 6a.) SNP Evaluation (OPTIONAL) based on the cut vcf
   class snpEvaluation(t: Target) extends EvalBase(t) {
     if (t.reference == b37 || t.reference == hg19) this.rodBind :+= RodBind("compomni", "VCF", omni_b37)
-    this.rodBind :+= RodBind("eval", "VCF", if (useCut) {t.cutVCF} else {t.recalibratedVCF} )
+    this.rodBind :+= RodBind("eval", "VCF", t.recalibratedVCF )
     this.out =  t.evalFile
     this.analysisName = t.name + "_VEs"
     this.jobName =  queueLogDir + t.name + ".snp.eval"
