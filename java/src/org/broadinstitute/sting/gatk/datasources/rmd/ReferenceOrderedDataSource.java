@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.datasources.rmd;
 
 import net.sf.samtools.SAMSequenceDictionary;
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -123,6 +124,15 @@ public class ReferenceOrderedDataSource {
     public Object getHeader() {
         return header;
     }
+
+    public Tags getTags() {
+        return fileDescriptor.getTags();
+    }
+    
+    public String getTagValue( final String key ) {
+        return fileDescriptor.getTags().getValue( key );
+    }
+
 
     /**
      * Retrieves the sequence dictionary created by this ROD.

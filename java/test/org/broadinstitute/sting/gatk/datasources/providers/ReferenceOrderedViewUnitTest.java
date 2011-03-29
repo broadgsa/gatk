@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.datasources.reads.MockLocusShard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
@@ -78,7 +79,7 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     @Test
     public void testSingleBinding() {
         String fileName = testDir + "TabularDataTest.dat";
-        RMDTriplet triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE);
+        RMDTriplet triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE,new Tags());
         ReferenceOrderedDataSource dataSource = new ReferenceOrderedDataSource(triplet,builder,seq.getSequenceDictionary(),genomeLocParser,false);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));
@@ -101,10 +102,10 @@ public class ReferenceOrderedViewUnitTest extends BaseTest {
     public void testMultipleBinding() {
         File file = new File(testDir + "TabularDataTest.dat");
 
-        RMDTriplet testTriplet1 = new RMDTriplet("tableTest1","Table",file.getAbsolutePath(),RMDStorageType.FILE);
+        RMDTriplet testTriplet1 = new RMDTriplet("tableTest1","Table",file.getAbsolutePath(),RMDStorageType.FILE,new Tags());
         ReferenceOrderedDataSource dataSource1 = new ReferenceOrderedDataSource(testTriplet1,builder,seq.getSequenceDictionary(),genomeLocParser,false);
 
-        RMDTriplet testTriplet2 = new RMDTriplet("tableTest2","Table",file.getAbsolutePath(),RMDStorageType.FILE);
+        RMDTriplet testTriplet2 = new RMDTriplet("tableTest2","Table",file.getAbsolutePath(),RMDStorageType.FILE,new Tags());
         ReferenceOrderedDataSource dataSource2 = new ReferenceOrderedDataSource(testTriplet2,builder,seq.getSequenceDictionary(),genomeLocParser,false);
 
         Shard shard = new MockLocusShard(genomeLocParser,Collections.singletonList(genomeLocParser.createGenomeLoc("chrM",1,30)));

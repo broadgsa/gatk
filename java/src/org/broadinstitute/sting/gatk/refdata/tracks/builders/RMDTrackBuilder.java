@@ -33,6 +33,7 @@ import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.source.BasicFeatureSource;
 import org.broad.tribble.util.LittleEndianOutputStream;
+import org.broadinstitute.sting.commandline.Tags;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -168,7 +169,7 @@ public class RMDTrackBuilder extends PluginManager<FeatureCodec> {
         if(typeName == null)
             throw new ReviewedStingException("Unable to find type name for class " + targetClass.getName());
 
-        return createInstanceOfTrack(new RMDTriplet("anonymous",typeName,inputFile.getAbsolutePath(),RMDStorageType.FILE));
+        return createInstanceOfTrack(new RMDTriplet("anonymous",typeName,inputFile.getAbsolutePath(),RMDStorageType.FILE,new Tags()));
     }
 
     /**

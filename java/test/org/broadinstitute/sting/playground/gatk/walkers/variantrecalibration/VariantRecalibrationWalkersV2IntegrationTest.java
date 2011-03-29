@@ -25,14 +25,14 @@ public class VariantRecalibrationWalkersV2IntegrationTest extends WalkerTest {
     }
 
     VRTest yriTrio = new VRTest("yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf",
-            "aa211561e6e9b1e323dec4eeaa318088",  // tranches
-            "226adf939e90ad20599108e77ad25dae",  // recal file
-            "06c2335e860e19f23bcacff8d4ab906d"); // cut VCF
+            "644e37fe6edaee13ddf9f3c4f0e6f500",  // tranches
+            "e467bfd4ab74c7a7ff303cf810c514b3",  // recal file
+            "05f66c959d1f8e78bcb4298092524921"); // cut VCF
 
     VRTest lowPass = new VRTest("lowpass.N3.chr1.raw.vcf",
-            "f4f2057a8c010206f0f56deff0602452",  // tranches
-            "dd36d252a6dc6e3207addddae731dd88",  // recal file
-            "af4fe8bd0c2eca92d1990b1a49fae810"); // cut VCF
+            "e0a3845619d2138717df39ef1e9ee75f",  // tranches
+            "c3fa524d0bdb40d6bd7aeda9e8dd882c",  // recal file
+            "9f21a668c3fff13f382367851a11303c"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -44,14 +44,14 @@ public class VariantRecalibrationWalkersV2IntegrationTest extends WalkerTest {
         //System.out.printf("PARAMS FOR %s is %s%n", vcf, clusterFile);
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-R " + b36KGReference +
-                        " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
-                        " -B:hapmap,VCF " + comparisonDataLocation + "Validated/HapMap/3.2/sites_r27_nr.b36_fwd.vcf" +
-                        " -B:omni,VCF " + comparisonDataLocation + "Validated/Omni2.5_chip/1212samples.b36.vcf" +
+                        " -B:dbsnp,DBSNP,known=true,training=false,truth=false,prior=10.0 " + GATKDataLocation + "dbsnp_129_b36.rod" +
+                        " -B:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 " + comparisonDataLocation + "Validated/HapMap/3.2/sites_r27_nr.b36_fwd.vcf" +
+                        " -B:omni,VCF,known=false,training=true,truth=true,prior=15.0 " + comparisonDataLocation + "Validated/Omni2.5_chip/1212samples.b36.vcf" +
                         " -T ContrastiveRecalibrator" +
                         " -B:input,VCF " + params.inVCF +
                         " -L 1:50,000,000-120,000,000" +
                         " -an QD -an MQ -an SB -an AF" +
-                        " --trustAllPolymorphic" +
+                        " --trustAllPolymorphic" + // for speed
                         " -recalFile %s" +
                         " -tranchesFile %s",
                 Arrays.asList(params.recalMD5, params.tranchesMD5));

@@ -55,10 +55,10 @@ public class MultivariateGaussian {
             for( int iii = 0; iii < mu.length; iii++ ) {
                 for( int jjj = iii; jjj < mu.length; jjj++ ) {
                     randSigma[jjj][iii] = 0.55 + 1.25 * rand.nextDouble();
-                    if(rand.nextBoolean()) {
+                    if( rand.nextBoolean() ) {
                         randSigma[jjj][iii] *= -1.0;
                     }
-                    if(iii != jjj) { randSigma[iii][jjj] = 0.0; } // Sigma is a symmetric, positive-definite matrix created by taking a lower diagonal matrix and multiplying it by its transpose
+                    if( iii != jjj ) { randSigma[iii][jjj] = 0.0; } // Sigma is a symmetric, positive-definite matrix created by taking a lower diagonal matrix and multiplying it by its transpose
                 }
             }
         Matrix tmp = new Matrix( randSigma );

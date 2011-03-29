@@ -74,15 +74,18 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
-    @Argument(fullName="fdr_filter_level", shortName="fdr_filter_level", doc="The FDR level at which to start filtering.", required=false)
-    private double FDR_FILTER_LEVEL = 1.0;
-    
+    @Argument(fullName="ts_filter_level", shortName="ts_filter_level", doc="The truth sensitivity level at which to start filtering", required=false)
+    private double TS_FILTER_LEVEL = 99.0;
+    @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
+    private String[] IGNORE_INPUT_FILTERS = null;
+
     /////////////////////////////
     // Private Member Variables
     /////////////////////////////
     final private List<Tranche> tranches = new ArrayList<Tranche>();
     final private Set<String> inputNames = new HashSet<String>();
     final private NestedHashMap lodMap = new NestedHashMap();
+    final private Set<String> ignoreInputFilterSet = new TreeSet<String>();
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -92,13 +95,12 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
 
     public void initialize() {
         for ( final Tranche t : Tranche.readTranches(TRANCHES_FILE) ) {
-            if ( t.fdr >= FDR_FILTER_LEVEL) {
+            if ( t.ts >= TS_FILTER_LEVEL ) {
                 tranches.add(t);
-                //statusMsg = "Keeping, above FDR threshold";
             }
             logger.info(String.format("Read tranche " + t));
         }
-        Collections.reverse(tranches); // this algorithm wants the tranches ordered from worst to best
+        Collections.reverse(tranches); // this algorithm wants the tranches ordered from best (lowest truth sensitivity) to worst (highest truth sensitivity)
 
         for( final ReferenceOrderedDataSource d : this.getToolkit().getRodDataSources() ) {
             if( d.getName().startsWith("input") ) {
@@ -113,6 +115,10 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
             throw new UserException.BadInput( "No input variant tracks found. Input variant binding names must begin with 'input'." );
         }
 
+        if( IGNORE_INPUT_FILTERS != null ) {
+            ignoreInputFilterSet.addAll( Arrays.asList(IGNORE_INPUT_FILTERS) );
+        }
+
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
@@ -122,14 +128,14 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
 
         if( tranches.size() >= 2 ) {
             for( int iii = 0; iii < tranches.size() - 1; iii++ ) {
-                Tranche t = tranches.get(iii);
-                hInfo.add(new VCFFilterHeaderLine(t.name, String.format("FDR tranche level at VSQ Lod: " + t.minVQSLod + " <= x < " + tranches.get(iii+1).minVQSLod)));
+                final Tranche t = tranches.get(iii);
+                hInfo.add(new VCFFilterHeaderLine(t.name, String.format("Truth sensitivity tranche level at VSQ Lod: " + t.minVQSLod + " <= x < " + tranches.get(iii+1).minVQSLod)));
             }
         }
         if( tranches.size() >= 1 ) {
-            hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("FDR tranche level at VQS Lod < " + tranches.get(0).minVQSLod)));
+            hInfo.add(new VCFFilterHeaderLine(tranches.get(0).name + "+", String.format("Truth sensitivity tranche level at VQS Lod < " + tranches.get(0).minVQSLod)));
         } else {
-            throw new UserException("No tranches were found in the file or were above the FDR Filter level " + FDR_FILTER_LEVEL);
+            throw new UserException("No tranches were found in the file or were above the truth sensitivity filter level " + TS_FILTER_LEVEL);
         }
 
         logger.info("Keeping all variants in tranche " + tranches.get(tranches.size()-1));
@@ -141,7 +147,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
             logger.info("Reading in recalibration table...");
             for ( final String line : new XReadLines( RECAL_FILE ) ) {
                 final String[] vals = line.split(",");
-                lodMap.put( Double.parseDouble(vals[2]), vals[0], Integer.parseInt(vals[1]));
+                lodMap.put( Double.parseDouble(vals[3]), vals[0], Integer.parseInt(vals[1]), Integer.parseInt(vals[2]) ); // value comes before the keys
             }
         } catch ( FileNotFoundException e ) {
             throw new UserException.CouldNotReadInputFile(RECAL_FILE, e);
@@ -164,38 +170,31 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
         for( VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
             if( vc != null ) {
                 String filterString = null;
-                final Double lod = (Double) lodMap.get( ref.getLocus().getContig(), ref.getLocus().getStart() );
-                if( !vc.isFiltered() ) {
-                    try {
-                        for( int i = tranches.size() - 1; i >= 0; i-- ) {
-                            final Tranche tranche = tranches.get(i);
-                            if( lod >= tranche.minVQSLod ) {
-                                if (i == tranches.size() - 1) {
-                                    filterString = VCFConstants.PASSES_FILTERS_v4;
-                                } else {
-                                    filterString = tranche.name;
-                                }
-                                break;
-                            }
-                        }
-
-                        if( filterString == null ) {
-                            filterString = tranches.get(0).name+"+";
-                        }
-
-                        if ( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
-                            final Set<String> filters = new HashSet<String>();
-                            filters.add(filterString);
-                            vc = VariantContext.modifyFilters(vc, filters);
-                        }
-                    } catch ( Exception e ) {
-                        throw new UserException.MalformedFile(vc.getSource(), "Invalid value for VQS key " + ContrastiveRecalibrator.VQS_LOD_KEY + " at variant " + vc, e);
-                    }
-                }
-
                 final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                if(lod != null) {
+                final Double lod = (Double) lodMap.get( ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop() );
+                if( vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters()) ) {
                     attrs.put(ContrastiveRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
+                    for( int i = tranches.size() - 1; i >= 0; i-- ) {
+                        final Tranche tranche = tranches.get(i);
+                        if( lod >= tranche.minVQSLod ) {
+                            if( i == tranches.size() - 1 ) {
+                                filterString = VCFConstants.PASSES_FILTERS_v4;
+                            } else {
+                                filterString = tranche.name;
+                            }
+                            break;
+                        }
+                    }
+
+                    if( filterString == null ) {
+                        filterString = tranches.get(0).name+"+";
+                    }
+
+                    if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                        final Set<String> filters = new HashSet<String>();
+                        filters.add(filterString);
+                        vc = VariantContext.modifyFilters(vc, filters);
+                    }
                 }
 
                 vcfWriter.add( VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), vc.getFilters(), attrs), ref.getBase() );
@@ -219,7 +218,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
         return 1; // This value isn't used for anything
     }
 
-    public void onTraversalDone( Integer reduceSum ) {
+    public void onTraversalDone( final Integer reduceSum ) {
     }
 }
 

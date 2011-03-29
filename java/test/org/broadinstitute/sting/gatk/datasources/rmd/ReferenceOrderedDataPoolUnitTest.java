@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.rmd;
 
+import org.broadinstitute.sting.commandline.Tags;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
@@ -73,7 +74,7 @@ public class ReferenceOrderedDataPoolUnitTest extends BaseTest {
         File indexFileName = new File(testDir + "TabularDataTest.dat.idx");
         if (indexFileName.exists()) indexFileName.delete();  
 
-        triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE);
+        triplet = new RMDTriplet("tableTest","Table",fileName,RMDStorageType.FILE,new Tags());
         builder = new RMDTrackBuilder(seq.getSequenceDictionary(),genomeLocParser,null);
     }
 

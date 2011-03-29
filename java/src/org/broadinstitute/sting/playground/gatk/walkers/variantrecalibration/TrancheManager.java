@@ -91,7 +91,7 @@ public class TrancheManager {
         }
 
         public double getThreshold(double tranche) {
-            return tranche/100; // tranche of 1 => 99% sensitivity target
+            return 1.0 - tranche/100.0; // tranche of 1 => 99% sensitivity target
         }
 
         public double getTarget() { return 1.0; }
@@ -123,14 +123,14 @@ public class TrancheManager {
     public static List<Tranche> findTranches( ArrayList<VariantDatum> data, final double[] trancheThresholds, SelectionMetric metric, File debugFile ) {
         logger.info(String.format("Finding %d tranches for %d variants", trancheThresholds.length, data.size()));
 
-        List<VariantDatum> tranchesData = sortVariantsbyLod(data);
-        metric.calculateRunningMetric(tranchesData);
+        Collections.sort(data);
+        metric.calculateRunningMetric(data);
 
-        if ( debugFile != null) { writeTranchesDebuggingInfo(debugFile, tranchesData, metric); }
+        if ( debugFile != null) { writeTranchesDebuggingInfo(debugFile, data, metric); }
 
         List<Tranche> tranches = new ArrayList<Tranche>();
         for ( double trancheThreshold : trancheThresholds ) {
-            Tranche t = findTranche(tranchesData, metric, trancheThreshold);
+            Tranche t = findTranche(data, metric, trancheThreshold);
 
             if ( t == null ) {
                 if ( tranches.size() == 0 )
@@ -159,11 +159,6 @@ public class TrancheManager {
         }
     }
 
-    private static List<VariantDatum> sortVariantsbyLod(final ArrayList<VariantDatum> data) {
-        Collections.sort(data);
-        return data;
-    }
-
     public static Tranche findTranche( final List<VariantDatum> data, final SelectionMetric metric, final double trancheThreshold ) {
         logger.info(String.format("  Tranche threshold %.2f => selection metric threshold %.3f", trancheThreshold, metric.getThreshold(trancheThreshold)));
 
@@ -171,8 +166,8 @@ public class TrancheManager {
         int n = data.size();
         for ( int i = 0; i < n; i++ ) {
             if ( metric.getRunningMetric(i) >= metricThreshold ) {
-                // we've found the largest group of variants with Ti/Tv >= our target titv
-                Tranche t = trancheOfVariants(data, i, trancheThreshold, metric.getTarget());
+                // we've found the largest group of variants with sensitivity >= our target truth sensitivity
+                Tranche t = trancheOfVariants(data, i, trancheThreshold);
                 logger.info(String.format("  Found tranche for %.3f: %.3f threshold starting with variant %d; running score is %.3f ",
                         trancheThreshold, metricThreshold, i, metric.getRunningMetric(i)));
                 logger.info(String.format("  Tranche is %s", t));
@@ -183,7 +178,7 @@ public class TrancheManager {
         return null;
     }
 
-    public static Tranche trancheOfVariants( final List<VariantDatum> data, int minI, double fdr, double target ) {
+    public static Tranche trancheOfVariants( final List<VariantDatum> data, int minI, double ts ) {
         int numKnown = 0, numNovel = 0, knownTi = 0, knownTv = 0, novelTi = 0, novelTv = 0;
 
         double minLod = data.get(minI).lod;
@@ -207,7 +202,7 @@ public class TrancheManager {
         int accessibleTruthSites = countCallsAtTruth(data, Double.NEGATIVE_INFINITY);
         int nCallsAtTruth = countCallsAtTruth(data, minLod);
 
-        return new Tranche(fdr, target, minLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, nCallsAtTruth);
+        return new Tranche(ts, minLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, nCallsAtTruth);
     }
 
     public static double fdrToTiTv(double desiredFDR, double targetTiTv) {
@@ -216,7 +211,7 @@ public class TrancheManager {
 
     public static int countCallsAtTruth(final List<VariantDatum> data, double minLOD ) {
         int n = 0;
-        for ( VariantDatum d : data) { n += d.atTruthSite && d.lod >= minLOD ? 1 : 0; }
+        for ( VariantDatum d : data) { n += (d.atTruthSite && d.lod >= minLOD ? 1 : 0); }
         return n;
     }
 

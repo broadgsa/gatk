@@ -27,7 +27,7 @@ public class VariantDataManager {
     private final ExpandingArrayList<TrainingSet> trainingSets;
 
     private final static long RANDOM_SEED = 83409701;
-    private final static Random rand = new Random( RANDOM_SEED ); // this is going to cause problems if it is ever used in an integration test
+    private final static Random rand = new Random( RANDOM_SEED ); // this is going to cause problems if it is ever used in an integration test, planning to get rid of HRun anyway
 
     protected final static Logger logger = Logger.getLogger(VariantDataManager.class);
 
@@ -53,11 +53,7 @@ public class VariantDataManager {
             final double theMean = mean(jjj); //BUGBUG: to clean up
             final double theSTD = standardDeviation(theMean, jjj); //BUGBUG: to clean up
             logger.info( annotationKeys.get(jjj) + String.format(": \t mean = %.2f\t standard deviation = %.2f", theMean, theSTD) );
-            if( theSTD < 1E-8 ) { //BUGBUG: output recreated here to match the integration tests
-                foundZeroVarianceAnnotation = true;
-            } else if( theSTD < 1E-2 ) {
-                logger.warn("Warning! Tiny variance. It is strongly recommended that you -exclude " + annotationKeys.get(jjj));
-            }
+            foundZeroVarianceAnnotation = foundZeroVarianceAnnotation || (theSTD < 1E-8);
             meanVector[jjj] = theMean;
             varianceVector[jjj] = theSTD;
             for( final VariantDatum datum : data ) {
@@ -65,7 +61,7 @@ public class VariantDataManager {
             }
         }
         if( foundZeroVarianceAnnotation ) {
-            throw new UserException.BadInput("Found annotations with zero variance. They must be excluded before proceeding.");
+            throw new UserException.BadInput( "Found annotations with zero variance. They must be excluded before proceeding." );
         }
     }
 
@@ -136,7 +132,7 @@ public class VariantDataManager {
         final ExpandingArrayList<VariantDatum> dataToRemove = new ExpandingArrayList<VariantDatum>();
         for( final VariantDatum datum : listData ) {
             boolean remove = false;
-            for( double val : datum.annotations ) {
+            for( final double val : datum.annotations ) {
                 remove = remove || (Math.abs(val) > STD_THRESHOLD);
             }
             if( remove ) { dataToRemove.add( datum ); }
@@ -163,8 +159,8 @@ public class VariantDataManager {
         } else {
             try {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
-            } catch( Exception e ) {
-                throw new UserException.MalformedFile(vc.getSource(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(genomeLocParser,vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
+            } catch( final Exception e ) {
+                throw new UserException.MalformedFile( vc.getSource(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(genomeLocParser,vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
             }
         }
         return value;
@@ -188,8 +184,8 @@ public class VariantDataManager {
     }
 
     public void writeOutRecalibrationTable( final PrintStream RECAL_FILE ) {
-        for( final VariantDatum datum : data ) { //BUGBUG: quick and dirty for now, only works for SNPs.
-            RECAL_FILE.println(String.format("%s,%d,%.4f", datum.pos.getContig(), datum.pos.getStart(), datum.lod));
+        for( final VariantDatum datum : data ) {
+            RECAL_FILE.println(String.format("%s,%d,%d,%.4f", datum.pos.getContig(), datum.pos.getStart(), datum.pos.getStop(), datum.lod));
         }
     }
 }

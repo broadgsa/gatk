@@ -54,7 +54,6 @@ public class GenerateVariantClustersWalker extends RodWalker<ExpandingArrayList<
     /////////////////////////////
     // Outputs
     /////////////////////////////
-
     @Output(fullName="cluster_file", shortName="clusterFile", doc="The output cluster file", required=true)
     private PrintStream CLUSTER_FILE;
 

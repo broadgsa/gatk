@@ -89,7 +89,7 @@ public class GaussianMixtureModel {
             gaussian.initializeRandomSigma( rand );
             gaussian.hyperParameter_a = degreesOfFreedom;
             gaussian.hyperParameter_b = shrinkage;
-            gaussian.hyperParameter_lambda = dirichletParameter;            
+            gaussian.hyperParameter_lambda = dirichletParameter;
         }
     }
 
@@ -116,7 +116,7 @@ public class GaussianMixtureModel {
                 int numAssigned = 0;
 
                 for( final VariantDatum datum : data ) {
-                    if( datum.assignment == gaussian ) {
+                    if( datum.assignment.equals(gaussian) ) {
                         numAssigned++;
                         gaussian.incrementMu( datum );
                     }

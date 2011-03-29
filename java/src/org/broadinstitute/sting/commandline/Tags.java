@@ -84,6 +84,15 @@ public class Tags {
     }
 
     /**
+     * Returns true if tags contains given key
+     * @param key The key for which to check existence.
+     * @return true if tags contains given key
+     */
+    public boolean containsKey(final String key) {
+        return keyValueTags.containsKey(key);
+    }
+
+    /**
      * Adds positional tag(s) to the tag object.
      * @param tags The tag strings to add.
      */

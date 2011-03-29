@@ -24,6 +24,8 @@
 package org.broadinstitute.sting.gatk.refdata.utils;
 
 
+import org.broadinstitute.sting.commandline.Tags;
+
 /**
  * a helper class to manage our triplets of data for the -B command line option (name, type, file)
  * TODO: The presence of four datapoints here suggests that this class' name isn't sufficient to describe its function.  Rename.
@@ -35,12 +37,14 @@ public class RMDTriplet {
     private final String type;
     private final String file;
     private final RMDStorageType storageType;
+    private final Tags tags;
 
-    public RMDTriplet(final String name, final String type, final String file, final RMDStorageType storageType) {
+    public RMDTriplet(final String name, final String type, final String file, final RMDStorageType storageType, final Tags tags) {
         this.name = name;
         this.type = type;
         this.file = file;
         this.storageType = storageType;
+        this.tags = tags;
     }
 
     /**
@@ -74,5 +78,13 @@ public class RMDTriplet {
      */
     public RMDStorageType getStorageType() {
         return storageType;
+    }
+
+    /**
+     * Gets the key=value tags associated with this track
+     * @return Tags associated with this track.
+     */
+    public Tags getTags() {
+        return tags;
     }
 }

@@ -39,22 +39,21 @@ import java.util.*;
  */
 
 public class Tranche implements Comparable<Tranche> {
-    private static final int CURRENT_VERSION = 3;
+    private static final int CURRENT_VERSION = 4;
 
-    public double fdr, minVQSLod, targetTiTv, knownTiTv, novelTiTv;
+    public double ts, minVQSLod, knownTiTv, novelTiTv;
     public int numKnown,numNovel;
     public String name;
 
     int accessibleTruthSites = 0;
     int callsAtTruthSites = 0;
 
-    public Tranche(double fdr, double targetTiTv, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites) {
-        this(fdr, targetTiTv, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, "anonymous");
+    public Tranche(double ts, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites) {
+        this(ts, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, "anonymous");
     }
 
-    public Tranche(double fdr, double targetTiTv, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites, String name ) {
-        this.fdr = fdr;
-        this.targetTiTv = targetTiTv;
+    public Tranche(double ts, double minVQSLod, int numKnown, double knownTiTv, int numNovel, double novelTiTv, int accessibleTruthSites, int callsAtTruthSites, String name ) {
+        this.ts = ts;
         this.minVQSLod = minVQSLod;
         this.novelTiTv = novelTiTv;
         this.numNovel = numNovel;
@@ -65,11 +64,8 @@ public class Tranche implements Comparable<Tranche> {
         this.accessibleTruthSites = accessibleTruthSites;
         this.callsAtTruthSites = callsAtTruthSites;
 
-        if ( fdr < 0.0 )
-            throw new UserException("Target FDR is unreasonable " + fdr);
-
-        if ( targetTiTv < 0.5 || targetTiTv > 10 )
-            throw new UserException("Target Ti/Tv ratio is unreasonable " + targetTiTv);
+        if ( ts < 0.0 || ts > 100.0)
+            throw new UserException("Target FDR is unreasonable " + ts);
 
         if ( numKnown < 0 || numNovel < 0)
             throw new ReviewedStingException("Invalid tranche - no. variants is < 0 : known " + numKnown + " novel " + numNovel);
@@ -83,37 +79,35 @@ public class Tranche implements Comparable<Tranche> {
     }
 
     public int compareTo(Tranche other) {
-        return Double.compare(this.fdr,  other.fdr);
+        return Double.compare(this.ts,  other.ts);
     }
 
     public String toString() {
-        return String.format("Tranche fdr=%.2f minVQSLod=%.4f known=(%d @ %.2f) novel=(%d @ %.2f) truthSites(%d accessible, %d called), name=%s]",
-                fdr, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, name);
+        return String.format("Tranche ts=%.2f minVQSLod=%.4f known=(%d @ %.2f) novel=(%d @ %.2f) truthSites(%d accessible, %d called), name=%s]",
+                ts, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, name);
     }
 
     /**
      * Returns an appropriately formatted string representing the raw tranches file on disk.
      *
-     * @param rawTranches
+     * @param tranches
      * @return
      */
-    public static String tranchesString(List<Tranche> rawTranches) {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        PrintStream stream = new PrintStream(bytes);
+    public static String tranchesString( final List<Tranche> tranches ) {
+        final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        final PrintStream stream = new PrintStream(bytes);
 
-        List<Tranche> tranches = new ArrayList<Tranche>();
-        tranches.addAll(rawTranches);
         Collections.sort(tranches);
 
         stream.println("# Variant quality score tranches file");
         stream.println("# Version number " + CURRENT_VERSION);
-        stream.println("FDRtranche,targetTiTv,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName,accessibleTruthSites,callsAtTruthSites,truthSensitivity");
+        stream.println("targetTruthSensitivity,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName,accessibleTruthSites,callsAtTruthSites,truthSensitivity");
 
         Tranche prev = null;
         for ( Tranche t : tranches ) {
-            stream.printf("%.2f,%.2f,%d,%d,%.4f,%.4f,%.4f,FDRtranche%.2fto%.2f,%d,%d,%.4f%n",
-                    t.fdr,t.targetTiTv,t.numKnown,t.numNovel,t.knownTiTv,t.novelTiTv, t.minVQSLod,
-                    (prev == null ? 0.0 : prev.fdr), t.fdr, t.accessibleTruthSites, t.callsAtTruthSites, t.getTruthSensitivity());
+            stream.printf("%.2f,%d,%d,%.4f,%.4f,%.4f,TruthSensitivityTranche%.2fto%.2f,%d,%d,%.4f%n",
+                    t.ts, t.numKnown, t.numNovel, t.knownTiTv, t.novelTiTv, t.minVQSLod,
+                    (prev == null ? 0.0 : prev.ts), t.ts, t.accessibleTruthSites, t.callsAtTruthSites, t.getTruthSensitivity());
             prev = t;
         }
 
@@ -160,19 +154,18 @@ public class Tranche implements Comparable<Tranche> {
                 final String[] vals = line.split(",");
                 if( header == null ) {
                     header = vals;
-                    if ( header.length == 5 )
+                    if ( header.length == 5 || header.length == 8 || header.length == 11 )
                         // old style tranches file, throw an error
                         throw new UserException.MalformedFile(f, "Unfortunately, your tranches file is from a previous version of this tool and cannot be used with the latest code.  Please rerun VariantRecalibrator");
-                    if ( header.length != 8 && header.length != 11 )
-                        throw new UserException.MalformedFile(f, "Expected 8 elements in header line " + line);
+                    if ( header.length != 10 )
+                        throw new UserException.MalformedFile(f, "Expected 10 elements in header line " + line);
                 } else {
                     if ( header.length != vals.length )
                         throw new UserException.MalformedFile(f, "Line had too few/many fields.  Header = " + header.length + " vals " + vals.length + " line " + line);
 
                     Map<String,String> bindings = new HashMap<String, String>();
                     for ( int i = 0; i < vals.length; i++ ) bindings.put(header[i], vals[i]);
-                    tranches.add(new Tranche(getDouble(bindings,"FDRtranche", true),
-                            getDouble(bindings,"targetTiTv", false),
+                    tranches.add(new Tranche(getDouble(bindings,"targetTruthSensitivity", true),
                             getDouble(bindings,"minVQSLod", true),
                             getInteger(bindings,"numKnown", false),
                             getDouble(bindings,"knownTiTv", false),
@@ -184,7 +177,7 @@ public class Tranche implements Comparable<Tranche> {
                 }
             }
 
-            Collections.sort(tranches);   // sort this in the standard order
+            Collections.sort(tranches);
             return tranches;
         } catch( FileNotFoundException e ) {
             throw new UserException.CouldNotReadInputFile(f, e);

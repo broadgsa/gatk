@@ -238,7 +238,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
 
         for (String fileName: argCollection.RODBindings) {
-            Tags tags = parser.getTags(fileName);
+            final Tags tags = parser.getTags(fileName);
             fileName = expandFileName(fileName);
 
             List<String> positionalTags = tags.getPositionalTags();
@@ -259,17 +259,18 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             else
                 storageType = RMDStorageType.FILE;
 
-            rodBindings.add(new RMDTriplet(name,type,fileName,storageType));
+            rodBindings.add(new RMDTriplet(name,type,fileName,storageType,tags));
         }
 
         if (argCollection.DBSNPFile != null) {
             if(argCollection.DBSNPFile.toLowerCase().contains("vcf"))
                 throw new UserException("--DBSNP (-D) argument currently does not support VCF.  To use dbSNP in VCF format, please use -B:dbsnp,vcf <filename>.");
 
+            final Tags tags = parser.getTags(argCollection.DBSNPFile);
             String fileName = expandFileName(argCollection.DBSNPFile);
             RMDStorageType storageType = fileName.toLowerCase().endsWith("stdin") ? RMDStorageType.STREAM : RMDStorageType.FILE;
 
-            rodBindings.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME,"dbsnp",fileName,storageType));
+            rodBindings.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME,"dbsnp",fileName,storageType,tags));
         }
 
         return rodBindings;

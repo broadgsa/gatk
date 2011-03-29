@@ -112,40 +112,40 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/HiSeq.WGS.cleaned.ug.snpfiltered.indelfiltered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.07, 1.0, !lowPass),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg18.intervals", 2.07, 99.0, !lowPass),
     "HiSeq19" -> new Target("NA12878.HiSeq19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.HiSeq19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 3.0, !lowPass),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 97.0, !lowPass),
     "GA2hg19" -> new Target("NA12878.GA2.hg19", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.GA2.WGS.bwa.cleaned.hg19.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/hiseq19/analysis/snps/NA12878.GA2.hg19.filtered.vcf"),
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 1.0, !lowPass),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.hg19.intervals", 2.3, 99.0, !lowPass),
     "WEx" -> new Target("NA12878.WEx", hg18, dbSNP_hg18_129, hapmap_hg18,
               "/humgen/gsa-hpprojects/dev/depristo/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.indels.10.mask",
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.vcf"),
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 2.6, 3.0, !lowPass),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 2.6, 97.0, !lowPass),
     "WExTrio" -> new Target("CEUTrio.WEx", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, 3.0, !lowPass),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, 97.0, !lowPass),
     "FIN" -> new Target("FIN", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/FIN.79sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, 1.0, lowPass),
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, 99.0, lowPass),
     "TGPWExGdA" -> new Target("1000G.WEx.GdA", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/Barcoded_1000G_WEx_Reduced_Plate_1.cleaned.list"),        // BUGBUG: reduce from 60 to 20 people
               new File("/humgen/gsa-scr1/delangel/NewUG/calls/AugustRelease.filtered_Q50_QD5.0_SB0.0.allSamples.SNPs_hg19.WEx_UG_newUG_MQC.vcf"), // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, 1.0, !lowPass),
+              "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, 99.0, !lowPass),
     "LowPassN60" -> new Target("lowpass.N60", b36, dbSNP_b36, hapmap_b36, indelMask_b36,
               new File("/humgen/1kg/analysis/bamsForDataProcessingPapers/lowpass_b36/lowpass.chr20.cleaned.matefixed.bam"), // the bam list to call from
               new File("/home/radon01/depristo/work/oneOffProjects/VQSRCutByNRS/lowpass.N60.chr20.filtered.vcf"),           // the gold standard VCF file to run through the VQSR
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.b36.intervals", 2.3, 1.0, lowPass),          // chunked interval list to use with Queue's scatter/gather functionality
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.b36.intervals", 2.3, 99.0, lowPass),          // chunked interval list to use with Queue's scatter/gather functionality
     "LowPassEUR363Nov" -> new Target("EUR.nov2010", b37, dbSNP_b37, hapmap_b37, indelMask_b37,
               new File("/humgen/1kg/processing/pipeline_test_bams/EUR.363sample.Nov2010.chr20.bam"),
               new File("/humgen/gsa-hpprojects/dev/data/AugChr20Calls_v4_3state/ALL.august.v4.chr20.filtered.vcf"),         // ** THIS GOLD STANDARD NEEDS TO BE CORRECTED **
-              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, 1.0, lowPass)
+              "/humgen/1kg/processing/pipeline_test_bams/whole_genome_chunked.chr20.hg19.intervals", 2.3, 99.0, lowPass)
   )
 
 
@@ -189,6 +189,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 1.) Unified Genotyper Base
   class GenotyperBase (t: Target) extends UnifiedGenotyper with UNIVERSAL_GATK_ARGS {
+    this.memoryLimit = 3
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 63 // the smallest interval list has 63 intervals, one for each Mb on chr20
@@ -225,6 +226,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 2.) Hard Filtering for indels
   class indelFilter (t: Target) extends VariantFiltration with UNIVERSAL_GATK_ARGS {
+    this.memoryLimit = 2
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.scatterCount = 10
@@ -243,24 +245,24 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   // 3.) Variant Quality Score Recalibration - Generate Recalibration table
   class VQSR(t: Target, goldStandard: Boolean) extends ContrastiveRecalibrator with UNIVERSAL_GATK_ARGS {
-    this.memoryLimit = 6
+    this.memoryLimit = 4
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
-    this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile)
+    this.rodBind :+= RodBind("hapmap", "VCF", t.hapmapFile, "known=false,training=true,truth=true,prior=12.0")
     if( t.hapmapFile.contains("b37") )
-      this.rodBind :+= RodBind("1kg", "VCF", omni_b37)
+      this.rodBind :+= RodBind("omni", "VCF", omni_b37, "known=false,training=true,truth=true,prior=15.0")
     else if( t.hapmapFile.contains("b36") )
-      this.rodBind :+= RodBind("1kg", "VCF", omni_b36)
+      this.rodBind :+= RodBind("omni", "VCF", omni_b36, "known=false,training=true,truth=true,prior=15.0")
     if (t.dbsnpFile.endsWith(".rod"))
-      this.DBSNP = new File(t.dbsnpFile)
+      this.rodBind :+= RodBind("dbsnp", "DBSNP", t.dbsnpFile, "known=true,training=false,truth=false,prior=10.0")
     else if (t.dbsnpFile.endsWith(".vcf"))
-      this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile)
+      this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile, "known=true,training=false,truth=false,prior=10.0")
     this.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
     this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile }
     this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
     this.allPoly = true
-    this.tranche ++= List("0.1", "0.5", "0.7", "1.0", "1.1", "1.2", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0", "2.1", "2.2", "2.5","3.0", "5.0", "10.0")
+    this.tranche ++= List("100.0", "99.9", "99.5", "99.3", "99.0", "98.9", "98.8", "98.5", "98.4", "98.3", "98.2", "98.1", "98.0", "97.9", "97.8", "97.5", "97.0", "95.0", "90.0")
     this.analysisName = t.name + "_VQSR"
     this.jobName =  queueLogDir + t.name + ".VQSR"
   }
@@ -279,9 +281,9 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.jobName =  queueLogDir + t.name + ".applyVQSR"
   }
 
-
-  // 6.) Variant Evaluation Base(OPTIONAL)
+  // 5.) Variant Evaluation Base(OPTIONAL)
   class EvalBase(t: Target) extends VariantEval with UNIVERSAL_GATK_ARGS {
+    this.memoryLimit = 3
     this.reference_sequence = t.reference
     this.rodBind :+= RodBind("comphapmap", "VCF", t.hapmapFile)
     this.intervalsString ++= List(t.intervals)
@@ -292,7 +294,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.sample = samples
   }
 
-  // 6a.) SNP Evaluation (OPTIONAL) based on the cut vcf
+  // 5a.) SNP Evaluation (OPTIONAL) based on the cut vcf
   class snpEvaluation(t: Target) extends EvalBase(t) {
     if (t.reference == b37 || t.reference == hg19) this.rodBind :+= RodBind("compomni", "VCF", omni_b37)
     this.rodBind :+= RodBind("eval", "VCF", t.recalibratedVCF )
@@ -301,7 +303,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.jobName =  queueLogDir + t.name + ".snp.eval"
   }
 
-  // 6b.) Indel Evaluation (OPTIONAL)
+  // 5b.) Indel Evaluation (OPTIONAL)
   class indelEvaluation(t: Target) extends EvalBase(t) {
     this.rodBind :+= RodBind("eval", "VCF", t.filteredIndelVCF)
     this.evalModule :+= "IndelStatistics"
