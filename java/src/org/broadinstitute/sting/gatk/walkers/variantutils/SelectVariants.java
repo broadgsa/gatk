@@ -164,7 +164,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     // if the genotype of any of the samples we're looking it is HET or HomVar, we write this variant
                     for (String sample : samples) {
                         Genotype g = compVC.getGenotype(sample);
-                        if ( g.isHet() || g.isHomVar() ) {
+                        if ( g != null && (g.isHet() || g.isHomVar()) ) {
                             vcfWriter.add(compVC, ref.getBase());
                             return 1;
                         }
