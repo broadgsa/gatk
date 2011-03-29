@@ -7,10 +7,7 @@ import cern.colt.matrix.impl.DenseDoubleMatrix1D;
 import cern.colt.matrix.impl.DenseDoubleMatrix2D;
 import cern.colt.matrix.linalg.Algebra;
 import cern.colt.matrix.linalg.EigenvalueDecomposition;
-import org.broad.tribble.bed.BEDFeature;
-import org.broad.tribble.bed.SimpleBEDFeature;
 import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -22,7 +19,6 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.bed.BedParser;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
@@ -138,7 +134,7 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
             int rank = Arrays.binarySearch(normRanks,lhp.second);
             // note - equal values will always be assigned the same rank -- however
             // it is proper, no need for random assignment.
-            double prob = ((double) rank)/((double)normRanks.length);
+            double prob = (1.0 + normRanks.length - rank)/(1.0+normRanks.length);
             int qual = AssociationTestRunner.pToQ(prob);
             out.printf("%s\t%d\t%d\t%d\t%.2e\t%d\t%.2e%n",lhp.getFirst().getContig(),lhp.getFirst().getStart(),lhp.getFirst().getStop(),
                     qual,prob,rank,lhp.getSecond());
@@ -208,7 +204,7 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
             //    a post-whitening value of zero.
             @Override
             public double apply(double v, double v1) {
-                if ( v == Double.NaN ) {
+                if ( Double.compare(v,Double.NaN) == 0 || Double.compare(v1,Double.NaN) == 0 ) {
                     return 0.0;
                 }
                 return v - v1;
@@ -232,16 +228,30 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
 
         public void setCov(double[][] cov) {
             EigenvalueDecomposition decomp = new EigenvalueDecomposition(new DenseDoubleMatrix2D(cov));
-            // todo -- this bastard gets sorted, so we're going to have to match the mean, max, and data to this sorting (somehow?)
             DoubleMatrix2D diag = decomp.getD();
             for ( int i = 0; i < diag.rows(); i ++ ) {
-                diag.set(i,i, Math.pow(diag.get(i,i),-0.5));
+                // do not artificially inflate signal that is not there
+                if ( diag.get(i,i) < 1.0 ) {
+                    diag.set(i,i, 1.0);
+                } else {
+                    diag.set(i,i, Math.pow(diag.get(i,i),-0.5));
+                }
             }
             transform = ALGEBRA.mult(diag,ALGEBRA.transpose(decomp.getV()));
+            logger.debug("TRANSFORM:");
+            logger.debug(transform);
         }
 
         public double[] whiten(double[] value) {
             DenseDoubleMatrix1D vec = new DenseDoubleMatrix1D(value);
+            double[] h = ALGEBRA.mult(transform, vec.assign(means, SUBTRACT) ).toArray();
+            for ( double d : h ) {
+                if ( d == Double.NaN ) {
+                    logger.debug(vec.toString());
+                    logger.debug(means.toString());
+                }
+            }
+
             return ALGEBRA.mult(transform, vec.assign(means, SUBTRACT) ).toArray();
         }
     }
