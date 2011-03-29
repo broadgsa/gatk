@@ -40,7 +40,7 @@ object RodBind {
   def formatCommandLine(cmdLineParam: String)(prefix: String, value: Any, suffix: String) = {
     value match {
       case rodBind: RodBind if (rodBind.tag != null) =>
-        " %s:%s,%s,%s %s".format(cmdLineParam, rodBind.trackName, rodBind.trackType, rodBind.getPath, rodBind.tag)
+        " %s:%s,%s,%s %s".format(cmdLineParam, rodBind.trackName, rodBind.trackType, rodBind.tag, rodBind.getPath)
       case rodBind: RodBind =>
         " %s:%s,%s %s".format(cmdLineParam, rodBind.trackName, rodBind.trackType, rodBind.getPath)
     }
