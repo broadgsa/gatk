@@ -207,6 +207,9 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
                 if ( Double.compare(v,Double.NaN) == 0 || Double.compare(v1,Double.NaN) == 0 ) {
                     return 0.0;
                 }
+
+		if ( Double.compare(v,Double.POSITIVE_INFINITY) == 0 ) { return 50.0; } // todo -- fixme
+		if ( Double.compare(v,Double.NEGATIVE_INFINITY) == 0 ) { return -50.0; } // todo -- fixme, really should be an exception
                 return v - v1;
             }
         };
@@ -244,14 +247,6 @@ public class RegionalAssociationRecalibrator extends RodWalker<RegionalAssociati
 
         public double[] whiten(double[] value) {
             DenseDoubleMatrix1D vec = new DenseDoubleMatrix1D(value);
-            double[] h = ALGEBRA.mult(transform, vec.assign(means, SUBTRACT) ).toArray();
-            for ( double d : h ) {
-                if ( d == Double.NaN ) {
-                    logger.debug(vec.toString());
-                    logger.debug(means.toString());
-                }
-            }
-
             return ALGEBRA.mult(transform, vec.assign(means, SUBTRACT) ).toArray();
         }
     }

@@ -70,8 +70,8 @@ public class MannWhitneyU {
 
     /**
      * Given a u statistic, calculate the p-value associated with it, dispatching to approximations where appropriate
-     * @param n - The number of entries in the DOMINATED set
-     * @param m - The number of entries in the DOMINANT set
+     * @param n - The number of entries in the stochastically smaller (dominant) set
+     * @param m - The number of entries in the stochastically larger (dominated) set
      * @param u - the Mann-Whitney U value
      * @param twoSided - is the test twosided
      * @return the (possibly approximate) p-value associated with the MWU test
@@ -84,13 +84,15 @@ public class MannWhitneyU {
         } else if ( n > 8 && m > 8 ) {
             // large m and n - normal approx
             pval = calculatePNormalApproximation(n,m,u);
-        } else if ( n > 4 && m > 7 ) {
+        } else if ( n > 5 && m > 7 ) {
             // large m, small n - sum uniform approx
-            pval = calculatePUniformApproximation(n,m,u);
+            // todo -- find the appropriate regimes where this approximation is actually better
+            // pval = calculatePUniformApproximation(n,m,u);
+            pval = calculatePNormalApproximation(n,m,u);
         } else if ( n > 8 || m > 8 ) {
             pval = calculatePFromTable(n,m,u);
         } else {
-            // small m [possibly small n] - full approx
+            // small m and n [possibly small n] - full approx
             pval = calculatePRecursively(n,m,u);
         }
 
@@ -99,15 +101,14 @@ public class MannWhitneyU {
 
     public static double calculatePFromTable(int n, int m, long u) {
         // todo -- actually use a table for:
-        // todo      - n small, m large
         // todo      - n large, m small
         return calculatePUniformApproximation(n,m,u);
     }
 
     /**
      * Uses a normal approximation to the U statistic in order to return a cdf p-value. See Mann, Whitney [1947]
-     * @param n - The number of entries in the DOMINATED set
-     * @param m - The number of entries in the DOMINANT set
+     * @param n - The number of entries in the stochastically smaller (dominant) set
+     * @param m - The number of entries in the stochastically larger (dominated) set
      * @param u - the Mann-Whitney U value
      * @return p-value associated with the normal approximation
      */
@@ -118,8 +119,8 @@ public class MannWhitneyU {
 
     /**
      * Calculates the Z-score approximation of the u-statistic
-     * @param n - The number of entries in the DOMINATED set
-     * @param m - The number of entries in the DOMINANT set
+     * @param n - The number of entries in the stochastically smaller (dominant) set
+     * @param m - The number of entries in the stochastically larger (dominated) set
      * @param u - the Mann-Whitney U value
      * @return z-score associated with the normal approximation
      */
@@ -132,21 +133,25 @@ public class MannWhitneyU {
 
     /**
      * Uses a sum-of-uniform-0-1 random variable approximation to the U statistic in order to return an approximate
-     * p-value. See Buckle, Kraft, van Eeden [1969] (approx) and Billingsly [1995] or Stephens [1966] (sum of uniform CDF)
-     * @param n -
-     * @param m -
-     * @param u -
-     * @return
+     * p-value. See Buckle, Kraft, van Eeden [1969] (approx) and Billingsly [1995] or Stephens, MA [1966, biometrika] (sum of uniform CDF)
+     * @param n - The number of entries in the stochastically smaller (dominant) set
+     * @param m - The number of entries in the stochastically larger (dominated) set
+     * @param u - mann-whitney u value
+     * @return p-value according to sum of uniform approx
      */
     public static double calculatePUniformApproximation(int n, int m, long u) {
         long R = u + (n*(n+1))/2;
         double a = Math.sqrt(m*(n+m+1));
         double b = (n/2.0)*(1-Math.sqrt((n+m+1)/m));
-        double z = b + R/a;
-        if ( z < 0 ) { return 0.0; }
-        else if ( z > n ) { return 1.0; }
+        double z = b + ((double)R)/a;
+        if ( z < 0 ) { return 1.0; }
+        else if ( z > n ) { return 0.0; }
         else {
-            return 1/((double)Arithmetic.factorial(n))*uniformSumHelper(z, (int) Math.floor(z), n, 0);
+            if ( z > ((double) n) /2 ) {
+                return 1.0-1/((double)Arithmetic.factorial(n))*uniformSumHelper(z, (int) Math.floor(z), n, 0);
+            } else {
+                return 1/((double)Arithmetic.factorial(n))*uniformSumHelper(z, (int) Math.floor(z), n, 0);
+            }
         }
     }
 
@@ -167,11 +172,13 @@ public class MannWhitneyU {
     /**
      * Calculates the U-statistic associated with a two-sided test (e.g. the RV from which one set is drawn
      * stochastically dominates the RV from which the other set is drawn); two-sidedness is accounted for
-     * later on simply by multiplying the p-value by 2
-     * @param observed
+     * later on simply by multiplying the p-value by 2.
+     *
+     * Recall: If X stochastically dominates Y, the test is for occurrences of Y before X, so the lower value of u is chosen
+     * @param observed - the observed data
      * @return the minimum of the U counts (set1 dominates 2, set 2 dominates 1)
      */
-    public static Pair<Long,USet> calculateTwoSidedU(TreeSet<Pair<Number,USet>> observed ) {
+    public static Pair<Long,USet> calculateTwoSidedU(TreeSet<Pair<Number,USet>> observed) {
         int set1SeenSoFar = 0;
         int set2SeenSoFar = 0;
         long uSet1DomSet2 = 0;
@@ -201,36 +208,45 @@ public class MannWhitneyU {
 
     /**
      * Calculates the U-statistic associated with the one-sided hypothesis that "dominator" stochastically dominates
-     * the other U-set
+     * the other U-set. Note that if S1 dominates S2, we want to count the occurrences of points in S2 coming before points in S1.
      * @param observed - the observed data points, tagged by each set
      * @param dominator - the set that is hypothesized to be stochastically dominating
      * @return the u-statistic associated with the hypothesis
      */
     public static long calculateOneSidedU(TreeSet<Pair<Number,USet>> observed,USet dominator) {
-        long domninatorBeforeOther = 0l;
-        int domSeenSoFar = 0;
+        long otherBeforeDominator = 0l;
+        int otherSeenSoFar = 0;
         for ( Pair<Number,USet> dataPoint : observed ) {
-            if ( dataPoint.second == dominator ) {
-                ++domSeenSoFar;
+            if ( dataPoint.second != dominator ) {
+                ++otherSeenSoFar;
             } else {
-                domninatorBeforeOther += domSeenSoFar;
+                otherBeforeDominator += otherSeenSoFar;
             }
         }
 
-        return domninatorBeforeOther;
+        return otherBeforeDominator;
     }
 
     /**
      * The Mann-Whitney U statistic follows a recursive equation (that enumerates the proportion of possible
      * binary strings of "n" zeros, and "m" ones, where a one precedes a zero "u" times). This accessor
      * calls into that recursive calculation.
-     * @param n: number of set-one entries (hypothesis: set-one is dominated by set-two)
+     * @param n: number of set-one entries (hypothesis: set one is stochastically less than set two)
      * @param m: number of set-two entries
      * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
      * @return the probability under the hypothesis that all sequences are equally likely of finding a set-two entry preceding a set-one entry "u" times.
      */
     public static double calculatePRecursively(int n, int m, long u) {
-        if ( m > 7 && n > 4 ) { throw new StingException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
+        if ( m > 8 && n > 5 ) { throw new StingException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
+        return cpr(n,m,u);
+    }
+
+    /**
+     * Hook into CPR with sufficient warning (for testing purposes)
+     * @deprecated - for testing only (really)
+     */
+    @Deprecated
+    public static double calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(int n, int m, long u) {
         return cpr(n,m,u);
     }
 
@@ -262,6 +278,15 @@ public class MannWhitneyU {
     @Deprecated
     public TreeSet<Pair<Number,USet>> getObservations() {
         return observations;
+    }
+
+    /**
+     * hook into the set sizes, for testing purposes only
+     * @return size set 1, size set 2
+     * @deprecated - only for testing
+     */
+    public Pair<Integer,Integer> getSetSizes() {
+        return new Pair<Integer,Integer>(sizeSet1,sizeSet2);
     }
 
     /**
