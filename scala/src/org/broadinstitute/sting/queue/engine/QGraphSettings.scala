@@ -58,7 +58,7 @@ class QGraphSettings {
   var statusEmailTo: List[String] = Nil
 
   @Argument(fullName="status_email_from", shortName="statusFrom", doc="Email address to send emails from upon completion or on error.", required=false)
-  var statusEmailFrom: String = System.getProperty("user.name") + "@" + SystemUtils.domainName
+  var statusEmailFrom: String = System.getProperty("user.name") + "@" + SystemUtils.mailName
 
   @Argument(fullName="dot_graph", shortName="dot", doc="Outputs the queue graph to a .dot file.  See: http://en.wikipedia.org/wiki/DOT_language", required=false)
   var dotFile: File = _

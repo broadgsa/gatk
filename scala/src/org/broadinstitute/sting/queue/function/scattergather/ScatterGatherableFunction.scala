@@ -252,7 +252,7 @@ trait ScatterGatherableFunction extends CommandLineFunction {
       if (ReflectionUtils.hasAnnotation(gatherField.field, classOf[Gather])) {
         gatherClass = ReflectionUtils.getAnnotation(gatherField.field, classOf[Gather]).value
       } else {
-        throw new QException("Missing @Gather annotation: " + gatherField.field.getName)
+        throw new QException("Missing @Gather annotation: " + gatherField.field)
       }
     }
 

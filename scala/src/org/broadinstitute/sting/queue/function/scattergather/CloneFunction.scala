@@ -62,11 +62,10 @@ class CloneFunction extends CommandLineFunction {
     }
   }
 
+  override def commandOutputs = withScatterPart(() => originalFunction.commandOutputs)
   override def dotString = withScatterPart(() => originalFunction.dotString)
   override def description = withScatterPart(() => originalFunction.description)
   override protected def functionFieldClass = originalFunction.getClass
-  override def useStatusOutput(file: File) =
-    !isLogFile(file) && originalFunction.useStatusOutput(file)
 
   def commandLine = withScatterPart(() => originalFunction.commandLine)
 

@@ -146,12 +146,6 @@ trait QFunction extends Logging {
   }
 
   /**
-   * Returns true if the file should be used for status output.
-   * @return true if the file should be used for status output.
-   */
-  def useStatusOutput(file: File) = !isLogFile(file)
-
-  /**
    * Returns true if the file is a log file for this function.
    */
   protected def isLogFile(file: File) =
@@ -161,9 +155,8 @@ trait QFunction extends Logging {
    * Returns the output files for this function.
    * @return Set[File] outputs for this function.
    */
-  private def statusPaths = outputs
-          .filter(file => useStatusOutput(file))
-          .map(file => file.getParentFile + "/." + file.getName)
+  private def statusPaths =
+    commandOutputs.map(file => file.getParentFile + "/." + file.getName)
   
   /**
    * Returns the output files for this function.
@@ -204,6 +197,12 @@ trait QFunction extends Logging {
   def outputs = getFieldFiles(outputFields)
 
   /**
+   * Returns the non-log outputs for this function.
+   * @return the non-log outputs for this function.
+   */
+  def commandOutputs = outputs.filterNot(file => isLogFile(file))
+
+  /**
    * Returns the set of directories where files may be written.
    */
   def outputDirectories = {
@@ -227,7 +226,7 @@ trait QFunction extends Logging {
    * Deletes the output files and all the status files for this function.
    */
   def deleteOutputs() = {
-    outputs.filterNot(file => isLogFile(file)).foreach(file => IOUtils.tryDelete(file))
+    commandOutputs.foreach(file => IOUtils.tryDelete(file))
     doneOutputs.foreach(file => IOUtils.tryDelete(file))
     failOutputs.foreach(file => IOUtils.tryDelete(file))
   }

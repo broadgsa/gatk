@@ -38,4 +38,5 @@ class GathererFunction(gathererClass: Class[_ <: Gatherer]) extends InProcessFun
       waitForGatherParts
     gatherer.gather(this.gatherParts, this.originalOutput)
   }
+  override def description = this.gathererClass.getSimpleName + " " + this.commandOutputs.mkString(" ")
 }

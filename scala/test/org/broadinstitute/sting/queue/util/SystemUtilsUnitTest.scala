@@ -32,12 +32,12 @@ class SystemUtilsUnitTest {
   def testHostInfo {
     val inetAddress = SystemUtils.inetAddress
     val hostName = SystemUtils.hostName
-    val domainName = SystemUtils.domainName
+    val mailName = SystemUtils.mailName
 
-    if (inetAddress.split('.').takeRight(2).mkString(".") == domainName)
+    if (inetAddress.split('.').takeRight(2).mkString(".") == mailName)
       Assert.fail("""Invalid domain name generated:
       |inetAddress: %s
       |hostName:    %s
-      |domainName:  %s""".stripMargin.format(inetAddress, hostName, domainName))
+      |mailName:  %s""".stripMargin.format(inetAddress, hostName, mailName))
   }
 }

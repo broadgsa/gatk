@@ -401,6 +401,16 @@
           </manifest>
         </jar>
 
+        <subant target="dist" genericantfile="build.xml">
+            <property name="build.dir" value="${external.build.dir}" />
+            <property name="dist.dir" value="${external.dist.dir}" />
+            <property name="gatk.classpath" value="${external.gatk.classpath}" />
+            <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
+        </subant>
+    </target>
+
+    <target name="gatk.oneoffs.jar" depends="gatk.compile, init.jar"
+            description="generate the GATK oneoffs distribution" if="include.oneoffs">
         <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" whenmanifestonly="skip">
           <fileset dir="${java.classes}">
             <include name="**/tools/**/*.class" />
@@ -409,13 +419,6 @@
             <attribute name="Main-Class" value="org.broadinstitute.sting.oneoffprojects.tools.CompareBAMAlignments" />
           </manifest>
         </jar>
-
-        <subant target="dist" genericantfile="build.xml">
-            <property name="build.dir" value="${external.build.dir}" />
-            <property name="dist.dir" value="${external.dist.dir}" />
-            <property name="gatk.classpath" value="${external.gatk.classpath}" />
-            <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
-        </subant>
     </target>
 
     <target name="scala.jar" depends="scala.compile, init.jar" if="scala.include">
@@ -440,7 +443,7 @@
         </jar>
     </target>
 
-    <target name="sting.jar" depends="sting-utils.jar, gatk.jar, queue.jar" />
+    <target name="sting.jar" depends="sting-utils.jar, gatk.jar, gatk.oneoffs.jar, queue.jar" />
 
     <target name="init.manifests" depends="sting.jar">
         <pathconvert property="jar.classpath" pathsep=" ">
@@ -472,6 +475,9 @@
             </manifest>
         </jar>
 
+    </target>
+
+    <target name="gatk.oneoffs.manifests" depends="gatk.oneoffs.jar, init.manifests" if="include.oneoffs">
         <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
@@ -487,7 +493,7 @@
         </jar>
     </target>
 
-    <target name="sting.manifests" depends="sting-utils.manifests, gatk.manifests, queue.manifests" />
+    <target name="sting.manifests" depends="sting-utils.manifests, gatk.manifests, gatk.oneoffs.manifests, queue.manifests" />
 
     <target name="dist" depends="sting.manifests" />
 
