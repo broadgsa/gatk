@@ -306,7 +306,8 @@ public class GenomeAnalysisEngine {
     }
 
     /**
-     * Verifies that the supplied set of reads files mesh with what the walker says it requires.
+     * Verifies that the supplied set of reads files mesh with what the walker says it requires,
+     * and also makes sure that there were no duplicate SAM files specified on the command line.
      */
     protected void validateSuppliedReads() {
         GATKArgumentCollection arguments = this.getArguments();
@@ -317,6 +318,32 @@ public class GenomeAnalysisEngine {
         // Check what the walker says is allowed against what was provided on the command line.
         if ((arguments.samFiles != null && arguments.samFiles.size() > 0) && !WalkerManager.isAllowed(walker, DataSource.READS))
             throw new ArgumentException("Walker does not allow reads but reads were provided.");
+
+        // Make sure no SAM files were specified multiple times by the user.
+        checkForDuplicateSamFiles();
+    }
+
+    /**
+     * Checks whether there are SAM files that appear multiple times in the fully unpacked list of
+     * SAM files (samReaderIDs). If there are, throws an ArgumentException listing the files in question.
+     */
+    protected void checkForDuplicateSamFiles() {
+        Set<SAMReaderID> encounteredSamFiles = new HashSet<SAMReaderID>();
+        Set<String> duplicateSamFiles = new LinkedHashSet<String>();
+
+        for ( SAMReaderID samFile : samReaderIDs ) {
+            if ( encounteredSamFiles.contains(samFile) ) {
+                duplicateSamFiles.add(samFile.getSamFilePath());
+            }
+            else {
+                encounteredSamFiles.add(samFile);
+            }
+        }
+
+        if ( duplicateSamFiles.size() > 0 ) {
+            throw new ArgumentException("The following BAM files appear multiple times in the list of input files: " +
+                                        duplicateSamFiles + " BAM files may be specified at most once.");
+        }
     }
 
     /**

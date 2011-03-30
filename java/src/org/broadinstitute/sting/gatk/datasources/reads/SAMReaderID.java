@@ -42,6 +42,19 @@ public class SAMReaderID implements Comparable {
     }
 
     /**
+     * Gets the absolute pathname of this SAM file
+     * @return  The absolute pathname of this reader's SAM file,
+     *          or null if this reader has no associated SAM file
+     */
+    public String getSamFilePath() {
+        if ( samFile == null ) {
+            return null;
+        }
+
+        return samFile.getAbsolutePath();
+    }
+
+    /**
      * Gets the tags associated with the given BAM file.
      * @return A collection of the tags associated with this file.
      */
