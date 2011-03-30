@@ -114,11 +114,11 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
                 coveredRegionStop = Math.min(coveredRegionStop,scheduleEntry.stop);
                 coveredRegion = loci.getGenomeLocParser().createGenomeLoc(currentLocus.getContig(),coveredRegionStart,coveredRegionStop);
 
-                // Always create a file span, whether there was covered data or not.  If there was no covered data, then the binTree is empty.
-                //System.out.printf("Shard: index file = %s; reference sequence = %d; ",index.getIndexFile(),currentLocus.getContigIndex());
                 nextFilePointer.addFileSpans(scheduleEntry.fileSpans);
             }
             else {
+                // Always create a file span, whether there was covered data or not.  If there was no covered data, then the binTree is empty.
+                //System.out.printf("Shard: index file = %s; reference sequence = %d; ",index.getIndexFile(),currentLocus.getContigIndex());
                 for(SAMReaderID reader: indices.keySet())
                     nextFilePointer.addFileSpans(reader,new GATKBAMFileSpan());
             }

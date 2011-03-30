@@ -24,9 +24,15 @@
 
 package net.sf.samtools;
 
+import net.sf.picard.util.PeekableIterator;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 /**
  * A temporary solution to work around Java access rights issues:
@@ -74,5 +80,162 @@ public class GATKBAMFileSpan extends BAMFileSpan {
         for(GATKChunk chunk: getGATKChunks())
             builder.append(String.format("%s;",chunk));
         return builder.toString();
+    }
+
+    /**
+     * Returns an approximation of the number of uncompressed bytes in this
+     * file span.
+     * @return Approximation of uncompressed bytes in filespan.
+     */
+    public long size() {
+        long size = 0L;
+        for(GATKChunk chunk: getGATKChunks())
+            size += chunk.size();
+        return size;
+    }
+
+    /**
+     * Computes the union of two FileSpans.
+     * @param other FileSpan to union with this one.
+     * @return A file span that's been unioned.
+     */
+    public GATKBAMFileSpan union(final GATKBAMFileSpan other) {
+        // No data?  Return an empty file span.
+        if(getGATKChunks().size() == 0 && other.getGATKChunks().size() == 0)
+            return new GATKBAMFileSpan();
+
+        LinkedList<GATKChunk> unmergedUnion = new LinkedList<GATKChunk>();
+        unmergedUnion.addAll(getGATKChunks());
+        unmergedUnion.addAll(other.getGATKChunks());
+        Collections.sort(unmergedUnion);
+
+        List<GATKChunk> mergedUnion = new ArrayList<GATKChunk>();
+        GATKChunk currentChunk = unmergedUnion.remove();
+        while(!unmergedUnion.isEmpty()) {
+            // Find the end of this range of chunks.
+            while(!unmergedUnion.isEmpty() && currentChunk.getChunkEnd() >= unmergedUnion.peek().getChunkStart()) {
+                GATKChunk nextChunk = unmergedUnion.remove();
+                currentChunk = new GATKChunk(currentChunk.getChunkStart(),nextChunk.getChunkEnd());
+            }
+            // Add the accumulated range.
+            mergedUnion.add(currentChunk);
+            currentChunk = !unmergedUnion.isEmpty() ? unmergedUnion.remove() : null;
+        }
+
+        // At end of the loop above, the last chunk will be contained in currentChunk and will not yet have been added.  Add it.
+        if(currentChunk !=null)
+            mergedUnion.add(currentChunk);
+
+        return new GATKBAMFileSpan(mergedUnion.toArray(new GATKChunk[mergedUnion.size()]));
+    }
+
+    /**
+     * Intersects two BAM file spans.
+     * @param other File span to intersect with this one.
+     * @return The intersected BAM file span.
+     */
+    public GATKBAMFileSpan intersection(final GATKBAMFileSpan other) {
+        Iterator<GATKChunk> thisIterator = getGATKChunks().iterator();
+        Iterator<GATKChunk> otherIterator = other.getGATKChunks().iterator();
+
+        if(!thisIterator.hasNext() || !otherIterator.hasNext())
+            return new GATKBAMFileSpan();
+
+        GATKChunk thisChunk = thisIterator.next();
+        GATKChunk otherChunk = otherIterator.next();
+
+        List<GATKChunk> intersected = new ArrayList<GATKChunk>();
+
+        while(thisChunk != null && otherChunk != null) {
+            // If this iterator is before other, skip this ahead.
+            if(thisChunk.getChunkEnd() <= otherChunk.getChunkStart()) {
+                thisChunk = thisIterator.hasNext() ? thisIterator.next() : null;
+                continue;
+            }
+
+            // If other iterator is before this, skip other ahead.
+            if(thisChunk.getChunkStart() >= otherChunk.getChunkEnd()) {
+                otherChunk = otherIterator.hasNext() ? otherIterator.next() : null;
+                continue;
+            }
+
+            // If these two chunks overlap, pull out intersection of data and truncated current chunks to point after
+            // the intersection (or next chunk if no such overlap exists).
+            if(thisChunk.overlaps(otherChunk)) {
+                // Determine the chunk constraints
+                GATKChunk firstChunk = thisChunk.getChunkStart() < otherChunk.getChunkStart() ? thisChunk : otherChunk;
+                GATKChunk secondChunk = thisChunk==firstChunk ? otherChunk : thisChunk;
+                GATKChunk intersectedChunk = new GATKChunk(secondChunk.getChunkStart(),Math.min(firstChunk.getChunkEnd(),secondChunk.getChunkEnd()));
+                intersected.add(intersectedChunk);
+
+                if(thisChunk.getChunkEnd() > intersectedChunk.getChunkEnd())
+                    thisChunk = new GATKChunk(intersectedChunk.getChunkEnd(),thisChunk.getChunkEnd());
+                else
+                    thisChunk = thisIterator.hasNext() ? thisIterator.next() : null;
+
+                if(otherChunk.getChunkEnd() > intersectedChunk.getChunkEnd())
+                    otherChunk = new GATKChunk(intersectedChunk.getChunkEnd(),otherChunk.getChunkEnd());
+                else
+                    otherChunk = otherIterator.hasNext() ? otherIterator.next() : null;
+            }
+
+        }
+
+        return new GATKBAMFileSpan(intersected.toArray(new GATKChunk[intersected.size()]));
+    }
+
+    /**
+     * Substracts other file span from this file span.
+     * @param other File span to strike out.
+     * @return This file span minuse the other file span.
+     */
+
+    public GATKBAMFileSpan subtract(final GATKBAMFileSpan other) {
+        Iterator<GATKChunk> thisIterator = getGATKChunks().iterator();
+        Iterator<GATKChunk> otherIterator = other.getGATKChunks().iterator();
+
+        if(!thisIterator.hasNext() || !otherIterator.hasNext())
+            return this;
+
+        GATKChunk thisChunk = thisIterator.next();
+        GATKChunk otherChunk = otherIterator.next();
+
+        List<GATKChunk> subtracted = new ArrayList<GATKChunk>();
+
+        while(thisChunk != null && otherChunk != null) {
+            // If this iterator is before the other, add this to the subtracted list and forge ahead.
+            if(thisChunk.getChunkEnd() < otherChunk.getChunkStart()) {
+                subtracted.add(thisChunk);
+                thisChunk = thisIterator.hasNext() ? thisIterator.next() : null;
+                continue;
+            }
+
+            // If other iterator is before this, skip other ahead.
+            if(thisChunk.getChunkStart() >= otherChunk.getChunkEnd()) {
+                otherChunk = otherIterator.hasNext() ? otherIterator.next() : null;
+                continue;
+            }
+
+            // If these two chunks overlap, pull out intersection of data and truncated current chunks to point after
+            // the intersection (or next chunk if no such overlap exists).
+            if(thisChunk.overlaps(otherChunk)) {
+                // Add in any sort of prefix that this chunk might have over the other.
+                if(thisChunk.getChunkStart() < otherChunk.getChunkStart())
+                    subtracted.add(new GATKChunk(thisChunk.getChunkStart(),otherChunk.getChunkStart()));
+
+                if(thisChunk.getChunkEnd() > otherChunk.getChunkEnd())
+                    thisChunk = new GATKChunk(otherChunk.getChunkEnd(),thisChunk.getChunkEnd());
+                else
+                    thisChunk = thisIterator.hasNext() ? thisIterator.next() : null;
+            }
+        }
+
+        // Finish up any remaining contents of this that didn't make it into the subtracted array.
+        if(thisChunk != null)
+            subtracted.add(thisChunk);
+        while(thisIterator.hasNext())
+            subtracted.add(thisIterator.next());
+
+        return new GATKBAMFileSpan(subtracted.toArray(new GATKChunk[subtracted.size()]));
     }
 }

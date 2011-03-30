@@ -30,6 +30,12 @@ package net.sf.samtools;
  * TODO: Eliminate once we determine the final fate of the BAM index reading code.
  */
 public class GATKChunk extends Chunk {
+    /**
+     * The average ratio of compressed block size / uncompressed block size, computed empirically
+     * using the output of org.broadinstitute.sting.gatk.datasources.reads.utilities.PrintBGZFBounds.
+     */
+    private static final double AVERAGE_BAM_COMPRESSION_RATIO = 0.39;
+
     public GATKChunk(final long start, final long stop) {
         super(start,stop);
     }
@@ -63,5 +69,15 @@ public class GATKChunk extends Chunk {
         super.setChunkEnd(value);
     }
 
-
+    /**
+     * Computes an approximation of the uncompressed size of the
+     * chunk, in bytes.  Can be used to determine relative weights
+     * of chunk size.
+     * @return An approximation of the chunk size in bytes.
+     */
+    public long size() {
+        final long chunkSpan = Math.round(((getChunkEnd()>>16)-(getChunkStart()>>16))/AVERAGE_BAM_COMPRESSION_RATIO);
+        final int offsetSpan = (int)((getChunkEnd()&0xFFFF)-(getChunkStart()&0xFFFF));
+        return chunkSpan + offsetSpan;
+    }
 }
