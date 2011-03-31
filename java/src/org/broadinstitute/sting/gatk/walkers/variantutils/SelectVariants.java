@@ -82,6 +82,30 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="mendelianViolationQualThreshold", shortName="mvq", doc="Minimum genotype QUAL score for each trio member required to accept a site as a violation", required=false)
     private double MENDELIAN_VIOLATION_QUAL_THRESHOLD = 0;
 
+    @Argument(fullName="select_random_number", shortName="number", doc="Selects a number of variants at random from the variant track. Variants are kept in memory to guarantee that n variants will be output, so use it only for a reasonable number of variants. Use select_random_fraction for larger numbers of variants", required=false)
+    private int numRandom = 0;
+
+    @Argument(fullName="select_random_fraction", shortName="fraction", doc="Selects a fraction (0,1) of variants at random from the variant track. Routine is based on probability, so the final result is not guaranteed to carry the exact fraction. Can be used for large fractions", required=false)
+    private double fractionRandom = 0;
+
+
+    /* Private class used to store the intermediate variants in the integer random selection process */
+    private class RandomVariantStructure {
+        private VariantContext vc;
+        private byte refBase;
+
+        RandomVariantStructure(VariantContext vcP, byte refBaseP) {
+            vc = vcP;
+            refBase = refBaseP;
+        }
+
+        public void set (VariantContext vcP, byte refBaseP) {
+            vc = vcP;
+            refBase = refBaseP;
+        }
+
+    }
+
 
     private ArrayList<String> selectNames = new ArrayList<String>();
     private List<VariantContextUtils.JexlVCMatchExp> jexls = null;
@@ -95,6 +119,19 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     /* default name for the variant dataset (VCF) */
     private final String variantRodName = "variant";
+
+
+    /* variables used by the SELECT RANDOM modules */
+    private boolean SELECT_RANDOM_NUMBER = false;
+    private boolean SELECT_RANDOM_FRACTION = false;
+    private int variantNumber = 0;
+    private int nVariantsAdded = 0;
+    private int positionToAdd = 0;
+    private Random generator;
+    private RandomVariantStructure [] variantArray;
+
+
+
 
 
     /**
@@ -113,6 +150,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             logger.info("Including sample '" + sample + "'");
         }
 
+        // Initialize VCF header
+        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
+        headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
+        vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
+
+        for (int i = 0; i < SELECT_EXPRESSIONS.size(); i++) {
+            // It's not necessary that the user supply select names for the JEXL expressions, since those
+            // expressions will only be needed for omitting records.  Make up the select names here.
+            selectNames.add(String.format("select-%d", i));
+        }
+
+        jexls = VariantContextUtils.initializeMatchExps(selectNames, SELECT_EXPRESSIONS);
+
+        // Look at the parameters to decide which analysis to perform
         DISCORDANCE_ONLY = discordanceRodName.length() > 0;
         if (DISCORDANCE_ONLY) logger.info("Selecting only variants discordant with the track: " + discordanceRodName);
 
@@ -126,18 +177,16 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             MENDELIAN_VIOLATIONS = true;
         }
 
-        // Initialize VCF header
-        Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
-        headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
-        vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
-
-        for (int i = 0; i < SELECT_EXPRESSIONS.size(); i++) {
-            // It's not necessary that the user supply select names for the JEXL expressions, since those
-            // expressions will only be needed for omitting records.  Make up the select names here.
-            selectNames.add(String.format("select-%d", i));
+        SELECT_RANDOM_NUMBER = numRandom > 0;
+        if (SELECT_RANDOM_NUMBER) {
+            logger.info("Selecting " + numRandom + " variants at random from the variant track");
+            variantArray = new RandomVariantStructure[numRandom];
         }
 
-        jexls = VariantContextUtils.initializeMatchExps(selectNames, SELECT_EXPRESSIONS);
+        SELECT_RANDOM_FRACTION = fractionRandom > 0;
+        if (SELECT_RANDOM_FRACTION) logger.info("Selecting " + fractionRandom + " variants at random from the variant track");
+
+        generator = new Random();
     }
 
     /**
@@ -201,13 +250,39 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                             return 0;
                         }
                     }
-                    vcfWriter.add(sub, ref.getBase());
+                    if (SELECT_RANDOM_NUMBER) {
+                        randomlyAddVariant(++variantNumber, sub, ref.getBase());
+                    }
+                    else if (!SELECT_RANDOM_FRACTION || generator.nextDouble() < fractionRandom) {
+                        vcfWriter.add(sub, ref.getBase());
+                    }
                 }
             }
         }
 
         return 1;
     }
+
+
+    @Override
+    public Integer reduceInit() { return 0; }
+
+    @Override
+    public Integer reduce(Integer value, Integer sum) { return value + sum; }
+
+    public void onTraversalDone(Integer result) {
+        logger.info(result + " records processed.");
+
+        if (SELECT_RANDOM_NUMBER) {
+            int positionToPrint = positionToAdd;
+            for (int i=0; i<numRandom; i++) {
+                vcfWriter.add(variantArray[positionToPrint].vc, variantArray[positionToPrint].refBase);
+                positionToPrint = nextCircularPosition(positionToPrint, numRandom);
+            }
+        }
+    }
+
+
 
     /**
      * Helper method to subset a VC record, modifying some metadata stored in the INFO field (i.e. AN, AC, AF).
@@ -252,11 +327,24 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         return sub;
     }
 
-    @Override
-    public Integer reduceInit() { return 0; }
+    private void randomlyAddVariant(int rank, VariantContext vc, byte refBase) {
+        if (nVariantsAdded < numRandom)
+            variantArray[nVariantsAdded++] = new RandomVariantStructure(vc, refBase);
 
-    @Override
-    public Integer reduce(Integer value, Integer sum) { return value + sum; }
+        else {
+            double v = generator.nextDouble();
+            double t = (1.0/(rank-numRandom+1));
+            if ( v < t) {
+                variantArray[positionToAdd].set(vc, refBase);
+                nVariantsAdded++;
+                positionToAdd = nextCircularPosition(positionToAdd, numRandom);
+            }
+        }
+    }
 
-    public void onTraversalDone(Integer result) { logger.info(result + " records processed."); }
+    private int nextCircularPosition(int cur, int size) {
+        if ((cur + 1) == size)
+            return 0;
+        return cur + 1;
+    }
 }
