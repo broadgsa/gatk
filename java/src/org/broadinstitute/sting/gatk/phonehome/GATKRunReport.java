@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.phonehome;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
@@ -175,7 +176,7 @@ public class GATKRunReport {
         if ( type == PhoneHomeOption.NO_ET )
             throw new ReviewedStingException("Trying to create a run report when type is NO_ET!");
 
-        logger.info("Aggregating data for run report");
+        logger.debug("Aggregating data for run report");
 
         mGATKHeader = CommandLineGATK.createApplicationHeader();
         currentPath = System.getProperty("user.dir");
@@ -245,7 +246,7 @@ public class GATKRunReport {
     }
 
     public void postReport(PhoneHomeOption type) {
-        logger.info("Posting report of type " + type);
+        logger.debug("Posting report of type " + type);
         switch (type) {
             case NO_ET: // don't do anything
                 break;
@@ -312,7 +313,7 @@ public class GATKRunReport {
             String filename = getID() + ".report.xml.gz";
             File file = new File(rootDir, filename);
             postReportToFile(file);
-            logger.info("Wrote report to " + file);
+            logger.debug("Wrote report to " + file);
             return file;
         } catch ( Exception e ) {
             // we catch everything, and no matter what eat the error
@@ -325,10 +326,12 @@ public class GATKRunReport {
         // modifying example code from http://jets3t.s3.amazonaws.com/toolkit/code-samples.html
         this.hostName = resolveHostname(); // we want to fill in the host name
         File localFile = postReportToLocalDisk(new File("./"));
-        logger.info("Generating GATK report to AWS S3 based on local file " + localFile);
-        if ( localFile != null ) {
+        logger.debug("Generating GATK report to AWS S3 based on local file " + localFile);
+        if ( localFile != null ) { // we succeeded in creating the local file
             try {
-                // we succeeded in creating the local file
+                // stop us from printing the annoying, and meaningless, mime types warning
+                Logger mimeTypeLogger = Logger.getLogger(org.jets3t.service.utils.Mimetypes.class);
+                mimeTypeLogger.setLevel(Level.FATAL);
 
                 // Your Amazon Web Services (AWS) login credentials are required to manage S3 accounts. These credentials
                 // are stored in an AWSCredentials object:
@@ -348,7 +351,7 @@ public class GATKRunReport {
                 //logger.info("Created S3Object" + fileObject);
                 //logger.info("Uploading " + localFile + " to AWS bucket");
                 S3Object s3Object = s3Service.putObject(REPORT_BUCKET_NAME, fileObject);
-                logger.info("Uploaded to AWS: " + s3Object);
+                logger.debug("Uploaded to AWS: " + s3Object);
             } catch ( S3ServiceException e ) {
                 exceptDuringRunReport("S3 exception occurred", e);
             } catch ( NoSuchAlgorithmException e ) {
@@ -362,12 +365,12 @@ public class GATKRunReport {
     }
 
     private void exceptDuringRunReport(String msg, Throwable e) {
-        logger.warn("A problem occurred during GATK run reporting [*** everything is fine, but no report could be generated; please do not post this to the support forum ***].  Message is: " + msg + ".  Error message is: " + e.getMessage());
+        logger.debug("A problem occurred during GATK run reporting [*** everything is fine, but no report could be generated; please do not post this to the support forum ***].  Message is: " + msg + ".  Error message is: " + e.getMessage());
         //e.printStackTrace();
     }
 
     private void exceptDuringRunReport(String msg) {
-        logger.warn("A problem occurred during GATK run reporting [*** everything is fine, but no report could be generated; please do not post this to the support forum ***].  Message is " + msg);
+        logger.debug("A problem occurred during GATK run reporting [*** everything is fine, but no report could be generated; please do not post this to the support forum ***].  Message is " + msg);
     }
 
 
