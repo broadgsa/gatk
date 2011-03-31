@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  */
 
 
-public class CountCovariatesGatherer extends Gatherer {
+public class CountCovariatesGatherer extends Gatherer  {
 
     /////////////////////////////
     // Private Member Variables
@@ -30,27 +30,24 @@ public class CountCovariatesGatherer extends Gatherer {
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
     private static final String EOF_MARKER = "EOF";
 
-    private HashMap<String, int[]> dataMap;
+    private HashMap<String, RecalDatumOptimized> dataMap;
 
 
     private void addCSVData (String line) {
         String[] covariates = line.split(",");
         String key = "";
-        int [] values = new int[3];
+        RecalDatumOptimized values;
 
         for (int i = 0; i < covariates.length-3; i++) {
             key += covariates[i] + ",";
         }
 
-        for (int i = covariates.length-3; i < covariates.length; i++) {
-            values[i] = Integer.parseInt(covariates[i].trim());
-        }
+        values = new RecalDatumOptimized(Integer.parseInt(covariates[covariates.length-3]),
+                                         Integer.parseInt(covariates[covariates.length-2]));
 
         if (dataMap.get(key) != null) {
-            int [] currentValues = dataMap.get(key);
-            for (int i = 0; i < 2; i++) {
-                values[i] += currentValues[i];// todo -- update the third value using the CountCovariatesWalker function
-            }
+            RecalDatumOptimized currentValues = dataMap.get(key);
+            values.increment(currentValues);
         }
 
         dataMap.put(key, values);
@@ -58,7 +55,7 @@ public class CountCovariatesGatherer extends Gatherer {
 
     @Override
     public void gather(List<File> inputs, File output) {
-        dataMap = new HashMap<String, int[]>();
+        dataMap = new HashMap<String, RecalDatumOptimized>();
         PrintStream o;
         try {
             o = new PrintStream(output);
@@ -67,7 +64,7 @@ public class CountCovariatesGatherer extends Gatherer {
         }
 
         boolean sawEOF = false;
-        boolean headerPrinted = false;
+        boolean printedHeader = false;
 
         // Read input files
         for ( File RECAL_FILE : inputs) {
@@ -76,11 +73,12 @@ public class CountCovariatesGatherer extends Gatherer {
                     if ( EOF_MARKER.equals(line) ) {
                         sawEOF = true;    // sanity check
                     }
-                    else if( COMMENT_PATTERN.matcher(line).matches() || COVARIATE_PATTERN.matcher(line).matches() ) {
-                        if (!headerPrinted) {
-                            headerPrinted = true;
+                    else if(COMMENT_PATTERN.matcher(line).matches()) {
+                        ;                 // It doesn't make any sense to print intermediate comments, unless we merge them somehow (would require strict definition for the header)
+                    }
+                    else if (COVARIATE_PATTERN.matcher(line).matches()) {
+                        if (!printedHeader)
                             o.println(line);
-                        }                 // Skip over the header (could check if headers are the same, but probably not necessary)
                     }
                     else {                // Found a line of data
                         addCSVData(line); // Parse the line and add the data to the HashMap
@@ -95,14 +93,15 @@ public class CountCovariatesGatherer extends Gatherer {
                 final String errorMessage = "No EOF marker was present in the recal covariates table; this could mean that the file is corrupted!";
                 throw new UserException.MalformedFile(RECAL_FILE, errorMessage);
             }
+            printedHeader = true;
         }
 
         // Write output file from dataMap
         for(String key : dataMap.keySet()) {
-            int [] values = dataMap.get(key);
-            String v = "," + values[0] + "," + values[1] + "," + values[2];
+            RecalDatumOptimized values = dataMap.get(key);
+            String v = values.getNumObservations() + "," + values.getNumMismatches() + "," + values.empiricalQualByte();
             o.println(key + v);
         }
-
+        o.println("EOF");
     }
 }

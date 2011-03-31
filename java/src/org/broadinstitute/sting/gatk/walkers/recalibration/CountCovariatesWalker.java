@@ -92,13 +92,13 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
     @ArgumentCollection private RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
 
     @Output
-    @Gather(CountCovariatesGatherer.class)
     PrintStream out;
 
     /////////////////////////////
     // Command Line Arguments
     /////////////////////////////
     @Output(fullName="recal_file", shortName="recalFile", required=true, doc="Filename for the outputted covariates table recalibration file")
+    @Gather(CountCovariatesGatherer.class)
     public PrintStream RECAL_FILE;
 
     @Argument(fullName="list", shortName="ls", doc="List the available covariates and exit", required=false)

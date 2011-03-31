@@ -33,6 +33,8 @@ class QuickCCTest extends QScript {
 
   def script = {
 
+    val recal = new File("recal.csv")
+
     val cc = new CountCovariates()
     cc.reference_sequence = reference
     cc.input_file :+= input
@@ -40,7 +42,8 @@ class QuickCCTest extends QScript {
     cc.intervalsString = intervals
     cc.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     cc.scatterCount = 4
-    cc.recal_file = new File("recal.csv")
+    cc.recal_file = recal
+    cc.memoryLimit = 4
 
     add(cc);
   }
