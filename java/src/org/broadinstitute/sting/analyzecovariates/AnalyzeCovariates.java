@@ -111,7 +111,7 @@ public class AnalyzeCovariates extends CommandLineProgram {
         callRScripts();
         System.out.println("...Done!");
 
-        return 1;
+        return 0;
     }
 
     private void initializeData() {
