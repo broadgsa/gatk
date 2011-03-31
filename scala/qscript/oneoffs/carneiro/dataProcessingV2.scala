@@ -37,7 +37,7 @@ class dataProcessingV2 extends QScript {
   @Input(doc="path to Picard's MergeSamFiles.jar", fullName="path_to_merge_jar", shortName="merge", required=false)
   var mergeBamJar: File = new File("/seq/software/picard/current/bin/MergeSamFiles.jar")
 
-  @Input(doc="path to Picard's ValidateSam.jar", fullName="path_to_validate_jar", shortName="validate", required=false)
+  @Input(doc="path to Picard's ValidateSamFile.jar", fullName="path_to_validate_jar", shortName="validate", required=false)
   var validateSamJar: File = new File("/seq/software/picard/current/bin/ValidateSamFile.jar")
 
   @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=false)
@@ -50,16 +50,16 @@ class dataProcessingV2 extends QScript {
   ****************************************************************************/
 
 
-  @Input(doc="path to Picard's RevertSam.jar", fullName="path_to_revert_jar", shortName="revert", required=false)
+  @Input(doc="path to Picard's RevertSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_revert_jar", shortName="revert", required=false)
   var revertSamJar: File = _
 
-  @Input(doc="path to Picard's SortSam.jar", fullName="path_to_sort_jar", shortName="sort", required=false)
+  @Input(doc="path to Picard's SortSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_sort_jar", shortName="sort", required=false)
   var sortSamJar: File = _
 
   @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
 
-  @Input(doc="dbsnp ROD to use (VCF)", fullName="dbsnp", shortName="D", required=false)
+  @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=false)
   var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
@@ -294,6 +294,7 @@ class dataProcessingV2 extends QScript {
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
+    this.scatterCount = nContigs
     this.jobQueue = "gsa"      // should take this out once scatter gather is available.
     this.analysisName = queueLogDir + outRecalFile + ".covariates"
     this.jobName = queueLogDir + outRecalFile + ".covariates"
@@ -309,7 +310,8 @@ class dataProcessingV2 extends QScript {
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
     this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
-    this.index_output_bam_on_the_fly = true
+    this.index_output_bam_on_the_fly = true // todo -- implemente @gather for BAM index
+//    this.scatterCount = nContigs
     this.isIntermediate = false
     this.jobQueue = "gsa"      // should take this out once scatter gather is available.
     this.analysisName = queueLogDir + outBam + ".recalibration"
@@ -333,6 +335,7 @@ class dataProcessingV2 extends QScript {
   case class dedup (inBam: File, outBam: File, metricsFile: File) extends PicardBamFunction {
     @Input(doc="fixed bam") var clean = inBam
     @Output(doc="deduped bam") var deduped = outBam
+    @Output(doc="deduped bam index") var dedupedIndex = new File(outBam + "bai")
     @Output(doc="metrics file") var metrics = metricsFile
     override def inputBams = List(clean)
     override def outputBam = deduped
