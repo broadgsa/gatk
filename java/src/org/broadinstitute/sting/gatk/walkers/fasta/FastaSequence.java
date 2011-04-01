@@ -44,6 +44,10 @@ public class FastaSequence {
         sequenceCounter++;
     }
 
+    public long getCurrentCount() {
+        return sequenceCounter;
+    }
+
     public String getCurrentID() {
         return String.valueOf(sequenceCounter);
     }
