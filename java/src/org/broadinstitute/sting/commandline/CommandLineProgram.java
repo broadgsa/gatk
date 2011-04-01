@@ -135,6 +135,14 @@ public abstract class CommandLineProgram {
     protected String getArgumentSourceName( Class source ) { return source.toString(); }
 
     /**
+     * Sets the command-line parsing engine. Necessary for unit testing purposes.
+     * @param parser the new command-line parsing engine
+     */
+    public void setParser( ParsingEngine parser ) {
+        this.parser = parser;
+    }
+
+    /**
      * this is the function that the inheriting class can expect to have called
      * when all the argument processing is done
      *

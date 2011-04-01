@@ -72,6 +72,11 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     private final Collection<Object> argumentSources = new ArrayList<Object>();
 
     /**
+     * Lines starting with this String in .list files are considered comments.
+     */
+    public static final String LIST_FILE_COMMENT_START = "#";
+
+    /**
      * this is the function that the inheriting class can expect to have called
      * when the command line system has initialized.
      *
@@ -196,20 +201,25 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
 
     /**
      * Unpack the bam files to be processed, given a list of files.  That list of files can
-     * itself contain entries which are lists of other files to be read (note: you cannot have lists of lists of lists)
+     * itself contain entries which are lists of other files to be read (note: you cannot have lists
+     * of lists of lists). Lines in .list files containing only whitespace or which begin with
+     * LIST_FILE_COMMENT_START are ignored.
      *
      * @param argCollection the command-line arguments from which to extract the BAM file list.
      * @return a flattened list of the bam files provided
      */
-    private List<SAMReaderID> unpackBAMFileList(GATKArgumentCollection argCollection) {
+    protected List<SAMReaderID> unpackBAMFileList(GATKArgumentCollection argCollection) {
         List<SAMReaderID> unpackedReads = new ArrayList<SAMReaderID>();
         for( String inputFileName: argCollection.samFiles ) {
             Tags inputFileNameTags = parser.getTags(inputFileName);
             inputFileName = expandFileName(inputFileName);
             if (inputFileName.toLowerCase().endsWith(".list") ) {
                 try {
-                    for(String fileName : new XReadLines(new File(inputFileName)))
-                        unpackedReads.add(new SAMReaderID(fileName,parser.getTags(inputFileName)));
+                    for ( String fileName : new XReadLines(new File(inputFileName), true) ) {
+                        if ( fileName.length() > 0 && ! fileName.startsWith(LIST_FILE_COMMENT_START) ) {
+                            unpackedReads.add(new SAMReaderID(fileName,parser.getTags(inputFileName)));
+                        }
+                    }
                 }
                 catch( FileNotFoundException ex ) {
                     throw new UserException.CouldNotReadInputFile(new File(inputFileName), "Unable to find file while unpacking reads", ex);
