@@ -752,6 +752,7 @@ public class SAMDataSource {
             for(SAMReaderID readerID: readerIDs) {
                 SAMFileReader reader = new SAMFileReader(readerID.samFile);
                 reader.enableFileSource(true);
+                reader.enableIndexMemoryMapping(false);
                 if(!enableLowMemorySharding)
                     reader.enableIndexCaching(true);
                 reader.setValidationStringency(validationStringency);

@@ -580,4 +580,8 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
     protected long position() {
         return mFileBuffer.position();
     }
+
+    @Override
+    public void close() {
+    }
 }
