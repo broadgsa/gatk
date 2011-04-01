@@ -53,7 +53,7 @@ public class SWPairwiseAlignment {
     private static final int ISTATE = 1;
     private static final int DSTATE = 2;
 
-    private static boolean cutoff = true;
+    private static boolean cutoff = false;
 
     double[] SW;
 
@@ -274,6 +274,7 @@ public class SWPairwiseAlignment {
                 segment_length = m - j ; // end of sequence 2 is overhanging; we will just record it as 'M' segment
             }
         }
+//        System.out.println("  Found max score="+maxscore+" at p1="+p1+ " p2="+p2);
 
 
         // we will be placing all insertions and deletions into sequence b, so the states are named w/regard
@@ -291,6 +292,8 @@ public class SWPairwiseAlignment {
             int new_state;
             int step_length = 1;
 
+ //           System.out.print(" backtrack value: "+btr);
+
             if ( btr > 0 ) {
                 new_state = DSTATE;
                 step_length = btr;
@@ -302,10 +305,11 @@ public class SWPairwiseAlignment {
 
             // move to next best location in the sw matrix:
             switch( new_state ) {
-                case MSTATE: data_offset -= (m+2); p1--; p2--; break; // equivalent to p1--; p2--
-                case ISTATE: data_offset -= step_length; p2 -= step_length; break; // equivalent to p2-=step_length;
-                case DSTATE: data_offset -= (m+1)*step_length; p1 -= step_length; break; // equivalent to p1 -= step_up
+                case MSTATE: data_offset -= (m+2); p1--; p2--; break; // move back along the diag in th esw matrix
+                case ISTATE: data_offset -= step_length; p2 -= step_length; break; // move left
+                case DSTATE: data_offset -= (m+1)*step_length; p1 -= step_length; break; // move up
             }
+  //          System.out.println("; backtracked to p1="+p1+" p2="+p2);
   /*
             switch( new_state ) {
                 case MSTATE: System.out.println("  diag (match) to "+ sw[data_offset]); break; // equivalent to p1--; p2--
@@ -316,6 +320,7 @@ public class SWPairwiseAlignment {
             // now let's see if the state actually changed:
             if ( new_state == state ) segment_length+=step_length;
             else {
+//                System.out.println(" emitting "+segment_length+makeElement(state,segment_length).getOperator().toString());
                 // state changed, lets emit previous segment, whatever it was (Insertion Deletion, or (Mis)Match).
                 lce.add(makeElement(state, segment_length));
                 segment_length = step_length;
@@ -324,9 +329,14 @@ public class SWPairwiseAlignment {
 //      next condition is equivalent to  while ( sw[p1][p2] != 0 ) (with modified p1 and/or p2:
         } while ( p1 > 0 && p2 > 0 );
 
-        // post-process the last segment we are still keeping
+        // post-process the last segment we are still keeping;
+        // NOTE: if reads "overhangs" the ref on the left (i.e. if p2>0) we are counting
+        // those extra bases sticking out of the ref into the first cigar element. For instance,
+        // if read length is 5 and alignment starts at offset -2 (i.e. read starts before the ref, and only
+        // last 3 bases of the read overlap with/align to the ref), the cigar will be still 5M (and not, e.g.
+        // 2I3M). The consumers need to check for the alignment offset and deal with it properly.
         lce.add(makeElement(state, segment_length + p2));
-        alignment_offset = p1 - p2; 
+        alignment_offset = p1 - p2;
 
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
@@ -430,12 +440,26 @@ public class SWPairwiseAlignment {
         int j = 0;
 
         final int offset = a.getAlignmentStart2wrt1();
+
+        Cigar cigar = a.getCigar();
+
         if ( offset < 0 ) {
             for (  ; j < (-offset) ; j++ ) {
                 bread.append((char)read[j]);
                 bref.append(' ');
                 match.append(' ');
             }
+            // at negative offsets, our cigar's first element carries overhanging bases
+            // that we have just printed above. Tweak the first element to
+            // exclude those bases. Here we create a new list of cigar elements, so the original
+            // list/original cigar are unchanged (they are unmodifiable anyway!)
+
+            List<CigarElement> tweaked = new ArrayList<CigarElement>();
+            tweaked.addAll(cigar.getCigarElements());
+            tweaked.set(0,new CigarElement(cigar.getCigarElement(0).getLength()+offset,
+                        cigar.getCigarElement(0).getOperator()));
+            cigar = new Cigar(tweaked);
+
         } else {
             for (  ; i < a.getAlignmentStart2wrt1() ; i++ ) {
                 bref.append((char)ref[i]);
@@ -444,13 +468,13 @@ public class SWPairwiseAlignment {
             }
         }
         
-        for ( CigarElement e : a.getCigar().getCigarElements() ) {
+        for ( CigarElement e : cigar.getCigarElements() ) {
             switch (e.getOperator()) {
                 case M :
-                    for ( int z = 0 ; z < e.getLength(); z++, i++, j++  ) {
-                        bref.append((char)ref[i]);
-                        bread.append((char)read[j]);
-                        match.append( ref[i] == read[j] ? '.':'*');
+                    for ( int z = 0 ; z < e.getLength() ; z++, i++, j++  ) {
+                        bref.append((i<ref.length)?(char)ref[i]:' ');
+                        bread.append((j < read.length)?(char)read[j]:' ');
+                        match.append( ( i<ref.length && j < read.length ) ? (ref[i] == read[j] ? '.':'*' ) : ' ' );
                     }
                     break;
                 case I :
