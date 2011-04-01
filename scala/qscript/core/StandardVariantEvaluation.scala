@@ -21,6 +21,9 @@ class StandardVariantEvaluation extends QScript {
   @Argument(shortName = "dataDir", doc="Path to the standard evaluation data files", required=false)
   val DATA_DIR = "/humgen/gsa-hpprojects/GATK/data/Comparisons/StandardForEvaluation/b37/"
 
+  @Argument(shortName = "evalStandard1000GCalls", doc="If provided, we'll include some standard 1000G data for evaluation", required=false)
+  val EVAL_STANDARD_1000G_CALLS: Boolean = false
+
   val COMPS_DIR = DATA_DIR + "/comps/"
   val EVALS_DIR = DATA_DIR + "/evals/"
 
@@ -77,13 +80,17 @@ class StandardVariantEvaluation extends QScript {
     addComp(new Comp("NA12878.homvar.CG", "indels", "NA12878.CG.b37.indels.vcf", true))
     addComp(new Comp("g1k.pilot1.validation", "indels", "pilot1_indel_validation_2009.b37.vcf"))
     addComp(new Comp("NA12878.hand_curated", "indels", "NA12878.validated.curated.polymorphic.indels.vcf"))
+    addComp(new Comp("NA12878.Mullikin", "indels", "NA12878.DIPline.NQScm.expanded.chr20.b37.minReads_2_or_gt2bp.vcf"))
+
 
     //
     // INDEL call sets
     //
-    addEval(new Eval("dindel", "indels", "20110208.chr20.dindel2.EUR.sites.vcf"))
-    addEval(new Eval("si", "indels", "20101123.chr20.si.v2.EUR.sites.vcf"))
-    addEval(new Eval("gatk", "indels", "EUR.phase1.chr20.broad.filtered.indels.sites.vcf"))
+    if ( EVAL_STANDARD_1000G_CALLS ) {
+      addEval(new Eval("dindel", "indels", "20110208.chr20.dindel2.EUR.sites.vcf"))
+      addEval(new Eval("si", "indels", "20101123.chr20.si.v2.EUR.sites.vcf"))
+      addEval(new Eval("gatk", "indels", "EUR.phase1.chr20.broad.filtered.indels.sites.vcf"))
+    }
 
     //
     // Standard evaluation files for SNPs
@@ -98,10 +105,10 @@ class StandardVariantEvaluation extends QScript {
     //
     // SNP call sets
     //
-    addEval(new Eval("1000G.gatk.eurPlus.phase1", "snps", "EUR+.phase1.chr20.broad.recal.vrcut1p0.sites.vcf"))
-    addEval(new Eval("1000G.high_specificity.phase1", "snps", "ALL.phase1.chr20.projectConsensus.highSpecificity.snps.genotypes.sites.vcf"))
-    // todo -- are there other good call sets for evaluation?
-    // todo -- add hg19 na12878 64x
+    if ( EVAL_STANDARD_1000G_CALLS ) {
+      addEval(new Eval("1000G.gatk.eurPlus.phase1", "snps", "EUR+.phase1.chr20.broad.recal.vrcut1p0.sites.vcf"))
+      addEval(new Eval("1000G.high_specificity.phase1", "snps", "ALL.phase1.chr20.projectConsensus.highSpecificity.snps.genotypes.sites.vcf"))
+    }
   }
 
   def script = {
@@ -131,28 +138,31 @@ class StandardVariantEvaluation extends QScript {
       var evalsOfType = EVALS.filter(_.evalType == evalType)
       val compsOfType = COMPS.filter(_.evalType == evalType)
 
-      // if desired and possible, create a union.X.vcf file
-      if ( CREATE_UNION && evalsOfType.size > 1 ) {
-        val union: File = new File("union.%s.vcf".format(evalType))
-        add(new MyCombine(evalsOfType.map(_.file), union));
-        evalsOfType = new Eval("union", evalType, null, union) :: evalsOfType
+      if ( evalsOfType.size > 0 ) {
+
+        // if desired and possible, create a union.X.vcf file
+        if ( CREATE_UNION && evalsOfType.size > 1 ) {
+          val union: File = new File("union.%s.vcf".format(evalType))
+          add(new MyCombine(evalsOfType.map(_.file), union));
+          evalsOfType = new Eval("union", evalType, null, union) :: evalsOfType
+        }
+
+        // our root VE
+        val VE = new MyEval()
+        VE.VT = VARIANT_TYPE_VT(evalType)
+        VE.o = new File(evalType + ".eval")
+
+        // add evals
+        for ( calls <- evalsOfType )
+          VE.rodBind :+= RodBind("eval_" + calls.name, "VCF", calls.file)
+
+        // add comps
+        //VE.rodBind :+= RodBind("dbsnp", "VCF", MY_DBSNP)
+        for ( comp <- compsOfType )
+          VE.rodBind :+= RodBind("comp_" + comp.name, "VCF", comp.sitesFile)
+
+        add(VE)
       }
-
-      // our root VE
-      val VE = new MyEval()
-      VE.VT = VARIANT_TYPE_VT(evalType)
-      VE.o = new File(evalType + ".eval")
-
-      // add evals
-      for ( calls <- evalsOfType )
-        VE.rodBind :+= RodBind("eval_" + calls.name, "VCF", calls.file)
-
-      // add comps
-      //VE.rodBind :+= RodBind("dbsnp", "VCF", MY_DBSNP)
-      for ( comp <- compsOfType )
-        VE.rodBind :+= RodBind("comp_" + comp.name, "VCF", comp.sitesFile)
-
-      add(VE)
     }
   }
 
