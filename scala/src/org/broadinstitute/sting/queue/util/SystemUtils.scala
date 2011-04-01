@@ -34,23 +34,22 @@ import io.Source
  */
 object SystemUtils {
   val inetAddress = InetAddress.getLocalHost.getHostAddress
-  val hostName = InetAddress.getLocalHost.getCanonicalHostName
+  val canonicalHostName = InetAddress.getLocalHost.getCanonicalHostName
+
+  val hostName = {
+    if (canonicalHostName != inetAddress)
+      canonicalHostName
+    else
+      InetAddress.getLocalHost.getHostName
+  }
 
   val mailName = {
     val mailnameFile = new File("/etc/mailname")
     if (mailnameFile.exists)
       Source.fromFile(mailnameFile).mkString.trim
-    else if (hostName == inetAddress)
-      inetAddress
     else
       hostName.split('.').takeRight(2).mkString(".")
   }
 
-  val pidAtHost = {
-    val mxBeanName = ManagementFactory.getRuntimeMXBean.getName
-    if (hostName == inetAddress)
-      mxBeanName
-    else
-      mxBeanName.split('.').head
-  }
+  val pidAtHost = ManagementFactory.getRuntimeMXBean.getName.split('.').head
 }
