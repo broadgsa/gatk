@@ -22,7 +22,7 @@ cd $DIR
 echo "\n####################\nArchiving recently submitted jobs" >> $REPORT_TXT
 python $GATK/python/analyzeRunReports.py archive $DIR/submitted -o $ARCHIVE.gz -D >> $REPORT_TXT
 
-echo "\n####################\nReleased version, all runs" >> $REPORT_TXT
+echo "\n####################\nReleased version ($GATK_RELEASE_VERSION), all runs" >> $REPORT_TXT
 python $GATK/python/analyzeRunReports.py summary $ARCHIVE_DIR/*.gz --rev $GATK_RELEASE_VERSION >> $REPORT_TXT
 python $GATK/python/analyzeRunReports.py exceptions $ARCHIVE_DIR/*.gz -E sting --rev $GATK_RELEASE_VERSION >> $REPORT_TXT
 
