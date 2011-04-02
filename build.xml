@@ -419,6 +419,15 @@
             <attribute name="Main-Class" value="org.broadinstitute.sting.oneoffprojects.tools.CompareBAMAlignments" />
           </manifest>
         </jar>
+
+        <jar jarfile="${dist.dir}/SliceBams.jar" whenmanifestonly="skip">
+          <fileset dir="${java.classes}">
+            <include name="**/tools/**/*.class" />
+          </fileset>
+          <manifest>
+            <attribute name="Main-Class" value="org.broadinstitute.sting.playground.tools.SliceBams" />
+          </manifest>
+        </jar>
     </target>
 
     <target name="scala.jar" depends="scala.compile, init.jar" if="scala.include">
@@ -479,6 +488,11 @@
 
     <target name="gatk.oneoffs.manifests" depends="gatk.oneoffs.jar, init.manifests" if="include.oneoffs">
         <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" update="true" whenmanifestonly="skip">
+            <manifest>
+                <attribute name="Class-Path" value="${jar.classpath}" />
+            </manifest>
+        </jar>
+        <jar jarfile="${dist.dir}/SliceBams.jar" update="true" whenmanifestonly="skip">
             <manifest>
                 <attribute name="Class-Path" value="${jar.classpath}" />
             </manifest>
