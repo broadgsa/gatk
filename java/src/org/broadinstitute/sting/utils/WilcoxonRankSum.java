@@ -93,7 +93,7 @@ public class WilcoxonRankSum {
     public boolean DEBUG = false;
 
     private static final double NORMAL_MEAN = 0.0;
-    private static final double NORMAL_SD   = 3.0; // Need to spread out the standard normal in order to provide better resolution
+    private static final double NORMAL_SD   = 1.0; // Need to spread out the standard normal in order to provide better resolution
     private static final Normal NORMAL = new Normal(NORMAL_MEAN, NORMAL_SD, null);
 
     // The minimum length for both data series (individually) in order to use a normal distribution
@@ -266,7 +266,7 @@ public class WilcoxonRankSum {
     
     private class PairComparator implements Comparator<Pair<Double, WILCOXON_SET>>{
         public int compare(Pair<Double, WILCOXON_SET> p1, Pair<Double, WILCOXON_SET> p2) {
-            return (p1.first < p2.first ? -1 : (p1.first == p2.first ? 0 : 1));
+            return (p1.first < p2.first ? -1 : (p1.first.equals(p2.first) ? 0 : 1));
         }
     }
 }

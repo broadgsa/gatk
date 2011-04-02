@@ -13,18 +13,16 @@ public class MappingQualityRankSumTest extends RankSumTest {
 
     public List<String> getKeyNames() { return Arrays.asList("MQRankSum"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("MQRankSum", 1, VCFHeaderLineType.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Read Mapping Qualities")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("MQRankSum", 1, VCFHeaderLineType.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Alt Vs. Ref read mapping qualities")); }
 
-    protected void fillQualsFromPileup(byte ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
-        for ( PileupElement p : pileup ) {
-            // ignore deletions
-            if ( p.isDeletion() )
-                continue;
-
-            if ( p.getBase() == ref ) {
-                refQuals.add(p.getMappingQual());
-            } else if ( (char)p.getBase() == alt ) {
-                altQuals.add(p.getMappingQual());
+    protected void fillQualsFromPileup(byte ref, byte alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
+        for ( final PileupElement p : pileup ) {
+            if( isUsableBase(p) && p.getMappingQual() < 254 ) { // 254 and 255 are special mapping qualities used as a code by aligners
+                if ( p.getBase() == ref ) {
+                    refQuals.add(p.getMappingQual());
+                } else if ( p.getBase() == alt ) {
+                    altQuals.add(p.getMappingQual());
+                }
             }
         }
     }

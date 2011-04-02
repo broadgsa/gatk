@@ -11,7 +11,6 @@ import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.ca
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.WilcoxonRankSum;
 import org.broadinstitute.sting.utils.collections.Pair;
 
 /**

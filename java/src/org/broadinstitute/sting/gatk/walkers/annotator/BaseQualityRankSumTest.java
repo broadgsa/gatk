@@ -12,18 +12,16 @@ import java.util.Arrays;
 public class BaseQualityRankSumTest extends RankSumTest {
     public List<String> getKeyNames() { return Arrays.asList("BaseQRankSum"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("BaseQRankSum", 1, VCFHeaderLineType.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Het Vs. Ref Base Qualities")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("BaseQRankSum", 1, VCFHeaderLineType.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Alt Vs. Ref base qualities")); }
 
-    protected void fillQualsFromPileup(byte ref, char alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
-        for ( PileupElement p : pileup ) {
-            // ignore deletions
-            if ( p.isDeletion() )
-                continue;
-
-            if ( p.getBase() == ref ) {
-                refQuals.add((int)p.getQual());
-            } else if ( (char)p.getBase() == alt ) {
-                altQuals.add((int)p.getQual());
+    protected void fillQualsFromPileup(byte ref, byte alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
+        for ( final PileupElement p : pileup ) {
+            if( isUsableBase(p) ) {
+                if ( p.getBase() == ref ) {
+                    refQuals.add((int)p.getQual());
+                } else if ( p.getBase() == alt ) {
+                    altQuals.add((int)p.getQual());
+                }
             }
         }
     }
