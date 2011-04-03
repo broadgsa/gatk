@@ -103,7 +103,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   val lowPass: Boolean = true
   val indels: Boolean = true
-  val useCut: Boolean = !noCut
 
   val queueLogDir = ".qlog/"
   
@@ -275,7 +274,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.rawVCF } )
     this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile}
     this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
-    this.fdr_filter_level = t.trancheTarget
+    this.ts_filter_level = t.trancheTarget
     this.out = t.recalibratedVCF
     this.analysisName = t.name + "_AVQSR"
     this.jobName =  queueLogDir + t.name + ".applyVQSR"
