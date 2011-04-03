@@ -53,8 +53,11 @@ class ManySampleUGPerformanceTesting extends QScript {
 
       // SNP calling
       //add(new Call(sublist.list, nSamples, "dynamic_merge"))
-      val gt = new Call(bams, nSamples, name);
-      add(gt)
+      add(new Call(bams, nSamples, name));
+
+      val gtWithBAQ = new Call(bams, nSamples, name + "_baq");
+      gtWithBAQ.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.RECALCULATE
+      add(gtWithBAQ)
 
       // SNP calling -- no annotations
       //add(new Call(bams.list, nSamples, "dynamic_merge_no_annotations") { this.G :+= "None"; })
