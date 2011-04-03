@@ -27,6 +27,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -40,7 +41,6 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -57,6 +57,8 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
 
     public static final String VQS_LOD_KEY = "VQSLOD";
 
+    @ArgumentCollection private VariantRecalibratorArgumentCollection VRAC = new VariantRecalibratorArgumentCollection();
+
     /////////////////////////////
     // Outputs
     /////////////////////////////
@@ -66,9 +68,8 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
     private PrintStream TRANCHES_FILE;
 
     /////////////////////////////
-    // Command Line Arguments
+    // Additional Command Line Arguments
     /////////////////////////////
-    //BUGBUG: use VariantRecalibrationArgumentCollection
     @Argument(fullName="use_annotation", shortName="an", doc="The names of the annotations which should used for calculations", required=true)
     private String[] USE_ANNOTATIONS = null;
     @Argument(fullName="TStranche", shortName="tranche", doc="The levels of novel false discovery rate (FDR, implied by ti/tv) at which to slice the data. (in percent, that is 1.0 for 1 percent)", required=false)
@@ -80,9 +81,6 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
     // Debug Arguments
     /////////////////////////////
     @Hidden
-    @Argument(fullName = "debugFile", shortName = "debugFile", doc = "Print debugging information here", required=false)
-    private File DEBUG_FILE = null;
-    @Hidden
     @Argument(fullName = "trustAllPolymorphic", shortName = "allPoly", doc = "Trust that all the input training sets' unfiltered records contain only polymorphic sites to drastically speed up the computation.", required = false)
     protected Boolean TRUST_ALL_POLYMORPHIC = false;
 
@@ -92,7 +90,7 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
     private VariantDataManager dataManager;
     private final Set<String> ignoreInputFilterSet = new TreeSet<String>();
     private final Set<String> inputNames = new HashSet<String>();
-    private final VariantRecalibratorEngine engine = new VariantRecalibratorEngine(new VariantRecalibratorArgumentCollection()); //BUGBUG: doesn't do anything with the args at the moment
+    private final VariantRecalibratorEngine engine = new VariantRecalibratorEngine( VRAC );
 
     //---------------------------------------------------------------------------------------------------------------
     //
@@ -101,7 +99,7 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
-        dataManager = new VariantDataManager( new ArrayList<String>(Arrays.asList(USE_ANNOTATIONS)) );
+        dataManager = new VariantDataManager( new ArrayList<String>(Arrays.asList(USE_ANNOTATIONS)), VRAC );
 
         if( IGNORE_INPUT_FILTERS != null ) {
             ignoreInputFilterSet.addAll( Arrays.asList(IGNORE_INPUT_FILTERS) );
@@ -191,14 +189,11 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
         dataManager.setData( reduceSum );
         dataManager.normalizeData();
         engine.evaluateData( dataManager.getData(), engine.generateModel( dataManager.getTrainingData() ), false );
-        engine.evaluateData( dataManager.getData(), engine.generateModel( dataManager.selectWorstVariants( 0.07f ) ), true );
+        engine.evaluateData( dataManager.getData(), engine.generateModel( dataManager.selectWorstVariants( VRAC.PERCENT_BAD_VARIANTS ) ), true );
 
-        // old tranches stuff
-        int nCallsAtTruth = TrancheManager.countCallsAtTruth( dataManager.getData(), Double.NEGATIVE_INFINITY );
-        //logger.info(String.format("Truth set size is %d, raw calls at these sites %d, maximum sensitivity of %.2f",
-        //        nTruthSites, nCallsAtTruth, (100.0*nCallsAtTruth / Math.max(nTruthSites, nCallsAtTruth))));
-        TrancheManager.SelectionMetric metric = new TrancheManager.TruthSensitivityMetric( nCallsAtTruth );
-        List<Tranche> tranches = TrancheManager.findTranches( dataManager.getData(), TS_TRANCHES, metric, DEBUG_FILE ); //BUGBUG: recreated here to match the integration tests
+        final int nCallsAtTruth = TrancheManager.countCallsAtTruth( dataManager.getData(), Double.NEGATIVE_INFINITY );
+        final TrancheManager.SelectionMetric metric = new TrancheManager.TruthSensitivityMetric( nCallsAtTruth );
+        final List<Tranche> tranches = TrancheManager.findTranches( dataManager.getData(), TS_TRANCHES, metric );
         TRANCHES_FILE.print(Tranche.tranchesString( tranches ));
 
         logger.info( "Writing out recalibration table..." );

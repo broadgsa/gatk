@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -211,7 +210,7 @@ public class TrancheManager {
 
     public static int countCallsAtTruth(final List<VariantDatum> data, double minLOD ) {
         int n = 0;
-        for ( VariantDatum d : data) { n += (d.atTruthSite && d.lod >= minLOD ? 1 : 0); }
+        for ( VariantDatum d : data ) { n += (d.atTruthSite && d.lod >= minLOD ? 1 : 0); }
         return n;
     }
 

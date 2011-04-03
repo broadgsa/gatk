@@ -36,7 +36,7 @@ public class VariantRecalibratorEngine {
     }
 
     public GaussianMixtureModel generateModel( final List<VariantDatum> data ) {
-        final GaussianMixtureModel model = new GaussianMixtureModel( 32, 4, 0.0001, 0.0001 ); //BUGBUG: VRAC arguments
+        final GaussianMixtureModel model = new GaussianMixtureModel( VRAC.MAX_GAUSSIANS, data.get(0).annotations.length, VRAC.SHRINKAGE, VRAC.DIRICHLET_PARAMETER );
         variationalBayesExpectationMaximization( model, data );
         return model;
     }
@@ -67,14 +67,14 @@ public class VariantRecalibratorEngine {
     private void variationalBayesExpectationMaximization( final GaussianMixtureModel model, final List<VariantDatum> data ) {
 
         model.cacheEmpiricalStats( data );
-        model.initializeRandomModel( data, rand );
+        model.initializeRandomModel( data, rand, VRAC.NUM_KMEANS_ITERATIONS );
 
         // The VBEM loop
         double previousLikelihood = model.expectationStep( data );
         double currentLikelihood;
         int iteration = 0;
         logger.info("Finished iteration " + iteration );
-        while( iteration < 100 ) { //BUGBUG: VRAC.maxIterations
+        while( iteration < VRAC.MAX_ITERATIONS ) {
             iteration++;
             model.maximizationStep( data );
             currentLikelihood = model.expectationStep( data );

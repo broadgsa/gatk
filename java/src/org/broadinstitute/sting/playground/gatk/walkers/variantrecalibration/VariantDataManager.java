@@ -25,15 +25,17 @@ public class VariantDataManager {
     private final double[] varianceVector; // this is really the standard deviation
     public final ArrayList<String> annotationKeys;
     private final ExpandingArrayList<TrainingSet> trainingSets;
+    private final VariantRecalibratorArgumentCollection VRAC;
 
     private final static long RANDOM_SEED = 83409701;
     private final static Random rand = new Random( RANDOM_SEED ); // this is going to cause problems if it is ever used in an integration test, planning to get rid of HRun anyway
 
     protected final static Logger logger = Logger.getLogger(VariantDataManager.class);
 
-    public VariantDataManager( final List<String> annotationKeys ) {
+    public VariantDataManager( final List<String> annotationKeys, final VariantRecalibratorArgumentCollection VRAC ) {
         this.data = null;
         this.annotationKeys = new ArrayList<String>( annotationKeys );
+        this.VRAC = VRAC;
         meanVector = new double[this.annotationKeys.size()];
         varianceVector = new double[this.annotationKeys.size()];
         trainingSets = new ExpandingArrayList<TrainingSet>();
@@ -93,20 +95,20 @@ public class VariantDataManager {
     public ExpandingArrayList<VariantDatum> getTrainingData() {
         final ExpandingArrayList<VariantDatum> trainingData = new ExpandingArrayList<VariantDatum>();
         for( final VariantDatum datum : data ) {
-            if( datum.atTrainingSite && datum.originalQual > 80.0 ) { //BUGBUG: VRAC argument
+            if( datum.atTrainingSite && datum.originalQual > VRAC.QUAL_THRESHOLD ) {
                 trainingData.add( datum );
             }
         }
-        trimDataBySTD(trainingData, 4.5); //BUGBUG: VRAC argument
+        trimDataBySTD( trainingData, VRAC.STD_THRESHOLD );
         logger.info( "Training with " + trainingData.size() + " variants found in the training set(s)." );
         return trainingData;
     }
 
-    public ExpandingArrayList<VariantDatum> selectWorstVariants( final float bottomPercentage ) {
+    public ExpandingArrayList<VariantDatum> selectWorstVariants( final double bottomPercentage ) {
         Collections.sort( data );
         final ExpandingArrayList<VariantDatum> trainingData = new ExpandingArrayList<VariantDatum>();
-        trainingData.addAll( data.subList(0, Math.round(bottomPercentage * data.size())) );
-        logger.info( "Training with worst " + bottomPercentage * 100.0f + "% of data --> " + trainingData.size() + " variants with LOD <= " + String.format("%.4f", data.get(Math.round(bottomPercentage * data.size())).lod) + "." );
+        trainingData.addAll( data.subList(0, Math.round((float)bottomPercentage * data.size())) );
+        logger.info( "Training with worst " + bottomPercentage * 100.0f + "% of data --> " + trainingData.size() + " variants with LOD <= " + String.format("%.4f", data.get(Math.round((float)bottomPercentage * data.size())).lod) + "." );
         return trainingData;
     }
 
@@ -174,7 +176,7 @@ public class VariantDataManager {
         for( final TrainingSet trainingSet : trainingSets ) {
             final Collection<VariantContext> vcs = tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), false, true );
             final VariantContext trainVC = ( vcs.size() != 0 ? vcs.iterator().next() : null );
-            if( trainVC != null && trainVC.isVariant() && !trainVC.isFiltered() && ((evalVC.isSNP() && trainVC.isSNP()) || (evalVC.isIndel() && trainVC.isIndel())) && (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {
+            if( trainVC != null && trainVC.isVariant() && trainVC.isNotFiltered() && ((evalVC.isSNP() && trainVC.isSNP()) || (evalVC.isIndel() && trainVC.isIndel())) && (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {
                 datum.isKnown = datum.isKnown || trainingSet.isKnown;
                 datum.atTruthSite = datum.atTruthSite || trainingSet.isTruth;
                 datum.atTrainingSite = datum.atTrainingSite || trainingSet.isTraining;

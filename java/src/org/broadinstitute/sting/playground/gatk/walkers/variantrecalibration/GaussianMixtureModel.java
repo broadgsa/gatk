@@ -71,7 +71,7 @@ public class GaussianMixtureModel {
         empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, Matrix.identity(empiricalMu.length, empiricalMu.length));
     }
 
-    public void initializeRandomModel( final List<VariantDatum> data, final Random rand ) {
+    public void initializeRandomModel( final List<VariantDatum> data, final Random rand, final int numKMeansIterations ) {
 
         // initialize random Gaussian means // BUGBUG: this is broken up this way to match the order of calls to rand.nextDouble() in the old code
         for( final MultivariateGaussian gaussian : gaussians ) {
@@ -79,7 +79,6 @@ public class GaussianMixtureModel {
         }
 
         // initialize means using K-means algorithm
-        final int numKMeansIterations = 10; // BUGBUG: VRAC argument
         logger.info( "Initializing model with " + numKMeansIterations + " k-means iterations..." );
         initializeMeansUsingKMeans( data, numKMeansIterations, rand );
 
