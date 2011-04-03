@@ -92,7 +92,7 @@ public class MannWhitneyU {
         } else if ( n > 8 || m > 8 ) {
             pval = calculatePFromTable(n,m,u);
         } else {
-            // small m and n [possibly small n] - full approx
+            // small m and n - full approx
             pval = calculatePRecursively(n,m,u);
         }
 
@@ -102,7 +102,7 @@ public class MannWhitneyU {
     public static double calculatePFromTable(int n, int m, long u) {
         // todo -- actually use a table for:
         // todo      - n large, m small
-        return calculatePUniformApproximation(n,m,u);
+        return calculatePNormalApproximation(n,m,u);
     }
 
     /**
