@@ -3,7 +3,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers.association;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -18,7 +18,7 @@ import java.util.*;
  * Holds multiple map contexts for use in the regional association walker
  */
 public class MapExtender {
-    static StratifiedAlignmentContext.StratifiedContextType TYPE = StratifiedAlignmentContext.StratifiedContextType.COMPLETE;
+    static AlignmentContextUtils.ReadOrientation TYPE = AlignmentContextUtils.ReadOrientation.COMPLETE;
     // hold on to these -- atoms may want access to the tracker or other context types
     private MapHolder previous = null;
     private MapHolder current = null;
@@ -39,7 +39,7 @@ public class MapExtender {
 
         if ( current != null ) {
             for ( Map.Entry<Sample,AlignmentContext> sac : current.getContext().entrySet() ) {
-                AlignmentContext context = StratifiedAlignmentContext.stratify(sac.getValue(), TYPE);
+                AlignmentContext context = AlignmentContextUtils.stratify(sac.getValue(), TYPE);
                 if ( context.hasBasePileup() ) {
                     fullPileup.put(sac.getKey(),context.getBasePileup());
                 } else if ( context.hasExtendedEventPileup() ) {

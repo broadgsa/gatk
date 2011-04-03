@@ -10,8 +10,8 @@ import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
@@ -468,7 +468,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                 throw new ReviewedStingException("Parental bases have length zero at "+trio.toString());
             }
 
-            Map<String,AlignmentContext> splitContext = StratifiedAlignmentContext.splitContextBySampleName(context);
+            Map<String,AlignmentContext> splitContext = AlignmentContextUtils.splitContextBySampleName(context);
             Double proportion = getAlleleProportion(parental, splitContext.get(trioStructure.child));
             if ( proportion != null ) {
                 violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(), proportion);
@@ -502,7 +502,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         // look for tri-allelic sites mis-called as hom -- as a speedup we do this only at non-filtered, non genotype error sites
 
         if ( ! trio.isFiltered()  ) {
-            Map<String,AlignmentContext> splitCon = StratifiedAlignmentContext.splitContextBySampleName(context);
+            Map<String,AlignmentContext> splitCon = AlignmentContextUtils.splitContextBySampleName(context);
             Pair<Allele,Integer> triAl = getTriAllelicQuality(tracker, ref, trio, splitCon);
             if ( triAl != null ) {
                 violation.addAttribute(MendelianInfoKey.TriAllelicBase.getKey(),triAl.first.toString());

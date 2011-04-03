@@ -183,12 +183,6 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      */
     public int[] getBaseCounts();
 
-    /**
-     * Somewhat expensive routine that returns true if any base in the pileup has secondary bases annotated
-     * @return
-     */
-    public boolean hasSecondaryBases();
-
     public String getPileupString(Character ref);
 
     /**
@@ -208,12 +202,6 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @return
      */
     public byte[] getBases();
-
-    /**
-     * Returns an array of the secondary bases in this pileup. Note this call costs O(n) and allocates fresh array each time
-     * @return
-     */
-    public byte[] getSecondaryBases();
 
     /**
     * Returns an array of the quals in this pileup. Note this call costs O(n) and allocates fresh array each time

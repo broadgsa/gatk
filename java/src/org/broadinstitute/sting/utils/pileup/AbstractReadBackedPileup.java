@@ -726,33 +726,6 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
     }
 
     /**
-     * Somewhat expensive routine that returns true if any base in the pileup has secondary bases annotated
-     * @return
-     */
-    @Override
-    public boolean hasSecondaryBases() {
-        if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
-            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
-            boolean hasSecondaryBases = false;
-
-            for(Sample sample: tracker.getSamples()) {
-                hasSecondaryBases |= createNewPileup(loc,tracker.getElements(sample)).hasSecondaryBases();
-            }
-
-            return hasSecondaryBases;
-        }
-        else {
-            for ( PileupElement pile : this ) {
-                // skip deletion sites
-                if ( ! pile.isDeletion() && BaseUtils.isRegularBase((char)pile.getSecondBase()) )
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Get counts of A, C, G, T in order, which returns a int[4] vector with counts according
      * to BaseUtils.simpleBaseToBaseIndex for each base.
      *
@@ -832,18 +805,6 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         byte[] v = new byte[size()];
         int pos = 0;
         for ( PileupElement pile : pileupElementTracker ) { v[pos++] = pile.getBase(); }
-        return v;
-    }
-
-    /**
-     * Returns an array of the secondary bases in this pileup. Note this call costs O(n) and allocates fresh array each time
-     * @return
-     */
-    @Override
-    public byte[] getSecondaryBases() {
-        byte[] v = new byte[size()];
-        int pos = 0;
-        for ( PileupElement pile : pileupElementTracker ) { v[pos++] = pile.getSecondBase(); }
         return v;
     }
 

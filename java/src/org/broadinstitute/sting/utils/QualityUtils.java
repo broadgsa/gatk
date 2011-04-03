@@ -129,26 +129,6 @@ public class QualityUtils {
     }
 
     /**
-     * Compress a base and a log probabiliy difference (-10log10(p3/p2)) into
-     * a single byte so that it can be output in a SAMRecord's SQ field.
-     *
-     * @param baseIndex  the base index
-     * @param probdiff   the log probability difference between the secondary and tertiary bases (-10log10(p3/p2))
-     * @return a byte containing the index and the log probability difference
-     */
-    static public byte baseAndProbDiffToCompressedQuality(int baseIndex, double probdiff) {
-        byte compressedQual = 0;
-
-        compressedQual = (byte) baseIndex;
-
-        byte cprob = (byte) probdiff;
-        byte qualmask = (byte) 252;
-        compressedQual += ((cprob << 2) & qualmask);
-
-        return compressedQual;
-    }
-
-    /**
      * From a compressed base, extract the base index (0:A, 1:C, 2:G, 3:T)
      *
      * @param compressedQual the compressed quality score, as returned by baseAndProbToCompressedQuality
@@ -171,21 +151,6 @@ public class QualityUtils {
         x2 = (x2 >>> 2);
 
         return ((double) x2)/100.0;
-    }
-
-    /**
-     * From a compressed base, extract the log probability difference between the secondary and tertiary bases.
-     *
-     * @param compressedQual the compressed quality score, as returned by baseAndProbDiffToCompressedQuality
-     * @return the log probability difference (-10log10(p3/p2))
-     */
-    static public double compressedQualityToProbDiff(byte compressedQual) {
-        // Because java natives are signed, extra care must be taken to avoid
-        // shifting a 1 into the sign bit in the implicit promotion of 2 to an int.
-        int x2 = ((int) compressedQual) & 0xff;
-        x2 = (x2 >>> 2);
-
-        return ((double) x2);
     }
 
     /**

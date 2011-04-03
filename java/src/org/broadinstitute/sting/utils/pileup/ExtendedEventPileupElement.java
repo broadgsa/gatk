@@ -104,11 +104,6 @@ public class ExtendedEventPileupElement extends PileupElement {
     }
 
     @Override
-    public byte getSecondBase() {
-        return getSecondBase(offset >= 0 ? offset : offset+eventLength);
-    }
-
-    @Override
     public byte getQual() {
         return getQual(offset >= 0 ? offset : offset+eventLength);
     }

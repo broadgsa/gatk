@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.association;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
@@ -16,7 +16,7 @@ public class MapHolder {
     public MapHolder(RefMetaDataTracker t, ReferenceContext r, AlignmentContext a) {
         tracker = t;
         ref = r;
-        alignments = StratifiedAlignmentContext.splitContextBySample(a);
+        alignments = AlignmentContextUtils.splitContextBySample(a);
     }
 
     public Map<Sample, AlignmentContext> getContext() {

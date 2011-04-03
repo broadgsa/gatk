@@ -29,7 +29,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
@@ -42,7 +42,6 @@ import java.util.*;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private final static boolean DEBUG = false;
@@ -60,7 +59,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         if ( !vc.isBiallelic() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
             return null;
         
-        final AlignmentContext context = StratifiedAlignmentContext.joinContexts(stratifiedContexts.values());
+        final AlignmentContext context = AlignmentContextUtils.joinContexts(stratifiedContexts.values());
 
         final int contextWingSize = Math.min(((int)ref.getWindow().size() - 1)/2, MIN_CONTEXT_WING_SIZE);
         final int contextSize = contextWingSize * 2 + 1;

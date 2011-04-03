@@ -29,8 +29,8 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -212,9 +212,9 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         Map<String, AlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             if ( ! context.hasExtendedEventPileup() ) {
-                stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(context.getBasePileup(), ASSUME_SINGLE_SAMPLE);
+                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getBasePileup(), ASSUME_SINGLE_SAMPLE);
             } else {
-                stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(context.getExtendedEventPileup(), ASSUME_SINGLE_SAMPLE);
+                stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context.getExtendedEventPileup(), ASSUME_SINGLE_SAMPLE);
             }
             if ( stratifiedContexts != null ) {
                 annotatedVCs = new ArrayList<VariantContext>(VCs.size());

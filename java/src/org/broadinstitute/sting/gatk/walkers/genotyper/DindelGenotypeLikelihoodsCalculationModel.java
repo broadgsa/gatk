@@ -29,6 +29,7 @@ import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.gatk.walkers.indels.PairHMMIndelErrorModel;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -39,7 +40,6 @@ import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
@@ -86,7 +86,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
 
     private ArrayList<Allele> computeConsensusAlleles(ReferenceContext ref,
                                                       Map<String, AlignmentContext> contexts,
-                                                      StratifiedAlignmentContext.StratifiedContextType contextType) {
+                                                      AlignmentContextUtils.ReadOrientation contextType) {
         Allele refAllele=null, altAllele=null;
         GenomeLoc loc = ref.getLocus();
         ArrayList<Allele> aList = new ArrayList<Allele>();
@@ -100,7 +100,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         int insCount = 0, delCount = 0;
         // quick check of total number of indels in pileup
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
-            AlignmentContext context = StratifiedAlignmentContext.stratify(sample.getValue(), contextType);
+            AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
             final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
             insCount += indelPileup.getNumberOfInsertions();
@@ -112,7 +112,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             // todo -- warning, can be duplicating expensive partition here
-            AlignmentContext context = StratifiedAlignmentContext.stratify(sample.getValue(), contextType);
+            AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
             final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
 
@@ -268,7 +268,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
     public Allele getLikelihoods(RefMetaDataTracker tracker,
                                  ReferenceContext ref,
                                  Map<String, AlignmentContext> contexts,
-                                 StratifiedAlignmentContext.StratifiedContextType contextType,
+                                 AlignmentContextUtils.ReadOrientation contextType,
                                  GenotypePriors priors,
                                  Map<String, BiallelicGenotypeLikelihoods> GLs,
                                  Allele alternateAlleleToUse) {
@@ -355,7 +355,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
 
 
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
-            AlignmentContext context = StratifiedAlignmentContext.stratify(sample.getValue(), contextType);
+            AlignmentContext context = AlignmentContextUtils.stratify(sample.getValue(), contextType);
 
             ReadBackedPileup pileup = null;
             if (context.hasExtendedEventPileup())

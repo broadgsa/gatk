@@ -43,10 +43,6 @@ public class PileupElement {
         return getBaseIndex(offset);
     }
 
-    public byte getSecondBase() {
-        return getSecondBase(offset);
-    }
-
     public byte getQual() {
         return getQual(offset);
     }
@@ -63,10 +59,6 @@ public class PileupElement {
 
     protected int getBaseIndex(final int offset) {
         return isDeletion() ? DELETION_BASE : BaseUtils.simpleBaseToBaseIndex((char)read.getReadBases()[offset]);
-    }
-
-    protected byte getSecondBase(final int offset) {
-        return isDeletion() ? DELETION_BASE : BaseUtils.getSecondBase(read, offset);
     }
 
     protected byte getQual(final int offset) {

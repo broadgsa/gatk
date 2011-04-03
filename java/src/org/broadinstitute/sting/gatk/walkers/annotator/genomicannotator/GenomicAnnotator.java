@@ -39,7 +39,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTableCodec;
@@ -249,7 +249,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
                     (vc.isVariant() && !vc.isBiallelic()) ) {
                 results.add(vc);
             } else {
-                Map<String, AlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(context);
+                Map<String, AlignmentContext> stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(context);
                 if ( stratifiedContexts != null )
                     results.addAll(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
                 else

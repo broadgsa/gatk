@@ -31,12 +31,11 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -170,7 +169,7 @@ public class UnifiedGenotyperEngine {
         if ( stratifiedContexts == null )
             return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ? null : new VariantCallContext(generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext), refContext.getBase(), false));
 
-        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, null);
+        VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null);
         if ( vc == null )
             return null;
 
@@ -190,10 +189,10 @@ public class UnifiedGenotyperEngine {
         Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
         if ( stratifiedContexts == null )
             return null;
-        return calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, alternateAlleleToUse);
+        return calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, alternateAlleleToUse);
     }
 
-    private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, AlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse) {
+    private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, AlignmentContext> stratifiedContexts, AlignmentContextUtils.ReadOrientation type, Allele alternateAlleleToUse) {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( glcm.get() == null ) {
@@ -230,7 +229,7 @@ public class UnifiedGenotyperEngine {
                 pileup = rawContext.getExtendedEventPileup();
             else if (rawContext.hasBasePileup())
                 pileup = rawContext.getBasePileup();
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
             vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc).iterator().next();
         }
@@ -369,7 +368,7 @@ public class UnifiedGenotyperEngine {
             if ( DEBUG_SLOD ) System.out.println("overallLog10PofF=" + overallLog10PofF);
 
             // the forward lod
-            VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.FORWARD, vc.getAlternateAllele(0));
+            VariantContext vcForward = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.FORWARD, vc.getAlternateAllele(0));
             clearAFarray(log10AlleleFrequencyPosteriors.get());
             afcm.get().getLog10PNonRef(tracker, refContext, vcForward.getGenotypes(), log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
             //double[] normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
@@ -378,7 +377,7 @@ public class UnifiedGenotyperEngine {
             if ( DEBUG_SLOD ) System.out.println("forwardLog10PofNull=" + forwardLog10PofNull + ", forwardLog10PofF=" + forwardLog10PofF);
 
             // the reverse lod
-            VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.REVERSE, vc.getAlternateAllele(0));
+            VariantContext vcReverse = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.REVERSE, vc.getAlternateAllele(0));
             clearAFarray(log10AlleleFrequencyPosteriors.get());
             afcm.get().getLog10PNonRef(tracker, refContext, vcReverse.getGenotypes(), log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.get());
             //normalizedLog10Posteriors = MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors.get(), true);
@@ -419,7 +418,7 @@ public class UnifiedGenotyperEngine {
                 pileup = rawContext.getExtendedEventPileup();
             else if (rawContext.hasBasePileup())
                 pileup = rawContext.getBasePileup();
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
             Collection<VariantContext> variantContexts = annotationEngine.annotateContext(tracker, refContext, stratifiedContexts, vcCall);
             vcCall = variantContexts.iterator().next(); // we know the collection will always have exactly 1 element.
@@ -469,7 +468,7 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // stratify the AlignmentContext and cut by sample
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(pileup, UAC.ASSUME_SINGLE_SAMPLE);
 
         } else if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.SNP && !rawContext.hasExtendedEventPileup() ) {
 
@@ -478,7 +477,7 @@ public class UnifiedGenotyperEngine {
                 return null;
 
             // stratify the AlignmentContext and cut by sample
-            stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
+            stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
 
             // filter the reads (and test for bad pileups)
             if ( !filterPileup(stratifiedContexts, badReadPileupFilter) )

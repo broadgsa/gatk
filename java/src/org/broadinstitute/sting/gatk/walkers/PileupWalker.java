@@ -65,15 +65,6 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     @Output
     PrintStream out;
 
-    @Argument(fullName="alwaysShowSecondBase",doc="If true, prints dummy bases for the second bases in the BAM file where they are missing",required=false)
-    public boolean alwaysShowSecondBase = false;
-
-    //@Argument(fullName="qualsAsInts",doc="If true, prints out qualities in the pileup as comma-separated integers",required=false)
-    //public boolean qualsAsInts = false;
-
-    //@Argument(fullName="ignore_uncovered_bases",shortName="skip_uncov",doc="Output nothing when a base is uncovered")
-    //public boolean IGNORE_UNCOVERED_BASES = false;
-
     @Argument(fullName="showIndelPileups",shortName="show_indels",doc="In addition to base pileups, generate pileups of extended indel events")
     public boolean SHOW_INDEL_PILEUPS = false;
 
@@ -87,14 +78,8 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
         String rods = getReferenceOrderedData( tracker );
 
         if ( context.hasBasePileup() ) {
-
             ReadBackedPileup basePileup = context.getBasePileup();
-        
-            String secondBasePileup = "";
-            if(shouldShowSecondaryBasePileup(basePileup))
-                secondBasePileup = getSecondBasePileup(basePileup);
-
-            out.printf("%s%s %s%n", basePileup.getPileupString(ref.getBaseAsChar()), secondBasePileup, rods);
+            out.printf("%s %s%n", basePileup.getPileupString(ref.getBaseAsChar()), rods);
         }
 
         if ( context.hasExtendedEventPileup() ) {
@@ -118,27 +103,6 @@ public class PileupWalker extends LocusWalker<Integer, Integer> implements TreeR
     }
     public Integer treeReduce(Integer lhs, Integer rhs) {
         return lhs + rhs;
-    }
-
-    /**
-     * Should the secondary base be shown under all circumstances?
-     * @param pileup The ReadBackedPileup at the current locus.
-     * @return True, if a secondary base pileup should always be shown.
-     */
-    private boolean shouldShowSecondaryBasePileup( ReadBackedPileup pileup ) {
-        return ( pileup.hasSecondaryBases() || alwaysShowSecondBase );
-    }
-
-    /**
-     * Gets second base information for the pileup, if requested.
-     * @param pileup Pileup from which to extract secondary base info.
-     * @return String representation of the secondary base.
-     */
-    private String getSecondBasePileup( ReadBackedPileup pileup ) {
-        if( pileup.hasSecondaryBases() )
-            return " " + new String(pileup.getSecondaryBases());
-        else
-            return " " + Utils.dupString('N', pileup.size());
     }
 
     /**

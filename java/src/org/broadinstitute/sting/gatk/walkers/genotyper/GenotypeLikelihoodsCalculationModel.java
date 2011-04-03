@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
@@ -80,7 +80,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
     public abstract Allele getLikelihoods(RefMetaDataTracker tracker,
                                           ReferenceContext ref,
                                           Map<String, AlignmentContext> contexts,
-                                          StratifiedAlignmentContext.StratifiedContextType contextType,
+                                          AlignmentContextUtils.ReadOrientation contextType,
                                           GenotypePriors priors,
                                           Map<String, BiallelicGenotypeLikelihoods> GLs,
                                           Allele alternateAlleleToUse);

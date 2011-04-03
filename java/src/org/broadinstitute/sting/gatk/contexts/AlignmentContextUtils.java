@@ -37,16 +37,16 @@ import java.util.*;
  * Useful utilities for storing different AlignmentContexts
  * User: ebanks
  */
-public class StratifiedAlignmentContext {
+public class AlignmentContextUtils {
 
     // Definitions:
     //   COMPLETE = full alignment context
     //   FORWARD  = reads on forward strand
     //   REVERSE  = reads on forward strand
     //
-    public enum StratifiedContextType { COMPLETE, FORWARD, REVERSE }
+    public enum ReadOrientation { COMPLETE, FORWARD, REVERSE }
 
-    private StratifiedAlignmentContext() {
+    private AlignmentContextUtils() {
         // cannot be instantiated
     }
 
@@ -58,7 +58,7 @@ public class StratifiedAlignmentContext {
      * @param type
      * @return
      */
-    public static AlignmentContext stratify(AlignmentContext context, StratifiedContextType type) {
+    public static AlignmentContext stratify(AlignmentContext context, ReadOrientation type) {
         switch(type) {
             case COMPLETE:
                 return context;

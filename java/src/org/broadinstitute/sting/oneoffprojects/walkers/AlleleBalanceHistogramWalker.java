@@ -3,7 +3,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
@@ -70,7 +70,7 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
     }
 
     private HashMap<String,Double> getAlleleBalanceBySample(VariantContext vc, ReferenceContext ref, AlignmentContext context) {
-        Map<String, AlignmentContext> sampleContext = StratifiedAlignmentContext.splitContextBySampleName(context);
+        Map<String, AlignmentContext> sampleContext = AlignmentContextUtils.splitContextBySampleName(context);
         HashMap<String,Double> balances = new HashMap<String,Double>();
         System.out.println("----- "+ref.getLocus()+" -----");
         int returnedBalances = 0;

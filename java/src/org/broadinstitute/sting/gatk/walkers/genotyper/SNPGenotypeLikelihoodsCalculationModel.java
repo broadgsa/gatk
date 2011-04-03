@@ -27,12 +27,12 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
@@ -56,7 +56,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
     public Allele getLikelihoods(RefMetaDataTracker tracker,
                                  ReferenceContext ref,
                                  Map<String, AlignmentContext> contexts,
-                                 StratifiedAlignmentContext.StratifiedContextType contextType,
+                                 AlignmentContextUtils.ReadOrientation contextType,
                                  GenotypePriors priors,
                                  Map<String, BiallelicGenotypeLikelihoods> GLs,
                                  Allele alternateAlleleToUse) {
@@ -100,7 +100,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         Allele altAllele = Allele.create(bestAlternateAllele, false);
 
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
-            ReadBackedPileup pileup = StratifiedAlignmentContext.stratify(sample.getValue(), contextType).getBasePileup();
+            ReadBackedPileup pileup = AlignmentContextUtils.stratify(sample.getValue(), contextType).getBasePileup();
 
             // create the GenotypeLikelihoods object
             DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods((DiploidSNPGenotypePriors)priors, UAC.PCR_error);
