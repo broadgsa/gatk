@@ -5,8 +5,8 @@ import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 public class QualByDepth extends AnnotationByDepth implements InfoFieldAnnotation, StandardAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
 
@@ -37,11 +37,11 @@ public class QualByDepth extends AnnotationByDepth implements InfoFieldAnnotatio
             if ( genotype.getValue().isHomRef() )
                 continue;
 
-            StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            AlignmentContext context = stratifiedContexts.get(genotype.getKey());
             if ( context == null )
                 continue;
 
-            depth += context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
+            depth += context.size();
 
             if ( genotype.getValue().hasLikelihoods() ) {
                 GenotypeLikelihoods GLs = genotype.getValue().getLikelihoods();

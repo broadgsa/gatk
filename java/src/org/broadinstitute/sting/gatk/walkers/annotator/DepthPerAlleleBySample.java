@@ -6,8 +6,8 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFCompoundHeaderLine;
 import org.broad.tribble.vcf.VCFFormatHeaderLine;
 import org.broad.tribble.vcf.VCFHeaderLineType;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
@@ -28,7 +28,7 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnot
 
     private static String DEL = "DEL"; // constant, for speed: no need to create a key string for deletion allele every time
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
         if ( g == null || !g.isCalled() )
             return null;
 
@@ -40,15 +40,15 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnot
         return null;
     }
 
-    private Map<String,Object> annotateSNP(StratifiedAlignmentContext stratifiedContext, VariantContext vc) {
+    private Map<String,Object> annotateSNP(AlignmentContext stratifiedContext, VariantContext vc) {
 
-        if ( ! stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).hasBasePileup() ) return null;
+        if ( ! stratifiedContext.hasBasePileup() ) return null;
 
         HashMap<Byte, Integer> alleleCounts = new HashMap<Byte, Integer>();
         for ( Allele allele : vc.getAlleles() )
             alleleCounts.put(allele.getBases()[0], 0);
 
-        ReadBackedPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+        ReadBackedPileup pileup = stratifiedContext.getBasePileup();
         for ( PileupElement p : pileup ) {
             if ( alleleCounts.containsKey(p.getBase()) )
                 alleleCounts.put(p.getBase(), alleleCounts.get(p.getBase())+1);
@@ -65,14 +65,13 @@ public class DepthPerAlleleBySample implements GenotypeAnnotation, StandardAnnot
         return map;
     }
 
-    private Map<String,Object> annotateIndel(StratifiedAlignmentContext stratifiedContext, VariantContext vc) {
+    private Map<String,Object> annotateIndel(AlignmentContext stratifiedContext, VariantContext vc) {
 
-        if ( ! stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).hasExtendedEventPileup() ) {
+        if ( ! stratifiedContext.hasExtendedEventPileup() ) {
             return null;
         }
 
-        ReadBackedExtendedEventPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getExtendedEventPileup();
-        //ReadBackedPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+        ReadBackedExtendedEventPileup pileup = stratifiedContext.getExtendedEventPileup();
         if ( pileup == null )
             return null;
 

@@ -2,8 +2,8 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
@@ -20,7 +20,7 @@ import java.util.HashMap;
 public abstract class RankSumTest implements InfoFieldAnnotation, ExperimentalAnnotation {
     private static final double minPValue = 1e-20;
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
          
@@ -35,11 +35,11 @@ public abstract class RankSumTest implements InfoFieldAnnotation, ExperimentalAn
         final ArrayList<Integer> altQuals = new ArrayList<Integer>();
 
         for ( final Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
-            final StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            final AlignmentContext context = stratifiedContexts.get(genotype.getKey());
             if ( context == null ) {
                 continue;
             }
-            fillQualsFromPileup(ref.getBase(), vc.getAlternateAllele(0).getBases()[0], context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup(), refQuals, altQuals);
+            fillQualsFromPileup(ref.getBase(), vc.getAlternateAllele(0).getBases()[0], context.getBasePileup(), refQuals, altQuals);
         }
 
         final MannWhitneyU mannWhitneyU = new MannWhitneyU();

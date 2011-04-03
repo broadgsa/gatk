@@ -85,7 +85,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
 
 
     private ArrayList<Allele> computeConsensusAlleles(ReferenceContext ref,
-                                                      Map<String, StratifiedAlignmentContext> contexts,
+                                                      Map<String, AlignmentContext> contexts,
                                                       StratifiedAlignmentContext.StratifiedContextType contextType) {
         Allele refAllele=null, altAllele=null;
         GenomeLoc loc = ref.getLocus();
@@ -99,8 +99,8 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
 
         int insCount = 0, delCount = 0;
         // quick check of total number of indels in pileup
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
-            AlignmentContext context = sample.getValue().getContext(contextType);
+        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+            AlignmentContext context = StratifiedAlignmentContext.stratify(sample.getValue(), contextType);
 
             final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
             insCount += indelPileup.getNumberOfInsertions();
@@ -110,8 +110,9 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         if (insCount < minIndelCountForGenotyping && delCount < minIndelCountForGenotyping)
             return aList;
         
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
-            AlignmentContext context = sample.getValue().getContext(contextType);
+        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+            // todo -- warning, can be duplicating expensive partition here
+            AlignmentContext context = StratifiedAlignmentContext.stratify(sample.getValue(), contextType);
 
             final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
 
@@ -266,7 +267,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
     }
     public Allele getLikelihoods(RefMetaDataTracker tracker,
                                  ReferenceContext ref,
-                                 Map<String, StratifiedAlignmentContext> contexts,
+                                 Map<String, AlignmentContext> contexts,
                                  StratifiedAlignmentContext.StratifiedContextType contextType,
                                  GenotypePriors priors,
                                  Map<String, BiallelicGenotypeLikelihoods> GLs,
@@ -353,8 +354,8 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         double[][] haplotypeLikehoodMatrix;
 
 
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
-            AlignmentContext context = sample.getValue().getContext(contextType);
+        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+            AlignmentContext context = StratifiedAlignmentContext.stratify(sample.getValue(), contextType);
 
             ReadBackedPileup pileup = null;
             if (context.hasExtendedEventPileup())

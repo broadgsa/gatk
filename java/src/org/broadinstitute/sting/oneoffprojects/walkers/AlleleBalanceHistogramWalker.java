@@ -70,7 +70,7 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
     }
 
     private HashMap<String,Double> getAlleleBalanceBySample(VariantContext vc, ReferenceContext ref, AlignmentContext context) {
-        Map<String, StratifiedAlignmentContext> sampleContext = StratifiedAlignmentContext.splitContextBySampleName(context.getBasePileup(),null);
+        Map<String, AlignmentContext> sampleContext = StratifiedAlignmentContext.splitContextBySampleName(context);
         HashMap<String,Double> balances = new HashMap<String,Double>();
         System.out.println("----- "+ref.getLocus()+" -----");
         int returnedBalances = 0;
@@ -86,25 +86,19 @@ public class AlleleBalanceHistogramWalker extends LocusWalker<Map<String,Double>
         return balances;
     }
 
-    private long getCoverage(StratifiedAlignmentContext context) {
-        return context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
+    private long getCoverage(AlignmentContext context) {
+        return context.size();
     }
 
-    private Double getAlleleBalance(ReferenceContext ref, StratifiedAlignmentContext context, char snpBase) {
-        if ( context == null ) {
+    private Double getAlleleBalance(ReferenceContext ref, AlignmentContext alicon, char snpBase) {
+        if ( alicon == null ) {
             //System.out.println("Stratified context was null");
             return null;
         }
 
         int refBases = 0;
         int altBases = 0;
-        AlignmentContext alicon = context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
 
-        if ( alicon == null ) {
-            System.out.println("Alignment context from stratified was null");
-            return null;
-        }
-        
         for ( PileupElement e : alicon.getBasePileup() ) {
             if ( BaseUtils.basesAreEqual( e.getBase(), ref.getBase() ) ) {
                 refBases++;

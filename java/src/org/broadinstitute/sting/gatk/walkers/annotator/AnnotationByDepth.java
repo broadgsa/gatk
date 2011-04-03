@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broad.tribble.util.variantcontext.Genotype;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import java.util.Map;
 
@@ -10,7 +10,7 @@ import java.util.Map;
 public abstract class AnnotationByDepth implements InfoFieldAnnotation {
 
 
-    protected int annotationByVariantDepth(final Map<String, Genotype> genotypes, Map<String, StratifiedAlignmentContext> stratifiedContexts) {
+    protected int annotationByVariantDepth(final Map<String, Genotype> genotypes, Map<String, AlignmentContext> stratifiedContexts) {
         int depth = 0;
         for ( Map.Entry<String, Genotype> genotype : genotypes.entrySet() ) {
 
@@ -18,9 +18,9 @@ public abstract class AnnotationByDepth implements InfoFieldAnnotation {
             if ( genotype.getValue().isHomRef() )
                 continue;
 
-            StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            AlignmentContext context = stratifiedContexts.get(genotype.getKey());
             if ( context != null )
-                depth += context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).size();
+                depth += context.size();
         }
 
         return depth;

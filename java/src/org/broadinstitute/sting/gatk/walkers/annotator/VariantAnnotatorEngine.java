@@ -41,8 +41,8 @@ import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
@@ -147,20 +147,7 @@ public class VariantAnnotatorEngine {
         return descriptions;
     }
 
-    // A slightly simplified interface for when you don't have any reads, so the stratifiedContexts aren't necessary, and
-    // you only permit a single return value
-    public VariantContext annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc) {
-        Collection<VariantContext> results = this.annotateContext(tracker, ref, EMPTY_STRATIFIED_ALIGNMENT_CONTEXT, vc);
-
-        if ( results.size() != 1 )
-            throw new ReviewedStingException("BUG: annotateContext call requires 1 resulting annotated VC, but got " + results);
-
-        return results.iterator().next();
-
-    }
-    private static final Map<String, StratifiedAlignmentContext> EMPTY_STRATIFIED_ALIGNMENT_CONTEXT = (Map<String, StratifiedAlignmentContext>)Collections.EMPTY_MAP;
-
-    public Collection<VariantContext> annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Collection<VariantContext> annotateContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
         Map<String, Object> infoAnnotations = new LinkedHashMap<String, Object>(vc.getAttributes());
 
@@ -246,14 +233,14 @@ public class VariantAnnotatorEngine {
         }
     }
 
-    private Map<String, Genotype> annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    private Map<String, Genotype> annotateGenotypes(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( requestedGenotypeAnnotations.size() == 0 )
             return vc.getGenotypes();
 
         Map<String, Genotype> genotypes = new HashMap<String, Genotype>(vc.getNSamples());
         for ( Map.Entry<String, Genotype> g : vc.getGenotypes().entrySet() ) {
             Genotype genotype = g.getValue();
-            StratifiedAlignmentContext context = stratifiedContexts.get(g.getKey());
+            AlignmentContext context = stratifiedContexts.get(g.getKey());
             if ( context == null ) {
                 genotypes.put(g.getKey(), genotype);
                 continue;

@@ -3,8 +3,8 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -18,16 +18,16 @@ import java.util.Arrays;
 
 public class LowMQ implements InfoFieldAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
 
         double mq0 = 0;
 		double mq10 = 0;
 		double total = 0;
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : stratifiedContexts.entrySet() )
+        for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() )
 		{
-            ReadBackedPileup pileup = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+            ReadBackedPileup pileup = sample.getValue().getBasePileup();
             for (PileupElement p : pileup ) 
 			{
                 if ( p.getMappingQual() == 0 )  { mq0 += 1; }

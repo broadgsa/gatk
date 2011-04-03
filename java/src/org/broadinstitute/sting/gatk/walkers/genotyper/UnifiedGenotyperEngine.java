@@ -166,7 +166,7 @@ public class UnifiedGenotyperEngine {
                 && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
             return null;
    */
-        Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
+        Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
         if ( stratifiedContexts == null )
             return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ? null : new VariantCallContext(generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext), refContext.getBase(), false));
 
@@ -187,13 +187,13 @@ public class UnifiedGenotyperEngine {
      * @return the VariantContext object
      */
     public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Allele alternateAlleleToUse) {
-        Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
+        Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
         if ( stratifiedContexts == null )
             return null;
         return calculateLikelihoods(tracker, refContext, stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType.COMPLETE, alternateAlleleToUse);
     }
 
-    private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse) {
+    private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, AlignmentContext> stratifiedContexts, StratifiedAlignmentContext.StratifiedContextType type, Allele alternateAlleleToUse) {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( glcm.get() == null ) {
@@ -210,7 +210,7 @@ public class UnifiedGenotyperEngine {
             return null;
     }
 
-    private VariantContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
+    private VariantContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
         VariantContext vc;
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
             final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), true);
@@ -288,11 +288,11 @@ public class UnifiedGenotyperEngine {
      * @return the VariantCallContext object
      */
     public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, VariantContext vc) {
-        Map<String, StratifiedAlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
+        Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext);
         return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc);
     }
 
-    private VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    private VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
         // initialize the data for this thread if that hasn't been done yet
         if ( afcm.get() == null ) {
@@ -452,10 +452,10 @@ public class UnifiedGenotyperEngine {
         return ( d >= 0.0 && d <= 1.0 );
     }
 
-    private Map<String, StratifiedAlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext) {
+    private Map<String, AlignmentContext> getFilteredAndStratifiedContexts(UnifiedArgumentCollection UAC, ReferenceContext refContext, AlignmentContext rawContext) {
         BadBaseFilter badReadPileupFilter = new BadBaseFilter(refContext, UAC);
 
-        Map<String, StratifiedAlignmentContext> stratifiedContexts = null;
+        Map<String, AlignmentContext> stratifiedContexts = null;
 
         if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL && rawContext.hasExtendedEventPileup() ) {
 
@@ -493,7 +493,7 @@ public class UnifiedGenotyperEngine {
             AFs[i] = AlleleFrequencyCalculationModel.VALUE_NOT_CALCULATED;
     }
 
-    private VariantCallContext estimateReferenceConfidence(VariantContext vc, Map<String, StratifiedAlignmentContext> contexts, double theta, boolean ignoreCoveredSamples, double initialPofRef) {
+    private VariantCallContext estimateReferenceConfidence(VariantContext vc, Map<String, AlignmentContext> contexts, double theta, boolean ignoreCoveredSamples, double initialPofRef) {
         if ( contexts == null )
             return null;
 
@@ -509,7 +509,7 @@ public class UnifiedGenotyperEngine {
             int depth = 0;
 
             if (isCovered) {
-                AlignmentContext context =  contexts.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+                AlignmentContext context =  contexts.get(sample);
 
                 if (context.hasBasePileup())
                     depth = context.getBasePileup().size();
@@ -559,11 +559,11 @@ public class UnifiedGenotyperEngine {
         verboseWriter.println();
     }
 
-    private boolean filterPileup(Map<String, StratifiedAlignmentContext> stratifiedContexts, BadBaseFilter badBaseFilter) {
+    private boolean filterPileup(Map<String, AlignmentContext> stratifiedContexts, BadBaseFilter badBaseFilter) {
         int numDeletions = 0, pileupSize = 0;
 
-        for ( StratifiedAlignmentContext context : stratifiedContexts.values() ) {
-            ReadBackedPileup pileup = context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+        for ( AlignmentContext context : stratifiedContexts.values() ) {
+            ReadBackedPileup pileup = context.getBasePileup();
             for ( PileupElement p : pileup ) {
                 final SAMRecord read = p.getRead();
 

@@ -38,8 +38,8 @@ public class MapExtender {
         readFilteredPileup = new HashMap<Sample,ReadBackedPileup>();
 
         if ( current != null ) {
-            for ( Map.Entry<Sample,StratifiedAlignmentContext> sac : current.getContext().entrySet() ) {
-                AlignmentContext context = sac.getValue().getContext(TYPE);
+            for ( Map.Entry<Sample,AlignmentContext> sac : current.getContext().entrySet() ) {
+                AlignmentContext context = StratifiedAlignmentContext.stratify(sac.getValue(), TYPE);
                 if ( context.hasBasePileup() ) {
                     fullPileup.put(sac.getKey(),context.getBasePileup());
                 } else if ( context.hasExtendedEventPileup() ) {
@@ -66,7 +66,7 @@ public class MapExtender {
     public Map<Sample,ReadBackedPileup> getFullPileup() { return fullPileup; }
     public Map<Sample,ReadBackedPileup> getReadFilteredPileup(){ return readFilteredPileup; }
 
-    public Map<Sample,StratifiedAlignmentContext> getPreviousContext() {
+    public Map<Sample,AlignmentContext> getPreviousContext() {
         return previous != null ? previous.getContext() : null;
     }
 
@@ -78,7 +78,7 @@ public class MapExtender {
         return previous != null ? previous.getTracker() : null;
     }
 
-    public Map<Sample,StratifiedAlignmentContext> getContext() {
+    public Map<Sample,AlignmentContext> getContext() {
         return current != null ? current.getContext() : null;
     }
 

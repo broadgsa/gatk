@@ -24,8 +24,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.WorkInProgressAnnotation;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -50,7 +50,7 @@ public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotati
     private static final String ALTREV = "ALTREV";
     private static final String FS = "FS";
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( ! vc.isVariant() || vc.isFiltered() || ! vc.isBiallelic() || ! vc.isSNP() )
             return null;
 
@@ -200,11 +200,11 @@ public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotati
      *   allele2   #       #
      * @return a 2x2 contingency table
      */
-    private static int[][] getContingencyTable(Map<String, StratifiedAlignmentContext> stratifiedContexts, Allele ref, Allele alt) {
+    private static int[][] getContingencyTable(Map<String, AlignmentContext> stratifiedContexts, Allele ref, Allele alt) {
         int[][] table = new int[2][2];
 
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            for (PileupElement p : sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup()) {
+        for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
+            for (PileupElement p : sample.getValue().getBasePileup()) {
                 if ( p.isDeletion() ) // ignore deletions
                     continue;
 

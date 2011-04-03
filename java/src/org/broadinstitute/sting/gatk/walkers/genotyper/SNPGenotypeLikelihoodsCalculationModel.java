@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -54,7 +55,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
     public Allele getLikelihoods(RefMetaDataTracker tracker,
                                  ReferenceContext ref,
-                                 Map<String, StratifiedAlignmentContext> contexts,
+                                 Map<String, AlignmentContext> contexts,
                                  StratifiedAlignmentContext.StratifiedContextType contextType,
                                  GenotypePriors priors,
                                  Map<String, BiallelicGenotypeLikelihoods> GLs,
@@ -98,8 +99,8 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
         Allele altAllele = Allele.create(bestAlternateAllele, false);
 
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
-            ReadBackedPileup pileup = sample.getValue().getContext(contextType).getBasePileup();
+        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
+            ReadBackedPileup pileup = StratifiedAlignmentContext.stratify(sample.getValue(), contextType).getBasePileup();
 
             // create the GenotypeLikelihoods object
             DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods((DiploidSNPGenotypePriors)priors, UAC.PCR_error);
@@ -124,12 +125,12 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         return refAllele;
     }
 
-    protected void initializeBestAlternateAllele(byte ref, Map<String, StratifiedAlignmentContext> contexts) {
+    protected void initializeBestAlternateAllele(byte ref, Map<String, AlignmentContext> contexts) {
         int[] qualCounts = new int[4];
 
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : contexts.entrySet() ) {
+        for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             // calculate the sum of quality scores for each base
-            ReadBackedPileup pileup = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+            ReadBackedPileup pileup = sample.getValue().getBasePileup();
             for ( PileupElement p : pileup ) {
                 // ignore deletions and filtered bases
                 if ( p.isDeletion() ||

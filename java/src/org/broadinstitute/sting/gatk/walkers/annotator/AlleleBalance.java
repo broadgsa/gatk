@@ -29,8 +29,8 @@ import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
 import org.broadinstitute.sting.utils.*;
@@ -44,7 +44,7 @@ import java.util.Arrays;
 
 public class AlleleBalance implements InfoFieldAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
         
@@ -61,12 +61,12 @@ public class AlleleBalance implements InfoFieldAnnotation {
             if ( !genotype.getValue().isHet() )
                 continue;
 
-            StratifiedAlignmentContext context = stratifiedContexts.get(genotype.getKey());
+            AlignmentContext context = stratifiedContexts.get(genotype.getKey());
             if ( context == null )
                 continue;
 
             if ( vc.isSNP() ) {
-                final String bases = new String(context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().getBases());
+                final String bases = new String(context.getBasePileup().getBases());
                 if ( bases.length() == 0 )
                     return null;
                 char refChr = vc.getReference().toString().charAt(0);
@@ -83,7 +83,7 @@ public class AlleleBalance implements InfoFieldAnnotation {
                 ratio += genotype.getValue().getNegLog10PError() * ((double)refCount / (double)(refCount + altCount));
                 totalWeights += genotype.getValue().getNegLog10PError();
             } else if ( vc.isIndel() ) {
-                final ReadBackedExtendedEventPileup indelPileup = context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getExtendedEventPileup();
+                final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
                 if ( indelPileup == null ) {
                     continue;
                 }

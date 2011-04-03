@@ -14,52 +14,51 @@ import java.util.*;
 
 public class AlleleBalanceBySample implements GenotypeAnnotation, ExperimentalAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
-				Double ratio = annotateSNP(stratifiedContext, vc, g);
-				if (ratio == null)
-						return null;
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+        Double ratio = annotateSNP(stratifiedContext, vc, g);
+        if (ratio == null)
+            return null;
 
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(getKeyNames().get(0), String.format("%.2f", ratio.doubleValue()));
-				return map;
+        return map;
 
-   }
+    }
 
-    private Double annotateSNP(StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+    private Double annotateSNP(AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+        double ratio = -1;
 
-				double ratio = -1;
+        if ( !vc.isSNP() )
+            return null;
 
-        if ( !vc.isSNP() ) 
-						return null;
-
-				if ( !vc.isBiallelic() )
-						return null;
+        if ( !vc.isBiallelic() )
+            return null;
 
         if ( g == null || !g.isCalled() )
             return null;
 
-				if (!g.isHet())
-						return null;
+        if (!g.isHet())
+            return null;
 
         Set<Allele> altAlleles = vc.getAlternateAlleles();
         if ( altAlleles.size() == 0 )
             return null;
 
-				final String bases = new String(stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup().getBases());
-				if ( bases.length() == 0 )
-						return null;
-				char refChr = vc.getReference().toString().charAt(0);
-				char altChr = vc.getAlternateAllele(0).toString().charAt(0);
+        final String bases = new String(stratifiedContext.getBasePileup().getBases());
+        if ( bases.length() == 0 )
+            return null;
+        char refChr = vc.getReference().toString().charAt(0);
+        char altChr = vc.getAlternateAllele(0).toString().charAt(0);
 
-				int refCount = MathUtils.countOccurrences(refChr, bases);
-				int altCount = MathUtils.countOccurrences(altChr, bases);
+        int refCount = MathUtils.countOccurrences(refChr, bases);
+        int altCount = MathUtils.countOccurrences(altChr, bases);
 
-				// sanity check
-				if ( refCount + altCount == 0 )
-						return null;
+        // sanity check
+        if ( refCount + altCount == 0 )
+            return null;
 
-				ratio = ((double)refCount / (double)(refCount + altCount));
-				return ratio;
+        ratio = ((double)refCount / (double)(refCount + altCount));
+        return ratio;
     }
 
     public List<String> getKeyNames() { return Arrays.asList("AB"); }

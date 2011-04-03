@@ -5,7 +5,6 @@ import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
@@ -19,14 +18,14 @@ import java.util.Map;
 
 public class SpanningDeletions implements InfoFieldAnnotation, StandardAnnotation {
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
 
         int deletions = 0;
         int depth = 0;
-        for ( Map.Entry<String, StratifiedAlignmentContext> sample : stratifiedContexts.entrySet() ) {
-            AlignmentContext context = sample.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+        for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
+            AlignmentContext context = sample.getValue();
             ReadBackedPileup pileup = null;
             if (context.hasExtendedEventPileup())
                 pileup = context.getExtendedEventPileup();

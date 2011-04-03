@@ -249,7 +249,7 @@ public class GenomicAnnotator extends RodWalker<Integer, Integer> implements Tre
                     (vc.isVariant() && !vc.isBiallelic()) ) {
                 results.add(vc);
             } else {
-                Map<String, StratifiedAlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(context.getBasePileup());
+                Map<String, AlignmentContext> stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(context);
                 if ( stratifiedContexts != null )
                     results.addAll(engine.annotateContext(tracker, ref, stratifiedContexts, vc));
                 else

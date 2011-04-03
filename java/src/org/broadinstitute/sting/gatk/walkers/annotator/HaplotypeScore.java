@@ -56,7 +56,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         return p.getOffset() == -1 || ((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset()); // Use all reads from the filtered context
     }
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> stratifiedContexts, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( !vc.isBiallelic() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
             return null;
         
@@ -83,9 +83,9 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         if (haplotypes != null) {
             final Set<Map.Entry<String, Genotype>> genotypes = vc.getGenotypes().entrySet();
             for ( final Map.Entry<String, Genotype> genotype : genotypes ) {
-                final StratifiedAlignmentContext thisContext = stratifiedContexts.get(genotype.getKey());
+                final AlignmentContext thisContext = stratifiedContexts.get(genotype.getKey());
                 if ( thisContext != null ) {
-                    final AlignmentContext aContext = thisContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
+                    final AlignmentContext aContext = thisContext;
                     final ReadBackedPileup thisPileup;
                     if (aContext.hasExtendedEventPileup())
                         thisPileup = aContext.getExtendedEventPileup();

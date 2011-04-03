@@ -468,8 +468,8 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
                 throw new ReviewedStingException("Parental bases have length zero at "+trio.toString());
             }
 
-            Map<String,StratifiedAlignmentContext> splitContext = StratifiedAlignmentContext.splitContextBySampleName(context.getBasePileup());
-            Double proportion = getAlleleProportion(parental,splitContext.get(trioStructure.child));
+            Map<String,AlignmentContext> splitContext = StratifiedAlignmentContext.splitContextBySampleName(context);
+            Double proportion = getAlleleProportion(parental, splitContext.get(trioStructure.child));
             if ( proportion != null ) {
                 violation.addAttribute(MendelianInfoKey.ProportionOfParentAllele.getKey(), proportion);
                 if ( ! deNovoRange.contains(proportion) ) {
@@ -502,7 +502,7 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         // look for tri-allelic sites mis-called as hom -- as a speedup we do this only at non-filtered, non genotype error sites
 
         if ( ! trio.isFiltered()  ) {
-            Map<String,StratifiedAlignmentContext> splitCon = StratifiedAlignmentContext.splitContextBySampleName(context.getBasePileup());
+            Map<String,AlignmentContext> splitCon = StratifiedAlignmentContext.splitContextBySampleName(context);
             Pair<Allele,Integer> triAl = getTriAllelicQuality(tracker, ref, trio, splitCon);
             if ( triAl != null ) {
                 violation.addAttribute(MendelianInfoKey.TriAllelicBase.getKey(),triAl.first.toString());
@@ -536,11 +536,11 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
         return violation;
     }
 
-    private Double getAlleleProportion(Allele a, StratifiedAlignmentContext context) {
+    private Double getAlleleProportion(Allele a, AlignmentContext context) {
         int numParental = 0;
         int total = 0;
         if ( context != null ) {
-            for ( PileupElement e : context.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup()) {
+            for ( PileupElement e : context.getBasePileup()) {
                 if ( e.getQual() >= 10 && e.getMappingQual() >= 10 ) {
                     total++;
                     if ( e.getBase() == a.getBases()[0]) {
@@ -556,11 +556,11 @@ public class MendelianViolationClassifier extends LocusWalker<MendelianViolation
 
     }
 
-    private Pair<Allele,Integer> getTriAllelicQuality(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext var, Map<String,StratifiedAlignmentContext> strat) {
+    private Pair<Allele,Integer> getTriAllelicQuality(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext var, Map<String,AlignmentContext> strat) {
         int conf = 0;
         Allele alt = null;
-        for ( Map.Entry<String,StratifiedAlignmentContext> sEntry : strat.entrySet() ) {
-            VariantCallContext call = engine.calculateLikelihoodsAndGenotypes(tracker, ref, sEntry.getValue().getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE));
+        for ( Map.Entry<String,AlignmentContext> sEntry : strat.entrySet() ) {
+            VariantCallContext call = engine.calculateLikelihoodsAndGenotypes(tracker, ref, sEntry.getValue());
             if ( call != null && call.confidentlyCalled ) {
                 if ( call.isSNP() ) {
                     if ( ! call.getAlternateAllele(0).basesMatch(var.getAlternateAllele(0))) {

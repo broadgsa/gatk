@@ -28,7 +28,6 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -52,12 +51,11 @@ import java.util.Arrays;
  */
 public class MappingQualityZeroBySample implements GenotypeAnnotation {
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref,
-                                        StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+                                        AlignmentContext context, VariantContext vc, Genotype g) {
         if ( g == null || !g.isCalled() )
             return null;
 
         int mq0 = 0;
-        AlignmentContext context = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE);
         ReadBackedPileup pileup = null;
         if (vc.isIndel() && context.hasExtendedEventPileup())
             pileup = context.getExtendedEventPileup();

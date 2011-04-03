@@ -11,15 +11,15 @@ import java.util.Map;
 public class MapHolder {
     private RefMetaDataTracker tracker;
     private ReferenceContext ref;
-    private Map<Sample, StratifiedAlignmentContext> alignments;
+    private Map<Sample, AlignmentContext> alignments;
 
     public MapHolder(RefMetaDataTracker t, ReferenceContext r, AlignmentContext a) {
         tracker = t;
         ref = r;
-        alignments = StratifiedAlignmentContext.splitContextBySample(a.getBasePileup());
+        alignments = StratifiedAlignmentContext.splitContextBySample(a);
     }
 
-    public Map<Sample, StratifiedAlignmentContext> getContext() {
+    public Map<Sample, AlignmentContext> getContext() {
         return alignments;
     }
 

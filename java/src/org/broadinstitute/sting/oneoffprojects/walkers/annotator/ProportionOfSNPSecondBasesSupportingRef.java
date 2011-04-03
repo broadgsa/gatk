@@ -28,8 +28,8 @@ package org.broadinstitute.sting.oneoffprojects.walkers.annotator;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -58,13 +58,13 @@ public class ProportionOfSNPSecondBasesSupportingRef implements InfoFieldAnnotat
 
     public boolean useZeroQualityReads() { return USE_MAPQ0_READS; }
 
-    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, StratifiedAlignmentContext> context, VariantContext vc) {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> context, VariantContext vc) {
         if ( ! vc.isSNP() || ! vc.isBiallelic() )
             return null;
 
         Pair<Integer,Integer> totalAndSNPSupporting = new Pair<Integer,Integer>(0,0);
         for ( String sample : context.keySet() ) {
-            ReadBackedPileup pileup = context.get(sample).getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+            ReadBackedPileup pileup = context.get(sample).getBasePileup();
             totalAndSNPSupporting = getTotalSNPandRefSupporting(pileup, ref.getBaseAsChar(), vc.getAlternateAllele(0).toString().charAt(0), totalAndSNPSupporting);
 
         }

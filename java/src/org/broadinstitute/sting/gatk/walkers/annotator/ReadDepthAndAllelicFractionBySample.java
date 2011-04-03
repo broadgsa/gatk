@@ -25,11 +25,11 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.StratifiedAlignmentContext;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
@@ -60,7 +60,7 @@ public class ReadDepthAndAllelicFractionBySample implements GenotypeAnnotation {
         private static String DEL = "DEL"; // constant, for speed: no need to create a key string for deletion allele every time
 
         public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref,
-                                            StratifiedAlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
+                                            AlignmentContext stratifiedContext, VariantContext vc, Genotype g) {
             if ( g == null || !g.isCalled() )
                 return null;
 
@@ -72,15 +72,15 @@ public class ReadDepthAndAllelicFractionBySample implements GenotypeAnnotation {
             return null;
         }
 
-        private Map<String,Object> annotateSNP(StratifiedAlignmentContext stratifiedContext, VariantContext vc) {
+        private Map<String,Object> annotateSNP(AlignmentContext stratifiedContext, VariantContext vc) {
 
-            if ( ! stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).hasBasePileup() ) return null;
+            if ( ! stratifiedContext.hasBasePileup() ) return null;
 
             HashMap<Byte, Integer> alleleCounts = new HashMap<Byte, Integer>();
             for ( Allele allele : vc.getAlternateAlleles() )
                 alleleCounts.put(allele.getBases()[0], 0);
 
-            ReadBackedPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+            ReadBackedPileup pileup = stratifiedContext.getBasePileup();
             int totalDepth = pileup.size();
 
             Map<String, Object> map = new HashMap<String, Object>();
@@ -110,16 +110,15 @@ public class ReadDepthAndAllelicFractionBySample implements GenotypeAnnotation {
             return map;
         }
 
-        private Map<String,Object> annotateIndel(StratifiedAlignmentContext
+        private Map<String,Object> annotateIndel(AlignmentContext
             stratifiedContext, VariantContext
             vc) {
 
-            if ( ! stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).hasExtendedEventPileup() ) {
+            if ( ! stratifiedContext.hasExtendedEventPileup() ) {
                 return null;
             }
 
-            ReadBackedExtendedEventPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getExtendedEventPileup();
-            //ReadBackedPileup pileup = stratifiedContext.getContext(StratifiedAlignmentContext.StratifiedContextType.COMPLETE).getBasePileup();
+            ReadBackedExtendedEventPileup pileup = stratifiedContext.getExtendedEventPileup();
             if ( pileup == null )
                 return null;
             int totalDepth = pileup.size();

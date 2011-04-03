@@ -209,7 +209,7 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         Collection<VariantContext> annotatedVCs = VCs;
 
         // if the reference base is not ambiguous, we can annotate
-        Map<String, StratifiedAlignmentContext> stratifiedContexts;
+        Map<String, AlignmentContext> stratifiedContexts;
         if ( BaseUtils.simpleBaseToBaseIndex(ref.getBase()) != -1 ) {
             if ( ! context.hasExtendedEventPileup() ) {
                 stratifiedContexts = StratifiedAlignmentContext.splitContextBySampleName(context.getBasePileup(), ASSUME_SINGLE_SAMPLE);
