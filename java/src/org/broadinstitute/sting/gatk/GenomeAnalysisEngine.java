@@ -119,6 +119,14 @@ public class GenomeAnalysisEngine {
     private GenomeLocSortedSet intervals = null;
 
     /**
+     * Explicitly assign the interval set to use for this traversal (for unit testing purposes)
+     * @param intervals set of intervals to use for this traversal
+     */
+    public void setIntervals( GenomeLocSortedSet intervals ) {
+        this.intervals = intervals;
+    }
+
+    /**
      * Collection of inputs used by the engine.
      */
     private Map<ArgumentSource, Object> inputs = new HashMap<ArgumentSource, Object>();
@@ -394,6 +402,16 @@ public class GenomeAnalysisEngine {
             GenomeLocSortedSet intervals = getIntervals();
             if(intervals != null && getIntervals().contains(GenomeLoc.UNMAPPED))
                 throw new ArgumentException("Interval list specifies unmapped region.  Only read walkers may include the unmapped region.");
+        }
+
+        // If intervals is non-null and empty at this point, it means that the list of intervals to process
+        // was filtered down to an empty set (eg., the user specified something like -L chr1 -XL chr1). Since
+        // this was very likely unintentional, the user should be informed of this. Note that this is different
+        // from the case where intervals == null, which indicates either that there were no interval arguments,
+        // or that -L all was specified.
+        if ( intervals != null && intervals.isEmpty() ) {
+            throw new ArgumentException("The given combination of -L and -XL options results in an empty set. " +
+                                        "No intervals to process.");
         }
     }
 
