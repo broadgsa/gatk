@@ -28,6 +28,7 @@ import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.walkers.PrintReadsWalker;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
 import org.testng.annotations.Test;
@@ -72,9 +73,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
     public void testEmptyIntervalSetHandling() throws Exception {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
-        WalkerManager walkerManager = new WalkerManager();
-        testEngine.setWalker(walkerManager.createByName("PrintReadsWalker"));
-
+        testEngine.setWalker(new PrintReadsWalker());
         testEngine.setIntervals(new GenomeLocSortedSet(null));
 
         testEngine.validateSuppliedIntervals();
