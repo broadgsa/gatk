@@ -302,7 +302,6 @@ class dataProcessingV2 extends QScript {
 
   //todo -- add scatter gather capability (waiting for khalid's modifications to the queue base
   case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
-    @Output(doc="recalibrated bam index") var recalIndex = new File(outBam + ".bai")
     this.input_file :+= inBam
     this.recal_file = inRecalFile
     this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY

@@ -85,7 +85,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="select_random_number", shortName="number", doc="Selects a number of variants at random from the variant track. Variants are kept in memory to guarantee that n variants will be output, so use it only for a reasonable number of variants. Use select_random_fraction for larger numbers of variants", required=false)
     private int numRandom = 0;
 
-    @Argument(fullName="select_random_fraction", shortName="fraction", doc="Selects a fraction (0,1) of variants at random from the variant track. Routine is based on probability, so the final result is not guaranteed to carry the exact fraction. Can be used for large fractions", required=false)
+    @Argument(fullName="select_random_fraction", shortName="fraction", doc="Selects a fraction (a number between 0 and 1) of the total variants at random from the variant track. Routine is based on probability, so the final result is not guaranteed to carry the exact fraction. Can be used for large fractions", required=false)
     private double fractionRandom = 0;
 
 
