@@ -3,10 +3,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers.association;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,16 +15,23 @@ import java.util.Map;
 public abstract class AssociationContext<X,Y> {
 
     protected List<Map<Sample,Y>> window;
+    private final int size;
+    private final int slide;
 
     public AssociationContext() {
-        window = new ArrayList<Map<Sample,Y>>(getWindowSize());
+        this(0,0);
     }
 
-    // specifies size of window
-    public abstract int getWindowSize();
+    public AssociationContext(final int winSize, final int winSlide) {
+        window = new ArrayList<Map<Sample, Y>>(winSize);
+        size = winSize;
+        slide = winSlide;
+    }
 
-    // specifies how many bases to wait until next test
-    public abstract int slideByValue();
+    public AssociationContext(final RegionalAssociationWalker parent) {
+        this(parent.windowSize,parent.slideBy);
+        this.init(parent);
+    }
 
     // specifies whether to use previously seen reads
     public abstract boolean usePreviouslySeenReads();
@@ -66,12 +70,16 @@ public abstract class AssociationContext<X,Y> {
 
 
     public boolean isFull() {
-        return window.size() >= getWindowSize();
+        return window.size() >= size;
     }
 
     public void slide() {
-        ArrayList<Map<Sample,Y>> newWindow = new ArrayList<Map<Sample,Y>>((window.subList(slideByValue(),window.size())));
-        newWindow.ensureCapacity(getWindowSize());
+        ArrayList<Map<Sample,Y>> newWindow = new ArrayList<Map<Sample,Y>>((window.subList(slide,window.size())));
+        newWindow.ensureCapacity(size);
         window = newWindow;
+    }
+
+    public int getWindowSize() {
+        return window.size();
     }
 }

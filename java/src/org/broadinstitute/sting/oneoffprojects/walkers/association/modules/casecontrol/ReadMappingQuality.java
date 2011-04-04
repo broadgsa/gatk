@@ -1,7 +1,5 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.association.modules;
+package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol;
 
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.TStatistic;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.UStatistic;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -26,7 +24,5 @@ public class ReadMappingQuality extends TStatistic {
         return (Collection) mapQuals;
     }
 
-    public int getWindowSize() { return 100; }
-    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return false; }
 }

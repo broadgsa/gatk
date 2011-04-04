@@ -1,8 +1,7 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.association.modules;
+package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol;
 
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.TStatistic;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -33,7 +32,5 @@ public class ReadClipping extends TStatistic {
         return (Collection) clipping;
     }
 
-    public int getWindowSize() { return 100; }
-    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return false; }
 }

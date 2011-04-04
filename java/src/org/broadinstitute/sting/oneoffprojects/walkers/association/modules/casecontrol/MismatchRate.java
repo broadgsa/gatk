@@ -1,9 +1,8 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.association.modules;
+package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol;
 
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.MapExtender;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.RegionalAssociationWalker;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.UStatistic;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -85,7 +84,5 @@ public class MismatchRate extends UStatistic {
     // note: this is to satisfy the interface, and is never called due to override
     public Collection<Number> map(ReadBackedPileup pileup) { return null; }
 
-    public int getWindowSize() { return 100; }
-    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return true; }
 }

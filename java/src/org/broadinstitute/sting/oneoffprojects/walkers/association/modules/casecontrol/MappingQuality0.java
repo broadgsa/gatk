@@ -1,6 +1,5 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.association.modules;
+package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol;
 
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.ZStatistic;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -26,8 +25,6 @@ public class MappingQuality0 extends ZStatistic {
         return new Pair<Number,Number>(mq0,total);
     }
 
-    public int getWindowSize() { return 100; }
-    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return false; }
 
 }

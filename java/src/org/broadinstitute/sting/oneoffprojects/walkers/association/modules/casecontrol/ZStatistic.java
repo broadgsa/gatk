@@ -1,12 +1,7 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol;
+package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol;
 
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.

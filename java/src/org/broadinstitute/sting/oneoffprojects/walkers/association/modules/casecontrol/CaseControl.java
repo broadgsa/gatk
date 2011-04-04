@@ -1,4 +1,5 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol;
+package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol;
+
 
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.AssociationContext;

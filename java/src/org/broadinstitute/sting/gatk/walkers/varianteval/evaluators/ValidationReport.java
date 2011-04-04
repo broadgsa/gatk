@@ -86,8 +86,8 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
             for ( SiteStatus y : SiteStatus.values() )
                 nComp += getCounts(x, y);
 
-        if ( nComp != TP + FN + FP + TN )
-            throw new ReviewedStingException("BUG: nComp != TP + FN + FP + TN!");
+        if ( nComp != TP + FN + FP + TN + CompFiltered )
+            throw new ReviewedStingException("BUG: nComp != TP + FN + FP + TN + CompFiltered!");
 
         sensitivity = (100.0 * TP) / (TP + FN);
         PPV = (100.0 * TP) / (TP + FP);

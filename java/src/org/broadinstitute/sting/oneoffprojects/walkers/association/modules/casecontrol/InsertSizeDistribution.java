@@ -1,7 +1,5 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.association.modules;
+package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol;
 
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.TStatistic;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.UStatistic;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -12,9 +10,8 @@ import java.util.List;
 /**
  * @author chartl
  */
-public class InsertSizeDistribution extends TStatistic {
-    public int getWindowSize() { return 100; }
-    public int slideByValue() { return 10; }
+public class InsertSizeDistribution extends UStatistic {
+
     public boolean usePreviouslySeenReads() { return false; }
 
     public Collection<Number> map(ReadBackedPileup pileup) {

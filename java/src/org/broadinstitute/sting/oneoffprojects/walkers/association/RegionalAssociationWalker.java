@@ -36,12 +36,17 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
     public String[] associationsToUse = null;
     @Argument(doc="Change output file to bedgraph format (s p q, not STAT: s P: p Q: q",shortName="bg",fullName="bedgraph",required=false)
     public boolean bedGraph = false;
+    @Argument(doc="Set the window size for associations to this value",shortName="w",fullName="window",required=false)
+    public int windowSize = 50;
+    @Argument(doc="Set the window sliding value for associations to this value",shortName="s",fullName="slide",required=false)
+    public int slideBy = 10;
 
     @Output
     @Multiplex(value=RegionalAssociationMultiplexer.class,arguments={"associationsToUse","bedGraph"})
     Map<AssociationContext,PrintStream> out;
 
     public void initialize() {
+        if ( windowSize < 1 ) { throw new UserException("Window size cannot be less than one."); }
 
         for ( Sample s : getSamples() ) {
             if ( s.getProperty("cohort") == null ) {
@@ -76,7 +81,6 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
             throw new StingException("Error in map reduce",e);
         }
         Map<AssociationContext,String> testsHere = rac.runTests(bedGraph);
-        // todo -- really awful shitty formatting
         if ( testsHere.size() > 0 ) {
             for ( Map.Entry<AssociationContext,String> result : testsHere.entrySet() ) {
                 out.get(result.getKey().getClass()).printf("%s%n",result.getValue());
@@ -88,18 +92,15 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
     public Set<AssociationContext> getAssociations() {
         List<Class<? extends AssociationContext>> contexts = new PluginManager<AssociationContext>(AssociationContext.class).getPlugins();
 
-
-
         if ( associationsToUse.length > 0 && associationsToUse[0].equals("ALL") ) {
             HashSet<AssociationContext> allAssoc =  new HashSet<AssociationContext>(contexts.size());
             for ( Class<? extends AssociationContext> clazz : contexts ) {
                 AssociationContext context;
                 try {
-                    context = clazz.newInstance();
+                    context = clazz.getConstructor(new Class[] {RegionalAssociationWalker.class}).newInstance(new Object[] {this});
                 } catch (Exception e ) {
                     throw new StingException("The class "+clazz.getSimpleName()+" could not be instantiated",e);
                 }
-                context.init(this);
                 allAssoc.add(context);
             }
             return allAssoc;
@@ -115,11 +116,10 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
         for ( String s : associationsToUse ) {
             AssociationContext context;
             try {
-                context = classNameToClass.get(s).newInstance();
+                context = classNameToClass.get(s).getConstructor(new Class[]{RegionalAssociationWalker.class}).newInstance(new Object[] {this});
             } catch ( Exception e ) {
                 throw new StingException("The class "+s+" could not be instantiated.",e);
             }
-            context.init(this);
             validAssociations.add(context);
         }
         return validAssociations;

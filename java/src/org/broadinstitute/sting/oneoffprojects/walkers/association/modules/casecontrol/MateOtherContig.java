@@ -1,6 +1,5 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.association.modules;
+package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol;
 
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.ZStatistic;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -14,8 +13,6 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
  */
 public class MateOtherContig extends ZStatistic {
 
-    public int getWindowSize() { return 100; }
-    public int slideByValue() { return 10; }
     public boolean usePreviouslySeenReads() { return false; }
 
     public Pair<Number,Number> map(ReadBackedPileup pileup) {
