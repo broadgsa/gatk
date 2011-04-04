@@ -7,7 +7,7 @@ import java.util.Map;
 
 import cern.jet.random.Normal;
 import cern.jet.random.StudentT;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.*;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.*;
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
