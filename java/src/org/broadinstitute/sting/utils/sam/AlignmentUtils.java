@@ -518,7 +518,7 @@ public class AlignmentUtils {
         // we do not call the read "unmapped" when it has only reference name set with ref. index missing
         // or vice versa.
         if ( ( r.getReferenceIndex() != null && r.getReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX
-                || r.getReferenceName() != null && r.getReferenceName() != SAMRecord.NO_ALIGNMENT_REFERENCE_NAME )
+                || r.getReferenceName() != null && !r.getReferenceName().equals(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME) )
           &&  r.getAlignmentStart() != SAMRecord.NO_ALIGNMENT_START ) return false  ;
         return true;
     }
@@ -540,7 +540,7 @@ public class AlignmentUtils {
         // we do not call the read "unmapped" when it has only reference name set with ref. index missing
         // or vice versa.
         if ( ( r.getMateReferenceIndex() != null && r.getMateReferenceIndex() != SAMRecord.NO_ALIGNMENT_REFERENCE_INDEX
-                || r.getMateReferenceName() != null && r.getMateReferenceName() != SAMRecord.NO_ALIGNMENT_REFERENCE_NAME )
+                || r.getMateReferenceName() != null && !r.getMateReferenceName().equals(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME) )
           &&  r.getMateAlignmentStart() != SAMRecord.NO_ALIGNMENT_START ) return false  ;
         return true;
     }
