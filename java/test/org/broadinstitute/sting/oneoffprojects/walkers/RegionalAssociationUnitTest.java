@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.UStatistic;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.ZStatistic;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.UStatistic;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.ZStatistic;
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.AssociationTestRunner;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.casecontrol.TStatistic;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.TStatistic;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
