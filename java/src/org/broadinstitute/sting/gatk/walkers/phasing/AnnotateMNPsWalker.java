@@ -605,6 +605,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
         private CodonFunction codonFunc;
         private String proteinCoordStr;
         private boolean MNPdependentAA;
+        private String originalAA;
 
         public SingleCodonAnnotationsForAllele(String variantCodon, String refCodon, AminoAcid refAA, int codonIndex) {
             this.codonFunc = new CodonFunction(variantCodon, refCodon, refAA);
@@ -615,15 +616,24 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
                 throw new ReviewedStingException("codonFunc.variantCodon.length() != refCodonLength, but ALREADY checked that they're both 3");
 
             this.MNPdependentAA = true;
+            this.originalAA = "(";
             for (int i = 0; i < refCodonLength; i++) {
                 // Take [0,i-1] and [i+1, end] from refCodon, and i from variantCodon:
                 String singleBaseChangeCodon = refCodon.substring(0, i) + variantCodon.substring(i, i+1) + refCodon.substring(i+1, refCodonLength);
                 CodonFunction singleBaseChangeCodonFunc = new CodonFunction(singleBaseChangeCodon, refCodon, refAA);
                 if (singleBaseChangeCodonFunc.variantAA.equals(codonFunc.variantAA)) {
                     this.MNPdependentAA = false;
+                    this.originalAA = "";
                     break;
                 }
+
+                this.originalAA = this.originalAA + "" + singleBaseChangeCodonFunc.variantAA.getLetter();
+                if (i < refCodonLength - 1)
+                    this.originalAA = this.originalAA + ",";
             }
+
+            if (this.MNPdependentAA)
+                this.originalAA = this.originalAA + ")";
         }
 
         private static class CodonFunction {
@@ -668,7 +678,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
             sb.append(REFSEQ_CHANGES_AA).append(ASSIGNMENT).append(codonFunc.changesAA).append(CODON_INFO_DELIM);
             sb.append(REFSEQ_FUNCTIONAL_CLASS).append(ASSIGNMENT).append(codonFunc.functionalClass).append(CODON_INFO_DELIM);
             sb.append(REFSEQ_PROTEIN_COORD_DESCRIPTION).append(ASSIGNMENT).append(proteinCoordStr).append(CODON_INFO_DELIM);
-            sb.append(MNP_DEPENDENT_AA).append(ASSIGNMENT).append(MNPdependentAA);
+            sb.append(MNP_DEPENDENT_AA).append(ASSIGNMENT).append(MNPdependentAA).append(originalAA);
             sb.append(ALLELE_END);
 
             return sb.toString();
