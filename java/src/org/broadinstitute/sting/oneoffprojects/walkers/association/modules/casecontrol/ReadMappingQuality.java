@@ -13,7 +13,7 @@ import java.util.Collection;
  * Time: 1:41 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReadMappingQuality extends TStatistic {
+public class ReadMappingQuality extends ValueTest {
 
     public Collection<Number> map(ReadBackedPileup rbp) {
         ArrayList<Integer> mapQuals = new ArrayList<Integer>(rbp.size());

@@ -40,6 +40,17 @@ public class MannWhitneyU {
         }
     }
 
+    public Pair<Long,Long> getR1R2() {
+        long u1 = calculateOneSidedU(observations,MannWhitneyU.USet.SET1);
+        long n1 = sizeSet1*(sizeSet1+1)/2;
+        long r1 = u1 + n1;
+        long n2 = sizeSet2*(sizeSet2+1)/2;
+        long u2 = n1*n2-u1;
+        long r2 = u2 + n2;
+
+        return new Pair<Long,Long>(r1,r2);
+    }
+
     /**
      * Runs the one-sided test under the hypothesis that the data in set "lessThanOther" stochastically
      * dominates the other set

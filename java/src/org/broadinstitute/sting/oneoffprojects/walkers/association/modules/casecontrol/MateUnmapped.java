@@ -11,7 +11,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
  * Time: 2:09 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MateUnmapped extends ZStatistic  {
+public class MateUnmapped extends ProportionTest {
 
     public Pair<Number,Number> map(ReadBackedPileup pileup) {
         int numMatedReads = 0;

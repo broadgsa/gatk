@@ -15,7 +15,7 @@ import java.util.Collection;
  * Time: 1:54 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReadIndels extends UStatistic {
+public class ReadIndels extends ValueTest {
 
     public Collection<Number> map(ReadBackedPileup rbp) {
         ArrayList<Integer> indelElements = new ArrayList<Integer>(rbp.size());

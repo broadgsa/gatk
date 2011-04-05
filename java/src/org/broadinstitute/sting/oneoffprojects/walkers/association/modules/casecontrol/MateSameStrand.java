@@ -11,7 +11,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
  * Time: 1:47 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MateSameStrand extends ZStatistic {
+public class MateSameStrand extends ProportionTest {
 
     public Pair<Number,Number> map(ReadBackedPileup rbp) {
         int numPairs = 0;

@@ -13,7 +13,7 @@ import java.util.Collection;
  * Time: 1:52 PM
  * To change this template use File | Settings | File Templates.
  */
-public class BaseQualityScore extends TStatistic {
+public class BaseQualityScore extends ValueTest {
 
     public Collection<Number> map(ReadBackedPileup rbp) {
         ArrayList<Integer> baseQuals = new ArrayList<Integer>(rbp.size());

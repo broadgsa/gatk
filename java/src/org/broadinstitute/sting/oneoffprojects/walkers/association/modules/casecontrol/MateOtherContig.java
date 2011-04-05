@@ -11,7 +11,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
  * Time: 3:00 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MateOtherContig extends ZStatistic {
+public class MateOtherContig extends ProportionTest {
 
     public boolean usePreviouslySeenReads() { return false; }
 

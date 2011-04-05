@@ -17,7 +17,7 @@ import java.util.*;
  * Time: 2:32 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MismatchRate extends UStatistic {
+public class MismatchRate extends ValueTest {
 
     private Map<Sample,Object> sampleStats = new HashMap<Sample,Object>();
     private int currentRefBase = 0;

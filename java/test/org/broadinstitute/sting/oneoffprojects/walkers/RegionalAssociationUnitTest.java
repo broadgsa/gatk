@@ -1,18 +1,15 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.UStatistic;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.ZStatistic;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.ProportionTest;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.ValueTest;
 import org.broadinstitute.sting.utils.MannWhitneyU;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.AssociationTestRunner;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.TStatistic;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import org.broadinstitute.sting.BaseTest;
 import org.testng.Assert;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,20 +33,20 @@ public class RegionalAssociationUnitTest extends BaseTest {
         TTest test1 = new TTest();
         test1.setCaseData((Collection) Arrays.asList(1,1,2,3,4));
         test1.setControlData((Collection) Arrays.asList(10, 10, 20, 30, 40));
-        Assert.assertEquals(AssociationTestRunner.testStudentT(test1).second,0.1702,1e-2);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).second.first,0.1702,1e-2);
         TTest test2 = new TTest();
         test2.setCaseData((Collection) Arrays.asList(5, 6, 5, 2, 3, 8, 7, 12, 10, 6, 4, 2, 8, 7, 3));
         test2.setControlData((Collection) Arrays.asList(1, 6, 7, 2, 3, 3, 4, 1, 2, 5, 7, 3, 10, 3, 3, 2, 3));
-        Assert.assertEquals(AssociationTestRunner.testStudentT(test2).second, 0.5805, 1e-2);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test2).second.first, 0.5805, 1e-2);
         TTest test3 = new TTest();
         test3.setCaseData((Collection) Arrays.asList(94,25,68,4,27,51,9,10,91,61,61,37,39,44,36,27,86,33,3,38,5,6,28,93,30,56,81,8,40,44));
         test3.setControlData((Collection) Arrays.asList(6,64,96,85,20,74,93,18,31,20,88,38,80,50,33,81,35,8,2,69,49,6,26,74,79,63,63,96,45,18));
-        Assert.assertEquals(AssociationTestRunner.testStudentT(test3).second,0.8229,1e-4);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test3).second.first,0.8229,1e-4);
         TTest test4 = new TTest();
         test4.setCaseData((Collection) Arrays.asList(14,8,8,17,8,12,10,10,13,9,13,9,9,12,12,11,16,12,13,16,10,13,11,16,13,16,11,13,9,16,16,14,9,14,17,10,15,15,9,15,17,15,17,12,10,13,11,14,8,14));
         test4.setControlData((Collection) Arrays.asList(7,1,4,2,3,7,8,5,5,4,10,6,4,9,2,9,9,3,3,10,1,8,9,5,3,7,2,7,10,9,4,9,2,10,10,3,2,3,4,4,5,10,9,4,3,5,6,10,5,10));
-        Assert.assertEquals(AssociationTestRunner.testStudentT(test4).second,0.1006,1e-4);
-        Assert.assertEquals(AssociationTestRunner.testStudentT(test4).first,1.657989,1e-6);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test4).second.first,0.1006,1e-4);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test4).first,1.657989,1e-6);
     }
 
     @Test
@@ -58,17 +55,17 @@ public class RegionalAssociationUnitTest extends BaseTest {
         ZTest test1 = new ZTest();
         test1.setCaseData(new Pair<Number,Number>(100,500));
         test1.setControlData(new Pair<Number,Number>(55,300));
-        Assert.assertEquals(AssociationTestRunner.testZ(test1).first,0.57742362050306,2e-6);
-        Assert.assertEquals(AssociationTestRunner.testZ(test1).second,0.56367,2e-5);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).first,0.57742362050306,2e-6);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).second.first,0.56367,2e-5);
         ZTest test2 = new ZTest();
         test1.setCaseData(new Pair<Number, Number>(1020, 1800));
         test1.setControlData(new Pair<Number, Number>(680, 1670));
-        Assert.assertEquals(AssociationTestRunner.testZ(test1).first,9.3898178216531,2e-6);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).first,9.3898178216531,2e-6);
         ZTest test3 = new ZTest();
         test3.setCaseData(new Pair<Number,Number>(20,60));
         test3.setControlData(new Pair<Number,Number>(30,80));
-        Assert.assertEquals(AssociationTestRunner.testZ(test3).first,-0.50917511840392,2e-6);
-        Assert.assertEquals(AssociationTestRunner.testZ(test3).second,0.610643593,2e-4);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test3).first,-0.50917511840392,2e-6);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test3).second.first,0.610643593,2e-4);
     }
 
     @Test
@@ -160,7 +157,7 @@ public class RegionalAssociationUnitTest extends BaseTest {
     }
 
 
-    private class TTest extends TStatistic {
+    private class TTest extends ValueTest {
         Map<Cohort,Collection<Number>> toTest = new HashMap<Cohort,Collection<Number>>(2);
 
         @Override
@@ -178,11 +175,14 @@ public class RegionalAssociationUnitTest extends BaseTest {
 
         public Collection<Number> map(ReadBackedPileup rbp) { return null; }
         public int getWindowSize() { return 1; }
-        public int slideByValue() { return 1; }
+
+        @Override
+        public boolean useTStatistic() { return true; }
+
         public boolean usePreviouslySeenReads() { return false; }
     }
 
-    private class ZTest extends ZStatistic {
+    private class ZTest extends ProportionTest {
         Map<Cohort,Pair<Number,Number>> toTest = new HashMap<Cohort,Pair<Number,Number>>(2);
 
         @Override
@@ -204,7 +204,7 @@ public class RegionalAssociationUnitTest extends BaseTest {
         public boolean usePreviouslySeenReads() { return true; }
     }
 
-    private class UTest extends UStatistic {
+    private class UTest extends ValueTest {
         TTest test = new TTest();
         public boolean usePreviouslySeenReads() { return false; }
         public int getWindowSize() { return 1; }

@@ -15,7 +15,7 @@ import java.util.Map;
  * Time: 1:17 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReferenceMismatches extends ZStatistic {
+public class ReferenceMismatches extends ProportionTest {
 
     final static int[] BASE_INDEX = {0,1,2,3};
 

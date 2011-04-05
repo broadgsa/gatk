@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * @author chartl
  */
-public class InsertSizeDistribution extends UStatistic {
+public class InsertSizeDistribution extends ValueTest {
 
     public boolean usePreviouslySeenReads() { return false; }
 

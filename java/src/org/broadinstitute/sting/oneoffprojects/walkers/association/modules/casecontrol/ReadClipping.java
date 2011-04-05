@@ -15,7 +15,7 @@ import java.util.Collection;
  * Time: 1:31 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReadClipping extends TStatistic {
+public class ReadClipping extends ValueTest {
 
     public Collection<Number> map(ReadBackedPileup rbp) {
         ArrayList<Integer> clipping = new ArrayList<Integer>(rbp.size());

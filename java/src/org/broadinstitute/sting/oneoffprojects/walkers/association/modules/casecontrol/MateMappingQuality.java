@@ -13,7 +13,7 @@ import java.util.Collection;
  * Time: 1:43 PM
  * To change this template use File | Settings | File Templates.
  */
-public class MateMappingQuality extends UStatistic {
+public class MateMappingQuality extends ValueTest {
 
     public Collection<Number> map(ReadBackedPileup rbp) {
         ArrayList<Integer> mateMapQ = new ArrayList<Integer>(rbp.size());

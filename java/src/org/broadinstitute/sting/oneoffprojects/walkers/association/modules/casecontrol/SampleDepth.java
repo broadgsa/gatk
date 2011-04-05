@@ -12,7 +12,7 @@ import java.util.*;
 /**
  * @author chartl
  */
-public class SampleDepth extends UStatistic {
+public class SampleDepth extends ValueTest {
 
     public Map<Sample,Object> sampleStats = null;
 
