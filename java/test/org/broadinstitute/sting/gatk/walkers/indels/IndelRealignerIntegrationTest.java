@@ -15,7 +15,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     private static final String knownIndels = validationDataLocation + "indelRealignerTest.pilot1.ceu.vcf";
     private static final String baseCommandPrefix = "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + mainTestBam + " -targetIntervals " + mainTestIntervals + " -compress 0 -L 20:49,500-55,500 ";
     private static final String baseCommand = baseCommandPrefix + "-o %s ";
-    private static final String base_md5 = "282070822dc5495eb20dad157d827133";
+    private static final String base_md5 = "28c045a821e541820a049595759fe962";
 
     @Test
     public void testDefaults() {
@@ -40,6 +40,54 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
 
     }
 
+    @Test(dependsOnMethods = { "testDefaults" })
+    public void testKnownsOnly() {
+        WalkerTestSpec spec1 = new WalkerTestSpec(
+                baseCommand + "-knownsOnly -B:indels,vcf " + knownIndels,
+                1,
+                Arrays.asList("ea91283e0af5432c1d63b052ed3dcfe4"));
+        executeTest("realigner known indels only from VCF", spec1);
+
+        WalkerTestSpec spec2 = new WalkerTestSpec(
+                baseCommand + "-knownsOnly -D " + GATKDataLocation + "dbsnp_129_b36.rod",
+                1,
+                Arrays.asList("3eed07873a474d8d8d4935399c99f793"));
+        executeTest("realigner known indels only from dbsnp", spec2);
+    }
+
+    @Test(dependsOnMethods = { "testKnownsOnly" })
+    public void testLods() {
+        HashMap<String, String> e = new HashMap<String, String>();
+        e.put( "-LOD 60", base_md5 );
+        e.put( "-LOD 1",  "9a59cd8508f72f8935410b6fb2e6e7d3" );
+
+        for ( Map.Entry<String, String> entry : e.entrySet() ) {
+            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                    baseCommand + entry.getKey(),
+                    1,
+                    Arrays.asList(entry.getValue()));
+            executeTest(String.format("realigner [%s]", entry.getKey()), spec);
+        }
+    }
+
+    @Test(dependsOnMethods = { "testLods" })
+    public void testLongRun() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10,000,000-11,000,000 -targetIntervals " + validationDataLocation + "indelRealignerTest.NA12878.chrom1.intervals -compress 0 -o %s",
+                1,
+                Arrays.asList("be859f9a98d738becee0526887cae42e"));
+        executeTest("realigner long run", spec);
+    }
+
+    @Test(dependsOnMethods = { "testLongRun" })
+    public void testNoTags() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                baseCommand + "--noOriginalAlignmentTags",
+                1,
+                Arrays.asList("4bbd9a0d998bc0483cd9bbbdac8cb9c2"));
+        executeTest("realigner no output tags", spec);
+    }
+
     @Test(dependsOnMethods = { "testNoTags" })
     public void testStats() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
@@ -52,61 +100,13 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
                 baseCommandPrefix + "-LOD 60 -stats %s -o /dev/null",
                 1,
                 Arrays.asList("ffab7d9ca19daa8a21e0b8f0072d39e9"));
-        executeTest("realigner stats", spec2);        
-    }
-
-    @Test(dependsOnMethods = { "testKnownsOnly" })
-    public void testLods() {
-        HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "-LOD 60", base_md5 );
-        e.put( "-LOD 1",  "c98d699d94f01bd0089f12646c764dfc" );
-
-        for ( Map.Entry<String, String> entry : e.entrySet() ) {
-            WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
-                    baseCommand + entry.getKey(),
-                    1,
-                    Arrays.asList(entry.getValue()));
-            executeTest(String.format("realigner [%s]", entry.getKey()), spec);
-        }
-    }
-
-    @Test(dependsOnMethods = { "testDefaults" })
-    public void testKnownsOnly() {
-        WalkerTestSpec spec1 = new WalkerTestSpec(
-                baseCommand + "-knownsOnly -B:indels,vcf " + knownIndels,
-                1,
-                Arrays.asList("36644c80f5e7b7c8679c0485ef681cd8"));
-        executeTest("realigner known indels only from VCF", spec1);
-
-        WalkerTestSpec spec2 = new WalkerTestSpec(
-                baseCommand + "-knownsOnly -D " + GATKDataLocation + "dbsnp_129_b36.rod",
-                1,
-                Arrays.asList("eab2cce434435da7dabb0926101c5586"));
-        executeTest("realigner known indels only from dbsnp", spec2);
-    }
-
-    @Test(dependsOnMethods = { "testLongRun" })
-    public void testNoTags() {
-        WalkerTestSpec spec = new WalkerTestSpec(
-                baseCommand + "--noOriginalAlignmentTags",
-                1,
-                Arrays.asList("00ecb9df5afe3e9d61a75a2d019cb425"));
-        executeTest("realigner no output tags", spec);
-    }
-
-    @Test(dependsOnMethods = { "testLods" })
-    public void testLongRun() {
-        WalkerTestSpec spec = new WalkerTestSpec(
-                "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10,000,000-11,000,000 -targetIntervals " + validationDataLocation + "indelRealignerTest.NA12878.chrom1.intervals -compress 0 -o %s",
-                1,
-                Arrays.asList("be859f9a98d738becee0526887cae42e"));
-        executeTest("realigner long run", spec);
+        executeTest("realigner stats", spec2);
     }
 
     @Test(dependsOnMethods = { "testStats" })
     public void testMaxReadsInMemory() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "--maxReadsInMemory 10000", "424271ca000442e8b338c67d95dadb82" );
+        e.put( "--maxReadsInMemory 10000", "f8e4279cba9fb3a2181d1ce28f7a62af" );
         e.put( "--maxReadsInMemory 40000",  base_md5 );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {

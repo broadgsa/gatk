@@ -228,7 +228,7 @@ public class ConstrainedMateFixingManager {
                 }
 
                 forMateMatching.remove(newRead.getReadName());
-            } else {
+            } else if ( pairedReadIsMovable(newRead) ) {
                 forMateMatching.put(newRead.getReadName(), newRead);
             }
         }
@@ -240,10 +240,8 @@ public class ConstrainedMateFixingManager {
                 SAMRecord read = waitingReads.peek();
 
                 if ( noReadCanMoveBefore(read.getAlignmentStart(), newRead) &&
-                        (iSizeTooBigToMove(read)                                           // we won't try to move such a read
-                                || ! read.getReadPairedFlag()                                     // we're not a paired read
-                                || read.getReadUnmappedFlag() && read.getMateUnmappedFlag()       // both reads are unmapped
-                                || noReadCanMoveBefore(read.getMateAlignmentStart(), newRead ) ) ) { // we're already past where the mate started
+                        (!pairedReadIsMovable(read)                               // we won't try to move such a read
+                           || noReadCanMoveBefore(read.getMateAlignmentStart(), newRead ) ) ) { // we're already past where the mate started
 
                     // remove reads from the map that we have emitted -- useful for case where the mate never showed up
                     forMateMatching.remove(read.getReadName());
@@ -277,6 +275,13 @@ public class ConstrainedMateFixingManager {
     public static boolean iSizeTooBigToMove(SAMRecord read, int maxInsertSizeForMovingReadPairs) {
         return ( read.getReadPairedFlag() && ! read.getMateUnmappedFlag() && read.getReferenceName() != read.getMateReferenceName() ) // maps to different chromosomes
                 || Math.abs(read.getInferredInsertSize()) > maxInsertSizeForMovingReadPairs;     // we won't try to move such a read
+    }
+
+    private boolean pairedReadIsMovable(SAMRecord read) {
+        return read.getReadPairedFlag()                                          // we're a paired read
+                && (!read.getReadUnmappedFlag() || !read.getMateUnmappedFlag())  // at least one read is mapped
+                && !iSizeTooBigToMove(read);                                     // insert size isn't too big
+
     }
 
     public void close() {
