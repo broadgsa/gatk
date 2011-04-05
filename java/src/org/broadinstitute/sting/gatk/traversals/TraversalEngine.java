@@ -288,7 +288,7 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
 //                    else
 //                        logger.info(String.format("Processing %s", common));
                     logger.info(String.format("%15s        %5.2e %s     %s     %4.1f%%      %s  %s",
-                            loc == null ? "done" : loc, nRecords*1.0, elapsed, unitRate,
+                            loc == null ? "done with mapped reads" : loc, nRecords*1.0, elapsed, unitRate,
                             100*fractionGenomeTargetCompleted, estTotalRuntime, timeToCompletion));
 
                 }
