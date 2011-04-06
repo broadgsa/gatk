@@ -83,6 +83,10 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
     @Hidden
     @Argument(fullName = "trustAllPolymorphic", shortName = "allPoly", doc = "Trust that all the input training sets' unfiltered records contain only polymorphic sites to drastically speed up the computation.", required = false)
     protected Boolean TRUST_ALL_POLYMORPHIC = false;
+    @Hidden
+    @Argument(fullName = "fixOmni", shortName = "fixOmni", doc = "Ignore the NOT_POLY_IN_1000G filter for the omni file because it is broken.", required = false)
+    protected Boolean FIX_OMNI = false; //BUGBUG: remove me very soon!
+
 
     /////////////////////////////
     // Private Member Variables
@@ -144,19 +148,28 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
 
         for( final VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
             if( vc != null && ( vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters()) ) ) {
-                final VariantDatum datum = new VariantDatum();
-                datum.annotations = dataManager.decodeAnnotations( ref.getGenomeLocParser(), vc, true ); //BUGBUG: when run with HierarchicalMicroScheduler this is non-deterministic because order of calls depends on load of machine
-                datum.pos = context.getLocation();
-                datum.originalQual = vc.getPhredScaledQual();
-                datum.isTransition = vc.isSNP() && vc.isBiallelic() && VariantContextUtils.isTransition(vc);
-                dataManager.parseTrainingSets( tracker, ref, context, vc, datum, TRUST_ALL_POLYMORPHIC );
-                final double priorFactor = QualityUtils.qualToProb( datum.prior );
-                datum.prior = Math.log10( priorFactor ) - Math.log10( 1.0 - priorFactor );
-                mapList.add( datum );
+                if( checkRecalibrationMode( vc, VRAC.MODE ) ) {
+                    final VariantDatum datum = new VariantDatum();
+                    datum.annotations = dataManager.decodeAnnotations( ref.getGenomeLocParser(), vc, true ); //BUGBUG: when run with HierarchicalMicroScheduler this is non-deterministic because order of calls depends on load of machine
+                    datum.pos = context.getLocation();
+                    datum.originalQual = vc.getPhredScaledQual();
+                    datum.isSNP = vc.isSNP() && vc.isBiallelic();
+                    datum.isTransition = datum.isSNP && VariantContextUtils.isTransition(vc);
+                    dataManager.parseTrainingSets( tracker, ref, context, vc, datum, TRUST_ALL_POLYMORPHIC, FIX_OMNI );
+                    final double priorFactor = QualityUtils.qualToProb( datum.prior );
+                    datum.prior = Math.log10( priorFactor ) - Math.log10( 1.0 - priorFactor );
+                    mapList.add( datum );
+                }
             }
         }
 
         return mapList;
+    }
+
+    public static boolean checkRecalibrationMode( final VariantContext vc, final VariantRecalibratorArgumentCollection.Mode mode ) {
+        return mode == VariantRecalibratorArgumentCollection.Mode.BOTH ||
+                (mode == VariantRecalibratorArgumentCollection.Mode.SNP && vc.isSNP()) ||
+                (mode == VariantRecalibratorArgumentCollection.Mode.INDEL && vc.isIndel());
     }
 
     //---------------------------------------------------------------------------------------------------------------

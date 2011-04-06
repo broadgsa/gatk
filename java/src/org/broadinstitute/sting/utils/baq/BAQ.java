@@ -1,12 +1,10 @@
 package org.broadinstitute.sting.utils.baq;
 
-import net.sf.samtools.Cigar;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -41,7 +39,7 @@ public class BAQ {
     private final static boolean DEBUG = false;
 
     public enum CalculationMode {
-        OFF,                        // don't apply a BAQ at all, the default
+        OFF,                        // don't apply BAQ at all, the default
         CALCULATE_AS_NECESSARY,     // do HMM BAQ calculation on the fly, as necessary, if there's no tag
         RECALCULATE                 // do HMM BAQ calculation on the fly, regardless of whether there's a tag present
     }
@@ -81,7 +79,7 @@ public class BAQ {
      */
     private double convertFromPhredScale(double x) { return (Math.pow(10,(-x)/10.));}
 
-    public double cd = -1;      // gap open probility [1e-3]
+    public double cd = -1;      // gap open probability [1e-3]
     private double ce = 0.1;    // gap extension probability [0.1]
 	private int cb = 7;         // band width [7]
     private boolean includeClippedBases = false;
@@ -430,7 +428,7 @@ public class BAQ {
     }
 
     /**
-     * Returns a new qual array for read that includes the BAQ adjusted.  Does not support on-the-fly BAQ calculation
+     * Returns a new qual array for read that includes the BAQ adjustment.  Does not support on-the-fly BAQ calculation
      *
      * @param read the SAMRecord to operate on
      * @param overwriteOriginalQuals If true, we replace the original qualities scores in the read with their BAQ'd version
@@ -459,6 +457,35 @@ public class BAQ {
         }
 
         return newQuals;
+    }
+
+    /**
+     * Returns the BAQ adjusted quality score for this read at this offset.  Does not support on-the-fly BAQ calculation
+     *
+     * @param read the SAMRecord to operate on
+     * @param offset the offset of operate on
+     * @param useRawQualsIfNoBAQTag If useRawQualsIfNoBAQTag is true, then if there's no BAQ annotation we just use the raw quality scores.  Throws IllegalStateException is false and no BAQ tag is present
+     * @return
+     */
+    public static byte calcBAQFromTag(SAMRecord read, int offset, boolean useRawQualsIfNoBAQTag) {
+        byte rawQual = read.getBaseQualities()[offset];
+        byte newQual = rawQual;
+        byte[] baq = getBAQTag(read);
+
+        if ( baq != null ) {
+            // Offset to base alignment quality (BAQ), of the same length as the read sequence.
+            // At the i-th read base, BAQi = Qi - (BQi - 64) where Qi is the i-th base quality.
+            int baq_delta = (int)baq[offset] - 64;
+            int newval =  rawQual - baq_delta;
+            if ( newval < 0 )
+                throw new UserException.MalformedBAM(read, "BAQ tag error: the BAQ value is larger than the base quality");
+            newQual = (byte)newval;
+        
+        } else if ( ! useRawQualsIfNoBAQTag ) {
+            throw new IllegalStateException("Required BAQ tag to be present, but none was on read " + read.getReadName());
+        }
+
+        return newQual;
     }
 
     public static class BAQCalculationResult {
@@ -549,7 +576,7 @@ public class BAQ {
         return new Pair<Integer, Integer>(queryStart, queryStop);
     }
 
-    // we need to bad ref by at least the bandwidth / 2 on either side
+    // we need to pad ref by at least the bandwidth / 2 on either side
     public BAQCalculationResult calcBAQFromHMM(SAMRecord read, byte[] ref, int refOffset) {
         // todo -- need to handle the case where the cigar sum of lengths doesn't cover the whole read
         Pair<Integer, Integer> queryRange = calculateQueryRange(read);

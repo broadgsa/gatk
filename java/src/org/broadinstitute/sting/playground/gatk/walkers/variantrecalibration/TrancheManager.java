@@ -81,7 +81,6 @@ public class TrancheManager {
 
     public static class TruthSensitivityMetric extends SelectionMetric {
         double[] runningSensitivity;
-        double targetTiTv = 0;
         int nTrueSites = 0;
 
         public TruthSensitivityMetric(int nTrueSites) {
@@ -181,16 +180,19 @@ public class TrancheManager {
         int numKnown = 0, numNovel = 0, knownTi = 0, knownTv = 0, novelTi = 0, novelTv = 0;
 
         double minLod = data.get(minI).lod;
-        for ( VariantDatum datum : data ) {
+        for ( final VariantDatum datum : data ) {
             if ( datum.lod >= minLod ) {
                 //if( ! datum.isKnown ) System.out.println(datum.pos);
                 if ( datum.isKnown ) {
                     numKnown++;
-                    if ( datum.isTransition ) { knownTi++; } else { knownTv++; }
+                    if( datum.isSNP ) {
+                        if ( datum.isTransition ) { knownTi++; } else { knownTv++; }
+                    }
                 } else {
                     numNovel++;
-                    if ( datum.isTransition ) { novelTi++; } else { novelTv++; }
-
+                    if( datum.isSNP ) {
+                        if ( datum.isTransition ) { novelTi++; } else { novelTv++; }
+                    }
                 }
             }
         }
@@ -213,5 +215,4 @@ public class TrancheManager {
         for ( VariantDatum d : data ) { n += (d.atTruthSite && d.lod >= minLOD ? 1 : 0); }
         return n;
     }
-
 }

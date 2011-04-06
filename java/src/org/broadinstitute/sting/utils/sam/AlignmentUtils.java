@@ -30,6 +30,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.Utils;
@@ -464,14 +465,12 @@ public class AlignmentUtils {
 
             switch( ce.getOperator() ) {
             case I:
-                /*
                 if( alignPos > 0 ) {
                     if( alignment[alignPos-1] == BaseUtils.A ) { alignment[alignPos-1] = PileupElement.A_FOLLOWED_BY_INSERTION_BASE; }
                     else if( alignment[alignPos-1] == BaseUtils.C ) { alignment[alignPos-1] = PileupElement.C_FOLLOWED_BY_INSERTION_BASE; }
                     else if( alignment[alignPos-1] == BaseUtils.T ) { alignment[alignPos-1] = PileupElement.T_FOLLOWED_BY_INSERTION_BASE; }
                     else if( alignment[alignPos-1] == BaseUtils.G ) { alignment[alignPos-1] = PileupElement.G_FOLLOWED_BY_INSERTION_BASE; }
                 }
-                */
             case S:
                 for ( int jjj = 0; jjj < elementLength; jjj++ ) {
                     readPos++;

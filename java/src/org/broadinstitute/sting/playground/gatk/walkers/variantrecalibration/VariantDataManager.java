@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 
+import cern.jet.random.Normal;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -7,6 +8,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -108,7 +110,7 @@ public class VariantDataManager {
         Collections.sort( data );
         final ExpandingArrayList<VariantDatum> trainingData = new ExpandingArrayList<VariantDatum>();
         trainingData.addAll( data.subList(0, Math.round((float)bottomPercentage * data.size())) );
-        logger.info( "Training with worst " + bottomPercentage * 100.0f + "% of data --> " + trainingData.size() + " variants with LOD <= " + String.format("%.4f", data.get(Math.round((float)bottomPercentage * data.size())).lod) + "." );
+        logger.info( "Training with worst " + (float)bottomPercentage * 100.0f + "% of data --> " + trainingData.size() + " variants with LOD <= " + String.format("%.4f", data.get(Math.round((float)bottomPercentage * data.size())).lod) + "." );
         return trainingData;
     }
 
@@ -161,6 +163,11 @@ public class VariantDataManager {
         } else {
             try {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
+                if(Double.isNaN(value)) { throw new NumberFormatException(); }
+                if( annotationKey.toLowerCase().contains("ranksum") ) { //BUGBUG: temporary hack
+                    if(MathUtils.compareDoubles(value, 0.0, 0.01) == 0) { value = Normal.staticNextDouble(2.0, 2.0); }
+                    else if(MathUtils.compareDoubles(value, 200.0, 0.01) == 0) { value = Normal.staticNextDouble(162.0, 20.0); }
+                }
             } catch( final Exception e ) {
                 throw new UserException.MalformedFile( vc.getSource(), "No double value detected for annotation = " + annotationKey + " in variant at " + VariantContextUtils.getLocation(genomeLocParser,vc) + ", reported annotation value = " + vc.getAttribute( annotationKey ), e );
             }
@@ -168,19 +175,19 @@ public class VariantDataManager {
         return value;
     }
 
-    public void parseTrainingSets( final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context, final VariantContext evalVC, final VariantDatum datum, final boolean TRUST_ALL_POLYMORPHIC ) {
+    public void parseTrainingSets( final RefMetaDataTracker tracker, final ReferenceContext ref, final AlignmentContext context, final VariantContext evalVC, final VariantDatum datum, final boolean TRUST_ALL_POLYMORPHIC, final boolean FIX_OMNI ) {
         datum.isKnown = false;
         datum.atTruthSite = false;
         datum.atTrainingSite = false;
-        datum.prior = 3.0;
+        datum.prior = 2.0;
         for( final TrainingSet trainingSet : trainingSets ) {
-            final Collection<VariantContext> vcs = tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), false, true );
-            final VariantContext trainVC = ( vcs.size() != 0 ? vcs.iterator().next() : null );
-            if( trainVC != null && trainVC.isVariant() && trainVC.isNotFiltered() && ((evalVC.isSNP() && trainVC.isSNP()) || (evalVC.isIndel() && trainVC.isIndel())) && (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {
-                datum.isKnown = datum.isKnown || trainingSet.isKnown;
-                datum.atTruthSite = datum.atTruthSite || trainingSet.isTruth;
-                datum.atTrainingSite = datum.atTrainingSite || trainingSet.isTraining;
-                datum.prior = Math.max( datum.prior, trainingSet.prior );
+            for( final VariantContext trainVC : tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), false, false ) ) {
+                if( trainVC != null && trainVC.isVariant() && (trainVC.isNotFiltered() || (FIX_OMNI && trainVC.getFilters().size()==1 && trainVC.getFilters().contains("NOT_POLY_IN_1000G"))) && ((evalVC.isSNP() && trainVC.isSNP()) || (evalVC.isIndel() && trainVC.isIndel())) && (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {
+                    datum.isKnown = datum.isKnown || trainingSet.isKnown;
+                    datum.atTruthSite = datum.atTruthSite || trainingSet.isTruth;
+                    datum.atTrainingSite = datum.atTrainingSite || trainingSet.isTraining;
+                    datum.prior = Math.max( datum.prior, trainingSet.prior );
+                }
             }
         }
     }

@@ -121,7 +121,7 @@ public class CalculateBaseLikelihoodsWalker extends LocusWalker<Integer, Pair<Lo
             for ( PileupElement p : context.getBasePileup() ) {
                 byte base = p.getBase();
                 if (!ReadsToDiscard.contains(p.getRead().getReadName()) && BaseUtils.simpleBaseToBaseIndex(base) != -1) {
-                    G.add(p, true, false);
+                    G.add(p, true, false, 0);
                     //if (DEBUG){
                         if (base == 'A'){numAs++;}
                         else if (base == 'C'){numCs++;}

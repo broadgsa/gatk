@@ -36,7 +36,7 @@ import java.util.Arrays;
 public class ExtendedEventPileupElement extends PileupElement {
     public enum Type {
         NOEVENT, DELETION, INSERTION
-    };
+    }
 
     private Type type = null;
     private int eventLength = -1;
@@ -44,6 +44,7 @@ public class ExtendedEventPileupElement extends PileupElement {
                                // in the read itself, so we fill the string with D's; for insertions we keep actual inserted bases
     private SAMRecord read;
     private int offset; // position in the read immediately BEFORE the event
+    // This is broken! offset is always zero because these member variables are shadowed by base class
 
     /** Constructor for extended pileup element (indel).
      *

@@ -16,6 +16,7 @@ public class VariantDatum implements Comparable<VariantDatum> {
     public boolean atTruthSite;
     public boolean atTrainingSite;
     public boolean isTransition;
+    public boolean isSNP;
     public double originalQual;
     public double prior;
     public GenomeLoc pos;

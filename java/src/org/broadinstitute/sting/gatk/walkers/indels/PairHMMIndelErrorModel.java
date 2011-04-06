@@ -623,6 +623,9 @@ public class PairHMMIndelErrorModel {
             }
         }
         for (SAMRecord read : pileup.getReads()) {
+            if(ReadUtils.is454Read(read)) {
+                continue;
+            }
 
             // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
             // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent

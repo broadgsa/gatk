@@ -29,7 +29,6 @@ import net.sf.samtools.SAMUtils;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.FragmentPileup;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
@@ -244,10 +243,6 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     //
     // -------------------------------------------------------------------------------------
 
-    public int add(ReadBackedPileup pileup) {
-        return add(pileup, false, false);
-    }
-
     /**
      * Updates likelihoods and posteriors to reflect the additional observations contained within the
      * read-based pileup up by calling add(observedBase, qualityScore) for each base / qual in the
@@ -256,33 +251,34 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
      * @param pileup                    read pileup
      * @param ignoreBadBases            should we ignore bad bases?
      * @param capBaseQualsAtMappingQual should we cap a base's quality by its read's mapping quality?
+     * @param minBaseQual               the minimum base quality at which to consider a base valid
      * @return the number of good bases found in the pileup
      */
-    public int add(ReadBackedPileup pileup, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
+    public int add(ReadBackedPileup pileup, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
         int n = 0;
 
         // for each fragment, add to the likelihoods
         FragmentPileup fpile = new FragmentPileup(pileup);
 
         for ( PileupElement p : fpile.getOneReadPileup() )
-            n += add(p, ignoreBadBases, capBaseQualsAtMappingQual);
+            n += add(p, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
 
         for ( FragmentPileup.TwoReadPileupElement twoRead : fpile.getTwoReadPileup() )
-            n += add(twoRead, ignoreBadBases, capBaseQualsAtMappingQual);
+            n += add(twoRead, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
 
         return n;
     }
-    public int add(PileupElement elt, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
+    public int add(PileupElement elt, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
         byte obsBase = elt.getBase();
-        byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual);
+        byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
         return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0) : 0;
     }
 
-    public int add(FragmentPileup.TwoReadPileupElement twoRead, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
+    public int add(FragmentPileup.TwoReadPileupElement twoRead, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
         final byte observedBase1 = twoRead.getFirst().getBase();
-        final byte qualityScore1 = qualToUse(twoRead.getFirst(), ignoreBadBases, capBaseQualsAtMappingQual);
+        final byte qualityScore1 = qualToUse(twoRead.getFirst(), ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
         final byte observedBase2 = twoRead.getSecond().getBase();
-        final byte qualityScore2 = qualToUse(twoRead.getSecond(), ignoreBadBases, capBaseQualsAtMappingQual);
+        final byte qualityScore2 = qualToUse(twoRead.getSecond(), ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
 
         if ( qualityScore1 == 0 ) {
             if ( qualityScore2 == 0 ) // abort early if we didn't see any good bases
@@ -492,10 +488,11 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
      * @param p
      * @param ignoreBadBases
      * @param capBaseQualsAtMappingQual
+     * @param minBaseQual
      * @return
      */
-    private final static byte qualToUse(PileupElement p, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual) {
-        if ( ! usableBase(p, ignoreBadBases) ) {
+    private static byte qualToUse(PileupElement p, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
+        if ( ignoreBadBases && !BaseUtils.isRegularBase( p.getBase() ) ) {
             return 0;
         } else {
             byte qual = p.getQual();
@@ -504,6 +501,8 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
                 throw new UserException.MalformedBAM(p.getRead(), String.format("the maximum allowed quality score is %d, but a quality of %d was observed in read %s.  Perhaps your BAM incorrectly encodes the quality scores in Sanger format; see http://en.wikipedia.org/wiki/FASTQ_format for more details", SAMUtils.MAX_PHRED_SCORE, qual, p.getRead().getReadName()));
             if ( capBaseQualsAtMappingQual )
                 qual = (byte)Math.min((int)p.getQual(), p.getMappingQual());
+            if ( (int)qual < minBaseQual )
+                qual = (byte)0;
 
             return qual;
         }
@@ -516,36 +515,6 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     //
     //
     // -----------------------------------------------------------------------------------------------------------------
-
-    /**
-     * Returns true when the observedBase is considered usable.
-     * @param p                pileup element
-     * @param ignoreBadBases   should we ignore bad bases?
-     * @return true if the base is a usable base
-     */
-    protected static boolean usableBase(PileupElement p, boolean ignoreBadBases) {
-        // ignore deletions, Q0 bases, and filtered bases
-        if ( p.isDeletion() ||
-                p.getQual() == 0 ||
-                (p.getRead() instanceof GATKSAMRecord &&
-                 !((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) )
-            return false;
-
-        return ( !ignoreBadBases || !badBase(p.getBase()) );
-    }
-
-    /**
-     * Returns true when the observedBase is considered bad and shouldn't be processed by this object.  A base
-     * is considered bad if:
-     *
-     *   Criterion 1: observed base isn't a A,C,T,G or lower case equivalent
-     *
-     * @param observedBase observed base
-     * @return true if the base is a bad base
-     */
-    protected static boolean badBase(byte observedBase) {
-        return BaseUtils.simpleBaseToBaseIndex(observedBase) == -1;
-    }
 
     /**
      * Return a string representation of this object in a moderately usable form

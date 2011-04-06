@@ -32,8 +32,8 @@ import org.broadinstitute.sting.commandline.Hidden;
 public class UnifiedArgumentCollection {
 
     // control the various models to be used
-    @Argument(fullName = "genotype_likelihoods_model", shortName = "glm", doc = "Genotype likelihoods calculation model to employ -- SNP is the default option, while DINDEL is also available for calling indels.", required = false)
-    public GenotypeLikelihoodsCalculationModel.Model GLmodel = GenotypeLikelihoodsCalculationModel.Model.SNP;
+    @Argument(fullName = "genotype_likelihoods_model", shortName = "glm", doc = "Genotype likelihoods calculation model to employ -- BOTH is the default option, while INDEL is also available for calling indels and SNP is available for calling SNPs only", required = false)
+    public GenotypeLikelihoodsCalculationModel.Model GLmodel = GenotypeLikelihoodsCalculationModel.Model.BOTH;
 
     @Argument(fullName = "p_nonref_model", shortName = "pnrm", doc = "Non-reference probability calculation model to employ -- EXACT is the default option, while GRID_SEARCH is also available.", required = false)
     public AlleleFrequencyCalculationModel.Model AFmodel = AlleleFrequencyCalculationModel.Model.EXACT;
@@ -77,12 +77,6 @@ public class UnifiedArgumentCollection {
 
     @Argument(fullName = "min_mapping_quality_score", shortName = "mmq", doc = "Minimum read mapping quality required to consider a read for calling", required = false)
     public int MIN_MAPPING_QUALTY_SCORE = 20;
-
-    @Argument(fullName = "max_mismatches_in_40bp_window", shortName = "mm40", doc = "Maximum number of mismatches within a 40 bp window (20bp on either side) around the target position for a read to be used for calling", required = false)
-    public int MAX_MISMATCHES = 3;
-
-    @Argument(fullName = "use_reads_with_bad_mates", shortName = "bad_mates", doc = "Use reads whose mates are mapped excessively far away for calling", required = false)
-    public boolean USE_BADLY_MATED_READS = false;
 
     @Argument(fullName = "max_deletion_fraction", shortName = "deletions", doc = "Maximum fraction of reads with deletions spanning this locus for it to be callable [to disable, set to < 0 or > 1; default:0.05]", required = false)
     public Double MAX_DELETION_FRACTION = 0.05;
@@ -146,10 +140,13 @@ public class UnifiedArgumentCollection {
     private Boolean GENOTYPE_DEPRECATED = false;
 
 
+    // Developers must remember to add any newly added arguments to the list here as well otherwise they won't get changed from their default value!
     public UnifiedArgumentCollection clone() {
         UnifiedArgumentCollection uac = new UnifiedArgumentCollection();
 
         uac.GLmodel = GLmodel;
+        uac.AFmodel = AFmodel;
+        uac.EXACT_CALCULATION_TYPE = EXACT_CALCULATION_TYPE;
         uac.heterozygosity = heterozygosity;
         uac.PCR_error = PCR_error;
         uac.GenotypingMode = GenotypingMode;
@@ -160,8 +157,6 @@ public class UnifiedArgumentCollection {
         uac.STANDARD_CONFIDENCE_FOR_EMITTING = STANDARD_CONFIDENCE_FOR_EMITTING;
         uac.MIN_BASE_QUALTY_SCORE = MIN_BASE_QUALTY_SCORE;
         uac.MIN_MAPPING_QUALTY_SCORE = MIN_MAPPING_QUALTY_SCORE;
-        uac.MAX_MISMATCHES = MAX_MISMATCHES;
-        uac.USE_BADLY_MATED_READS = USE_BADLY_MATED_READS;
         uac.MAX_DELETION_FRACTION = MAX_DELETION_FRACTION;
         uac.MIN_INDEL_COUNT_FOR_GENOTYPING = MIN_INDEL_COUNT_FOR_GENOTYPING;
         uac.INDEL_HETEROZYGOSITY = INDEL_HETEROZYGOSITY;
@@ -170,7 +165,6 @@ public class UnifiedArgumentCollection {
         uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
         uac.DO_CONTEXT_DEPENDENT_PENALTIES = DO_CONTEXT_DEPENDENT_PENALTIES;
-
         
         // todo- arguments to remove
         uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;

@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 
-import net.sf.samtools.SAMSequenceRecord;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.commandline.*;
@@ -78,6 +77,8 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     private double TS_FILTER_LEVEL = 99.0;
     @Argument(fullName="ignore_filter", shortName="ignoreFilter", doc="If specified the optimizer will use variants even if the specified filter name is marked in the input VCF file", required=false)
     private String[] IGNORE_INPUT_FILTERS = null;
+    @Argument(fullName = "mode", shortName = "mode", doc = "Recalibration mode to employ: 1.) SNP for recalibrating only SNPs (emitting indels untouched in the output VCF); 2.) INDEL for indels; and 3.) BOTH for recalibrating both SNPs and indels simultaneously.", required = false)
+    public VariantRecalibratorArgumentCollection.Mode MODE = VariantRecalibratorArgumentCollection.Mode.SNP;
 
     /////////////////////////////
     // Private Member Variables
@@ -169,35 +170,39 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
 
         for( VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
             if( vc != null ) {
-                String filterString = null;
-                final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                final Double lod = (Double) lodMap.get( ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop() );
-                if( vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters()) ) {
-                    attrs.put(ContrastiveRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
-                    for( int i = tranches.size() - 1; i >= 0; i-- ) {
-                        final Tranche tranche = tranches.get(i);
-                        if( lod >= tranche.minVQSLod ) {
-                            if( i == tranches.size() - 1 ) {
-                                filterString = VCFConstants.PASSES_FILTERS_v4;
-                            } else {
-                                filterString = tranche.name;
+                if( ContrastiveRecalibrator.checkRecalibrationMode( vc, MODE ) ) {
+                    String filterString = null;
+                    final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
+                    final Double lod = (Double) lodMap.get( ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop() );
+                    if( vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters()) ) {
+                        attrs.put(ContrastiveRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
+                        for( int i = tranches.size() - 1; i >= 0; i-- ) {
+                            final Tranche tranche = tranches.get(i);
+                            if( lod >= tranche.minVQSLod ) {
+                                if( i == tranches.size() - 1 ) {
+                                    filterString = VCFConstants.PASSES_FILTERS_v4;
+                                } else {
+                                    filterString = tranche.name;
+                                }
+                                break;
                             }
-                            break;
+                        }
+
+                        if( filterString == null ) {
+                            filterString = tranches.get(0).name+"+";
+                        }
+
+                        if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                            final Set<String> filters = new HashSet<String>();
+                            filters.add(filterString);
+                            vc = VariantContext.modifyFilters(vc, filters);
                         }
                     }
 
-                    if( filterString == null ) {
-                        filterString = tranches.get(0).name+"+";
-                    }
-
-                    if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
-                        final Set<String> filters = new HashSet<String>();
-                        filters.add(filterString);
-                        vc = VariantContext.modifyFilters(vc, filters);
-                    }
+                    vcfWriter.add( VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), vc.getFilters(), attrs), ref.getBase() );
+                } else { // valid VC but not compatible with this mode, so just emit the variant untouched
+                    vcfWriter.add( vc, ref.getBase() );
                 }
-
-                vcfWriter.add( VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), vc.getFilters(), attrs), ref.getBase() );
             }
         }
 

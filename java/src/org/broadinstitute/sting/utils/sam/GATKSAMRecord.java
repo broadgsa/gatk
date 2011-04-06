@@ -45,11 +45,6 @@ public class GATKSAMRecord extends SAMRecord {
     // These attributes exist in memory only, and are never written to disk.
     private Map<Object, Object> temporaryAttributes;
 
-    // A bitset which represents the bases of the read.  If a bit is set, then
-    // the base is good; otherwise it is a bad base (as defined by the setter).
-    // TODO: this is a temporary hack.  If it works, clean it up.
-    private BitSet mBitSet = null;
-
     public GATKSAMRecord(SAMRecord record, boolean useOriginalBaseQualities, byte defaultBaseQualities) {
         super(null); // it doesn't matter - this isn't used
         if ( record == null )
@@ -89,15 +84,6 @@ public class GATKSAMRecord extends SAMRecord {
         // sanity check that the lengths of the base and quality strings are equal
         if ( getBaseQualities().length  != getReadLength() )
             throw new UserException.MalformedBAM(this, String.format("Error: the number of base qualities does not match the number of bases in %s. Use -DBQ x to set a default base quality score to all reads so GATK can proceed.", mRecord.getReadName()));
-    }
-
-    public void setGoodBases(GATKSAMRecordFilter filter, boolean abortIfAlreadySet) {
-        if ( mBitSet == null || !abortIfAlreadySet )
-            mBitSet = filter.getGoodBases(this);
-    }
-
-    public boolean isGoodBase(int index) {
-        return ( mBitSet == null || mBitSet.size() <= index ? true : mBitSet.get(index));
     }
 
     ///////////////////////////////////////////////////////////////////////////////

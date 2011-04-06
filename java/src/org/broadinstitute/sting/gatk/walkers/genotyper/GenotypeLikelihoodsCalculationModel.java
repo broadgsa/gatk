@@ -31,6 +31,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -44,7 +45,8 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
 
     public enum Model {
         SNP,
-        DINDEL
+        INDEL,
+        BOTH
     }
 
     public enum GENOTYPING_MODE {
@@ -67,6 +69,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
 
     /**
      * Must be overridden by concrete subclasses
+     *
      * @param tracker              rod data
      * @param ref                  reference context
      * @param contexts             stratified alignment contexts
@@ -75,6 +78,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
      * @param GLs                  hash of sample->GL to fill in
      * @param alternateAlleleToUse the alternate allele to use, null if not set
      *
+     * @param useBAQedPileup
      * @return genotype likelihoods per sample for AA, AB, BB
      */
     public abstract Allele getLikelihoods(RefMetaDataTracker tracker,
@@ -83,12 +87,12 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
                                           AlignmentContextUtils.ReadOrientation contextType,
                                           GenotypePriors priors,
                                           Map<String, BiallelicGenotypeLikelihoods> GLs,
-                                          Allele alternateAlleleToUse);
+                                          Allele alternateAlleleToUse, boolean useBAQedPileup);
 
     protected int getFilteredDepth(ReadBackedPileup pileup) {
         int count = 0;
         for ( PileupElement p : pileup ) {
-            if ( DiploidSNPGenotypeLikelihoods.usableBase(p, true) )
+            if ( BaseUtils.isRegularBase( p.getBase() ) )
                 count++;
         }
 

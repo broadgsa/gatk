@@ -41,19 +41,12 @@ import org.broadinstitute.sting.utils.pileup.*;
 import java.util.*;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 
 public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private final static boolean DEBUG = false;
     private final static int MIN_CONTEXT_WING_SIZE = 10;
     private final static int MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER = 50;
     private final static char REGEXP_WILDCARD = '.';
-
-    public boolean useRead(PileupElement p) {
-	    //return true; // Use all reads
-        //return !ReadUtils.is454Read(p.getRead()); // Use all non-454 reads
-        return p.getOffset() == -1 || ((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset()); // Use all reads from the filtered context
-    }
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( !vc.isBiallelic() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
@@ -84,18 +77,16 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             for ( final Map.Entry<String, Genotype> genotype : genotypes ) {
                 final AlignmentContext thisContext = stratifiedContexts.get(genotype.getKey());
                 if ( thisContext != null ) {
-                    final AlignmentContext aContext = thisContext;
                     final ReadBackedPileup thisPileup;
-                    if (aContext.hasExtendedEventPileup())
-                        thisPileup = aContext.getExtendedEventPileup();
-                    else if (aContext.hasBasePileup())
-                        thisPileup = aContext.getBasePileup();
+                    if (thisContext.hasExtendedEventPileup())
+                        thisPileup = thisContext.getExtendedEventPileup();
+                    else if (thisContext.hasBasePileup())
+                        thisPileup = thisContext.getBasePileup();
                     else
                         thisPileup = null;
 
                     if (thisPileup != null) {
-                        double thisScore = scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus);
-                        scoreRA.add(thisScore); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
+                        scoreRA.add( scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus) ); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
                     }
                 }
             }
@@ -125,10 +116,8 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         final PriorityQueue<Haplotype> consensusHaplotypeQueue = new PriorityQueue<Haplotype>(MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER, new HaplotypeComparator());
 
         for ( final PileupElement p : pileup ) {
-            if ( useRead(p) ) {
-                final Haplotype haplotypeFromRead = getHaplotypeFromRead(p, contextSize, locus);
-                candidateHaplotypeQueue.add(haplotypeFromRead);
-            }
+            final Haplotype haplotypeFromRead = getHaplotypeFromRead(p, contextSize, locus);
+            candidateHaplotypeQueue.add(haplotypeFromRead);
         }
 
         // Now that priority queue has been built with all reads at context, we need to merge and find possible segregating haplotypes
@@ -174,12 +163,9 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private Haplotype getHaplotypeFromRead(final PileupElement p, final int contextSize, final int locus) {
         final SAMRecord read = p.getRead();
         int readOffsetFromPileup = p.getOffset();
+
         final byte[] haplotypeBases = new byte[contextSize];
-
-        for(int i=0; i < contextSize; i++) {
-            haplotypeBases[i] = (byte)REGEXP_WILDCARD;
-        }
-
+        Arrays.fill(haplotypeBases, (byte)REGEXP_WILDCARD);
         final double[] baseQualities = new double[contextSize];
         Arrays.fill(baseQualities, 0.0);
 
@@ -200,8 +186,9 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
                 break;
             }
             if( readQuals[baseOffset] == PileupElement.DELETION_BASE) { readQuals[baseOffset] = PileupElement.DELETION_QUAL; }
-            if( readBases[baseOffset] == BaseUtils.N ) { readBases[baseOffset] = (byte)REGEXP_WILDCARD; readQuals[baseOffset] = (byte) 4; } // N's shouldn't be treated as distinct bases
-            if( ((double)readQuals[baseOffset]) < 4.0 ) { readQuals[baseOffset] = (byte) 4; } // quals less than 4 are used as codes and don't have actual probabilistic meaning behind them
+            if( !BaseUtils.isRegularBase(readBases[baseOffset]) ) { readBases[baseOffset] = (byte)REGEXP_WILDCARD; readQuals[baseOffset] = (byte) 0; } // N's shouldn't be treated as distinct bases
+            readQuals[baseOffset] = (byte)Math.min((int)readQuals[baseOffset], p.getMappingQual());
+            if( ((int)readQuals[baseOffset]) < 5 ) { readQuals[baseOffset] = (byte) 0; } // quals less than 5 are used as codes and don't have actual probabilistic meaning behind them
             haplotypeBases[i] = readBases[baseOffset];
             baseQualities[i] = (double)readQuals[baseOffset];
         }
@@ -256,8 +243,8 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
 
     // calculate the haplotype scores by walking over all reads and comparing them to the haplotypes
     private double scoreReadsAgainstHaplotypes(final List<Haplotype> haplotypes, final ReadBackedPileup pileup, final int contextSize, final int locus) {
-//        if ( DEBUG ) System.out.printf("HAP1: %s%n", haplotypes.get(0));
-//        if ( DEBUG ) System.out.printf("HAP2: %s%n", haplotypes.get(1));
+        if ( DEBUG ) System.out.printf("HAP1: %s%n", haplotypes.get(0));
+        if ( DEBUG ) System.out.printf("HAP2: %s%n", haplotypes.get(1));
 
         final ArrayList<double[]> haplotypeScores = new ArrayList<double[]>();
         for ( final PileupElement p : pileup ) {
@@ -317,27 +304,23 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             final byte haplotypeBase = haplotypeBases[i];
             final byte readBase = readBases[baseOffset];
 
-
-            final boolean matched = (readBase == haplotypeBase); // Purposefully counting wildcards in the chosen haplotype as a mismatch
+            final boolean matched = ( readBase == haplotypeBase || haplotypeBase == (byte)REGEXP_WILDCARD );
             byte qual = readQuals[baseOffset];
-            if( qual == PileupElement.DELETION_BASE ) { qual = PileupElement.DELETION_QUAL; }
-            if( ((double) qual) < 4.0 ) { qual = (byte) 4; } // quals less than 4 are used as codes and don't have actual probabilistic meaning behind them
-            final double e = QualityUtils.qualToErrorProb(qual);
-            expected += e;
-            mismatches += matched ? e : 1.0 - e / 3.0;
+            if( qual == PileupElement.DELETION_BASE ) { qual = PileupElement.DELETION_QUAL; } // calcAlignmentByteArrayOffset fills the readQuals array with DELETION_BASE at deletions
+            qual = (byte)Math.min((int)qual, p.getMappingQual());
+            if( ((int) qual) >= 5 ) { // quals less than 5 are used as codes and don't have actual probabilistic meaning behind them
+                final double e = QualityUtils.qualToErrorProb(qual);
+                expected += e;
+                mismatches += matched ? e : 1.0 - e / 3.0;
+            }
 
             // a more sophisticated calculation would include the reference quality, but it's nice to actually penalize
             // the mismatching of poorly determined regions of the consensus
-
-//            if ( DEBUG ) {
-//                System.out.printf("Read %s: scoring %c vs. %c => e = %f Q%d esum %f vs. msum %f%n",
-//                    read.getReadName(), (char)haplotypeBase, (char)readBase, e, readQuals[baseOffset], expected, mismatches);
-//            }
         }
 
         return mismatches - expected;
     }
 
     public List<String> getKeyNames() { return Arrays.asList("HaplotypeScore"); }
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HaplotypeScore", 1, VCFHeaderLineType.Float, "Consistency of the site with two (and only two) segregating haplotypes")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HaplotypeScore", 1, VCFHeaderLineType.Float, "Consistency of the site with at most two segregating haplotypes")); }
 }

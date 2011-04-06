@@ -25,8 +25,6 @@
 
 package org.broadinstitute.sting.playground.gatk.walkers;
 
-import org.broad.tribble.util.variantcontext.Allele;
-import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeader;
@@ -161,7 +159,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         snpEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         // Adding the INDEL calling arguments for UG
-        uac.GLmodel = GenotypeLikelihoodsCalculationModel.Model.DINDEL;
+        uac.GLmodel = GenotypeLikelihoodsCalculationModel.Model.INDEL;
         indelEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         // make sure we have callConf set to the threshold set by the UAC so we can use it later.

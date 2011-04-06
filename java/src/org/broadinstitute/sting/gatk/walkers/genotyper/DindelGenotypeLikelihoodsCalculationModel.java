@@ -43,6 +43,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
 
@@ -121,6 +122,9 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
 
             for ( ExtendedEventPileupElement p : indelPileup.toExtendedIterable() ) {
                 SAMRecord read = p.getRead();
+                if(ReadUtils.is454Read(read)) {
+                    continue;
+                }
 
                 if (DEBUG && p.isIndel()) {
                     System.out.format("Read: %s, cigar: %s, aln start: %d, aln end: %d, p.len:%d, Type:%s, EventBases:%s\n",
@@ -271,7 +275,8 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
                                  AlignmentContextUtils.ReadOrientation contextType,
                                  GenotypePriors priors,
                                  Map<String, BiallelicGenotypeLikelihoods> GLs,
-                                 Allele alternateAlleleToUse) {
+                                 Allele alternateAlleleToUse,
+                                 boolean useBAQedPileup) {
 
         if ( tracker == null )
             return null;

@@ -204,7 +204,7 @@ public class VariantAnnotatorEngine {
                     rsID = DbSNPHelper.rsIDOfFirstRealSNP(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
                 else if (vc.isIndel())
                     rsID = DbSNPHelper.rsIDOfFirstRealIndel(tracker.getReferenceMetaData(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME));
-                infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID == null ? false : true);
+                infoAnnotations.put(VCFConstants.DBSNP_KEY, rsID != null );
                 // annotate dbsnp id if available and not already there
                 if ( rsID != null && (!vc.hasID() || vc.getID().equals(VCFConstants.EMPTY_ID_FIELD)) )
                     infoAnnotations.put(VariantContext.ID_KEY, rsID);
@@ -216,7 +216,7 @@ public class VariantAnnotatorEngine {
                         break;
                     }
                 }
-                infoAnnotations.put(dbSet.getValue(), overlapsComp ? true : false);
+                infoAnnotations.put(dbSet.getValue(), overlapsComp);
             }
         }
     }

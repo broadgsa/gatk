@@ -1,13 +1,7 @@
 package org.broadinstitute.sting.utils.pileup;
 
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 import net.sf.samtools.SAMRecord;
-
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,7 +12,11 @@ import java.util.Arrays;
  */
 public class PileupElement {
     public static final byte DELETION_BASE = BaseUtils.D;
-    public static final byte DELETION_QUAL = 16;
+    public static final byte DELETION_QUAL = (byte) 16;
+    public static final byte A_FOLLOWED_BY_INSERTION_BASE = (byte) 87;
+    public static final byte C_FOLLOWED_BY_INSERTION_BASE = (byte) 88;
+    public static final byte T_FOLLOWED_BY_INSERTION_BASE = (byte) 89;
+    public static final byte G_FOLLOWED_BY_INSERTION_BASE = (byte) 90;
 
     protected SAMRecord read;
     protected int offset;
@@ -58,7 +56,7 @@ public class PileupElement {
     }
 
     protected int getBaseIndex(final int offset) {
-        return isDeletion() ? DELETION_BASE : BaseUtils.simpleBaseToBaseIndex((char)read.getReadBases()[offset]);
+        return BaseUtils.simpleBaseToBaseIndex(isDeletion() ? DELETION_BASE : read.getReadBases()[offset]);
     }
 
     protected byte getQual(final int offset) {

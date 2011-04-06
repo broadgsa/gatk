@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 
-public abstract class RankSumTest implements InfoFieldAnnotation, ExperimentalAnnotation {
+public abstract class RankSumTest implements InfoFieldAnnotation, StandardAnnotation {
     private static final double minPValue = 1e-20;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {

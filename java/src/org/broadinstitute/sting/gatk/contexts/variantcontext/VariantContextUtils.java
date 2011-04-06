@@ -380,7 +380,7 @@ public class VariantContextUtils {
         return new VariantContext(master.getSource(), master.getChr(), master.getStart(), master.getEnd(), master.getAlleles(), genotypes, master.getNegLog10PError(), master.getFilters(), masterAttributes);
     }
 
-    private static final VariantContext findMaster(Collection<VariantContext> unsortedVCs, String masterName) {
+    private static VariantContext findMaster(Collection<VariantContext> unsortedVCs, String masterName) {
         for (VariantContext vc : unsortedVCs) {
             if (vc.getSource().equals(masterName)) {
                 return vc;

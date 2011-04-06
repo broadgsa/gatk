@@ -34,6 +34,7 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -423,7 +424,9 @@ public class HaplotypeIndelErrorModel {
         double readLikelihoods[][] = new double[pileup.getReads().size()][haplotypesInVC.size()];
         int i=0;
         for (SAMRecord read : pileup.getReads()) {
-
+            if(ReadUtils.is454Read(read)) {
+                continue;
+            }
             // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
             // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
             for (int j=0; j < haplotypesInVC.size(); j++) {

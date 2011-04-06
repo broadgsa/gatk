@@ -29,6 +29,7 @@ import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -37,7 +38,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 
 import java.util.*;
 
@@ -59,7 +60,8 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                  AlignmentContextUtils.ReadOrientation contextType,
                                  GenotypePriors priors,
                                  Map<String, BiallelicGenotypeLikelihoods> GLs,
-                                 Allele alternateAlleleToUse) {
+                                 Allele alternateAlleleToUse,
+                                 boolean useBAQedPileup) {
 
         if ( !(priors instanceof DiploidSNPGenotypePriors) )
             throw new StingException("Only diploid-based SNP priors are supported in the SNP GL model");
@@ -101,10 +103,11 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             ReadBackedPileup pileup = AlignmentContextUtils.stratify(sample.getValue(), contextType).getBasePileup();
+            if( useBAQedPileup ) { pileup = createBAQedPileup( pileup ); }
 
             // create the GenotypeLikelihoods object
             DiploidSNPGenotypeLikelihoods GL = new DiploidSNPGenotypeLikelihoods((DiploidSNPGenotypePriors)priors, UAC.PCR_error);
-            int nGoodBases = GL.add(pileup, true, true);
+            int nGoodBases = GL.add(pileup, true, true, UAC.MIN_BASE_QUALTY_SCORE);
             if ( nGoodBases == 0 )
                 continue;
 
@@ -130,16 +133,16 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             // calculate the sum of quality scores for each base
-            ReadBackedPileup pileup = sample.getValue().getBasePileup();
+            ReadBackedPileup pileup = createBAQedPileup( sample.getValue().getBasePileup() );
             for ( PileupElement p : pileup ) {
-                // ignore deletions and filtered bases
-                if ( p.isDeletion() ||
-                     (p.getRead() instanceof GATKSAMRecord && !((GATKSAMRecord)p.getRead()).isGoodBase(p.getOffset())) )
+                // ignore deletions
+                if ( p.isDeletion() || p.getQual() < UAC.MIN_BASE_QUALTY_SCORE )
                     continue;
 
-                int index = BaseUtils.simpleBaseToBaseIndex(p.getBase());
-                if ( index >= 0 )
+                final int index = BaseUtils.simpleBaseToBaseIndex(p.getBase());
+                if ( index >= 0 ) {
                     qualCounts[index] += p.getQual();
+                }
             }
         }
 
@@ -156,4 +159,23 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             }
         }
     }
+
+    public ReadBackedPileup createBAQedPileup( final ReadBackedPileup pileup ) {
+        final List<PileupElement> BAQedElements = new ArrayList<PileupElement>();
+        for( final PileupElement PE : pileup ) {
+            final PileupElement newPE = new BAQedPileupElement( PE );
+            BAQedElements.add( newPE );
+        }
+        return new ReadBackedPileupImpl( pileup.getLocation(), BAQedElements );
+    }
+
+    public class BAQedPileupElement extends PileupElement {
+        public BAQedPileupElement( final PileupElement PE ) {
+            super(PE.getRead(), PE.getOffset());
+        }
+
+        @Override
+        public byte getQual( final int offset ) { return BAQ.calcBAQFromTag(getRead(), offset, true); }
+    }
+
 }

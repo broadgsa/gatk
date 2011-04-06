@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.*;
+import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -46,14 +47,12 @@ import java.io.PrintStream;
  * A variant caller which unifies the approaches of several disparate callers.  Works for single-sample and
  * multi-sample data.  The user can choose from several different incorporated calculation models.
  */
-// todo -- change when UG is generalized to do BAQ as necessary
-//@BAQMode(QualityMode = BAQ.QualityMode.DONT_MODIFY, ApplicationTime = BAQ.ApplicationTime.HANDLED_IN_WALKER)
-@BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
+@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
+@ReadFilters( {BadMateFilter.class} )
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.REFERENCE)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
 public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGenotyper.UGStatistics> implements TreeReducible<UnifiedGenotyper.UGStatistics> {
-
 
     @ArgumentCollection private UnifiedArgumentCollection UAC = new UnifiedArgumentCollection();
 
@@ -83,7 +82,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     // enable extended events for indels
-    public boolean generateExtendedEvents() { return UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL; }
+    public boolean generateExtendedEvents() { return UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP; }
 
     /**
      * Inner class for collecting output statistics from the UG

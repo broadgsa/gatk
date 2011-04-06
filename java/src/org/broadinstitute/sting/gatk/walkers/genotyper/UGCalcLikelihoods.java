@@ -35,6 +35,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.baq.BAQ;
 
 import java.util.*;
 
@@ -45,6 +46,7 @@ import java.util.*;
  * Run this as you would the UnifiedGenotyper, except that you must additionally pass in a VCF bound to
  * the name 'allele' so we know which alternate allele to use at each site.
  */
+@BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
 @Requires(value={},referenceMetaData=@RMD(name="allele", type= VariantContext.class))
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.READS)
@@ -64,7 +66,7 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     // enable extended events for indels
-    public boolean generateExtendedEvents() { return UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL; }
+    public boolean generateExtendedEvents() { return UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP; }
 
     public void initialize() {
         // get all of the unique sample names
@@ -101,7 +103,7 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
             return null;
         }
 
-        return new VariantCallContext(UG_engine.calculateLikelihoods(tracker, refContext, rawContext, vc.getAlternateAllele(0)), refContext.getBase(), true);
+        return new VariantCallContext(UG_engine.calculateLikelihoods(tracker, refContext, rawContext, vc.getAlternateAllele(0), true), refContext.getBase(), true);
     }
 
     public Integer reduceInit() { return 0; }
