@@ -21,11 +21,14 @@ public class PrintLocusContextWalker extends LocusWalker<AlignmentContext, Integ
     private PrintStream out;
 
     public AlignmentContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
-        out.printf( "In map: ref = %s, loc = %s, reads = %s%n", ref.getBaseAsChar(),
-                                                                context.getLocation(),
-                                                                Arrays.deepToString( getReadNames(context.getReads()) ) );
+        out.printf( "In map: ref = %s, loc = %s %s, reads = %s%n", ref.getBaseAsChar(),
+                                                                   context.getLocation(),
+                                                                   context.hasExtendedEventPileup() ? "[extended]" : "",
+                                                                   Arrays.deepToString( getReadNames(context.getReads()) ) );
         return context;
     }
+
+
 
     public Integer reduceInit() { return 0; }
 
@@ -45,4 +48,9 @@ public class PrintLocusContextWalker extends LocusWalker<AlignmentContext, Integ
         //Arrays.sort(readNames);
         return readNames;
     }
+
+    @Override
+    public boolean generateExtendedEvents() {
+        return true;
+    }    
 }
