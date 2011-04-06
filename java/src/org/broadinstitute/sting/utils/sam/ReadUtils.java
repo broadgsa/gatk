@@ -192,8 +192,8 @@ public class ReadUtils {
         readFlagNames.put(0x8, "MateUnmapped");
         readFlagNames.put(0x10, "Forward");
         //readFlagNames.put(0x20, "MateForward");
-        readFlagNames.put(0x4, "FirstOfPair");
-        readFlagNames.put(0x8, "SecondOfPair");
+        readFlagNames.put(0x40, "FirstOfPair");
+        readFlagNames.put(0x80, "SecondOfPair");
         readFlagNames.put(0x100, "NotPrimary");
         readFlagNames.put(0x200, "NON-PF");
         readFlagNames.put(0x400, "Duplicate");
