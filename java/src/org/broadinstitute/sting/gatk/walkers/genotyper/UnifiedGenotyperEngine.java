@@ -718,7 +718,7 @@ public class UnifiedGenotyperEngine {
             case GRID_SEARCH:
                 afcm = new GridSearchAFEstimation(UAC, N, logger, verboseWriter);
                 break;
-            default: throw new IllegalArgumentException("Unexpected GenotypeCalculationModel " + UAC.GLmodel);
+            default: throw new IllegalArgumentException("Unexpected AlleleFrequencyCalculationModel " + UAC.AFmodel);
         }
 
         return afcm;
