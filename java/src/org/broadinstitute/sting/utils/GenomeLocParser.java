@@ -328,7 +328,7 @@ public class GenomeLocParser {
 
             // iterate through the list of merged intervals and add then as GenomeLocs
             List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
-            for (Interval interval : il.getUniqueIntervals()) {
+            for (Interval interval : il.getIntervals()) {
                 ret.add(new GenomeLoc(interval.getSequence(), getContigIndex(interval.getSequence(),true), interval.getStart(), interval.getEnd()));
             }
             // always return null instead of empty list

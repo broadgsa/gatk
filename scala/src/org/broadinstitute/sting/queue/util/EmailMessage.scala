@@ -114,8 +114,8 @@ class EmailMessage extends Logging {
    * @param addresses List of email addresses.
    * @return java.util.List of InternetAddress'es
    */
-  private def convert(addresses: List[String]) = {
-    asJavaList(addresses.map(address => new InternetAddress(address, false)))
+  private def convert(addresses: List[String]): java.util.List[InternetAddress] = {
+    addresses.map(address => new InternetAddress(address, false))
   }
 
   override def toString = {

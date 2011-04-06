@@ -9,6 +9,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -392,5 +393,22 @@ public class IntervalUtilsUnitTest extends BaseTest {
             files.add(createTempFile(prefix + i, suffix));
         }
         return files;
+    }
+
+    @DataProvider(name="unmergedIntervals")
+    public Object[][] getUnmergedIntervals() {
+        return new Object[][] {
+                new Object[] {"small_unmerged_picard_intervals.list"},
+                new Object[] {"small_unmerged_gatk_intervals.list"}
+        };
+    }
+
+    @Test(dataProvider="unmergedIntervals")
+    public void testUnmergedIntervals(String unmergedIntervals) {
+        List<GenomeLoc> locs = IntervalUtils.parseIntervalArguments(genomeLocParser, Collections.singletonList(validationDataLocation + unmergedIntervals), false);
+        Assert.assertEquals(locs.size(), 2);
+
+        List<GenomeLoc> merged = genomeLocParser.mergeIntervalLocations(locs, IntervalMergingRule.ALL);
+        Assert.assertEquals(merged.size(), 1);
     }
 }

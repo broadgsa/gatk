@@ -54,8 +54,8 @@ class MultiFullCallingPipelineTest {
   final def convertDatasets: Array[Array[AnyRef]] =
     datasets.map(dataset => Array(dataset.asInstanceOf[AnyRef])).toArray
 
-  @Test(dataProvider="datasets")
-  def testMultiFullCallingPipeline(dataset: MultiPipelineDataset) = {
+  @Test(dataProvider="datasets", enabled=false)
+  def testMultiFullCallingPipeline(dataset: MultiPipelineDataset) {
     val projectName = dataset.name
     val testName = "MultiFullCallingPipeline-" + projectName
 
