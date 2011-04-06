@@ -80,7 +80,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
     @Argument(fullName="maximum_deletion_fraction", shortName="deletions", doc="Maximum deletion fraction for calling a genotype", required=false)
     private double deletions = -1;
 
-    @Argument(fullName="standard_min_confidence_threshold_for_calling", shortName="stand_call_conf", doc="he minimum phred-scaled Qscore threshold to separate high confidence from low confidence calls", required=false)
+    @Argument(fullName="standard_min_confidence_threshold_for_calling", shortName="stand_call_conf", doc="the minimum phred-scaled Qscore threshold to separate high confidence from low confidence calls", required=false)
     private double callConf = -1;
 
     @Argument(fullName="standard_min_confidence_threshold_for_emitting", shortName="stand_emit_conf", doc="the minimum phred-scaled Qscore threshold to emit low confidence calls", required=false)
