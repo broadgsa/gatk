@@ -489,18 +489,33 @@ public class VariantContextUtils {
             //
             // special case DP (add it up) and ID (just preserve it)
             //
-            if ( vc.hasAttribute(VCFConstants.DEPTH_KEY) )
+            if (vc.hasAttribute(VCFConstants.DEPTH_KEY))
                 depth += Integer.valueOf(vc.getAttributeAsString(VCFConstants.DEPTH_KEY));
-            if ( rsID == null && vc.hasID() )
+            if (rsID == null && vc.hasID())
                 rsID = vc.getID();
-            if ( vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY) ) {
-                final int ac = Integer.valueOf(vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY));
-                if( ac > maxAC ) { maxAC = ac; maxACAttributes = vc.getAttributes(); }
+            if (mergeInfoWithMaxAC && vc.hasAttribute(VCFConstants.ALLELE_COUNT_KEY)) {
+                String rawAlleleCounts = vc.getAttributeAsString(VCFConstants.ALLELE_COUNT_KEY);
+                // lets see if the string contains a , separator
+                if (rawAlleleCounts.contains(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR)) {
+                    List<String> alleleCountArray = Arrays.asList(rawAlleleCounts.substring(1, rawAlleleCounts.length() - 1).split(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR));
+                    for (String alleleCount : alleleCountArray) {
+                        final int ac = Integer.valueOf(alleleCount.trim());
+                        if (ac > maxAC) {
+                            maxAC = ac;
+                            maxACAttributes = vc.getAttributes();
+                        }
+                    }
+                } else {
+                    final int ac = Integer.valueOf(rawAlleleCounts);
+                    if (ac > maxAC) {
+                        maxAC = ac;
+                        maxACAttributes = vc.getAttributes();
+                    }
+                }
             }
 
-            for ( Map.Entry<String, Object> p : vc.getAttributes().entrySet() ) {
+            for (Map.Entry<String, Object> p : vc.getAttributes().entrySet()) {
                 String key = p.getKey();
-
                 // if we don't like the key already, don't go anywhere
                 if ( ! inconsistentAttributes.contains(key) ) {
                     boolean alreadyFound = attributes.containsKey(key);
