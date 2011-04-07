@@ -42,10 +42,10 @@ class Exome_VQSR_FullSearch extends QScript {
     mrb :+= RodBind("dbsnp","VCF",DBSNP_129,VQSR_DBSNP_TAG)
     mrb :+= RodBind("HapMap3","VCF",HM3_SITES,VQSR_TAG_FT.format(hmSt,VQSR_HAPMAP_PRIOR))
     mrb :+= RodBind("Omni","VCF",OMNI_CHIP,VQSR_TAG_FT.format(omSt,VQSR_OMNI_PRIOR))
-    VQSR_RODBINDS += (ext,mrb)
+    VQSR_RODBINDS += new Tuple2(ext,mrb)
   }
 
-  val BAM_FILES : List[File] = asScalaList((new XReadLines(new File("/humgen/gsa-hphome1/chartl/projects/oneoffs/VQSR_Exome/resources/broad.bam.list"))).readLines).map(u => new File(u))
+  val BAM_FILES : List[File] = asScalaIterator((new XReadLines(new File("/humgen/gsa-hphome1/chartl/projects/oneoffs/VQSR_Exome/resources/broad.bam.list")))).map(u => new File(u)).toList
   val REF : File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
   val INTS : File = new File("/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list")
   val EXPAND_INTS = 40
@@ -60,7 +60,7 @@ class Exome_VQSR_FullSearch extends QScript {
       this.memoryLimit = Some(4)
     }
 
-    val ei : ExpandIntervals = new ExpandIntervals(INTS,1,EXPAND_INTSs, new File("Resources", SCRIPT_BASE_NAME + ".flanks.interval_list"), REF, "INTERVALS", "INTERVALS")
+    val ei : ExpandIntervals = new ExpandIntervals(INTS,1,EXPAND_INTS, new File("Resources", SCRIPT_BASE_NAME + ".flanks.interval_list"), REF, "INTERVALS", "INTERVALS")
     ei.jobOutputFile = new File(".queue/logs/Overall/ExpandIntervals.out")
 
     if (EXPAND_INTS > 0) {
@@ -138,21 +138,22 @@ class Exome_VQSR_FullSearch extends QScript {
         val directory = getPath(annotations,recalTogether)
         for ( call_thresh <- VQSR_CALL_THRESH ) {
           var filterQual = new VariantFiltration with CommandLineGATKArgs with ExpandedIntervals
-          filterQual.rodBind :+= new RodBind("variant","VCF",extractSNPs.outputVCF)
-          filterQual.filterExpression :+= "QUAL < %.1f".format(VQSR_CALL_THRESH)
+          filterQual.rodBind :+= new RodBind("variant","VCF",extractSNPs.outputVCF.getAbsoluteFile)
+          filterQual.filterExpression :+= "QUAL < %.1f".format(call_thresh)
           filterQual.filterName :+= "LowQual"
           filterQual.commandDirectory = directory
-          filterQual.out = new File(directory.getAbsolutePath+"/"+SCRIPT_BASE_NAME+".filterQual%.1f.vcf".format(VQSR_CALL_THRESH))
+          filterQual.out = new File(directory.getAbsolutePath+"/"+SCRIPT_BASE_NAME+".filterQual%.1f.vcf".format(call_thresh))
           add(filterQual)
           for ( vqsr_rb <- VQSR_RODBINDS.iterator ) {
             trait VQSR_Args extends ContrastiveRecalibrator {
               this.allPoly = true
-              this.analysisName = "VQSR_%s_%s_%d".format( annotations.reduceLeft( _ + "." + _), if ( recalTogether ) "true" else "false", call_thresh)
+              this.analysisName = "VQSR_%s_%s_%.1f".format( annotations.reduceLeft( _ + "." + _), if ( recalTogether ) "true" else "false", call_thresh)
               this.commandDirectory = directory
               this.use_annotation ++= annotations
-              this.tranche ++= SENSITIVITY
+              this.tranche ++= SENSITIVITY.map(u => ".1f".format(u))
               this.rodBind :+= RodBind("inputData","VCF",filterQual.out)
               this.rodBind ++= vqsr_rb._2
+              this.memoryLimit = Some(8)
             }
             val nameFormat = SCRIPT_BASE_NAME+".%1f.%s.".format(call_thresh,vqsr_rb._1)+"%s."
             if ( recalTogether ) {
@@ -168,7 +169,7 @@ class Exome_VQSR_FullSearch extends QScript {
               var flanks = new ContrastiveRecalibrator with VQSR_Args
               flanks.intervals :+= ei.outList
               flanks.jarFile = GATK_JAR
-              flanks.memoryLimit = Some(4)
+              flanks.memoryLimit = Some(8)
               flanks.reference_sequence = REF
               flanks.tranchesFile = new File(nameFormat.format("flanks")+"tranche")
               flanks.recalFile = new File(nameFormat.format("flanks")+"recal")
