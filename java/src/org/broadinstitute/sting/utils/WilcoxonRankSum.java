@@ -29,6 +29,7 @@ import cern.jet.random.Normal;
 
 import java.util.*;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
@@ -105,10 +106,6 @@ public class WilcoxonRankSum {
 
     public enum WILCOXON_SET { SET1, SET2 }
     public enum WILCOXON_H0 { SET1_NE_SET2, SET1_LT_SET2, SET1_GT_SET2, SMALLER_SET_LT }
-
-    // random number generator for dithering
-    private static final long RANDOM_SEED = 1252863494;
-    private Random generator = new Random(RANDOM_SEED);
 
     // storage for observations
     private LinkedList<Pair<Double, WILCOXON_SET>> observations = new LinkedList<Pair<Double, WILCOXON_SET>>();
@@ -254,7 +251,7 @@ public class WilcoxonRankSum {
     private void dither() {
         for ( Pair<Double, WILCOXON_SET> observation : observations ) {
             // generate a random number between 0 and 10,000
-            int rand = generator.nextInt(10000);
+            int rand = GenomeAnalysisEngine.getRandomGenerator().nextInt(10000);
 
             // convert it into a small floating point number by dividing by 1,000,000
             double smallFloat = (double)rand / 1000000;

@@ -40,7 +40,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
 
     }
 
-    @Test(dependsOnMethods = { "testDefaults" })
+    @Test
     public void testKnownsOnly() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseCommand + "-knownsOnly -B:indels,vcf " + knownIndels,
@@ -55,7 +55,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         executeTest("realigner known indels only from dbsnp", spec2);
     }
 
-    @Test(dependsOnMethods = { "testKnownsOnly" })
+    @Test
     public void testLods() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "-LOD 60", base_md5 );
@@ -70,7 +70,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         }
     }
 
-    @Test(dependsOnMethods = { "testLods" })
+    @Test
     public void testLongRun() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T IndelRealigner -noPG -R " + b36KGReference + " -I " + validationDataLocation + "NA12878.chrom1.SLX.SRP000032.2009_06.bam -L 1:10,000,000-11,000,000 -targetIntervals " + validationDataLocation + "indelRealignerTest.NA12878.chrom1.intervals -compress 0 -o %s",
@@ -79,7 +79,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         executeTest("realigner long run", spec);
     }
 
-    @Test(dependsOnMethods = { "testLongRun" })
+    @Test
     public void testNoTags() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseCommand + "--noOriginalAlignmentTags",
@@ -88,7 +88,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         executeTest("realigner no output tags", spec);
     }
 
-    @Test(dependsOnMethods = { "testNoTags" })
+    @Test
     public void testStats() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseCommandPrefix + "-stats %s -o /dev/null",
@@ -103,7 +103,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         executeTest("realigner stats", spec2);
     }
 
-    @Test(dependsOnMethods = { "testStats" })
+    @Test
     public void testMaxReadsInMemory() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "--maxReadsInMemory 10000", "f8e4279cba9fb3a2181d1ce28f7a62af" );

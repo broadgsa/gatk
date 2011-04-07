@@ -123,8 +123,6 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
     protected static final String EOF_MARKER = "EOF";
-    private static final long RANDOM_SEED = 1032861495;
-    private final Random coinFlip = new Random( RANDOM_SEED ); // Random number generator is used to remove reference bias in solid bams
     private long numReadsWithMalformedColorSpace = 0;
 
     /////////////////////////////
@@ -355,7 +353,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
                     }
                 }
             }
-            originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, coinFlip, refBases == null ? null : refBases.getBases() );
+            originalQuals = RecalDataManager.calcColorSpace( read, originalQuals, RAC.SOLID_RECAL_MODE, refBases == null ? null : refBases.getBases() );
         }
 
         //compute all covariate values for this read

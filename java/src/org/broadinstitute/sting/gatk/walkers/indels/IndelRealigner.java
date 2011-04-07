@@ -32,6 +32,7 @@ import net.sf.samtools.util.SequenceUtil;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -627,7 +628,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // use 'Smith-Waterman' to create alternate consenses from reads that mismatch the reference, using totalRawMismatchSum as the random seed
         if ( !USE_KNOWN_INDELS_ONLY && !NO_SW )
-            generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference, leftmostIndex, totalRawMismatchSum);
+            generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference, leftmostIndex);
 
         // if ( debugOn ) System.out.println("------\nChecking consenses...\n--------\n");
 
@@ -878,8 +879,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private void generateAlternateConsensesFromReads(final LinkedList<AlignedRead> altAlignmentsToTest,
                                                      final Set<Consensus> altConsensesToPopulate,
                                                      final byte[] reference,
-                                                     final int leftmostIndex,
-                                                     final long randomSeed) {
+                                                     final int leftmostIndex) {
 
         // if we are under the limit, use all reads to generate alternate consenses
         if ( altAlignmentsToTest.size() <= MAX_READS_FOR_CONSENSUSES ) {
@@ -891,9 +891,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // otherwise, choose reads for alternate consenses randomly
         else {
             int readsSeen = 0;
-            Random generator = new Random(randomSeed);
             while ( readsSeen++ < MAX_READS_FOR_CONSENSUSES && altConsensesToPopulate.size() <= MAX_CONSENSUSES) {
-                int index = generator.nextInt(altAlignmentsToTest.size());
+                int index = GenomeAnalysisEngine.getRandomGenerator().nextInt(altAlignmentsToTest.size());
                 AlignedRead aRead = altAlignmentsToTest.remove(index);
                 if ( CHECKEARLY ) createAndAddAlternateConsensus1(aRead, altConsensesToPopulate, reference,leftmostIndex);
                 else createAndAddAlternateConsensus(aRead.getReadBases(), altConsensesToPopulate, reference);

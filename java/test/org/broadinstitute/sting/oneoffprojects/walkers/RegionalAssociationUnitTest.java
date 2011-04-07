@@ -68,7 +68,7 @@ public class RegionalAssociationUnitTest extends BaseTest {
         Assert.assertEquals(AssociationTestRunner.getTestValues(test3).second.first,0.610643593,2e-4);
     }
 
-    @Test
+    @Test (enabled = false)
     private void testUStatistic() {
         logger.warn("Testing U statistics");
         UTest test1 = new UTest();

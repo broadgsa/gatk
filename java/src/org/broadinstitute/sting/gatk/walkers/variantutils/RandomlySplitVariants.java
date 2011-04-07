@@ -31,6 +31,7 @@ import org.broad.tribble.vcf.VCFHeaderLine;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -61,12 +62,8 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="fractionToOut1", shortName="fraction", doc="Fraction of records to be placed in out1 (must be 0 >= fraction <= 1); all other records are placed in out2", required=false)
     protected double fraction = 0.5;
 
-    @Argument(fullName="randomSeed", shortName="seed", doc="Random seed to use; if 0, current time will be used", required=false)
-    protected long SEED = 0;
-
     protected static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
 
-    protected Random generator;
     protected int iFraction;
 
     /**
@@ -87,11 +84,6 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
         vcfWriter1.writeHeader(new VCFHeader(hInfo, samples));
         vcfWriter2 = new StandardVCFWriter(file2, true);
         vcfWriter2.writeHeader(new VCFHeader(hInfo, samples));
-
-        if ( SEED == 0 )
-            generator = new Random();
-        else
-            generator = new Random(SEED);
     }
 
     /**
@@ -108,7 +100,7 @@ public class RandomlySplitVariants extends RodWalker<Integer, Integer> {
 
         Collection<VariantContext> vcs = tracker.getVariantContexts(ref, INPUT_VARIANT_ROD_BINDING_NAME, null, context.getLocation(), true, false);
         for ( VariantContext vc : vcs ) {
-            int random = generator.nextInt(1000);
+            int random = GenomeAnalysisEngine.getRandomGenerator().nextInt(1000);
             if ( random < iFraction )
                 vcfWriter1.add(vc, ref.getBase());
             else

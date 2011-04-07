@@ -152,7 +152,7 @@ public class UnifiedGenotyperEngine {
 
         Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
         if ( stratifiedContexts == null )
-            return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ? null : new VariantCallContext(generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext), refContext.getBase(), false));
+            return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ? null : generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext));
 
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
 
@@ -201,7 +201,7 @@ public class UnifiedGenotyperEngine {
             return null;
     }
 
-    private VariantContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
+    private VariantCallContext generateEmptyContext(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, AlignmentContext rawContext) {
         VariantContext vc;
         if ( UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ) {
             final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), true);
@@ -226,7 +226,7 @@ public class UnifiedGenotyperEngine {
             vc = annotationEngine.annotateContext(tracker, ref, stratifiedContexts, vc).iterator().next();
         }
 
-        return vc;
+        return new VariantCallContext(vc, ref.getBase(), false);
     }
 
     private VariantContext createVariantContextFromLikelihoods(ReferenceContext refContext, Allele refAllele, Map<String, BiallelicGenotypeLikelihoods> GLs) {
@@ -300,7 +300,7 @@ public class UnifiedGenotyperEngine {
         if ( vc.getNSamples() == 0 )
             return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ?
                     estimateReferenceConfidence(vc, stratifiedContexts, getGenotypePriors(model).getHeterozygosity(), false, 1.0) :
-                    new VariantCallContext(generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext), refContext.getBase(), false));
+                    generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext));
 
         // 'zero' out the AFs (so that we don't have to worry if not all samples have reads at this position)
         clearAFarray(log10AlleleFrequencyPosteriors.get());

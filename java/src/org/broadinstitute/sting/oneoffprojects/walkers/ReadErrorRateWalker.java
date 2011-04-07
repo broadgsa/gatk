@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
@@ -37,7 +38,6 @@ import net.sf.samtools.SAMRecord;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.io.PrintStream;
 
 /**
@@ -108,15 +108,13 @@ public class ReadErrorRateWalker extends ReadWalker<boolean[], ReadErrorRateColl
                         nextBestBase = BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(sq[cycle]));
                     } else if (useNonNextBestBase) {
                         nextBestBase = bases[cycle];
-                        Random generator = new Random();
                         while (nextBestBase == bases[cycle] || nextBestBase == BaseUtils.baseIndexToSimpleBase(QualityUtils.compressedQualityToBaseIndex(sq[cycle]))) {
-                            nextBestBase = BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
+                            nextBestBase = BaseUtils.baseIndexToSimpleBase(GenomeAnalysisEngine.getRandomGenerator().nextInt(4));
                         }
                     } else {
                         nextBestBase = bases[cycle];
-                        Random generator = new Random();
                         while (nextBestBase == bases[cycle]) {
-                            nextBestBase = BaseUtils.baseIndexToSimpleBase(generator.nextInt(4));
+                            nextBestBase = BaseUtils.baseIndexToSimpleBase(GenomeAnalysisEngine.getRandomGenerator().nextInt(4));
                         }
                     }
 

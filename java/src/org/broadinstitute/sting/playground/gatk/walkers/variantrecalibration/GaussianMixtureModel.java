@@ -2,11 +2,11 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 
 import Jama.Matrix;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MathUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * Created by IntelliJ IDEA.
@@ -71,28 +71,28 @@ public class GaussianMixtureModel {
         empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, Matrix.identity(empiricalMu.length, empiricalMu.length));
     }
 
-    public void initializeRandomModel( final List<VariantDatum> data, final Random rand, final int numKMeansIterations ) {
+    public void initializeRandomModel( final List<VariantDatum> data, final int numKMeansIterations ) {
 
         // initialize random Gaussian means // BUGBUG: this is broken up this way to match the order of calls to rand.nextDouble() in the old code
         for( final MultivariateGaussian gaussian : gaussians ) {
-            gaussian.initializeRandomMu( rand );
+            gaussian.initializeRandomMu( GenomeAnalysisEngine.getRandomGenerator() );
         }
 
         // initialize means using K-means algorithm
         logger.info( "Initializing model with " + numKMeansIterations + " k-means iterations..." );
-        initializeMeansUsingKMeans( data, numKMeansIterations, rand );
+        initializeMeansUsingKMeans( data, numKMeansIterations );
 
         // initialize uniform mixture coefficients, random covariance matrices, and initial hyperparameters
         for( final MultivariateGaussian gaussian : gaussians ) {
             gaussian.pMixtureLog10 = Math.log10( 1.0 / ((double) gaussians.size()) );
-            gaussian.initializeRandomSigma( rand );
+            gaussian.initializeRandomSigma( GenomeAnalysisEngine.getRandomGenerator() );
             gaussian.hyperParameter_a = degreesOfFreedom;
             gaussian.hyperParameter_b = shrinkage;
             gaussian.hyperParameter_lambda = dirichletParameter;
         }
     }
 
-    private void initializeMeansUsingKMeans( final List<VariantDatum> data, final int numIterations, final Random rand ) {
+    private void initializeMeansUsingKMeans( final List<VariantDatum> data, final int numIterations ) {
 
         int ttt = 0;
         while( ttt++ < numIterations ) {
@@ -123,7 +123,7 @@ public class GaussianMixtureModel {
                 if( numAssigned != 0 ) {
                     gaussian.divideEqualsMu( ((double) numAssigned) );
                 } else {
-                    gaussian.initializeRandomMu( rand );
+                    gaussian.initializeRandomMu( GenomeAnalysisEngine.getRandomGenerator() );
                 }
             }
         }

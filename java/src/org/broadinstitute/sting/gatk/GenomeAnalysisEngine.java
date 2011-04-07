@@ -144,7 +144,7 @@ public class GenomeAnalysisEngine {
     /**
      * A currently hacky unique name for this GATK instance
      */
-    private String myName = "GATK_" + Math.abs(new Random().nextInt());
+    private String myName = "GATK_" + Math.abs(getRandomGenerator().nextInt());
 
     /**
      * our walker manager
@@ -182,6 +182,15 @@ public class GenomeAnalysisEngine {
     public void setReferenceMetaDataFiles(Collection<RMDTriplet> referenceMetaDataFiles) {
         this.referenceMetaDataFiles = referenceMetaDataFiles;
     }
+
+    /**
+     *  Static random number generator and seed.
+     */
+    private static final long GATK_RANDOM_SEED = 47382911L;
+    private static Random randomGenerator = new Random(GATK_RANDOM_SEED);
+
+    public static final Random getRandomGenerator() { return randomGenerator; }
+    public static void resetRandomGenerator() { randomGenerator.setSeed(GATK_RANDOM_SEED); }
 
     /**
      * Actually run the GATK with the specified walker.

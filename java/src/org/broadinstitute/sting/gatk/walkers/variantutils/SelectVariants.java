@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.util.variantcontext.Genotype;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
@@ -127,7 +128,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private int variantNumber = 0;
     private int nVariantsAdded = 0;
     private int positionToAdd = 0;
-    private Random generator;
     private RandomVariantStructure [] variantArray;
 
 
@@ -185,8 +185,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         SELECT_RANDOM_FRACTION = fractionRandom > 0;
         if (SELECT_RANDOM_FRACTION) logger.info("Selecting " + fractionRandom + " variants at random from the variant track");
-
-        generator = new Random();
     }
 
     /**
@@ -253,7 +251,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     if (SELECT_RANDOM_NUMBER) {
                         randomlyAddVariant(++variantNumber, sub, ref.getBase());
                     }
-                    else if (!SELECT_RANDOM_FRACTION || generator.nextDouble() < fractionRandom) {
+                    else if (!SELECT_RANDOM_FRACTION || GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom) {
                         vcfWriter.add(sub, ref.getBase());
                     }
                 }
@@ -332,7 +330,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             variantArray[nVariantsAdded++] = new RandomVariantStructure(vc, refBase);
 
         else {
-            double v = generator.nextDouble();
+            double v = GenomeAnalysisEngine.getRandomGenerator().nextDouble();
             double t = (1.0/(rank-numRandom+1));
             if ( v < t) {
                 variantArray[positionToAdd].set(vc, refBase);

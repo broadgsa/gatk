@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
@@ -314,11 +315,10 @@ public class RecalDataManager {
      * @param read The SAMRecord to parse
      * @param originalQualScores The array of original quality scores to modify during the correction
      * @param solidRecalMode Which mode of solid recalibration to apply
-     * @param coinFlip A random number generator
      * @param refBases The reference for this read
      * @return A new array of quality scores that have been ref bias corrected
      */
-    public static byte[] calcColorSpace( final SAMRecord read, byte[] originalQualScores, final SOLID_RECAL_MODE solidRecalMode, final Random coinFlip, final byte[] refBases ) {
+    public static byte[] calcColorSpace( final SAMRecord read, byte[] originalQualScores, final SOLID_RECAL_MODE solidRecalMode, final byte[] refBases ) {
 
         final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_ATTRIBUTE_TAG);
         if( attr != null ) {
@@ -354,7 +354,7 @@ public class RecalDataManager {
                 final boolean setBaseN = true;
                 originalQualScores = solidRecalSetToQZero(read, readBases, inconsistency, originalQualScores, refBasesDirRead, setBaseN);
             } else if( solidRecalMode == SOLID_RECAL_MODE.REMOVE_REF_BIAS ) { // Use the color space quality to probabilistically remove ref bases at inconsistent color space bases
-                solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBasesDirRead, coinFlip);
+                solidRecalRemoveRefBias(read, readBases, inconsistency, colorImpliedBases, refBasesDirRead);
             }
 
         } else {
@@ -435,10 +435,9 @@ public class RecalDataManager {
      * @param inconsistency The array of 1/0 that says if this base is inconsistent with its color
      * @param colorImpliedBases The bases implied by the color space, RC'd if necessary
      * @param refBases The reference which has been RC'd if necessary
-     * @param coinFlip A random number generator
      */
     private static void solidRecalRemoveRefBias( final SAMRecord read, byte[] readBases, final int[] inconsistency, final byte[] colorImpliedBases,
-                                                 final byte[] refBases, final Random coinFlip) {
+                                                 final byte[] refBases) {
 
         final Object attr = read.getAttribute(RecalDataManager.COLOR_SPACE_QUAL_ATTRIBUTE_TAG);
         if( attr != null ) {
@@ -457,7 +456,7 @@ public class RecalDataManager {
                         if( jjj == iii || inconsistency[jjj] == 0 ) { // Don't want to correct the previous base a second time if it was already corrected in the previous step
                             if( readBases[jjj] == refBases[jjj] ) {
                                 if( colorSpaceQuals[jjj] == colorSpaceQuals[jjj+1] ) { // Equal evidence for the color implied base and the reference base, so flip a coin
-                                    final int rand = coinFlip.nextInt( 2 );
+                                    final int rand = GenomeAnalysisEngine.getRandomGenerator().nextInt( 2 );
                                     if( rand == 0 ) { // The color implied base won the coin flip
                                         readBases[jjj] = colorImpliedBases[jjj];
                                     }
@@ -471,7 +470,7 @@ public class RecalDataManager {
                                         diffInQuality++;
                                     }
                                     final int numHigh = Math.round( numLow * (float)Math.pow(10.0f, (float) diffInQuality / 10.0f) ); // The color with higher quality is exponentially more likely
-                                    final int rand = coinFlip.nextInt( numLow + numHigh );
+                                    final int rand = GenomeAnalysisEngine.getRandomGenerator().nextInt( numLow + numHigh );
                                     if( rand >= numLow ) { // higher q score won
                                         if( maxQuality == (int)colorSpaceQuals[jjj] ) {
                                             readBases[jjj] = colorImpliedBases[jjj];

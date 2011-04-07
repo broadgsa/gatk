@@ -30,17 +30,24 @@ import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 
 import java.io.File;
 import java.util.*;
 
 public class WalkerTest extends BaseTest {
     private static final boolean ENABLE_REPORTING = false;
+
+    @BeforeMethod
+    public void initializeRandomGenerator() {
+        GenomeAnalysisEngine.resetRandomGenerator();
+    }
 
     public String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
         return assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());

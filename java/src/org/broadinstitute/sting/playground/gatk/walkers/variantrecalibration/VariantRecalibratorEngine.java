@@ -3,7 +3,6 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 import org.apache.log4j.Logger;
 
 import java.util.List;
-import java.util.Random;
 
 /**
  * Created by IntelliJ IDEA.
@@ -22,8 +21,6 @@ public class VariantRecalibratorEngine {
     // the unified argument collection
     final private VariantRecalibratorArgumentCollection VRAC;
 
-    private final static long RANDOM_SEED = 91801305;
-    private final Random rand = new Random( RANDOM_SEED );
     private final static double MIN_PROB_CONVERGENCE_LOG10 = 1.0;
 
     /////////////////////////////
@@ -67,7 +64,7 @@ public class VariantRecalibratorEngine {
     private void variationalBayesExpectationMaximization( final GaussianMixtureModel model, final List<VariantDatum> data ) {
 
         model.cacheEmpiricalStats( data );
-        model.initializeRandomModel( data, rand, VRAC.NUM_KMEANS_ITERATIONS );
+        model.initializeRandomModel( data, VRAC.NUM_KMEANS_ITERATIONS );
 
         // The VBEM loop
         double previousLikelihood = model.expectationStep( data );

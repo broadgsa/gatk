@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -562,10 +563,9 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             return (RBP)this;
 
         // randomly choose numbers corresponding to positions in the reads list
-        Random generator = new Random();
         TreeSet<Integer> positions = new TreeSet<Integer>();
         for ( int i = 0; i < desiredCoverage; /* no update */ ) {
-            if ( positions.add(generator.nextInt(size)) )
+            if ( positions.add(GenomeAnalysisEngine.getRandomGenerator().nextInt(size)) )
                 i++;
         }
 

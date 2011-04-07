@@ -31,7 +31,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B:variant,VCF " + validationDataLocation + "vcfexample2.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("b4c3bd5cf46a081fd68bea1cbb1eb006"));
+                Arrays.asList("7e6dc39a191851f41d23753c4cca37a3"));
         executeTest("test file has annotations, asking for annotations, #1", spec);
     }
 
@@ -39,7 +39,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B:variant,VCF " + validationDataLocation + "vcfexample3.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
-                Arrays.asList("81417fd6c6635873349e27a70141eab5"));
+                Arrays.asList("21f01de76f113627c1fa60d7954df871"));
         executeTest("test file has annotations, asking for annotations, #2", spec);
     }
 
@@ -63,7 +63,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsAsking1() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B:variant,VCF " + validationDataLocation + "vcfexample2empty.vcf -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -L 1:10,020,000-10,021,000", 1,
-                Arrays.asList("30fe259f4cc932e592343d0b9dfd192b"));
+                Arrays.asList("e5fccc9d2c8f21ab494aa2f878a5f197"));
         executeTest("test file doesn't have annotations, asking for annotations, #1", spec);
     }
 
@@ -71,7 +71,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B:variant,VCF " + validationDataLocation + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
-                Arrays.asList("c376f5d378c138271dba33c25d6a8592"));
+                Arrays.asList("76348339e6dd750308647d8c126c6f4c"));
         executeTest("test file doesn't have annotations, asking for annotations, #2", spec);
     }
 
@@ -79,7 +79,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testOverwritingHeader() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B:variant,VCF " + validationDataLocation + "vcfexample4.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,001,292", 1,
-                Arrays.asList("2e2ef351669a07238923088347494be6"));
+                Arrays.asList("e82ea45f1eef16b6ebf7def2171ee613"));
         executeTest("test overwriting header", spec);
     }
 

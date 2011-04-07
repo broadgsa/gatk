@@ -165,7 +165,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
     @Test
     public void testTableRecalibratorSolidIndelsRemoveRefBias() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "907ebdc7da8c61fb0141c8441de52844" );
+        e.put( validationDataLocation + "NA19240.chr1.BFAST.SOLID.bam", "aa9a82f88ca30e320dbf65539066c9c9" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             String bam = entry.getKey();

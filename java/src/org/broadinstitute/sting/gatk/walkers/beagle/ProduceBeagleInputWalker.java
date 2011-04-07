@@ -33,6 +33,7 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -95,14 +96,12 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
 
     private Set<String> samples = null;
     private Set<String> BOOTSTRAP_FILTER = new HashSet<String>( Arrays.asList("bootstrap") );
-    private Random generator;
     private int bootstrapSetSize = 0;
     private int testSetSize = 0;
     private CachingFormatter formatter = new CachingFormatter("%5.4f ", 100000);
     private int certainFPs = 0;
 
     public void initialize() {
-        generator = new Random();
 
         samples = SampleUtils.getSampleListWithVCFHeader(getToolkit(), Arrays.asList(ROD_NAME));
 
@@ -244,7 +243,7 @@ public class ProduceBeagleInputWalker extends RodWalker<Integer, Integer> {
                 log10Likelihoods = genotype.getLikelihoods().getAsVector();
 
                 // see if we need to randomly mask out genotype in this position.
-                if ( generator.nextDouble() <= insertedNoCallRate ) {
+                if ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() <= insertedNoCallRate ) {
                     // we are masking out this genotype
                     log10Likelihoods = isMaleOnChrX ? HAPLOID_FLAT_LOG10_LIKELIHOODS : DIPLOID_FLAT_LOG10_LIKELIHOODS;
                 }

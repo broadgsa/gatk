@@ -3,10 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator.interfaces;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 public class AnnotationInterfaceManager {
     private static PluginManager<InfoFieldAnnotation> infoFieldAnnotationPluginManager = new PluginManager<InfoFieldAnnotation>(InfoFieldAnnotation.class);
@@ -70,7 +67,12 @@ public class AnnotationInterfaceManager {
         for ( Class c : annotationTypePluginManager.getInterfaces() )
             classMap.put(c.getSimpleName(), c);
 
-        HashSet<Class> classes = new HashSet<Class>();
+        // use a TreeSet so that classes are returned deterministically (the plugin manager apparently isn't deterministic)
+        TreeSet<Class> classes = new TreeSet<Class>(new Comparator<Class>() {
+            public int compare(Class o1, Class o2) {
+                return o1.getSimpleName().compareTo(o2.getSimpleName());
+            }
+        });
 
         if ( annotationGroupsToUse.size() != 1 || !"none".equals(annotationGroupsToUse.get(0)) ) {
             for ( String group : annotationGroupsToUse ) {

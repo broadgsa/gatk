@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 import cern.jet.random.Normal;
 import org.apache.log4j.Logger;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
@@ -28,9 +29,6 @@ public class VariantDataManager {
     public final ArrayList<String> annotationKeys;
     private final ExpandingArrayList<TrainingSet> trainingSets;
     private final VariantRecalibratorArgumentCollection VRAC;
-
-    private final static long RANDOM_SEED = 83409701;
-    private final static Random rand = new Random( RANDOM_SEED ); // this is going to cause problems if it is ever used in an integration test, planning to get rid of HRun anyway
 
     protected final static Logger logger = Logger.getLogger(VariantDataManager.class);
 
@@ -157,7 +155,7 @@ public class VariantDataManager {
         double value;
         if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // HRun values must be jittered a bit to work in this GMM
             value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
-            value += -0.25 + 0.5 * rand.nextDouble();
+            value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
         } else if( annotationKey.equals("QUAL") ) {
             value = vc.getPhredScaledQual();
         } else {

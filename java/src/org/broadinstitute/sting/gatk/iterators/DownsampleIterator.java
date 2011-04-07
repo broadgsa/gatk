@@ -3,21 +3,18 @@ package org.broadinstitute.sting.gatk.iterators;
 import net.sf.samtools.SAMRecord;
 
 import java.util.Iterator;
-import java.util.Random;
 
-import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 
 public class DownsampleIterator implements StingSAMIterator {
 
     StingSAMIterator it;
-    Random generator;
     int cutoff;
     SAMRecord next;
 
     public DownsampleIterator(StingSAMIterator it, double fraction) {
         this.it = it;
-        generator = new Random();
         cutoff = (int)(fraction * 10000);
         next = getNextRecord();
     }
@@ -41,7 +38,7 @@ public class DownsampleIterator implements StingSAMIterator {
             if ( !it.hasNext() )
                 return null;
             SAMRecord rec = it.next();
-            if ( generator.nextInt(10000) < cutoff )
+            if ( GenomeAnalysisEngine.getRandomGenerator().nextInt(10000) < cutoff )
                 return rec;
         }
     }

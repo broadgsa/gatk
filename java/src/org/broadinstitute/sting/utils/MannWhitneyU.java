@@ -2,6 +2,7 @@ package org.broadinstitute.sting.utils;
 
 import cern.jet.math.Arithmetic;
 import cern.jet.random.Normal;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 
@@ -314,7 +315,7 @@ public class MannWhitneyU {
             double comp = Double.compare(left.first.doubleValue(),right.first.doubleValue());
             if ( comp > 0 ) { return 1; }
             if ( comp < 0 ) { return -1; }
-            return MathUtils.rand.nextBoolean() ? -1 : 1;
+            return GenomeAnalysisEngine.getRandomGenerator().nextBoolean() ? -1 : 1;
         }
     }
 

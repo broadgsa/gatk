@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 /**
  * MathUtils is a static class (no instantiation allowed!) with some useful math methods.
@@ -673,11 +674,9 @@ public class MathUtils {
             return list;
         }
 
-        java.util.Random random = new java.util.Random();
-
         int idx[] = new int[list.size()];
         for (int i = 0; i < list.size(); i++) {
-            idx[i] = random.nextInt();
+            idx[i] = GenomeAnalysisEngine.getRandomGenerator().nextInt();
         }
 
         Integer[] perm = sortPermutation(idx);
@@ -729,9 +728,6 @@ public class MathUtils {
         return count;
     }
 
-
-    static Random rand = new Random(12321); //System.currentTimeMillis());
-
     /**
      * Returns n random indices drawn with replacement from the range 0..(k-1)
      *
@@ -744,7 +740,7 @@ public class MathUtils {
         ArrayList<Integer> chosen_balls = new ArrayList <Integer>(k);
         for (int i=0; i< k; i++) {
             //Integer chosen_ball = balls[rand.nextInt(k)];
-            chosen_balls.add(rand.nextInt(n));
+            chosen_balls.add(GenomeAnalysisEngine.getRandomGenerator().nextInt(n));
             //balls.remove(chosen_ball);
         }
 
@@ -765,7 +761,7 @@ public class MathUtils {
             chosen_balls.add(i);
         }
 
-        Collections.shuffle(chosen_balls, rand);
+        Collections.shuffle(chosen_balls, GenomeAnalysisEngine.getRandomGenerator());
 
         //return (ArrayList<Integer>) chosen_balls.subList(0, k);
         return new ArrayList<Integer>(chosen_balls.subList(0, k));

@@ -1,8 +1,7 @@
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
-import java.util.Random;
 
 /**
  * BaseUtils contains some basic utilities for manipulating nucleotides.
@@ -472,9 +471,8 @@ public class BaseUtils {
     static public int getRandomBaseIndex(int excludeBaseIndex) {
         int randomBaseIndex = excludeBaseIndex;
 
-        Random generator = new Random();
         while (randomBaseIndex == excludeBaseIndex) {
-            randomBaseIndex = generator.nextInt(4);
+            randomBaseIndex = GenomeAnalysisEngine.getRandomGenerator().nextInt(4);
         }
 
         return randomBaseIndex;

@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.utils;
 
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
@@ -14,11 +15,6 @@ import java.util.*;
  * @version 0.1
  */
 public class ReservoirDownsampler<T> {
-    /**
-     * Create a random number generator with a random, but reproducible, seed.
-     */
-    private final Random random = new Random(47382911L);
-
     /**
      * The reservoir of elements tracked by this downsampler.
      */
@@ -54,7 +50,7 @@ public class ReservoirDownsampler<T> {
         }
         else {
             // Get a uniformly distributed int. If the chosen slot lives within the partition, replace the entry in that slot with the newest entry.
-            int slot = random.nextInt(maxElements);
+            int slot = GenomeAnalysisEngine.getRandomGenerator().nextInt(maxElements);
             if(slot >= 0 && slot < maxElements) {
                 T displaced = reservoir.get(slot);
                 reservoir.set(slot,element);
