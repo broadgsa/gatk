@@ -318,33 +318,57 @@
                 <striplinebreaks/>
             </filterchain>
         </loadfile>
+
+        <!-- This fileset will contain only source files modified since the resource file was last generated,
+             or all source files if the resource file doesn't exist -->
+        <fileset dir="${basedir}" id="modified.source.files">
+            <include name="${java.source.dir}/**/*.java"/>
+            <include name="${external.dir}/**/*.java"/>
+            <depend targetdir="${basedir}">
+                <mapper type="merge" to="${resource.path}"/>
+            </depend>
+        </fileset>
+
+        <!-- Set the sources.modified property only if our fileset of modified source files is non-empty -->
+        <pathconvert refid="modified.source.files" property="sources.modified" setonempty="false"/>
+
+        <!-- Due to a limitation in the doclet API, we always need to pass package-info files to javadoc -->
+        <fileset dir="${basedir}" id="package.info.files">
+            <include name="${java.source.dir}/**/package-info.java"/>
+            <include name="${external.dir}/**/package-info.java"/>
+        </fileset>
+
         <condition property="uptodate.extracthelp">
             <or>
                 <isset property="disable.help"/>
                 <and>
-                    <uptodate targetfile="${basedir}/${resource.path}">
-                        <srcfiles refid="java.class.files"/>
-                    </uptodate>
-                    <equals arg1="${properties.version}" arg2="${build.version}" />
+                    <not>
+                        <isset property="sources.modified"/>
+                    </not>
+                    <equals arg1="${properties.version}" arg2="${build.version}"/>
                 </and>
             </or>
         </condition>
     </target>
 
-    <target name="extracthelp" depends="init.extracthelp"
-	    description="Extract help key/value pair file from the JavaDoc tags."
-	    unless="uptodate.extracthelp">
+    <target name="extracthelp" depends="init.extracthelp" unless="uptodate.extracthelp"
+	        description="Extract help key/value pair file from the JavaDoc tags.">
         <path id="doclet.classpath">
-          <path refid="external.dependencies" />
-          <pathelement location="${java.classes}" />
+            <path refid="external.dependencies" />
+            <pathelement location="${java.classes}" />
         </path>
 
         <javadoc doclet="org.broadinstitute.sting.utils.help.ResourceBundleExtractorDoclet"
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
+                 classpath="${java.classes}"
                  additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${resource.path} -quiet">
-            <sourcepath path="${java.source.dir}"/>
-            <sourcepath path="${external.dir}"/>
+            <sourcefiles>
+                <union>
+                    <fileset refid="modified.source.files"/>
+                    <fileset refid="package.info.files"/>
+                </union>
+            </sourcefiles>
         </javadoc>
     </target>
 

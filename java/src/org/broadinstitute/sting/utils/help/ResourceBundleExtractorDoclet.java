@@ -27,9 +27,8 @@ package org.broadinstitute.sting.utils.help;
 
 import com.sun.javadoc.*;
 
+import java.io.*;
 import java.util.*;
-import java.io.PrintStream;
-import java.io.IOException;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
@@ -70,8 +69,10 @@ public class ResourceBundleExtractorDoclet {
         String buildTimestamp = null, versionPrefix = null, versionSuffix = null;
 
         for(String[] options: rootDoc.options()) {
-            if(options[0].equals("-out"))
+            if(options[0].equals("-out")) {
+                loadExistingResourceFile(options[1], rootDoc);
                 out = new PrintStream(options[1]);
+            }
             if(options[0].equals("-build-timestamp"))
                 buildTimestamp = options[1];
             if(options[0].equals("-version-prefix"))
@@ -120,6 +121,31 @@ public class ResourceBundleExtractorDoclet {
             return 2;
         }
         return 0;
+    }
+
+    /**
+     * Attempts to load the contents of the resource file named by resourceFileName into
+     * our in-memory resource collection resourceText. If the resource file doesn't exist,
+     * prints a notice to the user but does not throw an exception back to the calling method,
+     * since we'll just create a new resource file from scratch in that case.
+     * @param  resourceFileName  name of the resource file to attempt to load.
+     * @param  rootDoc           the documentation root.
+     * @throws IOException       if there is an I/O-related error other than FileNotFoundException
+     *                           while attempting to read the resource file.
+     */
+    private static void loadExistingResourceFile( String resourceFileName, RootDoc rootDoc ) throws IOException {
+        try {
+            BufferedReader resourceFile = new BufferedReader(new FileReader(resourceFileName));
+            try {
+                resourceText.load(resourceFile);
+            }
+            finally {
+                resourceFile.close();
+            }
+        }
+        catch ( FileNotFoundException e ) {
+            rootDoc.printNotice("Resource file not found -- generating a new one from scratch.");
+        }
     }
 
     /**
