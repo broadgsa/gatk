@@ -8,7 +8,7 @@ import org.broadinstitute.sting.queue.library.ipf.intervals.ExpandIntervals
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.utils.interval.IntervalSetRule
 import org.broadinstitute.sting.utils.text.XReadLines
-import collection.JavaConversions
+import collection.JavaConversions._
 
 class Exome_VQSR_FullSearch extends QScript {
   qScript =>
@@ -24,12 +24,12 @@ class Exome_VQSR_FullSearch extends QScript {
   val OMNI_CHIP = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/1212samples.b37.vcf")
   val AXIOM_CHIP = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/affymetrix_axiom/Affymetrix_Axiom_DB_2010_v4_b37.noOmni.noHM3.vcf")
   val DBSNP_129 = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_129_b37.vcf")
-  val SENSITIVITY = (new Range(0,19)).map(u => 90.0 + 0.5*u).toList
+  val SENSITIVITY = (new Range(0,19,1)).map(u => 90.0 + 0.5*u).toList
   val RECALIBRATE_TOGETHER = List(true,false)
   val VQSR_HAPMAP_PRIOR = "15.0"
   val VQSR_OMNI_PRIOR = "12.0"
 
-  var VQSR_RODBINDS : Map[String,List[RodBind]] = new HashMap[String,List[RodBind]]
+  var VQSR_RODBINDS : HashMap[String,List[RodBind]] = new HashMap[String,List[RodBind]]
   val VQSR_TAG_FT = "known=false,training=true,truth=%s,prior=%s"
   val VQSR_DBSNP_TAG = "known=true,training=false,truth=false"
 
@@ -42,10 +42,10 @@ class Exome_VQSR_FullSearch extends QScript {
     mrb :+= RodBind("dbsnp","VCF",DBSNP_129,VQSR_DBSNP_TAG)
     mrb :+= RodBind("HapMap3","VCF",HM3_SITES,VQSR_TAG_FT.format(hmSt,VQSR_HAPMAP_PRIOR))
     mrb :+= RodBind("Omni","VCF",OMNI_CHIP,VQSR_TAG_FT.format(omSt,VQSR_OMNI_PRIOR))
-    VQSR_RODBINDS :+= (ext,mrb)
+    VQSR_RODBINDS += (ext,mrb)
   }
 
-  val BAM_FILES : List[File] = (new XReadLines(new File("/humgen/gsa-hphome1/chartl/projects/oneoffs/VQSR_Exome/resources/broad.bam.list"))).readLines.map(u => new File(u)).toList
+  val BAM_FILES : List[File] = asScalaList((new XReadLines(new File("/humgen/gsa-hphome1/chartl/projects/oneoffs/VQSR_Exome/resources/broad.bam.list"))).readLines).map(u => new File(u))
   val REF : File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
   val INTS : File = new File("/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list")
   val EXPAND_INTS = 40
@@ -60,7 +60,7 @@ class Exome_VQSR_FullSearch extends QScript {
       this.memoryLimit = Some(4)
     }
 
-    val ei : ExpandIntervals = new ExpandIntervals(INTS,1,qscript.expandIntervals, new File("Resources", base + ".flanks.interval_list"), REF, "INTERVALS", "INTERVALS")
+    val ei : ExpandIntervals = new ExpandIntervals(INTS,1,EXPAND_INTSs, new File("Resources", SCRIPT_BASE_NAME + ".flanks.interval_list"), REF, "INTERVALS", "INTERVALS")
     ei.jobOutputFile = new File(".queue/logs/Overall/ExpandIntervals.out")
 
     if (EXPAND_INTS > 0) {
@@ -74,16 +74,16 @@ class Exome_VQSR_FullSearch extends QScript {
     }
 
     val callSNPsAndIndels = new UnifiedGenotyper with CommandLineGATKArgs with ExpandedIntervals
-    callSNPsAndIndels.analysisName = base+"_calls"
+    callSNPsAndIndels.analysisName = SCRIPT_BASE_NAME+"_calls"
     callSNPsAndIndels.jobOutputFile = new File(".queue/logs/SNPCalling/UnifiedGenotyper.snps.out")
     callSNPsAndIndels.memoryLimit = Some(6)
     callSNPsAndIndels.downsample_to_coverage = Some(600)
-    callSNPsAndIndels.input_file = bamFiles
+    callSNPsAndIndels.input_file = BAM_FILES
     callSNPsAndIndels.rodBind :+= RodBind("dbsnp", "vcf", DBSNP_129)
     callSNPsAndIndels.out = new File(SCRIPT_BASE_NAME+".rawCalls.vcf")
     callSNPsAndIndels.stand_call_conf = Some(UG_CALL_THRESH)
 
-    callSNPsAndIndels.scatterCount = qscript.num_var_scatter_jobs
+    callSNPsAndIndels.scatterCount = 50
     callSNPsAndIndels.setupScatterFunction = {
       case scatter: ScatterFunction =>
         scatter.commandDirectory = new File("SnpCalls/ScatterGather")
@@ -112,7 +112,7 @@ class Exome_VQSR_FullSearch extends QScript {
       def canPrint(line: String) : Boolean = {
         if ( line.startsWith("#") ) { true }
         val spline = line.split("\t",5)
-        if ( spline.apply(3).size() > 1 || spline.apply(4).size() > 1 ) { false }
+        if ( spline.apply(3).size > 1 || spline.apply(4).size > 1 ) { false }
         true
       }
 
@@ -126,7 +126,7 @@ class Exome_VQSR_FullSearch extends QScript {
       }
     }
 
-    val extractSNPs : ExtractSNPs = new ExtractSNPs(callSNPsAndIndels.out,new File(base+".snpCalls.vcf"))
+    val extractSNPs : ExtractSNPs = new ExtractSNPs(callSNPsAndIndels.out,new File(SCRIPT_BASE_NAME+".snpCalls.vcf"))
     add(extractSNPs)
 
     def getPath(annoList: List[String], jointRecal: Boolean) : File = {
@@ -138,7 +138,7 @@ class Exome_VQSR_FullSearch extends QScript {
         val directory = getPath(annotations,recalTogether)
         for ( call_thresh <- VQSR_CALL_THRESH ) {
           var filterQual = new VariantFiltration with CommandLineGATKArgs with ExpandedIntervals
-          filterQual.rodBind :+= new RodBind(extractSNPs.outputVCF)
+          filterQual.rodBind :+= new RodBind("variant","VCF",extractSNPs.outputVCF)
           filterQual.filterExpression :+= "QUAL < %.1f".format(VQSR_CALL_THRESH)
           filterQual.filterName :+= "LowQual"
           filterQual.commandDirectory = directory
