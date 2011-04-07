@@ -69,7 +69,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -I " + validationDataLocation + "MV1994.bam" +
                         " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                         " -L unmapped" +
-                        " -U --index_output_bam_on_the_fly",
+                        " -U",
                         0, // two output files
                         Collections.<String>emptyList());
 
@@ -89,7 +89,7 @@ public class IntervalIntegrationTest extends WalkerTest {
                         " -I " + validationDataLocation + "MV1994.bam" +
                         " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                         " -XL unmapped" +
-                        " -U --index_output_bam_on_the_fly",
+                        " -U",
                         0, // two output files
                         Collections.<String>emptyList());
 

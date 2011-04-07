@@ -51,7 +51,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public static final String SIMPLIFY_BAM_FULLNAME = "simplifyBAM";
     public static final String SIMPLIFY_BAM_SHORTNAME = SIMPLIFY_BAM_FULLNAME;
 
-    public static final String CREATE_INDEX_FULLNAME = "index_output_bam_on_the_fly";
+    public static final String CREATE_INDEX_FULLNAME = "disable_bam_indexing";
 
     /**
      * The engine into which output stubs should be fed.
@@ -117,7 +117,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         if( compressionLevel != null )
             stub.setCompressionLevel(compressionLevel);
 
-        stub.setIndexOnTheFly(argumentIsPresent(createWriteIndexArgumentDefinition(source),matches));
+        stub.setIndexOnTheFly(!argumentIsPresent(createWriteIndexArgumentDefinition(source),matches));
         stub.setSimplifyBAM(argumentIsPresent(createSimplifyBAMArgumentDefinition(source),matches));
 
         // WARNING: Side effects required by engine!
@@ -176,7 +176,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        boolean.class,
                                        CREATE_INDEX_FULLNAME,
                                        null,
-                                       "Create a BAM index on-the-fly while writing the resulting file.",
+                                       "Turn off on-the-fly creation of indices for output BAM files.",
                                        false,
                                        false,
                                        false,
