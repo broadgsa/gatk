@@ -445,10 +445,14 @@ public class WalkerManager extends PluginManager<Walker> {
      * @return An array of types extending from SamRecordFilter.  Will never be null.
      */
     public static Collection<Class<? extends SamRecordFilter>> getReadFilterTypes(Class<?> walkerClass) {
-        Set<Class<? extends SamRecordFilter>> filterTypes = new HashSet<Class<? extends SamRecordFilter>>();
+        List<Class<? extends SamRecordFilter>> filterTypes = new ArrayList<Class<? extends SamRecordFilter>>();
         while(walkerClass != null) {
-            if(walkerClass.isAnnotationPresent(ReadFilters.class))
-                filterTypes.addAll(Arrays.asList(walkerClass.getAnnotation(ReadFilters.class).value()));
+            if(walkerClass.isAnnotationPresent(ReadFilters.class)) {
+                for ( Class c : walkerClass.getAnnotation(ReadFilters.class).value() ) {
+                    if( !filterTypes.contains(c) )
+                        filterTypes.add(c);
+                }
+            }
             walkerClass = walkerClass.getSuperclass();
         }
         return filterTypes;
