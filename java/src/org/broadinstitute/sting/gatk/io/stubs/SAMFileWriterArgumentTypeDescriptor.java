@@ -51,7 +51,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public static final String SIMPLIFY_BAM_FULLNAME = "simplifyBAM";
     public static final String SIMPLIFY_BAM_SHORTNAME = SIMPLIFY_BAM_FULLNAME;
 
-    public static final String CREATE_INDEX_FULLNAME = "disable_bam_indexing";
+    public static final String DISABLE_INDEXING_FULLNAME = "disable_bam_indexing";
 
     /**
      * The engine into which output stubs should be fed.
@@ -82,7 +82,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public List<ArgumentDefinition> createArgumentDefinitions( ArgumentSource source ) {
         return Arrays.asList( createBAMArgumentDefinition(source),
                               createBAMCompressionArgumentDefinition(source),
-                              createWriteIndexArgumentDefinition(source),
+                              disableWriteIndexArgumentDefinition(source),
                               createSimplifyBAMArgumentDefinition(source));
     }
 
@@ -117,7 +117,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         if( compressionLevel != null )
             stub.setCompressionLevel(compressionLevel);
 
-        stub.setIndexOnTheFly(!argumentIsPresent(createWriteIndexArgumentDefinition(source),matches));
+        stub.setIndexOnTheFly(!argumentIsPresent(disableWriteIndexArgumentDefinition(source),matches));
         stub.setSimplifyBAM(argumentIsPresent(createSimplifyBAMArgumentDefinition(source),matches));
 
         // WARNING: Side effects required by engine!
@@ -171,10 +171,10 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        null );
     }
 
-    private ArgumentDefinition createWriteIndexArgumentDefinition(ArgumentSource source) {
+    private ArgumentDefinition disableWriteIndexArgumentDefinition(ArgumentSource source) {
         return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
                                        boolean.class,
-                                       CREATE_INDEX_FULLNAME,
+                                       DISABLE_INDEXING_FULLNAME,
                                        null,
                                        "Turn off on-the-fly creation of indices for output BAM files.",
                                        false,

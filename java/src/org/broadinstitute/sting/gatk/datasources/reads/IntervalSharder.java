@@ -185,7 +185,7 @@ public class IntervalSharder {
                         filePointers.add(lastFilePointer);
 
                     lastBAMOverlap = bamOverlapIterator.next();
-                    lastFilePointer = new FilePointer(contig,lastBAMOverlap);
+                    lastFilePointer = new FilePointer(lastBAMOverlap);
                     binStart = lastFilePointer.overlap.start;
                     binStop = lastFilePointer.overlap.stop;
                 }

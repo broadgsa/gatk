@@ -190,7 +190,7 @@ public class GATKBAMFileSpan extends BAMFileSpan {
      * @return This file span minuse the other file span.
      */
 
-    public GATKBAMFileSpan subtract(final GATKBAMFileSpan other) {
+    public GATKBAMFileSpan minus(final GATKBAMFileSpan other) {
         Iterator<GATKChunk> thisIterator = getGATKChunks().iterator();
         Iterator<GATKChunk> otherIterator = other.getGATKChunks().iterator();
 
@@ -204,7 +204,7 @@ public class GATKBAMFileSpan extends BAMFileSpan {
 
         while(thisChunk != null && otherChunk != null) {
             // If this iterator is before the other, add this to the subtracted list and forge ahead.
-            if(thisChunk.getChunkEnd() < otherChunk.getChunkStart()) {
+            if(thisChunk.getChunkEnd() <= otherChunk.getChunkStart()) {
                 subtracted.add(thisChunk);
                 thisChunk = thisIterator.hasNext() ? thisIterator.next() : null;
                 continue;
