@@ -100,26 +100,29 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    @Test (enabled = false)
+    @Test
     public void testParallelization() {
-        String md5 = "7e51ad5e76b8440cbf26373df83a8f41";
+
+        // Note that we need to turn off any randomization for this to work, so no downsampling and no annotations
+
+        String md5 = "f56fdf5c6a2db85031a3cece37e12a56";
 
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000", 1,
+                baseCommand + " -dt NONE -G none -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000", 1,
                 Arrays.asList(md5));
         executeTest("test parallelization (single thread)", spec1);
 
         GenomeAnalysisEngine.resetRandomGenerator();
 
         WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000 -nt 2", 1,
+                baseCommand + " -dt NONE -G none -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000 -nt 2", 1,
                 Arrays.asList(md5));
         executeTest("test parallelization (2 threads)", spec2);
 
         GenomeAnalysisEngine.resetRandomGenerator();
 
         WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000 -nt 4", 1,
+                baseCommand + " -dt NONE -G none -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,075,000 -nt 4", 1,
                 Arrays.asList(md5));
         executeTest("test parallelization (4 threads)", spec3);
     }
@@ -278,32 +281,6 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
          executeTest(String.format("test indel calling, multiple technologies"), spec);
      }
-
-    // Indel parallelization
-    //@Test
-
-    // todo - test fails because for some reason when including -nt we get "PASS" instead of . in filter fields
-    public void testIndelParallelization() {
-        String md5 = "599220ba0cc5d8a32e4952fca85fd080";
-
-        WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -I " + validationDataLocation +
-                        "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -glm INDEL -o %s -L 1:10,000,000-10,100,000", 1,
-                Arrays.asList(md5));
-        executeTest("test indel caller parallelization (single thread)", spec1);
-
-        WalkerTest.WalkerTestSpec spec2 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -I " + validationDataLocation +
-                        "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -glm INDEL -o %s -L 1:10,000,000-10,100,000 -nt 2", 1,
-                Arrays.asList(md5));
-        executeTest("test indel caller parallelization (2 threads)", spec2);
-
-        WalkerTest.WalkerTestSpec spec3 = new WalkerTest.WalkerTestSpec(
-                baseCommand + " -I " + validationDataLocation +
-                        "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -glm INDEL -o %s -L 1:10,000,000-10,100,000 -nt 4", 1,
-                Arrays.asList(md5));
-        executeTest("test indel caller parallelization (4 threads)", spec3);
-    }
 
     // todo - feature not yet fully working with indels
     //@Test
