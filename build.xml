@@ -191,11 +191,6 @@
             <available file="${drmaa.jar}"/>
         </condition>
 
-        <!-- Get the pipeline run type.  Default to dry.  -->
-        <condition property="pipeline.run" value="dry" else="${pipeline.run}">
-            <equals arg1="${pipeline.run}" arg2="$${pipeline.run}" />
-        </condition>
-
         <echo message="GATK build      : ${gatk.target}"/>
         <echo message="Scala build     : ${scala.target}"/>
       <echo message="source revision : ${build.version}"/>
@@ -624,6 +619,11 @@
     <macrodef name="run-test">
         <attribute name="testtype"/>
         <sequential>
+            <!-- Get the pipeline run type.  Default to dry.  -->
+            <condition property="pipeline.run" value="dry" else="${pipeline.run}">
+                <equals arg1="${pipeline.run}" arg2="$${pipeline.run}" />
+            </condition>
+
             <mkdir dir="${report}/@{testtype}"/>
             <echo message="Sting: Running @{testtype} test cases!"/>
             <taskdef resource="testngtasks" classpath="lib/testng-5.14.1.jar"/>
@@ -682,6 +682,13 @@
         <run-test testtype="${ptype}"/>
     </target>
     <target name="pipelinetest" depends="test.compile" description="Run pipeline tests">
+        <condition property="pipetype" value="*PipelineTest" else="${single}">
+            <not><isset property="single"/></not>
+        </condition>
+        <run-test testtype="${pipetype}"/>
+    </target>
+    <target name="pipelinetestrun" depends="test.compile" description="Run pipeline tests">
+        <property name="pipeline.run" value="run"/>
         <condition property="pipetype" value="*PipelineTest" else="${single}">
             <not><isset property="single"/></not>
         </condition>

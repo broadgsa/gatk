@@ -24,9 +24,12 @@
 
 package org.broadinstitute.sting.queue.extensions.gatk;
 
+import net.sf.samtools.BAMIndex;
 import net.sf.samtools.SAMFileWriter;
+import org.broad.tribble.Tribble;
 import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
@@ -70,7 +73,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
                     " * Short name of %1$s%n" +
                     " * @param value Short name of %1$s%n" +
                     " */%n" +
-                    "def %4$s(value: %2$s) = this.%1$s = value%n",
+                    "def %4$s(value: %2$s) { this.%1$s = value }%n",
                     getFieldName(),
                     getFieldType(),
                     getShortFieldGetter(),
@@ -132,17 +135,37 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
         // ROD Bindings are set by the RodBindField
         } else if (RodBindField.ROD_BIND_FIELD.equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
             // TODO: Once everyone is using @Allows and @Requires correctly, we can stop blindly allowing Triplets
-            return Collections.singletonList(new RodBindArgumentField(argumentDefinition));
+            return Arrays.asList(new RodBindArgumentField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, Tribble.STANDARD_INDEX_EXTENSION));
             //return Collections.<ArgumentField>emptyList();
 
         } else if ("input_file".equals(argumentDefinition.fullName) && argumentDefinition.ioType == ArgumentIOType.INPUT) {
-            return Arrays.asList(new InputTaggedFileDefinitionField(argumentDefinition), new IndexFilesField());
+            return Arrays.asList(new InputTaggedFileDefinitionField(argumentDefinition), new InputIndexesArgumentField(argumentDefinition, BAMIndex.BAMIndexSuffix, ".bam"));
 
         } else if (argumentDefinition.ioType == ArgumentIOType.INPUT) {
             return Collections.singletonList(new InputArgumentField(argumentDefinition));
 
         } else if (argumentDefinition.ioType == ArgumentIOType.OUTPUT) {
-            return Collections.singletonList(new OutputArgumentField(argumentDefinition, gatherer));
+
+            List<ArgumentField> fields = new ArrayList<ArgumentField>();
+
+            String gatherClass;
+            if (gatherer != null)
+                gatherClass = gatherer.getName();
+            else if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+                gatherClass = "BamGatherFunction";
+            else if (VCFWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+                gatherClass = "VcfGatherFunction";
+            else
+                gatherClass = "org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction";
+
+            fields.add(new OutputArgumentField(argumentDefinition, gatherClass));
+
+            if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+                fields.add(new SAMFileWriterIndexArgumentField(argumentDefinition));
+            else if (VCFWriter.class.isAssignableFrom(argumentDefinition.argumentType))
+                fields.add(new VCFWriterIndexArgumentField(argumentDefinition));
+
+            return fields;
 
         } else if (argumentDefinition.isFlag) {
             return Collections.singletonList(new FlagArgumentField(argumentDefinition));
@@ -228,10 +251,10 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     // if (argumentDefinition.ioType == ArgumentIOType.OUTPUT)
     // Map all outputs to files.
     private static class OutputArgumentField extends ArgumentDefinitionField {
-        private final Class<?> gatherer;
-        public OutputArgumentField(ArgumentDefinition argumentDefinition, Class<?> gatherer) {
+        private final String gatherClass;
+        public OutputArgumentField(ArgumentDefinition argumentDefinition, String gatherClass) {
             super(argumentDefinition);
-            this.gatherer = gatherer;
+            this.gatherClass = gatherClass;
         }
 
         @Override protected Class<?> getInnerType() { return File.class; }
@@ -240,16 +263,7 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
 
         @Override public boolean isGather() { return true; }
         @Override protected String getGatherAnnotation() {
-            String gather;
-            if (gatherer != null)
-                gather = "@Gather(classOf[" + gatherer.getName() + "])%n";
-            else if (SAMFileWriter.class.isAssignableFrom(argumentDefinition.argumentType))
-                gather = "@Gather(classOf[BamGatherFunction])%n";
-            else if (VCFWriter.class.isAssignableFrom(argumentDefinition.argumentType))
-                gather = "@Gather(classOf[VcfGatherFunction])%n";
-            else
-                gather = "@Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])%n";
-            return String.format(gather);
+            return String.format("@Gather(classOf[%s])%n", gatherClass);
         }
     }
 
@@ -348,19 +362,94 @@ public abstract class ArgumentDefinitionField extends ArgumentField {
     /**
      * Adds optional inputs for the indexes of any bams or sams added to this function.
      */
-    private static class IndexFilesField extends ArgumentField {
+    private static class InputIndexesArgumentField extends ArgumentField {
+        private final String indexFieldName;
+        private final String originalFieldName;
+        private final String indexSuffix;
+        private final String originalSuffix;
+        public InputIndexesArgumentField(ArgumentDefinition originalArgumentDefinition, String indexSuffix) {
+            this(originalArgumentDefinition, indexSuffix, null);
+        }
+        public InputIndexesArgumentField(ArgumentDefinition originalArgumentDefinition, String indexSuffix, String originalSuffix) {
+            this.indexFieldName = originalArgumentDefinition.fullName + "Indexes";
+            this.originalFieldName = originalArgumentDefinition.fullName;
+            this.indexSuffix = indexSuffix;
+            this.originalSuffix = originalSuffix;
+        }
         @Override protected Class<? extends Annotation> getAnnotationIOClass() { return Input.class; }
         @Override public String getCommandLineAddition() { return ""; }
-        @Override protected String getDoc() { return "Dependencies on any index files for any bams added to input_files"; }
-        @Override protected String getFullName() { return "index_files"; }
+        @Override protected String getDoc() { return "Dependencies on any indexes of " + this.originalFieldName; }
+        @Override protected String getFullName() { return this.indexFieldName; }
         @Override protected boolean isRequired() { return false; }
         @Override protected String getFieldType() { return "List[File]"; }
         @Override protected String getDefaultValue() { return "Nil"; }
         @Override protected Class<?> getInnerType() { return File.class; }
-        @Override protected String getRawFieldName() { return "index_files"; }
+        @Override protected String getRawFieldName() { return this.indexFieldName; }
+        @Override protected String getFreezeFields() {
+            if (originalSuffix == null) {
+                return String.format(
+                        ("%1$s ++= %2$s" +
+                                ".filter(orig => orig != null)" +
+                                ".map(orig => new File(orig.getPath + \"%3$s\"))%n"),
+                        indexFieldName, originalFieldName, indexSuffix);
+            } else {
+                return String.format(
+                        ("%1$s ++= %2$s" +
+                                ".filter(orig => orig != null && orig.getName.endsWith(\"%4$s\"))" +
+                                ".flatMap(orig => Array(" +
+                                " new File(orig.getPath + \"%3$s\")," +
+                                " new File(orig.getPath.stripSuffix(\"%4$s\") + \"%3$s\") ))%n"),
+                        indexFieldName, originalFieldName, indexSuffix, originalSuffix);
+            }
+        }
+    }
+
+    private static abstract class OutputIndexArgumentField extends ArgumentField {
+        protected final String indexFieldName;
+        protected final String originalFieldName;
+        public OutputIndexArgumentField(ArgumentDefinition originalArgumentDefinition) {
+            this.indexFieldName = originalArgumentDefinition.fullName + "Index";
+            this.originalFieldName = originalArgumentDefinition.fullName;
+        }
+        @Override protected Class<? extends Annotation> getAnnotationIOClass() { return Output.class; }
+        @Override public String getCommandLineAddition() { return ""; }
+        @Override protected String getDoc() { return "Automatically generated index for " + this.originalFieldName; }
+        @Override protected String getFullName() { return this.indexFieldName; }
+        @Override protected boolean isRequired() { return false; }
+        @Override protected String getFieldType() { return "File"; }
+        @Override protected String getDefaultValue() { return "_"; }
+        @Override protected Class<?> getInnerType() { return File.class; }
+        @Override protected String getRawFieldName() { return this.indexFieldName; }
+
+        @Override public boolean isGather() { return true; }
+        @Override protected String getGatherAnnotation() {
+            return String.format("@Gather(classOf[AutoIndexGatherFunction])%n");
+        }
+    }
+
+    private static class VCFWriterIndexArgumentField extends OutputIndexArgumentField {
+        public VCFWriterIndexArgumentField(ArgumentDefinition originalArgumentDefinition) {
+            super(originalArgumentDefinition);
+        }
         @Override protected String getFreezeFields() {
             return String.format(
-                    "index_files ++= input_file.filter(bam => bam != null && bam.getName.endsWith(\".bam\")).map(bam => new File(bam.getPath + \".bai\"))%n");
+                    ("if (%2$s != null)%n" +
+                            "  if (!org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor.isCompressed(%2$s.getPath))%n" +
+                            "    %1$s = new File(%2$s.getPath + \"%3$s\")%n"),
+                    indexFieldName, originalFieldName, Tribble.STANDARD_INDEX_EXTENSION);
+        }
+    }
+
+    private static class SAMFileWriterIndexArgumentField extends OutputIndexArgumentField {
+        public SAMFileWriterIndexArgumentField(ArgumentDefinition originalArgumentDefinition) {
+            super(originalArgumentDefinition);
+        }
+        @Override protected String getFreezeFields() {
+            return String.format(
+                    ("if (%2$s != null)%n" +
+                            "  if (!%3$s)%n" +
+                            "    %1$s = new File(%2$s.getPath.stripSuffix(\".bam\") + \"%4$s\")%n"),
+                    indexFieldName, originalFieldName, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME, BAMIndex.BAMIndexSuffix);
         }
     }
 

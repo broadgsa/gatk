@@ -133,7 +133,7 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
             throw new MissingArgumentValueException(defaultArgumentDefinition);
 
         // Should we compress the output stream?
-        boolean compress = writerFileName != null && SUPPORTED_ZIPPED_SUFFIXES.contains(getFileSuffix(writerFileName));
+        boolean compress = isCompressed(writerFileName);
 
         boolean skipWritingHeader = argumentIsPresent(createNoHeaderArgumentDefinition(),matches);
         boolean doNotWriteGenotypes = argumentIsPresent(createSitesOnlyArgumentDefinition(),matches);
@@ -189,13 +189,21 @@ public class VCFWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor {
                                        null );
     }
 
+    /**
+     * Returns true if the file will be compressed.
+     * @param writerFileName Name of the file
+     * @return true if the file will be compressed.
+     */
+    public static boolean isCompressed(String writerFileName) {
+        return writerFileName != null && SUPPORTED_ZIPPED_SUFFIXES.contains(getFileSuffix(writerFileName));
+    }
 
     /**
      * Returns a lower-cased version of the suffix of the provided file.
      * @param fileName the file name.  Must not be null.
      * @return lower-cased version of the file suffix.  Will not be null.
      */
-    private String getFileSuffix(String fileName) {
+    private static String getFileSuffix(String fileName) {
         int indexOfLastDot = fileName.lastIndexOf(".");
         if ( indexOfLastDot == -1 )
             return "";
