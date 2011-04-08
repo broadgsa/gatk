@@ -353,13 +353,13 @@ public class SequenceDictionaryUtils {
      * @return
      */
     public static Set<String> getCommonContigsByName(SAMSequenceDictionary dict1, SAMSequenceDictionary dict2) {
-        Set<String> intersectingSequenceNames = new HashSet<String>(getContigNames(dict1));
+        Set<String> intersectingSequenceNames = getContigNames(dict1);
         intersectingSequenceNames.retainAll(getContigNames(dict2));
         return intersectingSequenceNames;
     }
 
-    public static List<String> getContigNames(SAMSequenceDictionary dict) {
-        List<String> contigNames = new ArrayList<String>();
+    public static Set<String> getContigNames(SAMSequenceDictionary dict) {
+        Set<String> contigNames = new HashSet<String>((int)(dict.size() / 0.75f) + 1, 0.75f);
         for (SAMSequenceRecord dictionaryEntry : dict.getSequences())
             contigNames.add(dictionaryEntry.getSequenceName());
         return contigNames;

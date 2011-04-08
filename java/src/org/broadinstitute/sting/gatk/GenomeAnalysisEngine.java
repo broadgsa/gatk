@@ -869,12 +869,7 @@ public class GenomeAnalysisEngine {
             // Compile a set of sequence names that exist in the BAM files.
             SAMSequenceDictionary readsDictionary = reads.getHeader().getSequenceDictionary();
 
-            Set<String> readsSequenceNames = new TreeSet<String>();
-            for (SAMSequenceRecord dictionaryEntry : readsDictionary.getSequences())
-                readsSequenceNames.add(dictionaryEntry.getSequenceName());
-
-
-            if (readsSequenceNames.size() == 0) {
+            if (readsDictionary.size() == 0) {
                 logger.info("Reads file is unmapped.  Skipping validation against reference.");
                 return;
             }
