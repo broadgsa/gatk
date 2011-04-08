@@ -50,7 +50,7 @@ class BamGatherFunction extends GatherFunction with PicardBamFunction {
     val compression = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.COMPRESSION_FULLNAME)
     this.compressionLevel = originalGATK.getFieldValue(compression).asInstanceOf[Option[Int]]
 
-    val indexBam = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.CREATE_INDEX_FULLNAME)
+    val indexBam = QFunction.findField(originalFunction.getClass, SAMFileWriterArgumentTypeDescriptor.DISABLE_INDEXING_FULLNAME)
     this.createIndex = originalGATK.getFieldValue(indexBam).asInstanceOf[Option[Boolean]]
 
     super.freezeFieldValues
