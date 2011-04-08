@@ -145,7 +145,7 @@ public class GATKBAMFileSpanUnitTest {
     public void testSubtractionOfEmptyChunkLists() {
         GATKBAMFileSpan regionOne = new GATKBAMFileSpan();
         GATKBAMFileSpan regionTwo = new GATKBAMFileSpan();
-        GATKBAMFileSpan subtraction = regionOne.subtract(regionTwo);
+        GATKBAMFileSpan subtraction = regionOne.minus(regionTwo);
         Assert.assertEquals(subtraction.getGATKChunks().size(),0,"Elements inserted in subtraction of two empty sets");
     }
 
@@ -153,7 +153,7 @@ public class GATKBAMFileSpanUnitTest {
     public void testSingleIntervalSubtractedAway() {
         GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk(0,1<<16));
         GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk(0,1<<16));
-        GATKBAMFileSpan subtraction = regionOne.subtract(regionTwo);
+        GATKBAMFileSpan subtraction = regionOne.minus(regionTwo);
         Assert.assertEquals(subtraction.getGATKChunks().size(),0,"Elements inserted in complete subtraction of region");
     }
 
@@ -161,7 +161,7 @@ public class GATKBAMFileSpanUnitTest {
     public void testMultipleIntervalsSubtractedAway() {
         GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk[] { new GATKChunk(0,1<<16), new GATKChunk(2<<16,3<<16) });
         GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk[] { new GATKChunk(0,1<<16), new GATKChunk(2<<16,3<<16) });
-        GATKBAMFileSpan subtraction = regionOne.subtract(regionTwo);
+        GATKBAMFileSpan subtraction = regionOne.minus(regionTwo);
         Assert.assertEquals(subtraction.getGATKChunks().size(),0,"Elements inserted in complete subtraction of region");
     }
 
@@ -169,7 +169,7 @@ public class GATKBAMFileSpanUnitTest {
     public void testSubtractionOfStrictSubset() {
         GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk(0,2<<16));
         GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk(0,1<<16));
-        GATKBAMFileSpan subtraction = regionOne.subtract(regionTwo);
+        GATKBAMFileSpan subtraction = regionOne.minus(regionTwo);
         Assert.assertEquals(subtraction.getGATKChunks().size(),1,"Incorrect size in strict subset subtraction of region");
         Assert.assertEquals(subtraction.getGATKChunks().get(0),new GATKChunk(1<<16,2<<16),"Determined subtraction is incorrect.");
     }
@@ -178,7 +178,7 @@ public class GATKBAMFileSpanUnitTest {
     public void testSubtractionOfPartialOverlap() {
         GATKBAMFileSpan regionOne = new GATKBAMFileSpan(new GATKChunk(0,2<<16));
         GATKBAMFileSpan regionTwo = new GATKBAMFileSpan(new GATKChunk(1<<16,3<<16));
-        GATKBAMFileSpan subtraction = regionOne.subtract(regionTwo);
+        GATKBAMFileSpan subtraction = regionOne.minus(regionTwo);
         Assert.assertEquals(subtraction.getGATKChunks().size(),1,"Incorrect size in partial subset subtraction of region");
         Assert.assertEquals(subtraction.getGATKChunks().get(0),new GATKChunk(0<<16,1<<16),"Determined subtraction is incorrect.");
     }
