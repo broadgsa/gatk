@@ -64,7 +64,7 @@ class Exome_VQSR_FullSearch extends QScript {
     ei.jobOutputFile = new File(".queue/logs/Overall/ExpandIntervals.out")
 
     if (EXPAND_INTS > 0) {
-      add(ei)
+      //add(ei)
     }
 
     trait ExpandedIntervals extends CommandLineGATK {
@@ -100,7 +100,7 @@ class Exome_VQSR_FullSearch extends QScript {
         gather.jobOutputFile = new File(".queue/logs/SNPCalling/ScatterGather/Gather_%s.out".format(source.field.getName))
     }
 
-    add(callSNPsAndIndels)
+    //add(callSNPsAndIndels)
 
     class ExtractSNPs(in: File, out: File) extends InProcessFunction {
 
@@ -110,9 +110,11 @@ class Exome_VQSR_FullSearch extends QScript {
       var outputVCF : File = out
 
       def canPrint(line: String) : Boolean = {
-        if ( line.startsWith("#") ) { true }
-        val spline = line.split("\t",5)
-        if ( spline.apply(3).size > 1 || spline.apply(4).size > 1 ) { false }
+        //System.out.println(line)
+        if ( line.startsWith("#") ) { return true }
+        val spline = line.split("\t",6)
+        //System.out.println(spline.apply(3)+"  "+spline.apply(4))
+        if ( spline.apply(3).size > 1 || spline.apply(4).size > 1 ) { return false }
         true
       }
 
@@ -123,35 +125,42 @@ class Exome_VQSR_FullSearch extends QScript {
             outWriter.println(u)
           }
         })
+
+        outWriter.close
       }
     }
 
     val extractSNPs : ExtractSNPs = new ExtractSNPs(callSNPsAndIndels.out,new File(SCRIPT_BASE_NAME+".snpCalls.vcf"))
-    add(extractSNPs)
+    //add(extractSNPs)
 
     def getPath(annoList: List[String], jointRecal: Boolean) : File = {
       new File("VQSR/%s/%s".format( annoList.reduceLeft( _ + "." + _ ) , if(jointRecal) "together" else "separate")  )
+    }
+
+    var filterMap : HashMap[Double,File] = new HashMap[Double,File]
+
+    for ( thresh <- VQSR_CALL_THRESH ) {
+      var filterQual = new VariantFiltration with CommandLineGATKArgs with ExpandedIntervals
+      filterQual.rodBind :+= new RodBind("variant","VCF",extractSNPs.outputVCF.getAbsoluteFile)
+      filterQual.filterExpression :+= "\'QUAL < %.1f\'".format(thresh)
+      filterQual.filterName :+= "LowQual"
+      filterQual.out = new File(SCRIPT_BASE_NAME+".filterQual%.1f.vcf".format(thresh))
+      add(filterQual)
+      filterMap += new Tuple2(thresh,filterQual.out.getAbsoluteFile)
     }
 
     for ( annotations <- VQSR_ANNOTATIONS_TO_USE ) {
       for ( recalTogether <- RECALIBRATE_TOGETHER ) {
         val directory = getPath(annotations,recalTogether)
         for ( call_thresh <- VQSR_CALL_THRESH ) {
-          var filterQual = new VariantFiltration with CommandLineGATKArgs with ExpandedIntervals
-          filterQual.rodBind :+= new RodBind("variant","VCF",extractSNPs.outputVCF.getAbsoluteFile)
-          filterQual.filterExpression :+= "QUAL < %.1f".format(call_thresh)
-          filterQual.filterName :+= "LowQual"
-          filterQual.commandDirectory = directory
-          filterQual.out = new File(directory.getAbsolutePath+"/"+SCRIPT_BASE_NAME+".filterQual%.1f.vcf".format(call_thresh))
-          add(filterQual)
           for ( vqsr_rb <- VQSR_RODBINDS.iterator ) {
             trait VQSR_Args extends ContrastiveRecalibrator {
               this.allPoly = true
               this.analysisName = "VQSR_%s_%s_%.1f".format( annotations.reduceLeft( _ + "." + _), if ( recalTogether ) "true" else "false", call_thresh)
               this.commandDirectory = directory
               this.use_annotation ++= annotations
-              this.tranche ++= SENSITIVITY.map(u => ".1f".format(u))
-              this.rodBind :+= RodBind("inputData","VCF",filterQual.out)
+              this.tranche ++= SENSITIVITY.map(u => "%.1f".format(u))
+              this.rodBind :+= RodBind("inputData","VCF",filterMap.get(call_thresh).get)
               this.rodBind ++= vqsr_rb._2
               this.memoryLimit = Some(8)
             }
@@ -161,7 +170,8 @@ class Exome_VQSR_FullSearch extends QScript {
               vqsr.tranchesFile = new File(nameFormat.format("both")+"tranche")
               vqsr.recalFile = new File(nameFormat.format("both")+"recal")
               add(vqsr)
-              addAll(eval(vqsr))
+              addAll(eval(vqsr, ei.outList, "flanks"))
+              addAll(eval(vqsr, INTS, "exons"))
             } else {
               var exons = new ContrastiveRecalibrator with VQSR_Args with CommandLineGATKArgs
               exons.tranchesFile = new File(nameFormat.format("exons")+"tranche")
@@ -184,13 +194,18 @@ class Exome_VQSR_FullSearch extends QScript {
   }
 
   // want to apply and eval
-  def eval(recal: ContrastiveRecalibrator) : List[QFunction] = {
+  def eval(recal: ContrastiveRecalibrator) : List[QFunction] = { eval(recal,null,"") }
+  def eval(recal: ContrastiveRecalibrator, list: File, ext: String) : List[QFunction] = {
     var functions : List[QFunction] = Nil
     trait ImplicitArgs extends CommandLineGATK {
       this.jarFile = recal.jarFile
       this.reference_sequence = recal.reference_sequence
       this.commandDirectory = recal.commandDirectory
-      this.intervals ++= recal.intervals
+      if ( list == null ) {
+        this.intervals ++= recal.intervals
+      } else {
+        this.intervals :+= list
+      }
     }
 
     trait ApplyArgs extends ApplyRecalibration with ImplicitArgs {
@@ -205,10 +220,11 @@ class Exome_VQSR_FullSearch extends QScript {
       this.rodBind :+= RodBind("compAxiom","VCF",AXIOM_CHIP)
     }
 
+    val extender = if ( ext != null ) ".cut%.1f."+ext else ".cut%.1f"
     for ( sens <- SENSITIVITY ) {
       var cut = new ApplyRecalibration with ApplyArgs
-      cut.analysisName = recal.analysisName+".cut%.1f".format(sens)
-      val vcfExt = ".%.1f.vcf".format(sens)
+      cut.analysisName = recal.analysisName+extender.format(sens)
+      val vcfExt = extender.format(sens)+".vcf"
       cut.out = swapExt(cut.recalFile,".recal",vcfExt)
       cut.ts_filter_level = Some(sens)
       functions :+= cut
