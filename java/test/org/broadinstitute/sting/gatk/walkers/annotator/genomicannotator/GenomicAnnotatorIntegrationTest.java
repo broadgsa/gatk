@@ -58,7 +58,7 @@ public class GenomicAnnotatorIntegrationTest extends WalkerTest {
                         "-o %s"
                 ),
                 1,
-                Arrays.asList("dbc179b47bf846d17ce8baf51f3864d2")
+                Arrays.asList("caa562160733aa638e1ba413ede209ae")
         );
         executeTest("testGenomicAnnotatorOnIndels", testOnIndels);
     }
