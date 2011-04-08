@@ -1,4 +1,5 @@
 import java.io.PrintWriter
+import org.broadinstitute.sting.queue.function.ListWriterFunction
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException
@@ -9,12 +10,6 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException
  * Future syntax will simplify running the GATK so please expect the syntax below to change significantly.
  */
 class PrintReadsAcrossManySamples extends QScript {
-  // The full packaged jar should be used.
-  // You can build this jar via 'ant package' and then find it under
-  // 'Sting/dist/packages/GenomeAnalysisTK-*/GenomeAnalysisTK.jar'
-  @Input(doc="The path to the packaged GenomeAnalysisTK.jar file.", shortName="gatk")
-  var gatkJar: File = null
-
   @Input(doc="The reference file for the bam files.", shortName="R")
   var referenceFile: File = null
 
@@ -25,7 +20,7 @@ class PrintReadsAcrossManySamples extends QScript {
   //   Set[T] = Set.empty[T]
   //   Option[T] = None
   @Input(doc="One or more bam files.", shortName="I")
-  var bamFiles: List[File] = Nil
+  var bamFile: File = _
 
   @Input(doc="Name of the test case", fullName="test_case",required=false)
   var testCaseName: String = "."
@@ -36,43 +31,26 @@ class PrintReadsAcrossManySamples extends QScript {
   @Input(doc="Step size",fullName="step_size",required=false)
   var stepSize = 1
 
-  // This trait allows us set the variables below in one place,
-  // and then reuse this trait on each CommandLineGATK function below.
-  trait PrintReadsAcrossManySamplesArguments extends CommandLineGATK {
-    this.jarFile = PrintReadsAcrossManySamples.this.gatkJar
-    this.reference_sequence = PrintReadsAcrossManySamples.this.referenceFile
-    this.memoryLimit = 8
-  }
-
 
   def script = {
-    if(bamFiles.size != 1)
-      throw new ReviewedStingException("-I argument must consist of exactly one file containing a list of BAM files.");
+    var lines = scala.io.Source.fromFile(bamFile).getLines.map(new File(_)).toList
 
-    var lines: List[String] = List[String]()
-    for(line <- scala.io.Source.fromFile(bamFiles(0)).getLines) {
-      lines = lines ::: List(line)
-    }
+    for(numBams <- 1 to (maxBams min lines.size) by stepSize) {
+      val basePath = "%s/%03d_bams".format(testCaseName,numBams)
 
-    for(numBams <- 1 to math.min(maxBams,lines.size) by stepSize) {
-      val dir = new File(testCaseName + "/%03d_bams".format(numBams))
-      dir.mkdir()
-
-      val file = new File(dir,"bams.list")
-      val writer = new PrintWriter(file)
-      
-      for(bamIndex <- 0 to numBams-1)
-        writer.println(lines(bamIndex))
-
-      writer.close()
+      val writeBamList = new ListWriterFunction
+      writeBamList.inputFiles = lines.take(numBams)
+      writeBamList.listFile = new File(basePath+"/bams.list")
+      add(writeBamList)
 
       // Create the function that we can run.
-      val printreads = new PrintReads with PrintReadsAcrossManySamplesArguments
+      val printreads = new PrintReads
 
-      printreads.jobOutputFile = new File(dir, "PrintReads.out")      
-      printreads.input_file = List(file)
+      printreads.jobOutputFile = new File(basePath+"/PrintReads.out")
+      printreads.input_file = List(writeBamList.listFile)
       printreads.reference_sequence = referenceFile
       printreads.out = new File("/dev/null")
+      printreads.memoryLimit = 8
 
       add(printreads)
     }
