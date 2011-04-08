@@ -26,6 +26,8 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
+import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 import java.io.File;
@@ -136,36 +138,218 @@ public class ReadUtils {
     public static OverlapType readPairBaseOverlapType(final SAMRecord rec, long basePos, final int adaptorLength) {
         OverlapType state = OverlapType.NOT_OVERLAPPING;
 
-        long isize = rec.getInferredInsertSize();
-        if ( isize != 0 ) { // we're not an unmapped pair -- cannot filter out
-            long adaptorStart, adaptorEnd;
-            long mateStart = rec.getMateAlignmentStart();
-            long mateEnd = -1;
+        Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(rec, adaptorLength);
 
-            if ( rec.getReadNegativeStrandFlag() ) {
-                // we are on the negative strand, so our mate is on the positive strand
-                adaptorStart = mateStart - adaptorLength - 1;
-                adaptorEnd = mateStart - 1;
-            } else {
-                // we are on the positive strand, so our mate is on the negative strand
-                mateEnd = rec.getAlignmentStart() + isize - 1;
-                adaptorStart = mateEnd + 1;
-                adaptorEnd = mateEnd + adaptorLength;
-            }
+        if ( adaptorBoundaries != null ) { // we're not an unmapped pair -- cannot filter out
 
-            boolean inAdapator = basePos >= adaptorStart && basePos <= adaptorEnd;
+            boolean inAdapator = basePos >= adaptorBoundaries.first && basePos <= adaptorBoundaries.second;
 
             if ( inAdapator ) { 
                 state = OverlapType.IN_ADAPTOR;
-//                System.out.printf("baseOverlapState: %50s negStrand=%b base=%d start=%d stop=%d, mateStart=%d mateStop=%d adaptorStart=%d adaptorEnd=%d isize=%d => %s%n",
-//                        rec.getReadName(), rec.getReadNegativeStrandFlag(), basePos, rec.getAlignmentStart(), rec.getAlignmentEnd(), mateStart, mateEnd, adaptorStart, adaptorEnd, isize, state);
+                //System.out.printf("baseOverlapState: %50s negStrand=%b base=%d start=%d stop=%d, adaptorStart=%d adaptorEnd=%d isize=%d => %s%n",
+                //        rec.getReadName(), rec.getReadNegativeStrandFlag(), basePos, rec.getAlignmentStart(), rec.getAlignmentEnd(), adaptorBoundaries.first, adaptorBoundaries.second, rec.getInferredInsertSize(), state);
             }
         }
 
         return state;
     }
 
+    private static Pair<Integer, Integer> getAdaptorBoundaries(SAMRecord rec, int adaptorLength) {
+        int isize = rec.getInferredInsertSize();
+        if ( isize == 0 )
+            return null; // don't worry about unmapped pairs
+
+        int adaptorStart, adaptorEnd;
+
+        if ( rec.getReadNegativeStrandFlag() ) {
+            // we are on the negative strand, so our mate is on the positive strand
+            int mateStart = rec.getMateAlignmentStart();
+            adaptorStart = mateStart - adaptorLength - 1;
+            adaptorEnd = mateStart - 1;
+        } else {
+            // we are on the positive strand, so our mate is on the negative strand
+            int mateEnd = rec.getAlignmentStart() + isize - 1;
+            adaptorStart = mateEnd + 1;
+            adaptorEnd = mateEnd + adaptorLength;
+        }
+
+        return new Pair<Integer, Integer>(adaptorStart, adaptorEnd);
+    }
+
+    // return true if the read needs to be completely clipped
+    public static boolean hardClipAdaptorSequence(final SAMRecord rec, int adaptorLength) {
+
+        Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(rec, adaptorLength);
+        if ( adaptorBoundaries != null ) {
+            if ( rec.getReadNegativeStrandFlag() && adaptorBoundaries.second >= rec.getAlignmentStart() && adaptorBoundaries.first < rec.getAlignmentEnd() )
+                return hardClipStartOfRead(rec, adaptorBoundaries.second);
+            else if ( !rec.getReadNegativeStrandFlag() && adaptorBoundaries.first <= rec.getAlignmentEnd() )
+                return hardClipEndOfRead(rec, adaptorBoundaries.first);
+        }
+
+        return false;
+    }
+
+    // return true if the read needs to be completely clipped
+    private static boolean hardClipStartOfRead(SAMRecord rec, int stopPosition) {
+
+        if ( stopPosition >= rec.getAlignmentEnd() ) {
+            // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
+            //System.out.printf("Entire read needs to be clipped: %50s %n", rec.getReadName());
+            return true;
+        }
+
+        //System.out.printf("Clipping start of read: %50s start=%d adaptorEnd=%d isize=%d %n",
+        //        rec.getReadName(), rec.getAlignmentStart(), stopPosition, rec.getInferredInsertSize());
+
+        Cigar oldCigar = rec.getCigar();
+        LinkedList<CigarElement> newCigarElements = new LinkedList<CigarElement>();
+        int currentPos = rec.getAlignmentStart();
+        int basesToClip = 0;
+        int basesAlreadyClipped = 0;
+
+        for ( CigarElement ce : oldCigar.getCigarElements() ) {
+
+            if ( currentPos > stopPosition) {
+                newCigarElements.add(ce);
+                continue;
+            }
+
+            int elementLength = ce.getLength();
+            switch ( ce.getOperator() ) {
+                case M:
+                    for (int i = 0; i < elementLength; i++, currentPos++, basesToClip++) {
+                        if ( currentPos > stopPosition ) {
+                            newCigarElements.add(new CigarElement(elementLength - i, CigarOperator.M));
+                            break;
+                        }
+                    }
+                    break;
+                case I:
+                case S:
+                    basesToClip += elementLength;
+                    break;
+                case D:
+                case N:
+                    currentPos += elementLength;
+                    break;
+                case H:
+                    basesAlreadyClipped += elementLength;
+                case P:
+                    break;
+                default: throw new ReviewedStingException("The " + ce.getOperator() + " cigar element is not currently supported");
+            }
+
+        }
+
+        // copy over the unclipped bases
+        final byte[] bases = rec.getReadBases();
+        final byte[] quals = rec.getBaseQualities();
+        int newLength = bases.length - basesToClip;
+        byte[] newBases = new byte[newLength];
+        byte[] newQuals = new byte[newLength];
+        System.arraycopy(bases, basesToClip, newBases, 0, newLength);
+        System.arraycopy(quals, basesToClip, newQuals, 0, newLength);
+        rec.setReadBases(newBases);
+        rec.setBaseQualities(newQuals);
+
+        // now add a CIGAR element for the clipped bases
+        newCigarElements.addFirst(new CigarElement(basesToClip + basesAlreadyClipped, CigarOperator.H));
+        Cigar newCigar = new Cigar(newCigarElements);
+        rec.setCigar(newCigar);
+
+        // adjust the start accordingly
+        rec.setAlignmentStart(stopPosition + 1);
+
+        return false;
+    }
+
+    // return true if the read needs to be completely clipped
+    private static boolean hardClipEndOfRead(SAMRecord rec, int startPosition) {
+
+        if ( startPosition <= rec.getAlignmentStart() ) {
+            // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
+            //System.out.printf("Entire read needs to be clipped: %50s %n", rec.getReadName());
+            return true;
+        }
+
+        //System.out.printf("Clipping end of read: %50s adaptorStart=%d end=%d isize=%d %n",
+        //        rec.getReadName(), startPosition, rec.getAlignmentEnd(), rec.getInferredInsertSize());
+
+        Cigar oldCigar = rec.getCigar();
+        LinkedList<CigarElement> newCigarElements = new LinkedList<CigarElement>();
+        int currentPos = rec.getAlignmentStart();
+        int basesToKeep = 0;
+        int basesAlreadyClipped = 0;
+
+        for ( CigarElement ce : oldCigar.getCigarElements() ) {
+
+            int elementLength = ce.getLength();
+
+            if ( currentPos >= startPosition ) {
+                if ( ce.getOperator() == CigarOperator.H )
+                    basesAlreadyClipped += elementLength;
+                continue;
+            }
+
+            switch ( ce.getOperator() ) {
+                case M:
+                    for (int i = 0; i < elementLength; i++, currentPos++, basesToKeep++) {
+                        if ( currentPos == startPosition ) {
+                            newCigarElements.add(new CigarElement(i, CigarOperator.M));
+                            break;
+                        }
+                    }
+
+                    if ( currentPos != startPosition )
+                        newCigarElements.add(ce);
+                    break;
+                case I:
+                case S:
+                    newCigarElements.add(ce);
+                    basesToKeep += elementLength;
+                    break;
+                case D:
+                case N:
+                    newCigarElements.add(ce);
+                    currentPos += elementLength;
+                    break;
+                case H:
+                case P:
+                    newCigarElements.add(ce);
+                    break;
+                default: throw new ReviewedStingException("The " + ce.getOperator() + " cigar element is not currently supported");
+            }
+
+        }
+
+        // copy over the unclipped bases
+        final byte[] bases = rec.getReadBases();
+        final byte[] quals = rec.getBaseQualities();
+        byte[] newBases = new byte[basesToKeep];
+        byte[] newQuals = new byte[basesToKeep];
+        System.arraycopy(bases, 0, newBases, 0, basesToKeep);
+        System.arraycopy(quals, 0, newQuals, 0, basesToKeep);
+        rec.setReadBases(newBases);
+        rec.setBaseQualities(newQuals);
+
+        // now add a CIGAR element for the clipped bases
+        newCigarElements.add(new CigarElement((bases.length - basesToKeep) + basesAlreadyClipped, CigarOperator.H));
+        Cigar newCigar = new Cigar(newCigarElements);
+        rec.setCigar(newCigar);
+
+        // adjust the stop accordingly
+        // rec.setAlignmentEnd(startPosition - 1);
+
+        return false;
+    }
+
     private static int DEFAULT_ADAPTOR_SIZE = 100;
+
+    public static boolean hardClipAdaptorSequence(final SAMRecord rec) {
+        return hardClipAdaptorSequence(rec, DEFAULT_ADAPTOR_SIZE);
+    }
+
     public static OverlapType readPairBaseOverlapType(final SAMRecord rec, long basePos) {
         return readPairBaseOverlapType(rec, basePos, DEFAULT_ADAPTOR_SIZE);
     }
