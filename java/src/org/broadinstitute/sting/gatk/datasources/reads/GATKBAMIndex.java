@@ -304,7 +304,21 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
         final int referenceSequence = gatkBin.getReferenceSequence();
         BAMIndexContent indexQuery = getQueryResults(referenceSequence);
 
-        if(indexQuery == null)
+        return getSpanOverlapping(indexQuery,bin);
+    }
+
+    /**
+     * Perform an overlapping query of all bins bounding the given location.
+     * @param bin The bin over which to perform an overlapping query.
+     * @return The file pointers
+     */
+    public GATKBAMFileSpan getSpanOverlapping(final BAMIndexContent indexContent, final Bin bin) {
+        if(bin == null)
+            return null;
+
+        GATKBin gatkBin = new GATKBin(bin);
+
+        if(indexContent == null)
             return null;
 
         final int binLevel = getLevelForBin(bin);
@@ -312,16 +326,16 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
 
         // Add the specified bin to the tree if it exists.
         List<GATKBin> binTree = new ArrayList<GATKBin>();
-        if(indexQuery.containsBin(gatkBin))
-            binTree.add(indexQuery.getBins().getBin(gatkBin.getBinNumber()));
+        if(indexContent.containsBin(gatkBin))
+            binTree.add(indexContent.getBins().getBin(gatkBin.getBinNumber()));
 
         int currentBinLevel = binLevel;
         while(--currentBinLevel >= 0) {
             final int binStart = getFirstBinInLevel(currentBinLevel);
             final int binWidth = getMaxAddressibleGenomicLocation()/getLevelSize(currentBinLevel);
             final int binNumber = firstLocusInBin/binWidth + binStart;
-            GATKBin parentBin = indexQuery.getBins().getBin(binNumber);
-            if(parentBin != null && indexQuery.containsBin(parentBin))
+            GATKBin parentBin = indexContent.getBins().getBin(binNumber);
+            if(parentBin != null && indexContent.containsBin(parentBin))
                 binTree.add(parentBin);
         }
 
@@ -332,7 +346,7 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
         }
 
         final int start = getFirstLocusInBin(bin);
-        chunkList = optimizeChunkList(chunkList,indexQuery.getLinearIndex().getMinimumOffset(start));
+        chunkList = optimizeChunkList(chunkList,indexContent.getLinearIndex().getMinimumOffset(start));
         return new GATKBAMFileSpan(chunkList.toArray(new GATKChunk[chunkList.size()]));
     }
 
@@ -462,7 +476,7 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
      * @param referenceIndex The reference to load.  CachingBAMFileIndex only stores index data for entire references.
      * @return The index information for this reference.
      */
-    protected BAMIndexContent getQueryResults(final int referenceIndex) {
+    public BAMIndexContent getQueryResults(final int referenceIndex) {
         // If not in the cache, attempt to load it from disk.
         return query(referenceIndex,1,-1);
     }

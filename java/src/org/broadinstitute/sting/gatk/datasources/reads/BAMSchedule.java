@@ -103,6 +103,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
 
         for(final SAMReaderID reader: readerIDs) {
             GATKBAMIndex index = indices.get(reader);
+            BAMIndexContent indexContent = index.getQueryResults(referenceSequence);
 
             int currentBinInLowestLevel = GATKBAMIndex.getFirstBinInLevel(GATKBAMIndex.getNumIndexLevels()-1);
             Iterator<GenomeLoc> locusIterator = intervals.iterator();
@@ -132,7 +133,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
 
                 // Code at this point knows that the current bin is neither before nor after the current locus,
                 // so it must overlap.  Add this region to the filesystem.
-                final GATKBAMFileSpan fileSpan = index.getSpanOverlapping(bin);
+                final GATKBAMFileSpan fileSpan = index.getSpanOverlapping(indexContent,bin);
 
                 if(!fileSpan.isEmpty()) {
                     // File format is binary in little endian; start of region, end of region, num chunks, then the chunks themselves.
