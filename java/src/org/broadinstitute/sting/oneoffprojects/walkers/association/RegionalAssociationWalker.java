@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.association;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.DownsampleType;
@@ -64,7 +65,7 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
 
     public RegionalAssociationHandler reduceInit() {
         Set<AssociationContext> validAssociations = getAssociations();
-        RegionalAssociationHandler wac = new RegionalAssociationHandler(validAssociations);
+        RegionalAssociationHandler wac = new RegionalAssociationHandler(validAssociations,getSamples());
 
         return wac;
     }
@@ -97,7 +98,8 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
             for ( Class<? extends AssociationContext> clazz : contexts ) {
                 AssociationContext context;
                 try {
-                    context = clazz.getConstructor(new Class[] {RegionalAssociationWalker.class}).newInstance(new Object[] {this});
+                    context = clazz.getConstructor(new Class[] {}).newInstance(new Object[] {});
+                    context.init(this);
                 } catch (Exception e ) {
                     throw new StingException("The class "+clazz.getSimpleName()+" could not be instantiated",e);
                 }
@@ -116,7 +118,8 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
         for ( String s : associationsToUse ) {
             AssociationContext context;
             try {
-                context = classNameToClass.get(s).getConstructor(new Class[]{RegionalAssociationWalker.class}).newInstance(new Object[] {this});
+                context = classNameToClass.get(s).getConstructor(new Class[]{}).newInstance(new Object[] {});
+                context.init(this);
             } catch ( Exception e ) {
                 throw new StingException("The class "+s+" could not be instantiated.",e);
             }
@@ -141,8 +144,7 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
 
     public void writeBedGraphHeaders(Set<AssociationContext> cons) {
         for ( AssociationContext con : cons ) {
-            GenomeLoc first = getToolkit().getIntervals().iterator().next();
-            String header = String.format("track type=bedGraph name=%s",con.getClass().getSimpleName());
+            String header = String.format("track type=bedGraph name=%s description=stat,p,q,dichot,logdichot",con.getClass().getSimpleName());
             out.get(con.getClass()).printf("%s%n",header);
         }
     }

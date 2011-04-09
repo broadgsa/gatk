@@ -6,6 +6,8 @@ import java.util.Map;
 import cern.jet.random.Normal;
 import cern.jet.random.StudentT;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.*;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.Dichotomizable;
+import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.Dichotomizer1D;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.statistics.StatisticalTest;
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -21,6 +23,12 @@ import org.broadinstitute.sting.utils.collections.Pair;
 public class AssociationTestRunner {
     final static int MAX_Q_VALUE = Integer.MAX_VALUE;
     // todo -- this was written when ACs could implement interfaces, now that they extend, there's no multiple inheritance
+    final static Dichotomizer1D.Transform LOG_TRANSFORM = (new Dichotomizer1D()).new Transform() {
+        @Override
+        public double transform(double d) {
+            return Math.log(d);
+        }
+    };
 
     public static int pToQ(double p) {
         return Math.min((int) Math.floor(QualityUtils.phredScaleErrorRate(p)),MAX_Q_VALUE);
@@ -61,5 +69,15 @@ public class AssociationTestRunner {
             mwu.add(n,MannWhitneyU.USet.SET2);
         }
         return mwu.runTwoSidedTest();
+    }
+
+    public static Pair<Double,Double> getDichotomizedValues(AssociationContext context) {
+        if ( context instanceof Dichotomizable ) {
+            double raw = Dichotomizer1D.simpleGaussianDichotomy(((Dichotomizable)context));
+            double log = Dichotomizer1D.simpleGaussianDichotomy(((Dichotomizable)context),LOG_TRANSFORM);
+            return new Pair<Double,Double>(raw,log);
+        }
+
+        return new Pair<Double,Double>(Double.NaN,Double.NaN);
     }
 }

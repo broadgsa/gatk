@@ -15,7 +15,7 @@ import java.util.Collection;
  */
 public class Dichotomizer1D {
 
-    private Dichotomizer1D() { } // no instantiation
+    public Dichotomizer1D() { } // instantiation required for access to transform
 
     public abstract class Transform {
         public abstract double transform(double n);
@@ -28,8 +28,18 @@ public class Dichotomizer1D {
 
             return tData;
         }
+
+        public Transform() {
+
+        }
     }
 
+    /**
+     * Tries to measure effect size by the separation of setOne and setTwo clusters, with a window spread factor of 3
+     * @param setOne - collection of data from set one
+     * @param setTwo - colleciton of data from set two
+     * @return - the so-called "Z"-factor (effect size/spread)
+     */
     public static double simpleGaussianDichotomy(Collection<Number> setOne, Collection<Number> setTwo) {
         double meanOne = MathUtils.sum(setOne)/setOne.size();
         double meanTwo = MathUtils.sum(setTwo)/setTwo.size();
@@ -52,5 +62,7 @@ public class Dichotomizer1D {
         Pair<Collection<Number>,Collection<Number>> dichotomizedData = dichotomizable.getDichotomizedData();
         return simpleGaussianDichotomy(dichotomizedData.first,dichotomizedData.second, transform);
     }
+
+    public static Pair<Double,Double> twoMeansDichotomy() { return null; }
 
 }

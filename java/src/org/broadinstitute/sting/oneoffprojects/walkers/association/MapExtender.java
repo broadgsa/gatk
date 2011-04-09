@@ -24,9 +24,13 @@ public class MapExtender {
     private MapHolder current = null;
     private Map<Sample,ReadBackedPileup> fullPileup = null;
     private Map<Sample,ReadBackedPileup> readFilteredPileup = null;
+    private Map<String,Sample> idToSampleObject = null;
 
-    public MapExtender() {
-        // no need to do anything
+    public MapExtender(Set<Sample> samples) {
+        idToSampleObject = new HashMap<String,Sample>(samples.size());
+        for ( Sample s : samples ) {
+            idToSampleObject.put(s.getId(),s);
+        }
     }
 
     public void set(MapHolder holder) {
@@ -38,7 +42,7 @@ public class MapExtender {
         readFilteredPileup = new HashMap<Sample,ReadBackedPileup>();
 
         if ( current != null ) {
-            for ( Map.Entry<Sample,AlignmentContext> sac : current.getContext().entrySet() ) {
+            for ( Map.Entry<Sample,AlignmentContext> sac : current.getContext(idToSampleObject).entrySet() ) {
                 AlignmentContext context = AlignmentContextUtils.stratify(sac.getValue(), TYPE);
                 if ( context.hasBasePileup() ) {
                     fullPileup.put(sac.getKey(),context.getBasePileup());
@@ -67,7 +71,7 @@ public class MapExtender {
     public Map<Sample,ReadBackedPileup> getReadFilteredPileup(){ return readFilteredPileup; }
 
     public Map<Sample,AlignmentContext> getPreviousContext() {
-        return previous != null ? previous.getContext() : null;
+        return previous != null ? previous.getContext(idToSampleObject) : null;
     }
 
     public ReferenceContext getPreviousRef() {
@@ -79,7 +83,7 @@ public class MapExtender {
     }
 
     public Map<Sample,AlignmentContext> getContext() {
-        return current != null ? current.getContext() : null;
+        return current != null ? current.getContext(idToSampleObject) : null;
     }
 
     public ReferenceContext getReferenceContext() {

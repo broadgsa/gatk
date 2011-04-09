@@ -60,11 +60,11 @@ public abstract class ValueTest extends CaseControl<Collection<Number>> implemen
         MannWhitneyU mwu = new MannWhitneyU();
 
         for ( Map.Entry<Cohort,Collection<Number>> cohortEntry : getCaseControl().entrySet() ) {
-            if ( cohortEntry.getKey().equals(Cohort.CASE) ) {
+            if ( cohortEntry.getKey().equals(Cohort.CASE) && cohortEntry.getValue() != null ) {
                 for ( Number n : cohortEntry.getValue() ) {
                     mwu.add(n,MannWhitneyU.USet.SET1);
                 }
-            } else if ( cohortEntry.getKey().equals(Cohort.CONTROL)) {
+            } else if ( cohortEntry.getKey().equals(Cohort.CONTROL) && cohortEntry.getValue() != null) {
                 for ( Number n : cohortEntry.getValue() ) {
                     mwu.add(n,MannWhitneyU.USet.SET2);
                 }

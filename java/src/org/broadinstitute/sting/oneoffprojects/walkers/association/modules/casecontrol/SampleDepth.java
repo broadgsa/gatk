@@ -14,24 +14,21 @@ import java.util.*;
  */
 public class SampleDepth extends ValueTest {
 
-    public Map<Sample,Object> sampleStats = null;
-
-    public SampleDepth() {
-        super();
-        sampleStats = new HashMap<Sample,Object>();
-    }
+    public Map<String,Object> sampleStats = null;
 
     // either: the user associates data with the sample (doc.mean, doc.std)
     //        >OR we calculate the values on-the-fly (e.g. running mean/stdev)
     public void init(RegionalAssociationWalker walker) {
+        super.init(walker);
+        sampleStats = new HashMap<String,Object>();
         Set<Sample> samples = walker.getSamples();
         for ( Sample s : samples ) {
             if ( s.hasProperty("doc.mean") && s.hasProperty("doc.std") ) {
                 double mn = (Double) s.getProperty("doc.mean");
                 double std = (Double) s.getProperty("doc.std");
-                sampleStats.put(s,new Pair<Double,Double>(mn,std));
+                sampleStats.put(s.getId(),new Pair<Double,Double>(mn,std));
             } else {
-                sampleStats.put(s,new MathUtils.RunningAverage());
+                sampleStats.put(s.getId(),new MathUtils.RunningAverage());
             }
         }
     }
@@ -48,7 +45,7 @@ public class SampleDepth extends ValueTest {
     }
 
     public Collection<Number> map(Sample sample, ReadBackedPileup pileup) {
-        Object stats = sampleStats.get(sample);
+        Object stats = sampleStats.get(sample.getId());
         double mn;
         double std;
         if ( stats instanceof Pair ) {

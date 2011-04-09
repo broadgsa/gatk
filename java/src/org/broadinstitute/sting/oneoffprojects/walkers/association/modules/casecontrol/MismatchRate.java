@@ -19,18 +19,19 @@ import java.util.*;
  */
 public class MismatchRate extends ValueTest {
 
-    private Map<Sample,Object> sampleStats = new HashMap<Sample,Object>();
+    private Map<String,Object> sampleStats = new HashMap<String,Object>();
     private int currentRefBase = 0;
 
     public void init(RegionalAssociationWalker walker) {
+        super.init(walker);
         Set<Sample> samples = walker.getSamples();
         for ( Sample s : samples ) {
             if ( s.hasProperty("mismatch_rate.mean") && s.hasProperty("mismatch_rate.std") ) {
                 double mn = (Double) s.getProperty("mismatch_rate.mean");
                 double std = (Double) s.getProperty("mismatch_rate.std");
-                sampleStats.put(s,new Pair<Double,Double>(mn,std));
+                sampleStats.put(s.getId(),new Pair<Double,Double>(mn,std));
             } else {
-                sampleStats.put(s,new MathUtils.RunningAverage());
+                sampleStats.put(s.getId(),new MathUtils.RunningAverage());
             }
         }
     }
@@ -48,7 +49,7 @@ public class MismatchRate extends ValueTest {
     }
 
     public Collection<Number> map(Sample sample, ReadBackedPileup pileup) {
-        Object stats = sampleStats.get(sample);
+        Object stats = sampleStats.get(sample.getId());
         double mn;
         double std;
         if ( stats instanceof Pair ) {

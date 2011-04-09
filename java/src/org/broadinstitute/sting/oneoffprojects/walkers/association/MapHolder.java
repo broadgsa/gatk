@@ -6,21 +6,26 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class MapHolder {
     private RefMetaDataTracker tracker;
     private ReferenceContext ref;
-    private Map<Sample, AlignmentContext> alignments;
+    private Map<String, AlignmentContext> alignments;
 
     public MapHolder(RefMetaDataTracker t, ReferenceContext r, AlignmentContext a) {
         tracker = t;
         ref = r;
-        alignments = AlignmentContextUtils.splitContextBySample(a);
+        alignments = AlignmentContextUtils.splitContextBySampleName(a);
     }
 
-    public Map<Sample, AlignmentContext> getContext() {
-        return alignments;
+    public Map<Sample, AlignmentContext> getContext(Map<String,Sample> stringSampleMap) {
+        Map<Sample,AlignmentContext> mappedContexts = new HashMap<Sample,AlignmentContext>(alignments.size());
+        for ( Map.Entry<String,AlignmentContext> entry : alignments.entrySet() ) {
+            mappedContexts.put(stringSampleMap.get(entry.getKey()),entry.getValue());
+        }
+        return mappedContexts;
     }
 
     public ReferenceContext getRef() {

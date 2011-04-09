@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.association;
 
+import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 
@@ -15,8 +16,8 @@ public class RegionalAssociationHandler {
     // todo -- the correct way to do this is via the PluginManager (a la VariantEval) but this is a QND implementation
     private Set<AssociationContext> associations;
 
-    public RegionalAssociationHandler(Set<AssociationContext> contexts) {
-        maps = new MapExtender();
+    public RegionalAssociationHandler(Set<AssociationContext> contexts, Set<Sample> samples) {
+        maps = new MapExtender(samples);
         associations = contexts;
     }
 
@@ -51,10 +52,14 @@ public class RegionalAssociationHandler {
             if ( w.isFull() ) {
                 String outVal;
                 if ( bedGraphFormat ) {
-                    Pair<Double,Pair<Double,Integer>> vals = AssociationTestRunner.getTestValues(w);
-                    outVal = String.format("%.2f\t%.2e\t%d",vals.first,vals.second.first,vals.second.second);
+                    Pair<Double,Pair<Double,Integer>> statVals = AssociationTestRunner.getTestValues(w);
+                    Pair<Double,Double> simpleDichotVals = AssociationTestRunner.getDichotomizedValues(w);
+                    outVal = String.format("%.2f\t%.2e\t%d\t%.2f\t%.2f",statVals.first,statVals.second.first,statVals.second.second,
+                            simpleDichotVals.first,simpleDichotVals.second);
                 } else {
                     outVal = AssociationTestRunner.runTests(w);
+                    Pair<Double,Double> simpleDichotVals = AssociationTestRunner.getDichotomizedValues(w);
+                    outVal += String.format("\tD: %.2f\tLogD: %.2f",simpleDichotVals.first,simpleDichotVals.second);
                 }
                 testResults.put(w,String.format("%s\t%d\t%d\t%s",maps.getReferenceContext().getLocus().getContig(),
                         maps.getReferenceContext().getLocus().getStart()-w.getWindowSize()-1,maps.getReferenceContext().getLocus().getStart()+1, outVal));

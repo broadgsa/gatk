@@ -3,6 +3,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.case
 
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.oneoffprojects.walkers.association.AssociationContext;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.HashMap;
@@ -24,6 +25,12 @@ public abstract class CaseControl<X> extends AssociationContext<X,X> {
         X accumControl = null;
         for ( Map<Sample,X> sampleXMap : window ) {
             for ( Map.Entry<Sample,X> entry : sampleXMap.entrySet() ) {
+                boolean isCase;
+                try {
+                    isCase = entry.getKey().getProperty("cohort").equals("case");
+                } catch (NullPointerException e) {
+                    throw new UserException("Sample "+entry.getKey().getId()+" does not have a cohort assigned");
+                }
                 if ( entry.getKey().getProperty("cohort").equals("case") ) {
                     accumCase = accum(accumCase, entry.getValue());
                 } else if ( entry.getKey().getProperty("cohort").equals("control") ) {

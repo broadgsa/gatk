@@ -15,21 +15,13 @@ import java.util.*;
 public abstract class AssociationContext<X,Y> {
 
     protected List<Map<Sample,Y>> window;
-    private final int size;
-    private final int slide;
+    private int size;
+    private int slide;
 
     public AssociationContext() {
-        this(0,0);
-    }
-
-    public AssociationContext(final int winSize, final int winSlide) {
-        window = new ArrayList<Map<Sample, Y>>(winSize);
-        size = winSize;
-        slide = winSlide;
     }
 
     public AssociationContext(final RegionalAssociationWalker parent) {
-        this(parent.windowSize,parent.slideBy);
         this.init(parent);
     }
 
@@ -46,7 +38,11 @@ public abstract class AssociationContext<X,Y> {
     public boolean filter(MapExtender m) { return true; }
 
     // a basic initialization of the context (give the walker for access to object?)
-    public void init(RegionalAssociationWalker walker) { }
+    public void init(RegionalAssociationWalker walker) {
+        size = walker.windowSize;
+        slide = walker.slideBy;
+        window = new ArrayList<Map<Sample,Y>>(size);
+    }
 
     public Map<Sample,Object> mapLocus(MapExtender extender) {
         Map<Sample,ReadBackedPileup> pileups;
