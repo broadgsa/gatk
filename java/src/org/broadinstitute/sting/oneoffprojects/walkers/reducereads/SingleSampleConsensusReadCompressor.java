@@ -1,0 +1,294 @@
+package org.broadinstitute.sting.oneoffprojects.walkers.reducereads;
+
+import net.sf.samtools.*;
+import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.clipreads.ClippingOp;
+import org.broadinstitute.sting.utils.clipreads.ClippingRepresentation;
+import org.broadinstitute.sting.utils.clipreads.ReadClipper;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+
+import java.io.PrintStream;
+import java.util.*;
+
+//import org.broadinstitute.sting.utils.SimpleTimer;
+
+/*
+ * Copyright (c) 2009 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/**
+ *
+ * @author depristo
+ * @version 0.1
+ */
+public class SingleSampleConsensusReadCompressor implements ConsensusReadCompressor {
+    protected static final Logger logger = Logger.getLogger(SingleSampleConsensusReadCompressor.class);
+    private static final boolean DEBUG = false;
+    private static final boolean INVERT = false;
+    private static final boolean PRINT_CONSENSUS_READS = false;
+    private static final double MAX_FRACTION_DISAGREEING_BASES = 0.1;
+    private static final ClippingRepresentation VARIABLE_READ_REPRESENTATION = ClippingRepresentation.SOFTCLIP_BASES;
+
+    /** The place where we ultimately write out our records */
+    Queue<SAMRecord> waitingReads = new LinkedList<SAMRecord>();
+
+    final int readContextSize;
+    final int maxReadsAtVariableSites = 50;
+    long nCompressedReads = 0;
+
+    final String contig;
+    final GenomeLocParser glParser;
+    SAMFileHeader header;
+
+    // todo -- require minimum read size of 2 bp in variable region
+
+    public SingleSampleConsensusReadCompressor(final int readContextSize,
+                                               final GenomeLocParser glParser,
+                                               final String contig) {
+        this.readContextSize = readContextSize;
+        this.glParser = glParser;
+        this.contig = contig;
+    }
+
+    /**
+     * @{inheritDoc}
+     */
+    public void addAlignment( SAMRecord read ) {
+        if ( header == null )
+            header = read.getHeader();
+
+        if ( ! read.getDuplicateReadFlag() && ! read.getNotPrimaryAlignmentFlag() && ! read.getReadUnmappedFlag() )
+            waitingReads.add(read);
+    }
+
+    public void writeConsensusBed(PrintStream bedOut) {
+        for ( ConsensusSite site : calculateConsensusSites(waitingReads) ) {
+            GenomeLoc loc = site.getLoc();
+            bedOut.printf("%s\t%d\t%d\t%s%n", loc.getContig(), loc.getStart()-1, loc.getStop(), site.counts);
+        }
+    }
+
+    @Override
+    public Iterator<SAMRecord> iterator() {
+        return consensusReads().iterator();
+    }
+
+    public Collection<SAMRecord> consensusReads() {
+        if ( ! waitingReads.isEmpty() ) {
+            List<ConsensusSite> sites = calculateConsensusSites(waitingReads);
+            List<ConsensusSpan> spans = calculateSpans(sites);
+            return consensusReadsFromSitesAndSpans(sites, spans);
+        } else {
+            return Collections.EMPTY_LIST;
+        }
+    }
+
+    private List<ConsensusSite> expandVariableSites(List<ConsensusSite> sites) {
+        for ( ConsensusSite site : sites )
+            site.setMarkedType(ConsensusType.CONSERVED);
+
+        for ( int i = 0; i < sites.size(); i++ ) {
+            ConsensusSite site = sites.get(i);
+            if ( ! site.isStrongConsensus(MAX_FRACTION_DISAGREEING_BASES) ) {
+                int start = Math.max(i - readContextSize, 0);
+                int stop = Math.min(sites.size(), i + readContextSize + 1);
+                for ( int j = start; j < stop; j++ ) {
+                    // aggressive tagging -- you are only conserved if you are never variable
+                    sites.get(j).setMarkedType(ConsensusType.VARIABLE);
+                }
+            }
+        }
+
+        return sites;
+    }
+
+    private List<ConsensusSpan> calculateSpans(List<ConsensusSite> rawSites) {
+        List<ConsensusSite> sites = expandVariableSites(rawSites);
+        List<ConsensusSpan> spans = new ArrayList<ConsensusSpan>();
+        int start = 0;
+
+        // our first span type is the type of the first site
+        ConsensusType consensusType = sites.get(0).getMarkedType();
+        while ( start < sites.size() ) {
+            ConsensusSpan span = findSpan(sites, start, consensusType);
+
+            if ( span == null ) // we are done
+                return spans;
+            else {
+                spans.add(span);
+                start += span.size();
+            }
+
+            consensusType = ConsensusType.otherType(consensusType);
+        }
+
+        return spans;
+    }
+
+    private ConsensusSpan findSpan(List<ConsensusSite> sites, int start, ConsensusType consensusType) {
+        int refStart = sites.get(0).getLoc().getStart();
+
+        for ( int end = start + 1; end < sites.size(); end++ ) {
+            ConsensusSite site = sites.get(end);
+            boolean conserved = site.getMarkedType() == ConsensusType.CONSERVED;
+            if ( (consensusType == ConsensusType.CONSERVED && ! conserved) ||
+                 (consensusType == ConsensusType.VARIABLE && conserved) ||
+                 end + 1 == sites.size() ) { // we are done with the complete interval
+                GenomeLoc loc = glParser.createGenomeLoc(contig, start+refStart, end+refStart-1);
+                return new ConsensusSpan(refStart, loc, consensusType);
+            }
+        }
+
+        return null; // couldn't find anything
+    }
+
+
+    private List<ConsensusSite> calculateConsensusSites(Collection<SAMRecord> reads) {
+        SAMRecord firstRead = reads.iterator().next();
+        int refStart = firstRead.getAlignmentStart();
+        int refEnd = furtherestEnd(reads);
+
+        // set up the consensus site array
+        List<ConsensusSite> consensusSites = new ArrayList<ConsensusSite>();
+        int len = refEnd - refStart + 1;
+        for ( int i = 0; i < len; i++ ) {
+            int l = refStart + i;
+            GenomeLoc loc = glParser.createGenomeLoc(contig, l, l);
+            consensusSites.add(new ConsensusSite(loc, i));
+        }
+
+        for ( SAMRecord read : reads ) {
+            for ( RefPileupElement p : RefPileupElement.walkRead(read, refStart) ) {
+                // add to the consensus at this site
+                consensusSites.get(p.getRefOffset()).addOverlappingRead(p);
+            }
+        }
+
+        return consensusSites;
+    }
+
+    private List<SAMRecord> consensusReadsFromSitesAndSpans(List<ConsensusSite> sites, List<ConsensusSpan> spans) {
+        List<SAMRecord> reads = new ArrayList<SAMRecord>();
+
+        for ( ConsensusSpan span : spans ) {
+            logger.info("Span is " + span);
+            if ( span.isConserved() )
+                reads.addAll(conservedSpanReads(sites, span));
+            else
+                reads.addAll(downsample(variableSpanReads(sites, span)));
+        }
+
+        return reads;
+    }
+
+    private Collection<SAMRecord> downsample(Collection<SAMRecord> reads) {
+        if ( reads.size() > maxReadsAtVariableSites ) {
+            List<SAMRecord> readArray = new ArrayList<SAMRecord>(reads);
+            Collections.shuffle(readArray, GenomeAnalysisEngine.getRandomGenerator());
+            return readArray.subList(0, maxReadsAtVariableSites);
+        } else {
+            return reads;
+        }
+    }
+
+    private List<SAMRecord> conservedSpanReads(List<ConsensusSite> sites, ConsensusSpan span) {
+        byte[] bases = new byte[span.size()];
+        byte[] quals = new byte[span.size()];
+
+        for ( int i = 0; i < span.size(); i++ ) {
+            int refI = i + span.getOffsetFromStartOfSites();
+            ConsensusSite site = sites.get(refI);
+            if ( site.getMarkedType() == ConsensusType.VARIABLE )
+                throw new ReviewedStingException("Variable site included in consensus: " + site);
+            final int count = site.counts.countOfMostCommonBase();
+            final byte base = count == 0 ? (byte)'N' : site.counts.baseWithMostCounts();
+            bases[i] = base;
+            quals[i] = QualityUtils.boundQual(count, (byte)64);
+        }
+
+        SAMRecord consensus = new SAMRecord(header);
+        consensus.setReferenceName(contig);
+        consensus.setReadName("Mark");
+        consensus.setCigarString(String.format("%dM", span.size()));
+        consensus.setReadPairedFlag(false);
+        consensus.setAlignmentStart(span.getGenomeStart());
+        consensus.setReadBases(bases);
+        consensus.setBaseQualities(quals);
+        consensus.setMappingQuality(60);
+
+//        if ( INVERT && PRINT_CONSENSUS_READS )
+//            for ( SAMRecord read : consensusReads )
+//                finalDestination.addAlignment(read);
+
+        return Collections.singletonList(consensus);
+    }
+
+    private Collection<SAMRecord> variableSpanReads(List<ConsensusSite> sites, ConsensusSpan span) {
+        Set<SAMRecord> reads = new HashSet<SAMRecord>();
+
+        for ( int i = 0; i < span.size(); i++ ) {
+            int refI = i + span.getOffsetFromStartOfSites();
+            ConsensusSite site = sites.get(refI);
+            for ( PileupElement p : site.getOverlappingReads() ) {
+//                if ( reads.contains(p.getRead()))
+//                    logger.info("Skipping already added read: " + p.getRead().getReadName());
+                reads.add(clipReadToSpan(p.getRead(), span));
+            }
+        }
+
+        return reads;
+    }
+
+    private SAMRecord clipReadToSpan(SAMRecord read, ConsensusSpan span) {
+        ReadClipper clipper = new ReadClipper(read);
+        int spanStart = span.getGenomeStart();
+        int spanEnd = span.getGenomeStop();
+        int readLen = read.getReadLength();
+
+        for ( RefPileupElement p : RefPileupElement.walkRead(read) ) {
+            if ( p.getRefOffset() == spanStart && p.getOffset() != 0 ) {
+                clipper.addOp(new ClippingOp(0, p.getOffset()));
+            }
+
+            if ( p.getRefOffset() == spanEnd && p.getOffset() != readLen - 1 ) {
+                clipper.addOp(new ClippingOp(p.getOffset() + 1, readLen - 1));
+            }
+        }
+
+        return clipper.clipRead(VARIABLE_READ_REPRESENTATION);
+    }
+
+    private static int furtherestEnd(Collection<SAMRecord> reads) {
+        int end = -1;
+        for ( SAMRecord read : reads ) {
+            end = Math.max(end, read.getAlignmentEnd());
+        }
+        return end;
+    }
+}

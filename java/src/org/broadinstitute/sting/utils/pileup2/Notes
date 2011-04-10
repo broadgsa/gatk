@@ -1,0 +1,34 @@
+Features needed:
+
+- intrinsic support for samples.  Pileups are tree based data structures whose leaves are actual
+pile ups of a single "sample" and whose nodes are collections of multiple sub pileups.  This will
+make join and split operations very cheap.
+
+- should be light-weight to create, and hold only minimal cached data to avoid unnecessary overhead.
+Things like the number of deletions, insertions, etc shouldn't be required information.  Size will
+continue to be a key cached value.  Could create a simple caching data structure that calculations lots of metrics about the pileup and was somehow
+cached internally, via a "CachedRBP" structure.  This will make it very cheap and easy to filter
+pileups on the fly, costing O(N) to create the filtered context.
+
+- immutable
+
+- support for holding neighboring reads to the left and right of the pileup itself
+
+- unified picture for "regular" and "extended" events.  ExtendedEvents are really a special
+call from the engine and have nothing to do with the data itself.
+
+- Where should algorithms operating on the pileups go?  Two options are in the interface itself,
+making it very heavy-weight but easy to access, vs. in an associated PileupOps static methods, a
+la Collections.
+
+- The Pileup2 should support in the fly filtering, so that read filters can be added at the top level
+and applied at all levels of the tree.  Basically a filtering pileup would just create a new
+mirrored tree with filtering applied to each node.   Very low overhead.
+
+- Sizes could be cached as needed, so that only one pass is ever needed over the size of any pileup
+
+- Fundamentally pileups are just collections of read-backed data.  The PileupElements contain
+all of the smarts -- regular, indel, fragment-based.  We need to be able to create pileups containing
+multiple subtype elements, which by necessity will need to declare their own static consensusType.  How is it
+best to do this in Java?  Have a single global ENUM that enumerates all of the possible types at
+compile time?  Perhaps something more dynamic?

@@ -25,53 +25,50 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers.reducereads;
 
-import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMRecord;
-import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.
  * User: depristo
  * Date: April 7, 2011
  */
-public class ReduceReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
+public class ReduceReadsWalker extends ReadWalker<SAMRecord, Collection<SAMRecord>> {
     @Output
     protected StingSAMFileWriter out;
 
-    @Argument(fullName = "SNPContextSize", shortName = "SCS", doc = "", required = true)
-    protected int SNPContextSize;
+    @Output(fullName="bedOut", shortName = "bedOut", doc="BED output", required = false)
+    protected PrintStream bedOut = null;
 
-    @Argument(fullName = "IndelContextSize", shortName = "ICS", doc = "", required = true)
-    protected int IndelContextSize;
+    @Argument(fullName = "contextSize", shortName = "CS", doc = "", required = false)
+    protected int contextSize = 10;
 
-    protected ReducingSAMFileWriter reducingOut;
+    @Argument(fullName = "INCLUDE_RAW_READS", shortName = "IRR", doc = "", required = false)
+    protected boolean INCLUDE_RAW_READS = false;
+
+    @Argument(fullName = "useRead", shortName = "UR", doc = "", required = false)
+    protected Set<String> readNamesToUse;
+
     protected int totalReads = 0;
 
     @Override
     public void initialize() {
-        reducingOut = new ReducingSAMFileWriter(out, SNPContextSize, IndelContextSize);
+        super.initialize();
+        out.setPresorted(false);
     }
 
     @Override
     public SAMRecord map( ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker ) {
-        for ( GATKFeature feature : metaDataTracker.getAllCoveringRods() ) {
-            if ( feature.getUnderlyingObject() instanceof VariantContext ) {
-                VariantContext vc = (VariantContext)feature.getUnderlyingObject();
-                reducingOut.addVariant(vc);
-            }
-        }
-
         totalReads++;
         return read; // all the work is done in the reduce step for this walker
     }
@@ -83,26 +80,45 @@ public class ReduceReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
      * @return SAMFileWriter, set to the BAM output file if the command line option was set, null otherwise
      */
     @Override
-    public SAMFileWriter reduceInit() {
-        return reducingOut;
+    public Collection<SAMRecord> reduceInit() {
+        return new ArrayList<SAMRecord>();
     }
 
     /**
      * given a read and a output location, reduce by emitting the read
      * @param read the read itself
-     * @param output the output source
      * @return the SAMFileWriter, so that the next reduce can emit to the same source
      */
-    public SAMFileWriter reduce( SAMRecord read, SAMFileWriter output ) {
-        output.addAlignment(read);
-        return output;
+    public Collection<SAMRecord> reduce( SAMRecord read, Collection<SAMRecord> reads ) {
+        if ( readNamesToUse == null || readNamesToUse.contains(read.getReadName()) )
+            reads.add(read);
+        return reads;
     }
 
-    public void onTraversalDone( SAMFileWriter reduceResult ) {
-        logger.info("Compressed reads: " + reducingOut.getNCompressedReads());
-        logger.info("Total reads     : " + totalReads);
-        // todo -- fixme
-        //reducingOut.close();
+    @Override
+    public void onTraversalDone( Collection<SAMRecord> reads ) {
+        String contig = reads.iterator().next().getReferenceName();
+        ConsensusReadCompressor compressor =
+                new MultiSampleConsensusReadCompressor(getToolkit().getSAMFileHeader(),
+                        contextSize, getToolkit().getGenomeLocParser(), contig);
+
+        // add all of the reads to the compressor
+        for ( SAMRecord read : reads ) {
+            if ( INCLUDE_RAW_READS )
+                out.addAlignment(read);
+            compressor.addAlignment(read);
+        }
+
+        // compress the reads
+        //compressor.writeConsensusBed(bedOut);
+        int nCompressedReads = 0;
+        for ( SAMRecord read : compressor ) {
+            out.addAlignment(read);
+            nCompressedReads++;
+        }
+
+        logger.info("Compressed reads : " + nCompressedReads);
+        logger.info("Total reads      : " + totalReads);
     }
     
 }
