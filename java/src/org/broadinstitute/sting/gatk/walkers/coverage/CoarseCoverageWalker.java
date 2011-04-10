@@ -46,7 +46,10 @@ public class CoarseCoverageWalker extends ReadWalker<Integer,Integer> {
 	
     @Argument(fullName="granularity", shortName="G", doc="Granularity", required=true)
     public Integer N;
-	
+
+    @Argument(fullName="dontZeroMissingContigs", shortName="Z", doc="If provided, we won't emit 0 counts for all sites on contigs skipped", required=true)
+    public boolean dontZeroMissingContigs;
+
     private int chunkStart = 1; // start of the current chunk we are counting reads for
     private int contig = 0; // current contig we are on
     private int count = 0; // number of reads overlapping with the current chunk
@@ -73,11 +76,13 @@ public class CoarseCoverageWalker extends ReadWalker<Integer,Integer> {
 			count = 0;
 			
 			// if we skipped one or more contigs completely, make sure we print 0 counts over all of them:
-			for ( contig++ ; contig < read.getReferenceIndex() ; contig++) {
-				int contigSize = read.getHeader().getSequence(contig).getSequenceLength();
-				for ( int k = 1 ; k < contigSize ;  k+=N ) out.println(zeroString);
-			}
-			// by now we scrolled to the right contig
+            for ( contig++ ; contig < read.getReferenceIndex() ; contig++) {
+                if ( ! dontZeroMissingContigs ) {
+                    int contigSize = read.getHeader().getSequence(contig).getSequenceLength();
+                    for ( int k = 1 ; k < contigSize ;  k+=N ) out.println(zeroString);
+                }
+            }
+            // by now we scrolled to the right contig
 			
 			chunkStart = 1; // reset chunk start
 		}
