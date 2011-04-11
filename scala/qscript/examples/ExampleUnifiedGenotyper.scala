@@ -36,14 +36,12 @@ class ExampleUnifiedGenotyper extends QScript {
   // and then reuse this trait on each CommandLineGATK function below.
   trait UnifiedGenotyperArguments extends CommandLineGATK {
     this.reference_sequence = qscript.referenceFile
-    this.intervals = List(qscript.intervals)
-    //  is how you set the value for an scala Option.
+    this.intervals = if (qscript.intervals == null) Nil else List(qscript.intervals)
     // Set the memory limit to 2 gigabytes on each command.
     this.memoryLimit = 2
   }
 
-
-  def script = {
+  def script() {
     // Create the four function that we can run.
     val genotyper = new UnifiedGenotyper with UnifiedGenotyperArguments
     val variantFilter = new VariantFiltration with UnifiedGenotyperArguments

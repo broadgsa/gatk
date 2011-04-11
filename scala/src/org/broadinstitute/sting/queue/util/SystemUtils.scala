@@ -32,7 +32,7 @@ import io.Source
 /**
  * A collection of various system utilities.
  */
-object SystemUtils {
+object SystemUtils extends Logging {
   val inetAddress = InetAddress.getLocalHost.getHostAddress
   val canonicalHostName = InetAddress.getLocalHost.getCanonicalHostName
 
@@ -46,7 +46,13 @@ object SystemUtils {
   val mailName = {
     val mailnameFile = new File("/etc/mailname")
     if (mailnameFile.exists)
-      Source.fromFile(mailnameFile).mkString.trim
+      try {
+        Source.fromFile(mailnameFile).mkString.trim
+      } catch {
+        case e: Exception =>
+          logger.error("Unabled to read mail domain. Using hostname.", e)
+          hostName.split('.').takeRight(2).mkString(".")
+      }
     else
       hostName.split('.').takeRight(2).mkString(".")
   }

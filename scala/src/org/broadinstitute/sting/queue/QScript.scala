@@ -24,15 +24,15 @@
 
 package org.broadinstitute.sting.queue
 
-import util.{PrimitiveOptionConversions, Logging}
 import org.broadinstitute.sting.queue.function.QFunction
-import org.broadinstitute.sting.utils.text.XReadLines
 import annotation.target.field
+import io.Source
+import util.{StringFileConversions, PrimitiveOptionConversions, Logging}
 
 /**
  * Defines a Queue pipeline as a collection of CommandLineFunctions.
  */
-trait QScript extends Logging with PrimitiveOptionConversions {
+trait QScript extends Logging with PrimitiveOptionConversions with StringFileConversions  {
 
   // Type aliases so users don't have to import
   type File = java.io.File
@@ -55,7 +55,7 @@ trait QScript extends Logging with PrimitiveOptionConversions {
   /**
    * Builds the CommandLineFunctions that will be used to run this script and adds them to this.functions directly or using the add() utility method.
    */
-  def script: Unit
+  def script()
 
   /**
    * The command line functions that will be executed for this QScript.
@@ -80,17 +80,6 @@ trait QScript extends Logging with PrimitiveOptionConversions {
    * @param newExtension New extension to append.
    * @return new File with the new extension in dir.
    */
-  protected def swapExt(dir: String, file: File, oldExtension: String, newExtension: String) =
-    new File(dir, file.getName.stripSuffix(oldExtension) + newExtension)
-
-  /**
-   * Exchanges the extension on a file.
-   * @param dir New directory for the file.
-   * @param file File to look for the extension.
-   * @param oldExtension Old extension to strip off, if present.
-   * @param newExtension New extension to append.
-   * @return new File with the new extension in dir.
-   */
   protected def swapExt(dir: File, file: File, oldExtension: String, newExtension: String) =
     new File(dir, file.getName.stripSuffix(oldExtension) + newExtension)
 
@@ -103,13 +92,11 @@ trait QScript extends Logging with PrimitiveOptionConversions {
     this.functions ++= functions
   }
 
-  def addAll(functions: List[QFunction] ) = {
+  def addAll(functions: List[QFunction]) {
     functions.foreach( f => add(f) )
   }
 
-  def extractFileEntries(in: File): List[File] = {
-    return collection.JavaConversions.asScalaIterator((new XReadLines(in))).toList.map( new File(_) )
-  }
+  def extractFileEntries(in: File): List[File] = Source.fromFile(in).getLines().toList
 }
 
 object QScript {
