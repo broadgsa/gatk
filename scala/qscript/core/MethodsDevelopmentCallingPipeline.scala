@@ -209,6 +209,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     if (qscript.deletions >= 0)
       this.max_deletion_fraction = qscript.deletions
     this.out = t.rawVCF
+    this.glm = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.SNP
     this.baq = if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY}
     this.analysisName = t.name + "_UGs"
     this.jobName =  queueLogDir + t.name + ".snpcall"
@@ -217,7 +218,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   // 1b.) Call Indels with UG
   class indelCall (t: Target) extends GenotyperBase(t) {
     this.out = t.rawIndelVCF
-    this.glm = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL
+    this.glm = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.INDEL
     this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF
     this.analysisName = t.name + "_UGi"
     this.jobName =  queueLogDir + t.name + ".indelcall"
