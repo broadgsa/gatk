@@ -31,7 +31,7 @@ class Exome_VQSR_FullSearch extends QScript {
 
   var VQSR_RODBINDS : HashMap[String,List[RodBind]] = new HashMap[String,List[RodBind]]
   val VQSR_TAG_FT = "known=false,training=true,truth=%s,prior=%s"
-  val VQSR_DBSNP_TAG = "known=true,training=false,truth=false"
+  val VQSR_DBSNP_TAG = "known=true,training=false,truth=false,prior=0.1"
 
 
   for ( tf <- List( (true,false),(false,true),(true,true)) ) {
@@ -69,7 +69,7 @@ class Exome_VQSR_FullSearch extends QScript {
 
     trait ExpandedIntervals extends CommandLineGATK {
       if (EXPAND_INTS > 0) {
-        this.intervals :+= ei.outList
+        this.intervals :+= ei.outList.getAbsoluteFile
       }
     }
 
@@ -177,7 +177,7 @@ class Exome_VQSR_FullSearch extends QScript {
               exons.tranchesFile = new File(nameFormat.format("exons")+"tranche")
               exons.recalFile = new File(nameFormat.format("exons")+"recal")
               var flanks = new ContrastiveRecalibrator with VQSR_Args
-              flanks.intervals :+= ei.outList
+              flanks.intervals :+= ei.outList.getAbsoluteFile
               flanks.jarFile = GATK_JAR
               flanks.memoryLimit = Some(8)
               flanks.reference_sequence = REF
@@ -211,6 +211,12 @@ class Exome_VQSR_FullSearch extends QScript {
     trait ApplyArgs extends ApplyRecalibration with ImplicitArgs {
       this.tranchesFile = recal.tranchesFile
       this.recalFile = recal.recalFile
+      for ( r <- recal.rodBind ) {
+        if ( r.trackName.startsWith("input") ) {
+          this.rodBind :+= r
+        }
+      }
+      this.memoryLimit = Some(4)
     }
 
     trait EvalArgs extends VariantEval with ImplicitArgs {
@@ -218,6 +224,7 @@ class Exome_VQSR_FullSearch extends QScript {
       this.evalModule = List("TiTvVariantEvaluator","CountVariants","GenotypeConcordance")
       this.rodBind :+= RodBind("dbsnp","VCF",DBSNP_129)
       this.rodBind :+= RodBind("compAxiom","VCF",AXIOM_CHIP)
+      this.memoryLimit = Some(4)
     }
 
     val extender = if ( ext != null ) ".cut%.1f."+ext else ".cut%.1f"

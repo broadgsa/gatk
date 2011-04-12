@@ -24,9 +24,17 @@ public class AssociationTestRunner {
     final static int MAX_Q_VALUE = Integer.MAX_VALUE;
     // todo -- this was written when ACs could implement interfaces, now that they extend, there's no multiple inheritance
     final static Dichotomizer1D.Transform LOG_TRANSFORM = (new Dichotomizer1D()).new Transform() {
+        private double EPSILON = 1e-20;
         @Override
         public double transform(double d) {
-            return Math.log(d);
+            return Math.log(d+EPSILON);
+        }
+    };
+
+    final static Dichotomizer1D.Transform ARCSINE_TRANSFORM = (new Dichotomizer1D()).new Transform() {
+        @Override
+        public double transform(double d) {
+            return Math.asin(1.0-d);
         }
     };
 

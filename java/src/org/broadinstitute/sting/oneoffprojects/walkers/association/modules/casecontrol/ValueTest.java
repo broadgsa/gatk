@@ -46,9 +46,9 @@ public abstract class ValueTest extends CaseControl<Collection<Number>> implemen
         for ( Map<Sample,Collection<Number>> sampleMap : window ) {
             for ( Map.Entry<Sample,Collection<Number>> sampleEntry : sampleMap.entrySet() ) {
                 if ( sampleEntry.getKey().getProperty("cohort").equals("case") ) {
-                    caseMeans.add(MathUtils.average(sampleEntry.getValue()));
+                    caseMeans.add(MathUtils.average(sampleEntry.getValue(),true));
                 } else if ( sampleEntry.getKey().getProperty("cohort").equals("control") ) {
-                    controlMeans.add(MathUtils.average(sampleEntry.getValue()));
+                    controlMeans.add(MathUtils.average(sampleEntry.getValue(),true));
                 }
             }
         }
@@ -83,11 +83,11 @@ public abstract class ValueTest extends CaseControl<Collection<Number>> implemen
         if ( caseControlVectors == null || caseControlVectors.get(CaseControl.Cohort.CASE) == null || caseControlVectors.get(CaseControl.Cohort.CONTROL) == null ) {
             return new Pair<Double,Double>(Double.NaN,Double.NaN);
         }
-        double meanCase = MathUtils.average(caseControlVectors.get(CaseControl.Cohort.CASE));
-        double varCase = MathUtils.variance(caseControlVectors.get(CaseControl.Cohort.CASE),meanCase);
+        double meanCase = MathUtils.average(caseControlVectors.get(CaseControl.Cohort.CASE),true);
+        double varCase = MathUtils.variance(caseControlVectors.get(CaseControl.Cohort.CASE),meanCase,true);
         double nCase =  caseControlVectors.get(CaseControl.Cohort.CASE).size();
-        double meanControl = MathUtils.average(caseControlVectors.get(CaseControl.Cohort.CONTROL));
-        double varControl =  MathUtils.variance(caseControlVectors.get(CaseControl.Cohort.CONTROL),meanControl);
+        double meanControl = MathUtils.average(caseControlVectors.get(CaseControl.Cohort.CONTROL),true);
+        double varControl =  MathUtils.variance(caseControlVectors.get(CaseControl.Cohort.CONTROL),meanControl,true);
         double nControl = caseControlVectors.get(CaseControl.Cohort.CONTROL).size();
 
         double df_num = Math.pow(varCase/nCase + varControl/nControl,2);

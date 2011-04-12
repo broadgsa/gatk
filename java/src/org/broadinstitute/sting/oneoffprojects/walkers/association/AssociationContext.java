@@ -64,6 +64,9 @@ public abstract class AssociationContext<X,Y> {
         window.add(sampleData);
     }
 
+    public void flush() {
+        window = new ArrayList<Map<Sample,Y>>(size);
+    }
 
     public boolean isFull() {
         return window.size() >= size;
@@ -78,4 +81,7 @@ public abstract class AssociationContext<X,Y> {
     public int getWindowSize() {
         return window.size();
     }
+
+    public boolean testOnFlush() { return true; }
+    public boolean canFlush() { return true; }
 }

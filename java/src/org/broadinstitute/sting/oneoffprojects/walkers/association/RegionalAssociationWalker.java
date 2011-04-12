@@ -65,7 +65,7 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
 
     public RegionalAssociationHandler reduceInit() {
         Set<AssociationContext> validAssociations = getAssociations();
-        RegionalAssociationHandler wac = new RegionalAssociationHandler(validAssociations,getSamples());
+        RegionalAssociationHandler wac = new RegionalAssociationHandler(validAssociations,getSamples(),bedGraph);
 
         return wac;
     }
@@ -76,14 +76,15 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
 
     public RegionalAssociationHandler reduce(MapHolder map, RegionalAssociationHandler rac) {
         rac.updateExtender(map);
+        Map<AssociationContext,String> testResults;
         try {
-            rac.runMapReduce();
+            testResults = rac.runMapReduce();
         } catch (Exception e) {
             throw new StingException("Error in map reduce",e);
         }
-        Map<AssociationContext,String> testsHere = rac.runTests(bedGraph);
-        if ( testsHere.size() > 0 ) {
-            for ( Map.Entry<AssociationContext,String> result : testsHere.entrySet() ) {
+
+        if ( testResults.size() > 0 ) {
+            for ( Map.Entry<AssociationContext,String> result : testResults.entrySet() ) {
                 out.get(result.getKey().getClass()).printf("%s%n",result.getValue());
             }
         }

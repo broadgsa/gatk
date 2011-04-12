@@ -41,11 +41,22 @@ public class Dichotomizer1D {
      * @return - the so-called "Z"-factor (effect size/spread)
      */
     public static double simpleGaussianDichotomy(Collection<Number> setOne, Collection<Number> setTwo) {
-        double meanOne = MathUtils.sum(setOne)/setOne.size();
-        double meanTwo = MathUtils.sum(setTwo)/setTwo.size();
-        double stdOne = Math.sqrt(MathUtils.variance(setOne, meanOne));
-        double stdTwo = Math.sqrt(MathUtils.variance(setTwo, meanTwo));
+        double meanOne = MathUtils.average(setOne,true);
+        double meanTwo = MathUtils.average(setTwo,true);
+        double stdOne = Math.sqrt(MathUtils.variance(setOne, meanOne,true));
+        double stdTwo = Math.sqrt(MathUtils.variance(setTwo, meanTwo,true));
+        /*
+        System.out.print("setOne: ");
+        for ( Number n : setOne ) {
+            System.out.printf(",%.2f",n.doubleValue());
+        }
+        System.out.print("\tsetTwo: ");
+        for ( Number n : setTwo ) {
+            System.out.printf(",%.2f",n.doubleValue());
+        }
 
+        System.out.printf("\tmn1: %.2f mn2: %.2f var1: %.2f var2: %.2f%n",meanOne,meanTwo,stdOne,stdTwo);
+        */
         return 1.0 - (3.0*(stdOne+stdTwo))/Math.abs(meanOne-meanTwo);
     }
 

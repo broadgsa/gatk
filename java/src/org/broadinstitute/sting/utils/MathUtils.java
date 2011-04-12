@@ -52,28 +52,56 @@ public class MathUtils {
     /** Private constructor.  No instantiating this class! */
     private MathUtils() {}
 
-    public static double sum( Collection<Number> numbers ) {
+    public static double sum(Collection<Number> numbers) {
+        return sum(numbers,false);
+    }
+
+    public static double sum( Collection<Number> numbers, boolean ignoreNan ) {
         double sum = 0;
         for ( Number n : numbers ) {
-            sum += n.doubleValue();
+            if ( ! ignoreNan || ! Double.isNaN(n.doubleValue())) {
+                sum += n.doubleValue();
+            }
         }
 
         return sum;
     }
 
-    public static double average( Collection<Number> numbers ) {
-        return sum(numbers)/numbers.size();
+    public static int nonNanSize(Collection<Number> numbers) {
+        int size = 0;
+        for ( Number n : numbers) {
+            size += Double.isNaN(n.doubleValue()) ? 0 : 1;
+        }
+
+        return size;
     }
 
-    public static double variance( Collection<Number> numbers, Number mean ) {
+    public static double average( Collection<Number> numbers, boolean ignoreNan) {
+        if ( ignoreNan ) {
+            return sum(numbers,true)/nonNanSize(numbers);
+        } else {
+            return sum(numbers,false)/nonNanSize(numbers);
+        }
+    }
+
+    public static double variance( Collection<Number> numbers, Number mean, boolean ignoreNan ) {
         double mn = mean.doubleValue();
         double var = 0;
-        for ( Number n : numbers ) { var += Math.pow( n.doubleValue() - mn , 2); }
-        return var;
+        for ( Number n : numbers ) { var += ( ! ignoreNan || ! Double.isNaN(n.doubleValue())) ? (n.doubleValue()-mn)*(n.doubleValue()-mn) : 0; }
+        if ( ignoreNan ) { return var/nonNanSize(numbers); }
+        return var/numbers.size();
+    }
+
+    public static double variance(Collection<Number> numbers, Number mean) {
+        return variance(numbers,mean,false);
+    }
+
+    public static double variance(Collection<Number> numbers, boolean ignoreNan) {
+        return variance(numbers,average(numbers,ignoreNan),ignoreNan);
     }
 
     public static double variance(Collection<Number> numbers) {
-        return variance(numbers,average(numbers));
+        return variance(numbers,average(numbers,false),false);
     }
 
     public static double sum(double[] values) {
