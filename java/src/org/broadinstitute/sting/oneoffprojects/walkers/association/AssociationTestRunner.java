@@ -31,10 +31,10 @@ public class AssociationTestRunner {
         }
     };
 
-    final static Dichotomizer1D.Transform ARCSINE_TRANSFORM = (new Dichotomizer1D()).new Transform() {
+    final static Dichotomizer1D.Transform STD_ASIN = (new Dichotomizer1D()).new Transform() {
         @Override
         public double transform(double d) {
-            return Math.asin(1.0-d);
+            return Math.asin(Math.sqrt(d));
         }
     };
 
