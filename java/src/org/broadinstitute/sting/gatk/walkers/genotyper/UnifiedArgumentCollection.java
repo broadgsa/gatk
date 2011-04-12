@@ -89,45 +89,25 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "indel_heterozygosity", shortName = "indelHeterozygosity", doc = "Heterozygosity for indel calling", required = false)
     public double INDEL_HETEROZYGOSITY = 1.0/8000;
 
-    // todo - remove these 3 arguments
-    @Argument(fullName = "insertionStartProbability", shortName = "insertionStartProbability", doc = "Heterozygosity for indel calling", required = false)
-    public double INSERTION_START_PROBABILITY = 1e-3;
-
-    @Argument(fullName = "insertionEndProbability", shortName = "insertionEndProbability", doc = "Heterozygosity for indel calling", required = false)
-    public double INSERTION_END_PROBABILITY = 0.5;
-
-    @Argument(fullName = "alphaDeletionProbability", shortName = "alphaDeletionProbability", doc = "Heterozygosity for indel calling", required = false)
-    public double ALPHA_DELETION_PROBABILITY = 1e-3;
-
-
     @Argument(fullName = "indelGapContinuationPenalty", shortName = "indelGCP", doc = "Indel gap continuation penalty", required = false)
     public double INDEL_GAP_CONTINUATION_PENALTY = 10.0;
 
     @Argument(fullName = "indelGapOpenPenalty", shortName = "indelGOP", doc = "Indel gap open penalty", required = false)
-    public double INDEL_GAP_OPEN_PENALTY = 40.0;
+    public double INDEL_GAP_OPEN_PENALTY = 45.0;
 
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
     public int INDEL_HAPLOTYPE_SIZE = 80;
     @Argument(fullName = "doContextDependentGapPenalties", shortName = "doCDP", doc = "Vary gap penalties by context", required = false)
-     public boolean DO_CONTEXT_DEPENDENT_PENALTIES = false;
+     public boolean DO_CONTEXT_DEPENDENT_PENALTIES = true;
     //gdebug+
     @Hidden
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
     public boolean OUTPUT_DEBUG_INDEL_INFO = false;
     @Hidden
-    @Argument(fullName = "s1", shortName = "s1", doc = "Output indel debug info", required = false)
-     public String S1 = null;
-    @Hidden
-    @Argument(fullName = "s2", shortName = "s2", doc = "Output indel debug info", required = false)
-    public String S2 = null;
-    @Hidden
     @Argument(fullName = "dovit", shortName = "dovit", doc = "Output indel debug info", required = false)
     public boolean dovit = false;
     @Hidden
-    @Argument(fullName = "newlike", shortName = "newlike", doc = "Output indel debug info", required = false)
-    public boolean newlike = false;
-    //gdebug-
-
+ 
     @Argument(fullName = "exactCalculation", shortName = "exactCalculation", doc = "expt", required = false)
     public ExactAFCalculationModel.ExactCalculation EXACT_CALCULATION_TYPE = ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL;
 
@@ -168,13 +148,7 @@ public class UnifiedArgumentCollection {
         
         // todo- arguments to remove
         uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
-        uac.INSERTION_START_PROBABILITY = INSERTION_START_PROBABILITY;
-        uac.INSERTION_END_PROBABILITY = INSERTION_END_PROBABILITY;
-        uac.ALPHA_DELETION_PROBABILITY = ALPHA_DELETION_PROBABILITY;
-        uac.S1 = S1;
-        uac.S2 = S2;
         uac.dovit = dovit;
-        uac.newlike = newlike;
         
         return uac;
     }

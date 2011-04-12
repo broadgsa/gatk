@@ -83,16 +83,15 @@ public class PairHMMIndelErrorModel {
     private static final double baseMatchArray[];
     private static final double baseMismatchArray[];
 
-    private final static double LOG_ONE_THIRD;
     private final static double LOG_ONE_HALF;
     private final static double END_GAP_COST;
 
     private static final int START_HRUN_GAP_IDX = 4;
     private static final int MAX_HRUN_GAP_IDX = 20;
 
-    private static final double MIN_GAP_OPEN_PENALTY = 20.0;
-    private static final double MIN_GAP_CONT_PENALTY = 6.0;
-    private static final double GAP_PENALTY_HRUN_STEP = 2.0; // each increase in hrun decreases gap penalty by this.
+    private static final double MIN_GAP_OPEN_PENALTY = 30.0;
+    private static final double MIN_GAP_CONT_PENALTY = 10.0;
+    private static final double GAP_PENALTY_HRUN_STEP = 1.0; // each increase in hrun decreases gap penalty by this.
 
 
     private boolean doViterbi = false;
@@ -100,17 +99,11 @@ public class PairHMMIndelErrorModel {
     private final boolean useAffineGapModel = true;
     private boolean doContextDependentPenalties = false;
 
-    private String s1;
-    private String s2;
-
-
     private final double[] GAP_OPEN_PROB_TABLE;
     private final double[] GAP_CONT_PROB_TABLE;
 
- //   private BAQ baq;
 
      static {
-        LOG_ONE_THIRD= -Math.log10(3.0);
         LOG_ONE_HALF= -Math.log10(2.0);
         END_GAP_COST = LOG_ONE_HALF; 
 
@@ -125,10 +118,8 @@ public class PairHMMIndelErrorModel {
         }
     }
 
-    public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean doCDP, String s1, String s2, boolean dovit) {
+    public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean doCDP, boolean dovit) {
         this(indelGOP, indelGCP, deb, doCDP);
-        this.s1 = s1;
-        this.s2 = s2;
         this.doViterbi = dovit;
     }
 
@@ -168,8 +159,6 @@ public class PairHMMIndelErrorModel {
             GAP_OPEN_PROB_TABLE[i] = gop;
             GAP_CONT_PROB_TABLE[i] = gcp;
         }
-//        baq = new BAQ(Math.pow(10.0,logGapOpenProbability),Math.pow(10.0,logGapContinuationProbability),
-  //              3,(byte)BASE_QUAL_THRESHOLD,true);
 
     }
 
@@ -654,13 +643,14 @@ public class PairHMMIndelErrorModel {
             numStartSoftClippedBases = read.getAlignmentStart()- read.getUnclippedStart();
             numEndSoftClippedBases = read.getUnclippedEnd()- read.getAlignmentEnd();
 
-            if (eventLength > 0) {
+            /*if (eventLength > 0) */
+            {
                 if ((read.getAlignmentStart()>=eventStartPos-eventLength && read.getAlignmentStart() <= eventStartPos+1) ||
                     (read.getAlignmentEnd() >= eventStartPos && read.getAlignmentEnd() <= eventStartPos + eventLength)) {
                     numStartSoftClippedBases = 0;
                     numEndSoftClippedBases = 0;
                 }
-            }
+            }            
             
 
             byte[] unclippedReadBases, unclippedReadQuals;
@@ -752,34 +742,8 @@ public class PairHMMIndelErrorModel {
                     long indStart = start - haplotype.getStartPosition();
                     long indStop =  stop - haplotype.getStartPosition();
 
-                    //long indStart = 0;
-                    //long indStop = 400;
                     byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
                             (int)indStart, (int)indStop);
-                    //byte[] haplotypeBases = haplotype.getBasesAsBytes();
-                    //BAQ.BAQCalculationResult baqRes = baq.calcBAQFromHMM(read, haplotypeBases, (int)(start - readStart));
-              /*      if (s1 != null && s2 != null) {
-                        haplotypeBases = s2.getBytes();
-                        readBases =      s1.getBytes();
-                        readQuals = null;
-                        readQuals = new byte[readBases.length];
-                        for (int i=0; i < readQuals.length; i++)
-                            readQuals[i] = (byte)30;
-
-                        byte[] iq = new byte[readBases.length];
-                        byte[] q = new byte[readBases.length];
-                        int[] state = new int[readBases.length];
-                        int a=baq.hmm_glocal(haplotypeBases, readBases, 0, readBases.length, iq, state, q);
-                        System.out.println("BAQ State:");
-                        for (int i=0; i < state.length; i++)
-                            System.out.format("%d ",state[i]);
-                        System.out.println();
-                        System.out.println("BAQ Q:");
-                        for (int i=0; i < q.length; i++)
-                            System.out.format("%d ",(int)q[i]);
-                        System.out.println();
-
-                    }  */
 
                     if (DEBUG) {
                         System.out.println("Haplotype to test:");

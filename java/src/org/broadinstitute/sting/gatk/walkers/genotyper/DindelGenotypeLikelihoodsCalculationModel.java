@@ -62,21 +62,14 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
     // todo -cleanup
     private HaplotypeIndelErrorModel model;
     private PairHMMIndelErrorModel pairModel;
-    private boolean newLike = false;
 
     private GenomeLoc lastSiteVisited;
     private List<Allele> alleleList;
 
     protected DindelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
-        if (UAC.newlike) {
             pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,
-                    UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.DO_CONTEXT_DEPENDENT_PENALTIES, UAC.S1, UAC.S2, UAC.dovit);
-            newLike = true;
-        }
-        else
-            model = new HaplotypeIndelErrorModel(maxReadDeletionLength, UAC.INSERTION_START_PROBABILITY,
-                    UAC.INSERTION_END_PROBABILITY,UAC.ALPHA_DELETION_PROBABILITY,UAC.INDEL_HAPLOTYPE_SIZE, false, UAC.OUTPUT_DEBUG_INDEL_INFO);
+                    UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.DO_CONTEXT_DEPENDENT_PENALTIES, UAC.dovit);
         alleleList = new ArrayList<Allele>();
         getAlleleListFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         minIndelCountForGenotyping = UAC.MIN_INDEL_COUNT_FOR_GENOTYPING;
@@ -338,18 +331,15 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
         // assume only one alt allele for now
 
         List<Haplotype> haplotypesInVC;
-        if (newLike) {
-            int hsize = (int)ref.getWindow().size()-Math.abs(eventLength)-1;
-            int numPrefBases = ref.getLocus().getStart()-ref.getWindow().getStart()+1;
-            if (DEBUG)
-                System.out.format("hsize: %d eventLength: %d refSize: %d, locStart: %d numpr: %d\n",hsize,eventLength,
-                        (int)ref.getWindow().size(), loc.getStart(), numPrefBases);
-            haplotypesInVC = Haplotype.makeHaplotypeListFromAlleles( alleleList, loc.getStart(),
-                ref, hsize, numPrefBases);
-        }
-        else
-            haplotypesInVC = Haplotype.makeHaplotypeListFromAlleles( alleleList, loc.getStart(),
-                ref, HAPLOTYPE_SIZE, 20);
+
+        int hsize = (int)ref.getWindow().size()-Math.abs(eventLength)-1;
+        int numPrefBases = ref.getLocus().getStart()-ref.getWindow().getStart()+1;
+        if (DEBUG)
+            System.out.format("hsize: %d eventLength: %d refSize: %d, locStart: %d numpr: %d\n",hsize,eventLength,
+                    (int)ref.getWindow().size(), loc.getStart(), numPrefBases);
+
+        haplotypesInVC = Haplotype.makeHaplotypeListFromAlleles( alleleList, loc.getStart(),
+            ref, hsize, numPrefBases);
 
         // For each sample, get genotype likelihoods based on pileup
         // compute prior likelihoods on haplotypes, and initialize haplotype likelihood matrix with them.
@@ -370,10 +360,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
 
             if (pileup != null ) {
 
-                if (newLike)
-                    haplotypeLikehoodMatrix = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypesInVC, ref, HAPLOTYPE_SIZE, eventLength);
-                else
-                    haplotypeLikehoodMatrix = model.computeReadHaplotypeLikelihoods( pileup, haplotypesInVC);
+                haplotypeLikehoodMatrix = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypesInVC, ref, HAPLOTYPE_SIZE, eventLength);
 
 
                 double[] genotypeLikelihoods = HaplotypeIndelErrorModel.getHaplotypeLikelihoods( haplotypeLikehoodMatrix);
