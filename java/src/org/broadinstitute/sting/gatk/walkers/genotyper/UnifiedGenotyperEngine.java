@@ -151,9 +151,10 @@ public class UnifiedGenotyperEngine {
         }
 
         Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
-        if ( stratifiedContexts == null )
-            return (UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES ? null : generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext));
-
+        if ( stratifiedContexts == null ) {
+            return (UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES ? generateEmptyContext(tracker, refContext, stratifiedContexts, rawContext) : null);
+        }
+        
         VariantContext vc = calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
 
         if ( vc == null )
@@ -459,7 +460,7 @@ public class UnifiedGenotyperEngine {
             ReadBackedExtendedEventPileup pileup = rawPileup.getMappingFilteredPileup(UAC.MIN_MAPPING_QUALTY_SCORE);
 
             // don't call when there is no coverage
-            if ( pileup.size() == 0 && UAC.OutputMode != OUTPUT_MODE.EMIT_ALL_SITES )
+            if ( pileup.size() == 0 && !(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) )
                 return null;
 
             // stratify the AlignmentContext and cut by sample
@@ -473,12 +474,14 @@ public class UnifiedGenotyperEngine {
             // stratify the AlignmentContext and cut by sample
             stratifiedContexts = AlignmentContextUtils.splitContextBySampleName(rawContext.getBasePileup(), UAC.ASSUME_SINGLE_SAMPLE);
 
-            int numDeletions = 0;
-            for( final PileupElement p : rawContext.getBasePileup() ) {
-                if( p.isDeletion() ) { numDeletions++; }
-            }
-            if( ((double) numDeletions) / ((double) rawContext.getBasePileup().size()) > UAC.MAX_DELETION_FRACTION ) {
-                return null;
+            if( !(UAC.OutputMode == OUTPUT_MODE.EMIT_ALL_SITES && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES) ) {
+                int numDeletions = 0;
+                for( final PileupElement p : rawContext.getBasePileup() ) {
+                    if( p.isDeletion() ) { numDeletions++; }
+                }
+                if( ((double) numDeletions) / ((double) rawContext.getBasePileup().size()) > UAC.MAX_DELETION_FRACTION ) {
+                    return null;
+                }
             }
         }
 
