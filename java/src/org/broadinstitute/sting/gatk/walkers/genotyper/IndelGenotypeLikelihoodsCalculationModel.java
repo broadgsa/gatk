@@ -47,7 +47,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
 
-public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
+public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
     private final int maxReadDeletionLength = 3;
     private final int HAPLOTYPE_SIZE;
 
@@ -66,7 +66,7 @@ public class DindelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoo
     private GenomeLoc lastSiteVisited;
     private List<Allele> alleleList;
 
-    protected DindelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
+    protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
             pairModel = new PairHMMIndelErrorModel(UAC.INDEL_GAP_OPEN_PENALTY,UAC.INDEL_GAP_CONTINUATION_PENALTY,
                     UAC.OUTPUT_DEBUG_INDEL_INFO, UAC.DO_CONTEXT_DEPENDENT_PENALTIES, UAC.dovit);
