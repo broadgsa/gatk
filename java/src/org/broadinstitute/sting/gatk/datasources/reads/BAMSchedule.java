@@ -88,10 +88,10 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
 
     /**
      * Create a new BAM schedule based on the given index.
-     * @param indices Mapping from readers to indices.
+     * @param indexFiles Index files.
      * @param intervals List of 
      */
-    public BAMSchedule(final Map<SAMReaderID,GATKBAMIndex> indices, final List<GenomeLoc> intervals) {
+    public BAMSchedule(final Map<SAMReaderID,File> indexFiles, final List<GenomeLoc> intervals) {
         if(intervals.isEmpty())
             throw new ReviewedStingException("Tried to write schedule for empty interval list.");
 
@@ -99,11 +99,10 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
 
         createScheduleFile();
 
-        readerIDs.addAll(indices.keySet());
+        readerIDs.addAll(indexFiles.keySet());
 
         for(final SAMReaderID reader: readerIDs) {
-            GATKBAMIndex index = indices.get(reader);
-            BAMIndexContent indexContent = index.getQueryResults(referenceSequence);
+            GATKBAMIndex index = new GATKBAMIndex(indexFiles.get(reader),referenceSequence);
 
             int currentBinInLowestLevel = GATKBAMIndex.getFirstBinInLevel(GATKBAMIndex.getNumIndexLevels()-1);
             Iterator<GenomeLoc> locusIterator = intervals.iterator();
@@ -133,7 +132,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
 
                 // Code at this point knows that the current bin is neither before nor after the current locus,
                 // so it must overlap.  Add this region to the filesystem.
-                final GATKBAMFileSpan fileSpan = index.getSpanOverlapping(indexContent,bin);
+                final GATKBAMFileSpan fileSpan = index.getSpanOverlapping(bin);
 
                 if(!fileSpan.isEmpty()) {
                     // File format is binary in little endian; start of region, end of region, num chunks, then the chunks themselves.

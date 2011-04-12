@@ -140,7 +140,7 @@ public class IntervalSharder {
             // If this contig can't be found in the reference, skip over it.
             if(referenceSequence == null && contig != null)
                 continue;
-            final BrowseableBAMIndex index = dataSource.getIndex(id);
+            final BrowseableBAMIndex index = (BrowseableBAMIndex)dataSource.getIndex(id);
             binMerger.addReader(id,
                                 index,
                                 referenceSequence.getSequenceIndex(),

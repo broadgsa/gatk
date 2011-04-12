@@ -30,6 +30,7 @@ import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -46,7 +47,7 @@ import java.util.NoSuchElementException;
 public class BAMScheduler implements Iterator<FilePointer> {
     private final SAMDataSource dataSource;
 
-    private final Map<SAMReaderID,GATKBAMIndex> indices = new HashMap<SAMReaderID,GATKBAMIndex>();
+    private final Map<SAMReaderID, File> indexFiles = new HashMap<SAMReaderID,File>();
 
     private FilePointer nextFilePointer = null;
 
@@ -59,7 +60,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
     public BAMScheduler(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
         this.dataSource = dataSource;
         for(SAMReaderID reader: dataSource.getReaderIDs())
-            indices.put(reader,(GATKBAMIndex)dataSource.getIndex(reader));
+            indexFiles.put(reader,(File)dataSource.getIndex(reader));
         this.loci = loci;
         locusIterator = new PeekableIterator<GenomeLoc>(loci.iterator());
         if(locusIterator.hasNext())
@@ -104,7 +105,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
             int coveredRegionStop = Integer.MAX_VALUE;
             GenomeLoc coveredRegion = null;
 
-            BAMScheduleEntry scheduleEntry = getNextOverlappingBAMScheduleEntry(indices,currentLocus);
+            BAMScheduleEntry scheduleEntry = getNextOverlappingBAMScheduleEntry(indexFiles,currentLocus);
 
             // No overlapping data at all.
             if(scheduleEntry != null) {
@@ -117,7 +118,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
             else {
                 // Always create a file span, whether there was covered data or not.  If there was no covered data, then the binTree is empty.
                 //System.out.printf("Shard: index file = %s; reference sequence = %d; ",index.getIndexFile(),currentLocus.getContigIndex());
-                for(SAMReaderID reader: indices.keySet())
+                for(SAMReaderID reader: indexFiles.keySet())
                     nextFilePointer.addFileSpans(reader,new GATKBAMFileSpan());
             }
 
@@ -183,11 +184,11 @@ public class BAMScheduler implements Iterator<FilePointer> {
 
     /**
      * Get the next overlapping tree of bins associated with the given BAM file.
-     * @param indices BAM index representation.
+     * @param indexFiles BAM index file.
      * @param currentLocus The actual locus for which to check overlap.
      * @return The next schedule entry overlapping with the given list of loci.
      */
-    private BAMScheduleEntry getNextOverlappingBAMScheduleEntry(final Map<SAMReaderID,GATKBAMIndex> indices, final GenomeLoc currentLocus) {
+    private BAMScheduleEntry getNextOverlappingBAMScheduleEntry(final Map<SAMReaderID,File> indexFiles, final GenomeLoc currentLocus) {
         // Stale reference sequence or first invocation.  (Re)create the binTreeIterator.
         if(lastReferenceSequenceLoaded == null || lastReferenceSequenceLoaded != currentLocus.getContigIndex()) {
             if(bamScheduleIterator != null)
@@ -201,7 +202,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
                     lociInContig.add(locus);
             }
 
-            bamScheduleIterator = new PeekableIterator<BAMScheduleEntry>(new BAMSchedule(indices,lociInContig));
+            bamScheduleIterator = new PeekableIterator<BAMScheduleEntry>(new BAMSchedule(indexFiles,lociInContig));
         }
 
         if(!bamScheduleIterator.hasNext())

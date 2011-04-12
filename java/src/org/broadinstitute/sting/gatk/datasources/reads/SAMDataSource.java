@@ -84,7 +84,7 @@ public class SAMDataSource {
     /**
      * Store BAM indices for each reader present.
      */
-    private final Map<SAMReaderID,GATKBAMIndex> bamIndices = new HashMap<SAMReaderID,GATKBAMIndex>();
+    private final Map<SAMReaderID,Object> bamIndices = new HashMap<SAMReaderID,Object>();
 
     /**
      * How far along is each reader?
@@ -292,9 +292,7 @@ public class SAMDataSource {
             for(SAMReaderID id: readerIDs) {
                 File indexFile = findIndexFile(id.samFile);
                 if(indexFile != null) {
-                    SAMSequenceDictionary sequenceDictionary = readers.getReader(id).getFileHeader().getSequenceDictionary();
-                    GATKBAMIndex index = new GATKBAMIndex(indexFile,sequenceDictionary);
-                    bamIndices.put(id,index);
+                    bamIndices.put(id,indexFile);
                 }
             }
         }
@@ -428,7 +426,7 @@ public class SAMDataSource {
      * @param id Id of the reader.
      * @return The index.  Will preload the index if necessary.
      */
-    public BrowseableBAMIndex getIndex(final SAMReaderID id) {
+    public Object getIndex(final SAMReaderID id) {
         if(enableLowMemorySharding)
             return bamIndices.get(id);
         else {

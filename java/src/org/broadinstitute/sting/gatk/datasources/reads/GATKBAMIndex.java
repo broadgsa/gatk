@@ -23,24 +23,20 @@
  */
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.samtools.BAMIndex;
-import net.sf.samtools.BAMIndexMetaData;
 import net.sf.samtools.Bin;
-import net.sf.samtools.BrowseableBAMIndex;
 import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.GATKBin;
-import net.sf.samtools.GATKBinList;
 import net.sf.samtools.GATKChunk;
 import net.sf.samtools.LinearIndex;
 import net.sf.samtools.SAMException;
-import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.RuntimeIOException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.*;
 
@@ -50,7 +46,7 @@ import java.util.*;
  * @author mhanna
  * @version 0.1
  */
-public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
+public class GATKBAMIndex {
     /**
      * Reports the total amount of genomic data that any bin can index.
      */
@@ -66,46 +62,75 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
      */
     public static final int MAX_BINS = 37450;   // =(8^6-1)/7+1
 
-    public static final int MAX_LINEAR_INDEX_SIZE = MAX_BINS+1-LEVEL_STARTS[LEVEL_STARTS.length-1];
-
     private final File mFile;
-    private final MappedByteBuffer mFileBuffer;
 
-    private SAMSequenceDictionary mBamDictionary = null;
+    private final List<GATKBin> bins = new ArrayList<GATKBin>();
+    private final LinearIndex linearIndex;
 
-    public GATKBAMIndex(final File file, final SAMSequenceDictionary dictionary) {
+    public GATKBAMIndex(final File file, final int referenceSequence) {
         mFile = file;
-        mBamDictionary = dictionary;
         // Open the file stream.
-        try {
-            FileInputStream fileStream = new FileInputStream(mFile);
-            FileChannel fileChannel = fileStream.getChannel();
-            mFileBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0L, fileChannel.size());
-            mFileBuffer.order(ByteOrder.LITTLE_ENDIAN);
 
-            fileChannel.close();
-            fileStream.close();
+        FileInputStream fileStream = null;
+        FileChannel fileChannel  = null;
+
+        try {
+            fileStream = new FileInputStream(mFile);
+            fileChannel = fileStream.getChannel();
         }
         catch (IOException exc) {
             throw new RuntimeIOException(exc.getMessage(), exc);
         }
 
         // Verify the magic number.
-        seek(0);
+        seek(fileChannel,0);
         final byte[] buffer = new byte[4];
-        readBytes(buffer);
+        readBytes(fileChannel,buffer);
         if (!Arrays.equals(buffer, GATKBAMFileConstants.BAM_INDEX_MAGIC)) {
             throw new RuntimeException("Invalid file header in BAM index " + mFile +
                                        ": " + new String(buffer));
         }
-    }
 
-    /**
-     * Gets the file backing this index.
-     * @return The index file.
-     */
-    public File getIndexFile() {
-        return mFile;
+        seek(fileChannel,4);
+
+        final int sequenceCount = readInteger(fileChannel);
+
+        if (referenceSequence >= sequenceCount)
+            throw new ReviewedStingException("Invalid sequence number " + referenceSequence);
+
+        skipToSequence(fileChannel,referenceSequence);
+
+        int binCount = readInteger(fileChannel);
+        for (int binNumber = 0; binNumber < binCount; binNumber++) {
+            final int indexBin = readInteger(fileChannel);
+            final int nChunks = readInteger(fileChannel);
+            List<GATKChunk> chunks = new ArrayList<GATKChunk>(nChunks);
+            for (int ci = 0; ci < nChunks; ci++) {
+                final long chunkBegin = readLong(fileChannel);
+                final long chunkEnd = readLong(fileChannel);
+                chunks.add(new GATKChunk(chunkBegin, chunkEnd));
+            }
+            GATKBin bin = new GATKBin(referenceSequence, indexBin);
+            bin.setChunkList(chunks.toArray(new GATKChunk[chunks.size()]));
+            while(indexBin >= bins.size())
+                bins.add(null);
+            bins.set(indexBin,bin);
+        }
+
+        final int nLinearBins = readInteger(fileChannel);
+        long[] linearIndexEntries = new long[nLinearBins];
+        for(int linearIndexOffset = 0; linearIndexOffset < nLinearBins; linearIndexOffset++)
+            linearIndexEntries[linearIndexOffset] = readLong(fileChannel);
+
+        linearIndex = new LinearIndex(referenceSequence,0,linearIndexEntries);
+
+        try {
+            fileChannel.close();
+            fileStream.close();
+        }
+        catch (IOException exc) {
+            throw new RuntimeIOException(exc.getMessage(), exc);
+        }
     }
 
     /**
@@ -142,7 +167,6 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
      * @param bin The bin  for which to determine the level.
      * @return the level associated with the given bin number.
      */
-    @Override
     public int getLevelForBin(final Bin bin) {
         GATKBin gatkBin = new GATKBin(bin);
         if(gatkBin.getBinNumber() >= MAX_BINS)
@@ -171,7 +195,6 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
      * @param bin The bin to test.
      * @return The last position that the given bin can represent.
      */
-    @Override
     public int getLastLocusInBin(final Bin bin) {
         final int level = getLevelForBin(bin);
         final int levelStart = LEVEL_STARTS[level];
@@ -179,164 +202,32 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
         return (new GATKBin(bin).getBinNumber()-levelStart+1)*(BIN_GENOMIC_SPAN /levelSize);
     }
 
-    public int getNumberOfReferences() {
-        seek(4);
-        return readInteger();
-    }
-
-    /**
-     * Use to get close to the unmapped reads at the end of a BAM file.
-     * @return The file offset of the first record in the last linear bin, or -1
-     * if there are no elements in linear bins (i.e. no mapped reads).
-     */
-    public long getStartOfLastLinearBin() {
-        seek(4);
-
-        final int sequenceCount = readInteger();
-        // Because no reads may align to the last sequence in the sequence dictionary,
-        // grab the last element of the linear index for each sequence, and return
-        // the last one from the last sequence that has one.
-        long lastLinearIndexPointer = -1;
-        for (int i = 0; i < sequenceCount; i++) {
-            // System.out.println("# Sequence TID: " + i);
-            final int nBins = readInteger();
-            // System.out.println("# nBins: " + nBins);
-            for (int j1 = 0; j1 < nBins; j1++) {
-                // Skip bin #
-                skipBytes(4);
-                final int nChunks = readInteger();
-                // Skip chunks
-                skipBytes(16 * nChunks);
-            }
-            final int nLinearBins = readInteger();
-            if (nLinearBins > 0) {
-                // Skip to last element of list of linear bins
-                skipBytes(8 * (nLinearBins - 1));
-                lastLinearIndexPointer = readLong();
-            }
-        }
-
-        return lastLinearIndexPointer;
-    }
-
-    /**
-     * Gets meta data for the given reference including information about number of aligned, unaligned, and noCoordinate records
-     * @param reference the reference of interest
-     * @return meta data for the reference
-     */
-    public BAMIndexMetaData getMetaData(int reference) {
-        throw new UnsupportedOperationException("Cannot retrieve metadata for GATKBAMIndex");
-    }
-
-    /**
-     * Returns count of records unassociated with any reference. Call before the index file is closed
-     *
-     * @return meta data at the end of the bam index that indicates count of records holding no coordinates
-     * or null if no meta data (old index format)
-     */
-    public Long getNoCoordinateCount() {
-
-        seek(4);
-        final int sequenceCount = readInteger();
-
-        skipToSequence(sequenceCount);
-        try { // in case of old index file without meta data
-            return readLong();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    /**
-     * Get list of regions of BAM file that may contain SAMRecords for the given range
-     * @param referenceIndex sequence of desired SAMRecords
-     * @param startPos 1-based start of the desired interval, inclusive
-     * @param endPos 1-based end of the desired interval, inclusive
-     * @return the virtual file position.  Each pair is the first and last virtual file position
-     *         in a range that can be scanned to find SAMRecords that overlap the given positions.
-     */
-    @Override
-    public GATKBAMFileSpan getSpanOverlapping(final int referenceIndex, final int startPos, final int endPos) {
-        BAMIndexContent queryResults = getQueryResults(referenceIndex);
-
-        if(queryResults == null)
-            return null;
-
-        GATKBinList overlappingBins = getBinsOverlapping(referenceIndex,startPos,endPos);
-
-        // System.out.println("# Sequence target TID: " + referenceIndex);
-        List<GATKBin> bins = new ArrayList<GATKBin>();
-        for(GATKBin bin: queryResults.getBins()) {
-            if (overlappingBins.getBins().get(bin.getBinNumber()))
-                bins.add(bin);
-        }
-
-        if (bins.isEmpty()) {
-            return null;
-        }
-
-        List<GATKChunk> chunkList = new ArrayList<GATKChunk>();
-        for(GATKBin bin: bins) {
-            for(GATKChunk chunk: bin.getChunkList())
-                chunkList.add(chunk.clone());
-        }
-
-        if (chunkList.isEmpty()) {
-            return null;
-        }
-
-        chunkList = optimizeChunkList(chunkList,queryResults.getLinearIndex().getMinimumOffset(startPos));
-        return new GATKBAMFileSpan(chunkList.toArray(new GATKChunk[chunkList.size()]));
-    }
-
     /**
      * Perform an overlapping query of all bins bounding the given location.
      * @param bin The bin over which to perform an overlapping query.
      * @return The file pointers
      */
-    @Override
     public GATKBAMFileSpan getSpanOverlapping(final Bin bin) {
         if(bin == null)
             return null;
 
         GATKBin gatkBin = new GATKBin(bin);
 
-        final int referenceSequence = gatkBin.getReferenceSequence();
-        BAMIndexContent indexQuery = getQueryResults(referenceSequence);
-
-        return getSpanOverlapping(indexQuery,bin);
-    }
-
-    /**
-     * Perform an overlapping query of all bins bounding the given location.
-     * @param bin The bin over which to perform an overlapping query.
-     * @return The file pointers
-     */
-    public GATKBAMFileSpan getSpanOverlapping(final BAMIndexContent indexContent, final Bin bin) {
-        if(bin == null)
-            return null;
-
-        GATKBin gatkBin = new GATKBin(bin);
-
-        if(indexContent == null)
-            return null;
-
         final int binLevel = getLevelForBin(bin);
         final int firstLocusInBin = getFirstLocusInBin(bin);
 
         // Add the specified bin to the tree if it exists.
         List<GATKBin> binTree = new ArrayList<GATKBin>();
-        if(indexContent.containsBin(gatkBin))
-            binTree.add(indexContent.getBins().getBin(gatkBin.getBinNumber()));
+        if(gatkBin.getBinNumber() < bins.size() && bins.get(gatkBin.getBinNumber()) != null)
+            binTree.add(bins.get(gatkBin.getBinNumber()));
 
         int currentBinLevel = binLevel;
         while(--currentBinLevel >= 0) {
             final int binStart = getFirstBinInLevel(currentBinLevel);
             final int binWidth = getMaxAddressibleGenomicLocation()/getLevelSize(currentBinLevel);
             final int binNumber = firstLocusInBin/binWidth + binStart;
-            GATKBin parentBin = indexContent.getBins().getBin(binNumber);
-            if(parentBin != null && indexContent.containsBin(parentBin))
-                binTree.add(parentBin);
+            if(binNumber < bins.size() && bins.get(binNumber) != null)
+                binTree.add(bins.get(binNumber));
         }
 
         List<GATKChunk> chunkList = new ArrayList<GATKChunk>();
@@ -346,171 +237,8 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
         }
 
         final int start = getFirstLocusInBin(bin);
-        chunkList = optimizeChunkList(chunkList,indexContent.getLinearIndex().getMinimumOffset(start));
+        chunkList = optimizeChunkList(chunkList,linearIndex.getMinimumOffset(start));
         return new GATKBAMFileSpan(chunkList.toArray(new GATKChunk[chunkList.size()]));
-    }
-
-    public GATKBAMFileSpan getContentsOfBin(final Bin bin) {
-        if(bin == null)
-            return null;
-
-        GATKBin gatkBin = new GATKBin(bin);
-
-        BAMIndexContent indexQuery = getQueryResults(gatkBin.getReferenceSequence());
-
-        if(indexQuery == null)
-            return null;
-
-        GATKBin queriedBin = indexQuery.getBins().getBin(gatkBin.getBinNumber());
-
-        return queriedBin != null ? new GATKBAMFileSpan(queriedBin.getChunkList()) : null;
-    }
-
-    /**
-     * Retrieves the linear index for the given reference sequence.
-     * @param referenceSequence Reference sequence number for which to retrieve the reference.
-     * @return The linear index for the given reference sequence.
-     */
-    public LinearIndex getLinearIndex(int referenceSequence) {
-        return getQueryResults(referenceSequence).getLinearIndex();
-    }
-
-    /**
-     * Get a list of bins in the BAM file that may contain SAMRecords for the given range.
-     * @param referenceIndex sequence of desired SAMRecords
-     * @param startPos 1-based start of the desired interval, inclusive
-     * @param endPos 1-based end of the desired interval, inclusive
-     * @return a list of bins that contain relevant data.
-     */
-    public GATKBinList getBinsOverlapping(final int referenceIndex, final int startPos, final int endPos) {
-        final BitSet regionBins = regionToBins(startPos,endPos);
-        if (regionBins == null) {
-            return null;
-        }
-        return new GATKBinList(referenceIndex,regionBins);
-    }
-
-    protected BAMIndexContent query(final int referenceSequence, final int startPos, final int endPos) {
-        seek(4);
-
-        List<GATKChunk> metaDataChunks = new ArrayList<GATKChunk>();
-
-        final int sequenceCount = readInteger();
-
-        if (referenceSequence >= sequenceCount) {
-            return null;
-        }
-
-        final BitSet regionBins = regionToBins(startPos, endPos);
-        if (regionBins == null) {
-            return null;
-        }
-
-        skipToSequence(referenceSequence);
-
-        int binCount = readInteger();
-        boolean metaDataSeen = false;
-        GATKBin[] bins = new GATKBin[getMaxBinNumberForReference(referenceSequence) +1];
-        for (int binNumber = 0; binNumber < binCount; binNumber++) {
-            final int indexBin = readInteger();
-            final int nChunks = readInteger();
-            List<GATKChunk> chunks = new ArrayList<GATKChunk>(nChunks);
-            // System.out.println("# bin[" + i + "] = " + indexBin + ", nChunks = " + nChunks);
-            GATKChunk lastChunk = null;
-            if (regionBins.get(indexBin)) {
-                for (int ci = 0; ci < nChunks; ci++) {
-                    final long chunkBegin = readLong();
-                    final long chunkEnd = readLong();
-                    lastChunk = new GATKChunk(chunkBegin, chunkEnd);
-                    chunks.add(lastChunk);
-                }
-            } else if (indexBin == MAX_BINS) {
-                // meta data - build the bin so that the count of bins is correct;
-                // but don't attach meta chunks to the bin, or normal queries will be off
-                for (int ci = 0; ci < nChunks; ci++) {
-                    final long chunkBegin = readLong();
-                    final long chunkEnd = readLong();
-                    lastChunk = new GATKChunk(chunkBegin, chunkEnd);
-                    metaDataChunks.add(lastChunk);
-                }
-                metaDataSeen = true;
-                continue; // don't create a Bin
-            } else {
-                skipBytes(16 * nChunks);
-            }
-            GATKBin bin = new GATKBin(referenceSequence, indexBin);
-            bin.setChunkList(chunks.toArray(new GATKChunk[chunks.size()]));
-            bins[indexBin] = bin;
-        }
-
-        final int nLinearBins = readInteger();
-
-        final int regionLinearBinStart = LinearIndex.convertToLinearIndexOffset(startPos);
-        final int regionLinearBinStop = endPos > 0 ? LinearIndex.convertToLinearIndexOffset(endPos) : nLinearBins-1;
-        final int actualStop = Math.min(regionLinearBinStop, nLinearBins -1);
-
-        long[] linearIndexEntries = new long[0];
-        if (regionLinearBinStart < nLinearBins) {
-            linearIndexEntries = new long[actualStop-regionLinearBinStart+1];
-            skipBytes(8 * regionLinearBinStart);
-            for(int linearBin = regionLinearBinStart; linearBin <= actualStop; linearBin++)
-                linearIndexEntries[linearBin-regionLinearBinStart] = readLong();
-        }
-
-        final LinearIndex linearIndex = new LinearIndex(referenceSequence,regionLinearBinStart,linearIndexEntries);
-
-        return new BAMIndexContent(referenceSequence, bins, binCount - (metaDataSeen? 1 : 0), linearIndex);
-    }
-
-    /**
-     * The maxiumum bin number for a reference sequence of a given length
-     */
-    static int getMaxBinNumberForSequenceLength(int sequenceLength) {
-        return getFirstBinInLevel(getNumIndexLevels() - 1) + (sequenceLength >> 14);
-        // return 4680 + (sequenceLength >> 14); // note 4680 = getFirstBinInLevel(getNumIndexLevels() - 1)
-    }
-
-    /**
-     * Looks up the cached BAM query results if they're still in the cache and not expired.  Otherwise,
-     * retrieves the cache results from disk.
-     * @param referenceIndex The reference to load.  CachingBAMFileIndex only stores index data for entire references.
-     * @return The index information for this reference.
-     */
-    public BAMIndexContent getQueryResults(final int referenceIndex) {
-        // If not in the cache, attempt to load it from disk.
-        return query(referenceIndex,1,-1);
-    }
-
-    /**
-     * Gets the possible number of bins for a given reference sequence.
-     * @return How many bins could possibly be used according to this indexing scheme to index a single contig.
-     */
-    protected int getMaxAddressibleGenomicLocation() {
-        return BIN_GENOMIC_SPAN;
-    }
-
-    /**
-     * Get candidate bins for the specified region
-     * @param startPos 1-based start of target region, inclusive.
-     * @param endPos 1-based end of target region, inclusive.
-     * @return bit set for each bin that may contain SAMRecords in the target region.
-     */
-    protected BitSet regionToBins(final int startPos, final int endPos) {
-        final int maxPos = 0x1FFFFFFF;
-        final int start = (startPos <= 0) ? 0 : (startPos-1) & maxPos;
-        final int end = (endPos <= 0) ? maxPos : (endPos-1) & maxPos;
-        if (start > end) {
-            return null;
-        }
-        int k;
-        final BitSet bitSet = new BitSet(MAX_BINS);
-        bitSet.set(0);
-        for (k =    1 + (start>>26); k <=    1 + (end>>26); ++k) bitSet.set(k);
-        for (k =    9 + (start>>23); k <=    9 + (end>>23); ++k) bitSet.set(k);
-        for (k =   73 + (start>>20); k <=   73 + (end>>20); ++k) bitSet.set(k);
-        for (k =  585 + (start>>17); k <=  585 + (end>>17); ++k) bitSet.set(k);
-        for (k = 4681 + (start>>14); k <= 4681 + (end>>14); ++k) bitSet.set(k);
-        return bitSet;
     }
 
     protected List<GATKChunk> optimizeChunkList(final List<GATKChunk> chunks, final long minimumOffset) {
@@ -541,61 +269,76 @@ public class GATKBAMIndex implements BAMIndex, BrowseableBAMIndex {
     }
 
     /**
-     * The maximum possible bin number for this reference sequence.
-     * This is based on the maximum coordinate position of the reference
-     * which is based on the size of the reference
+     * Gets the possible number of bins for a given reference sequence.
+     * @return How many bins could possibly be used according to this indexing scheme to index a single contig.
      */
-    private int getMaxBinNumberForReference(final int reference) {
-        try {
-            final int sequenceLength = mBamDictionary.getSequence(reference).getSequenceLength();
-            return getMaxBinNumberForSequenceLength(sequenceLength);
-        } catch (Exception e) {
-            return MAX_BINS;
-        }
-    }
+    protected int getMaxAddressibleGenomicLocation() {
+        return BIN_GENOMIC_SPAN;
+    }    
 
-    protected void skipToSequence(final int sequenceIndex) {
+    protected void skipToSequence(final FileChannel fileChannel, final int sequenceIndex) {
         for (int i = 0; i < sequenceIndex; i++) {
             // System.out.println("# Sequence TID: " + i);
-            final int nBins = readInteger();
+            final int nBins = readInteger(fileChannel);
             // System.out.println("# nBins: " + nBins);
             for (int j = 0; j < nBins; j++) {
-                final int bin = readInteger();
-                final int nChunks = readInteger();
+                final int bin = readInteger(fileChannel);
+                final int nChunks = readInteger(fileChannel);
                 // System.out.println("# bin[" + j + "] = " + bin + ", nChunks = " + nChunks);
-                skipBytes(16 * nChunks);
+                skipBytes(fileChannel, 16 * nChunks);
             }
-            final int nLinearBins = readInteger();
+            final int nLinearBins = readInteger(fileChannel);
             // System.out.println("# nLinearBins: " + nLinearBins);
-            skipBytes(8 * nLinearBins);
+            skipBytes(fileChannel, 8 * nLinearBins);
         }
     }
 
-    private void readBytes(final byte[] bytes) {
-        mFileBuffer.get(bytes);
+    private void readBytes(final FileChannel fileChannel, final byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        try {
+            fileChannel.read(buffer);
+        }
+        catch(IOException ex) {
+            throw new ReviewedStingException("Index: unable to read bytes from index file.");
+        }
     }
 
-    protected int readInteger() {
-        return mFileBuffer.getInt();
+    private static final int INT_SIZE_IN_BYTES = Integer.SIZE / 8;
+    private static final int LONG_SIZE_IN_BYTES = Long.SIZE / 8;
+
+    private ByteBuffer wrapBuffer(final byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        return buffer;
     }
 
-    protected long readLong() {
-        return mFileBuffer.getLong();
+    private int readInteger(final FileChannel fileChannel) {
+        byte[] bytes = new byte[INT_SIZE_IN_BYTES];
+        readBytes(fileChannel,bytes);
+        return wrapBuffer(bytes).getInt();
     }
 
-    protected void skipBytes(final int count) {
-        mFileBuffer.position(mFileBuffer.position() + count);
+    private long readLong(final FileChannel fileChannel) {
+        byte[] bytes = new byte[LONG_SIZE_IN_BYTES];
+        readBytes(fileChannel,bytes);
+        return wrapBuffer(bytes).getLong();
     }
 
-    protected void seek(final int position) {
-        mFileBuffer.position(position);
+    private void skipBytes(final FileChannel fileChannel, final int count) {
+        try {
+            fileChannel.position(fileChannel.position() + count);
+        }
+        catch(IOException ex) {
+            throw new ReviewedStingException("Index: unable to reposition file channel.");
+        }
     }
 
-    protected long position() {
-        return mFileBuffer.position();
-    }
-
-    @Override
-    public void close() {
+    private void seek(final FileChannel fileChannel, final int position) {
+        try {
+            fileChannel.position(position);
+        }
+        catch(IOException ex) {
+            throw new ReviewedStingException("Index: unable to reposition of file channel.");
+        }
     }
 }

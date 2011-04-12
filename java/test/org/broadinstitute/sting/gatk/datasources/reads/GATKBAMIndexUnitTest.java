@@ -57,7 +57,7 @@ public class GATKBAMIndexUnitTest extends BaseTest {
         SAMSequenceDictionary sequenceDictionary = reader.getFileHeader().getSequenceDictionary();
         reader.close();
         
-        bamIndex = new GATKBAMIndex(bamIndexFile,sequenceDictionary);
+        bamIndex = new GATKBAMIndex(bamIndexFile,0);
     }
 
     @Test

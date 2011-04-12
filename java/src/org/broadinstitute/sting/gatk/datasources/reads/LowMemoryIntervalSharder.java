@@ -45,6 +45,7 @@ public class LowMemoryIntervalSharder implements Iterator<FilePointer> {
     private final GenomeLocParser parser;
 
     public LowMemoryIntervalSharder(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
+        System.out.println("Low memory interval sharding enabled");
         wrappedIterator = new PeekableIterator<FilePointer>(new BAMScheduler(dataSource,loci));
         parser = loci.getGenomeLocParser();
     }
