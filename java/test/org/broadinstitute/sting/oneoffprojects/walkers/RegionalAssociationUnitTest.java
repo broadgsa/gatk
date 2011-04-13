@@ -27,7 +27,7 @@ public class RegionalAssociationUnitTest extends BaseTest {
     @BeforeClass
     public void init() { }
 
-    @Test
+    //@Test
     private void testTStatistics() {
         logger.warn("Testing T statistics");
         TTest test1 = new TTest();
