@@ -17,7 +17,7 @@ public class InsertSizeDistribution extends ValueTest {
     public Collection<Number> map(ReadBackedPileup pileup) {
         List<Integer> insertSizes = new ArrayList<Integer>(pileup.size());
         for ( PileupElement e : pileup ) {
-            insertSizes.add(e.getRead().getInferredInsertSize());
+            insertSizes.add(Math.abs(e.getRead().getInferredInsertSize()));
         }
 
         return (Collection) insertSizes;
