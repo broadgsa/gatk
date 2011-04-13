@@ -176,27 +176,41 @@ public class ReadUtils {
         return new Pair<Integer, Integer>(adaptorStart, adaptorEnd);
     }
 
-    // return true if the read needs to be completely clipped
-    public static boolean hardClipAdaptorSequence(final SAMRecord rec, int adaptorLength) {
+    /**
+     *
+     * @param rec  original SAM record
+     * @param adaptorLength  length of adaptor sequence
+     * @return a new read with adaptor sequence hard-clipped out or null if read is fully clipped
+     */
+    public static SAMRecord hardClipAdaptorSequence(final SAMRecord rec, int adaptorLength) {
 
         Pair<Integer, Integer> adaptorBoundaries = getAdaptorBoundaries(rec, adaptorLength);
+        SAMRecord result = rec;
+
         if ( adaptorBoundaries != null ) {
             if ( rec.getReadNegativeStrandFlag() && adaptorBoundaries.second >= rec.getAlignmentStart() && adaptorBoundaries.first < rec.getAlignmentEnd() )
-                return hardClipStartOfRead(rec, adaptorBoundaries.second);
+                result = hardClipStartOfRead(rec, adaptorBoundaries.second);
             else if ( !rec.getReadNegativeStrandFlag() && adaptorBoundaries.first <= rec.getAlignmentEnd() )
-                return hardClipEndOfRead(rec, adaptorBoundaries.first);
+                result = hardClipEndOfRead(rec, adaptorBoundaries.first);
         }
 
-        return false;
+        return result;
     }
 
     // return true if the read needs to be completely clipped
-    private static boolean hardClipStartOfRead(SAMRecord rec, int stopPosition) {
+    private static SAMRecord hardClipStartOfRead(SAMRecord oldRec, int stopPosition) {
 
-        if ( stopPosition >= rec.getAlignmentEnd() ) {
+        if ( stopPosition >= oldRec.getAlignmentEnd() ) {
             // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
             //System.out.printf("Entire read needs to be clipped: %50s %n", rec.getReadName());
-            return true;
+            return null;
+        }
+
+        SAMRecord rec;
+        try {
+            rec = (SAMRecord)oldRec.clone();
+        } catch (Exception e) {
+            return null;
         }
 
         //System.out.printf("Clipping start of read: %50s start=%d adaptorEnd=%d isize=%d %n",
@@ -261,16 +275,22 @@ public class ReadUtils {
         // adjust the start accordingly
         rec.setAlignmentStart(stopPosition + 1);
 
-        return false;
+        return rec;
     }
 
-    // return true if the read needs to be completely clipped
-    private static boolean hardClipEndOfRead(SAMRecord rec, int startPosition) {
+    private static SAMRecord hardClipEndOfRead(SAMRecord oldRec, int startPosition) {
 
-        if ( startPosition <= rec.getAlignmentStart() ) {
+        if ( startPosition <= oldRec.getAlignmentStart() ) {
             // BAM representation issue -- we can't clip away all bases in a read, just leave it alone and let the filter deal with it
             //System.out.printf("Entire read needs to be clipped: %50s %n", rec.getReadName());
-            return true;
+            return null;
+        }
+
+        SAMRecord rec;
+        try {
+            rec = (SAMRecord)oldRec.clone();
+        } catch (Exception e) {
+            return null;
         }
 
         //System.out.printf("Clipping end of read: %50s adaptorStart=%d end=%d isize=%d %n",
@@ -341,12 +361,17 @@ public class ReadUtils {
         // adjust the stop accordingly
         // rec.setAlignmentEnd(startPosition - 1);
 
-        return false;
+        return rec;
     }
 
     private static int DEFAULT_ADAPTOR_SIZE = 100;
 
-    public static boolean hardClipAdaptorSequence(final SAMRecord rec) {
+    /**
+     *
+     * @param rec  original SAM record
+     * @return a new read with adaptor sequence hard-clipped out or null if read is fully clipped
+     */
+    public static SAMRecord hardClipAdaptorSequence(final SAMRecord rec) {
         return hardClipAdaptorSequence(rec, DEFAULT_ADAPTOR_SIZE);
     }
 
