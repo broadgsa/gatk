@@ -27,26 +27,26 @@ public class RegionalAssociationUnitTest extends BaseTest {
     @BeforeClass
     public void init() { }
 
-    //@Test
+    @Test
     private void testTStatistics() {
         logger.warn("Testing T statistics");
         TTest test1 = new TTest();
         test1.setCaseData((Collection) Arrays.asList(1,1,2,3,4));
         test1.setControlData((Collection) Arrays.asList(10, 10, 20, 30, 40));
-        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).second.first,0.1702,1e-2);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).second.first,0.02697891,1e-8);
         TTest test2 = new TTest();
         test2.setCaseData((Collection) Arrays.asList(5, 6, 5, 2, 3, 8, 7, 12, 10, 6, 4, 2, 8, 7, 3));
         test2.setControlData((Collection) Arrays.asList(1, 6, 7, 2, 3, 3, 4, 1, 2, 5, 7, 3, 10, 3, 3, 2, 3));
-        Assert.assertEquals(AssociationTestRunner.getTestValues(test2).second.first, 0.5805, 1e-2);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test2).second.first, 0.04100948, 1e-8);
         TTest test3 = new TTest();
         test3.setCaseData((Collection) Arrays.asList(94,25,68,4,27,51,9,10,91,61,61,37,39,44,36,27,86,33,3,38,5,6,28,93,30,56,81,8,40,44));
         test3.setControlData((Collection) Arrays.asList(6,64,96,85,20,74,93,18,31,20,88,38,80,50,33,81,35,8,2,69,49,6,26,74,79,63,63,96,45,18));
-        Assert.assertEquals(AssociationTestRunner.getTestValues(test3).second.first,0.8229,1e-4);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test3).second.first,0.2309763,1e-7);
         TTest test4 = new TTest();
         test4.setCaseData((Collection) Arrays.asList(14,8,8,17,8,12,10,10,13,9,13,9,9,12,12,11,16,12,13,16,10,13,11,16,13,16,11,13,9,16,16,14,9,14,17,10,15,15,9,15,17,15,17,12,10,13,11,14,8,14));
         test4.setControlData((Collection) Arrays.asList(7,1,4,2,3,7,8,5,5,4,10,6,4,9,2,9,9,3,3,10,1,8,9,5,3,7,2,7,10,9,4,9,2,10,10,3,2,3,4,4,5,10,9,4,3,5,6,10,5,10));
-        Assert.assertEquals(AssociationTestRunner.getTestValues(test4).second.first,0.1006,1e-4);
-        Assert.assertEquals(AssociationTestRunner.getTestValues(test4).first,1.657989,1e-6);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test4).second.first,4.291725e-20,1e-19);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test4).first,11.60592,1e-5);
     }
 
     @Test

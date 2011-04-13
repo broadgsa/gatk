@@ -88,8 +88,8 @@ public class MathUtils {
         double mn = mean.doubleValue();
         double var = 0;
         for ( Number n : numbers ) { var += ( ! ignoreNan || ! Double.isNaN(n.doubleValue())) ? (n.doubleValue()-mn)*(n.doubleValue()-mn) : 0; }
-        if ( ignoreNan ) { return var/nonNanSize(numbers); }
-        return var/numbers.size();
+        if ( ignoreNan ) { return var/(nonNanSize(numbers)-1); }
+        return var/(numbers.size()-1);
     }
 
     public static double variance(Collection<Number> numbers, Number mean) {
