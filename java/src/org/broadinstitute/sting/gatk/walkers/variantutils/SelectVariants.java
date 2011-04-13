@@ -89,6 +89,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="select_random_fraction", shortName="fraction", doc="Selects a fraction (a number between 0 and 1) of the total variants at random from the variant track. Routine is based on probability, so the final result is not guaranteed to carry the exact fraction. Can be used for large fractions", required=false)
     private double fractionRandom = 0;
 
+    @Argument(fullName="selectSNPs", shortName="snps", doc="Select only SNPs.", required=false)
+    private boolean SELECT_SNPS = false;
+
+    @Argument(fullName="selectIndels", shortName="indels", doc="Select only SNPs.", required=false)
+    private boolean SELECT_INDELS = false;
+
 
     /* Private class used to store the intermediate variants in the integer random selection process */
     private class RandomVariantStructure {
@@ -211,7 +217,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     // if the genotype of any of the samples we're looking it is HET or HomVar, we write this variant
                     for (String sample : samples) {
                         Genotype g = compVC.getGenotype(sample);
-                        if ( g != null && (g.isHet() || g.isHomVar()) ) {
+                        if ( g.isHet() || g.isHomVar() ) {
                             vcfWriter.add(compVC, ref.getBase());
                             return 1;
                         }
@@ -240,6 +246,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             }
 
             else {
+                // TODO - add ability to also select MNPs
+                // TODO - move variant selection arguments to the engine so other walkers can also do this
+                if (SELECT_INDELS && vc.isSNP())
+                    return 0;
+
+                if (SELECT_SNPS && (vc.isIndel() || vc.isMixed()))
+                    return 0;
+
                 VariantContext sub = subsetRecord(vc, samples);
                 if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
                         //System.out.printf("%s%n",sub.toString());
