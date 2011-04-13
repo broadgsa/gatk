@@ -1063,7 +1063,9 @@ public class GenomeAnalysisEngine {
 
     /**
      * Gets cumulative metrics about the entire run to this point.
-     * @return cumulative metrics about the entire run.
+     * Returns a clone of this snapshot in time.
+     * @return cumulative metrics about the entire run at this point.  ReadMetrics object is a unique instance and is
+     *         owned by the caller; the caller can do with the object what they wish.
      */
     public ReadMetrics getCumulativeMetrics() {
         return readsDataSource == null ? null : readsDataSource.getCumulativeReadMetrics();
