@@ -105,7 +105,14 @@ class FilePointer {
         PeekableIterator<Map.Entry<SAMReaderID,SAMFileSpan>> thisIterator = new PeekableIterator<Map.Entry<SAMReaderID,SAMFileSpan>>(this.fileSpans.entrySet().iterator());
         PeekableIterator<Map.Entry<SAMReaderID,SAMFileSpan>> otherIterator = new PeekableIterator<Map.Entry<SAMReaderID,SAMFileSpan>>(other.fileSpans.entrySet().iterator());
 
-        while(thisIterator.hasNext() || otherIterator.hasNext()) {
+        while(thisIterator.hasNext()) {
+            // If there are no elements left in the 'other' iterator, spin out this iterator.
+            if(!otherIterator.hasNext()) {
+                difference += ((GATKBAMFileSpan)thisIterator.next()).size();
+                continue;
+            }
+
+            // Otherwise, compare the latest value.
             int compareValue = thisIterator.peek().getKey().compareTo(otherIterator.peek().getKey());
 
             if(compareValue < 0) {
