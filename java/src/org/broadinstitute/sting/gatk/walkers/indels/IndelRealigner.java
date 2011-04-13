@@ -769,9 +769,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         SAMRecord read = aRead.getRead();
                         read.setMappingQuality(Math.min(aRead.getRead().getMappingQuality() + 10, 254));
 
-                        // before we fix the attribute tags we first need make sure we have enough of the reference sequence
-                        int neededBasesToLeft = Math.max(leftmostIndex - read.getAlignmentStart(), 0);
-                        int neededBasesToRight = Math.max(read.getAlignmentEnd() - leftmostIndex - reference.length + 1, 0);
+                        // before we fix the attribute tags we first need to make sure we have enough of the reference sequence
+                        int neededBasesToLeft = leftmostIndex - read.getAlignmentStart();
+                        int neededBasesToRight = read.getAlignmentEnd() - leftmostIndex - reference.length + 1;
                         int neededBases = Math.max(neededBasesToLeft, neededBasesToRight);
                         if ( neededBases > 0 ) {
                             int padLeft = Math.max(leftmostIndex-neededBases, 1);
@@ -781,10 +781,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         }
 
                         // now, fix the attribute tags
-                        if ( read.getAttribute(SAMTag.NM.name()) != null )
-                            read.setAttribute(SAMTag.NM.name(), SequenceUtil.calculateSamNmTag(read, reference, leftmostIndex-1));
-                        if ( read.getAttribute(SAMTag.UQ.name()) != null )
-                            read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, reference, leftmostIndex-1));
+                        // TODO -- get rid of this try block when Picard does the right thing for reads aligned off the end of the reference
+                        try {
+                            if ( read.getAttribute(SAMTag.NM.name()) != null )
+                                read.setAttribute(SAMTag.NM.name(), SequenceUtil.calculateSamNmTag(read, reference, leftmostIndex-1));
+                            if ( read.getAttribute(SAMTag.UQ.name()) != null )
+                                read.setAttribute(SAMTag.UQ.name(), SequenceUtil.sumQualitiesOfMismatches(read, reference, leftmostIndex-1));
+                        } catch (Exception e) {
+                            // ignore it
+                        }
                         // TODO -- this is only temporary until Tim adds code to recalculate this value
                         if ( read.getAttribute(SAMTag.MD.name()) != null )
                             read.setAttribute(SAMTag.MD.name(), null);
