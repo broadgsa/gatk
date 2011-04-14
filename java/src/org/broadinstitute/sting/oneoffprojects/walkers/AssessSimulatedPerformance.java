@@ -86,7 +86,7 @@ public class AssessSimulatedPerformance extends RodWalker<Integer, Integer> {
 
     private void printVCFields(String name, RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         VariantContext vc = tracker.getVariantContext(ref, name, null, context.getLocation(), true);
-        out.print(Utils.join("\t", VariantsToTable.extractFields(vc, fieldsToTake)));
+        out.print(Utils.join("\t", VariantsToTable.extractFields(vc, fieldsToTake, true)));
         out.print("\t");
     }
 
