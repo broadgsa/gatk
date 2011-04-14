@@ -8,7 +8,7 @@ import org.broadinstitute.sting.queue.function.scattergather.{GatherFunction, Cl
 import org.broadinstitute.sting.queue.library.ipf.intervals.ExpandIntervals
 import org.broadinstitute.sting.queue.QScript
 import collection.JavaConversions._
-import org.broadinstitute.sting.utils.yaml.YamlUtils
+import org.broadinstitute.sting.utils.broad.PicardPipeline
 
 class FullCallingPipeline extends QScript {
   qscript =>
@@ -49,8 +49,8 @@ class FullCallingPipeline extends QScript {
   // ------------ SETUP THE PIPELINE ----------- //
 
 
-  def script = {
-    pipeline = YamlUtils.load(classOf[Pipeline], qscript.yamlFile)
+  def script() {
+    pipeline = PicardPipeline.parse(qscript.yamlFile)
 
     val projectBase: String = qscript.pipeline.getProject.getName
 
@@ -175,7 +175,7 @@ class FullCallingPipeline extends QScript {
     indels.jobOutputFile = new File(".queue/logs/IndelCalling/UnifiedGenotyper.indels.out")
     indels.memoryLimit = 6
     indels.downsample_to_coverage = 600
-    indels.genotype_likelihoods_model = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.DINDEL
+    indels.genotype_likelihoods_model = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.INDEL
     indels.input_file = bamFiles
     indels.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
     indels.out = new File("IndelCalls", base+".indels.vcf")
@@ -213,6 +213,7 @@ class FullCallingPipeline extends QScript {
     snps.memoryLimit = 6
     snps.downsample_to_coverage = 600
     snps.input_file = bamFiles
+    snps.genotype_likelihoods_model = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.SNP
     snps.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
     snps.out = new File("SnpCalls", base+".snps.vcf")
 
