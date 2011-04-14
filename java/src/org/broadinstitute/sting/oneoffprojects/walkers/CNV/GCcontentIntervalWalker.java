@@ -45,7 +45,9 @@ import java.util.*;
 @Allows(value = {DataSource.REFERENCE})
 @Requires(value = {DataSource.REFERENCE})
 
-public class GCcontentIntervalWalker extends RodWalker<GCcounter, GCcounter> {
+@By(DataSource.REFERENCE)
+
+public class GCcontentIntervalWalker extends LocusWalker<GCcounter, GCcounter> {
     @Output
     protected PrintStream out;
 
