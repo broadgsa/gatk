@@ -73,7 +73,9 @@ public class ReadBasedPhasingValidationWalker extends RodWalker<Integer, Integer
     private final static int NUM_IN_PAIR = 2; // trivial
 
     // enable deletions in the pileup
-    public boolean includeReadsWithDeletionAtLoci() { return true; }
+    public boolean includeReadsWithDeletionAtLoci() {
+        return true;
+    }
 
     public void initialize() {
         rodNames = new LinkedList<String>();
@@ -85,8 +87,7 @@ public class ReadBasedPhasingValidationWalker extends RodWalker<Integer, Integer
         InputStream sitePairsStream = null;
         try {
             sitePairsStream = new FileInputStream(sitePairsFile);
-        }
-        catch (FileNotFoundException fnfe) {
+        } catch (FileNotFoundException fnfe) {
             fnfe.printStackTrace();
             throw new UserException("Problem opening file: " + sitePairsFile);
         }
@@ -96,8 +97,7 @@ public class ReadBasedPhasingValidationWalker extends RodWalker<Integer, Integer
             String line = null;
             try {
                 line = sitePairsReader.readLine();
-            }
-            catch (IOException ioe) {
+            } catch (IOException ioe) {
                 ioe.printStackTrace();
                 throw new UserException("Problem reading file: " + sitePairsFile);
             }
@@ -261,12 +261,14 @@ public class ReadBasedPhasingValidationWalker extends RodWalker<Integer, Integer
             System.out.println("% MATCHING reads: " + percentMatchingReads + " [of " + totalCount + " TOTAL reads]");
 
             out.print(sp);
-            for (Haplotype hap : allPossibleHaplotypes) {
-                Integer count = haplotypeCounts.get(hap);
-                if (count == null) // haplotype may not have been observed in ANY reads
-                    count = 0;
+            if (allPossibleHaplotypes != null) {
+                for (Haplotype hap : allPossibleHaplotypes) {
+                    Integer count = haplotypeCounts.get(hap);
+                    if (count == null) // haplotype may not have been observed in ANY reads
+                        count = 0;
 
-                out.print("\t" + count);
+                    out.print("\t" + count);
+                }
             }
             out.println();
         }
