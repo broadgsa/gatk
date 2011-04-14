@@ -370,6 +370,7 @@ class QGraph extends Logging {
       runningJobs = Set.empty[FunctionEdge]
       var lastRunningCheck = System.currentTimeMillis
       var logNextStatusCounts = true
+      var startedJobsToEmail = Set.empty[FunctionEdge]
 
       while (running && readyJobs.size + runningJobs.size > 0) {
 
@@ -387,6 +388,7 @@ class QGraph extends Logging {
         }
 
         runningJobs ++= startedJobs
+        startedJobsToEmail ++= startedJobs
         statusCounts.pending -= startedJobs.size
         statusCounts.running += startedJobs.size
 
@@ -395,6 +397,11 @@ class QGraph extends Logging {
         logNextStatusCounts = false
 
         deleteCleanup(lastRunningCheck)
+
+        if (running && startedJobs.size > 0 && !readyRunningCheck(lastRunningCheck)) {
+          emailStartedJobs(startedJobsToEmail)
+          startedJobsToEmail = Set.empty[FunctionEdge]
+        }
 
         if (readyJobs.size == 0 && runningJobs.size > 0)
           Thread.sleep(nextRunningCheck(lastRunningCheck))
@@ -410,6 +417,8 @@ class QGraph extends Logging {
 
         runningJobs --= doneJobs
         runningJobs --= failedJobs
+
+        startedJobsToEmail &~= failedJobs
 
         addCleanup(doneJobs)
 
@@ -593,6 +602,17 @@ class QGraph extends Logging {
     }
   }
 
+  private def emailStartedJobs(started: Set[FunctionEdge]) {
+    if (settings.statusEmailTo.size > 0) {
+      val emailMessage = new EmailMessage
+      emailMessage.from = settings.statusEmailFrom
+      emailMessage.to = settings.statusEmailTo
+      emailMessage.subject = "Queue function: Started: " + settings.qSettings.jobNamePrefix
+      addStartedFunctions(emailMessage, started.toList)
+      emailMessage.trySend(settings.qSettings.emailSettings)
+    }
+  }
+
   private def emailFailedJobs(failed: Set[FunctionEdge]) {
     if (settings.statusEmailTo.size > 0) {
       val emailMessage = new EmailMessage
@@ -645,6 +665,17 @@ class QGraph extends Logging {
     }
   }
 
+  private def addStartedFunctions(emailMessage: EmailMessage, started: List[FunctionEdge]) {
+    if (emailMessage.body == null)
+      emailMessage.body = ""
+    emailMessage.body += """
+    |Started functions:
+    |
+    |%s
+    |""".stripMargin.trim.format(
+      started.map(edge => emailDescription(edge)).mkString(nl+nl))
+  }
+
   private def addFailedFunctions(emailMessage: EmailMessage, failed: List[FunctionEdge]) {
     val logs = failed.flatMap(edge => logFiles(edge))
 
@@ -658,18 +689,18 @@ class QGraph extends Logging {
     |Logs:
     |%s%n
     |""".stripMargin.trim.format(
-      failed.map(edge => failedDescription(edge)).mkString(nl+nl),
+      failed.map(edge => emailDescription(edge)).mkString(nl+nl),
       logs.map(_.getAbsolutePath).mkString(nl))
 
     emailMessage.attachments = logs
   }
 
-  private def failedDescription(failed: FunctionEdge) = {
+  private def emailDescription(edge: FunctionEdge) = {
     val description = new StringBuilder
     if (settings.retries > 0)
-      description.append("Attempt %d of %d.%n".format(failed.retries + 1, settings.retries + 1))
-    description.append(failed.function.description)
-    description.toString
+      description.append("Attempt %d of %d.%n".format(edge.retries + 1, settings.retries + 1))
+    description.append(edge.function.description)
+    description.toString()
   }
 
   private def logFiles(edge: FunctionEdge) = {
