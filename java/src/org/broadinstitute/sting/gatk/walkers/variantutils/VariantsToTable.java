@@ -58,8 +58,11 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
     public int MAX_RECORDS = -1;
     int nRecords = 0;
 
-    @Argument(fullName="ignoreMultiAllelic", shortName="IMA", doc="If provided, we will not require the site to be biallelic", required=false)
-    public boolean ignoreMultiAllelic = false;
+    @Argument(fullName="keepMultiAllelic", shortName="KMA", doc="If provided, we will not require the site to be biallelic", required=false)
+    public boolean keepMultiAllelic = false;
+
+    @Argument(fullName="allowMissingData", shortName="AMD", doc="If provided, we will not require every record to contain every field", required=false)
+    public boolean ALLOW_MISSING_DATA = false;
 
     public void initialize() {
         out.println(Utils.join("\t", fieldsToTake));
@@ -119,8 +122,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         if ( ++nRecords < MAX_RECORDS || MAX_RECORDS == -1 ) {
             Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
             for ( VariantContext vc : vcs) {
-                if ( (! ignoreMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
-                    List<String> vals = extractFields(vc, fieldsToTake);
+                if ( (keepMultiAllelic || vc.isBiallelic()) && ( showFiltered || vc.isNotFiltered() ) ) {
+                    List<String> vals = extractFields(vc, fieldsToTake, ALLOW_MISSING_DATA);
                     out.println(Utils.join("\t", vals));
                 }
             }
@@ -139,7 +142,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
         return s.endsWith("*");
     }
 
-    public static List<String> extractFields(VariantContext vc, List<String> fields) {
+    public static List<String> extractFields(VariantContext vc, List<String> fields, boolean allowMissingData) {
         List<String> vals = new ArrayList<String>();
 
         for ( String field : fields ) {
@@ -162,6 +165,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                     Collections.sort(toVal);
                     val = Utils.join(",", toVal);
                 }
+            } else if ( ! allowMissingData ) {
+                throw new UserException(String.format("Missing field %s in vc %s at %s", field, vc.getSource(), vc));
             }
 
             vals.add(val);
