@@ -79,9 +79,6 @@ class batchMergePipeline extends QScript {
       this.memoryLimit = 8
       this.output_mode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES
       this.genotyping_mode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES
-      if ( batchMerge.indelMode ) {
-        this.genotype_likelihoods_model = GenotypeLikelihoodsCalculationModel.Model.DINDEL
-      }
     }
 
     var cVars : UGCallVariants = new UGCallVariants with CallVariantsArgs
