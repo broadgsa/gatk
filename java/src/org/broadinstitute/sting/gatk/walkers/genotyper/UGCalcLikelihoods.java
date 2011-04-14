@@ -103,7 +103,8 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
             return null;
         }
 
-        return new VariantCallContext(UG_engine.calculateLikelihoods(tracker, refContext, rawContext, vc.getAlternateAllele(0), true), refContext.getBase(), true);
+        VariantContext call = UG_engine.calculateLikelihoods(tracker, refContext, rawContext, vc.getAlternateAllele(0), true);
+        return call == null ? null : new VariantCallContext(call, refContext.getBase(), true);
     }
 
     public Integer reduceInit() { return 0; }

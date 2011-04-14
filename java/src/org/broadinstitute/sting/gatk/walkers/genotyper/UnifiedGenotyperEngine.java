@@ -175,12 +175,13 @@ public class UnifiedGenotyperEngine {
      */
     public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Allele alternateAlleleToUse, boolean useBAQedPileup) {
         final GenotypeLikelihoodsCalculationModel.Model model = getCurrentGLModel( rawContext );
-        if( model == null ) {
+        if( model == null )
             return null;
-        }
+
         Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
         if ( stratifiedContexts == null )
             return null;
+
         return calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, alternateAlleleToUse, useBAQedPileup, model);
     }
 
