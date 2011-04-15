@@ -32,4 +32,5 @@ public class ReadIndels extends ValueTest {
     }
 
     public boolean usePreviouslySeenReads() { return false; }
+    public boolean useTStatistic() { return true; }
 }

@@ -53,7 +53,7 @@ class batchMergePipeline extends QScript {
         this.baq = BAQ.CalculationMode.CALCULATE_AS_NECESSARY
       }
       this.intervals :+= extractIntervals.listOut
-      this.alleleVCF = combineVCFs.outVCF
+      this.allelesVCF = combineVCFs.outVCF
       this.jarFile = new File(stingDir+"/dist/GenomeAnalysisTK.jar")
       this.memoryLimit = 4
       this.scatterCount = 60

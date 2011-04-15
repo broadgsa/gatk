@@ -25,4 +25,5 @@ public class BaseQualityScore extends ValueTest {
     }
 
     public boolean usePreviouslySeenReads() { return true; }
+    public boolean useTStatistic() { return true; }
 }

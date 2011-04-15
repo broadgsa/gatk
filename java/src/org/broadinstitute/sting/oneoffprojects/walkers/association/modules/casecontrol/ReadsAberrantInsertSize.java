@@ -13,9 +13,10 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
  * Time: 3:31 PM
  * To change this template use File | Settings | File Templates.
  */
-public class ReadsLargeInsertSize extends ProportionTest {
+public class ReadsAberrantInsertSize extends ProportionTest {
 
-    private int THRESHOLD;
+    private int HI_THRESHOLD;
+    private int LO_THRESHOLD;
 
     @Override
     public Pair<Number,Number> map(ReadBackedPileup rbp) {
@@ -24,7 +25,7 @@ public class ReadsLargeInsertSize extends ProportionTest {
         for (PileupElement e : rbp ) {
             if ( e.getRead().getReadPairedFlag() ) {
                 ++total;
-                if ( e.getRead().getInferredInsertSize() > THRESHOLD ) {
+                if ( e.getRead().getInferredInsertSize() > HI_THRESHOLD || e.getRead().getInferredInsertSize() < LO_THRESHOLD ) {
                     ++wonky;
                 }
             }
@@ -35,7 +36,8 @@ public class ReadsLargeInsertSize extends ProportionTest {
 
     public void init(RegionalAssociationWalker parent) {
         super.init(parent);
-        THRESHOLD = 150;
+        HI_THRESHOLD = 200;
+	LO_THRESHOLD = 50;
     }
 
     public boolean usePreviouslySeenReads() { return false; }

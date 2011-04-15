@@ -56,6 +56,7 @@ public class RAWSampleStats extends LocusWalker<MapHolder,RegionalAssociationHan
                 if ( ! first ) {
                     contextBuf.append(";");
                 } else {
+                    contextBuf.append("\t");
                     first = false;
                 }
                 contextBuf.append(entry.getKey().getId());

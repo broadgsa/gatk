@@ -52,6 +52,7 @@ public class MismatchRate extends ValueTest {
         Object stats = sampleStats.get(sample.getId());
         double mn;
         double std;
+        double mmr = calcMMR(pileup);
         if ( stats instanceof Pair ) {
             mn = ((Pair<Double,Double>)stats).first;
             std = ((Pair<Double,Double>)stats).second;
@@ -62,10 +63,10 @@ public class MismatchRate extends ValueTest {
             if ( std <= 0.0 ) {
                 std = 1.0;
             }
-            ra.add(pileup.size());
+            ra.add(mmr);
         }
 
-        return Arrays.asList((Number) ((calcMMR(pileup) - mn) / std));
+        return Arrays.asList((Number) ((mmr - mn) / std));
     }
 
     public double calcMMR(ReadBackedPileup rbp) {
