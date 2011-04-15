@@ -137,7 +137,8 @@ public class VariantAnnotator extends RodWalker<Integer, Integer> {
         if ( USE_ALL_ANNOTATIONS )
             engine = new VariantAnnotatorEngine(getToolkit());
         else
-            engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse, expressionsToUse);
+            engine = new VariantAnnotatorEngine(getToolkit(), annotationGroupsToUse, annotationsToUse);
+        engine.initializeExpressions(expressionsToUse);
 
         // setup the header fields
         // note that if any of the definitions conflict with our new ones, then we want to overwrite the old ones

@@ -96,17 +96,14 @@ public class VariantAnnotatorEngine {
         initializeDBs(engine);
     }
 
-    // use this constructor if you want to select specific annotations (and/or interfaces), but no expressions
+    // use this constructor if you want to select specific annotations (and/or interfaces)
     public VariantAnnotatorEngine(GenomeAnalysisEngine engine, List<String> annotationGroupsToUse, List<String> annotationsToUse) {
         initializeAnnotations(annotationGroupsToUse, annotationsToUse);
         initializeDBs(engine);
     }
 
-    // use this constructor if you want to select specific annotations (and/or interfaces) plus expressions
-    public VariantAnnotatorEngine(GenomeAnalysisEngine engine, List<String> annotationGroupsToUse, List<String> annotationsToUse, List<String> expressionsToUse) {
-        initializeAnnotations(annotationGroupsToUse, annotationsToUse);
-        initializeDBs(engine);
-
+    // select specific expressions to use
+    public void initializeExpressions(List<String> expressionsToUse) {
         // set up the expressions
         for ( String expression : expressionsToUse )
             requestedExpressions.add(new VAExpression(expression));
