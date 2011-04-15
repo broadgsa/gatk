@@ -74,7 +74,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             bestAlternateAllele = alternateAlleleToUse.getBases()[0];
         } else if ( useAlleleFromVCF ) {
             final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), true);
-            if ( vcInput == null || vcInput.isFiltered() )
+            if ( vcInput == null || vcInput.isFiltered() || !vcInput.isSNP() )
                 return null;
             if ( !vcInput.isSNP() ) {
                 logger.info("Record at position " + ref.getLocus() + " is not a SNP; skipping...");

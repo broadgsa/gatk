@@ -139,12 +139,6 @@ public class UnifiedGenotyperEngine {
         if ( UAC.COVERAGE_AT_WHICH_TO_ABORT > 0 && rawContext.size() > UAC.COVERAGE_AT_WHICH_TO_ABORT )
             return null;
 
-        // special case handling - avoid extended event pileups when calling indels if we're genotyping given alleles
-        // TODO - is this the right solution? otherwise we trigger twice and we get duplicate entries
- /*       if ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.DINDEL && rawContext.hasExtendedEventPileup()
-                && UAC.GenotypingMode == GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES)
-            return null;
-   */
         final GenotypeLikelihoodsCalculationModel.Model model = getCurrentGLModel( rawContext );
         if( model == null ) {
             return null;
@@ -169,11 +163,9 @@ public class UnifiedGenotyperEngine {
      * @param tracker    the meta data tracker
      * @param refContext the reference base
      * @param rawContext contextual information around the locus
-     * @param alternateAlleleToUse the alternate allele to use, null if not set
-     * @param useBAQedPileup should we use the BAQed pileup?
      * @return the VariantContext object
      */
-    public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, Allele alternateAlleleToUse, boolean useBAQedPileup) {
+    public VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
         final GenotypeLikelihoodsCalculationModel.Model model = getCurrentGLModel( rawContext );
         if( model == null )
             return null;
@@ -182,7 +174,7 @@ public class UnifiedGenotyperEngine {
         if ( stratifiedContexts == null )
             return null;
 
-        return calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, alternateAlleleToUse, useBAQedPileup, model);
+        return calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
     }
 
     // private method called by both UnifiedGenotyper and UGCalcLikelihoods entry points into the engine

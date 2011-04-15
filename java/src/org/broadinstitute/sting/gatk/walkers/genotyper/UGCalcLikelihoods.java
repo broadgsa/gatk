@@ -47,7 +47,7 @@ import java.util.*;
  * the name 'allele' so we know which alternate allele to use at each site.
  */
 @BAQMode(QualityMode = BAQ.QualityMode.ADD_TAG, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
-@Requires(value={},referenceMetaData=@RMD(name="allele", type= VariantContext.class))
+@Requires(value={},referenceMetaData=@RMD(name="alleles", type= VariantContext.class))
 @Reference(window=@Window(start=-200,stop=200))
 @By(DataSource.READS)
 @Downsample(by=DownsampleType.BY_SAMPLE, toCoverage=250)
@@ -90,20 +90,7 @@ public class UGCalcLikelihoods extends LocusWalker<VariantCallContext, Integer> 
     }
 
     public VariantCallContext map(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext) {
-        Collection<VariantContext> VCs = tracker.getVariantContexts(refContext, "allele", null, rawContext.getLocation(), true, false);
-        if ( VCs.size() == 0 )
-            return null;
-        if ( VCs.size() > 1 ) {
-            logger.warn("Multiple records seen in the 'allele' ROD at position " + rawContext.getLocation() + "; skipping...");
-            return null;
-        }
-        VariantContext vc = VCs.iterator().next();
-        if ( !vc.isBiallelic() ) {
-            logger.warn("The record in the 'allele' ROD at position " + rawContext.getLocation() + " is not biallelic; skipping...");
-            return null;
-        }
-
-        VariantContext call = UG_engine.calculateLikelihoods(tracker, refContext, rawContext, vc.getAlternateAllele(0), true);
+        VariantContext call = UG_engine.calculateLikelihoods(tracker, refContext, rawContext);
         return call == null ? null : new VariantCallContext(call, refContext.getBase(), true);
     }
 
