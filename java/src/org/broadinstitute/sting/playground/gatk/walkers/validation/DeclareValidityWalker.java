@@ -91,8 +91,9 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
             if(each.getKey().equals("fileformat")) newlines.add(each);
         }
 
-
-
+        if (build.equals(".")) build=getBuild();
+        VCFHeaderLine ref = new VCFHeaderLine("reference", build);
+        newlines.add(ref);
         vcfWriter.writeHeader(new VCFHeader(newlines));
 
         return 0;  //To change body of implemented methods use File | Settings | File Templates.
@@ -104,14 +105,12 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
 
 
 
-    public Map<String, Object> addValidation(int Validity, String Note, String Source, String Build){
+    public Map<String, Object> addValidation(int Validity, String Note, String Source){
 
 
          HashMap<String, Object> validityAnnots = new HashMap<String, Object>();
          validityAnnots.put("validity", Validity);
          validityAnnots.put("user", System.getenv("USER"));
-         if (Build.equals(".")) validityAnnots.put("build", getBuild());
-         else validityAnnots.put("build", Build);
          validityAnnots.put("note", Note);
          validityAnnots.put("Source", Source);
 
@@ -142,7 +141,7 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
          if (current == null) {
              return 0;}
 
-         VariantContext declared = VariantContext.modifyAttributes( current, addValidation(validity, note, source, build));
+         VariantContext declared = VariantContext.modifyAttributes( current, addValidation(validity, note, source));
          vcfWriter.add(declared, ref.getBase());
          return 1;
      }
