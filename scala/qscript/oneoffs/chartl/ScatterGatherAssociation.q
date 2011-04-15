@@ -80,9 +80,12 @@ class ScatterGatherAssociation extends QScript {
     @Output(doc="sd")
     @Gather(classOf[SimpleTextGatherFunction])
     var sd : File = new File(String.format("%s.%s.%s",base,"SampleDepth",ext))
-    @Output(doc="rli")
+    @Output(doc="rai")
     @Gather(classOf[SimpleTextGatherFunction])
-    var rli : File = new File(String.format("%s.%s.%s",base,"ReadsLargeInsertSize",ext))
+    var rli : File = new File(String.format("%s.%s.%s",base,"ReadsAberrantInsertSize",ext))
+    @Output(doc="rwi")
+    @Gather(classOf[SimpleTextGatherFunction])
+    var rwi : File = new File(String.format("%s.%s.%s",base,"ReadsWithIndels",ext))
 
     override def commandLine = {
       var bedStr : String = ""
