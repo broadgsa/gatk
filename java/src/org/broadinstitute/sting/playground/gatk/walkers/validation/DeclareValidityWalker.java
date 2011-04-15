@@ -48,6 +48,7 @@ import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.bed.BedParser;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import javax.activation.*;
@@ -85,6 +86,14 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
 
     public Integer reduceInit() {
 
+        for(char a : note.toCharArray()){
+            if(Character.isWhitespace(a)) throw new UserException("White space is not allowed in VCF Info fields, please omit it from your build, note, and source arguments.");
+        }
+
+        for(char b : source.toCharArray()){
+            if(Character.isWhitespace(b)) throw new UserException("White space is not allowed in VCF Info fields, please omit it from your build, note, and source arguments.");
+        }
+
         Set<VCFHeaderLine> old = VCFUtils.getHeaderFields(getToolkit());
         Set<VCFHeaderLine> newlines = new HashSet<VCFHeaderLine>();
         for(VCFHeaderLine each : old){
@@ -106,6 +115,7 @@ public class DeclareValidityWalker   extends RodWalker<Integer, Integer>{
 
 
     public Map<String, Object> addValidation(int Validity, String Note, String Source){
+
 
 
          HashMap<String, Object> validityAnnots = new HashMap<String, Object>();
