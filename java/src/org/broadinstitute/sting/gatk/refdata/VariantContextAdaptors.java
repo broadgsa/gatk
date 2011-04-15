@@ -85,7 +85,7 @@ public class VariantContextAdaptors {
     private static class DBSnpAdaptor extends VCAdaptor {
         VariantContext convert(String name, Object input, ReferenceContext ref) {
             DbSNPFeature dbsnp = (DbSNPFeature)input;
-            if ( ! Allele.acceptableAlleleBases(DbSNPHelper.getReference(dbsnp),true) )
+            if ( ! Allele.acceptableAlleleBases(DbSNPHelper.getReference(dbsnp)) )
                 return null;
             Allele refAllele = Allele.create(DbSNPHelper.getReference(dbsnp), true);
 
@@ -96,7 +96,7 @@ public class VariantContextAdaptors {
 
                 // add all of the alt alleles
                 for ( String alt : DbSNPHelper.getAlternateAlleleList(dbsnp) ) {
-                    if ( ! Allele.acceptableAlleleBases(alt,false) ) {
+                    if ( ! Allele.acceptableAlleleBases(alt) ) {
                         //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                         return null;
                     }
@@ -148,7 +148,7 @@ public class VariantContextAdaptors {
          */
         VariantContext convert(String name, Object input, ReferenceContext ref) {
             GeliTextFeature geli = (GeliTextFeature)input;
-            if ( ! Allele.acceptableAlleleBases(String.valueOf(geli.getRefBase()),true) )
+            if ( ! Allele.acceptableAlleleBases(String.valueOf(geli.getRefBase())) )
                 return null;
             Allele refAllele = Allele.create(String.valueOf(geli.getRefBase()), true);
 
@@ -159,7 +159,7 @@ public class VariantContextAdaptors {
                 List<Allele> genotypeAlleles = new ArrayList<Allele>();
                 // add all of the alt alleles
                 for ( char alt : geli.getGenotype().toString().toCharArray() ) {
-                    if ( ! Allele.acceptableAlleleBases(String.valueOf(alt),false) ) {
+                    if ( ! Allele.acceptableAlleleBases(String.valueOf(alt)) ) {
                         return null;
                     }
                     Allele allele = Allele.create(String.valueOf(alt), false);
@@ -306,7 +306,7 @@ public class VariantContextAdaptors {
                     throw new UnsupportedOperationException("Conversion from MAF to VariantContext requires a reference context, null received");
 
                 MafFeature maf = (MafFeature)input;
-                if ( ! Allele.acceptableAlleleBases(maf.getRefBases(),true) )
+                if ( ! Allele.acceptableAlleleBases(maf.getRefBases()) )
                     return null;
 
                 List<Allele> alleles = new ArrayList<Allele>();
@@ -317,7 +317,7 @@ public class VariantContextAdaptors {
 
                 // add all of the alt alleles
                 for ( String alt : maf.getAllNonRefAlleleList() ) {
-                    if ( ! Allele.acceptableAlleleBases(alt,false) ) {
+                    if ( ! Allele.acceptableAlleleBases(alt) ) {
                         //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
                         return null;
                     }
