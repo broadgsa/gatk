@@ -44,28 +44,28 @@ object StringFileConversions {
   // and mixins all correct so this doesn't have to be duplicated with concrete implementations?
   // http://programming-scala.labs.oreilly.com/ch12.html is your friend.
 
-  implicit def stringsAsFiles(x: List[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]) = {
+  implicit def stringsAsFiles(x: List[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]): List[File] = {
     x.map(_ match {
       case string: String => stringAsFile(string)
       case file: File => file
     })
   }
 
-  implicit def filesAsStrings(x: List[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]) = {
+  implicit def filesAsStrings(x: List[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]): List[String] = {
     x.map(_ match {
       case file: File => fileAsString(file)
       case string: String => string
     })
   }
 
-  implicit def stringsAsFiles(x: Set[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable] with Serializable]) = {
+  implicit def stringsAsFiles(x: Set[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable] with Serializable]): Set[File] = {
     x.map(_ match {
       case string: String => stringAsFile(string)
       case file: File => file
     })
   }
 
-  implicit def filesAsStrings(x: Set[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable] with Serializable]) = {
+  implicit def filesAsStrings(x: Set[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable] with Serializable]): Set[String] = {
     x.map(_ match {
       case file: File => fileAsString(file)
       case string: String => string
@@ -87,19 +87,19 @@ trait StringFileConversions {
     StringFileConversions.fileAsString(x)
   }
 
-  implicit def stringsAsFiles(x: List[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]) = {
+  implicit def stringsAsFiles(x: List[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable]): List[File] = {
     StringFileConversions.stringsAsFiles(x)
   }
 
-  implicit def filesAsStrings(x: List[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]) = {
+  implicit def filesAsStrings(x: List[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable]): List[String] = {
     StringFileConversions.filesAsStrings(x)
   }
 
-  implicit def stringsAsFiles(x: Set[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable] with Serializable]) = {
+  implicit def stringsAsFiles(x: Set[Comparable[_ >: File with String <: Comparable[_ >: File with String <: Comparable[_ >: File with String <: Serializable] with Serializable] with Serializable] with Serializable]): Set[File] = {
     StringFileConversions.stringsAsFiles(x)
   }
 
-  implicit def filesAsStrings(x: Set[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable] with Serializable]) = {
+  implicit def filesAsStrings(x: Set[Comparable[_ >: String with File <: Comparable[_ >: String with File <: Comparable[_ >: String with File <: Serializable] with Serializable] with Serializable] with Serializable]): Set[String] = {
     StringFileConversions.filesAsStrings(x)
   }
 }

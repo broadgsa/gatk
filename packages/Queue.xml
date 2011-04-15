@@ -34,7 +34,7 @@
 
             <!-- Pipeline + Utils -->
             <package name="org.broadinstitute.sting.datasources.pipeline.**" />
-            <package name="org.broadinstitute.sting.utils.yaml.**" />
+            <package name="org.broadinstitute.sting.utils.**" />
 
             <!-- Scala -->
             <package name="scala.**" />
