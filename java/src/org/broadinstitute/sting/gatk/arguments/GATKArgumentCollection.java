@@ -243,7 +243,7 @@ public class GATKArgumentCollection {
     public boolean allowIntervalsWithUnindexedBAM = false;
 
     @Element(required = false)
-    @Argument(fullName="disable_experimental_low_memory_sharding",doc="Enable experimental low-memory sharding functionality.  Use at your own risk.",required=false)
+    @Argument(fullName="disable_experimental_low_memory_sharding",doc="Disbale experimental low-memory sharding functionality.",required=false)
     public boolean disableLowMemorySharding = false;
 
     // --------------------------------------------------------------------------------------------------------------
