@@ -907,7 +907,8 @@ public class GenomeAnalysisEngine {
                 getWalkerBAQApplicationTime() == BAQ.ApplicationTime.ON_INPUT ? argCollection.BAQMode : BAQ.CalculationMode.OFF,
                 getWalkerBAQQualityMode(),
                 refReader,
-                argCollection.defaultBaseQualities,argCollection.enableLowMemorySharding);
+                argCollection.defaultBaseQualities,
+                !argCollection.disableLowMemorySharding);
         return dataSource;
     }
 
