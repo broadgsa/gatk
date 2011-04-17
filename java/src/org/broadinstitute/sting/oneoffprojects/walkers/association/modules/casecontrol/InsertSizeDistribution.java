@@ -11,13 +11,16 @@ import java.util.List;
  * @author chartl
  */
 public class InsertSizeDistribution extends ValueTest {
+    private final int MAPQ_THRESHOLD = 5;
 
     public boolean usePreviouslySeenReads() { return false; }
 
     public Collection<Number> map(ReadBackedPileup pileup) {
         List<Integer> insertSizes = new ArrayList<Integer>(pileup.size());
         for ( PileupElement e : pileup ) {
-            insertSizes.add(Math.abs(e.getRead().getInferredInsertSize()));
+            if ( e.getMappingQual() >= MAPQ_THRESHOLD ) {
+                insertSizes.add(Math.abs(e.getRead().getInferredInsertSize()));
+            }
         }
 
         return (Collection) insertSizes;

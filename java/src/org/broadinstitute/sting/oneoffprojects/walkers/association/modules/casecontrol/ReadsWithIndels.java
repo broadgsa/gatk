@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol;
 
+import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
@@ -19,8 +20,11 @@ public class ReadsWithIndels extends ProportionTest {
         int numWithIndels = 0;
         for ( PileupElement e : pileup ) {
             ++numReads;
-            if ( e.getRead().getCigar().getCigarElements().contains(CigarOperator.DELETION) || e.getRead().getCigar().getCigarElements().contains(CigarOperator.INSERTION)) {
-                ++numWithIndels;
+            for ( CigarElement element : e.getRead().getCigar().getCigarElements() ) {
+                if ( element.getOperator().equals(CigarOperator.DELETION) || element.getOperator().equals(CigarOperator.INSERTION) ) {
+                    ++numWithIndels;
+                    break;
+                }
             }
         }
 

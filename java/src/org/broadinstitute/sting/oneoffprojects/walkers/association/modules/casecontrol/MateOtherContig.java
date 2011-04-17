@@ -13,13 +13,15 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
  */
 public class MateOtherContig extends ProportionTest {
 
+    private final int MAPQ_THRESHOLD = 5;
+
     public boolean usePreviouslySeenReads() { return false; }
 
     public Pair<Number,Number> map(ReadBackedPileup pileup) {
         int tot = 0;
         int otherCon = 0;
         for ( PileupElement e : pileup ) {
-            if ( e.getRead().getReadPairedFlag() ) {
+            if ( e.getRead().getReadPairedFlag() && e.getRead().getMappingQuality() >= MAPQ_THRESHOLD ) {
                 ++tot;
                 if ( ! e.getRead().getMateReferenceIndex().equals(e.getRead().getReferenceIndex()) ) {
                     ++otherCon;

@@ -12,12 +12,13 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
  * To change this template use File | Settings | File Templates.
  */
 public class MateSameStrand extends ProportionTest {
+    private final int MAPQ_THRESHOLD = 5;
 
     public Pair<Number,Number> map(ReadBackedPileup rbp) {
         int numPairs = 0;
         int mateSameStrand = 0;
         for (PileupElement e : rbp ) {
-            if ( e.getRead().getReadPairedFlag() ) {
+            if ( e.getRead().getReadPairedFlag() && e.getMappingQual() >= MAPQ_THRESHOLD) {
                 ++numPairs;
                 if ( e.getRead().getMateNegativeStrandFlag() == e.getRead().getReadNegativeStrandFlag() ) {
                     ++mateSameStrand;

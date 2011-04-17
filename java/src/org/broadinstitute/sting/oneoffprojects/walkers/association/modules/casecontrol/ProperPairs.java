@@ -12,14 +12,17 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
  * To change this template use File | Settings | File Templates.
  */
 public class ProperPairs extends ProportionTest {
+    private final int MAPQ_THRESHOLD = 5;
 
     public Pair<Number,Number> map(ReadBackedPileup rbp) {
         int numReads = 0;
         int numPropPair = 0;
         for (PileupElement e : rbp ) {
-            ++numReads;
-            if ( e.getRead().getReadPairedFlag() && e.getRead().getProperPairFlag() ) {
-                ++numPropPair;
+            if ( e.getRead().getReadPairedFlag() && e.getMappingQual() >= MAPQ_THRESHOLD ) {
+                ++numReads;
+                if ( e.getRead().getReadPairedFlag() && e.getRead().getProperPairFlag() ) {
+                    ++numPropPair;
+                }
             }
         }
 
