@@ -92,6 +92,9 @@ public class CommandLineGATK extends CommandLineExecutable {
             // We can generate Tribble Exceptions in weird places when e.g. VCF genotype fields are
             //   lazy loaded, so they aren't caught elsewhere and made into User Exceptions
             exitSystemWithUserError(e);
+        } catch (net.sf.samtools.SAMException e) {
+            // Let's try this out and see how it is received by our users
+            exitSystemWithSamError(e);
         } catch (Exception e) {
             exitSystemWithError(e);
         }
