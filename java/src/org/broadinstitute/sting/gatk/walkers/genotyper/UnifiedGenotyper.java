@@ -60,7 +60,7 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter writer = null;
 
-    @Argument(fullName = "verbose_mode", shortName = "verbose", doc = "File to print all of the annotated and detailed debugging output", required = false)
+    @Argument(fullName = "debug_file", shortName = "debug_file", doc = "File to print all of the annotated and detailed debugging output", required = false)
     protected PrintStream verboseWriter = null;
 
     @Argument(fullName = "metrics_file", shortName = "metrics", doc = "File to print any relevant callability metrics output", required = false)
