@@ -108,7 +108,8 @@ class FilePointer {
         while(thisIterator.hasNext()) {
             // If there are no elements left in the 'other' iterator, spin out this iterator.
             if(!otherIterator.hasNext()) {
-                difference += ((GATKBAMFileSpan)thisIterator.next()).size();
+                GATKBAMFileSpan nextSpan = (GATKBAMFileSpan)thisIterator.next().getValue();
+                difference += nextSpan.size();
                 continue;
             }
 
