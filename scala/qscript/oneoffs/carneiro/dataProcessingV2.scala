@@ -442,7 +442,7 @@ class dataProcessingV2 extends QScript {
     @Input(doc="bwa alignment index file for 1st mating pair") var sai1 = inSai1
     @Input(doc="bwa alignment index file for 2nd mating pair") var sai2 = inSai2
     @Output(doc="output aligned bam file") var alignedBam = outBam
-    def commandLine = bwaPath + " samse " + reference + " " + sai1 + " " + sai2 + " " + bam + " -r " + readGroup + " > " + alignedBam
+    def commandLine = bwaPath + " sampe " + reference + " " + sai1 + " " + sai2 + " " + bam + " -r " + readGroup + " > " + alignedBam
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".bwa_sam_pe"
     this.jobName = queueLogDir + outBam + ".bwa_sam_pe"

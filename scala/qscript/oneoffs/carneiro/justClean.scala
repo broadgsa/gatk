@@ -59,14 +59,14 @@ class justClean extends QScript {
     clean.reference_sequence = reference
     clean.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     clean.rodBind :+= RodBind("indels", "VCF", indels)
-    clean.doNotUseSW = true
+    clean.doNotUseSW = false
     clean.compress = 0
-    clean.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update clean with the last consensus between Tim, Matt and Eric. This is ugly!
+//    clean.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update clean with the last consensus between Tim, Matt and Eric. This is ugly!
     clean.jobName = queueLogDir + outBam + ".clean"
     clean.jarFile = GATKjar
-    clean.memoryLimit = 12
+    clean.memoryLimit = 6
     clean.scatterCount = 84
 
-    add(clean);
+    add(target, clean);
   }
 }
