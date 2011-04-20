@@ -84,7 +84,7 @@ public class LinearMicroScheduler extends MicroScheduler {
 
         Object result = accumulator.finishTraversal();
 
-        printOnTraversalDone(result,engine.getCumulativeMetrics());
+        printOnTraversalDone(result);
 
         outputTracker.close();
         cleanup();

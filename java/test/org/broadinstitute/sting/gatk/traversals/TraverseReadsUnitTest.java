@@ -138,7 +138,6 @@ public class TraverseReadsUnitTest extends BaseTest {
             dataProvider.close();
         }
 
-        traversalEngine.printOnTraversalDone(new ReadMetrics());
         countReadWalker.onTraversalDone(accumulator);
 
         if (!(accumulator instanceof Integer)) {

@@ -217,8 +217,8 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
      * Print summary information for the analysis.
      * @param sum The final reduce output.
      */
-    protected void printOnTraversalDone(Object sum, ReadMetrics metrics) {
-        traversalEngine.printOnTraversalDone(metrics);
+    protected void printOnTraversalDone(Object sum) {
+        traversalEngine.printOnTraversalDone();
     }
 
     /**

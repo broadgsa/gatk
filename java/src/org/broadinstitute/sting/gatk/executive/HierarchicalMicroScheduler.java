@@ -176,7 +176,7 @@ public class HierarchicalMicroScheduler extends MicroScheduler implements Hierar
         outputTracker.bypassThreadLocalStorage(true);
         try {
             walker.onTraversalDone(result);
-            printOnTraversalDone(result,engine.getCumulativeMetrics());
+            printOnTraversalDone(result);
         }
         finally {
             outputTracker.bypassThreadLocalStorage(false);
