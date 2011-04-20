@@ -15,11 +15,14 @@ class GATKResourcesBundle extends QScript {
   @Argument(doc="liftOverPerl", required=false)
   var liftOverPerl: File = new File("./perl/liftOverVCF.pl")
 
+  @Argument(shortName = "svn", doc="The SVN version of this release", required=true)
+  var SVN_VERSION: String = _
+
   @Argument(shortName = "bundleDir", doc="Path to root where resource files will be placed", required=false)
-  val BUNDLE_DIR = new File("bundle")
+  val BUNDLE_ROOT = new File("/humgen/gsa-hpprojects/GATK/bundle")
 
   @Argument(shortName = "downloadDir", doc="Path to root where resource files will be placed for users to download", required=false)
-  val DOWNLOAD_DIR = new File("downloads")
+  val DOWNLOAD_ROOT = new File("/humgen/gsa-scr1/pub/bundle")
 
   @Argument(shortName = "test", doc="", required=false)
   val TEST = false
@@ -29,16 +32,15 @@ class GATKResourcesBundle extends QScript {
 
   val SITES_EXT: String = "sites"
 
+  def BUNDLE_DIR: File = BUNDLE_ROOT + "/" + SVN_VERSION
+  def DOWNLOAD_DIR: File = DOWNLOAD_ROOT + "/" + SVN_VERSION
+
+  // REFERENCES
   class Reference( val name: String, val file: File ) { }
-
-  val b37 = new Reference("b37", new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta"))
-  //val b36 = new Reference("b36", new File("/Users/depristo/Desktop/broadLocal/localData/human_b36_both.fasta"))
-  //val hg19 = new Reference("hg19")
-  val hg18 = new Reference("hg18", new File("/Users/depristo/Desktop/broadLocal/localData/Homo_sapiens_assembly18.fasta"))
-  val exampleFASTA = new Reference("exampleFASTA", new File("testdata/exampleFASTA.fasta"))
-
-  val refs = List(b37, hg18, exampleFASTA)
-  //val refs = List(b37, b36, hg19, hg18, exampleFASTA)
+  var b37: Reference = _
+  var hg18: Reference = _
+  var exampleFASTA: Reference = _
+  var refs: List[Reference] = _
 
   class Resource(val file: File, val name: String, val ref: Reference, val useName: Boolean = true, val makeSites: Boolean = true ) {
     def destname(target: Reference): String = {
@@ -55,7 +57,7 @@ class GATKResourcesBundle extends QScript {
 //      case ("b37", "hg19") =>
 //        return new HGRFC2UCSC(in, out)
       case ("b37", "hg18") =>
-        return new LiftOverPerl(in, out, new File("chainFiles/b37Tohg18.chain"), inRef, outRef)
+        return new LiftOverPerl(in, out, new File("chainFiles/b37tohg18.chain"), inRef, outRef)
 //      case ("b37", "b36") =>
 //        return new LiftOverPerl(in, out, new File("chainFiles/b37Tob36.chain"), inRef, outRef)
       case _ => return null
@@ -79,20 +81,35 @@ class GATKResourcesBundle extends QScript {
     //
     // Standard evaluation files for indels
     //
-    val DATAROOT = "/Users/depristo/Desktop/broadLocal/localData/"
-    addResource(new Resource(DATAROOT + "human_g1k_v37.fasta", "human_g1k_v37.fasta", b37, false))
-    addResource(new Resource(DATAROOT + "1000G.snp.validation.b37.vcf", "1000G.snp.validation", b37))
-    //addResource(new Resource(DATAROOT + "dbsnp_132_b37.vcf", "dbsnp_132", b37, true, false))
+    b37 = new Reference("b37", new File("/Users/depristo/Desktop/broadLocal/localData/human_g1k_v37.fasta"))
+    hg18 = new Reference("hg18", new File("/Users/depristo/Desktop/broadLocal/localData/Homo_sapiens_assembly18.fasta"))
+    exampleFASTA = new Reference("exampleFASTA", new File("testdata/exampleFASTA.fasta"))
+    refs = List(b37, hg18, exampleFASTA)
 
-    addResource(new Resource("testdata/exampleFASTA.fasta", "exampleFASTA", exampleFASTA, false))
+    val DATAROOT = "/Users/depristo/Desktop/broadLocal/localData/"
+    //addResource(new Resource(DATAROOT + "human_g1k_v37.fasta", "human_g1k_v37.fasta", b37, false))
+    addResource(new Resource(DATAROOT + "1000G.snp.validation.b37.vcf", "1000G.snp.validation", b37))
+    addResource(new Resource(DATAROOT + "dbsnp_132_b37.vcf", "dbsnp_132", b37, true, false))
+
+    addResource(new Resource(exampleFASTA.file, "exampleFASTA", exampleFASTA, false))
     addResource(new Resource("testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false))
   }
 
   def initializeStandardDataFiles() = {
+    //
     // references
-    addResource(new Resource("/humgen/1kg/reference/human_g1k_v37.fasta", "human_g1k_v37.fasta", b37, false))
-    addResource(new Resource("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta", "Homo_sapiens_assembly18.fasta", hg18, false))
+    //
+    b37 = new Reference("b37", new File("/humgen/1kg/reference/human_g1k_v37.fasta"))
+    hg18 = new Reference("hg18", new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"))
+    exampleFASTA = new Reference("exampleFASTA", new File("testdata/exampleFASTA.fasta"))
+    refs = List(b37, hg18, exampleFASTA)
 
+    addResource(new Resource(b37.file, "", b37, false))
+    addResource(new Resource(hg18.file, "", hg18, false))
+
+    //
+    // standard VCF files.  Will be lifted to each reference
+    //
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_132_b37.leftAligned.vcf",
       "dbsnp_132", b37, true, false))
 
@@ -102,19 +119,29 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf",
       "hapmap_3.3", b37, true, true))
 
-    addResource(new Resource("AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf",
+    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf",
       "1000G_indels_for_realignment", b37, true, false))
 
+    //
+    // Test BAM file, specific to each reference
+    //
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam",
+      "IGNORE", b37, false, false))
+
+    //
+    // refGene files specific to each reference
+    //
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/refGene_b37.sorted.txt",
       "refGene", b37, true, false))
 
-    addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam",
-      "IGNORE", b37, false, false))
 
     // todo -- chain files?
     // todo 1000G SNP and indel call sets?
 
-    addResource(new Resource("testdata/exampleFASTA.fasta", "exampleFASTA", exampleFASTA, false))
+    //
+    // exampleFASTA file
+    //
+    addResource(new Resource(exampleFASTA.file, "exampleFASTA", exampleFASTA, false))
     addResource(new Resource("testdata/exampleBAM.bam", "exampleBAM", exampleFASTA, false))
   }
 
@@ -128,14 +155,16 @@ class GATKResourcesBundle extends QScript {
   }
 
   def script = {
-    if ( ! DO_DOWNLOAD ) {
-      createBundleDirectories(BUNDLE_DIR)
-      if ( TEST )
-        initializeTestDataFiles();
-      else
-        initializeStandardDataFiles();
+    if ( TEST )
+      initializeTestDataFiles();
+    else
+      initializeStandardDataFiles();
 
-      for ( resource <- RESOURCES ) {
+    if ( ! DO_DOWNLOAD ) {
+      // create destination directory structure
+      createBundleDirectories(BUNDLE_DIR)
+
+      for ( resource: Resource <- RESOURCES ) {
         if ( isFASTA(resource.file) ) {
           val f = copyBundleFile(resource, resource.ref)
           add(new createDictandFAI(f))
@@ -168,6 +197,12 @@ class GATKResourcesBundle extends QScript {
                 val sites: Resource = new Resource(swapExt(out.getParent, out, ".vcf", "." + SITES_EXT + ".vcf"), "", destRef, false)
                 add(new JustSites(out, sites.file))
                 add(new IndexVCF(sites.file, destRef.file))
+              }
+
+              if ( resource.name.contains("dbsnp") ) {
+                val dbsnp129: Resource = new Resource(swapExt(out.getParent, out, ".vcf", ".excluding_sites_after_129.vcf"), "", destRef, false)
+                add(new MakeDBSNP129(out, destRef.file, dbsnp129.file))
+                add(new IndexVCF(dbsnp129.file, destRef.file))
               }
             }
           }
@@ -235,7 +270,7 @@ class GATKResourcesBundle extends QScript {
 
   class md5sum(@Input val in: File) extends CommandLineFunction {
     @Output val o: File = new File(in.getAbsolutePath + ".md5")
-    def commandLine = "md5 %s > %s".format(in.getAbsolutePath, o)
+    def commandLine = "md5sum %s > %s".format(in.getAbsolutePath, o)
   }
 
   class IndexBAM(bamIn: File) extends SamtoolsIndexFunction {
@@ -243,6 +278,7 @@ class GATKResourcesBundle extends QScript {
   }
 
   class IndexVCF(@Input vcf: File, @Input ref: File) extends CountRod with UNIVERSAL_GATK_ARGS {
+    //@Output val vcfIndex: File = swapExt(vcf.getParent, vcf, ".vcf", ".vcf.idx")
     this.rodBind :+= RodBind(vcf.getName, "VCF", vcf)
     this.reference_sequence = ref
   }
@@ -253,15 +289,24 @@ class GATKResourcesBundle extends QScript {
     this.out = outVCF
   }
 
-  class LiftOverPerl(@Input val in: File, @Output val out: File, @Input val chain: File, oldRef: Reference, newRef: Reference) extends CommandLineFunction {
-    def commandLine = ("%s -vcf %s -chain %s -out %s " +
-      "-gatk ./ -newRef %s -oldRef %s ").format(liftOverPerl, in.getAbsolutePath, chain,
-      out.getAbsolutePath, newRef.file.replace(".fasta", ""), oldRef.file.replace(".fasta", ""))
+  class MakeDBSNP129(@Input dbsnp: File, @Input ref: File, @Output dbsnp129: File) extends SelectVariants with UNIVERSAL_GATK_ARGS {
+    this.rodBind :+= RodBind("variant", "VCF", dbsnp)
+    this.select ++= List("\"dbSNPBuildID <= 129\"")
+    this.reference_sequence = ref
+    this.out = dbsnp129
   }
 
-  class HGRFC2UCSC(@Input val in: File, @Output val out: File) extends CommandLineFunction {
-    def commandLine = "python ../python/vcf_b36_to_hg18.py %s %s".format(in.getAbsolutePath, out.getAbsolutePath)
+  class LiftOverPerl(@Input val in: File, @Output val out: File, @Input val chain: File, oldRef: Reference, newRef: Reference) extends CommandLineFunction {
+    this.memoryLimit = 8
+    def commandLine = ("%s -vcf %s -chain %s -out %s " +
+      "-gatk ./ -newRef %s -oldRef %s -tmp %s").format(liftOverPerl, in.getAbsolutePath, chain,
+      out.getAbsolutePath, newRef.file.replace(".fasta", ""),
+      oldRef.file.replace(".fasta", ""), jobTempDir)
   }
+
+//  class HGRFC2UCSC(@Input val in: File, @Output val out: File) extends CommandLineFunction {
+//    def commandLine = "python ../python/vcf_b36_to_hg18.py %s %s".format(in.getAbsolutePath, out.getAbsolutePath)
+//  }
 
   def getExtension(f: File): String = {
     val i = f.getName.lastIndexOf('.');
