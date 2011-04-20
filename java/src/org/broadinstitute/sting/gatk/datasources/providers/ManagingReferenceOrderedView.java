@@ -50,8 +50,8 @@ public class ManagingReferenceOrderedView implements ReferenceOrderedView {
      * @return A tracker containing information about this locus.
      */
     public RefMetaDataTracker getReferenceOrderedDataAtLocus( GenomeLoc loc ) {
-        RefMetaDataTracker tracks = new RefMetaDataTracker();
-        for (ReferenceOrderedDataState state: states )
+        RefMetaDataTracker tracks = new RefMetaDataTracker(states.size());
+        for ( ReferenceOrderedDataState state: states )
             tracks.bind( state.dataSource.getName(), state.iterator.seekForward(loc) );
         return tracks;
     }

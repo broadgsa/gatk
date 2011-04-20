@@ -28,9 +28,15 @@ Genotype * Traversal calls tracker.bind(name, RMD) for each RMDs in RMDs
  * Time: 3:05:23 PM
  */
 public class RefMetaDataTracker {
-    final HashMap<String, RODRecordList> map = new HashMap<String, RODRecordList>();
+    final Map<String, RODRecordList> map;
     protected static Logger logger = Logger.getLogger(RefMetaDataTracker.class);
 
+    public RefMetaDataTracker(int nBindings) {
+        if ( nBindings == 0 )
+            map = Collections.emptyMap();
+        else
+            map = new HashMap<String, RODRecordList>(nBindings);
+    }
 
     /**
      * get all the reference meta data associated with a track name.

@@ -138,7 +138,7 @@ public class RodLocusView extends LocusView implements ReferenceOrderedView {
     }
 
     private RefMetaDataTracker createTracker( Collection<RODRecordList> allTracksHere ) {
-        RefMetaDataTracker t = new RefMetaDataTracker();
+        RefMetaDataTracker t = new RefMetaDataTracker(allTracksHere.size());
         for ( RODRecordList track : allTracksHere ) {
             if ( ! t.hasROD(track.getName()) )
                 t.bind(track.getName(), track);

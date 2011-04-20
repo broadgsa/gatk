@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -97,7 +98,9 @@ public class AllLocusView extends LocusView {
      * @param site Site at which to create the blank locus context.
      * @return empty context.
      */
-    private AlignmentContext createEmptyLocus( GenomeLoc site ) {        
-        return new AlignmentContext(site,new ReadBackedPileupImpl(site,new ArrayList<SAMRecord>(), new ArrayList<Integer>()));
+    private final static List<SAMRecord> EMPTY_PILEUP_READS = Collections.emptyList();
+    private final static List<Integer> EMPTY_PILEUP_OFFSETS = Collections.emptyList();
+    private AlignmentContext createEmptyLocus( GenomeLoc site ) {
+        return new AlignmentContext(site,new ReadBackedPileupImpl(site, EMPTY_PILEUP_READS, EMPTY_PILEUP_OFFSETS));
     }
 }

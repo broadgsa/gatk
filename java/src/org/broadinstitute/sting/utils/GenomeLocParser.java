@@ -106,10 +106,10 @@ public class GenomeLocParser {
      * @return the contig index, -1 if not found
      */
     public int getContigIndex(final String contig, boolean exceptionOut) {
-        if (contigInfo.getSequenceIndex(contig) == -1 && exceptionOut)
+        int idx = contigInfo.getSequenceIndex(contig);
+        if (idx == -1 && exceptionOut)
             throw new UserException.CommandLineException(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
-
-        return contigInfo.getSequenceIndex(contig);
+        return idx;
     }
 
     /**
