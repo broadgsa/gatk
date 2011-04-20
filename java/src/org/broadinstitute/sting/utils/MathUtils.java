@@ -965,6 +965,7 @@ public class MathUtils {
     public static final double[] jacobianLogTable;
     public static final int JACOBIAN_LOG_TABLE_SIZE = 101;
     public static final double JACOBIAN_LOG_TABLE_STEP = 0.1;
+    public static final double INV_JACOBIAN_LOG_TABLE_STEP = 1.0/JACOBIAN_LOG_TABLE_STEP;
     public static final double MAX_JACOBIAN_TOLERANCE = 10.0;
     private static final int MAXN = 10000;
 
@@ -983,7 +984,7 @@ public class MathUtils {
 	    }
     }
 
-    static public double softMax(double[] vec) {
+    static public double softMax(final double[] vec) {
         double acc = vec[0];
         for (int k=1; k < vec.length; k++)
             acc = softMax(acc,vec[k]);
@@ -997,7 +998,7 @@ public class MathUtils {
         return Math.max(a,x2);
     }
     
-    static public double softMax(double x0, double x1, double x2) {
+    static public double softMax(final double x0, final double x1, final double x2) {
          // compute naively log10(10^x[0] + 10^x[1]+...)
          //        return Math.log10(MathUtils.sumLog10(vec));
 
@@ -1006,7 +1007,7 @@ public class MathUtils {
          return softMax(a,x2);
     }
 
-     static public double softMax(double x, double y) {
+     static public double softMax(final double x, final double y) {
          if (Double.isInfinite(x))
              return y;
 
@@ -1024,20 +1025,23 @@ public class MathUtils {
          // max(x,y) + log10(1+10^-abs(x-y))
          // we compute the second term as a table lookup
          // with integer quantization
-         double diff = Math.abs(x-y);
+
+         //double diff = Math.abs(x-y);
+         double diff = x-y;
          double t1 =x;
-         if (y > x)
+         if (diff<0) { //
              t1 = y;
-         // t has max(x,y)
+             diff= -diff;
+         }
+         // t has max(x,y), diff has abs(x-y)
          // we have pre-stored correction for 0,0.1,0.2,... 10.0
-         int ind = (int)Math.round(diff/JACOBIAN_LOG_TABLE_STEP);
-         double t2 = jacobianLogTable[ind];
+         int ind = (int)Math.round(diff*INV_JACOBIAN_LOG_TABLE_STEP);
 
          // gdebug+
          //double z =Math.log10(1+Math.pow(10.0,-diff));
          //System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
          //gdebug-
-         return t1+t2;
+         return t1+jacobianLogTable[ind];
          // return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
      }
 
