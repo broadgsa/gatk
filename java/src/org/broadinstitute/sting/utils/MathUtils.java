@@ -1035,8 +1035,8 @@ public class MathUtils {
          }
          // t has max(x,y), diff has abs(x-y)
          // we have pre-stored correction for 0,0.1,0.2,... 10.0
-         int ind = (int)Math.round(diff*INV_JACOBIAN_LOG_TABLE_STEP);
-
+         //int ind = (int)Math.round(diff*INV_JACOBIAN_LOG_TABLE_STEP);
+         int ind = (int)(diff*INV_JACOBIAN_LOG_TABLE_STEP+0.5);
          // gdebug+
          //double z =Math.log10(1+Math.pow(10.0,-diff));
          //System.out.format("x: %f, y:%f, app: %f, true: %f ind:%d\n",x,y,t2,z,ind);
