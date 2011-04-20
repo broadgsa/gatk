@@ -34,7 +34,7 @@ public class ReferenceDataUnitTest {
 
     @Test
     public void testDbsnpTypes() {
-        Assert.assertEquals(ReferenceData.HG18.getDbsnpType(129), "ROD");
+        Assert.assertEquals(ReferenceData.HG18.getDbsnpType(129), "DBSNP");
         Assert.assertEquals(ReferenceData.HG19.getDbsnpType(129), "VCF");
         Assert.assertEquals(ReferenceData.HG19.getDbsnpType(132), "VCF");
         Assert.assertNull(ReferenceData.HG19.getDbsnpType(130));

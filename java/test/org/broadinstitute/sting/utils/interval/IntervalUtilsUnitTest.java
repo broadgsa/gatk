@@ -14,10 +14,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * test out the interval utility methods
@@ -117,6 +114,16 @@ public class IntervalUtilsUnitTest extends BaseTest {
         Assert.assertEquals(IntervalUtils.distinctContigs(reference, Arrays.asList(BaseTest.validationDataLocation + "TCGA-06-0188.interval_list")), chrs);
         Assert.assertEquals(IntervalUtils.distinctContigs(reference, Arrays.asList("chr1:1-1", "chr2:1-1", "chr3:2-2")), Arrays.asList("chr1","chr2","chr3"));
         Assert.assertEquals(IntervalUtils.distinctContigs(reference, Arrays.asList("chr2:1-1", "chr1:1-1", "chr3:2-2")), Arrays.asList("chr1","chr2","chr3"));
+    }
+
+    @Test
+    public void testGetContigLengths() {
+        Map<String, Integer> lengths = IntervalUtils.getContigLengths(reference);
+        Assert.assertEquals((int)lengths.get("chr1"), 247249719);
+        Assert.assertEquals((int)lengths.get("chr2"), 242951149);
+        Assert.assertEquals((int)lengths.get("chr3"), 199501827);
+        Assert.assertEquals((int)lengths.get("chr20"), 62435964);
+        Assert.assertEquals((int)lengths.get("chrX"), 154913754);
     }
 
     @Test

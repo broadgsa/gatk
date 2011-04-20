@@ -30,11 +30,14 @@ import org.testng.Assert
 import org.broadinstitute.sting.commandline.CommandLineProgram
 import java.util.Date
 import java.text.SimpleDateFormat
-import org.broadinstitute.sting.{WalkerTest, BaseTest}
+import org.broadinstitute.sting.BaseTest
 import org.broadinstitute.sting.queue.{QException, QCommandLine}
 import org.broadinstitute.sting.datasources.pipeline.{Pipeline, PipelineProject, PipelineSample}
+import org.broadinstitute.sting.utils.broad.PicardAggregationUtils
 import org.broadinstitute.sting.queue.util.{Logging, ProcessController}
 import java.io.{FileNotFoundException, File}
+import org.broadinstitute.sting.gatk.report.GATKReportParser
+import org.apache.commons.io.FileUtils
 
 object PipelineTest extends BaseTest with Logging {
 
@@ -135,7 +138,6 @@ object PipelineTest extends BaseTest with Logging {
     val sample = new PipelineSample
     sample.setId(idPrefix + "_" + k1gBam.sampleId)
     sample.setBamFiles(Map("cleaned" -> getPicardBam(k1gBam)))
-    sample.setTags(Map("SQUIDProject" -> k1gBam.squidId, "CollaboratorID" -> k1gBam.sampleId))
     sample
   }
 
@@ -146,7 +148,7 @@ object PipelineTest extends BaseTest with Logging {
   def executeTest(pipelineTest: PipelineTestSpec) {
     val name = pipelineTest.name
     if (name == null)
-      throw new QException("PipelineTestSpec.name is null.")
+      Assert.fail("PipelineTestSpec.name is null.")
     println(Utils.dupString('-', 80));
     executeTest(name, pipelineTest.args, pipelineTest.jobQueue, pipelineTest.expectedException)
     if (run) {
@@ -174,27 +176,28 @@ object PipelineTest extends BaseTest with Logging {
     // write the report to the shared validation data location
     val formatter = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
     val reportLocation = "%s%s/validation.%s.eval".format(validationReportsDataLocation, name, formatter.format(new Date))
-    new File(reportLocation).getParentFile.mkdirs
+    val report = new File(reportLocation)
 
-    // Run variant eval generating the report and validating the pipeline vcf.
-    var walkerCommand = "-T VariantEval -R %s -B:eval,VCF %s -E %s -reportType R -reportLocation %s -L %s"
-      .format(evalSpec.reference, evalSpec.vcf, evalSpec.evalModules.mkString(" -E "), reportLocation, evalSpec.intervals)
+    FileUtils.copyFile(new File(runDir(name) + evalSpec.evalReport), report);
 
-    if (evalSpec.dbsnp != null) {
-      val dbsnpArg = if (evalSpec.dbsnp.getName.toLowerCase.endsWith(".vcf")) "-B:dbsnp,VCF" else "-D"
-      walkerCommand += " %s %s".format(dbsnpArg, evalSpec.dbsnp)
-    }
+    val parser = new GATKReportParser
+    parser.parse(report)
 
-    if (evalSpec.intervals != null)
-      walkerCommand += " -L %s".format(evalSpec.intervals)
+    var allInRange = true
 
+    println()
+    println(name + " validation values:")
+    println("    value (min,target,max) table key metric")
     for (validation <- evalSpec.validations) {
-      walkerCommand += " -summary %s".format(validation.metric)
-      walkerCommand += " -validate '%1$s >= %2$s' -validate '%1$s <= %3$s'".format(
-        validation.metric, validation.min, validation.max)
+      val value = parser.getValue(validation.table, validation.key, validation.metric)
+      val inRange = validation.inRange(value)
+      val flag = if (!inRange) "*" else " "
+      println("  %s %s (%s,%s,%s) %s %s %s".format(flag, value, validation.min, validation.target, validation.max, validation.table, validation.key, validation.metric))
+      allInRange &= inRange
     }
 
-    WalkerTest.executeTest(name + "-validate", walkerCommand, null)
+    if (!allInRange)
+      Assert.fail("Eval outside of expected range")
   }
 
   /**
@@ -209,7 +212,7 @@ object PipelineTest extends BaseTest with Logging {
 
     // add the logging level to each of the integration test commands
 
-    command = Utils.appendArray(command, "-bsub", "-l", "WARN", "-tempDir", tempDir(name), "-runDir", runDir(name))
+    command = Utils.appendArray(command, "-bsub", "-tempDir", tempDir(name), "-runDir", runDir(name))
 
     if (jobQueue == null)
       command = Utils.appendArray(command, "-jobQueue", "hour")
@@ -281,29 +284,16 @@ object PipelineTest extends BaseTest with Logging {
   }
 
   private def getPicardBam(k1gBam: K1gBam): File =
-    getPicardBam(k1gBam.squidId, k1gBam.sampleId, k1gBam.version)
-
-  private def getPicardBam(squidId: String, sampleId: String, version: Int): File =
-    new File(getPicardDir(squidId, sampleId, version), sampleId + ".bam")
-
-  private def getPicardDir(squidId: String, sampleId: String, version: Int) =
-    new File("/seq/picard_aggregation/%1$s/%2$s/v%3$s/".format(squidId, sampleId, version))
+    new File(PicardAggregationUtils.getSampleBam(k1gBam.squidId, k1gBam.sampleId, k1gBam.version))
 
   private def getLatestVersion(k1gBam: K1gBam): Int =
-    getLatestVersion(k1gBam.squidId, k1gBam.sampleId, k1gBam.version)
-
-  private def getLatestVersion(squidId: String, sampleId: String, startVersion: Int): Int = {
-    var version = startVersion
-    while (new File(getPicardDir(squidId, sampleId, version + 1), "finished.txt").exists)
-      version += 1
-    version
-  }
+    PicardAggregationUtils.getLatestVersion(k1gBam.squidId, k1gBam.sampleId, k1gBam.version)
 
   private var runningCommandLines = Set.empty[QCommandLine]
 
   Runtime.getRuntime.addShutdownHook(new Thread {
     /** Cleanup as the JVM shuts down. */
-    override def run {
+    override def run() {
       try {
         ProcessController.shutdown()
       } catch {

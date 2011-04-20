@@ -32,16 +32,20 @@ import StringFileConversions._
 class StringFileConversionsUnitTest {
   @Test
   def testStringToFile() {
-    val file = new File("foo")
-    val string: String = file
+    var string: String = new File("foo")
     Assert.assertEquals(string, "foo")
+
+    string = null.asInstanceOf[File]
+    Assert.assertNull(string)
   }
 
   @Test
   def testFileToString() {
-    val string = "foo"
-    val file: File = string
+    var file: File = "foo"
     Assert.assertEquals(file, new File("foo"))
+
+    file = null.asInstanceOf[String]
+    Assert.assertNull(file)
   }
 
   @Test
@@ -49,6 +53,18 @@ class StringFileConversionsUnitTest {
     var files = List(new File("foo"))
     files :+= "bar"
     Assert.assertEquals(files, List(new File("foo"), new File("bar")))
+
+    files = List(new File("foo"))
+    files :+= null.asInstanceOf[String]
+    Assert.assertEquals(files, List(new File("foo"), null))
+
+    files = List[File](null)
+    files :+= "foo"
+    Assert.assertEquals(files, List(null, new File("foo")))
+
+    files = List[File](null)
+    files :+= null.asInstanceOf[String]
+    Assert.assertEquals(files, List(null, null))
   }
 
   @Test
@@ -56,6 +72,18 @@ class StringFileConversionsUnitTest {
     var strings = List("foo")
     strings :+= new File("bar")
     Assert.assertEquals(strings, List("foo", "bar"))
+
+    strings = List("foo")
+    strings :+= null.asInstanceOf[File]
+    Assert.assertEquals(strings, List("foo", null))
+
+    strings = List[String](null)
+    strings :+= new File("foo")
+    Assert.assertEquals(strings, List(null, "foo"))
+
+    strings = List[String](null)
+    strings :+= null.asInstanceOf[File]
+    Assert.assertEquals(strings, List(null, null))
   }
 
   @Test
@@ -63,6 +91,18 @@ class StringFileConversionsUnitTest {
     var files = Set(new File("foo"))
     files += "bar"
     Assert.assertEquals(files, Set(new File("foo"), new File("bar")))
+
+    files = Set(new File("foo"))
+    files += null.asInstanceOf[String]
+    Assert.assertEquals(files, Set(new File("foo"), null))
+
+    files = Set[File](null)
+    files += "foo"
+    Assert.assertEquals(files, Set(new File("foo"), null))
+
+    files = Set[File](null)
+    files += null.asInstanceOf[String]
+    Assert.assertEquals(files, Set(null))
   }
 
   @Test
@@ -70,6 +110,18 @@ class StringFileConversionsUnitTest {
     var strings = Set("foo")
     strings += new File("bar")
     Assert.assertEquals(strings, Set("foo", "bar"))
+
+    strings = Set("foo")
+    strings += null.asInstanceOf[File]
+    Assert.assertEquals(strings, Set("foo", null))
+
+    strings = Set[String](null)
+    strings += new File("foo")
+    Assert.assertEquals(strings, Set("foo", null))
+
+    strings = Set[String](null)
+    strings += null.asInstanceOf[File]
+    Assert.assertEquals(strings, Set(null))
   }
 
   @Test
@@ -77,6 +129,18 @@ class StringFileConversionsUnitTest {
     var files = List(new File("foo"))
     files ++= List("bar")
     Assert.assertEquals(files, List(new File("foo"), new File("bar")))
+
+    files = List(new File("foo"))
+    files ++= List[String](null)
+    Assert.assertEquals(files, List(new File("foo"), null))
+
+    files = List[File](null)
+    files ++= List("foo")
+    Assert.assertEquals(files, List(null, new File("foo")))
+
+    files = List[File](null)
+    files ++= List[String](null)
+    Assert.assertEquals(files, List(null, null))
   }
 
   @Test
@@ -84,6 +148,18 @@ class StringFileConversionsUnitTest {
     var strings = List("foo")
     strings ++= List(new File("bar"))
     Assert.assertEquals(strings, List("foo", "bar"))
+
+    strings = List("foo")
+    strings ++= List[File](null)
+    Assert.assertEquals(strings, List("foo", null))
+
+    strings = List[String](null)
+    strings ++= List(new File("foo"))
+    Assert.assertEquals(strings, List(null, "foo"))
+
+    strings = List[String](null)
+    strings ++= List[File](null)
+    Assert.assertEquals(strings, List(null, null))
   }
 
   @Test
@@ -91,6 +167,18 @@ class StringFileConversionsUnitTest {
     var files = Set(new File("foo"))
     files ++= Set("bar")
     Assert.assertEquals(files, Set(new File("foo"), new File("bar")))
+
+    files = Set(new File("foo"))
+    files ++= Set[String](null)
+    Assert.assertEquals(files, Set(new File("foo"), null))
+
+    files = Set[File](null)
+    files ++= Set("foo")
+    Assert.assertEquals(files, Set(new File("foo"), null))
+
+    files = Set[File](null)
+    files ++= Set[String](null)
+    Assert.assertEquals(files, Set(null))
   }
 
   @Test
@@ -98,5 +186,17 @@ class StringFileConversionsUnitTest {
     var strings = Set("foo")
     strings ++= Set(new File("bar"))
     Assert.assertEquals(strings, Set("foo", "bar"))
+
+    strings = Set("foo")
+    strings ++= Set[File](null)
+    Assert.assertEquals(strings, Set("foo", null))
+
+    strings = Set[String](null)
+    strings ++= Set(new File("foo"))
+    Assert.assertEquals(strings, Set("foo", null))
+
+    strings = Set[String](null)
+    strings ++= Set[File](null)
+    Assert.assertEquals(strings, Set(null))
   }
 }

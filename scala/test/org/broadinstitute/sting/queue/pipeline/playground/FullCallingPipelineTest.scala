@@ -37,12 +37,12 @@ class FullCallingPipelineTest {
   val k1gChr20Dataset = {
     val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20", true)
 
-    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.all.counter.nCalledLoci", 1348)
-    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.known.counter.nCalledLoci", 1124)
-    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.novel.counter.nCalledLoci", 224)
-    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.all.titv.tiTvRatio", 3.6644)
-    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.known.titv.tiTvRatio", 3.7426)
-    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.novel.titv.tiTvRatio", 3.3077)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.all", "nCalledLoci", 1398)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.known", "nCalledLoci", 1143)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.novel", "nCalledLoci", 255)
+    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.all", "tiTvRatio", 3.6250)
+    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.known", "tiTvRatio", 3.7190)
+    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.novel", "tiTvRatio", 3.2037)
 
     dataset
   }
@@ -50,12 +50,12 @@ class FullCallingPipelineTest {
   val k1gExomeDataset = {
     val dataset = newK1gDataset("Barcoded_1000G_WEx", false)
 
-    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.all.counter.nCalledLoci", 50755)
-    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.known.counter.nCalledLoci", 40894)
-    dataset.validations :+= new IntegerValidation("eval.dbsnp.all.called.novel.counter.nCalledLoci", 9861)
-    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.all.titv.tiTvRatio", 3.2820)
-    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.known.titv.tiTvRatio", 3.3384)
-    dataset.validations :+= new DoubleValidation("eval.dbsnp.all.called.novel.titv.tiTvRatio", 3.0630)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.all", "nCalledLoci", 52668)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.known", "nCalledLoci", 41248)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.novel", "nCalledLoci", 11420)
+    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.all", "tiTvRatio", 3.271)
+    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.known", "tiTvRatio", 3.3299)
+    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.novel", "tiTvRatio", 3.0487)
 
     dataset.jobQueue = "gsa"
 
@@ -74,18 +74,16 @@ class FullCallingPipelineTest {
   final def convertDatasets: Array[Array[AnyRef]] =
     datasets.map(dataset => Array(dataset.asInstanceOf[AnyRef])).toArray
 
-  @Test(dataProvider="datasets", enabled=false)
-  def testFullCallingPipeline(dataset: PipelineDataset) = {
+  @Test(dataProvider="datasets")
+  def testFullCallingPipeline(dataset: PipelineDataset) {
     val projectName = dataset.pipeline.getProject.getName
     val testName = "FullCallingPipeline-" + projectName
     val yamlFile = writeYaml(testName, dataset.pipeline)
 
     // Run the pipeline with the expected inputs.
-    val pipelineCommand = ("-retry 1 -S scala/qscript/playground/FullCallingPipeline.q" +
-            " -jobProject %s -Y %s" +
-            " -tearScript %s/R/DataProcessingReport/GetTearsheetStats.R" +
-            " --gatkjar %s")
-            .format(projectName, yamlFile, PipelineTest.currentStingDir, PipelineTest.currentGATK)
+    val pipelineCommand =
+      "-retry 1 -S scala/qscript/playground/FullCallingPipeline.q -jobProject %s -Y %s"
+        .format(projectName, yamlFile)
 
     val pipelineSpec = new PipelineTestSpec
     pipelineSpec.name = testName
@@ -93,10 +91,7 @@ class FullCallingPipelineTest {
     pipelineSpec.jobQueue = dataset.jobQueue
 
     pipelineSpec.evalSpec = new PipelineTestEvalSpec
-    pipelineSpec.evalSpec.vcf = new File(PipelineTest.runDir(testName) + "SnpCalls/%s.cleaned.annotated.handfiltered.vcf".format(projectName))
-    pipelineSpec.evalSpec.reference = dataset.pipeline.getProject.getReferenceFile
-    pipelineSpec.evalSpec.intervals = dataset.pipeline.getProject.getIntervalList
-    pipelineSpec.evalSpec.dbsnp = dataset.pipeline.getProject.getEvalDbsnp
+    pipelineSpec.evalSpec.evalReport = projectName + ".cleaned.snps_and_indels.filtered.annotated.eval"
     pipelineSpec.evalSpec.validations = dataset.validations
 
     PipelineTest.executeTest(pipelineSpec)
@@ -111,7 +106,7 @@ class FullCallingPipelineTest {
   }
 
   class PipelineDataset(var pipeline: Pipeline = null,
-                        var validations: List[PipelineValidation] = Nil,
+                        var validations: List[PipelineValidation[_]] = Nil,
                         var jobQueue: String = null) {
     override def toString = pipeline.getProject.getName
   }

@@ -9,10 +9,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 import java.io.File;
 
 /**
@@ -238,6 +235,20 @@ public class IntervalUtils {
             }
         }
         return contigs;
+    }
+
+    /**
+     * Returns a map of contig names with their lengths from the reference.
+     * @param reference The reference for the intervals.
+     * @return A map of contig names with their lengths.
+     */
+    public static Map<String, Integer> getContigLengths(File reference) {
+        ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
+        List<GenomeLoc> locs = parseIntervalArguments(referenceSource, Collections.<String>emptyList());
+        Map<String, Integer> lengths = new LinkedHashMap<String, Integer>();
+        for (GenomeLoc loc: locs)
+            lengths.put(loc.getContig(), loc.getStop());
+        return lengths;
     }
 
     /**

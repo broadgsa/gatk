@@ -48,6 +48,7 @@ object StringFileConversions {
     x.map(_ match {
       case string: String => stringAsFile(string)
       case file: File => file
+      case null => null
     })
   }
 
@@ -55,6 +56,7 @@ object StringFileConversions {
     x.map(_ match {
       case file: File => fileAsString(file)
       case string: String => string
+      case null => null
     })
   }
 
@@ -62,6 +64,7 @@ object StringFileConversions {
     x.map(_ match {
       case string: String => stringAsFile(string)
       case file: File => file
+      case null => null
     })
   }
 
@@ -69,6 +72,7 @@ object StringFileConversions {
     x.map(_ match {
       case file: File => fileAsString(file)
       case string: String => string
+      case null => null
     })
   }
 }

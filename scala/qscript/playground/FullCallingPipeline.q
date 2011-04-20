@@ -16,7 +16,7 @@ class FullCallingPipeline extends QScript {
   @Argument(doc="the YAML file specifying inputs, interval lists, reference sequence, etc.", shortName="Y")
   var yamlFile: File = _
 
-  @Input(doc="path to GATK jar", shortName="G")
+  @Input(doc="path to GATK jar", shortName="G", required=false)
   var gatkJar: File = _
 
   @Input(doc="level of parallelism for IndelRealigner.  By default is set to 1.", shortName="cleanerScatter", required=false)
@@ -212,6 +212,7 @@ class FullCallingPipeline extends QScript {
     snps.jobOutputFile = new File(".queue/logs/SNPCalling/UnifiedGenotyper.snps.out")
     snps.memoryLimit = 6
     snps.downsample_to_coverage = 600
+    snps.genotype_likelihoods_model = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.SNP
     snps.input_file = bamFiles
     snps.genotype_likelihoods_model = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.SNP
     snps.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)

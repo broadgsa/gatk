@@ -110,16 +110,15 @@ public enum ReferenceData {
     }
 
     /**
-     * Returns the dbsnp type for the version, "VCF" or "ROD".
+     * Returns the dbsnp type for the version, "VCF" or "DBSNP".
      * @param version version from getDbsnpVersions()
-     * @return the dbsnp type for the version, "VCF" or "ROD".
+     * @return the dbsnp type for the version, "VCF" or "DBSNP".
      */
     public String getDbsnpType(int version) {
         String dbsnp = getDbsnp(version);
         if (dbsnp == null)
             return null;
-        int len = dbsnp.length();
-        return dbsnp.substring(len - 3, len).toUpperCase();
+        return dbsnp.toLowerCase().endsWith(".vcf") ? "VCF" : "DBSNP";
     }
 
     /**
