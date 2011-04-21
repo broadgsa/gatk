@@ -51,19 +51,23 @@ public class RAWSampleStats extends LocusWalker<MapHolder,RegionalAssociationHan
         for ( AssociationContext context : handler.getAssociations() ) {
             contextBuf.append("\t");
             contextBuf.append(context.getClass().getSimpleName());
+            StringBuffer caseBuf = new StringBuffer();
+            StringBuffer controlBuf = new StringBuffer();
             boolean first = true;
             for ( Map.Entry<Sample,AlignmentContext> entry : handler.getExtender().getContext().entrySet() ) {
-                if ( ! first ) {
-                    contextBuf.append(";");
-                } else {
-                    contextBuf.append("\t");
-                    first = false;
-                }
-                contextBuf.append(entry.getKey().getId());
-                contextBuf.append("=");
-                contextBuf.append(handleMap(context.map(entry.getValue().getBasePileup())));
+                StringBuffer toAppend = entry.getKey().getProperty("cohort").equals("case") ? caseBuf : controlBuf;
+                toAppend.append(entry.getKey().getId());
+                toAppend.append("=");
+                toAppend.append(handleMap(context.map(entry.getValue().getBasePileup())));
+                toAppend.append(";");
             }
+            caseBuf.deleteCharAt(caseBuf.length()-1);
+            controlBuf.deleteCharAt(controlBuf.length()-1);
             contextBuf.append("\t");
+            contextBuf.append("Case:\t");
+            contextBuf.append(caseBuf);
+            contextBuf.append("\tControl:\t");
+            contextBuf.append(controlBuf);
         }
 
         out.printf("%s%n",contextBuf.toString());

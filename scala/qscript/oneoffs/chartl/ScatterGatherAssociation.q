@@ -41,6 +41,7 @@ class ScatterGatherAssociation extends QScript {
     @Output(doc="bqs")
     @Gather(classOf[SimpleTextGatherFunction])
     var bqs : File = new File(String.format("%s.%s.%s", base, "BaseQualityScore", ext))
+    /*
     @Output(doc="isd")
     @Gather(classOf[SimpleTextGatherFunction])
     var isd : File = new File(String.format("%s.%s.%s",base,"InsertSizeDistribution",ext))
@@ -56,7 +57,7 @@ class ScatterGatherAssociation extends QScript {
     @Output(doc="mss")
     @Gather(classOf[SimpleTextGatherFunction])
     var mss : File = new File(String.format("%s.%s.%s",base,"MateSameStrand",ext))
-    @Output(doc="mu")
+    /@Output(doc="mu")
     @Gather(classOf[SimpleTextGatherFunction])
     var mu : File = new File(String.format("%s.%s.%s",base,"MateUnmapped",ext))
     @Output(doc="mmr")
@@ -86,6 +87,7 @@ class ScatterGatherAssociation extends QScript {
     @Output(doc="rwi")
     @Gather(classOf[SimpleTextGatherFunction])
     var rwi : File = new File(String.format("%s.%s.%s",base,"ReadsWithIndels",ext))
+    */
 
     override def commandLine = {
       var bedStr : String = ""
