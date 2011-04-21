@@ -42,7 +42,7 @@ class WGSpipeline extends QScript {
 
   val hapmap = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf"
     val g1k = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/1kg_pilot1_projectCalls/ALL.low_coverage.2010_07.hg19.vcf"
-    val omni = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/764samples.deduped.b37.annot.vcf"
+    val omni = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf"
 
   private var pipeline: Pipeline = _
 
@@ -141,7 +141,7 @@ class WGSpipeline extends QScript {
     combineVCFs.jobOutputFile = new File ("/humgen/gsa-pipeline/" +projectBase + ".combine.out")
     combineVCFs.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.PRIORITIZE
     combineVCFs.intervalsString :+= "20:1-63025520"   ///TODO impliment only using the chr 20 or nothing if freeze
-
+    combineVCFs.assumeIdenticalSamples = true
 
 
     val sv = new SelectVariants with CommandLineGATKArgs
@@ -164,17 +164,17 @@ class WGSpipeline extends QScript {
     val recombine = new CombineVariants with CommandLineGATKArgs
     recombine.rodBind :+= RodBind("indels", "VCF", sv.out)
     recombine.rodBind :+= RodBind("all", "VCF", combineVCFs.out)
-    recombine.priority = "indels, all"
+    recombine.priority = "indels,all"
     recombine.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.PRIORITIZE
     recombine.out = swapExt(combineVCFs.out, "vcf", "filtered.vcf")
     recombine.jobName = qscript.project + ".recombine"
     recombine.jobOutputFile = swapExt(combineVCFs.jobOutputFile, "combine.out", "recombine.out")
 
     val cr = new ContrastiveRecalibrator with CommandLineGATKArgs
-      cr.rodBind :+= RodBind("hapmap", "VCF", qscript.hapmap)
-      cr.rodBind :+= RodBind("1kg", "VCF", qscript.omni)
+      cr.rodBind :+= RodBind("hapmap","VCF",  qscript.hapmap,  "training=true, prior=3.0")
+      cr.rodBind :+= RodBind("1kg", "VCF",  qscript.omni,  "training=true, prior=3.0")
       cr.rodBind :+= RodBind("input", "VCF", recombine.out)
-      cr.rodBind :+= RodBind("dbsnp", "VCF", qscript.dbSNP)
+      cr.rodBind :+= RodBind("dbsnp", "VCF", qscript.dbSNP,  "known=true")
       cr.use_annotation ++= List("QD", "SB", "HaplotypeScore", "HRun")
       cr.jobName = qscript.project + ".cr"
       cr.jobOutputFile = swapExt(combineVCFs.jobOutputFile, ".combine.out", ".cr.out")
@@ -202,6 +202,7 @@ class WGSpipeline extends QScript {
     stdEval.rodBind :+= RodBind("dbsnp", "VCF", qscript.dbSNP)
     stdEval.rodBind :+= RodBind("eval", "VCF", ar.out)
     stdEval.out = swapExt(ar.out, ".vcf", ".eval")
+    stdEval.tranchesFile = cr.tranches_file
 
     add(combineVCFs, filter, sv, recombine, cr, ar, stdEval)
   }
