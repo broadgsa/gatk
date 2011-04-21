@@ -62,8 +62,82 @@ public class GenomeLocParser {
     // Ugly global variable defining the optional ordering of contig elements
     //
     // --------------------------------------------------------------------------------------------------------------
-    //public static Map<String, Integer> refContigOrdering = null;
-    protected SAMSequenceDictionary contigInfo = null;
+
+    /**
+     * A wrapper class that provides efficient last used caching for the global
+     * SAMSequenceDictionary underlying all of the GATK engine capabilities
+     */
+    private final class MasterSequenceDictionary {
+        final private SAMSequenceDictionary dict;
+
+        // cache
+        SAMSequenceRecord lastSSR = null;
+        String lastContig = "";
+        int lastIndex = -1;
+
+        public MasterSequenceDictionary(SAMSequenceDictionary dict) {
+            this.dict = dict;
+        }
+
+        public final int getNSequences() {
+            return dict.size();
+        }
+
+        public synchronized final SAMSequenceRecord getSequence(final String contig) {
+            if ( isCached(contig) )
+                return lastSSR;
+            else
+                return updateCache(dict.getSequence(contig));
+        }
+
+        public synchronized final SAMSequenceRecord getSequence(final int index) {
+            if ( isCached(index) )
+                return lastSSR;
+            else
+                return updateCache(dict.getSequence(index));
+
+        }
+
+        public synchronized final int getSequenceIndex(final String contig) {
+            if ( ! isCached(contig) ) {
+                SAMSequenceRecord rec = dict.getSequence(contig);
+                if ( rec == null )
+                    return -1; // not found
+                else
+                    updateCache(rec);
+            }
+
+            return lastIndex;
+        }
+
+        private synchronized boolean isCached(final String contig) {
+            return lastContig.equals(contig);
+        }
+
+        private synchronized boolean isCached(final int index) {
+            return lastIndex == index;
+        }
+
+        /**
+         * The key algorithm.  Given a new record, update the last used record, contig
+         * name, and index.
+         *
+         * @param rec
+         * @return
+         */
+        private synchronized SAMSequenceRecord updateCache(SAMSequenceRecord rec) {
+            if ( rec == null ) {
+                return null;
+            } else {
+                lastSSR = rec;
+                lastContig = rec.getSequenceName();
+                lastIndex = rec.getSequenceIndex();
+                return rec;
+            }
+        }
+    }
+
+    private MasterSequenceDictionary contigInfo = null;
 
     /**
      * set our internal reference contig order
@@ -78,7 +152,7 @@ public class GenomeLocParser {
             //logger.info("Failed to load reference dictionary, falling back to lexicographic order for contigs");
             throw new UserException.CommandLineException("Failed to load reference dictionary");
         } else if (contigInfo == null) {
-            contigInfo = seqDict;
+            contigInfo = new MasterSequenceDictionary(seqDict);
             logger.debug(String.format("Prepared reference sequence contig dictionary"));
             for (SAMSequenceRecord contig : seqDict.getSequences()) {
                 logger.debug(String.format(" %s (%d bp)", contig.getSequenceName(), contig.getSequenceLength()));
@@ -123,7 +197,6 @@ public class GenomeLocParser {
      * @return a GenomeLoc representing the String
      *
      */
-
     public GenomeLoc parseGenomeInterval(final String str) {
          GenomeLoc ret = parseGenomeLoc(str);
          exceptionOnInvalidGenomeLocBounds(ret);
@@ -263,7 +336,7 @@ public class GenomeLocParser {
      */
     private boolean isContigValid(String contig) {
         int contigIndex = contigInfo.getSequenceIndex(contig);
-        return contigIndex >= 0 && contigIndex < contigInfo.size();
+        return contigIndex >= 0 && contigIndex < contigInfo.getNSequences();
     }
 
     /**
@@ -426,7 +499,7 @@ public class GenomeLocParser {
         if (toReturn.getContigIndex() < 0) {
             throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the contig index is less than 0");
         }
-        if (toReturn.getContigIndex() >= contigInfo.getSequences().size()) {
+        if (toReturn.getContigIndex() >= contigInfo.getNSequences()) {
             throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the contig index is greater then the stored sequence count");
 
         }
@@ -468,7 +541,7 @@ public class GenomeLocParser {
     public boolean validGenomeLoc(GenomeLoc loc) {
         // quick check before we get the contig size, is the contig number valid
         if ((loc.getContigIndex() < 0) ||                                       // the contig index has to be positive
-            (loc.getContigIndex() >= contigInfo.getSequences().size()))         // the contig must be in the integer range of contigs)
+            (loc.getContigIndex() >= contigInfo.getNSequences()))         // the contig must be in the integer range of contigs)
             return false;
 
         int contigSize = contigInfo.getSequence(loc.getContigIndex()).getSequenceLength();
@@ -510,7 +583,7 @@ public class GenomeLocParser {
      * performs interval-style validation: contig is valid and atart and stop less than the end
      */
     public boolean validGenomeLoc(int contigIndex, int start, int stop) {
-        if (contigIndex < 0 || contigIndex >= contigInfo.size()) return false;
+        if (contigIndex < 0 || contigIndex >= contigInfo.getNSequences()) return false;
         return validGenomeLoc(new GenomeLoc(getSequenceNameFromIndex(contigIndex), contigIndex, start, stop));
     }
 

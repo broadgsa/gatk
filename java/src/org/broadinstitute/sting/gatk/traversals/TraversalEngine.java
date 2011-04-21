@@ -115,6 +115,8 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
     private SimpleTimer timer = new SimpleTimer("Traversal");
 
     // How long can we go without printing some progress info?
+    private static final int PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES = 1000;
+    private int printProgressCheckCounter = 0;
     private long lastProgressPrintTime = -1;                       // When was the last time we printed progress log?
     private long PROGRESS_PRINT_FREQUENCY = 10 * 1000;             // in milliseconds
     private final double TWO_HOURS_IN_SECONDS = 2.0 * 60.0 * 60.0;
@@ -242,6 +244,10 @@ public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,Provide
      * @param mustPrint If true, will print out info, regardless of nRecords or time interval
      */
     private void printProgress(GenomeLoc loc, ReadMetrics metrics, boolean mustPrint) {
+        if ( mustPrint || printProgressCheckCounter++ % PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES != 0 )
+            // don't do any work more often than PRINT_PROGRESS_CHECK_FREQUENCY_IN_CYCLES
+            return;
+
         if(!progressMeterInitialized && mustPrint == false ) {
             logger.info("[INITIALIZATION COMPLETE; TRAVERSAL STARTING]");
             logger.info(String.format("%15s processed.%s  runtime per.1M.%s completed total.runtime remaining",
