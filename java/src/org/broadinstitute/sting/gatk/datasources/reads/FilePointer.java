@@ -30,6 +30,7 @@ import net.sf.samtools.SAMFileSpan;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
@@ -69,6 +70,33 @@ class FilePointer {
         this.overlap = overlap;
         this.locations = new ArrayList<GenomeLoc>();
         this.isRegionUnmapped = false;
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+        if(!(other instanceof FilePointer))
+            return false;
+        FilePointer otherFilePointer = (FilePointer)other;
+
+        // intervals
+        if(this.locations.size() != otherFilePointer.locations.size())
+            return false;
+        for(int i = 0; i < locations.size(); i++) {
+            if(!this.locations.get(i).equals(otherFilePointer.locations.get(i)))
+                return false;
+        }
+
+        // fileSpans
+        if(this.fileSpans.size() != otherFilePointer.fileSpans.size())
+            return false;
+        Iterator<Map.Entry<SAMReaderID,SAMFileSpan>> thisEntries = this.fileSpans.entrySet().iterator();
+        Iterator<Map.Entry<SAMReaderID,SAMFileSpan>> otherEntries = otherFilePointer.fileSpans.entrySet().iterator();
+        while(thisEntries.hasNext() || otherEntries.hasNext()) {
+            if(!thisEntries.next().equals(otherEntries.next()))
+                return false;
+        }
+        
+        return true;
     }
 
     public void addLocation(final GenomeLoc location) {
@@ -153,26 +181,40 @@ class FilePointer {
         PeekableIterator<Map.Entry<SAMReaderID,SAMFileSpan>> otherIterator = new PeekableIterator<Map.Entry<SAMReaderID,SAMFileSpan>>(other.fileSpans.entrySet().iterator());
 
         while(thisIterator.hasNext() || otherIterator.hasNext()) {
-            int compareValue = thisIterator.peek().getKey().compareTo(otherIterator.peek().getKey());
+            int compareValue;
+            if(!otherIterator.hasNext()) {
+                compareValue = -1;
+            }
+            else if(!thisIterator.hasNext())
+                compareValue = 1;
+            else
+                compareValue = thisIterator.peek().getKey().compareTo(otherIterator.peek().getKey());
 
-            if(compareValue < 0) {
-                // This before other.
-                Map.Entry<SAMReaderID,SAMFileSpan> entry = thisIterator.next();
-                combined.addFileSpans(entry.getKey(),entry.getValue());
-            }
-            else if(compareValue > 0) {
-                // Other before this.
-                Map.Entry<SAMReaderID,SAMFileSpan> entry = otherIterator.next();
-                combined.addFileSpans(entry.getKey(),entry.getValue());
-            }
-            else {
-                // equality; union the values.
-                SAMReaderID reader = thisIterator.peek().getKey();
-                GATKBAMFileSpan thisRegion = (GATKBAMFileSpan)thisIterator.next().getValue();
-                GATKBAMFileSpan otherRegion = (GATKBAMFileSpan)otherIterator.next().getValue();
-                combined.addFileSpans(reader,thisRegion.union(otherRegion));
-            }
+            // This before other.
+            if(compareValue < 0)
+                mergeElementsInto(combined,thisIterator);
+            // Other before this.
+            else if(compareValue > 0)
+                mergeElementsInto(combined,otherIterator);
+            // equality; union the values.
+            else
+                mergeElementsInto(combined,thisIterator,otherIterator);
         }
         return combined;
+    }
+
+    /**
+     * Roll the next element in the iterator into the combined entry.
+     * @param combined Entry into which to roll the next element.
+     * @param iterators Sources of next elements.
+     */
+    private void mergeElementsInto(final FilePointer combined, Iterator<Map.Entry<SAMReaderID,SAMFileSpan>>... iterators) {
+        if(iterators.length == 0)
+            throw new ReviewedStingException("Tried to add zero elements to an existing file pointer.");
+        Map.Entry<SAMReaderID,SAMFileSpan> initialElement = iterators[0].next();
+        GATKBAMFileSpan fileSpan = (GATKBAMFileSpan)initialElement.getValue();
+        for(int i = 1; i < iterators.length; i++)
+            fileSpan = fileSpan.union((GATKBAMFileSpan)iterators[i].next().getValue());
+        combined.addFileSpans(initialElement.getKey(),fileSpan);
     }
 }

@@ -64,6 +64,24 @@ public class GATKBAMFileSpan extends BAMFileSpan {
         super(Arrays.<Chunk>asList(chunks));
     }
 
+    @Override
+    public boolean equals(final Object other) {
+        if(!(other instanceof BAMFileSpan))
+            return false;
+
+        List<Chunk> theseChunks = getChunks();
+        List<Chunk> otherChunks = ((BAMFileSpan)other).getChunks();
+
+        if(theseChunks.size() != otherChunks.size())
+            return false;
+        for(int i = 0; i < theseChunks.size(); i++) {
+            if(!theseChunks.get(i).equals(otherChunks.get(i)))
+                return false;
+        }
+
+        return true;
+    }
+
     /**
      * Gets the constituent chunks stored in this span.
      * @return An unmodifiable list of chunks.
