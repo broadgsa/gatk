@@ -24,47 +24,59 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads.performance;
 
-import net.sf.picard.util.SamLocusIterator;
+import com.google.caliper.Param;
+import com.google.caliper.SimpleBenchmark;
 import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMFileWriterFactory;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
-import java.util.Iterator;
+import java.io.IOException;
 
 /**
  * Created by IntelliJ IDEA.
  * User: mhanna
- * Date: Feb 25, 2011
- * Time: 10:16:54 AM
+ * Date: Apr 22, 2011
+ * Time: 4:04:38 PM
  * To change this template use File | Settings | File Templates.
  */
-class InvokeSamLocusIterator extends ReadProcessor {
-    public InvokeSamLocusIterator(final BAMProcessingPerformanceMeter performanceMeter) {
-        super(performanceMeter);
-    }
+public abstract class ReadProcessingBenchmark extends SimpleBenchmark {
+    protected abstract String getBAMFile();
+    protected abstract Integer getMaxReads();
+
+    protected File inputFile;
 
     @Override
-    public String getTestName() {
-        return String.format("invoke sam locus iterator");
-    }
+    public void setUp() {
+        SAMFileReader fullInputFile = new SAMFileReader(new File(getBAMFile()));
 
-    @Override
-    public String getIterationType() { return "loci"; }
-
-    @Override
-    public void execute(File samFile, File fastaFile) {
-        SAMFileReader reader = new SAMFileReader(samFile);
-
-        SamLocusIterator samLocusIterator = new SamLocusIterator(reader);
-        samLocusIterator.setEmitUncoveredLoci(false);
-        Iterator<SamLocusIterator.LocusInfo> workhorseIterator = samLocusIterator.iterator();
-
-        startTest();
-        while(workhorseIterator.hasNext()) {
-            SamLocusIterator.LocusInfo locusInfo = workhorseIterator.next();
-            updateIterationCount();
+        File tempFile = null;
+        try {
+            tempFile = File.createTempFile("testfile_"+getMaxReads(),".bam");
         }
-        stopTest();
+        catch(IOException ex) {
+            throw new ReviewedStingException("Unable to create temporary BAM",ex);
+        }
+        SAMFileWriterFactory factory = new SAMFileWriterFactory();
+        factory.setCreateIndex(true);
+        SAMFileWriter writer = factory.makeBAMWriter(fullInputFile.getFileHeader(),true,tempFile);
 
-        reader.close();
+        long numReads = 0;
+        for(SAMRecord read: fullInputFile) {
+            if(numReads++ >= getMaxReads())
+                break;
+            writer.addAlignment(read);
+        }
+
+        writer.close();
+
+        inputFile = tempFile;
+    }
+
+    @Override
+    public void tearDown() {
+        inputFile.delete();
     }
 }
