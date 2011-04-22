@@ -583,11 +583,11 @@ public class PairHMMIndelErrorModel {
 
             }
         }
-        for (SAMRecord read : pileup.getReads()) {
-/*            SAMRecord read = ReadUtils.hardClipAdaptorSequence(read);
+        for (SAMRecord pread : pileup.getReads()) {
+           SAMRecord read = ReadUtils.hardClipAdaptorSequence(pread);
             if (read == null)
                 continue;
-  */
+
             if(ReadUtils.is454Read(read)) {
                 continue;
             }

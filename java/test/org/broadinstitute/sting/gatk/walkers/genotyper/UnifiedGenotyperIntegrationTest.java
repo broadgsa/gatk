@@ -27,7 +27,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("a2218244df08dce96d04f8736a6de796"));
+                Arrays.asList("02481347a19d80e09538f2f6aa1be74a"));
         executeTest("test MultiSample Pilot1", spec);
     }
 
@@ -248,7 +248,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -glm INDEL" +
                         " -L 1:10,000,000-10,500,000",
                 1,
-                Arrays.asList("ffeea8550a707871a68f6707159f4ea9"));
+                Arrays.asList("08b63c534a7e129e53cdd1527d51be5c"));
 
         executeTest(String.format("test indel caller in SLX"), spec);
     }
@@ -277,7 +277,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                          " -glm INDEL" +
                          " -L 1:10,000,000-10,500,000",
                  1,
-                 Arrays.asList("897057070aa2e3651d91625a58c5ec4b"));
+                 Arrays.asList("1d1ddad622dbee7e74550b5bb9d0928f"));
 
          executeTest(String.format("test indel calling, multiple technologies"), spec);
      }

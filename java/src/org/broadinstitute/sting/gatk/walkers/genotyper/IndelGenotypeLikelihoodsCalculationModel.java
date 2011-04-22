@@ -48,19 +48,13 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 import java.util.*;
 
 public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
-    private final int maxReadDeletionLength = 3;
     private final int HAPLOTYPE_SIZE;
 
     private final int minIndelCountForGenotyping;
     private final boolean getAlleleListFromVCF;
-    // todo - the following  need to be exposed for command line argument control
-    private final double indelHeterozygosity = 1.0/8000;
-    boolean useFlatPriors = true;
 
     private boolean DEBUG = false;
 
-    // todo -cleanup
-    private HaplotypeIndelErrorModel model;
     private PairHMMIndelErrorModel pairModel;
 
     private GenomeLoc lastSiteVisited;
@@ -114,7 +108,10 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
 
             for ( ExtendedEventPileupElement p : indelPileup.toExtendedIterable() ) {
-                SAMRecord read = p.getRead();
+                //SAMRecord read = p.getRead();
+                 SAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
+                if (read == null)
+                    continue;     
                 if(ReadUtils.is454Read(read)) {
                     continue;
                 }
