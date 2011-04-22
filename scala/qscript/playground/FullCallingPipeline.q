@@ -202,7 +202,7 @@ class FullCallingPipeline extends QScript {
     filteredIndels.analysisName = base + "_filteredIndels"
     filteredIndels.jobOutputFile = new File(".queue/logs/IndelCalling/VariantFiltration.indels.out")
     filteredIndels.filterName ++= List("IndelQUALFilter","IndelSBFilter","IndelQDFilter")
-    filteredIndels.filterExpression ++= List("\"QUAL<30.0\"","\"SB>-1.0\"","\"QD<2\"")
+    filteredIndels.filterExpression ++= List("\"QUAL<30.0\"","\"SB>-1.0\"","\"QD<2.0\"")
     filteredIndels.variantVCF = indels.out
     filteredIndels.out = swapExt("IndelCalls", indels.out, ".vcf",".filtered.vcf")
 
