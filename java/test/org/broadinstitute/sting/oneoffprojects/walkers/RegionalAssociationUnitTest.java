@@ -46,7 +46,7 @@ public class RegionalAssociationUnitTest extends BaseTest {
         test4.setCaseData((Collection) Arrays.asList(14,8,8,17,8,12,10,10,13,9,13,9,9,12,12,11,16,12,13,16,10,13,11,16,13,16,11,13,9,16,16,14,9,14,17,10,15,15,9,15,17,15,17,12,10,13,11,14,8,14));
         test4.setControlData((Collection) Arrays.asList(7,1,4,2,3,7,8,5,5,4,10,6,4,9,2,9,9,3,3,10,1,8,9,5,3,7,2,7,10,9,4,9,2,10,10,3,2,3,4,4,5,10,9,4,3,5,6,10,5,10));
         Assert.assertEquals(AssociationTestRunner.getTestValues(test4).second.first,4.291725e-20,1e-19);
-        Assert.assertEquals(AssociationTestRunner.getTestValues(test4).first,11.60592,1e-5);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test4).first.first,11.60592,1e-5);
     }
 
     @Test
@@ -55,16 +55,16 @@ public class RegionalAssociationUnitTest extends BaseTest {
         ZTest test1 = new ZTest();
         test1.setCaseData(new Pair<Number,Number>(100,500));
         test1.setControlData(new Pair<Number,Number>(55,300));
-        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).first,0.57742362050306,2e-6);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).first.first,0.57742362050306,2e-6);
         Assert.assertEquals(AssociationTestRunner.getTestValues(test1).second.first,0.56367,2e-5);
         ZTest test2 = new ZTest();
         test1.setCaseData(new Pair<Number, Number>(1020, 1800));
         test1.setControlData(new Pair<Number, Number>(680, 1670));
-        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).first,9.3898178216531,2e-6);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test1).first.first,9.3898178216531,2e-6);
         ZTest test3 = new ZTest();
         test3.setCaseData(new Pair<Number,Number>(20,60));
         test3.setControlData(new Pair<Number,Number>(30,80));
-        Assert.assertEquals(AssociationTestRunner.getTestValues(test3).first,-0.50917511840392,2e-6);
+        Assert.assertEquals(AssociationTestRunner.getTestValues(test3).first.first,-0.50917511840392,2e-6);
         Assert.assertEquals(AssociationTestRunner.getTestValues(test3).second.first,0.610643593,2e-4);
     }
 
