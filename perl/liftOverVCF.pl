@@ -40,7 +40,7 @@ my $cmd = "java -jar $gatk/dist/GenomeAnalysisTK.jar -T LiftoverVariants -R $old
 if ($recordOriginalLocation) {
   $cmd .= " -recordOriginalLocation";
 }
-system($cmd);
+system($cmd) == 0 or quit("The liftover step failed.  Please correct the necessary errors before retrying.");
 
 # we need to sort the lifted over file now
 print "\nRe-sorting the vcf...\n";
@@ -62,12 +62,12 @@ close(UNSORTED);
 close(SORTED);
 
 $cmd = "grep \"^#\" -v $unsorted_vcf | sort -n -k2 -T $tmp | $gatk/perl/sortByRef.pl --tmp $tmp - $newRef.fasta.fai >> $sorted_vcf";
-system($cmd);
+system($cmd) == 0 or quit("The sorting step failed.  Please correct the necessary errors before retrying.");
 
 # Filter the VCF for bad records
 print "\nFixing/removing bad records...\n";
 $cmd = "java -jar $gatk/dist/GenomeAnalysisTK.jar -T FilterLiftedVariants -R $newRef.fasta -B:variant,vcf $sorted_vcf -o $out";
-system($cmd);
+system($cmd) == 0 or quit("The filtering step failed.  Please correct the necessary errors before retrying.");
 
 # clean up
 unlink $unsorted_vcf;
@@ -76,3 +76,8 @@ my $sorted_index = "$sorted_vcf.idx";
 unlink $sorted_index;
 
 print "\nDone!\n";
+
+sub quit {
+    print "\n$_[0]\n";
+    exit(1);
+}
