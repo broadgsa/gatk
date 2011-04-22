@@ -42,10 +42,12 @@ public class AssociationTestRunner {
         return Math.min((int) Math.floor(QualityUtils.phredScaleErrorRate(p)),MAX_Q_VALUE);
     }
 
-    public static Pair<Double,Pair<Double,Integer>> getTestValues(AssociationContext context) {
+    public static Pair<Pair<Double,Double>,Pair<Double,Integer>> getTestValues(AssociationContext context) {
         if ( context instanceof StatisticalTest ) {
             Pair<Double,Double> statAndP = ((StatisticalTest) context).getStatisticAndPValue();
-            return new Pair<Double,Pair<Double,Integer>>(statAndP.first,
+            Double delta = ((StatisticalTest) context).getZConfDelta();
+            return new Pair<Pair<Double,Double>,Pair<Double,Integer>>(
+                    new Pair<Double,Double>(statAndP.first,delta),
                     new Pair<Double,Integer>(statAndP.second,pToQ(statAndP.second)));
         }
 
@@ -54,10 +56,10 @@ public class AssociationTestRunner {
 
     public static String runTests(AssociationContext context) {
         if ( context instanceof StatisticalTest ) {
-            Pair<Double,Pair<Double,Integer>> results = getTestValues(context);
-            return String.format("%s: %.2f\tP: %.2e\tQ: %d",
+            Pair<Pair<Double,Double>,Pair<Double,Integer>> results = getTestValues(context);
+            return String.format("%s: %.2f\tD: %.2f\tP: %.2e\tQ: %d",
                     ((StatisticalTest) context).getStatisticName() ,
-                    results.first,results.second.first,results.second.second);
+                    results.first.first,results.first.second,results.second.first,results.second.second);
         }
 
         return null;

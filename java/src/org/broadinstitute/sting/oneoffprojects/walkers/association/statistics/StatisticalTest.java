@@ -12,4 +12,5 @@ import org.broadinstitute.sting.utils.collections.Pair;
 public interface StatisticalTest {
     public abstract Pair<Double,Double> getStatisticAndPValue();
     public abstract String getStatisticName();
+    public abstract Double getZConfDelta();
 }

@@ -66,6 +66,26 @@ public abstract class ProportionTest extends CaseControl<Pair<Number,Number>> im
         return new Pair<Double,Double>(z,p);
     }
 
+    // todo -- this is a temporary method, it needs to be merged in with others if it proves useful
+    public Double getZConfDelta() {
+        Map<CaseControl.Cohort,Pair<Number,Number>> caseControlCounts = getCaseControl();
+        if ( caseControlCounts == null || caseControlCounts.get(CaseControl.Cohort.CASE) == null || caseControlCounts.get(CaseControl.Cohort.CONTROL) == null ) {
+            return Double.NaN;
+        }
+        double pCase = caseControlCounts.get(CaseControl.Cohort.CASE).first.doubleValue()/caseControlCounts.get(CaseControl.Cohort.CASE).second.doubleValue();
+        double pControl = caseControlCounts.get(CaseControl.Cohort.CONTROL).first.doubleValue()/caseControlCounts.get(CaseControl.Cohort.CONTROL).second.doubleValue();
+        double nCase = caseControlCounts.get(CaseControl.Cohort.CASE).second.doubleValue();
+        double nControl = caseControlCounts.get(CaseControl.Cohort.CONTROL).second.doubleValue();
+
+        double p2 = (caseControlCounts.get(CaseControl.Cohort.CASE).first.doubleValue()+caseControlCounts.get(CaseControl.Cohort.CONTROL).first.doubleValue())/
+                (caseControlCounts.get(CaseControl.Cohort.CASE).second.doubleValue()+caseControlCounts.get(CaseControl.Cohort.CONTROL).second.doubleValue());
+        double se = Math.sqrt(p2*(1-p2)*(1/nCase + 1/nControl));
+
+        double z = (pCase-pControl)/se;
+
+        return ( z < 0 ? -1.0*se*(z-zVal) : se*(z-zVal));
+    }
+
     public String getStatisticName() { return "Z"; }
 
 }

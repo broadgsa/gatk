@@ -62,14 +62,14 @@ public class RegionalAssociationHandler {
         // todo -- maybe the tdf should be the whole window rather than just the most recent loc?
         String outVal;
         if ( bedGraphFormat ) {
-            Pair<Double,Pair<Double,Integer>> statVals = AssociationTestRunner.getTestValues(context);
+            Pair<Pair<Double,Double>,Pair<Double,Integer>> statVals = AssociationTestRunner.getTestValues(context);
             Pair<Double,Double> simpleDichotVals = AssociationTestRunner.getDichotomizedValues(context);
-            outVal = String.format("%.2f\t%.2e\t%d\t%.2f\t%.2f",statVals.first,statVals.second.first,statVals.second.second,
-                    simpleDichotVals.first,simpleDichotVals.second);
+            outVal = String.format("%.2f\t%.2f\t%.2e\t%d\t%.2f\t%.2f",statVals.first.first,statVals.first.second,
+                    statVals.second.first,statVals.second.second,simpleDichotVals.first,simpleDichotVals.second);
         } else {
             outVal = AssociationTestRunner.runTests(context);
             Pair<Double,Double> simpleDichotVals = AssociationTestRunner.getDichotomizedValues(context);
-            outVal += String.format("\tD: %.2f\tLogD: %.2f",simpleDichotVals.first,simpleDichotVals.second);
+            outVal += String.format("\tDi: %.2f\tLogDi: %.2f",simpleDichotVals.first,simpleDichotVals.second);
         }
         return String.format("%s\t%d\t%d\t%s",maps.getReferenceContext().getLocus().getContig(),
                 maps.getReferenceContext().getLocus().getStart()-context.getWindowSize()-1,maps.getReferenceContext().getLocus().getStart()+1, outVal);

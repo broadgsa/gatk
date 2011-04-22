@@ -41,6 +41,10 @@ public class RegionalAssociationWalker extends LocusWalker<MapHolder, RegionalAs
     public int windowSize = 50;
     @Argument(doc="Set the window sliding value for associations to this value",shortName="s",fullName="slide",required=false)
     public int slideBy = 10;
+    @Argument(doc="Set the exercise-wide constant Z-value for delta-measure",shortName="z",fullName="zValue",required=false)
+    public double zVal = 6.0;
+    // for now apply this to t-tests too -- though df means the percentile is not constant, most
+    // dfs are large, so it doesn't really vary all that much
 
     @Output
     @Multiplex(value=RegionalAssociationMultiplexer.class,arguments={"associationsToUse","bedGraph"})

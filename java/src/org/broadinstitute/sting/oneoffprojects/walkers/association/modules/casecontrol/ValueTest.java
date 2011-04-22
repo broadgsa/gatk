@@ -100,4 +100,22 @@ public abstract class ValueTest extends CaseControl<Collection<Number>> implemen
         return new Pair<Double,Double>(t,p);
     }
 
+    public Double getZConfDelta() {
+        Map<CaseControl.Cohort,Collection<Number>> caseControlVectors = getCaseControl();
+        if ( caseControlVectors == null || caseControlVectors.get(CaseControl.Cohort.CASE) == null || caseControlVectors.get(CaseControl.Cohort.CONTROL) == null ) {
+            return Double.NaN;
+        }
+        double meanCase = MathUtils.average(caseControlVectors.get(CaseControl.Cohort.CASE),true);
+        double varCase = MathUtils.variance(caseControlVectors.get(CaseControl.Cohort.CASE),meanCase,true);
+        double nCase =  caseControlVectors.get(CaseControl.Cohort.CASE).size();
+        double meanControl = MathUtils.average(caseControlVectors.get(CaseControl.Cohort.CONTROL),true);
+        double varControl =  MathUtils.variance(caseControlVectors.get(CaseControl.Cohort.CONTROL),meanControl,true);
+        double nControl = caseControlVectors.get(CaseControl.Cohort.CONTROL).size();
+        double dnom = Math.sqrt(varCase/nCase+varControl/nControl);
+
+        double t = (meanCase-meanControl)/dnom;
+
+        return ( t < 0 ? -1.0*dnom*(t-zVal) : dnom*(t-zVal));
+    }
+
 }

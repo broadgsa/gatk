@@ -17,6 +17,7 @@ public abstract class AssociationContext<X,Y> {
     protected List<Map<Sample,Y>> window;
     private int size;
     private int slide;
+    protected double zVal;
 
     public AssociationContext() {
     }
@@ -42,6 +43,7 @@ public abstract class AssociationContext<X,Y> {
         size = walker.windowSize;
         slide = walker.slideBy;
         window = new ArrayList<Map<Sample,Y>>(size);
+        zVal = walker.zVal;
     }
 
     public Map<Sample,Object> mapLocus(MapExtender extender) {
