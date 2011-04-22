@@ -32,7 +32,7 @@ import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.queue.pipeline._
 
 class FullCallingPipelineTest {
-  def datasets = List(k1gChr20Dataset, k1gExomeDataset)
+  def datasets = List(k1gChr20Dataset)//, k1gExomeDataset)
 
   val k1gChr20Dataset = {
     val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20", true)
