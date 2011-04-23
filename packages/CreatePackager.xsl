@@ -42,6 +42,27 @@
 	<fail message="Resource bundle {@file} not found" unless="is.{@file}.present" />
       </xsl:for-each>
 
+      <!-- Verify that all files specified are present -->
+      <xsl:for-each select="//dependencies/file">
+        <xsl:choose>
+          <xsl:when test="@name">
+            <available property="is.{@name}.present" file="{$staging.dir}/{@name}" type="file"/>
+            <fail message="File dependency {@name} not found" unless="is.{@name}.present" />
+          </xsl:when>
+          <xsl:when test="@path">
+            <available property="is.{@path}.present" file="{$staging.dir}/{@path}" type="file"/>
+            <fail message="File dependency {@path} not found" unless="is.{@path}.present" />
+          </xsl:when>
+          <xsl:otherwise>
+            <fail message="File dependency must specify a name or a path"/>
+          </xsl:otherwise>
+        </xsl:choose>
+      </xsl:for-each>
+      <xsl:for-each select="//dependencies/dir">
+        <available property="is.{@name}.present" file="{$staging.dir}/{@name}" type="dir"/>
+        <fail message="Directory {@name} not found" unless="is.{@name}.present" />
+      </xsl:for-each>
+
       <!-- Create an output directory for the package -->
       <mkdir dir="{$package.dir}"/>
 
@@ -145,7 +166,18 @@
     </xsl:for-each>
   </classfileset>
   <xsl:for-each select="file">
-    <fileset file="{$staging.dir}/{@name}" />
+    <xsl:choose>
+      <xsl:when test="@name">
+        <fileset file="{$staging.dir}/{@name}" />
+      </xsl:when>
+      <xsl:when test="@path">
+        <fileset dir="{$staging.dir}">
+          <xsl:attribute name="includes">
+            <xsl:value-of select="@path"/>
+          </xsl:attribute>
+        </fileset>
+      </xsl:when>
+    </xsl:choose>
   </xsl:for-each>
     <xsl:for-each select="dir">
         <fileset dir="{$staging.dir}">

@@ -42,6 +42,18 @@
             <!-- Picard -->
             <package name="net.sf.picard.**" />
 
+            <!-- JavaMail -->
+            <package name="javax.activation.**" />
+            <package name="javax.mail.**" />
+            <package name="com.sun.activation.**" />
+            <package name="com.sun.mail.**" />
+            <file path="META-INF/javamail.charset.map" />
+            <file path="META-INF/javamail.default.address.map" />
+            <file path="META-INF/javamail.default.providers" />
+            <file path="META-INF/mailcap" />
+            <file path="META-INF/mailcap.default" />
+            <file path="META-INF/mimetypes.default" />
+
             <!-- JNA, including embedded native libraries -->
             <dir name="com/sun/jna" />
         </dependencies>
