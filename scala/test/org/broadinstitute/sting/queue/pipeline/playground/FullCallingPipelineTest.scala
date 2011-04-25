@@ -32,32 +32,17 @@ import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.queue.pipeline._
 
 class FullCallingPipelineTest {
-  def datasets = List(k1gChr20Dataset)//, k1gExomeDataset)
+  def datasets = List(k1gChr20Dataset)
 
   val k1gChr20Dataset = {
     val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20", true)
 
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.all", "nCalledLoci", 1398)
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.known", "nCalledLoci", 1143)
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.novel", "nCalledLoci", 255)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.all", "nCalledLoci", 1391)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.known", "nCalledLoci", 1142)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.novel", "nCalledLoci", 249)
     dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.all", "tiTvRatio", 3.6250)
     dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.known", "tiTvRatio", 3.7190)
     dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.novel", "tiTvRatio", 3.2037)
-
-    dataset
-  }
-
-  val k1gExomeDataset = {
-    val dataset = newK1gDataset("Barcoded_1000G_WEx", false)
-
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.all", "nCalledLoci", 52668)
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.known", "nCalledLoci", 41248)
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.novel", "nCalledLoci", 11420)
-    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.all", "tiTvRatio", 3.271)
-    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.known", "tiTvRatio", 3.3299)
-    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.novel", "tiTvRatio", 3.0487)
-
-    dataset.jobQueue = "gsa"
 
     dataset
   }
