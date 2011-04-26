@@ -1,12 +1,8 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.ProportionTest;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.modules.casecontrol.ValueTest;
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.oneoffprojects.walkers.association.AssociationTestRunner;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
