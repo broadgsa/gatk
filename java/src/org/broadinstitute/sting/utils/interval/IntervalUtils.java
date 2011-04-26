@@ -6,7 +6,7 @@ import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;
@@ -189,160 +189,134 @@ public class IntervalUtils {
     }
 
     /**
-     * Returns the list of GenomeLocs from the list of intervals.
-     * @param referenceSource The reference for the intervals.
-     * @param intervals The interval as strings or file paths.
-     * @return The list of GenomeLocs.
-     */
-    private static List<GenomeLoc> parseIntervalArguments(ReferenceDataSource referenceSource, List<String> intervals) {
-        GenomeLocParser parser = new GenomeLocParser(referenceSource.getReference());
-        GenomeLocSortedSet locs;
-        // TODO: Abstract genome analysis engine has richer logic for parsing.  We need to use it!
-        if (intervals.size() == 0) {
-            locs = GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSource.getReference().getSequenceDictionary());
-        } else {
-            locs = new GenomeLocSortedSet(parser, IntervalUtils.parseIntervalArguments(parser, intervals, false));
-        }
-        if (locs == null || locs.size() == 0)
-            throw new UserException.MalformedFile("Intervals are empty: " + Utils.join(", ", intervals));
-        return locs.toList();
-    }
-
-    /**
-     * Returns the list of contigs from the list of intervals.
+     * Returns a map of contig names with their sizes.
      * @param reference The reference for the intervals.
-     * @return The list of contig names.
+     * @return A map of contig names with their sizes.
      */
-    public static List<String> distinctContigs(File reference) {
-        return distinctContigs(reference, Collections.<String>emptyList());
-    }
-
-    /**
-     * Returns the list of contigs from the list of intervals.
-     * @param reference The reference for the intervals.
-     * @param intervals The interval as strings or file paths.
-     * @return The list of contig names.
-     */
-    public static List<String> distinctContigs(File reference, List<String> intervals) {
+    public static Map<String, Long> getContigSizes(File reference) {
         ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
-        List<GenomeLoc> locs = parseIntervalArguments(referenceSource, intervals);
-        String contig = null;
-        List<String> contigs = new ArrayList<String>();
-        for (GenomeLoc loc: locs) {
-            if (contig == null || !contig.equals(loc.getContig())) {
-                contig = loc.getContig();
-                contigs.add(contig);
-            }
-        }
-        return contigs;
-    }
-
-    /**
-     * Returns a map of contig names with their lengths from the reference.
-     * @param reference The reference for the intervals.
-     * @return A map of contig names with their lengths.
-     */
-    public static Map<String, Integer> getContigLengths(File reference) {
-        ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
-        List<GenomeLoc> locs = parseIntervalArguments(referenceSource, Collections.<String>emptyList());
-        Map<String, Integer> lengths = new LinkedHashMap<String, Integer>();
+        List<GenomeLoc> locs = GenomeLocSortedSet.createSetFromSequenceDictionary(referenceSource.getReference().getSequenceDictionary()).toList();
+        Map<String, Long> lengths = new LinkedHashMap<String, Long>();
         for (GenomeLoc loc: locs)
-            lengths.put(loc.getContig(), loc.getStop());
+            lengths.put(loc.getContig(), loc.size());
         return lengths;
     }
 
     /**
      * Counts the number of interval files an interval list can be split into using scatterIntervalArguments.
-     * @param reference The reference for the intervals.
-     * @param intervals The interval as strings or file paths.
-     * @param splitByContig If true then one contig will not be written to multiple files.
+     * @param locs The genome locs.
      * @return The maximum number of parts the intervals can be split into.
      */
-    public static int countIntervalArguments(File reference, List<String> intervals, boolean splitByContig) {
-        ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
-        List<GenomeLoc> locs = parseIntervalArguments(referenceSource, intervals);
+    public static int countContigIntervals(List<GenomeLoc> locs) {
         int maxFiles = 0;
-        if (splitByContig) {
-            String contig = null;
-            for (GenomeLoc loc: locs) {
-                if (contig == null || !contig.equals(loc.getContig())) {
-                    maxFiles++;
-                    contig = loc.getContig();
-                }
+        String contig = null;
+        for (GenomeLoc loc: locs) {
+            if (contig == null || !contig.equals(loc.getContig())) {
+                maxFiles++;
+                contig = loc.getContig();
             }
-        } else {
-            maxFiles = locs.size();
         }
         return maxFiles;
     }
 
     /**
      * Splits an interval list into multiple files.
-     * @param reference The reference for the intervals.
-     * @param intervals The interval as strings or file paths.
+     * @param fileHeader The sam file header.
+     * @param locs The genome locs to split.
      * @param scatterParts The output interval lists to write to.
-     * @param splitByContig If true then one contig will not be written to multiple files.
      */
-    public static void scatterIntervalArguments(File reference, List<String> intervals, List<File> scatterParts, boolean splitByContig) {
-        ReferenceDataSource referenceSource = new ReferenceDataSource(reference);
-        List<GenomeLoc> locs = parseIntervalArguments(referenceSource, intervals);
-        SAMFileHeader fileHeader = new SAMFileHeader();
-        fileHeader.setSequenceDictionary(referenceSource.getReference().getSequenceDictionary());
-
+    public static void scatterContigIntervals(SAMFileHeader fileHeader, List<GenomeLoc> locs, List<File> scatterParts) {
         IntervalList intervalList = null;
         int fileIndex = -1;
         int locIndex = 0;
-
-        if (splitByContig) {
-            String contig = null;
-            for (GenomeLoc loc: locs) {
-                // If there are still more files to write and the contig doesn't match...
-                if ((fileIndex+1 < scatterParts.size()) && (contig == null || !contig.equals(loc.getContig()))) {
-                    // Then close the current file and start a new one.
-                    if (intervalList != null) {
-                        intervalList.write(scatterParts.get(fileIndex));
-                        intervalList = null;
-                    }
-                    fileIndex++;
-                    contig = loc.getContig();
+        String contig = null;
+        for (GenomeLoc loc: locs) {
+            // If there are still more files to write and the contig doesn't match...
+            if ((fileIndex+1 < scatterParts.size()) && (contig == null || !contig.equals(loc.getContig()))) {
+                // Then close the current file and start a new one.
+                if (intervalList != null) {
+                    intervalList.write(scatterParts.get(fileIndex));
+                    intervalList = null;
                 }
-                if (intervalList == null)
-                    intervalList = new IntervalList(fileHeader);
-                intervalList.add(toInterval(loc, ++locIndex));
+                fileIndex++;
+                contig = loc.getContig();
             }
-            if (intervalList != null)
-                intervalList.write(scatterParts.get(fileIndex));
-        } else {
-            int locsPerFile = locs.size() / scatterParts.size();
-            int locRemainder = locs.size() % scatterParts.size();
-
-            // At the start, put an extra loc per file
-            locsPerFile++;
-            int locsLeftFile = 0;
-
-            for (GenomeLoc loc: locs) {
-                if (locsLeftFile == 0) {
-                    if (intervalList != null)
-                        intervalList.write(scatterParts.get(fileIndex));
-
-                    fileIndex++;
-                    intervalList = new IntervalList(fileHeader);
-
-                    // When we have put enough locs into each file,
-                    // reduce the number of locs per file back
-                    // to the original calculated value.
-                    if (fileIndex == locRemainder)
-                        locsPerFile -= 1;
-                    locsLeftFile = locsPerFile;
-                }
-                locsLeftFile -= 1;
-                intervalList.add(toInterval(loc, ++locIndex));
-            }
-            if (intervalList != null)
-                intervalList.write(scatterParts.get(fileIndex));
+            if (intervalList == null)
+                intervalList = new IntervalList(fileHeader);
+            intervalList.add(toInterval(loc, ++locIndex));
         }
+        if (intervalList != null)
+            intervalList.write(scatterParts.get(fileIndex));
         if ((fileIndex + 1) != scatterParts.size())
             throw new UserException.BadArgumentValue("scatterParts", String.format("Only able to write contigs into %d of %d files.", fileIndex + 1, scatterParts.size()));
+    }
+
+    /**
+     * Splits an interval list into multiple files.
+     * @param fileHeader The sam file header.
+     * @param locs The genome locs to split.
+     * @param splits The stop points for the genome locs returned by splitFixedIntervals.
+     * @param scatterParts The output interval lists to write to.
+     */
+    public static void scatterFixedIntervals(SAMFileHeader fileHeader, List<GenomeLoc> locs, List<Integer> splits, List<File> scatterParts) {
+        if (splits.size() != scatterParts.size())
+            throw new UserException.BadArgumentValue("splits", String.format("Split points %d does not equal the number of scatter parts %d.", splits.size(), scatterParts.size()));
+        int fileIndex = 0;
+        int locIndex = 1;
+        int start = 0;
+        for (Integer stop: splits) {
+            IntervalList intervalList = new IntervalList(fileHeader);
+            for (int i = start; i < stop; i++)
+                intervalList.add(toInterval(locs.get(i), locIndex++));
+            intervalList.write(scatterParts.get(fileIndex++));
+            start = stop;
+        }
+    }
+
+    /**
+     * Splits the genome locs up by size.
+     * @param locs Genome locs to split.
+     * @param numParts Number of parts to split the locs into.
+     * @return The stop points to split the genome locs.
+     */
+    public static List<Integer> splitFixedIntervals(List<GenomeLoc> locs, int numParts) {
+        if (locs.size() < numParts)
+            throw new UserException.BadArgumentValue("scatterParts", String.format("Cannot scatter %d locs into %d parts.", locs.size(), numParts));
+        long locsSize = 0;
+        for (GenomeLoc loc: locs)
+            locsSize += loc.size();
+        List<Integer> splitPoints = new ArrayList<Integer>();
+        addFixedSplit(splitPoints, locs, locsSize, 0, locs.size(), numParts);
+        Collections.sort(splitPoints);
+        splitPoints.add(locs.size());
+        return splitPoints;
+    }
+
+    private static void addFixedSplit(List<Integer> splitPoints, List<GenomeLoc> locs, long locsSize, int startIndex, int stopIndex, int numParts) {
+        if (numParts < 2)
+            return;
+        int halfParts = (numParts + 1) / 2;
+        Pair<Integer, Long> splitPoint = getFixedSplit(locs, locsSize, startIndex, stopIndex, halfParts);
+        int splitIndex = splitPoint.first;
+        long splitSize = splitPoint.second;
+        splitPoints.add(splitIndex);
+        addFixedSplit(splitPoints, locs, splitSize, startIndex, splitIndex, halfParts);
+        addFixedSplit(splitPoints, locs, locsSize - splitSize, splitIndex, stopIndex, numParts - halfParts);
+    }
+
+    private static Pair<Integer, Long> getFixedSplit(List<GenomeLoc> locs, long locsSize, int startIndex, int stopIndex, int minLocs) {
+        int splitIndex = startIndex;
+        long splitSize = 0;
+        for (int i = 0; i < minLocs; i++) {
+            splitSize += locs.get(splitIndex).size();
+            splitIndex++;
+        }
+        long halfSize = locsSize / 2;
+        while (splitIndex < stopIndex && splitSize < halfSize) {
+            splitSize += locs.get(splitIndex).size();
+            splitIndex++;
+        }
+        return new Pair<Integer, Long>(splitIndex, splitSize);
     }
 
     /**

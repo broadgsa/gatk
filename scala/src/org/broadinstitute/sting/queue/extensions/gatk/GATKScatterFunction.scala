@@ -60,7 +60,7 @@ trait GATKScatterFunction extends ScatterFunction {
     this.originalGATK = this.originalFunction.asInstanceOf[CommandLineGATK]
     this.referenceSequence = this.originalGATK.reference_sequence
     if (this.originalGATK.intervals.isEmpty && this.originalGATK.intervalsString.isEmpty) {
-      this.intervals ++= IntervalUtils.distinctContigs(this.referenceSequence).toList
+      this.intervals ++= GATKScatterFunction.getGATKIntervals(this.referenceSequence, List.empty[String]).contigs
     } else {
       this.intervals ++= this.originalGATK.intervals.map(_.toString)
       this.intervals ++= this.originalGATK.intervalsString.filterNot(interval => IntervalUtils.isUnmapped(interval))
@@ -102,4 +102,18 @@ trait GATKScatterFunction extends ScatterFunction {
    * @return the maximum number of intervals or this.scatterCount if the maximum can't be determined ahead of time.
    */
   protected def maxIntervals: Int
+}
+
+object GATKScatterFunction {
+  var gatkIntervals = List.empty[GATKIntervals]
+
+  def getGATKIntervals(reference: File, intervals: List[String]) = {
+    gatkIntervals.find(gi => gi.reference == reference && gi.intervals == intervals) match {
+      case Some(gi) => gi
+      case None =>
+        val gi = new GATKIntervals(reference, intervals)
+        gatkIntervals :+= gi
+        gi
+    }
+  }
 }

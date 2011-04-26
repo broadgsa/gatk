@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.utils.broad;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
@@ -56,6 +57,8 @@ public class PicardAnalysisFiles {
         this.path = path;
         HashMap<String,Integer> headerIndexes = null;
         for (String line: new XReadLines(new File(path))) {
+            if (line.startsWith("#"))
+                continue;
             String[] values = line.split("\t");
             if (headerIndexes == null) {
                 headerIndexes = new HashMap<String,Integer>();
@@ -65,7 +68,10 @@ public class PicardAnalysisFiles {
                 }
             } else {
                 for (String header: ANALYSIS_HEADERS) {
-                    String value = values[headerIndexes.get(header)];
+                    int index = headerIndexes.get(header);
+                    if (values.length <= index)
+                        throw new StingException(String.format("Unable to parse line in %s: %n%s", path, line));
+                    String value = values[index];
                     headerValues.get(header).add(value);
                 }
             }
