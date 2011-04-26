@@ -54,23 +54,6 @@ public abstract class RankSumTest implements InfoFieldAnnotation, StandardAnnota
         final Pair<Double,Double> testResults = mannWhitneyU.runOneSidedTest( MannWhitneyU.USet.SET1 );
         double pvalue = testResults.second;
 
-        /* // WilcoxonRankSum.java is slated for removal
-        final WilcoxonRankSum wilcoxon = new WilcoxonRankSum();
-        for ( final Integer qual : altQuals ) {
-            wilcoxon.addObservation((double)qual, WilcoxonRankSum.WILCOXON_SET.SET1);
-        }
-        for ( final Integer qual : refQuals ) {
-            wilcoxon.addObservation((double)qual, WilcoxonRankSum.WILCOXON_SET.SET2);
-        }
-
-        // we are testing these set1 (the alt bases) have lower quality scores than set2 (the ref bases)
-        double pvalue = wilcoxon.getPValue(WilcoxonRankSum.WILCOXON_H0.SET1_LT_SET2);
-
-        if ( MathUtils.compareDoubles(pvalue, -1.0) == 0 ) {
-            pvalue = 1.0;
-        }
-        */
-
         // deal with precision issues
         if ( pvalue < minPValue ) {
             pvalue = minPValue;
