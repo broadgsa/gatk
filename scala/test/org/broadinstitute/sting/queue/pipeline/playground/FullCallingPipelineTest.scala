@@ -37,12 +37,12 @@ class FullCallingPipelineTest {
   val k1gChr20Dataset = {
     val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20", true)
 
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.all", "nCalledLoci", 1391)
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.known", "nCalledLoci", 1142)
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.novel", "nCalledLoci", 249)
-    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.all", "tiTvRatio", 3.6250)
-    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.known", "tiTvRatio", 3.7190)
-    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.novel", "tiTvRatio", 3.2037)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.all.all", "nCalledLoci", 1391)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.known.all", "nCalledLoci", 1142)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.novel.all", "nCalledLoci", 249)
+    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.called.all.all.all", "tiTvRatio", 3.6250)
+    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.called.all.known.all", "tiTvRatio", 3.7190)
+    dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.called.all.novel.all", "tiTvRatio", 3.2037)
 
     dataset
   }

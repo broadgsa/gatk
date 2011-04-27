@@ -190,7 +190,7 @@ object PipelineTest extends BaseTest with Logging {
     println("    value (min,target,max) table key metric")
     for (validation <- evalSpec.validations) {
       val value = parser.getValue(validation.table, validation.key, validation.metric)
-      val inRange = validation.inRange(value)
+      val inRange = if (value == null) false else validation.inRange(value)
       val flag = if (!inRange) "*" else " "
       println("  %s %s (%s,%s,%s) %s %s %s".format(flag, value, validation.min, validation.target, validation.max, validation.table, validation.key, validation.metric))
       allInRange &= inRange
