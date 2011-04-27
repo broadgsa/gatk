@@ -81,6 +81,16 @@ public class JVMUtils {
     }
 
     /**
+     * Is the specified class anonymous?  The plugin manager (for one) generally requires that
+     * plugin classes be named so that they can easily be specified from the command line.
+     * @param clazz The class on which to perform the anonymous check.
+     * @return True if the class is anonymous; false otherwise.
+     */
+    public static boolean isAnonymous(Class clazz) {
+        return clazz.isAnonymousClass();
+    }
+
+    /**
      * Retrieve all fields available in this object, regardless of where they are declared or
      * whether they're accessible.
      * @param type Type to inspect for fields.

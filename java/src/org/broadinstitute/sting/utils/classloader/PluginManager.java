@@ -133,6 +133,10 @@ public class PluginManager<PluginType> {
         // Load all classes types filtering them by concrete.
         Set<Class<? extends PluginType>> allTypes = reflections.getSubTypesOf(pluginType);
         for( Class<? extends PluginType> type: allTypes ) {
+            // The plugin manager does not support anonymous classes; to be a plugin, a class must have a name.
+            if(JVMUtils.isAnonymous(type))
+                continue;
+
             if( JVMUtils.isConcrete(type) )
                 plugins.add(type);
             else
