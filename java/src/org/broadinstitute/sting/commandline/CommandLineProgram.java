@@ -54,13 +54,6 @@ public abstract class CommandLineProgram {
               required = false)
     protected String toFile = null;
 
-    /** do we want to silence the command line output */
-    @Argument(fullName = "quiet_output_mode",
-              shortName = "quiet",
-              doc = "Set the logging to quiet mode, no output to stdout",
-              required = false)
-    protected Boolean quietMode = false;
-
     /** do we want to generate debugging information with the logs */
     @Argument(fullName = "debug_mode",
               shortName = "debug",
@@ -216,17 +209,6 @@ public abstract class CommandLineProgram {
 
                 // Initialize the logger using the loaded command line.
                 clp.setupLoggerLevel(layout);
-            }
-
-            // if they set the mode to quiet
-            if (clp.quietMode) {
-
-                // the only appender we should have is stdout, the following meathod is
-                // deprecated, but the standard remove all appenders doesn't seem to work
-                // TODO: find the right function
-                //Category root = Category.getRoot();
-                //root.removeAllAppenders();
-                //logger.removeAllAppenders();
             }
 
             // if they specify a log location, output our data there
