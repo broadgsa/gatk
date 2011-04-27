@@ -44,7 +44,6 @@ import org.broadinstitute.sting.queue.function.scattergather.{ScatterFunction, C
  */
 class QGraph extends Logging {
   var settings: QGraphSettings = _
-  var debugMode = false
 
   private def dryRun = !settings.run
   private var numMissingValues = 0
@@ -147,8 +146,6 @@ class QGraph extends Logging {
         val functions = scatterGather.asInstanceOf[FunctionEdge]
                 .function.asInstanceOf[ScatterGatherableFunction]
                 .generateFunctions()
-        if (this.debugMode)
-          logger.debug("Scattered into %d parts: %n%s".format(functions.size, functions.mkString(nl)))
         addedFunctions ++= functions
       }
 

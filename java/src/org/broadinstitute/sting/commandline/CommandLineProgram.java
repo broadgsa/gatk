@@ -54,20 +54,12 @@ public abstract class CommandLineProgram {
               required = false)
     protected String toFile = null;
 
-    /** do we want to generate debugging information with the logs */
-    @Argument(fullName = "debug_mode",
-              shortName = "debug",
-              doc = "Set the logging file string to include a lot of debugging information (SLOW!)",
-              required = false)
-    protected Boolean debugMode = false;
-
     /** this is used to indicate if they've asked for help */
     @Argument(fullName = "help", shortName = "h", doc = "Generate this help message", required = false)
     public Boolean help = false;
 
     /** our logging output patterns */
-    private static String patternString = "%-5p %d{HH:mm:ss,SSS} %C{1} - %m %n";
-    private static String debugPatternString = "%n[level] %p%n[date]\t\t %d{dd MMM yyyy HH:mm:ss,SSS} %n[class]\t\t %C %n[location]\t %l %n[line number]\t %L %n[message]\t %m %n";
+    private static final String patternString = "%-5p %d{HH:mm:ss,SSS} %C{1} - %m %n";
 
     static {
         /**
@@ -250,14 +242,8 @@ public abstract class CommandLineProgram {
      * level that was provided.
      * @param layout Pattern layout to format based on the logger level.
      */
-    @SuppressWarnings("unchecked")
     private void setupLoggerLevel(PatternLayout layout) {
-        // if we're in debug mode, set the mode up
-        if (debugMode) {
-            layout.setConversionPattern(debugPatternString);
-        } else {
-            layout.setConversionPattern(patternString);
-        }
+        layout.setConversionPattern(patternString);
 
         // set the default logger level
         Level par;

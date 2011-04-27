@@ -47,7 +47,7 @@ object QCommandLine {
 
     Runtime.getRuntime.addShutdownHook(new Thread {
       /** Cleanup as the JVM shuts down. */
-      override def run = {
+      override def run() {
         ProcessController.shutdown()
         qCommandLine.shutdown()
       }
@@ -94,13 +94,12 @@ class QCommandLine extends CommandLineProgram with Logging {
    */
   def execute = {
     qGraph.settings = settings
-    qGraph.debugMode = debugMode == true
 
     for (script <- pluginManager.createAllTypes()) {
       logger.info("Scripting " + pluginManager.getName(script.getClass.asSubclass(classOf[QScript])))
       loadArgumentsIntoObject(script)
       try {
-        script.script
+        script.script()
       } catch {
         case e: Exception =>
           throw new UserException.CannotExecuteQScript(script.getClass.getSimpleName + ".script() threw the following exception: " + e, e)
