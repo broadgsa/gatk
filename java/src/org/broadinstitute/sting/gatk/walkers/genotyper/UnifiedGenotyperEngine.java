@@ -203,6 +203,10 @@ public class UnifiedGenotyperEngine {
                 return null;
             vc = new VariantContext("UG_call", vcInput.getChr(), vcInput.getStart(), vcInput.getEnd(), vcInput.getAlleles());
         } else {
+            // deal with bad/non-standard reference bases
+            if ( !Allele.acceptableAlleleBases(new byte[]{ref.getBase()}) )
+                return null;
+
             Set<Allele> alleles = new HashSet<Allele>();
             alleles.add(Allele.create(ref.getBase(), true));
             vc = new VariantContext("UG_call", ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStart(), alleles);

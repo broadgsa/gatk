@@ -231,23 +231,15 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
             //System.out.println(new String(ref.getBases()));
             byte[] refBases = Arrays.copyOfRange(ref.getBases(),startIdxInReference,startIdxInReference+dLen);
-            boolean ok = true;
-            for (int i=0; i < refBases.length; i++)
-                if (!BaseUtils.isRegularBase(refBases[i]))
-                    ok = false;
 
-            if (ok) {
+            if (Allele.acceptableAlleleBases(refBases)) {
                 refAllele = Allele.create(refBases,true);
                 altAllele = Allele.create(Allele.NULL_ALLELE_STRING, false);
             }
         }
         else {
             // insertion case
-            boolean ok = true;
-            for (int i=0; i < bestAltAllele.length(); i++)
-                if (!BaseUtils.isRegularBase(bestAltAllele.getBytes()[i]))
-                    ok = false;
-            if (ok)  {
+            if (Allele.acceptableAlleleBases(bestAltAllele))  {
                 refAllele = Allele.create(Allele.NULL_ALLELE_STRING, true);
                 altAllele = Allele.create(bestAltAllele, false);
             }
