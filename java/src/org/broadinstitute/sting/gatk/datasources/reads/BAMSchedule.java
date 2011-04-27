@@ -278,7 +278,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
      * @return Newly allocated byte buffer.
      */
     private ByteBuffer allocateByteBuffer(final int size) {
-        ByteBuffer buffer = ByteBuffer.allocateDirect(size);
+        ByteBuffer buffer = ByteBuffer.allocate(size);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer;
     }
