@@ -619,10 +619,8 @@ public class GenomeAnalysisEngine {
 
         // if include argument isn't given, create new set of all possible intervals
         GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
-                GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
-                loadIntervals(argCollection.intervals,
-                        argCollection.intervalMerging,
-                        genomeLocParser.mergeIntervalLocations(checkRODToIntervalArgument(),argCollection.intervalMerging)));
+            GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
+            loadIntervals(argCollection.intervals, genomeLocParser.mergeIntervalLocations(getRODIntervals(), argCollection.intervalMerging)));
 
         // if no exclude arguments, can return parseIntervalArguments directly
         if (argCollection.excludeIntervals == null)
@@ -630,7 +628,7 @@ public class GenomeAnalysisEngine {
 
             // otherwise there are exclude arguments => must merge include and exclude GenomeLocSortedSets
         else {
-            GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, argCollection.intervalMerging, null);
+            GenomeLocSortedSet excludeSortedSet = loadIntervals(argCollection.excludeIntervals, null);
             intervals = includeSortedSet.subtractRegions(excludeSortedSet);
 
             // logging messages only printed when exclude (-XL) arguments are given
@@ -646,27 +644,30 @@ public class GenomeAnalysisEngine {
     /**
      * Loads the intervals relevant to the current execution
      * @param argList String representation of arguments; might include 'all', filenames, intervals in samtools
-     *                notation, or a combination of the
-     * @param mergingRule Technique to use when merging interval data.
-     * @param additionalIntervals a list of additional intervals to add to the returned set.  Can be null.
+     *                notation, or a combination of the above
+     * @param rodIntervals a list of ROD intervals to add to the returned set.  Can be empty or null.
      * @return A sorted, merged list of all intervals specified in this arg list.
      */
-    private GenomeLocSortedSet loadIntervals(List<String> argList,
-                                             IntervalMergingRule mergingRule,
-                                             List<GenomeLoc> additionalIntervals) {
+    protected GenomeLocSortedSet loadIntervals( List<String> argList, List<GenomeLoc> rodIntervals ) {
 
-        return IntervalUtils.sortAndMergeIntervals(genomeLocParser,IntervalUtils.mergeListsBySetOperator(additionalIntervals,
-                IntervalUtils.parseIntervalArguments(genomeLocParser,argList,
-                        this.getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST),
-                argCollection.BTIMergeRule),
-                mergingRule);
+        boolean allowEmptyIntervalList = (argCollection.unsafe == ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST ||
+                                          argCollection.unsafe == ValidationExclusion.TYPE.ALL);
+
+        List<GenomeLoc> nonRODIntervals = IntervalUtils.parseIntervalArguments(genomeLocParser, argList, allowEmptyIntervalList);
+
+        genomeLocParser.validateGenomeLocList(nonRODIntervals);
+        genomeLocParser.validateGenomeLocList(rodIntervals);
+
+        List<GenomeLoc> allIntervals = IntervalUtils.mergeListsBySetOperator(rodIntervals, nonRODIntervals, argCollection.BTIMergeRule);
+
+        return IntervalUtils.sortAndMergeIntervals(genomeLocParser, allIntervals, argCollection.intervalMerging);
     }
 
     /**
      * if we have a ROD specified as a 'rodToIntervalTrackName', convert its records to RODs
      * @return ROD intervals as GenomeLocs
      */
-    private List<GenomeLoc> checkRODToIntervalArgument() {
+    private List<GenomeLoc> getRODIntervals() {
         Map<String, ReferenceOrderedDataSource> rodNames = RMDIntervalGenerator.getRMDTrackNames(rodDataSources);
         // Do we have any RODs that overloaded as interval lists with the 'rodToIntervalTrackName' flag?
         List<GenomeLoc> ret = new ArrayList<GenomeLoc>();

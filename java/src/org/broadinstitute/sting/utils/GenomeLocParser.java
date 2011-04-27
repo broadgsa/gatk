@@ -182,7 +182,7 @@ public class GenomeLocParser {
     public int getContigIndex(final String contig, boolean exceptionOut) {
         int idx = contigInfo.getSequenceIndex(contig);
         if (idx == -1 && exceptionOut)
-            throw new UserException.CommandLineException(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
+            throw new UserException.MalformedGenomeLoc(String.format("Contig %s given as location, but this contig isn't present in the Fasta sequence dictionary", contig));
         return idx;
     }
 
@@ -359,73 +359,63 @@ public class GenomeLocParser {
 
 
     /**
-     * Read a file of genome locations to process.
-     * regions specified by the location string.  The string is of the form:
-     * Of the form: loc1;loc2;...
-     * Where each locN can be:
-     * 'chr2', 'chr2:1000000' or 'chr2:1,000,000-2,000,000'
+     * Read a file of genome locations to process. The file may be in BED, Picard,
+     * or GATK interval format.
      *
      * @param file_name interval file
-     * @param allowEmptyIntervalList if false empty interval lists will return null
+     * @param allowEmptyIntervalList if false an exception will be thrown for files that contain no intervals
      * @return List<GenomeLoc> List of Genome Locs that have been parsed from file
      */
     public List<GenomeLoc> intervalFileToList(final String file_name, boolean allowEmptyIntervalList) {
         // try to open file
         File inputFile = new File(file_name);
-
-        // check if file is empty
-        if (inputFile.exists() && inputFile.length() < 1) {
-            if (allowEmptyIntervalList)
-                return new ArrayList<GenomeLoc>();
-            else {
-                Utils.warnUser("The interval file " + file_name + " is empty. The GATK will continue processing but you " +
-                        "may want to fix (or exclude) this file.");
-                return null;
-            }
-        }
+        List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
 
         // case: BED file
         if (file_name.toUpperCase().endsWith(".BED")) {
             BedParser parser = new BedParser(this,inputFile);
-            return parser.getLocations();
+            ret.addAll(parser.getLocations());
         }
-
-        /**
-         * IF not a BED file:
-         * first try to read it as an interval file since that's well structured
-         * we'll fail quickly if it's not a valid file.  Then try to parse it as
-         * a location string file
-         */
-        try {
-            IntervalList il = IntervalList.fromFile(inputFile);
-
-            // iterate through the list of merged intervals and add then as GenomeLocs
-            List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
-            for (Interval interval : il.getIntervals()) {
-                ret.add(new GenomeLoc(interval.getSequence(), getContigIndex(interval.getSequence(),true), interval.getStart(), interval.getEnd()));
-            }
-            // always return null instead of empty list
-            return ret.isEmpty() ? null : ret;
-
-        }
-
-        // if that didn't work, try parsing file as an old fashioned string file
-        catch (Exception e) {
+        else {
+            /**
+             * IF not a BED file:
+             * first try to read it as a Picard interval file since that's well structured
+             * we'll fail quickly if it's not a valid file.
+             */
             try {
-                List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
-                XReadLines reader = new XReadLines(new File(file_name));
-                for(String line: reader) {
-                        ret.add(parseGenomeInterval(line));
-                }
-                reader.close();
+                // Note: Picard will skip over intervals with contigs not in the sequence dictionary
+                IntervalList il = IntervalList.fromFile(inputFile);
 
-                // always return null instead of empty list
-                return ret.isEmpty() ? null : ret;
+                for (Interval interval : il.getIntervals()) {
+                    ret.add(new GenomeLoc(interval.getSequence(), getContigIndex(interval.getSequence(),true),
+                                          interval.getStart(), interval.getEnd()));
+                }
             }
-            catch (IOException e2) {
-                throw new UserException.CouldNotReadInputFile(new File(file_name), e);
+
+            // if that didn't work, try parsing file as a GATK interval file
+            catch (Exception e) {
+                try {
+                    XReadLines reader = new XReadLines(new File(file_name));
+                    for(String line: reader) {
+                        if ( line.trim().length() > 0 ) {
+                            ret.add(parseGenomeInterval(line));
+                        }
+                    }
+                    reader.close();
+                }
+                catch (IOException e2) {
+                    throw new UserException.CouldNotReadInputFile(inputFile, e2);
+                }
             }
         }
+
+        if ( ret.isEmpty() && ! allowEmptyIntervalList ) {
+            throw new UserException("The interval file " + inputFile.getAbsolutePath() + " contains no intervals " +
+                                    "that could be parsed, and the unsafe operation ALLOW_EMPTY_INTERVAL_LIST has " +
+                                    "not been enabled");
+        }
+
+        return ret;
     }
 
     /**
@@ -476,6 +466,19 @@ public class GenomeLocParser {
     }
 
     /**
+     * Creates a new GenomeLoc without performing any validation on its contig or bounds.
+     * FOR UNIT TESTING PURPOSES ONLY!
+     *
+     * @param contig the contig name
+     * @param start  start position of the interval
+     * @param stop   stop position of the interval
+     * @return a new GenomeLoc representing the specified location
+     */
+    public GenomeLoc createGenomeLocWithoutValidation( String contig, int start, int stop ) {
+        return new GenomeLoc(contig, getContigIndex(contig, false), start, stop);
+    }
+
+    /**
      * verify the specified genome loc is valid, if it's not, throw an exception
      * Will not verify the location against contig bounds.
      *
@@ -491,16 +494,20 @@ public class GenomeLocParser {
      */
     private GenomeLoc exceptionOnInvalidGenomeLoc(GenomeLoc toReturn) {
         if (toReturn.getStart() < 0) {
-            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the start position is less than 0");
+            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the start position is less than 0 " +
+                                             "in interval: " + toReturn);
         }
         if ((toReturn.getStop() != -1) && (toReturn.getStop() < 0)) {
-            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the stop position is less than 0");
+            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the stop position is less than 0 " +
+                                             "in interval: " + toReturn);
         }
         if (toReturn.getContigIndex() < 0) {
-            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the contig index is less than 0");
+            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the contig index is less than 0 " +
+                                             "in interval: " + toReturn);
         }
         if (toReturn.getContigIndex() >= contigInfo.getNSequences()) {
-            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the contig index is greater then the stored sequence count");
+            throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the contig index is greater than " +
+                                             "the stored sequence count in interval: " + toReturn);
 
         }
         return toReturn;
@@ -525,7 +532,34 @@ public class GenomeLocParser {
         if(locus.getStop() > contigSize)
             throw new UserException.MalformedGenomeLoc("GenomeLoc is invalid: locus stop is after the end of contig",locus);
         if (locus.getStart() > locus.getStop()) {
-            throw new UserException.MalformedGenomeLoc("Parameters to GenomeLocParser are incorrect: the start position is greater than the end position", locus);
+            throw new UserException.MalformedGenomeLoc("Parameters to GenomeLocParser are incorrect: the start position is " +
+                                                       "greater than the end position", locus);
+        }
+    }
+
+    /**
+     * Validates each of the GenomeLocs in the list passed as an argument: each GenomeLoc must refer to a
+     * valid contig, and its bounds must be within the bounds of its contig. Throws a MalformedGenomeLoc
+     * exception if an invalid GenomeLoc is found.
+     *
+     * @param genomeLocList The list of GenomeLocs to validate
+     */
+    public void validateGenomeLocList( List<GenomeLoc> genomeLocList ) {
+        if ( genomeLocList == null ) {
+            return;
+        }
+
+        for ( GenomeLoc loc : genomeLocList ) {
+            try {
+                exceptionOnInvalidGenomeLoc(loc);
+                exceptionOnInvalidGenomeLocBounds(loc);
+            }
+            catch ( UserException e ) {
+                throw e;
+            }
+            catch ( ReviewedStingException e ) {
+                throw new UserException.MalformedGenomeLoc(e.getMessage());
+            }
         }
     }
 

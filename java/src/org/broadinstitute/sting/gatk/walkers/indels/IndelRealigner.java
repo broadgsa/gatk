@@ -251,7 +251,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             intervals = merger; 
         } else {
             // read in the whole list of intervals for cleaning
-            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(intervalsFile),this.getToolkit().getArguments().unsafe != ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST), IntervalMergingRule.OVERLAPPING_ONLY);
+            boolean allowEmptyIntervalList = (getToolkit().getArguments().unsafe == ValidationExclusion.TYPE.ALLOW_EMPTY_INTERVAL_LIST ||
+                                              getToolkit().getArguments().unsafe == ValidationExclusion.TYPE.ALL);
+            GenomeLocSortedSet locs = IntervalUtils.sortAndMergeIntervals(getToolkit().getGenomeLocParser(),
+                    IntervalUtils.parseIntervalArguments(getToolkit().getGenomeLocParser(),Arrays.asList(intervalsFile),allowEmptyIntervalList),
+                    IntervalMergingRule.OVERLAPPING_ONLY);
             intervals = locs.iterator();
         }
         currentInterval = intervals.hasNext() ? intervals.next() : null;

@@ -59,6 +59,10 @@ public class UserException extends ReviewedStingException {
         public MalformedGenomeLoc(String message, GenomeLoc loc) {
             super(String.format("Badly formed genome loc: %s: %s", message, loc));
         }
+
+        public MalformedGenomeLoc(String message) {
+            super(String.format("Badly formed genome loc: %s", message));
+        }
     }
 
     public static class BadInput extends UserException {

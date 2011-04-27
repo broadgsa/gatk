@@ -56,8 +56,11 @@ public class IntervalUtils {
                         try {
                             rawIntervals.addAll(parser.intervalFileToList(fileOrInterval, allowEmptyIntervalList));
                         }
-                        catch (Exception e) {
-                            throw new UserException.MalformedFile(fileOrInterval, "Interval file could not be parsed in either format.", e);
+                        catch ( UserException.MalformedGenomeLoc e ) {
+                            throw e;
+                        }
+                        catch ( Exception e ) {
+                            throw new UserException.MalformedFile(fileOrInterval, "Interval file could not be parsed in any supported format.", e);
                         }
                     }
 
