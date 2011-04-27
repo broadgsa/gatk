@@ -493,6 +493,10 @@ public class GenomeLocParser {
      *
      */
     private GenomeLoc exceptionOnInvalidGenomeLoc(GenomeLoc toReturn) {
+        if ( GenomeLoc.isUnmapped(toReturn) ) {
+            return toReturn;
+        }
+
         if (toReturn.getStart() < 0) {
             throw new ReviewedStingException("Parameters to GenomeLocParser are incorrect: the start position is less than 0 " +
                                              "in interval: " + toReturn);
@@ -526,6 +530,10 @@ public class GenomeLocParser {
      * @param locus Locus to verify.
      */
     private void exceptionOnInvalidGenomeLocBounds(GenomeLoc locus) {
+        if ( GenomeLoc.isUnmapped(locus) ) {
+            return;
+        }
+
         int contigSize = contigInfo.getSequence(locus.getContigIndex()).getSequenceLength();
         if(locus.getStart() > contigSize)
             throw new UserException.MalformedGenomeLoc("GenomeLoc is invalid: locus start is after the end of contig",locus);
