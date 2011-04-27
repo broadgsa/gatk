@@ -81,10 +81,11 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                 return null;
             }
             if ( !vcInput.isBiallelic() ) {
-                logger.info("Record at position " + ref.getLocus() + " is not bi-allelic; choosing the first allele...");
-                //return null;
+                // for multi-allelic sites go back to the reads and find the most likely alternate allele
+                initializeBestAlternateAllele(refBase, contexts);
+            } else {
+                bestAlternateAllele = vcInput.getAlternateAllele(0).getBases()[0];
             }
-            bestAlternateAllele = vcInput.getAlternateAllele(0).getBases()[0];
         } else {
             initializeBestAlternateAllele(refBase, contexts);
         }
