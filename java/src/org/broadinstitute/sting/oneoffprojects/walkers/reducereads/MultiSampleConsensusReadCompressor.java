@@ -49,32 +49,32 @@ public class MultiSampleConsensusReadCompressor implements ConsensusReadCompress
     public MultiSampleConsensusReadCompressor(SAMFileHeader header,
                                               final int readContextSize,
                                               final GenomeLocParser glParser,
-                                              final String contig) {
+                                              final String contig,
+                                              final int minBpForRunningConsensus,
+                                              final int maxReadsAtVariableSites) {
         for ( String name : SampleUtils.getSAMFileSamples(header) ) {
             compressorsPerSample.put(name,
-                    new SingleSampleConsensusReadCompressor(readContextSize, glParser, contig));
+                    new SingleSampleConsensusReadCompressor(readContextSize,
+                            glParser, contig, minBpForRunningConsensus, maxReadsAtVariableSites));
+            // todo -- argument for minConsensusSize
         }
     }
 
     @Override
-    public void addAlignment(SAMRecord read) {
+    public Iterable<SAMRecord> addAlignment(SAMRecord read) {
         String sample = read.getReadGroup().getSample();
         SingleSampleConsensusReadCompressor compressor = compressorsPerSample.get(sample);
         if ( compressor == null )
             throw new ReviewedStingException("No compressor for sample " + sample);
-        compressor.addAlignment(read);
+        return compressor.addAlignment(read);
     }
 
     @Override
-    public Collection<SAMRecord> consensusReads() {
+    public Iterable<SAMRecord> close() {
         List<SAMRecord> reads = new LinkedList<SAMRecord>();
         for ( SingleSampleConsensusReadCompressor comp : compressorsPerSample.values() )
-            reads.addAll(comp.consensusReads());
+            for ( SAMRecord read : comp.close() )
+                reads.add(read);
         return reads;
-    }
-
-    @Override
-    public Iterator<SAMRecord> iterator() {
-        return consensusReads().iterator();
     }
 }

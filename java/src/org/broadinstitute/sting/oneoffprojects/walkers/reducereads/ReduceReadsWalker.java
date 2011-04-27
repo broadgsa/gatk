@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ import java.util.Set;
  * User: depristo
  * Date: April 7, 2011
  */
-public class ReduceReadsWalker extends ReadWalker<SAMRecord, Collection<SAMRecord>> {
+public class ReduceReadsWalker extends ReadWalker<SAMRecord, ConsensusReadCompressor> {
     @Output
     protected StingSAMFileWriter out;
 
@@ -59,7 +60,14 @@ public class ReduceReadsWalker extends ReadWalker<SAMRecord, Collection<SAMRecor
     @Argument(fullName = "useRead", shortName = "UR", doc = "", required = false)
     protected Set<String> readNamesToUse;
 
+    @Argument(fullName = "minBpForRunningConsensus", shortName = "mbrc", doc = "", required = false)
+    protected int minBpForRunningConsensus = 1000;
+
+    @Argument(fullName = "maxReadsAtVariableSites", shortName = "mravs", doc = "", required = false)
+    protected int maxReadsAtVariableSites = 500;
+
     protected int totalReads = 0;
+    int nCompressedReads = 0;
 
     @Override
     public void initialize() {
@@ -80,8 +88,10 @@ public class ReduceReadsWalker extends ReadWalker<SAMRecord, Collection<SAMRecor
      * @return SAMFileWriter, set to the BAM output file if the command line option was set, null otherwise
      */
     @Override
-    public Collection<SAMRecord> reduceInit() {
-        return new ArrayList<SAMRecord>();
+    public ConsensusReadCompressor reduceInit() {
+        return new MultiSampleConsensusReadCompressor(getToolkit().getSAMFileHeader(),
+                contextSize, getToolkit().getGenomeLocParser(), "20", // todo fixme
+                minBpForRunningConsensus, maxReadsAtVariableSites);
     }
 
     /**
@@ -89,35 +99,32 @@ public class ReduceReadsWalker extends ReadWalker<SAMRecord, Collection<SAMRecor
      * @param read the read itself
      * @return the SAMFileWriter, so that the next reduce can emit to the same source
      */
-    public Collection<SAMRecord> reduce( SAMRecord read, Collection<SAMRecord> reads ) {
-        if ( readNamesToUse == null || readNamesToUse.contains(read.getReadName()) )
-            reads.add(read);
-        return reads;
+    public ConsensusReadCompressor reduce( SAMRecord read, ConsensusReadCompressor comp ) {
+        if ( readNamesToUse == null || readNamesToUse.contains(read.getReadName()) ) {
+            if ( INCLUDE_RAW_READS )
+                out.addAlignment(read);
+
+            // write out compressed reads as they become available
+            for ( SAMRecord consensusRead : comp.addAlignment(read) ) {
+                out.addAlignment(consensusRead);
+                nCompressedReads++;
+            }
+        }
+
+        return comp;
     }
 
     @Override
-    public void onTraversalDone( Collection<SAMRecord> reads ) {
-        String contig = reads.iterator().next().getReferenceName();
-        ConsensusReadCompressor compressor =
-                new MultiSampleConsensusReadCompressor(getToolkit().getSAMFileHeader(),
-                        contextSize, getToolkit().getGenomeLocParser(), contig);
-
-        // add all of the reads to the compressor
-        for ( SAMRecord read : reads ) {
-            if ( INCLUDE_RAW_READS )
-                out.addAlignment(read);
-            compressor.addAlignment(read);
-        }
-
-        // compress the reads
+    public void onTraversalDone( ConsensusReadCompressor compressor ) {
         //compressor.writeConsensusBed(bedOut);
-        int nCompressedReads = 0;
-        for ( SAMRecord read : compressor ) {
-            out.addAlignment(read);
+        // write out any remaining reads
+        for ( SAMRecord consensusRead : compressor.close() ) {
+            out.addAlignment(consensusRead);
             nCompressedReads++;
         }
 
-        logger.info("Compressed reads : " + nCompressedReads);
+        double percent = (100.0 * nCompressedReads) / totalReads;
+        logger.info("Compressed reads : " + nCompressedReads + String.format(" (%.2f%%)", percent));
         logger.info("Total reads      : " + totalReads);
     }
     

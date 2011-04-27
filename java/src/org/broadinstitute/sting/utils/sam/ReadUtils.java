@@ -364,6 +364,65 @@ public class ReadUtils {
         return rec;
     }
 
+    /**
+     * Hard clips away (i.e.g, removes from the read) bases that were previously soft clipped.
+     *
+     * @param rec
+     * @return
+     */
+    public static SAMRecord hardClipSoftClippedBases(SAMRecord rec) {
+        List<CigarElement> cigarElts = rec.getCigar().getCigarElements();
+
+        if ( cigarElts.size() == 1 ) // can't be soft clipped, just return
+            return rec;
+
+        int basesStart = 0;
+        List<CigarElement> newCigarElements = new LinkedList<CigarElement>();
+        int basesToClip = 0;
+
+        for ( int i = 0; i < cigarElts.size(); i++ ) {
+            CigarElement ce = cigarElts.get(i);
+            int l = ce.getLength();
+            switch ( ce.getOperator() ) {
+                case S:
+                    basesToClip += l;
+                    if ( i == 0 ) basesStart += l;
+                    newCigarElements.add(new CigarElement(l, CigarOperator.HARD_CLIP));
+                    break;
+                case H:
+                    // TODO -- must be handled specially
+                    throw new ReviewedStingException("BUG: tell mark he forgot to implement this");
+                default:
+                    newCigarElements.add(ce);
+                    break;
+            }
+        }
+
+        if ( basesToClip > 0 ) {
+            try {
+                rec = SimplifyingSAMFileWriter.simplifyRead((SAMRecord)rec.clone());
+                // copy over the unclipped bases
+                final byte[] bases = rec.getReadBases();
+                final byte[] quals = rec.getBaseQualities();
+                int newLength = bases.length - basesToClip;
+                byte[] newBases = new byte[newLength];
+                byte[] newQuals = new byte[newLength];
+                System.arraycopy(bases, basesStart, newBases, 0, newLength);
+                System.arraycopy(quals, basesStart, newQuals, 0, newLength);
+                rec.setReadBases(newBases);
+                rec.setBaseQualities(newQuals);
+
+                // now add a CIGAR element for the clipped bases
+                Cigar newCigar = new Cigar(newCigarElements);
+                rec.setCigar(newCigar);
+            } catch ( CloneNotSupportedException e ) {
+                throw new ReviewedStingException("WTF, where did clone go?", e);
+            }
+        }
+
+        return rec;
+    }
+
     private static int DEFAULT_ADAPTOR_SIZE = 100;
 
     /**
@@ -425,9 +484,10 @@ public class ReadUtils {
      * @param reads
      * @return
      */
-    public final static void coordinateSortReads(List<SAMRecord> reads) {
+    public final static List<SAMRecord> coordinateSortReads(List<SAMRecord> reads) {
         final SAMRecordComparator comparer = new SAMRecordCoordinateComparator();
         Collections.sort(reads, comparer);
+        return reads;
     }
 
     public final static int getFirstInsertionOffset(SAMRecord read) {

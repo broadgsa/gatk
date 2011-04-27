@@ -23,6 +23,8 @@ public class RefPileupElement extends PileupElement {
     public RefPileupElement(SAMRecord read, int offset, int refOffset) {
         super(read, offset);
         this.refOffset = refOffset;
+        if ( refOffset < 0 )
+            throw new ReviewedStingException("Bad RefPileupElement: ref offset < 0: " + refOffset + " for read " + read);
     }
 
     public int getRefOffset() {
@@ -52,15 +54,18 @@ public class RefPileupElement extends PileupElement {
                             break;
                         case I :
                             for ( int i = 0; i < l; i++)
-                                elts.add(new RefPileupElement(read, readI++, refI));
+                                if ( refI >= 0 )
+                                    elts.add(new RefPileupElement(read, readI++, refI));
                             break;
                         case D :
                             for ( int i = 0; i < l; i++)
-                                elts.add(new RefPileupElement(read, -1, refI++));
+                                if ( refI >= 0 )
+                                    elts.add(new RefPileupElement(read, -1, refI++));
                             break;
                         case M :
                             for ( int i = 0; i < l; i++)
-                                elts.add(new RefPileupElement(read, readI++, refI++));
+                                if ( refI >= 0 )
+                                    elts.add(new RefPileupElement(read, readI++, refI++));
                             break;
                         default:
                             throw new ReviewedStingException("BUG: Unexpected CIGAR element " + elt + " in read " + read.getReadName());

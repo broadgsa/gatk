@@ -12,11 +12,11 @@ import java.util.Iterator;
  * Time: 8:49 AM
  * To change this template use File | Settings | File Templates.
  */
-public interface ConsensusReadCompressor extends Iterable<SAMRecord> {
-    void addAlignment(SAMRecord read);
+public interface ConsensusReadCompressor { // extends Iterable<SAMRecord> {
+    Iterable<SAMRecord> addAlignment(SAMRecord read);
+    Iterable<SAMRecord> close();
 
-    Collection<SAMRecord> consensusReads();
-
-    @Override
-    Iterator<SAMRecord> iterator();
+//Collection<SAMRecord> consensusReads();
+//    @Override
+//    Iterator<SAMRecord> iterator();
 }
