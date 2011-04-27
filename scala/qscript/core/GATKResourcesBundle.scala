@@ -39,6 +39,7 @@ class GATKResourcesBundle extends QScript {
   class Reference( val name: String, val file: File ) { }
   var b37: Reference = _
   var hg18: Reference = _
+  var b36: Reference = _
   var exampleFASTA: Reference = _
   var refs: List[Reference] = _
 
@@ -54,12 +55,12 @@ class GATKResourcesBundle extends QScript {
   def liftover(in: File, inRef: Reference, out: File, outRef: Reference): CommandLineFunction = {
     //Console.printf("liftover(%s => %s)%n", inRef.name, outRef.name)
     (inRef.name, outRef.name) match {
-//      case ("b37", "hg19") =>
-//        return new HGRFC2UCSC(in, out)
+      case ("b37", "hg19") =>
+        return new LiftOverPerl(in, out, new File("chainFiles/b37Tohg19.chain"), inRef, outRef)
       case ("b37", "hg18") =>
         return new LiftOverPerl(in, out, new File("chainFiles/b37tohg18.chain"), inRef, outRef)
-//      case ("b37", "b36") =>
-//        return new LiftOverPerl(in, out, new File("chainFiles/b37Tob36.chain"), inRef, outRef)
+      case ("b37", "b36") =>
+        return new LiftOverPerl(in, out, new File("chainFiles/b37tob36.chain"), inRef, outRef)
       case _ => return null
     }
   }
@@ -101,10 +102,12 @@ class GATKResourcesBundle extends QScript {
     //
     b37 = new Reference("b37", new File("/humgen/1kg/reference/human_g1k_v37.fasta"))
     hg18 = new Reference("hg18", new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"))
+    b36 = new Reference("b36", new File("/humgen/1kg/reference/human_b36_both.fasta"))
     exampleFASTA = new Reference("exampleFASTA", new File("testdata/exampleFASTA.fasta"))
-    refs = List(b37, hg18, exampleFASTA)
+    refs = List(b37, hg18, b36, exampleFASTA)
 
     addResource(new Resource(b37.file, "", b37, false))
+    addResource(new Resource(b36.file, "", b36, false))
     addResource(new Resource(hg18.file, "", hg18, false))
 
     //
@@ -134,6 +137,8 @@ class GATKResourcesBundle extends QScript {
     addResource(new Resource("/humgen/gsa-hpprojects/GATK/data/refGene_b37.sorted.txt",
       "refGene", b37, true, false))
 
+    addResource(new Resource("chainFiles/hg18tob37.chain", "", hg18, false, false))
+    addResource(new Resource("chainFiles/b36tob37.chain", "", b36, false, false))
 
     // todo -- chain files?
     // todo 1000G SNP and indel call sets?
@@ -303,10 +308,6 @@ class GATKResourcesBundle extends QScript {
       out.getAbsolutePath, newRef.file.replace(".fasta", ""),
       oldRef.file.replace(".fasta", ""), jobTempDir)
   }
-
-//  class HGRFC2UCSC(@Input val in: File, @Output val out: File) extends CommandLineFunction {
-//    def commandLine = "python ../python/vcf_b36_to_hg18.py %s %s".format(in.getAbsolutePath, out.getAbsolutePath)
-//  }
 
   def getExtension(f: File): String = {
     val i = f.getName.lastIndexOf('.');
