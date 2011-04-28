@@ -153,9 +153,8 @@ class dataProcessingV2 extends QScript {
   }
 
   // Checks how many contigs are in the dataset. Uses the BAM file header information.
-  def getNumberOfContigs(): Int = {
-    val bam = fromFile(input).getLines.next
-    val samReader = new SAMFileReader(new File(bam))
+  def getNumberOfContigs(bamFile: File): Int = {
+    val samReader = new SAMFileReader(new File(bamFile))
     return samReader.getFileHeader.getSequenceDictionary.getSequences.size()
   }
 
@@ -190,8 +189,8 @@ class dataProcessingV2 extends QScript {
     // Generate a BAM file per sample joining all per lane files if necessary
     val sampleBamFiles = createSampleFiles(perLaneAlignedBamFiles)
 
-    // keep a record of the number of contigs in this bam file (they should all be the same
-    nContigs = getNumberOfContigs()
+    // keep a record of the number of contigs in the first bam file in the list
+    nContigs = getNumberOfContigs(perLaneAlignedBamFiles(0))
 
     // Final output list of processed bam files
     var cohortList: List[File] = List()
@@ -288,19 +287,16 @@ class dataProcessingV2 extends QScript {
     this.jobName = queueLogDir + outBam + ".clean"
   }
 
-  //todo -- add scatter gather capability (waiting for khalid's modifications to the queue base
   case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
     this.scatterCount = nContigs
-    this.jobQueue = "gsa"      // should take this out once scatter gather is available.
     this.analysisName = queueLogDir + outRecalFile + ".covariates"
     this.jobName = queueLogDir + outRecalFile + ".covariates"
   }
 
-  //todo -- add scatter gather capability (waiting for khalid's modifications to the queue base
   case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
     this.input_file :+= inBam
     this.recal_file = inRecalFile
@@ -309,10 +305,9 @@ class dataProcessingV2 extends QScript {
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
     this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
-    this.index_output_bam_on_the_fly = true // todo -- implemente @gather for BAM index
-//    this.scatterCount = nContigs
+//    this.index_output_bam_on_the_fly = true
+    this.scatterCount = nContigs
     this.isIntermediate = false
-    this.jobQueue = "gsa"      // should take this out once scatter gather is available.
     this.analysisName = queueLogDir + outBam + ".recalibration"
     this.jobName = queueLogDir + outBam + ".recalibration"
 
