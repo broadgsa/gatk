@@ -289,7 +289,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             int positionToPrint = positionToAdd;
             for (int i=0; i<numRandom; i++) {
                 vcfWriter.add(variantArray[positionToPrint].vc, variantArray[positionToPrint].refBase);
-                positionToPrint = nextCircularPosition(positionToPrint, numRandom);
+                positionToPrint = nextCircularPosition(positionToPrint);
             }
         }
     }
@@ -349,13 +349,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             if ( v < t) {
                 variantArray[positionToAdd].set(vc, refBase);
                 nVariantsAdded++;
-                positionToAdd = nextCircularPosition(positionToAdd, numRandom);
+                positionToAdd = nextCircularPosition(positionToAdd);
             }
         }
     }
 
-    private int nextCircularPosition(int cur, int size) {
-        if ((cur + 1) == size)
+    private int nextCircularPosition(int cur) {
+        if ((cur + 1) == variantArray.length)
             return 0;
         return cur + 1;
     }
