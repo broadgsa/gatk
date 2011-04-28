@@ -6,6 +6,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.PrintStream;
 
@@ -25,7 +26,8 @@ public class CreateSequenomMask extends RodWalker<Integer, Integer> {
         int result = 0;
         for ( VariantContext vc : tracker.getAllVariantContexts(ref) ) {
             if ( vc.isSNP() ) {
-                out.println(context.getLocation());
+                GenomeLoc loc = context.getLocation();
+                out.println(loc.getContig() + "\t" + (loc.getStart()-1) + "\t" + loc.getStop());
                 result = 1;
                 break;
             }

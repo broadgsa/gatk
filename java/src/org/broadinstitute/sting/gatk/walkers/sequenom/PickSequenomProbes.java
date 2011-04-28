@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.sequenom;
 
 import net.sf.samtools.util.CloseableIterator;
+import org.broad.tribble.bed.BEDCodec;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -44,6 +45,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 
+import java.io.File;
 import java.util.*;
 import java.io.PrintStream;
 
@@ -88,19 +90,18 @@ public class PickSequenomProbes extends RodWalker<String, String> {
 		if ( SNP_MASK != null ) {
             logger.info("Loading SNP mask...  ");
             ReferenceOrderedData snp_mask;
-            if ( SNP_MASK.contains(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME)) {
+            //if ( SNP_MASK.contains(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME)) {
                 RMDTrackBuilder builder = new RMDTrackBuilder(getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),getToolkit().getGenomeLocParser(),getToolkit().getArguments().unsafe);
-                RMDTrack track = builder.createInstanceOfTrack(DbSNPCodec.class,new java.io.File(SNP_MASK));
+                RMDTrack track = builder.createInstanceOfTrack(BEDCodec.class, new File(SNP_MASK));
                 snpMaskIterator = new SeekableRODIterator(track.getHeader(),
                                                           track.getSequenceDictionary(),
                                                           getToolkit().getReferenceDataSource().getReference().getSequenceDictionary(),
                                                           getToolkit().getGenomeLocParser(),
                                                           track.getIterator());
-
-            } else {
-                // TODO: fix me when Plink is back
-                throw new IllegalArgumentException("We currently do not support other snp_mask tracks (like Plink)");
-            }
+            //} else {
+            //    // TODO: fix me when Plink is back
+            //    throw new IllegalArgumentException("We currently do not support other snp_mask tracks (like Plink)");
+            //}
 
 		}
         VCs = new VariantCollection();
