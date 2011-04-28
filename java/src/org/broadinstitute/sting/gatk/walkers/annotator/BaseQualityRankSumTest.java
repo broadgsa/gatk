@@ -12,7 +12,7 @@ import java.util.Arrays;
 public class BaseQualityRankSumTest extends RankSumTest {
     public List<String> getKeyNames() { return Arrays.asList("BaseQRankSum"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("BaseQRankSum", 1, VCFHeaderLineType.Float, "Phred-scaled p-value From Wilcoxon Rank Sum Test of Alt Vs. Ref base qualities")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("BaseQRankSum", 1, VCFHeaderLineType.Float, "Z-score from Wilcoxon rank sum test of Alt Vs. Ref base qualities")); }
 
     protected void fillQualsFromPileup(byte ref, byte alt, ReadBackedPileup pileup, List<Integer> refQuals, List<Integer> altQuals) {
         for ( final PileupElement p : pileup ) {

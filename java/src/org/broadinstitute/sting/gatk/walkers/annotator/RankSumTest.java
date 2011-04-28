@@ -18,8 +18,6 @@ import java.util.HashMap;
 
 
 public abstract class RankSumTest implements InfoFieldAnnotation, StandardAnnotation {
-    private static final double minPValue = 1e-20;
-
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
             return null;
@@ -52,15 +50,9 @@ public abstract class RankSumTest implements InfoFieldAnnotation, StandardAnnota
 
         // we are testing that set1 (the alt bases) have lower quality scores than set2 (the ref bases)
         final Pair<Double,Double> testResults = mannWhitneyU.runOneSidedTest( MannWhitneyU.USet.SET1 );
-        double pvalue = testResults.second;
-
-        // deal with precision issues
-        if ( pvalue < minPValue ) {
-            pvalue = minPValue;
-        }
 
         final Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.3f", Math.abs(QualityUtils.phredScaleErrorRate(pvalue))));
+        map.put(getKeyNames().get(0), String.format("%.3f", testResults.first));
         return map;
     }
 
