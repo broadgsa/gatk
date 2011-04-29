@@ -115,6 +115,11 @@ public class GATKArgumentCollection {
     public IntervalSetRule BTIMergeRule = IntervalSetRule.UNION;
 
     @Element(required = false)
+    @Argument(fullName = "nonDeterministicRandomSeed", shortName = "ndrs", doc = "Makes the GATK behave non deterministically, that is, the random numbers generated will be different in every run", required = false)
+    public boolean nonDeterministicRandomSeed = false;
+
+
+    @Element(required = false)
     @Input(fullName = "DBSNP", shortName = "D", doc = "DBSNP file", required = false)
     public String DBSNPFile = null;
 

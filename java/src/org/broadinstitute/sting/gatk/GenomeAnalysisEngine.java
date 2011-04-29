@@ -189,9 +189,9 @@ public class GenomeAnalysisEngine {
     private static final long GATK_RANDOM_SEED = 47382911L;
     private static Random randomGenerator = new Random(GATK_RANDOM_SEED);
 
-    public static final Random getRandomGenerator() { return randomGenerator; }
+    public static Random getRandomGenerator() { return randomGenerator; }
     public static void resetRandomGenerator() { randomGenerator.setSeed(GATK_RANDOM_SEED); }
-
+    public static void resetRandomGenerator(long seed) { randomGenerator.setSeed(seed); }
     /**
      * Actually run the GATK with the specified walker.
      *
@@ -210,6 +210,9 @@ public class GenomeAnalysisEngine {
         // validate our parameters              
         if (this.walker == null)
             throw new ReviewedStingException("The walker passed to GenomeAnalysisEngine can not be null.");
+
+        if (this.getArguments().nonDeterministicRandomSeed)
+            resetRandomGenerator(System.currentTimeMillis());
 
         // Prepare the data for traversal.
         initializeDataSources();
