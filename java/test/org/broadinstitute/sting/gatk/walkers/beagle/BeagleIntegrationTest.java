@@ -72,7 +72,7 @@ public class BeagleIntegrationTest extends WalkerTest {
                 "-B:beagleR2,beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.r2 "+
                 "-B:beagleProbs,beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.gprobs.bgl "+
                 "-B:beaglePhased,beagle /humgen/gsa-hpprojects/GATK/data/Validation_Data/EUR_beagle_in_test.phased.bgl "+
-                "-L 20:1-70000 -o %s -NO_HEADER ",1,Arrays.asList("e09d2cba18ab5c571e563085296cd514"));
+                "-L 20:1-70000 -o %s -NO_HEADER ",1,Arrays.asList("24b88ef8cdf6e347daab491f0256be5a"));
 
         executeTest("testBeagleChangesSitesToRef",spec);
     }
