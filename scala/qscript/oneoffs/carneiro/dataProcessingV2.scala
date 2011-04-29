@@ -9,6 +9,7 @@ import net.sf.samtools.{SAMFileReader,SAMReadGroupRecord}
 
 import scala.io.Source._
 import collection.JavaConversions._
+import org.broadinstitute.sting.queue.function.scattergather.ScatterFunction
 
 
 class dataProcessingV2 extends QScript {
@@ -192,6 +193,8 @@ class dataProcessingV2 extends QScript {
     // keep a record of the number of contigs in the first bam file in the list
     nContigs = getNumberOfContigs(perLaneAlignedBamFiles(0))
 
+    println("nContigs: " + nContigs)
+
     // Final output list of processed bam files
     var cohortList: List[File] = List()
 
@@ -279,9 +282,9 @@ class dataProcessingV2 extends QScript {
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
     this.useOnlyKnownIndels = knownsOnly
-    this.doNotUseSW = useSW
+    this.doNotUseSW = !useSW
     this.compress = 0
-    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
+//    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outBam + ".clean"
     this.jobName = queueLogDir + outBam + ".clean"
@@ -292,6 +295,8 @@ class dataProcessingV2 extends QScript {
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
+    if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
+    else if (qscript.intervals != null) this.intervals :+= qscript.intervals
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outRecalFile + ".covariates"
     this.jobName = queueLogDir + outRecalFile + ".covariates"
@@ -304,7 +309,7 @@ class dataProcessingV2 extends QScript {
     this.out = outBam
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
-    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
+//    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
 //    this.index_output_bam_on_the_fly = true
     this.scatterCount = nContigs
     this.isIntermediate = false

@@ -35,7 +35,7 @@ class justClean extends QScript {
 
     println(GATKjar)
 
-    val outBam = swapExt(input, ".bam", ".Qclean.bam")
+    val outBam = swapExt(input, ".bam", ".clean.bam")
     val tIntervals = swapExt(input, ".bam", ".all_indels.intervals")
 
     val target = new RealignerTargetCreator()
@@ -60,11 +60,9 @@ class justClean extends QScript {
     clean.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     clean.rodBind :+= RodBind("indels", "VCF", indels)
     clean.doNotUseSW = false
-    clean.compress = 0
-//    clean.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update clean with the last consensus between Tim, Matt and Eric. This is ugly!
     clean.jobName = queueLogDir + outBam + ".clean"
     clean.jarFile = GATKjar
-    clean.memoryLimit = 6
+    clean.memoryLimit = 24
     clean.scatterCount = 84
 
     add(target, clean);
