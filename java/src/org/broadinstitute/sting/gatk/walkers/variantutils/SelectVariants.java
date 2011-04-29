@@ -113,7 +113,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     }
 
-
     private ArrayList<String> selectNames = new ArrayList<String>();
     private List<VariantContextUtils.JexlVCMatchExp> jexls = null;
 
