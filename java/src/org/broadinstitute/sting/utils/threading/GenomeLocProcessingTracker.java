@@ -55,7 +55,7 @@ import java.util.*;
 public abstract class GenomeLocProcessingTracker {
     private final static Logger logger = Logger.getLogger(FileBackedGenomeLocProcessingTracker.class);
     private final static SimpleDateFormat STATUS_FORMAT = new SimpleDateFormat("HH:mm:ss,SSS");
-    private final static int DEFAULT_OWNERSHIP_ITERATOR_SIZE = 20;
+    private final static int DEFAULT_OWNERSHIP_ITERATOR_SIZE = 1;
 
     /**
      * Useful state strings for printing status
