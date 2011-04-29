@@ -30,7 +30,7 @@ import org.broadinstitute.sting.utils.interval.IntervalUtils
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource
 import net.sf.samtools.SAMFileHeader
 import java.util.Collections
-import org.broadinstitute.sting.utils.GenomeLocParser
+import org.broadinstitute.sting.utils.{GenomeLoc, GenomeLocSortedSet, GenomeLocParser}
 
 case class GATKIntervals(reference: File, intervals: List[String]) {
   private lazy val referenceDataSource = new ReferenceDataSource(reference)
@@ -42,11 +42,15 @@ case class GATKIntervals(reference: File, intervals: List[String]) {
     header
   }
 
-  lazy val locs = {
+  lazy val locs: List[GenomeLoc] = {
     val parser = new GenomeLocParser(referenceDataSource.getReference)
-    val parsedLocs = IntervalUtils.parseIntervalArguments(parser, intervals, false)
+    val parsedLocs =
+      if (intervals.isEmpty)
+        GenomeLocSortedSet.createSetFromSequenceDictionary(samFileHeader.getSequenceDictionary).toList
+      else
+        IntervalUtils.parseIntervalArguments(parser, intervals, false)
     Collections.sort(parsedLocs)
-    parsedLocs
+    parsedLocs.toList
   }
 
   lazy val contigs = locs.map(_.getContig).distinct
