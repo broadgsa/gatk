@@ -54,6 +54,7 @@ class downsampling extends QScript {
 
   val queueLogDir: String = ".qlog/"
   val outFile: String = "cov.out"
+  val fullCoverageVCF = new File("/humgen/gsa-hpprojects/dev/carneiro/downsampling/analysis/fullcov/fullcov.F1.filtered.vcf")
 
   def script = {
     val nIntervals = math.min(200, countLines(targetIntervals))
@@ -126,6 +127,7 @@ class downsampling extends QScript {
     this.stratificationModule ++= List("EvalRod", "CompRod", "Novelty")
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.rodBind :+= RodBind("eval", "VCF", inFile)
+    this.rodBind :+= RodBind("comp", "VCF", fullCoverageVCF)
     this.out = outFile
     this.analysisName = outFile + "_VariantEval"
     this.jobName = queueLogDir + outFile
