@@ -18,7 +18,7 @@ cmdargs = gsa.getargs(
     list(
         yaml = list(value=NA, doc="pipeline YAML file"),
         bamlist = list(value=NA, doc="list of BAM files"),
-        evalroot = list(value=NA, doc="VariantEval root"),
+        evalroot = list(value=NA, doc="VariantEval file"),
         tearout = list(value=NA, doc="Output path for tearsheet PDF")#,
         plotout = list(value=NA, doc="Output path for PDF")
     ),
@@ -102,7 +102,7 @@ tearsheet<-function(){
     #plot title bar
     par(mar=c(0,0,0,0))
     plot(drop)
-    text(155, 50, "NonAutism_Walsh", family="serif", adj=c(0,0), cex=3, col=gray(.25))
+    text(155, 50, "testing", family="serif", adj=c(0,0), cex=3, col=gray(.25))
     
 
 	# Project summary
@@ -249,7 +249,7 @@ tearsheet<-function(){
 	textplot(table3, rmar=1, col.rownames="dark blue", show.colnames=FALSE, cex=1.25, valign="top")
 	title(main="Sequencing Summary", family="sans", cex.main=1.25, line=0)
 
-eval = gsa.read.gatkreport("NonAutism_Walsh.cleaned.snps_and_indels.filtered.annotated.eval")
+eval = gsa.read.gatkreport(cmdargs$evalroot)
 
 
 # Variant summary
