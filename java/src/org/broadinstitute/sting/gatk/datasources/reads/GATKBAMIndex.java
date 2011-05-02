@@ -24,6 +24,7 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.samtools.Bin;
+
 import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.GATKBin;
 import net.sf.samtools.GATKChunk;
@@ -35,6 +36,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
@@ -84,8 +86,7 @@ public class GATKBAMIndex {
 
         // Verify the magic number.
         seek(fileChannel,0);
-        final byte[] buffer = new byte[4];
-        readBytes(fileChannel,buffer);
+        final byte[] buffer = readBytes(fileChannel,4);
         if (!Arrays.equals(buffer, GATKBAMFileConstants.BAM_INDEX_MAGIC)) {
             throw new RuntimeException("Invalid file header in BAM index " + mFile +
                                        ": " + new String(buffer));
@@ -104,10 +105,12 @@ public class GATKBAMIndex {
         for (int binNumber = 0; binNumber < binCount; binNumber++) {
             final int indexBin = readInteger(fileChannel);
             final int nChunks = readInteger(fileChannel);
+
             List<GATKChunk> chunks = new ArrayList<GATKChunk>(nChunks);
+            long[] rawChunkData = readLongs(fileChannel,nChunks*2);
             for (int ci = 0; ci < nChunks; ci++) {
-                final long chunkBegin = readLong(fileChannel);
-                final long chunkEnd = readLong(fileChannel);
+                final long chunkBegin = rawChunkData[ci*2];
+                final long chunkEnd = rawChunkData[ci*2+1];
                 chunks.add(new GATKChunk(chunkBegin, chunkEnd));
             }
             GATKBin bin = new GATKBin(referenceSequence, indexBin);
@@ -118,9 +121,7 @@ public class GATKBAMIndex {
         }
 
         final int nLinearBins = readInteger(fileChannel);
-        long[] linearIndexEntries = new long[nLinearBins];
-        for(int linearIndexOffset = 0; linearIndexOffset < nLinearBins; linearIndexOffset++)
-            linearIndexEntries[linearIndexOffset] = readLong(fileChannel);
+        long[] linearIndexEntries = readLongs(fileChannel,nLinearBins);
 
         linearIndex = new LinearIndex(referenceSequence,0,linearIndexEntries);
 
@@ -293,8 +294,42 @@ public class GATKBAMIndex {
         }
     }
 
-    private void readBytes(final FileChannel fileChannel, final byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+    private static final int INT_SIZE_IN_BYTES = Integer.SIZE / 8;
+    private static final int LONG_SIZE_IN_BYTES = Long.SIZE / 8;
+
+    private byte[] readBytes(final FileChannel fileChannel, int count) {
+        ByteBuffer buffer = getBuffer(count);
+        read(fileChannel,buffer);
+        buffer.flip();
+        byte[] contents = new byte[count];
+        buffer.get(contents);
+        return contents;
+    }
+
+    private int readInteger(final FileChannel fileChannel) {
+        ByteBuffer buffer = getBuffer(INT_SIZE_IN_BYTES);
+        read(fileChannel,buffer);
+        buffer.flip();
+        return buffer.getInt();
+    }
+
+    /**
+     * Reads an array of <count> longs from the file channel, returning the results as an array.
+     * @param fileChannel The file backing the schedule.
+     * @param count Number of longs to read.
+     * @return An array of longs.  Size of array should match count.
+     */
+    private long[] readLongs(final FileChannel fileChannel, final int count) {
+        ByteBuffer buffer = getBuffer(count*LONG_SIZE_IN_BYTES);
+        read(fileChannel,buffer);
+        buffer.flip();
+        long[] result = new long[count];
+        for(int i = 0; i < count; i++)
+            result[i] = buffer.getLong();
+        return result;
+    }
+
+    private void read(final FileChannel fileChannel, final ByteBuffer buffer) {
         try {
             fileChannel.read(buffer);
         }
@@ -303,25 +338,22 @@ public class GATKBAMIndex {
         }
     }
 
-    private static final int INT_SIZE_IN_BYTES = Integer.SIZE / 8;
-    private static final int LONG_SIZE_IN_BYTES = Long.SIZE / 8;
 
-    private ByteBuffer wrapBuffer(final byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
+    /**
+     * A reusable buffer for use by this index generator.
+     * TODO: Should this be a SoftReference?
+     */
+    private ByteBuffer buffer = null;
+
+    private ByteBuffer getBuffer(final int size) {
+        if(buffer == null || buffer.capacity() < size) {
+            // Allocate a new byte buffer.  For now, make it indirect to make sure it winds up on the heap for easier debugging.
+            buffer = ByteBuffer.allocate(size);
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+        }
+        buffer.clear();
+        buffer.limit(size);
         return buffer;
-    }
-
-    private int readInteger(final FileChannel fileChannel) {
-        byte[] bytes = new byte[INT_SIZE_IN_BYTES];
-        readBytes(fileChannel,bytes);
-        return wrapBuffer(bytes).getInt();
-    }
-
-    private long readLong(final FileChannel fileChannel) {
-        byte[] bytes = new byte[LONG_SIZE_IN_BYTES];
-        readBytes(fileChannel,bytes);
-        return wrapBuffer(bytes).getLong();
     }
 
     private void skipBytes(final FileChannel fileChannel, final int count) {
