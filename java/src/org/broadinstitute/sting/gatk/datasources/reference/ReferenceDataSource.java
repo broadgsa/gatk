@@ -181,7 +181,7 @@ public class ReferenceDataSource implements ReferenceDataSourceProgressListener 
             index = new CachingIndexedFastaSequenceFile(fastaFile);
 
         } catch (IllegalArgumentException e) {
-            throw new UserException.CouldNotReadInputFile(fastaFile, "Could not read reference sequence.  The FASTA must have one of the following extensions: " + ReferenceSequenceFileFactory.FASTA_EXTENSIONS.toString(), e);
+            throw new UserException.CouldNotReadInputFile(fastaFile, "Could not read reference sequence.  The FASTA must have either a .fasta or .fa extension", e);
         }
         catch (Exception e) {
             throw new UserException.CouldNotReadInputFile(fastaFile, e);
