@@ -30,17 +30,28 @@ import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Covariate;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDataManager;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDatum;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalibrationArgumentCollection;
 import org.broadinstitute.sting.utils.MathUtils;
-import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.collections.NestedHashMap;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
+import org.broadinstitute.sting.utils.text.XReadLines;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 
 
 public class PairHMMIndelErrorModel {
@@ -103,10 +114,30 @@ public class PairHMMIndelErrorModel {
     private final double[] GAP_OPEN_PROB_TABLE;
     private final double[] GAP_CONT_PROB_TABLE;
 
+    private boolean getGapPenaltiesFromFile = false;
 
-     static {
+    private int SMOOTHING = 1;
+    private int MAX_QUALITY_SCORE = 50;
+    private int PRESERVE_QSCORES_LESS_THAN = 5;
+
+    /////////////////////////////
+    // Private Member Variables
+    /////////////////////////////
+//copy+
+    private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
+    private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>(); // List of covariates to be used in this calculation
+    private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
+    private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
+    private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
+    protected static final String EOF_MARKER = "EOF";
+    private long numReadsWithMalformedColorSpace = 0;
+    private RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
+    private NestedHashMap qualityScoreByFullCovariateKey = new NestedHashMap(); // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
+
+//copy-
+    static {
         LOG_ONE_HALF= -Math.log10(2.0);
-        END_GAP_COST = LOG_ONE_HALF; 
+        END_GAP_COST = LOG_ONE_HALF;
 
         baseMatchArray = new double[MAX_CACHED_QUAL+1];
         baseMismatchArray = new double[MAX_CACHED_QUAL+1];
@@ -118,6 +149,130 @@ public class PairHMMIndelErrorModel {
             baseMismatchArray[k] = Math.log10(baseProb);
         }
     }
+
+    public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean doCDP, boolean dovit,boolean gpf, File RECAL_FILE) {
+
+        this(indelGOP, indelGCP, deb, doCDP, dovit);
+        this.getGapPenaltiesFromFile = gpf;
+
+        // read data from recal file
+        // gdebug - start copy from TableRecalibrationWalker
+        if (gpf) {
+            boolean sawEOF = false;
+            boolean REQUIRE_EOF = false;
+
+            int lineNumber = 0;
+            boolean foundAllCovariates = false;
+            // Get a list of all available covariates
+            final List<Class<? extends Covariate>> classes = new PluginManager<Covariate>(Covariate.class).getPlugins();
+
+            try {
+                for ( String line : new XReadLines(RECAL_FILE) ) {
+                    lineNumber++;
+                    if ( EOF_MARKER.equals(line) ) {
+                        sawEOF = true;
+                    } else if( COMMENT_PATTERN.matcher(line).matches() || OLD_RECALIBRATOR_HEADER.matcher(line).matches() )  {
+                        ; // Skip over the comment lines, (which start with '#')
+                    }
+                    // Read in the covariates that were used from the input file
+                    else if( COVARIATE_PATTERN.matcher(line).matches() ) { // The line string is either specifying a covariate or is giving csv data
+                        if( foundAllCovariates ) {
+                            throw new UserException.MalformedFile( RECAL_FILE, "Malformed input recalibration file. Found covariate names intermingled with data in file: " + RECAL_FILE );
+                        } else { // Found the covariate list in input file, loop through all of them and instantiate them
+                            String[] vals = line.split(",");
+                            for( int iii = 0; iii < vals.length - 3; iii++ ) { // There are n-3 covariates. The last three items are nObservations, nMismatch, and Qempirical
+                                boolean foundClass = false;
+                                for( Class<?> covClass : classes ) {
+                                    if( (vals[iii] + "Covariate").equalsIgnoreCase( covClass.getSimpleName() ) ) {
+                                        foundClass = true;
+                                        try {
+                                            Covariate covariate = (Covariate)covClass.newInstance();
+                                            requestedCovariates.add( covariate );
+                                        } catch (Exception e) {
+                                            throw new DynamicClassResolutionException(covClass, e);
+                                        }
+
+                                    }
+                                }
+
+                                if( !foundClass ) {
+                                    throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration file. The requested covariate type (" + (vals[iii] + "Covariate") + ") isn't a valid covariate option." );
+                                }
+                            }
+                        }
+
+                    } else { // Found a line of data
+                        if( !foundAllCovariates ) {
+                            foundAllCovariates = true;
+
+                            // At this point all the covariates should have been found and initialized
+                            if( requestedCovariates.size() < 2 ) {
+                                throw new UserException.MalformedFile(RECAL_FILE, "Malformed input recalibration csv file. Covariate names can't be found in file: " + RECAL_FILE );
+                            }
+
+                            final boolean createCollapsedTables = true;
+
+                            // Initialize any covariate member variables using the shared argument collection
+                            for( Covariate cov : requestedCovariates ) {
+                                cov.initialize( RAC );
+                            }
+                            // Initialize the data hashMaps
+                            dataManager = new RecalDataManager( createCollapsedTables, requestedCovariates.size() );
+
+                        }
+                        addCSVData(RECAL_FILE, line); // Parse the line and add the data to the HashMap
+                    }
+                }
+
+            } catch ( FileNotFoundException e ) {
+                throw new UserException.CouldNotReadInputFile(RECAL_FILE, "Can not find input file", e);
+            } catch ( NumberFormatException e ) {
+                throw new UserException.MalformedFile(RECAL_FILE, "Error parsing recalibration data at line " + lineNumber + ". Perhaps your table was generated by an older version of CovariateCounterWalker.");
+            }
+
+            if ( !sawEOF ) {
+                final String errorMessage = "No EOF marker was present in the recal covariates table; this could mean that the file is corrupted or was generated with an old version of the CountCovariates tool.";
+                if ( REQUIRE_EOF )
+                    throw new UserException.MalformedFile(RECAL_FILE, errorMessage);
+            }
+
+            if( dataManager == null ) {
+                throw new UserException.MalformedFile(RECAL_FILE, "Can't initialize the data manager. Perhaps the recal csv file contains no data?");
+            }
+
+            // Create the tables of empirical quality scores that will be used in the sequential calculation
+            dataManager.generateEmpiricalQualities( SMOOTHING, MAX_QUALITY_SCORE );
+        }
+        // debug end copy
+
+    }
+    /**
+     * For each covariate read in a value and parse it. Associate those values with the data itself (num observation and num mismatches)
+     * @param line A line of CSV data read from the recalibration table data file
+     */
+    private void addCSVData(final File file, final String line) {
+        final String[] vals = line.split(",");
+
+        // Check if the data line is malformed, for example if the read group string contains a comma then it won't be parsed correctly
+        if( vals.length != requestedCovariates.size() + 3 ) { // +3 because of nObservations, nMismatch, and Qempirical
+            throw new UserException.MalformedFile(file, "Malformed input recalibration file. Found data line with too many fields: " + line +
+                    " --Perhaps the read group string contains a comma and isn't being parsed correctly.");
+        }
+
+        final Object[] key = new Object[requestedCovariates.size()];
+        Covariate cov;
+        int iii;
+        for( iii = 0; iii < requestedCovariates.size(); iii++ ) {
+            cov = requestedCovariates.get( iii );
+            key[iii] = cov.getValue( vals[iii] );
+        }
+
+        // Create a new datum using the number of observations, number of mismatches, and reported quality score
+        final RecalDatum datum = new RecalDatum( Long.parseLong( vals[iii] ), Long.parseLong( vals[iii + 1] ), Double.parseDouble( vals[1] ), 0.0 );
+        // Add that datum to all the collapsed tables which will be used in the sequential calculation
+        dataManager.addToAllTables( key, datum, PRESERVE_QSCORES_LESS_THAN );
+    }
+
 
     public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean doCDP, boolean dovit) {
         this(indelGOP, indelGCP, deb, doCDP);
@@ -152,11 +307,11 @@ public class PairHMMIndelErrorModel {
         for (int i=START_HRUN_GAP_IDX; i < MAX_HRUN_GAP_IDX; i++) {
             gop += step;
             if (gop > maxGOP)
-               gop = maxGOP;
+                gop = maxGOP;
 
             gcp += step;
             if(gcp > maxGCP)
-               gcp = maxGCP;
+                gcp = maxGCP;
             GAP_OPEN_PROB_TABLE[i] = gop;
             GAP_CONT_PROB_TABLE[i] = gcp;
         }
@@ -399,14 +554,20 @@ public class PairHMMIndelErrorModel {
                 bestActionArrayM[indI][indJ] = ACTIONS_M[bestMetricIdx];
 
                 // update X array
-                 // State X(i,j): X(1:i) aligned to a gap in Y(1:j).
+                // State X(i,j): X(1:i) aligned to a gap in Y(1:j).
                 // When in last column of X, ie X(1:i) aligned to full Y, we don't want to penalize gaps
 
                 //c = (indJ==Y_METRIC_LENGTH-1? END_GAP_COST: currentGOP[jm1]);
                 //d = (indJ==Y_METRIC_LENGTH-1? END_GAP_COST: currentGCP[jm1]);
-                c = currentGOP[jm1];
-                d = currentGCP[jm1];
-                if (indJ == Y_METRIC_LENGTH-1) 
+                if (getGapPenaltiesFromFile) {
+                    c = currentGOP[im1];
+                    d = logGapContinuationProbability;
+
+                } else {
+                    c = currentGOP[jm1];
+                    d = currentGCP[jm1];
+                }
+                if (indJ == Y_METRIC_LENGTH-1)
                     c = d = END_GAP_COST;
 
                 if (doViterbi) {
@@ -426,8 +587,14 @@ public class PairHMMIndelErrorModel {
                 // update Y array
                 //c = (indI==X_METRIC_LENGTH-1? END_GAP_COST: currentGOP[jm1]);
                 //d = (indI==X_METRIC_LENGTH-1? END_GAP_COST: currentGCP[jm1]);
-                c = currentGOP[jm1];
-                d = currentGCP[jm1];
+                if (getGapPenaltiesFromFile) {
+                    c = currentGOP[im1];
+                    d = logGapContinuationProbability;
+                }
+                else {
+                    c = currentGOP[jm1];
+                    d = currentGCP[jm1];                        
+                }
                 if (indI == X_METRIC_LENGTH-1)
                     c = d = END_GAP_COST;
 
@@ -511,7 +678,7 @@ public class PairHMMIndelErrorModel {
                     i--; j--;
                 }
 
-             }
+            }
 
 
 
@@ -541,7 +708,7 @@ public class PairHMMIndelErrorModel {
             else {
                 contextLogGapOpenProbabilities[hIndex][i] = GAP_OPEN_PROB_TABLE[hrunProfile[i]];
                 contextLogGapContinuationProbabilities[hIndex][i] = GAP_CONT_PROB_TABLE[hrunProfile[i]];
-            }                
+            }
         }
     }
     public synchronized double[][] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, List<Haplotype> haplotypesInVC,
@@ -559,7 +726,7 @@ public class PairHMMIndelErrorModel {
             System.out.println(new String(ref.getBases()));
         }
 
-        if (doContextDependentPenalties)   {
+        if (doContextDependentPenalties && !getGapPenaltiesFromFile)   {
             // will context dependent probabilities based on homopolymet run. Probabilities are filled based on total complete haplotypes.
 
             for (int j=0; j < haplotypesInVC.size(); j++) {
@@ -584,23 +751,59 @@ public class PairHMMIndelErrorModel {
             }
         }
         for (SAMRecord pread : pileup.getReads()) {
-           SAMRecord read = ReadUtils.hardClipAdaptorSequence(pread);
+            SAMRecord read = ReadUtils.hardClipAdaptorSequence(pread);
             if (read == null)
                 continue;
 
-            if(ReadUtils.is454Read(read)) {
+            if(ReadUtils.is454Read(read) && !getGapPenaltiesFromFile) {
                 continue;
             }
 
-            // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
-            // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
-            if (DEBUG)
-                System.out.format("\n\nStarting read:%s S:%d US:%d E:%d UE:%d C:%s\n",read.getReadName(),
-                        read.getAlignmentStart(),
-                        read.getUnclippedStart(), read.getAlignmentEnd(), read.getUnclippedEnd(),
-                        read.getCigarString());
+            double[] recalQuals = null;
+            if (getGapPenaltiesFromFile) {
+                RecalDataManager.parseSAMRecord( read, RAC );
 
 
+                recalQuals = new double[read.getReadLength()];
+
+                //compute all covariate values for this read
+                final Comparable[][] covariateValues_offset_x_covar =
+                        RecalDataManager.computeCovariates((GATKSAMRecord) read, requestedCovariates);
+                // For each base in the read
+                for( int offset = 0; offset < read.getReadLength(); offset++ ) {
+
+                    final Object[] fullCovariateKey = covariateValues_offset_x_covar[offset];
+
+                    Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKey);
+                    if(qualityScore == null)
+                    {
+                        qualityScore = performSequentialQualityCalculation( fullCovariateKey );
+                        qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKey);
+                    }
+
+                    recalQuals[offset] = (double)qualityScore;
+                }
+
+                // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
+                // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
+                if (DEBUG)  {
+                    System.out.format("\n\nStarting read:%s S:%d US:%d E:%d UE:%d C:%s\n",read.getReadName(),
+                            read.getAlignmentStart(),
+                            read.getUnclippedStart(), read.getAlignmentEnd(), read.getUnclippedEnd(),
+                            read.getCigarString());
+
+                    byte[] bases = read.getReadBases();
+                    for (int k = 0; k < recalQuals.length; k++) {
+                        System.out.format("%c",bases[k]);
+                    }
+                    System.out.println();
+
+                    for (int k = 0; k < recalQuals.length; k++) {
+                        System.out.format("%.0f ",recalQuals[k]);
+                    }
+                    System.out.println();
+                }
+            }
             // get bases of candidate haplotypes that overlap with reads
             final int trailingBases = 3;
 
@@ -641,12 +844,12 @@ public class PairHMMIndelErrorModel {
  */
             // remove soft clips if necessary
             if ((read.getAlignmentStart()>=eventStartPos-eventLength && read.getAlignmentStart() <= eventStartPos+1) ||
-                (read.getAlignmentEnd() >= eventStartPos && read.getAlignmentEnd() <= eventStartPos + eventLength)) {
+                    (read.getAlignmentEnd() >= eventStartPos && read.getAlignmentEnd() <= eventStartPos + eventLength)) {
                 numStartSoftClippedBases = 0;
                 numEndSoftClippedBases = 0;
             }
 
-            
+
 
             byte[] unclippedReadBases, unclippedReadQuals;
 
@@ -715,6 +918,12 @@ public class PairHMMIndelErrorModel {
                 byte[] readQuals = Arrays.copyOfRange(unclippedReadQuals,numStartClippedBases,
                         unclippedReadBases.length-numEndClippedBases);
 
+                double[] recalCDP = null;
+                if (getGapPenaltiesFromFile) {
+                    recalCDP = Arrays.copyOfRange(recalQuals,numStartClippedBases,
+                            unclippedReadBases.length-numEndClippedBases);
+
+                }
 
                 if (DEBUG) {
                     System.out.println("Read bases:");
@@ -751,11 +960,17 @@ public class PairHMMIndelErrorModel {
                         double[] currentContextGCP = null;
 
                         if (doContextDependentPenalties) {
-                            currentContextGOP = Arrays.copyOfRange(contextLogGapOpenProbabilities[j], (int)indStart, (int)indStop);
-                            currentContextGCP = Arrays.copyOfRange(contextLogGapContinuationProbabilities[j], (int)indStart, (int)indStop);
-                        }
-                        readLikelihoods[readIdx][j]= computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, currentContextGOP, currentContextGCP);
 
+                           if (getGapPenaltiesFromFile) {
+                               readLikelihoods[readIdx][j]= computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, recalCDP, null);
+
+                           }  else {
+                               currentContextGOP = Arrays.copyOfRange(contextLogGapOpenProbabilities[j], (int)indStart, (int)indStop);
+                               currentContextGCP = Arrays.copyOfRange(contextLogGapContinuationProbabilities[j], (int)indStart, (int)indStop);
+                               readLikelihoods[readIdx][j]= computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, currentContextGOP, currentContextGCP);
+                           }
+                        }
+ 
                     }
                     else
                         readLikelihoods[readIdx][j]= computeReadLikelihoodGivenHaplotype(haplotypeBases, readBases, readQuals);
@@ -824,5 +1039,76 @@ public class PairHMMIndelErrorModel {
 
     }
 
- 
+    /**
+     * Implements a serial recalibration of the reads using the combinational table.
+     * First, we perform a positional recalibration, and then a subsequent dinuc correction.
+     *
+     * Given the full recalibration table, we perform the following preprocessing steps:
+     *
+     *   - calculate the global quality score shift across all data [DeltaQ]
+     *   - calculate for each of cycle and dinuc the shift of the quality scores relative to the global shift
+     *      -- i.e., DeltaQ(dinuc) = Sum(pos) Sum(Qual) Qempirical(pos, qual, dinuc) - Qreported(pos, qual, dinuc) / Npos * Nqual
+     *   - The final shift equation is:
+     *
+     *      Qrecal = Qreported + DeltaQ + DeltaQ(pos) + DeltaQ(dinuc) + DeltaQ( ... any other covariate ... )
+     * @param key The list of Comparables that were calculated from the covariates
+     * @return A recalibrated quality score as a byte
+     */
+    private byte performSequentialQualityCalculation( final Object... key ) {
+
+        final byte qualFromRead = (byte)Integer.parseInt(key[1].toString());
+        final Object[] readGroupCollapsedKey = new Object[1];
+        final Object[] qualityScoreCollapsedKey = new Object[2];
+        final Object[] covariateCollapsedKey = new Object[3];
+
+        // The global quality shift (over the read group only)
+        readGroupCollapsedKey[0] = key[0];
+        final RecalDatum globalRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(0).get( readGroupCollapsedKey ));
+        double globalDeltaQ = 0.0;
+        if( globalRecalDatum != null ) {
+            final double globalDeltaQEmpirical = globalRecalDatum.getEmpiricalQuality();
+            final double aggregrateQReported = globalRecalDatum.getEstimatedQReported();
+            globalDeltaQ = globalDeltaQEmpirical - aggregrateQReported;
+        }
+
+        // The shift in quality between reported and empirical
+        qualityScoreCollapsedKey[0] = key[0];
+        qualityScoreCollapsedKey[1] = key[1];
+        final RecalDatum qReportedRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(1).get( qualityScoreCollapsedKey ));
+        double deltaQReported = 0.0;
+        if( qReportedRecalDatum != null ) {
+            final double deltaQReportedEmpirical = qReportedRecalDatum.getEmpiricalQuality();
+            deltaQReported = deltaQReportedEmpirical - qualFromRead - globalDeltaQ;
+        }
+
+        // The shift in quality due to each covariate by itself in turn
+        double deltaQCovariates = 0.0;
+        double deltaQCovariateEmpirical;
+        covariateCollapsedKey[0] = key[0];
+        covariateCollapsedKey[1] = key[1];
+        for( int iii = 2; iii < key.length; iii++ ) {
+            covariateCollapsedKey[2] =  key[iii]; // The given covariate
+            final RecalDatum covariateRecalDatum = ((RecalDatum)dataManager.getCollapsedTable(iii).get( covariateCollapsedKey ));
+            if( covariateRecalDatum != null ) {
+                deltaQCovariateEmpirical = covariateRecalDatum.getEmpiricalQuality();
+                deltaQCovariates += ( deltaQCovariateEmpirical - qualFromRead - (globalDeltaQ + deltaQReported) );
+            }
+        }
+
+        final double newQuality = qualFromRead + globalDeltaQ + deltaQReported + deltaQCovariates;
+        return QualityUtils.boundQual( (int)Math.round(newQuality), (byte)MAX_QUALITY_SCORE );
+
+        // Verbose printouts used to validate with old recalibrator
+        //if(key.contains(null)) {
+        //    System.out.println( key  + String.format(" => %d + %.2f + %.2f + %.2f + %.2f = %d",
+        //                 qualFromRead, globalDeltaQ, deltaQReported, deltaQPos, deltaQDinuc, newQualityByte));
+        //}
+        //else {
+        //    System.out.println( String.format("%s %s %s %s => %d + %.2f + %.2f + %.2f + %.2f = %d",
+        //                 key.get(0).toString(), key.get(3).toString(), key.get(2).toString(), key.get(1).toString(), qualFromRead, globalDeltaQ, deltaQReported, deltaQPos, deltaQDinuc, newQualityByte) );
+        //}
+
+        //return newQualityByte;
+    }
+
 }

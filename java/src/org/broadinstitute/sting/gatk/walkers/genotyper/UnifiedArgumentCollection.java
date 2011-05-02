@@ -27,6 +27,9 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.commandline.Input;
+
+import java.io.File;
 
 
 public class UnifiedArgumentCollection {
@@ -101,6 +104,13 @@ public class UnifiedArgumentCollection {
      public boolean DO_CONTEXT_DEPENDENT_PENALTIES = true;
     //gdebug+
     @Hidden
+    // experimental arguments, NOT TO BE USED BY ANYONE WHOSE INITIALS AREN'T GDA!!!
+    @Argument(fullName = "getGapPenaltiesFromData", shortName = "dataGP", doc = "Vary gap penalties by context - EXPERIMENTAL, DO NO USE", required = false)
+    public boolean GET_GAP_PENALTIES_FROM_DATA = false;
+
+    @Argument(fullName="indel_recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file - EXPERIMENTAL, DO NO USE")
+    public File INDEL_RECAL_FILE = new File("indel.recal_data.csv");
+
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
     public boolean OUTPUT_DEBUG_INDEL_INFO = false;
     @Hidden
@@ -145,7 +155,9 @@ public class UnifiedArgumentCollection {
         uac.OUTPUT_DEBUG_INDEL_INFO = OUTPUT_DEBUG_INDEL_INFO;
         uac.INDEL_HAPLOTYPE_SIZE = INDEL_HAPLOTYPE_SIZE;
         uac.DO_CONTEXT_DEPENDENT_PENALTIES = DO_CONTEXT_DEPENDENT_PENALTIES;
-        
+
+        uac.GET_GAP_PENALTIES_FROM_DATA = GET_GAP_PENALTIES_FROM_DATA;
+        uac.INDEL_RECAL_FILE = INDEL_RECAL_FILE;
         // todo- arguments to remove
         uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
         uac.dovit = dovit;
