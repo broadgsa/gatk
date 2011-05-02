@@ -21,7 +21,7 @@ public class VariantRecalibratorEngine {
     // the unified argument collection
     final private VariantRecalibratorArgumentCollection VRAC;
 
-    private final static double MIN_PROB_CONVERGENCE_LOG10 = 1.0;
+    private final static double MIN_PROB_CONVERGENCE = 2E-2;
 
     /////////////////////////////
     // Public Methods to interface with the Engine
@@ -33,7 +33,7 @@ public class VariantRecalibratorEngine {
     }
 
     public GaussianMixtureModel generateModel( final List<VariantDatum> data ) {
-        final GaussianMixtureModel model = new GaussianMixtureModel( VRAC.MAX_GAUSSIANS, data.get(0).annotations.length, VRAC.SHRINKAGE, VRAC.DIRICHLET_PARAMETER );
+        final GaussianMixtureModel model = new GaussianMixtureModel( VRAC.MAX_GAUSSIANS, data.get(0).annotations.length, VRAC.SHRINKAGE, VRAC.DIRICHLET_PARAMETER, VRAC.PRIOR_COUNTS );
         variationalBayesExpectationMaximization( model, data );
         return model;
     }
@@ -63,25 +63,26 @@ public class VariantRecalibratorEngine {
 
     private void variationalBayesExpectationMaximization( final GaussianMixtureModel model, final List<VariantDatum> data ) {
 
-        model.cacheEmpiricalStats( data );
+        model.cacheEmpiricalStats();
         model.initializeRandomModel( data, VRAC.NUM_KMEANS_ITERATIONS );
 
         // The VBEM loop
-        double previousLikelihood = model.expectationStep( data );
+        model.normalizePMixtureLog10();
+        model.expectationStep( data );
         double currentLikelihood;
         int iteration = 0;
         logger.info("Finished iteration " + iteration );
         while( iteration < VRAC.MAX_ITERATIONS ) {
             iteration++;
             model.maximizationStep( data );
-            currentLikelihood = model.expectationStep( data );
-
+            currentLikelihood = model.normalizePMixtureLog10();
+            model.expectationStep( data );
+            logger.info("Current change in mixture coefficients = " + String.format("%.5f", currentLikelihood));
             logger.info("Finished iteration " + iteration );
-            if( Math.abs(currentLikelihood - previousLikelihood) < MIN_PROB_CONVERGENCE_LOG10 ) {
+            if( iteration > 2 && currentLikelihood < MIN_PROB_CONVERGENCE ) {
                 logger.info("Convergence!");
                 break;
             }
-            previousLikelihood = currentLikelihood;
         }
 
         model.evaluateFinalModelParameters( data );

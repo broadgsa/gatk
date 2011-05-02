@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 
 import Jama.Matrix;
+import org.apache.commons.math.special.Gamma;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 
@@ -16,6 +17,7 @@ import java.util.Random;
 
 public class MultivariateGaussian {
     public double pMixtureLog10;
+    public double sumProb;
     final public double[] mu;
     final public Matrix sigma;
     public double hyperParameter_a;
@@ -52,15 +54,15 @@ public class MultivariateGaussian {
 
     public void initializeRandomSigma( final Random rand ) {
         final double[][] randSigma = new double[mu.length][mu.length];
-            for( int iii = 0; iii < mu.length; iii++ ) {
-                for( int jjj = iii; jjj < mu.length; jjj++ ) {
-                    randSigma[jjj][iii] = 0.55 + 1.25 * rand.nextDouble();
-                    if( rand.nextBoolean() ) {
-                        randSigma[jjj][iii] *= -1.0;
-                    }
-                    if( iii != jjj ) { randSigma[iii][jjj] = 0.0; } // Sigma is a symmetric, positive-definite matrix created by taking a lower diagonal matrix and multiplying it by its transpose
+        for( int iii = 0; iii < mu.length; iii++ ) {
+            for( int jjj = iii; jjj < mu.length; jjj++ ) {
+                randSigma[jjj][iii] = 0.55 + 1.25 * rand.nextDouble();
+                if( rand.nextBoolean() ) {
+                    randSigma[jjj][iii] *= -1.0;
                 }
+                if( iii != jjj ) { randSigma[iii][jjj] = 0.0; } // Sigma is a symmetric, positive-definite matrix created by taking a lower diagonal matrix and multiplying it by its transpose
             }
+        }
         Matrix tmp = new Matrix( randSigma );
         tmp = tmp.times(tmp.transpose());
         sigma.setMatrix(0, mu.length - 1, 0, mu.length - 1, tmp);
@@ -95,15 +97,15 @@ public class MultivariateGaussian {
         cachedSigmaInverse = sigma.inverse();
         cachedSigmaInverse.timesEquals( hyperParameter_a );
         double sum = 0.0;
-        for(int jjj = 1; jjj < mu.length; jjj++) {
-            sum += MathUtils.diGamma( (hyperParameter_a + 1.0 - jjj) / 2.0 );
+        for(int jjj = 1; jjj <= mu.length; jjj++) {
+            sum += Gamma.digamma( (hyperParameter_a + 1.0 - jjj) / 2.0 );
         }
         sum -= Math.log( sigma.det() );
         sum += Math.log(2.0) * mu.length;
-        final double gamma = 0.5 * sum;
-        final double pi = MathUtils.diGamma( hyperParameter_lambda ) - MathUtils.diGamma( sumHyperParameterLambda );
+        final double lambda = 0.5 * sum;
+        final double pi = Gamma.digamma( hyperParameter_lambda ) - Gamma.digamma( sumHyperParameterLambda );
         final double beta = (-1.0 * mu.length) / (2.0 * hyperParameter_b);
-        cachedDenomLog10 = (pi / Math.log(10.0)) + (gamma / Math.log(10.0)) + (beta / Math.log(10.0));
+        cachedDenomLog10 = (pi / Math.log(10.0)) + (lambda / Math.log(10.0)) + (beta / Math.log(10.0));
     }
 
     public double evaluateDatumLog10( final VariantDatum datum ) {
@@ -132,7 +134,7 @@ public class MultivariateGaussian {
 
     public void maximizeGaussian( final List<VariantDatum> data, final double[] empiricalMu, final Matrix empiricalSigma,
                                   final double SHRINKAGE, final double DIRICHLET_PARAMETER, final double DEGREES_OF_FREEDOM ) {
-        double sumProb = 0.0;
+        sumProb = 1E-10;
         final Matrix wishart = new Matrix(mu.length, mu.length);
         zeroOutMu();
         zeroOutSigma();
@@ -171,8 +173,6 @@ public class MultivariateGaussian {
             mu[iii] = (sumProb * mu[iii] + SHRINKAGE * empiricalMu[iii]) / (sumProb + SHRINKAGE);
         }
 
-        pMixtureLog10 = sumProb; // will be normalized later by GaussianMixtureModel so no need to do it every iteration
-
         hyperParameter_a = sumProb + DEGREES_OF_FREEDOM;
         hyperParameter_b = sumProb + SHRINKAGE;
         hyperParameter_lambda = sumProb + DIRICHLET_PARAMETER;
@@ -181,7 +181,7 @@ public class MultivariateGaussian {
     }
 
     public void evaluateFinalModelParameters( final List<VariantDatum> data ) {
-        double sumProb = 0.0;
+        sumProb = 0.0;
         zeroOutMu();
         zeroOutSigma();
 
@@ -206,7 +206,6 @@ public class MultivariateGaussian {
         }
         sigma.timesEquals( 1.0 / sumProb );
 
-        pMixtureLog10 = sumProb; // will be normalized later by GaussianMixtureModel so no need to do it here
         resetPVarInGaussian(); // clean up some memory
     }
 }

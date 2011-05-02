@@ -15,7 +15,8 @@ public class TrainingSet {
     public boolean isKnown = false;
     public boolean isTraining = false;
     public boolean isTruth = false;
-    public double prior = 3.0;
+    public boolean isConsensus = false;
+    public double prior = 0.0;
 
     protected final static Logger logger = Logger.getLogger(TrainingSet.class);
 
@@ -25,8 +26,13 @@ public class TrainingSet {
             isKnown = tags.containsKey("known") && tags.getValue("known").equals("true");
             isTraining = tags.containsKey("training") && tags.getValue("training").equals("true");
             isTruth = tags.containsKey("truth") && tags.getValue("truth").equals("true");
-            prior = ( tags.containsKey("known") ? Double.parseDouble(tags.getValue("prior")) : prior );
+            isConsensus = tags.containsKey("consensus") && tags.getValue("consensus").equals("true");
+            prior = ( tags.containsKey("prior") ? Double.parseDouble(tags.getValue("prior")) : prior );
         }
-        logger.info(String.format( "Found %s track: \tKnown = %s \tTraining = %s \tTruth = %s \tPrior = Q%.1f", this.name, isKnown, isTraining, isTruth, prior) );
+        if( !isConsensus ) {
+            logger.info( String.format( "Found %s track: \tKnown = %s \tTraining = %s \tTruth = %s \tPrior = Q%.1f", this.name, isKnown, isTraining, isTruth, prior) );
+        } else {
+            logger.info( String.format( "Found consensus track: %s", this.name) );
+        }
     }
 }

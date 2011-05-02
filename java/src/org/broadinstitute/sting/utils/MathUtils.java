@@ -420,6 +420,14 @@ public class MathUtils {
         return dist;
     }
 
+    public static double round(double num, int digits) {
+        double result = num * Math.pow(10.0, (double)digits);
+        result = Math.round(result);
+        result = result / Math.pow(10.0, (double)digits);
+        return result;
+    }
+
+
     /**
      * normalizes the log10-based array.  ASSUMES THAT ALL ARRAY ENTRIES ARE <= 0 (<= 1 IN REAL-SPACE).
      *
@@ -717,16 +725,6 @@ public class MathUtils {
         return ans;
     }
 
-    // lifted from the internet
-    // http://www.cs.princeton.edu/introcs/91float/Gamma.java.html
-    public static double logGamma(double x) {
-        double tmp = (x - 0.5) * Math.log(x + 4.5) - (x + 4.5);
-        double ser = 1.0 + 76.18009173 / (x + 0) - 86.50532033 / (x + 1)
-                + 24.01409822 / (x + 2) - 1.231739516 / (x + 3)
-                + 0.00120858003 / (x + 4) - 0.00000536382 / (x + 5);
-        return tmp + Math.log(ser * Math.sqrt(2 * Math.PI));
-    }
-
     public static double percentage(double x, double base) {
         return (base > 0 ? (x / base) * 100.0 : 0);
     }
@@ -890,15 +888,6 @@ public class MathUtils {
 
     public static byte getQScoreMedian(List<SAMRecord> reads, List<Integer> offsets) {
         return getQScoreOrderStatistic(reads, offsets, (int)Math.floor(reads.size()/2.));
-    }
-
-    // from http://en.wikipedia.org/wiki/Digamma_function
-    // According to J.M. Bernardo AS 103 algorithm the digamma function for x, a real number, can be approximated by:
-    public static double diGamma(final double x) {
-        return Math.log(x) - ( 1.0 / (2.0 * x) )
-                           - ( 1.0 / (12.0 * Math.pow(x, 2.0)) )
-                           + ( 1.0 / (120.0 * Math.pow(x, 4.0)) )
-                           - ( 1.0 / (252.0 * Math.pow(x, 6.0)) );
     }
 
     /** A utility class that computes on the fly average and standard deviation for a stream of numbers.

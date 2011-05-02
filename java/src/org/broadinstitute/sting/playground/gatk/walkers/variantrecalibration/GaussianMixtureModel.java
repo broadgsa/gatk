@@ -1,11 +1,13 @@
 package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
 
 import Jama.Matrix;
+import cern.jet.random.Normal;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MathUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -21,13 +23,13 @@ public class GaussianMixtureModel {
     private final ArrayList<MultivariateGaussian> gaussians;
     private final double shrinkage;
     private final double dirichletParameter;
-    private final double degreesOfFreedom;
+    private final double priorCounts;
     private final double[] empiricalMu;
     private final Matrix empiricalSigma;
     public boolean isModelReadyForEvaluation;
 
     public GaussianMixtureModel( final int numGaussians, final int numAnnotations,
-                                 final double shrinkage, final double dirichletParameter ) {
+                                 final double shrinkage, final double dirichletParameter, final double priorCounts ) {
 
         gaussians = new ArrayList<MultivariateGaussian>( numGaussians );
         for( int iii = 0; iii < numGaussians; iii++ ) {
@@ -36,39 +38,15 @@ public class GaussianMixtureModel {
         }
         this.shrinkage = shrinkage;
         this.dirichletParameter = dirichletParameter;
-        degreesOfFreedom = numAnnotations + 2;
+        this.priorCounts = priorCounts;
         empiricalMu = new double[numAnnotations];
         empiricalSigma = new Matrix(numAnnotations, numAnnotations);
         isModelReadyForEvaluation = false;
     }
 
-    public void cacheEmpiricalStats( final List<VariantDatum> data ) {
-        final double[][] tmpSigmaVals = new double[empiricalMu.length][empiricalMu.length];
-        for( int iii = 0; iii < empiricalMu.length; iii++ ) {
-            empiricalMu[iii] = 0.0;
-            for( int jjj = iii; jjj < empiricalMu.length; jjj++ ) {
-                tmpSigmaVals[iii][jjj] = 0.0;
-            }
-        }
-
-        for( final VariantDatum datum : data ) {
-            for( int iii = 0; iii < empiricalMu.length; iii++ ) {
-                empiricalMu[iii] += datum.annotations[iii] / ((double) data.size());
-            }
-        }
-
-        //for( final VariantDatum datum : data ) {
-        //    for( int iii = 0; iii < empiricalMu.length; iii++ ) {
-        //        for( int jjj = 0; jjj < empiricalMu.length; jjj++ ) {
-        //            tmpSigmaVals[iii][jjj] += (datum.annotations[iii]-empiricalMu[iii]) * (datum.annotations[jjj]-empiricalMu[jjj]);
-        //        }
-        //    }
-        //}
-
-        //empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, new Matrix(tmpSigmaVals));
-        //empiricalSigma.timesEquals( 1.0 / ((double) data.size()) );
-        //empiricalSigma.timesEquals( 1.0 / (Math.pow(gaussians.size(), 2.0 / ((double) empiricalMu.length))) );
-        empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, Matrix.identity(empiricalMu.length, empiricalMu.length));
+    public void cacheEmpiricalStats() {
+        Arrays.fill(empiricalMu, 0.0);
+        empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, Matrix.identity(empiricalMu.length, empiricalMu.length).times(200.0).inverse());
     }
 
     public void initializeRandomModel( final List<VariantDatum> data, final int numKMeansIterations ) {
@@ -85,8 +63,9 @@ public class GaussianMixtureModel {
         // initialize uniform mixture coefficients, random covariance matrices, and initial hyperparameters
         for( final MultivariateGaussian gaussian : gaussians ) {
             gaussian.pMixtureLog10 = Math.log10( 1.0 / ((double) gaussians.size()) );
+            gaussian.sumProb = 1.0 / ((double) gaussians.size());
             gaussian.initializeRandomSigma( GenomeAnalysisEngine.getRandomGenerator() );
-            gaussian.hyperParameter_a = degreesOfFreedom;
+            gaussian.hyperParameter_a = priorCounts;
             gaussian.hyperParameter_b = shrinkage;
             gaussian.hyperParameter_lambda = dirichletParameter;
         }
@@ -129,19 +108,17 @@ public class GaussianMixtureModel {
         }
     }
 
-    public double expectationStep( final List<VariantDatum> data ) {
+    public void expectationStep( final List<VariantDatum> data ) {
 
         for( final MultivariateGaussian gaussian : gaussians ) {
             gaussian.precomputeDenominatorForVariationalBayes( getSumHyperParameterLambda() );
         }
 
-        double likelihood = 0.0;
         for( final VariantDatum datum : data ) {
             final ArrayList<Double> pVarInGaussianLog10 = new ArrayList<Double>( gaussians.size() );
             for( final MultivariateGaussian gaussian : gaussians ) {
                 final double pVarLog10 = gaussian.evaluateDatumLog10( datum );
                 pVarInGaussianLog10.add( pVarLog10 );
-                likelihood += pVarLog10;
             }
             final double[] pVarInGaussianNormalized = MathUtils.normalizeFromLog10( pVarInGaussianLog10 );
             int iii = 0;
@@ -149,15 +126,11 @@ public class GaussianMixtureModel {
                 gaussian.assignPVarInGaussian( pVarInGaussianNormalized[iii++] ); //BUGBUG: to clean up
             }
         }
-
-        final double scaledTotalLikelihoodLog10 = likelihood / ((double) data.size());
-        logger.info( "sum Log10 likelihood = " + String.format("%.5f", scaledTotalLikelihoodLog10) );
-        return scaledTotalLikelihoodLog10;
     }
 
     public void maximizationStep( final List<VariantDatum> data ) {
         for( final MultivariateGaussian gaussian : gaussians ) {
-            gaussian.maximizeGaussian( data, empiricalMu, empiricalSigma, shrinkage, dirichletParameter, degreesOfFreedom );
+            gaussian.maximizeGaussian( data, empiricalMu, empiricalSigma, shrinkage, dirichletParameter, priorCounts);
         }
     }
 
@@ -171,28 +144,31 @@ public class GaussianMixtureModel {
 
     public void evaluateFinalModelParameters( final List<VariantDatum> data ) {
         for( final MultivariateGaussian gaussian : gaussians ) {
-            gaussian.evaluateFinalModelParameters( data );
+            gaussian.evaluateFinalModelParameters(data);
         }
         normalizePMixtureLog10();
     }
 
-    private void normalizePMixtureLog10() {
+    public double normalizePMixtureLog10() {
+        double sumDiff = 0.0;
         double sumPK = 0.0;
         for( final MultivariateGaussian gaussian : gaussians ) {
-            sumPK += gaussian.pMixtureLog10;
+            sumPK += gaussian.sumProb;
         }
 
         int gaussianIndex = 0;
         double[] pGaussianLog10 = new double[gaussians.size()];
         for( final MultivariateGaussian gaussian : gaussians ) {
-            pGaussianLog10[gaussianIndex++] = Math.log10( gaussian.pMixtureLog10 / sumPK ); //BUGBUG: to clean up
+            pGaussianLog10[gaussianIndex++] = Math.log10( gaussian.sumProb / sumPK );
         }
         pGaussianLog10 = MathUtils.normalizeFromLog10( pGaussianLog10, true );
 
         gaussianIndex = 0;
         for( final MultivariateGaussian gaussian : gaussians ) {
+            sumDiff += Math.abs( pGaussianLog10[gaussianIndex] - gaussian.pMixtureLog10 );
             gaussian.pMixtureLog10 = pGaussianLog10[gaussianIndex++];
         }
+        return sumDiff;
     }
 
     public void precomputeDenominatorForEvaluation() {
@@ -204,11 +180,37 @@ public class GaussianMixtureModel {
     }
 
     public double evaluateDatum( final VariantDatum datum ) {
+        for( final boolean isNull : datum.isNull ) {
+            if( isNull ) { return evaluateDatumMarginalized( datum ); }
+        }
         final double[] pVarInGaussianLog10 = new double[gaussians.size()];
         int gaussianIndex = 0;
         for( final MultivariateGaussian gaussian : gaussians ) {
             pVarInGaussianLog10[gaussianIndex++] = gaussian.pMixtureLog10 + gaussian.evaluateDatumLog10( datum );
         }
         return MathUtils.log10sumLog10(pVarInGaussianLog10);
+    }
+
+    public double evaluateDatumMarginalized( final VariantDatum datum ) {
+        int numVals = 0;
+        double sumPVarInGaussian = 0.0;
+        int numIter = 10;
+        final double[] pVarInGaussianLog10 = new double[gaussians.size()];
+        for( int iii = 0; iii < datum.annotations.length; iii++ ) {
+            if( datum.isNull[iii] ) {
+                for( int ttt = 0; ttt < numIter; ttt++ ) {
+                    datum.annotations[iii] = Normal.staticNextDouble(0.0, 1.0);
+
+                    int gaussianIndex = 0;
+                    for( final MultivariateGaussian gaussian : gaussians ) {
+                        pVarInGaussianLog10[gaussianIndex++] = gaussian.pMixtureLog10 + gaussian.evaluateDatumLog10( datum );
+                    }
+
+                    sumPVarInGaussian += Math.pow(10.0, MathUtils.log10sumLog10(pVarInGaussianLog10));
+                    numVals++;
+                }
+            }
+        }
+        return Math.log10( sumPVarInGaussian / ((double) numVals) );
     }
 }
