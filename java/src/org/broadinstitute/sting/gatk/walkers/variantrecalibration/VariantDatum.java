@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration;
+package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 
