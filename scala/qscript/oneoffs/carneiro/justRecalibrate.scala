@@ -25,9 +25,6 @@ class justRecalibrate extends QScript {
   @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=false)
   var R: String = new File("/humgen/gsa-scr1/carneiro/stable/R")
 
-  @Input(doc="bad regions interval", shortName="bad", required=false)
-  var badInterval: File = new File("/humgen/gsa-hpprojects/dev/carneiro/goodbad/data/bad_regions.hg19.intervals")
-                                                                     
   @Input(doc="Reference fasta file", shortName="R", required=false)
   var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
@@ -35,36 +32,23 @@ class justRecalibrate extends QScript {
   var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   val queueLogDir: String = ".qlog/"
-
+  val nContigs: Int = 85    // Take it from the BAM file if you want to be more sophisticated!
 
   def script = {
 
     val first: Boolean = true
-    val bad: Boolean = true
 
-    val badRecalFile1: File = new File("bad_recal1.csv");
-    val badRecalFile2: File = new File("bad_recal2.csv");
-    val badBam: File        = new File("bad.bam");
-    val badPath1: String    = "bad1";
-    val badPath2: String    = "bad2";
+    val recalFile1: File = new File("recal1.csv")
+    val recalFile2: File = new File("recal2.csv")
+    val bam: File        = new File("recal.bam")
+    val path1: String    = "before"
+    val path2: String    = "after"
     
-    val goodRecalFile1: File = new File("good_recal1.csv")
-    val goodRecalFile2: File = new File("good_recal2.csv")
-    val goodBam: File        = new File("good.bam")
-    val goodPath1: String    = "good1"
-    val goodPath2: String    = "good2"
-    
-    add(cov(input, badRecalFile1, first, bad),
-        recal(input, badRecalFile1, badBam, bad),
-        cov(badBam, badRecalFile2, !first, bad),
-        analyzeCovariates(badRecalFile1, badPath1),
-        analyzeCovariates(badRecalFile2, badPath2))
-
-    add(cov(input, goodRecalFile1, first, !bad),
-        recal(input, goodRecalFile1, goodBam, !bad),
-        cov(goodBam, goodRecalFile2, !first, !bad),
-        analyzeCovariates(goodRecalFile1, goodPath1),
-        analyzeCovariates(goodRecalFile2, goodPath2))
+    add(cov(input, recalFile1, first),
+        recal(input, recalFile1, bam),
+        cov(bam, recalFile2, !first),
+        analyzeCovariates(recalFile1, path1),
+        analyzeCovariates(recalFile2, path2))
   }
 
   trait CommandLineGATKArgs extends CommandLineGATK {
@@ -74,7 +58,7 @@ class justRecalibrate extends QScript {
     this.isIntermediate = true
   }
 
-  case class cov (inBam: File, outRecalFile: File, FIRST: Boolean, BAD: Boolean) extends CountCovariates with CommandLineGATKArgs {
+  case class cov (inBam: File, outRecalFile: File, FIRST: Boolean) extends CountCovariates with CommandLineGATKArgs {
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
@@ -82,27 +66,17 @@ class justRecalibrate extends QScript {
     this.useOriginalQualities = FIRST
     this.analysisName = queueLogDir + outRecalFile + ".covariates"
     this.jobName = queueLogDir + outRecalFile + ".covariates"
-    if (BAD) {
-      this.intervals :+= badInterval
-      this.scatterCount = 85
-    }
-    else
-      this.excludeIntervals :+= badInterval
+    this.scatterCount = nContigs
   }
 
-  case class recal (inBam: File, inRecalFile: File, outBam: File, BAD: Boolean) extends TableRecalibration with CommandLineGATKArgs {
+  case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
     this.input_file :+= inBam
     this.recal_file = inRecalFile
     this.out = outBam
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
     this.jobName = queueLogDir + outBam + ".recalibration"
-    if (BAD) {
-      this.intervals :+= badInterval
-      this.scatterCount = 85
-    }
-    else
-      this.excludeIntervals :+= badInterval
+    this.scatterCount = nContigs
   }
 
   case class analyzeCovariates (inRecalFile: File, outPath: String) extends AnalyzeCovariates {
