@@ -57,7 +57,7 @@ public class AnalyzeMemoryConsumption extends LocusWalker<LocusContext,Long> {
 
     public void initialize() {
         monitor = ManagementFactory.getMemoryMXBean();
-        out.println("contig\tlocus\tref (bytes)\tref (% of max)\treads (count)\treads (bytes)\treads (% of max)\tRODs (bytes)\tRODs (% of max heap)\tHeap Used (bytes)\tHeap Used (% of max)\tMax Heap");
+        out.println("contig\tlocus\tref.bytes\tref.pcnt.max\treads.count\treads.bytes\treads.pcnt.max\tRODs.bytes\tRODs.pcnt.max\tHeap.used.bytes\tHeap.used.pcnt.max\tMax.heap");
     }
 
     public LocusContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext reads) {
