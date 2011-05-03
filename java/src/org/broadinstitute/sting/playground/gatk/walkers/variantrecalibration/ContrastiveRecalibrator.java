@@ -210,7 +210,7 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
 
     public void onTraversalDone( final ExpandingArrayList<VariantDatum> reduceSum ) {
         dataManager.setData( reduceSum );
-        dataManager.normalizeData();
+        dataManager.normalizeData(); // Each data point is now (x - mean) / standard deviation
         final GaussianMixtureModel goodModel = engine.generateModel( dataManager.getTrainingData() );
         engine.evaluateData( dataManager.getData(), goodModel, false );
         final GaussianMixtureModel badModel = engine.generateModel( dataManager.selectWorstVariants( VRAC.PERCENT_BAD_VARIANTS ) );
@@ -250,12 +250,10 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
 
         createArrangeFunction( stream );
 
-        stream.println("pdf(\"" + RSCRIPT_FILE + ".pdf\")");
+        stream.println("pdf(\"" + RSCRIPT_FILE + ".pdf\")"); // Unfortunately this is a huge pdf file, BUGBUG: need to work on reducing the file size
 
         for(int iii = 0; iii < USE_ANNOTATIONS.length; iii++) {
             for( int jjj = iii + 1; jjj < USE_ANNOTATIONS.length; jjj++) {
-                //stream.println("png(\"" + RSCRIPT_FILE + "." + USE_ANNOTATIONS[iii] + "." + USE_ANNOTATIONS[jjj] + ".png\", type=\"cairo\", width = 960, height = 960)");
-                //stream.println("pdf(\"" + RSCRIPT_FILE + "." + USE_ANNOTATIONS[iii] + "." + USE_ANNOTATIONS[jjj] + ".pdf\")");
                 logger.info( "Building " + USE_ANNOTATIONS[iii] + " x " + USE_ANNOTATIONS[jjj] + " plot...");
 
                 final ExpandingArrayList<VariantDatum> fakeData = new ExpandingArrayList<VariantDatum>();
@@ -266,6 +264,7 @@ public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<Varian
                     minAnn2 = Math.min(minAnn2, datum.annotations[jjj]);
                     maxAnn2 = Math.max(maxAnn2, datum.annotations[jjj]);
                 }
+                // Create a fake set of data which spans the full extent of these two annotation dimensions in order to calculate the model PDF projected to 2D
                 for(double ann1 = minAnn1; ann1 <= maxAnn1; ann1+=0.1) {
                     for(double ann2 = minAnn2; ann2 <= maxAnn2; ann2+=0.1) {
                         final VariantDatum datum = new VariantDatum();

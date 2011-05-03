@@ -29,7 +29,6 @@ public class VariantRecalibratorEngine {
 
     public VariantRecalibratorEngine( final VariantRecalibratorArgumentCollection VRAC ) {
         this.VRAC = VRAC;
-        initialize( this.VRAC );
     }
 
     public GaussianMixtureModel generateModel( final List<VariantDatum> data ) {
@@ -51,35 +50,27 @@ public class VariantRecalibratorEngine {
     }
 
     /////////////////////////////
-    // Private Methods used for initialization
-    /////////////////////////////
-
-    private void initialize( final VariantRecalibratorArgumentCollection VRAC ) {
-    }
-
-    /////////////////////////////
     // Private Methods used for generating a GaussianMixtureModel
     /////////////////////////////
 
     private void variationalBayesExpectationMaximization( final GaussianMixtureModel model, final List<VariantDatum> data ) {
 
-        model.cacheEmpiricalStats();
         model.initializeRandomModel( data, VRAC.NUM_KMEANS_ITERATIONS );
 
         // The VBEM loop
         model.normalizePMixtureLog10();
         model.expectationStep( data );
-        double currentLikelihood;
+        double currentChangeInMixtureCoefficients;
         int iteration = 0;
         logger.info("Finished iteration " + iteration );
         while( iteration < VRAC.MAX_ITERATIONS ) {
             iteration++;
             model.maximizationStep( data );
-            currentLikelihood = model.normalizePMixtureLog10();
-            model.expectationStep( data );
-            logger.info("Current change in mixture coefficients = " + String.format("%.5f", currentLikelihood));
+            currentChangeInMixtureCoefficients = model.normalizePMixtureLog10();
+            model.expectationStep(data);
+            logger.info("Current change in mixture coefficients = " + String.format("%.5f", currentChangeInMixtureCoefficients));
             logger.info("Finished iteration " + iteration );
-            if( iteration > 2 && currentLikelihood < MIN_PROB_CONVERGENCE ) {
+            if( iteration > 2 && currentChangeInMixtureCoefficients < MIN_PROB_CONVERGENCE ) {
                 logger.info("Convergence!");
                 break;
             }

@@ -94,6 +94,7 @@ public class MultivariateGaussian {
     }
 
     public void precomputeDenominatorForVariationalBayes( final double sumHyperParameterLambda ) {
+        // Variational Bayes calculations from Bishop
         cachedSigmaInverse = sigma.inverse();
         cachedSigmaInverse.timesEquals( hyperParameter_a );
         double sum = 0.0;

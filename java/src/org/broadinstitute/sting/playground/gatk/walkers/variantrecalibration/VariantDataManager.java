@@ -73,7 +73,7 @@ public class VariantDataManager {
             throw new UserException.BadInput( "Found annotations with zero variance. They must be excluded before proceeding." );
         }
 
-        // trim data by standard deviation threshold and place into two sets: data and failingData
+        // trim data by standard deviation threshold and mark failing data for exclusion later
         for( final VariantDatum datum : data ) {
             boolean remove = false;
             for( final double val : datum.annotations ) {

@@ -42,9 +42,6 @@ public class GaussianMixtureModel {
         empiricalMu = new double[numAnnotations];
         empiricalSigma = new Matrix(numAnnotations, numAnnotations);
         isModelReadyForEvaluation = false;
-    }
-
-    public void cacheEmpiricalStats() {
         Arrays.fill(empiricalMu, 0.0);
         empiricalSigma.setMatrix(0, empiricalMu.length - 1, 0, empiricalMu.length - 1, Matrix.identity(empiricalMu.length, empiricalMu.length).times(200.0).inverse());
     }
@@ -75,6 +72,7 @@ public class GaussianMixtureModel {
 
         int ttt = 0;
         while( ttt++ < numIterations ) {
+            // Estep: assign each variant to the nearest cluster
             for( final VariantDatum datum : data ) {
                 double minDistance = Double.MAX_VALUE;
                 MultivariateGaussian minGaussian = null;
@@ -89,6 +87,7 @@ public class GaussianMixtureModel {
                 datum.assignment = minGaussian;
             }
 
+            // Mstep: update gaussian means based on assigned variants
             for( final MultivariateGaussian gaussian : gaussians ) {
                 gaussian.zeroOutMu();
                 int numAssigned = 0;
@@ -188,7 +187,7 @@ public class GaussianMixtureModel {
         for( final MultivariateGaussian gaussian : gaussians ) {
             pVarInGaussianLog10[gaussianIndex++] = gaussian.pMixtureLog10 + gaussian.evaluateDatumLog10( datum );
         }
-        return MathUtils.log10sumLog10(pVarInGaussianLog10);
+        return MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
     }
 
     public double evaluateDatumMarginalized( final VariantDatum datum ) {
@@ -197,6 +196,7 @@ public class GaussianMixtureModel {
         int numIter = 10;
         final double[] pVarInGaussianLog10 = new double[gaussians.size()];
         for( int iii = 0; iii < datum.annotations.length; iii++ ) {
+            // marginalize over the missing dimension by drawing X random values for the missing annotation and averaging the lod
             if( datum.isNull[iii] ) {
                 for( int ttt = 0; ttt < numIter; ttt++ ) {
                     datum.annotations[iii] = Normal.staticNextDouble(0.0, 1.0);
