@@ -36,7 +36,7 @@ import java.util.IdentityHashMap;
  * A sizeof implementation for Java.  Relies on the Java instrumentation API, so
  * it must be added as an agent to function properly.
  *
- * To run, add -javaagent:/Users/mhanna/src/Sting/dist/StingUtils.jar as a command-line
+ * To run, add -javaagent:$STING_HOME/dist/StingUtils.jar as a command-line
  * JVM argument.
  *
  * @author mhanna
