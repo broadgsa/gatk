@@ -57,6 +57,7 @@ public class AnalyzeMemoryConsumption extends LocusWalker<LocusContext,Long> {
 
     public void initialize() {
         monitor = ManagementFactory.getMemoryMXBean();
+        out.println("contig\tlocus\tref (bytes)\tref (% of max)\treads (count)\treads (bytes)\treads (% of max)\tRODs (bytes)\tRODs (% of max heap)\tHeap Used (bytes)\tHeap Used (% of max)\tMax Heap");
     }
 
     public LocusContext map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext reads) {
@@ -77,20 +78,22 @@ public class AnalyzeMemoryConsumption extends LocusWalker<LocusContext,Long> {
         sum++;
 
         if(sum % frequency == 0) {
-            long refSize = Sizeof.getObjectGraphSize(locusContext.reference);
-            long readsSize = Sizeof.getObjectGraphSize(locusContext.alignedReads);
-            long trackerSize = Sizeof.getObjectGraphSize(locusContext.referenceOrderedData);
+            long refSizeInBytes = Sizeof.getObjectGraphSize(locusContext.reference);
+            long numReads = locusContext.alignedReads.size();
+            long readsSizeInBytes = Sizeof.getObjectGraphSize(locusContext.alignedReads);
+            long trackerSizeInBytes = Sizeof.getObjectGraphSize(locusContext.referenceOrderedData);
 
             MemoryUsage memoryUsage = monitor.getHeapMemoryUsage();
             long memoryUsed = memoryUsage.getUsed();
             long maxMemory = memoryUsage.getMax();
 
-            out.printf("site: %s: reference: %d bytes (%f%% of max), reads: %d bytes (%f%% of max), reference-ordered data: %d bytes (%f%% of max); heap used = %d bytes (%f%% of max); max heap = %d bytes.%n",
-                    locusContext.reference.getLocus(),
-                    refSize,refSize*100.0/maxMemory,
-                    readsSize,readsSize*100.0/maxMemory,
-                    trackerSize,trackerSize*100.0/maxMemory,
-                    memoryUsed,((float)memoryUsed)/maxMemory,
+            out.printf("%s\t%s\t%d\t%.3f\t%d\t%d\t%.3f\t%d\t%.3f\t%d\t%.3f\t%d%n",
+                    locusContext.reference.getLocus().getContig(),
+                    locusContext.reference.getLocus().getStart(),
+                    refSizeInBytes,refSizeInBytes*100.0/maxMemory,
+                    numReads,readsSizeInBytes,readsSizeInBytes*100.0/maxMemory,
+                    trackerSizeInBytes,trackerSizeInBytes*100.0/maxMemory,
+                    memoryUsed,memoryUsed*100.0/maxMemory,
                     maxMemory);
         }
 
