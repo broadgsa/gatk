@@ -161,6 +161,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     datum.isSNP = vc.isSNP() && vc.isBiallelic();
                     datum.isTransition = datum.isSNP && VariantContextUtils.isTransition(vc);
                     datum.usedForTraining = 0;
+
+                    // Loop through the training data sets and if they overlap this loci then update the prior and training status appropriately
                     dataManager.parseTrainingSets( tracker, ref, context, vc, datum, TRUST_ALL_POLYMORPHIC );
                     double priorFactor = QualityUtils.qualToProb( datum.prior );
                     if( datum.consensusCount != 0 ) {
@@ -168,6 +170,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                         priorFactor = 1.0 - ((1.0 - priorFactor) * (1.0 - consensusPrior));
                     }
                     datum.prior = Math.log10( priorFactor ) - Math.log10( 1.0 - priorFactor );
+
                     mapList.add( datum );
                 }
             }
@@ -224,8 +227,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         TRANCHES_FILE.print(Tranche.tranchesString( tranches ));
 
         double lodCutoff = 0.0;
-        for(final Tranche tranche : tranches) {
-            if(MathUtils.compareDoubles(tranche.ts, TS_FILTER_LEVEL, 0.0001)==0) {
+        for( final Tranche tranche : tranches ) {
+            if( MathUtils.compareDoubles(tranche.ts, TS_FILTER_LEVEL, 0.0001)==0 ) {
                 lodCutoff = tranche.minVQSLod;
             }
         }
