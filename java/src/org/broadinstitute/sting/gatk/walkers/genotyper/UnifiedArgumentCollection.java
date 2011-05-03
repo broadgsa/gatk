@@ -117,6 +117,9 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "dovit", shortName = "dovit", doc = "Output indel debug info", required = false)
     public boolean dovit = false;
     @Hidden
+    @Argument(fullName = "GSA_PRODUCTION_ONLY", shortName = "GSA_PRODUCTION_ONLY", doc = "don't ever use me", required = false)
+    public boolean GSA_PRODUCTION_ONLY = false;
+    @Hidden
  
     @Argument(fullName = "exactCalculation", shortName = "exactCalculation", doc = "expt", required = false)
     public ExactAFCalculationModel.ExactCalculation EXACT_CALCULATION_TYPE = ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL;
@@ -161,6 +164,7 @@ public class UnifiedArgumentCollection {
         // todo- arguments to remove
         uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
         uac.dovit = dovit;
+        uac.GSA_PRODUCTION_ONLY = GSA_PRODUCTION_ONLY;
         
         return uac;
     }
