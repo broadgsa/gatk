@@ -310,7 +310,6 @@ class dataProcessingV2 extends QScript {
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
 //    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
-//    this.index_output_bam_on_the_fly = true
     this.scatterCount = nContigs
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
