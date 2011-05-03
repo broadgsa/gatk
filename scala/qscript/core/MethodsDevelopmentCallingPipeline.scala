@@ -244,7 +244,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
   }
 
   // 3.) Variant Quality Score Recalibration - Generate Recalibration table
-  class VQSR(t: Target, goldStandard: Boolean) extends ContrastiveRecalibrator with UNIVERSAL_GATK_ARGS {
+  class VQSR(t: Target, goldStandard: Boolean) extends VariantRecalibrator with UNIVERSAL_GATK_ARGS {
     this.memoryLimit = 4
     this.reference_sequence = t.reference
     this.intervalsString ++= List(t.intervals)

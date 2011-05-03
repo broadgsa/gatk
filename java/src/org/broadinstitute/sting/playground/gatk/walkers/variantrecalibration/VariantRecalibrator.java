@@ -48,15 +48,15 @@ import java.io.PrintStream;
 import java.util.*;
 
 /**
- * Applies calibrated variant cluster parameters to variant calls to produce an accurate and informative variant quality score.
+ * Takes variant calls as .vcf files, learns a Gaussian mixture model over the variant annotations and evaluates the variant -- assigning an informative lod score
  *
  * User: rpoplin
  * Date: 3/12/11
  *
- * @help.summary Takes variant calls as .vcf files, learns a Gaussian mixture model over the variant annotations and evaluates the variants
+ * @help.summary Takes variant calls as .vcf files, learns a Gaussian mixture model over the variant annotations and evaluates the variant -- assigning an informative lod score
  */
 
-public class ContrastiveRecalibrator extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> implements TreeReducible<ExpandingArrayList<VariantDatum>> {
+public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> implements TreeReducible<ExpandingArrayList<VariantDatum>> {
 
     public static final String VQS_LOD_KEY = "VQSLOD";
 

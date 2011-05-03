@@ -170,7 +170,7 @@ class WGSpipeline extends QScript {
     recombine.jobName = qscript.project + ".recombine"
     recombine.jobOutputFile = swapExt(combineVCFs.jobOutputFile, "combine.out", "recombine.out")
 
-    val cr = new ContrastiveRecalibrator with CommandLineGATKArgs
+    val cr = new VariantRecalibrator with CommandLineGATKArgs
       cr.rodBind :+= RodBind("hapmap","VCF",  qscript.hapmap,  "training=true, prior=3.0")
       cr.rodBind :+= RodBind("1kg", "VCF",  qscript.omni,  "training=true, prior=3.0")
       cr.rodBind :+= RodBind("input", "VCF", recombine.out)

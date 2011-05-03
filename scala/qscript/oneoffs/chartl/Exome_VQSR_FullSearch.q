@@ -154,7 +154,7 @@ class Exome_VQSR_FullSearch extends QScript {
         val directory = getPath(annotations,recalTogether)
         for ( call_thresh <- VQSR_CALL_THRESH ) {
           for ( vqsr_rb <- VQSR_RODBINDS.iterator ) {
-            trait VQSR_Args extends ContrastiveRecalibrator {
+            trait VQSR_Args extends VariantRecalibrator {
               this.allPoly = true
               this.analysisName = "VQSR_%s_%s_%.1f".format( annotations.reduceLeft( _ + "." + _), if ( recalTogether ) "true" else "false", call_thresh)
               this.commandDirectory = directory
@@ -166,17 +166,17 @@ class Exome_VQSR_FullSearch extends QScript {
             }
             val nameFormat = SCRIPT_BASE_NAME+".%1f.%s.".format(call_thresh,vqsr_rb._1)+"%s."
             if ( recalTogether ) {
-              var vqsr = new ContrastiveRecalibrator with VQSR_Args with ExpandedIntervals with CommandLineGATKArgs
+              var vqsr = new VariantRecalibrator with VQSR_Args with ExpandedIntervals with CommandLineGATKArgs
               vqsr.tranchesFile = new File(nameFormat.format("both")+"tranche")
               vqsr.recalFile = new File(nameFormat.format("both")+"recal")
               add(vqsr)
               addAll(eval(vqsr, ei.outList, "flanks"))
               addAll(eval(vqsr, INTS, "exons"))
             } else {
-              var exons = new ContrastiveRecalibrator with VQSR_Args with CommandLineGATKArgs
+              var exons = new VariantRecalibrator with VQSR_Args with CommandLineGATKArgs
               exons.tranchesFile = new File(nameFormat.format("exons")+"tranche")
               exons.recalFile = new File(nameFormat.format("exons")+"recal")
-              var flanks = new ContrastiveRecalibrator with VQSR_Args
+              var flanks = new VariantRecalibrator with VQSR_Args
               flanks.intervals :+= ei.outList.getAbsoluteFile
               flanks.jarFile = GATK_JAR
               flanks.memoryLimit = Some(8)
@@ -194,8 +194,8 @@ class Exome_VQSR_FullSearch extends QScript {
   }
 
   // want to apply and eval
-  def eval(recal: ContrastiveRecalibrator) : List[QFunction] = { eval(recal,null,"") }
-  def eval(recal: ContrastiveRecalibrator, list: File, ext: String) : List[QFunction] = {
+  def eval(recal: VariantRecalibrator) : List[QFunction] = { eval(recal,null,"") }
+  def eval(recal: VariantRecalibrator, list: File, ext: String) : List[QFunction] = {
     var functions : List[QFunction] = Nil
     trait ImplicitArgs extends CommandLineGATK {
       this.jarFile = recal.jarFile

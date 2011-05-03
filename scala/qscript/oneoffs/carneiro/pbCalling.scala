@@ -187,7 +187,7 @@ class pbCalling extends QScript {
     this.analysisName = t.name + "_VF"
   }
 
-  class VQSR(t: Target, goldStandard: Boolean) extends ContrastiveRecalibrator {
+  class VQSR(t: Target, goldStandard: Boolean) extends VariantRecalibrator {
     this.memoryLimit = 6
     this.intervalsString ++= List(t.intervals)
     this.rodBind :+= RodBind("input", "VCF", if ( goldStandard ) { t.goldStandard_VCF } else { t.filteredVCF } )

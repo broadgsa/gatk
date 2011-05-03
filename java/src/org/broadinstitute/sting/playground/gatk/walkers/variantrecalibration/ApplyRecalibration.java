@@ -123,7 +123,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
         // setup the header fields
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
-        hInfo.add(new VCFInfoHeaderLine(ContrastiveRecalibrator.VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "log10-scaled probability of variant being true under the trained gaussian mixture model"));
+        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "log10-scaled probability of variant being true under the trained gaussian mixture model"));
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
@@ -170,12 +170,12 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
 
         for( VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
             if( vc != null ) {
-                if( ContrastiveRecalibrator.checkRecalibrationMode( vc, MODE ) ) {
+                if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) ) {
                     String filterString = null;
                     final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
                     final Double lod = (Double) lodMap.get( ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop() );
                     if( vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters()) ) {
-                        attrs.put(ContrastiveRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
+                        attrs.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
                         for( int i = tranches.size() - 1; i >= 0; i-- ) {
                             final Tranche tranche = tranches.get(i);
                             if( lod >= tranche.minVQSLod ) {
