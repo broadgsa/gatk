@@ -85,11 +85,11 @@ public class AnalyzeMemoryConsumption extends LocusWalker<LocusContext,Long> {
             long memoryUsed = memoryUsage.getUsed();
             long maxMemory = memoryUsage.getMax();
 
-            out.printf("site: %s: reference: %d bytes (%f%%), reads: %d bytes (%f%%), reference-ordered data: %d bytes (%f%%); heap used = %d bytes (%f%%); max heap = %d bytes.%n",
+            out.printf("site: %s: reference: %d bytes (%f%% of max), reads: %d bytes (%f%% of max), reference-ordered data: %d bytes (%f%% of max); heap used = %d bytes (%f%% of max); max heap = %d bytes.%n",
                     locusContext.reference.getLocus(),
-                    refSize,((float)refSize)/memoryUsed,
-                    readsSize,((float)readsSize)/memoryUsed,
-                    trackerSize,((float)trackerSize)/memoryUsed,
+                    refSize,refSize*100.0/maxMemory,
+                    readsSize,readsSize*100.0/maxMemory,
+                    trackerSize,trackerSize*100.0/maxMemory,
                     memoryUsed,((float)memoryUsed)/maxMemory,
                     maxMemory);
         }
