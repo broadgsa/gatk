@@ -122,7 +122,7 @@ public class TableRecalibrationWalker extends ReadWalker<SAMRecord, SAMFileWrite
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
     private static final Pattern COVARIATE_PATTERN = Pattern.compile("^ReadGroup,QualityScore,.*");
-    protected static final String EOF_MARKER = "EOF";
+    public static final String EOF_MARKER = "EOF";
     private long numReadsWithMalformedColorSpace = 0;
 
     /////////////////////////////

@@ -39,6 +39,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 //import org.broadinstitute.sting.gatk.walkers.recalibration.*;
 //import org.broadinstitute.sting.gatk.walkers.recalibration.CountCovariatesGatherer;
+import org.broadinstitute.sting.gatk.walkers.recalibration.TableRecalibrationWalker;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
