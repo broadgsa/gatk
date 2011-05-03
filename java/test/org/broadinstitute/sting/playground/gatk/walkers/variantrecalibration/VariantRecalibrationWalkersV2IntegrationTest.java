@@ -27,7 +27,7 @@ public class VariantRecalibrationWalkersV2IntegrationTest extends WalkerTest {
     VRTest lowPass = new VRTest("phase1.projectConsensus.chr20.raw.snps.vcf",
             "920b12d7765eb4f6f4a1bab045679b31",  // tranches
             "41bbc5f07c8a9573d5bb638f01808bba",  // recal file
-            "2b8c5e884bf5a739b782f5b3bf17f19c"); // cut VCF
+            "d9aa7a0f8fb886df4394f1636605adca"); // cut VCF
 
     @DataProvider(name = "VRTest")
     public Object[][] createData1() {
@@ -43,7 +43,7 @@ public class VariantRecalibrationWalkersV2IntegrationTest extends WalkerTest {
                         " -B:dbsnp,VCF,known=true,training=false,truth=false,prior=10.0 " + GATKDataLocation + "dbsnp_132_b37.leftAligned.vcf" +
                         " -B:hapmap,VCF,known=false,training=true,truth=true,prior=15.0 " + comparisonDataLocation + "Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf" +
                         " -B:omni,VCF,known=false,training=true,truth=true,prior=12.0 " + comparisonDataLocation + "Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf" +
-                        " -T ContrastiveRecalibrator" +
+                        " -T VariantRecalibrator" +
                         " -B:input,VCF " + params.inVCF +
                         " -L 20:1,000,000-40,000,000" +
                         " -an QD -an HaplotypeScore -an HRun" +
