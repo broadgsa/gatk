@@ -35,6 +35,7 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
     @DataPoint(description = "TN") int TN = 0;
 
     @DataPoint(description = "Sensitivity") double sensitivity = 0;
+    @DataPoint(description = "Specificity") double specificity = 0;
     @DataPoint(description = "PPV") double PPV = 0;
     @DataPoint(description = "FDR") double FDR = 0;
 
@@ -90,6 +91,7 @@ public class ValidationReport extends VariantEvaluator implements StandardEval {
             throw new ReviewedStingException("BUG: nComp != TP + FN + FP + TN + CompFiltered!");
 
         sensitivity = (100.0 * TP) / (TP + FN);
+        specificity = (TN+FP > 0) ? (100.0 * TN) / (TN + FP) : 100.0;
         PPV = (100.0 * TP) / (TP + FP);
         FDR = (100.0 * FP) / (FP + TP);
     }
