@@ -41,7 +41,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
-import org.broadinstitute.sting.playground.gatk.walkers.variantrecalibration.VQSRCalibrationCurve;
+import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VQSRCalibrationCurve;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.SampleUtils;

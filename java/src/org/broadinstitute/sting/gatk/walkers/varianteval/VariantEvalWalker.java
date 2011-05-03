@@ -174,10 +174,10 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         // Add select expressions for anything in the tranches file
         if ( TRANCHE_FILENAME != null ) {
             // we are going to build a few select names automatically from the tranches file
-            for ( Tranche t : Tranche.readTraches(new File(TRANCHE_FILENAME)) ) {
+            for ( Tranche t : Tranche.readTranches(new File(TRANCHE_FILENAME)) ) {
                 logger.info("Adding select for all variant above the pCut of : " + t);
                 SELECT_EXPS.add(String.format(VariantRecalibrator.VQS_LOD_KEY + " >= %.2f", t.minVQSLod));
-                SELECT_NAMES.add(String.format("FDR-%.2f", t.fdr));
+                SELECT_NAMES.add(String.format("TS-%.2f", t.ts));
             }
         }
 
