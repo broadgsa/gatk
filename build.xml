@@ -298,13 +298,6 @@
             <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala"/>
             <exclude name="**/gridengine/**" unless="include.gridengine" />
-            <!--
-            NOTE: Added include.queue.pipeline flag while VQSR v2 is being migrated
-            and the pipeline package is still using the old version.
-            At this moment enabling the flag turns on code that doesn't compile.
-            ASAP determine if package should use v2 or be retired.
-            -->
-            <exclude name="**/queue/pipeline/**" unless="include.queue.pipeline" />
         </scalac>
     </target>
 
