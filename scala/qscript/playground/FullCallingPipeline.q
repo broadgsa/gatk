@@ -94,6 +94,7 @@ class FullCallingPipeline extends QScript {
     indels.jobOutputFile = ".queue/logs/IndelCalling/UnifiedGenotyper.indels.out"
     indels.downsample_to_coverage = 600
     indels.genotype_likelihoods_model = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.INDEL
+    indels.GSA_PRODUCTION_ONLY = true /* use old indel genotyper */
     indels.input_file = List(writeBamList.listFile)
     indels.rodBind :+= RodBind("dbsnp", qscript.pipeline.getProject.getGenotypeDbsnpType, qscript.pipeline.getProject.getGenotypeDbsnp)
     indels.out = "IndelCalls/" + base+".indels.vcf"
