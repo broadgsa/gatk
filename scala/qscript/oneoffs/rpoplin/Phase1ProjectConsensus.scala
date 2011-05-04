@@ -65,7 +65,7 @@ class Phase1ProjectConsensus extends QScript {
 
   def script = {
 
-    for(chr <- List(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,21,22,23)) {
+    for(chr <- List(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23)) {
       val chrObject = new Chromosome(chr)
       val basesPerJob: Int = 3000000
       val lastBase: Int = qscript.chromosomeLength(chr - 1)
@@ -142,12 +142,6 @@ class Phase1ProjectConsensus extends QScript {
       clean.targetIntervals = targetIntervals
       clean.out = cleanedBam
       clean.doNotUseSW = true
-      clean.maxInMemory = 8000
-      clean.maxReads = 100
-      clean.greedy = 80
-      clean.LOD = 7.0
-      clean.knownsOnly = true
-      clean.maxConsensuses = 10
       clean.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF
       clean.simplifyBAM = true
       clean.rodBind :+= RodBind("indels1", "VCF", qscript.dindelCalls)
