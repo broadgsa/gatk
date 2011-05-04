@@ -12,7 +12,6 @@ cmdargs = gsa.getargs(
     list(
         title = list(value=NA, doc="Title for the tearsheet"),
         tsv = list(value=NA, doc="pipeline tsv file"),
-        bamlist = list(value=NA, doc="list of BAM files"),
         evalroot = list(value=NA, doc="VariantEval file base (everything before the .eval)"),
         tearout = list(value=NA, doc="Output path for tearsheet PDF")#,
         #plotout = list(value=NA, doc="Output path for plot PDF")
