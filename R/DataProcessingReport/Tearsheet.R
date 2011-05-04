@@ -1,7 +1,6 @@
 #tearsheet (for cori's use)
 #New tearsheet generator
-.libPaths('/humgen/gsa-firehose2/pipeline/repositories/StingProduction/R/') #uncomment
-#.libPaths('~/Documents/Sting/R/') 
+.libPaths('/humgen/gsa-firehose2/pipeline/repositories/StingProduction/R/') 
 
 suppressMessages(library(gplots));
 suppressMessages(library(ReadImages));
@@ -19,7 +18,7 @@ cmdargs = gsa.getargs(
     doc="Creates a tearsheet"
 );
 
-read.delim(tsv)->settable
+read.delim(cmdargs$tsv)->settable
 
 squids<-unique(settable[,1])
 
@@ -53,14 +52,13 @@ tearsheet<-function(){
     #plot title bar
     par(mar=c(0,0,0,0))
     plot(drop)
-    text(155, 50, title, family="serif", adj=c(0,0), cex=3, col=gray(.25))
+    text(155, 50, cmdargs$title, family="serif", adj=c(0,0), cex=3, col=gray(.25))
     
 
 	# Project summary
 	projects = paste(squids, collapse=", ");
 
-# 	used_samples = nrow(tsv);
-  used_samples=6 #comment
+	used_samples = nrow(settable);
 
 	unused_samples = 0;
 
