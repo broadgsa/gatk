@@ -1,7 +1,7 @@
 # Variant quality score tranches file
-# Version number 2
-FDRtranche,targetTiTv,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName
-0.10,2.80,15839,897,3.3052,2.8008,-3.8485,FDRtranche0.00to0.10
-1.00,2.80,15844,900,3.3043,2.7815,-3.8652,FDRtranche0.10to1.00
-2.00,2.80,15847,902,3.3051,2.7583,-3.8826,FDRtranche1.00to2.00
-10.00,2.80,16153,1039,3.2744,2.5704,-5.1058,FDRtranche2.00to10.00
+# Version number 4
+targetTruthSensitivity,numKnown,numNovel,knownTiTv,novelTiTv,minVQSLod,filterName,accessibleTruthSites,callsAtTruthSites,truthSensitivity
+95.00,15749,872,3.3207,2.9279,-3.6382,TruthSensitivityTranche0.00to95.00,16578,15749,0.9500
+97.00,16080,1011,3.2766,2.5979,-4.7439,TruthSensitivityTranche95.00to97.00,16578,16080,0.9700
+99.00,16412,1281,3.2507,1.9516,-8.4204,TruthSensitivityTranche97.00to99.00,16578,16412,0.9900
+99.90,16561,1573,3.2334,1.6043,-142.4519,TruthSensitivityTranche99.0to99.90,16578,16561,0.9990

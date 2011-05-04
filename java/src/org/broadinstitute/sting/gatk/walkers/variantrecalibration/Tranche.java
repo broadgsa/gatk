@@ -83,7 +83,7 @@ public class Tranche implements Comparable<Tranche> {
     }
 
     public String toString() {
-        return String.format("Tranche ts=%.2f minVQSLod=%.4f known=(%d @ %.2f) novel=(%d @ %.2f) truthSites(%d accessible, %d called), name=%s]",
+        return String.format("Tranche ts=%.2f minVQSLod=%.4f known=(%d @ %.4f) novel=(%d @ %.4f) truthSites(%d accessible, %d called), name=%s]",
                 ts, minVQSLod, numKnown, knownTiTv, numNovel, novelTiTv, accessibleTruthSites, callsAtTruthSites, name);
     }
 
@@ -161,7 +161,7 @@ public class Tranche implements Comparable<Tranche> {
                         throw new UserException.MalformedFile(f, "Expected 10 elements in header line " + line);
                 } else {
                     if ( header.length != vals.length )
-                        throw new UserException.MalformedFile(f, "Line had too few/many fields.  Header = " + header.length + " vals " + vals.length + " line " + line);
+                        throw new UserException.MalformedFile(f, "Line had too few/many fields.  Header = " + header.length + " vals " + vals.length + ". The line was: " + line);
 
                     Map<String,String> bindings = new HashMap<String, String>();
                     for ( int i = 0; i < vals.length; i++ ) bindings.put(header[i], vals[i]);
