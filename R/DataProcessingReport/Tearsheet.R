@@ -34,9 +34,9 @@ for(squid in squids){
 }
 
 gsa.read.gatkreport(paste(cmdargs$evalroot, ".eval", sep=""))->FCeval 
-gsa.read.gatkreport(paste(cmdargs$evalroot, "extraFC.eval", sep=""))->FCeval 
-gsa.read.gatkreport(paste(cmdargs$evalroot, "extraFI.eval", sep=""))->FIeval
-gsa.read.gatkreport(paste(cmdargs$evalroot, "extraSA.eval", sep=""))->SAeval 
+gsa.read.gatkreport(paste(cmdargs$evalroot, ".extraFC.eval", sep=""))->FCeval 
+gsa.read.gatkreport(paste(cmdargs$evalroot, ".extraFI.eval", sep=""))->FIeval
+gsa.read.gatkreport(paste(cmdargs$evalroot, ".extraSA.eval", sep=""))->SAeval 
 
 tearsheet<-function(){
   
