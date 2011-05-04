@@ -32,16 +32,16 @@ for(squid in squids){
   lane<-rbind(lane, addlanes)
   samp<-rbind(samp, addsamps)
 }
-
+print("Picard Data Obtained...")
 gsa.read.gatkreport(paste(cmdargs$evalroot, ".eval", sep=""))->FCeval 
 gsa.read.gatkreport(paste(cmdargs$evalroot, ".extraFC.eval", sep=""))->FCeval 
-gsa.read.gatkreport(paste(cmdargs$evalroot, ".extraFI.eval", sep=""))->FIeval
 gsa.read.gatkreport(paste(cmdargs$evalroot, ".extraSA.eval", sep=""))->SAeval 
-
+print("Evals read")
 tearsheet<-function(){
   
   pdf(file= cmdargs$tearout, width=22, height=17, pagecentre=TRUE, pointsize=24) 
-  
+    print("PDF created...")
+
 	#define layout
 	postable<-matrix(c(1, 1,  1, 1, rep(c(2, 2, 4, 4), 5), rep(c(3, 3, 4, 4), 3), rep(c(3,3,5,5), 5), 6,7,8,9), nrow=15, ncol=4, byrow=TRUE)
 	layout(postable, heights=c(1, rep(.18, 13), 2), respect=FALSE)
@@ -49,11 +49,13 @@ tearsheet<-function(){
     #prep for title bar
     drop<-read.jpeg(system.file("data", "tearsheetdrop.jpg", package="gsalib"))
     
+    
     #plot title bar
     par(mar=c(0,0,0,0))
     plot(drop)
     text(155, 50, cmdargs$title, family="serif", adj=c(0,0), cex=3, col=gray(.25))
-    
+      print("Title created...")
+
 
 	# Project summary
 	projects = paste(squids, collapse=", ");
@@ -73,7 +75,7 @@ tearsheet<-function(){
 	par(mar=c(0,0,1,0))
 	textplot(table1, col.rownames="darkblue", show.colnames=FALSE, cex=1.25, valign="top")
   title(main=sprintf("Project Summary (%s)\n", projects), family="sans", cex.main=1.25, line=-1)	
-  
+  print("Project summary created...")
   # Bases summary 
 
 	reads_per_lane_mean = format(mean(lane$"PF Reads (HS)", na.rm=TRUE), 8, 3,1, scientific=TRUE);
@@ -138,6 +140,7 @@ tearsheet<-function(){
 	textplot(table2, rmar=1, col.rownames="dark blue", cex=1.25, valign="top")
 	title(main="Bases Summary", family="sans", cex.main=1.25, line=0)
 
+  print("Bases summary created...")
 
 # Sequencing summary
 
@@ -186,7 +189,7 @@ tearsheet<-function(){
 	textplot(table3, rmar=1, col.rownames="dark blue", show.colnames=FALSE, cex=1.25, valign="top")
 	title(main="Sequencing Summary", family="sans", cex.main=1.25, line=0)
 
-
+  print("Sequencing summary created...")
 
 # Variant summary
  
@@ -205,7 +208,7 @@ tearsheet<-function(){
 	rownames(table4) = c("All", "Known", "Novel");
 	colnames(table4) = c("Found", "Ti/Tv ratio", "Expected Ti/Tv ratio");
 
-	
+	print("Variant summary created...")
 
 	par(mar=c(0,0,0,0))
 	textplot(table4, rmar=1, col.rownames="dark blue", cex=1.25, valign="top")
@@ -255,8 +258,10 @@ tearsheet<-function(){
   axis(1, at=c(1.5,5,8.5), lab=c("Missense", "Nonsense", "Silent"), cex=.5, tick=FALSE)
   legend("top", c("All", "Known", "Novel"), fill=c("dark gray", "blue", "red"), cex=.7);
 
+  print("Graphs created...")
 	
 	dev.off()
+  print("All done!")
 	}
 
 tearsheet()
