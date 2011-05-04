@@ -33,10 +33,10 @@ for(squid in squids){
   samp<-rbind(samp, addsamps)
 }
 
-gsa.read.gatkreport(paste(evalroot, ".eval", sep=""))->FCeval 
-gsa.read.gatkreport(paste(evalroot, "extraFC.eval", sep=""))->FCeval 
-gsa.read.gatkreport(paste(evalroot, "extraFI.eval", sep=""))->FIeval
-gsa.read.gatkreport(paste(evalroot, "extraSA.eval", sep=""))->SAeval 
+gsa.read.gatkreport(paste(cmdargs$evalroot, ".eval", sep=""))->FCeval 
+gsa.read.gatkreport(paste(cmdargs$evalroot, "extraFC.eval", sep=""))->FCeval 
+gsa.read.gatkreport(paste(cmdargs$evalroot, "extraFI.eval", sep=""))->FIeval
+gsa.read.gatkreport(paste(cmdargs$evalroot, "extraSA.eval", sep=""))->SAeval 
 
 tearsheet<-function(){
   
@@ -232,7 +232,7 @@ tearsheet<-function(){
   par(mar=c(5, 5, 4, 2) + 0.1)
 
   
-	boxplot(eval.bysampleTITV.all$tiTvRatio, eval.bysampleTITV.known$tiTvRatio, eval.bysampleTITV.novel$tiTvRatio, main="Ti/Tv by Sample", col=c("dark gray", "blue", "red"), names=c("All", "Known", "Novel"), ylab="TI/TV per sample", main="",cex=1.3, cex.lab=1.3, cex.axis=1.3);
+	boxplot(eval.bysampleTITV.all$tiTvRatio, eval.bysampleTITV.known$tiTvRatio, eval.bysampleTITV.novel$tiTvRatio, main="Ti/Tv by Sample", col=c("dark gray", "blue", "red"), names=c("All", "Known", "Novel"), ylab="Ti/Tv per sample", main="",cex=1.3, cex.lab=1.3, cex.axis=1.3);
 
 	par(mar=c(7, 5, 4, 2) + 0.1)
 	ind = order(eval.bysample.all$nVariantLoci);
@@ -251,7 +251,7 @@ tearsheet<-function(){
   
   par(mar=c(5, 5, 4, 2) + 0.1)
 
-  barplot(eval.func$nVariantLoci[4:nrow(eval.func)], col=c("dark gray", "blue", "red"), space=c(.2,0,0), log="y", main="Variants by Functional Class", xlab="Functional Class", ylab="# Variants\n(axis in log space)")
+  barplot(eval.func$nVariantLoci[4:nrow(eval.func)], col=c("dark gray", "blue", "red"), space=c(.2,0,0), log="y", main="Variants by Functional Class", xlab="Functional Class", ylab="Number of variants\n(axis in log space)")
   axis(1, at=c(1.5,5,8.5), lab=c("Missense", "Nonsense", "Silent"), cex=.5, tick=FALSE)
   legend("top", c("All", "Known", "Novel"), fill=c("dark gray", "blue", "red"), cex=.7);
 
