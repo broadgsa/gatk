@@ -37,8 +37,8 @@ class FullCallingPipelineTest {
   val k1gChr20Dataset = {
     val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20", true)
 
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.all.all", "nCalledLoci", 1391)
-    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.known.all", "nCalledLoci", 1142)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.all.all", "nCalledLoci", 1392)
+    dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.known.all", "nCalledLoci", 1143)
     dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.novel.all", "nCalledLoci", 249)
     dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.called.all.all.all", "tiTvRatio", 3.6250)
     dataset.validations :+= new DoubleValidation("TiTvVariantEvaluator", "dbsnp.eval.called.all.known.all", "tiTvRatio", 3.7190)

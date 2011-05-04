@@ -299,7 +299,7 @@ public class IntervalUtils {
         if (numParts < 2)
             return;
         int halfParts = (numParts + 1) / 2;
-        Pair<Integer, Long> splitPoint = getFixedSplit(locs, locsSize, startIndex, stopIndex, halfParts);
+        Pair<Integer, Long> splitPoint = getFixedSplit(locs, locsSize, startIndex, stopIndex, halfParts, numParts - halfParts);
         int splitIndex = splitPoint.first;
         long splitSize = splitPoint.second;
         splitPoints.add(splitIndex);
@@ -307,7 +307,7 @@ public class IntervalUtils {
         addFixedSplit(splitPoints, locs, locsSize - splitSize, splitIndex, stopIndex, numParts - halfParts);
     }
 
-    private static Pair<Integer, Long> getFixedSplit(List<GenomeLoc> locs, long locsSize, int startIndex, int stopIndex, int minLocs) {
+    private static Pair<Integer, Long> getFixedSplit(List<GenomeLoc> locs, long locsSize, int startIndex, int stopIndex, int minLocs, int maxLocs) {
         int splitIndex = startIndex;
         long splitSize = 0;
         for (int i = 0; i < minLocs; i++) {
@@ -315,7 +315,7 @@ public class IntervalUtils {
             splitIndex++;
         }
         long halfSize = locsSize / 2;
-        while (splitIndex < stopIndex && splitSize < halfSize) {
+        while (splitIndex < (stopIndex - maxLocs) && splitSize < halfSize) {
             splitSize += locs.get(splitIndex).size();
             splitIndex++;
         }
