@@ -26,9 +26,9 @@ lane<-data.frame()
 samp<-data.frame()
 for(squid in squids){
   gsa.read.squidmetrics(squid, TRUE)->lanemetrics 
-  addlanes<-lanemetrics[which(lanemetrics$"Individual ID" %in% settable[,2],]
+  addlanes<-lanemetrics[which(lanemetrics$"Individual ID" %in% settable[,2]),]
   gsa.read.squidmetrics(squid, FALSE)->samplemetrics 
-  addsamps<-samplemetrics[which(samplemetrics$"Sample" %in% settable[,2],]
+  addsamps<-samplemetrics[which(samplemetrics$"Sample" %in% settable[,2]),]
   lane<-rbind(lane, addlanes)
   samp<-rbind(samp, addsamps)
 }
