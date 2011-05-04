@@ -156,6 +156,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
         if (emitConf >= 0) uac.STANDARD_CONFIDENCE_FOR_EMITTING = emitConf;
         if (callConf >= 0) uac.STANDARD_CONFIDENCE_FOR_CALLING = callConf;
 
+        uac.GLmodel = GenotypeLikelihoodsCalculationModel.Model.SNP;
         snpEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
 
         // Adding the INDEL calling arguments for UG
@@ -205,6 +206,9 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             return counter;
         }
 
+
+        boolean writeVariant = true;
+
         if (bamIsTruth) {
             if (call.confidentlyCalled) {
                 // If truth is a confident REF call
@@ -224,6 +228,7 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             }
             else {
                 counter.nNotConfidentCalls = 1L;
+                writeVariant = false;
             }
         }
         else {
@@ -246,10 +251,11 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
             }
             else {
                 counter.nNotConfidentCalls = 1L;
+                writeVariant = false;
             }
         }
 
-        if (vcfWriter != null) {
+        if (vcfWriter != null && writeVariant) {
             if (!vcComp.hasAttribute("callStatus")) {
                 MutableVariantContext mvc = new MutableVariantContext(vcComp);
                 mvc.putAttribute("callStatus", call.isCalledAlt(callConf) ? "ALT" : "REF" );
@@ -284,6 +290,8 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
     public void onTraversalDone( CountedData reduceSum ) {
         double ppv = 100 * ((double) reduceSum.nAltCalledAlt /( reduceSum.nAltCalledAlt + reduceSum.nRefCalledAlt));
         double npv = 100 * ((double) reduceSum.nRefCalledRef /( reduceSum.nRefCalledRef + reduceSum.nAltCalledRef));
+        double sensitivity = 100 * ((double) reduceSum.nAltCalledAlt /( reduceSum.nAltCalledAlt + reduceSum.nAltCalledRef));
+        double specificity = (reduceSum.nRefCalledRef + reduceSum.nRefCalledAlt > 0) ? 100 * ((double) reduceSum.nRefCalledRef /( reduceSum.nRefCalledRef + reduceSum.nRefCalledAlt)) : 100;
         logger.info(String.format("Resulting Truth Table Output\n\n" +
                                   "---------------------------------------------------\n" +
                                   "\t\t|\tALT\t|\tREF\t\n"  +
@@ -294,8 +302,11 @@ public class GenotypeAndValidateWalker extends RodWalker<GenotypeAndValidateWalk
                                   "positive predictive value: %f%%\n" +
                                   "negative predictive value: %f%%\n" +
                                   "---------------------------------------------------\n" +
+                                  "sensitivity: %f%%\n" +
+                                  "specificity: %f%%\n" +
+                                  "---------------------------------------------------\n" +
                                   "not confident: %d\n" +
                                   "not covered: %d\n" +
-                                  "---------------------------------------------------\n", reduceSum.nAltCalledAlt, reduceSum.nRefCalledAlt, reduceSum.nAltCalledRef, reduceSum.nRefCalledRef, ppv, npv, reduceSum.nNotConfidentCalls, reduceSum.nUncovered));
+                                  "---------------------------------------------------\n", reduceSum.nAltCalledAlt, reduceSum.nRefCalledAlt, reduceSum.nAltCalledRef, reduceSum.nRefCalledRef, ppv, npv, sensitivity, specificity, reduceSum.nNotConfidentCalls, reduceSum.nUncovered));
     }
 }
