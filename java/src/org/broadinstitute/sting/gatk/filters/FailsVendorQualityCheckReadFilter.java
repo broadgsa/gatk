@@ -35,7 +35,7 @@ import net.sf.samtools.SAMRecord;
  * Filter out FailsVendorQualityCheck reads.
  */
 
-public class FailsVendorQualityCheckReadFilter implements SamRecordFilter {
+public class FailsVendorQualityCheckReadFilter extends ReadFilter {
     public boolean filterOut( final SAMRecord read ) {
         return read.getReadFailsVendorQualityCheckFlag();
     }

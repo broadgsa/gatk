@@ -35,7 +35,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * @author chartl
  * @version 0.1
  */
-public class ReadStrandFilter implements SamRecordFilter {
+public class ReadStrandFilter extends ReadFilter {
     @Argument(fullName = "filterPositive", shortName = "fp", doc="Discard reads on the forward strand",required=false)
 	boolean filterForward = false;
     

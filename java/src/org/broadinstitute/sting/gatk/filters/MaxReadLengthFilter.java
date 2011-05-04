@@ -35,7 +35,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * @author mhanna
  * @version 0.1
  */
-public class MaxReadLengthFilter implements SamRecordFilter {
+public class MaxReadLengthFilter extends ReadFilter {
     @Argument(fullName = "maxReadLength", shortName = "maxRead", doc="Discard reads with length greater than the specified value", required=true)
     private int maxReadLength;
     

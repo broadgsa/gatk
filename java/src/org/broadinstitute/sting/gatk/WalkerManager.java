@@ -29,6 +29,7 @@ import net.sf.picard.filter.SamRecordFilter;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -322,9 +323,9 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param filterManager Manages the creation of filters.
      * @return A non-empty list of filters to apply to the reads.
      */
-    public static List<SamRecordFilter> getReadFilters(Class<? extends Walker> walkerClass, FilterManager filterManager) {
-        List<SamRecordFilter> filters = new ArrayList<SamRecordFilter>();
-        for(Class<? extends SamRecordFilter> filterType: getReadFilterTypes(walkerClass))
+    public static List<ReadFilter> getReadFilters(Class<? extends Walker> walkerClass, FilterManager filterManager) {
+        List<ReadFilter> filters = new ArrayList<ReadFilter>();
+        for(Class<? extends ReadFilter> filterType: getReadFilterTypes(walkerClass))
             filters.add(filterManager.createFilterByType(filterType));
         return filters;
     }
@@ -335,7 +336,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param filterManager Manages the creation of filters.
      * @return A non-empty list of filters to apply to the reads.
      */
-    public static List<SamRecordFilter> getReadFilters(Walker walker, FilterManager filterManager) {
+    public static List<ReadFilter> getReadFilters(Walker walker, FilterManager filterManager) {
         return getReadFilters(walker.getClass(), filterManager);
     }
 
@@ -444,8 +445,8 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param walkerClass Class of the walker to inspect.
      * @return An array of types extending from SamRecordFilter.  Will never be null.
      */
-    public static Collection<Class<? extends SamRecordFilter>> getReadFilterTypes(Class<?> walkerClass) {
-        List<Class<? extends SamRecordFilter>> filterTypes = new ArrayList<Class<? extends SamRecordFilter>>();
+    public static Collection<Class<? extends ReadFilter>> getReadFilterTypes(Class<?> walkerClass) {
+        List<Class<? extends ReadFilter>> filterTypes = new ArrayList<Class<? extends ReadFilter>>();
         while(walkerClass != null) {
             if(walkerClass.isAnnotationPresent(ReadFilters.class)) {
                 for ( Class c : walkerClass.getAnnotation(ReadFilters.class).value() ) {
@@ -463,7 +464,7 @@ public class WalkerManager extends PluginManager<Walker> {
      * @param walker The walker to inspect.
      * @return An array of types extending from SamRecordFilter.  Will never be null.
      */
-    public static Collection<Class<? extends SamRecordFilter>> getReadFilterTypes(Walker walker) {
+    public static Collection<Class<? extends ReadFilter>> getReadFilterTypes(Walker walker) {
         return getReadFilterTypes(walker.getClass());
     }
 }

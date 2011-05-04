@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceRecord;
@@ -36,12 +35,12 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
  * @author mhanna
  * @version 0.1
  */
-public class MalformedReadFilter implements SamRecordHeaderFilter {
+public class MalformedReadFilter extends ReadFilter {
     private SAMFileHeader header;
     
     @Override
-    public void setHeader(SAMFileHeader header) {
-        this.header = header;
+    public void initialize(GenomeAnalysisEngine engine) {
+        this.header = engine.getSAMFileHeader();
     }
 
     public boolean filterOut(SAMRecord read) {

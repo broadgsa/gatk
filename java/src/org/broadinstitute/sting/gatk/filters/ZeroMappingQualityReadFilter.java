@@ -34,7 +34,7 @@ import net.sf.samtools.SAMRecord;
  * @version 0.1
  */
 
-public class ZeroMappingQualityReadFilter implements SamRecordFilter {
+public class ZeroMappingQualityReadFilter extends ReadFilter {
     public boolean filterOut(SAMRecord rec) {
         return (rec.getMappingQuality() == 0);
     }

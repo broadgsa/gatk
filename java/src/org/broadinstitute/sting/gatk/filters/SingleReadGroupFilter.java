@@ -38,7 +38,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * Only use reads from the specified read group.
  */
 
-public class SingleReadGroupFilter implements SamRecordFilter {
+public class SingleReadGroupFilter extends ReadFilter {
     @Argument(fullName = "read_group_to_keep", shortName = "goodRG", doc="The name of the read group to keep, filtering out all others", required=true)
     private String READ_GROUP_TO_KEEP = null;
 

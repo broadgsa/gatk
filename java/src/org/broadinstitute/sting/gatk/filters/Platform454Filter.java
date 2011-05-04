@@ -37,7 +37,7 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
  * @version 0.1
  */
 
-public class Platform454Filter implements SamRecordFilter {
+public class Platform454Filter extends ReadFilter {
     public boolean filterOut(SAMRecord rec) {
         return (ReadUtils.is454Read(rec));
     }

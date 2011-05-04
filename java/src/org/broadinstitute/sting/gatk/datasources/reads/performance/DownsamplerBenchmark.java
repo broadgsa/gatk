@@ -36,6 +36,7 @@ import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -78,7 +79,7 @@ public class DownsamplerBenchmark extends ReadProcessingBenchmark {
                                                                0,
                                                                downsampling.create(),
                                                                new ValidationExclusion(Collections.singletonList(ValidationExclusion.TYPE.ALL)),
-                                                               Collections.<SamRecordFilter>emptyList(),
+                                                               Collections.<ReadFilter>emptyList(),
                                                                false,
                                                                false,
                                                                BAQ.CalculationMode.OFF,

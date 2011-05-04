@@ -33,6 +33,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.DownsamplingMethod;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.iterators.*;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.ReadMetrics;
@@ -146,7 +147,7 @@ public class SAMDataSource {
                 null,
                 null,
                 new ValidationExclusion(),
-                new ArrayList<SamRecordFilter>(),
+                new ArrayList<ReadFilter>(),
                 false,
                 false,
                 false);
@@ -163,7 +164,7 @@ public class SAMDataSource {
             Integer readBufferSize,
             DownsamplingMethod downsamplingMethod,
             ValidationExclusion exclusionList,
-            Collection<SamRecordFilter> supplementalFilters,
+            Collection<ReadFilter> supplementalFilters,
             boolean includeReadsWithDeletionAtLoci,
             boolean generateExtendedEvents,
             boolean enableLowMemorySharding) {
@@ -209,7 +210,7 @@ public class SAMDataSource {
             Integer readBufferSize,
             DownsamplingMethod downsamplingMethod,
             ValidationExclusion exclusionList,
-            Collection<SamRecordFilter> supplementalFilters,
+            Collection<ReadFilter> supplementalFilters,
             boolean includeReadsWithDeletionAtLoci,
             boolean generateExtendedEvents,
             BAQ.CalculationMode cmode,
@@ -632,7 +633,7 @@ public class SAMDataSource {
                                                         StingSAMIterator wrappedIterator,
                                                         Double downsamplingFraction,
                                                         Boolean noValidationOfReadOrder,
-                                                        Collection<SamRecordFilter> supplementalFilters,
+                                                        Collection<ReadFilter> supplementalFilters,
                                                         BAQ.CalculationMode cmode,
                                                         BAQ.QualityMode qmode,
                                                         IndexedFastaSequenceFile refReader,

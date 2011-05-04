@@ -35,7 +35,7 @@ import net.sf.samtools.SAMRecord;
  * Filter out duplicate reads.
  */
 
-public class NotPrimaryAlignmentReadFilter implements SamRecordFilter {
+public class NotPrimaryAlignmentReadFilter extends ReadFilter {
     public boolean filterOut( final SAMRecord read ) {
         return read.getNotPrimaryAlignmentFlag();
     }

@@ -5,6 +5,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.testng.Assert;
@@ -302,7 +303,7 @@ public class LocusIteratorByStateUnitTest extends BaseTest {
                 null,
                 null,
                 new ValidationExclusion(),
-                new ArrayList<SamRecordFilter>(),
+                Collections.<ReadFilter>emptyList(),
                 false,
                 false,
                 BAQ.CalculationMode.OFF,

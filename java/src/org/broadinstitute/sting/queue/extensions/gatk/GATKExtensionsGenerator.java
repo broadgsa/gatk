@@ -34,6 +34,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
@@ -169,7 +170,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
                 }
             }
 
-            for (Class<? extends SamRecordFilter> filter: filterManager.getValues()) {
+            for (Class<? extends ReadFilter> filter: filterManager.getValues()) {
                 String filterName = filterManager.getName(filter);
                 writeFilter(filterName, ArgumentDefinitionField.getArgumentFields(new ParsingEngine(null),filter), dependents);
             }

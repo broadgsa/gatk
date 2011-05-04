@@ -42,7 +42,7 @@ import org.broadinstitute.sting.gatk.ReadMetrics;
 public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
     private final ReadMetrics runtimeMetrics;
     private final Iterator<SAMRecord> iterator;
-    private final Collection<SamRecordFilter> filters;
+    private final Collection<ReadFilter> filters;
     private SAMRecord next = null;
 
     /**
@@ -52,7 +52,7 @@ public class CountingFilteringIterator implements CloseableIterator<SAMRecord> {
      * @param iterator  the backing iterator
      * @param filters    the filter (which may be a FilterAggregator)
      */
-    public CountingFilteringIterator(ReadMetrics metrics, Iterator<SAMRecord> iterator, Collection<SamRecordFilter> filters) {
+    public CountingFilteringIterator(ReadMetrics metrics, Iterator<SAMRecord> iterator, Collection<ReadFilter> filters) {
         this.runtimeMetrics = metrics;
         this.iterator = iterator;
         this.filters = filters;

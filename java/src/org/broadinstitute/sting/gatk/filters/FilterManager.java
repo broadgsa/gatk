@@ -39,9 +39,9 @@ import java.util.Collection;
  * @author mhanna
  * @version 0.1
  */
-public class FilterManager extends PluginManager<SamRecordFilter> {
+public class FilterManager extends PluginManager<ReadFilter> {
     public FilterManager() {
-        super(SamRecordFilter.class,"filter","Filter");
+        super(ReadFilter.class,"filter","Filter");
     }
 
     /**
@@ -50,11 +50,11 @@ public class FilterManager extends PluginManager<SamRecordFilter> {
      * @param filterType The type of the filter
      * @return The filter
      */
-    public SamRecordFilter createFilterByType(Class<? extends SamRecordFilter> filterType) {
+    public ReadFilter createFilterByType(Class<? extends ReadFilter> filterType) {
         return this.createByName(getName(filterType));
     }
 
-    public Collection<Class<? extends SamRecordFilter>> getValues() {
+    public Collection<Class<? extends ReadFilter>> getValues() {
         return this.getPlugins();
     }
 }

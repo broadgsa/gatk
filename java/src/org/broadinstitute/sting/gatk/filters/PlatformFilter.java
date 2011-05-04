@@ -37,7 +37,7 @@ import org.broadinstitute.sting.commandline.Argument;
  * @author ebanks
  * @version 0.1
  */
-public class PlatformFilter implements SamRecordFilter {
+public class PlatformFilter extends ReadFilter {
     @Argument(fullName = "PLFilterName", shortName = "PLFilterName", doc="Discard reads with RG:PL attribute containing this strign", required=false)
     protected String[] PLFilterNames;
 

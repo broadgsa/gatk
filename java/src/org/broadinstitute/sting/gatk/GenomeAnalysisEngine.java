@@ -49,8 +49,8 @@ import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategyFactory;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.executive.MicroScheduler;
 import org.broadinstitute.sting.gatk.filters.FilterManager;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter;
-import org.broadinstitute.sting.gatk.filters.SamRecordHeaderFilter;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -65,7 +65,6 @@ import org.broadinstitute.sting.utils.SequenceDictionaryUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
 import java.io.File;
@@ -139,7 +138,7 @@ public class GenomeAnalysisEngine {
     /**
      * Collection of the filters applied to the input data.
      */
-    private Collection<SamRecordFilter> filters;
+    private Collection<ReadFilter> filters;
 
     /**
      * A currently hacky unique name for this GATK instance
@@ -269,8 +268,8 @@ public class GenomeAnalysisEngine {
      * the caller must handle that directly.
      * @return A collection of available filters.
      */
-    public Collection<SamRecordFilter> createFilters() {
-        Set<SamRecordFilter> filters = new HashSet<SamRecordFilter>();
+    public Collection<ReadFilter> createFilters() {
+        Set<ReadFilter> filters = new HashSet<ReadFilter>();
         filters.addAll(WalkerManager.getReadFilters(walker,this.getFilterManager()));
         if (this.getArguments().readGroupBlackList != null && this.getArguments().readGroupBlackList.size() > 0)
             filters.add(new ReadGroupBlackListFilter(this.getArguments().readGroupBlackList));
@@ -733,9 +732,8 @@ public class GenomeAnalysisEngine {
 
         sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
 
-        for (SamRecordFilter filter : filters)
-            if (filter instanceof SamRecordHeaderFilter)
-                ((SamRecordHeaderFilter)filter).setHeader(this.getSAMFileHeader());
+        for (ReadFilter filter : filters)
+            filter.initialize(this);
 
         sampleDataSource = new SampleDataSource(getSAMFileHeader(), argCollection.sampleFiles);
 
@@ -1020,7 +1018,7 @@ public class GenomeAnalysisEngine {
      * Gets the list of filters employed by this engine.
      * @return Collection of filters (actual instances) used by this engine.
      */
-    public Collection<SamRecordFilter> getFilters() {
+    public Collection<ReadFilter> getFilters() {
         return this.filters;
     }
 
@@ -1028,7 +1026,7 @@ public class GenomeAnalysisEngine {
      * Sets the list of filters employed by this engine.
      * @param filters Collection of filters (actual instances) used by this engine.
      */
-    public void setFilters(Collection<SamRecordFilter> filters) {
+    public void setFilters(Collection<ReadFilter> filters) {
         this.filters = filters;
     }
 

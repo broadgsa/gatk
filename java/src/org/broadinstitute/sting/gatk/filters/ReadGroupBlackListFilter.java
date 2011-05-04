@@ -42,7 +42,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
  *   PU:1000G-mpimg-080821-1_1
  * would filter out a read with the read group PU:1000G-mpimg-080821-1_1
  */
-public class ReadGroupBlackListFilter implements SamRecordFilter {
+public class ReadGroupBlackListFilter extends ReadFilter {
     private Set<Entry<String, Collection<String>>> filterEntries;
 
     public ReadGroupBlackListFilter(List<String> blackLists) {

@@ -32,7 +32,7 @@ import org.broadinstitute.sting.commandline.Argument;
 
 import java.util.Set;
 
-public class SampleFilter implements SamRecordFilter {
+public class SampleFilter extends ReadFilter {
     @Argument(fullName = "sample_to_keep", shortName = "goodSM", doc="The name of the sample(s) to keep, filtering out all others", required=true)
     private Set SAMPLES_TO_KEEP = null;
 

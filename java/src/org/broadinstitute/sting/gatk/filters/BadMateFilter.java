@@ -34,7 +34,7 @@ import net.sf.samtools.SAMRecord;
  * @version 0.1
  */
 
-public class BadMateFilter implements SamRecordFilter {
+public class BadMateFilter extends ReadFilter {
 
     public boolean filterOut(final SAMRecord rec) {
         return hasBadMate(rec);

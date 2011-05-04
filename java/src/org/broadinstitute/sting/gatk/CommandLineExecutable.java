@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
@@ -98,7 +99,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             engine.setWalker(walker);
             walker.setToolkit(engine);
 
-            Collection<SamRecordFilter> filters = engine.createFilters();
+            Collection<ReadFilter> filters = engine.createFilters();
             engine.setFilters(filters);
 
             // load the arguments into the walker / filters.
@@ -108,7 +109,7 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             loadArgumentsIntoObject(walker);
             argumentSources.add(walker);
 
-            for (SamRecordFilter filter: filters) {
+            for (ReadFilter filter: filters) {
                 loadArgumentsIntoObject(filter);
                 argumentSources.add(filter);
             }
@@ -186,8 +187,8 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         walker.setToolkit(engine);
         argumentSources.add(walker.getClass());
 
-        Collection<SamRecordFilter> filters = engine.createFilters();
-        for(SamRecordFilter filter: filters)
+        Collection<ReadFilter> filters = engine.createFilters();
+        for(ReadFilter filter: filters)
             argumentSources.add(filter.getClass());
 
         Class[] argumentSourcesAsArray = new Class[argumentSources.size()];

@@ -6,6 +6,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.utils.baq.BAQ;
 
 import java.util.Collection;
@@ -33,7 +34,7 @@ public class ReadProperties {
     private Integer readBufferSize = null;
     private DownsamplingMethod downsamplingMethod = null;
     private ValidationExclusion exclusionList = null;
-    private Collection<SamRecordFilter> supplementalFilters = null;
+    private Collection<ReadFilter> supplementalFilters = null;
     private boolean includeReadsWithDeletionAtLoci = false;
     private boolean useOriginalBaseQualities = false;
     private boolean generateExtendedEvents = false;
@@ -115,7 +116,7 @@ public class ReadProperties {
         return exclusionList;
     }
 
-    public Collection<SamRecordFilter> getSupplementalFilters() {
+    public Collection<ReadFilter> getSupplementalFilters() {
         return supplementalFilters;
     }
 
@@ -172,7 +173,7 @@ public class ReadProperties {
            Integer readBufferSize,
            DownsamplingMethod downsamplingMethod,
            ValidationExclusion exclusionList,
-           Collection<SamRecordFilter> supplementalFilters,
+           Collection<ReadFilter> supplementalFilters,
            boolean includeReadsWithDeletionAtLoci,
            boolean generateExtendedEvents,
            BAQ.CalculationMode cmode,

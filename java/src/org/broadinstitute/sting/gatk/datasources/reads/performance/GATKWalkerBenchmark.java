@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
@@ -88,7 +89,7 @@ public class GATKWalkerBenchmark extends ReadProcessingBenchmark {
             engine.setArguments(argCollection);
             // Bugs in the engine mean that this has to be set twice.
             engine.setSAMFileIDs(Collections.singletonList(new SAMReaderID(inputFile,new Tags())));
-            engine.setFilters(Collections.<SamRecordFilter>singletonList(new UnmappedReadFilter()));
+            engine.setFilters(Collections.<ReadFilter>singletonList(new UnmappedReadFilter()));
             engine.setReferenceMetaDataFiles(Collections.<RMDTriplet>emptyList());
 
             // Create the walker

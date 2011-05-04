@@ -34,7 +34,7 @@ import net.sf.samtools.SAMRecord;
  * @version 0.1
  */
 
-public class MissingReadGroupFilter implements SamRecordFilter {
+public class MissingReadGroupFilter extends ReadFilter {
     public boolean filterOut(SAMRecord rec) {
         return rec.getReadGroup() == null;
     }

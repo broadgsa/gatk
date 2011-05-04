@@ -35,7 +35,7 @@ import net.sf.samtools.SAMRecord;
  *
  * Filter out reads that don't have Original Quality scores inside. 
  */
-public class NoOriginalQualityScoresFilter implements SamRecordFilter {
+public class NoOriginalQualityScoresFilter extends ReadFilter {
     public boolean filterOut( final SAMRecord read ) {
         return (read.getAttribute("OQ") == null);
     }

@@ -16,7 +16,7 @@ import org.broadinstitute.sting.utils.exceptions.UserException;
  * Time: 2:54:23 PM
  * To change this template use File | Settings | File Templates.
  */
-public class PlatformUnitFilter implements SamRecordFilter {
+public class PlatformUnitFilter extends ReadFilter {
     // a hack: use static in order to be able to fill it with the data from command line at runtime
     static private Set<String> blackListedLanes = new HashSet<String>();
 
