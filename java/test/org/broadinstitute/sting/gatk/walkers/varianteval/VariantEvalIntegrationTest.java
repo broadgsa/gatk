@@ -336,7 +336,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         String extraArgs = "-L 1:1-10,000,000";
         for (String tests : testsEnumerations) {
             WalkerTestSpec spec = new WalkerTestSpec(withSelect(tests, "DP < 50", "DP50") + " " + extraArgs + " -ST CpG -o %s",
-                    1, Arrays.asList("9e74d649fcf1c884b324f0818e1d7395"));
+                    1, Arrays.asList("ca71324abf5659964c8f9e28b8fdbb28"));
             executeTestParallel("testSelect1", spec);
             //executeTest("testSelect1", spec);
         }
@@ -367,8 +367,8 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testVESimple() {
         HashMap<String, String> expectations = new HashMap<String, String>();
-        expectations.put("-L 1:1-10,000,000 -ST CpG", "9784b1fc319e856ad84678b6c8a4c15c");
-        expectations.put("-L 1:1-10,000,000 -ST CpG -family NA19238+NA19239=NA19240 -mvq 0 -EV MendelianViolationEvaluator", "374c06e9ba8ca3496698b3f95e241b82");
+        expectations.put("-L 1:1-10,000,000 -ST CpG", "c74067360656519f769f805d6e1ef36b");
+        expectations.put("-L 1:1-10,000,000 -ST CpG -family NA19238+NA19239=NA19240 -mvq 0 -EV MendelianViolationEvaluator", "0fe151e00ab35f3b95d4fea651592ec3");
 
         for ( Map.Entry<String, String> entry : expectations.entrySet() ) {
             String extraArgs = entry.getKey();
@@ -391,9 +391,9 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B:comp_hapmap,VCF " + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
 
-        expectations.put("", "48fcd7d9f3c8e347c70d7692c4b3cbff");
-        expectations.put(" -knownName comp_hapmap -knownName dbsnp", "308948e0e227425d73e35a6702bfefcb");
-        expectations.put(" -knownName comp_hapmap", "6f1383f3ea5b741215e8f7cbfcb47fb1");
+        expectations.put("", "700eba07bac9fba4ed963bbbdcab0e29");
+        expectations.put(" -knownName comp_hapmap -knownName dbsnp", "c2464d5613072fb326ebffcf3078ae31");
+        expectations.put(" -knownName comp_hapmap", "0912f35a4c4179ff93b152d8c4e009e2");
         for (String tests : testsEnumerations) {
             for (Map.Entry<String, String> entry : expectations.entrySet()) {
                 String extraArgs2 = entry.getKey();
@@ -411,7 +411,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     @Test
     public void testCompVsEvalAC() {
         String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("06cd5618ec23fe83a0ddb2a3e8622a16"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("e68272d2f3b7a6439c4949cf0e34beeb"));
         executeTestParallel("testCompVsEvalAC",spec);
         //executeTest("testCompVsEvalAC",spec);
     }
@@ -446,7 +446,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                            " -D " + dbsnp +
                            " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                            " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("2ea5334cf0b004e0a6119a5b653bde4c"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("923af856d04042c0ee9d01aa9eb8675a"));
         executeTestParallel("testEvalTrackWithoutGenotypes",spec);
     }
 
@@ -460,7 +460,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
                 " -B:evalBI,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bi.sites.vcf" +
                 " -B:evalBC,VCF " + validationDataLocation + "VariantEval/ALL.20100201.chr20.bc.sites.vcf" +
                 " -noST -ST Novelty -o %s";
-        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("50fb57dddf7040a62e3befba30c5cb22"));
+        WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("45c08af95777e1eee3e9acbf136a8b6b"));
         executeTestParallel("testMultipleEvalTracksWithoutGenotypes",spec);
     }
 
