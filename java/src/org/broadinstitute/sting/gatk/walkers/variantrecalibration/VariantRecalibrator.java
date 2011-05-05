@@ -135,9 +135,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         if( !dataManager.checkHasTruthSet() ) {
             throw new UserException.CommandLineException( "No truth set found! Please provide sets of known polymorphic loci marked with the truth=true ROD binding tag. For example, -B:hapmap,VCF,known=false,training=true,truth=true,prior=12.0 hapmapFile.vcf" );
         }
-        if( !dataManager.checkHasKnownSet() ) {
-            throw new UserException.CommandLineException( "No known set found! Please provide sets of known polymorphic loci marked with the known=true ROD binding tag. For example, -B:dbsnp,VCF,known=true,training=false,truth=false,prior=8.0 dbsnpFile.vcf" );
-        }
 
         if( inputNames.size() == 0 ) {
             throw new UserException.BadInput( "No input variant tracks found. Input variant binding names must begin with 'input'." );
@@ -326,7 +323,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                 for( final VariantDatum datum : randomData ) {
                     stream.print(String.format("%.3f, %.3f, %.3f, %d, %d,", datum.annotations[iii], datum.annotations[jjj], (datum.lod < lodCutoff ? -1.0 : 1.0), datum.usedForTraining, (datum.isKnown ? 1 : -1)));
                 }
-                stream.println("NA,NA,NA,NA,NA)");
+                stream.println("NA,NA,NA,NA,1)");
                 stream.println("d <- matrix(data,ncol=5,byrow=T)");
 
                 final String surfaceFrame = "sf." + USE_ANNOTATIONS[iii] + "." + USE_ANNOTATIONS[jjj];

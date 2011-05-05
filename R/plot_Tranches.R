@@ -66,7 +66,7 @@ barplot(d/1000,horiz=TRUE,col=cols,space=0.2,xlab="Number of Novel Variants (100
 #abline(v= d[2,dim(d)[2]], lty=2)
 #abline(v= d[1,3], lty=2)
 if ( ! suppressLegend ) 
-    legend(5, length(data2$targetTruthSensitivity)-1.25, c('Cumulative TPs','Tranch-specific TPs', 'Tranch-specific FPs', 'Cumulative FPs' ), fill=cols, density=density, bg='white', cex=1.25)
+    legend(3, length(data2$targetTruthSensitivity)/3 +1, c('Cumulative TPs','Tranch-specific TPs', 'Tranch-specific FPs', 'Cumulative FPs' ), fill=cols, density=density, bg='white', cex=1.25)
 
 mtext("Ti/Tv",2,line=2.25,at=length(data2$targetTruthSensitivity)*1.2,las=1, cex=1)
 mtext("truth",2,line=0,at=length(data2$targetTruthSensitivity)*1.2,las=1, cex=1)
