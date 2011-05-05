@@ -4,7 +4,6 @@ import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.walkers.genotyper.{GenotypeLikelihoodsCalculationModel, UnifiedGenotyperEngine}
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.library.ipf.vcf.{VCFSimpleMerge, VCFExtractSites,VCFExtractIntervals}
-import org.broadinstitute.sting.queue.pipeline.{ProjectManagement, BamProcessing, VariantCalling}
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.baq.BAQ
