@@ -126,6 +126,12 @@ class GATKResourcesBundle extends QScript {
       "1000G_indels_for_realignment", b37, true, false))
 
     //
+    // example call set for wiki tutorial
+    //
+    addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/exampleCalls/NA12878.HiSeq.WGS.bwa.cleaned.raw.hg19.subset.vcf",
+      "NA12878.HiSeq.WGS.bwa.cleaned.raw.subset", b37, true, true))
+
+    //
     // Test BAM file, specific to each reference
     //
     addResource(new Resource("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.HiSeq.WGS.bwa.cleaned.recal.hg19.20.bam",
