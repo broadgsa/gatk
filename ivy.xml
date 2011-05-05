@@ -61,7 +61,7 @@
     <dependency org="net.sourceforge.findbugs" name="jsr305" rev="1.3.2" conf="default"/>
 
     <!-- caliper, for benchmarking -->
-    <dependency org="com.google.code.caliper" name="caliper" rev="1.0-SNAPSHOT" conf="default" />
+    <dependency org="com.google.code.caliper" name="caliper" rev="0.0" conf="default" />
 
     <!-- Exclude dependencies on sun libraries where the downloads aren't available but included in the jvm. -->
     <exclude org="javax.servlet" />
