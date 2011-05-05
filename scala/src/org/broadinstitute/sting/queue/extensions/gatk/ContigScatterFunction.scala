@@ -41,6 +41,6 @@ class ContigScatterFunction extends GATKScatterFunction with InProcessFunction {
 
   def run() {
     val gi = GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals)
-    IntervalUtils.scatterContigIntervals(gi.samFileHeader, gi.javaLocs, this.scatterOutputFiles)
+    IntervalUtils.scatterContigIntervals(gi.samFileHeader, gi.locs, this.scatterOutputFiles)
   }
 }

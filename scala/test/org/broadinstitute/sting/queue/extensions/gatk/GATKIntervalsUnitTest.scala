@@ -37,12 +37,12 @@ class GATKIntervalsUnitTest {
   private final lazy val hg18Reference = new File(BaseTest.hg18Reference)
   private final lazy val hg18GenomeLocParser = new GenomeLocParser(new CachingIndexedFastaSequenceFile(hg18Reference))
   private final lazy val hg18ReferenceLocs = GenomeLocSortedSet.
-    createSetFromSequenceDictionary(new ReferenceDataSource(hg18Reference).getReference.getSequenceDictionary).toList.toList
+    createSetFromSequenceDictionary(new ReferenceDataSource(hg18Reference).getReference.getSequenceDictionary).toList
 
   private final lazy val hg19Reference = new File(BaseTest.hg19Reference)
   private final lazy val hg19GenomeLocParser = new GenomeLocParser(new CachingIndexedFastaSequenceFile(hg19Reference))
   private final lazy val hg19ReferenceLocs = GenomeLocSortedSet.
-    createSetFromSequenceDictionary(new ReferenceDataSource(hg19Reference).getReference.getSequenceDictionary).toList.toList
+    createSetFromSequenceDictionary(new ReferenceDataSource(hg19Reference).getReference.getSequenceDictionary).toList
 
   @Test
   def testWithIntervals() {
@@ -51,7 +51,7 @@ class GATKIntervalsUnitTest {
     val chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3:3-5")
 
     val gi = new GATKIntervals(hg18Reference, List("chr1:1-1", "chr2:2-3", "chr3:3-5"))
-    Assert.assertEquals(gi.locs, List(chr1, chr2, chr3))
+    Assert.assertEquals(gi.locs.toList, List(chr1, chr2, chr3))
     Assert.assertEquals(gi.contigs, List("chr1", "chr2", "chr3"))
     Assert.assertEquals(gi.getSplits(2).toList, List(2, 3))
     Assert.assertEquals(gi.getSplits(3).toList, List(1, 2, 3))

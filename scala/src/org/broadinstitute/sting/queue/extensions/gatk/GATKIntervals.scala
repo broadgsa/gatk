@@ -42,9 +42,7 @@ case class GATKIntervals(reference: File, intervals: List[String]) {
     header
   }
 
-  lazy val locs: List[GenomeLoc] = javaLocs.toList
-
-  lazy val javaLocs: java.util.List[GenomeLoc] = {
+  lazy val locs: java.util.List[GenomeLoc] = {
     val parser = new GenomeLocParser(referenceDataSource.getReference)
     val parsedLocs =
       if (intervals.isEmpty)
@@ -55,11 +53,11 @@ case class GATKIntervals(reference: File, intervals: List[String]) {
     Collections.unmodifiableList(parsedLocs)
   }
 
-  lazy val contigs = locs.map(_.getContig).distinct
+  lazy val contigs = locs.map(_.getContig).distinct.toList
 
   def getSplits(size: Int) = {
     splitsBySize.getOrElse(size, {
-      val splits: java.util.List[java.lang.Integer] = IntervalUtils.splitFixedIntervals(javaLocs, size)
+      val splits: java.util.List[java.lang.Integer] = IntervalUtils.splitFixedIntervals(locs, size)
       splitsBySize += size -> splits
       splits
     })
