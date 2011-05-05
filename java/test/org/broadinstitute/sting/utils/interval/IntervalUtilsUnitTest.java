@@ -149,13 +149,6 @@ public class IntervalUtilsUnitTest extends BaseTest {
         Assert.assertEquals(getLocs("chr1:1-2", "chr1:4-5", "chr2:1-1", "chr3:2-2").size(), 4);
     }
 
-    @Test(dependsOnMethods = "testParseIntervalArguments")
-    public void testCountIntervalsByContig() {
-        Assert.assertEquals(IntervalUtils.countContigIntervals(getLocs()), 45);
-        Assert.assertEquals(IntervalUtils.countContigIntervals(getLocs("chr1", "chr2", "chr3")), 3);
-        Assert.assertEquals(IntervalUtils.countContigIntervals(getLocs("chr1:1-2", "chr1:4-5", "chr2:1-1", "chr3:2-2")), 3);
-    }
-
     @Test
     public void testIsIntervalFile() {
         Assert.assertTrue(IntervalUtils.isIntervalFile(BaseTest.validationDataLocation + "empty_intervals.list"));
@@ -526,6 +519,19 @@ public class IntervalUtilsUnitTest extends BaseTest {
         Assert.assertEquals(locs2.get(0), chr2);
         Assert.assertEquals(locs3.get(0), chr3a);
         Assert.assertEquals(locs3.get(1), chr3b);
+    }
+
+    @Test
+    public void testScatterContigIntervalsMax() {
+        List<File> files = testFiles("sg.", 85, ".intervals");
+        IntervalUtils.scatterContigIntervals(hg19Header, hg19ReferenceLocs, files);
+
+        for (int i = 0; i < files.size(); i++) {
+            String file = files.get(i).toString();
+            List<GenomeLoc> parsedLocs = IntervalUtils.parseIntervalArguments(hg19GenomeLocParser, Arrays.asList(file), false);
+            Assert.assertEquals(parsedLocs.size(), 1, "parsedLocs[" + i + "].size()");
+            Assert.assertEquals(parsedLocs.get(0), hg19ReferenceLocs.get(i), "parsedLocs[" + i + "].get()");
+        }
     }
 
     private List<File> testFiles(String prefix, int count, String suffix) {

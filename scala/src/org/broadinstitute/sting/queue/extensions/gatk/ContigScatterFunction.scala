@@ -36,12 +36,11 @@ class ContigScatterFunction extends GATKScatterFunction with InProcessFunction {
   this.includeUnmapped = true
 
   protected override def maxIntervals = {
-    val gi = GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals)
-    IntervalUtils.countContigIntervals(gi.locs)
+    GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals).contigs.size
   }
 
   def run() {
     val gi = GATKScatterFunction.getGATKIntervals(this.referenceSequence, this.intervals)
-    IntervalUtils.scatterContigIntervals(gi.samFileHeader, gi.locs, this.scatterOutputFiles)
+    IntervalUtils.scatterContigIntervals(gi.samFileHeader, gi.javaLocs, this.scatterOutputFiles)
   }
 }
