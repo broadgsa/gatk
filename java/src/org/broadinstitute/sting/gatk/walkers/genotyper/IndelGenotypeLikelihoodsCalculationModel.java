@@ -43,6 +43,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;
@@ -130,7 +131,7 @@ private HaplotypeIndelErrorModel model;
 
             for ( ExtendedEventPileupElement p : indelPileup.toExtendedIterable() ) {
                 //SAMRecord read = p.getRead();
-                 SAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
+                 GATKSAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
                     continue;     
                 if(ReadUtils.is454Read(read)) {

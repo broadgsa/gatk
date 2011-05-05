@@ -751,7 +751,7 @@ public class PairHMMIndelErrorModel {
             }
         }
         for (SAMRecord pread : pileup.getReads()) {
-            SAMRecord read = ReadUtils.hardClipAdaptorSequence(pread);
+            GATKSAMRecord read = ReadUtils.hardClipAdaptorSequence(pread);
             if (read == null)
                 continue;
 
@@ -781,7 +781,7 @@ public class PairHMMIndelErrorModel {
                         qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKey);
                     }
 
-                    recalQuals[offset] = (double)qualityScore;
+                    recalQuals[offset] = -((double)qualityScore)/10.0;
                 }
 
                 // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))

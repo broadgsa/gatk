@@ -34,7 +34,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
 
     @Test
     public void testMultiSamplePilot2AndRecallingWithAlleles() {
-        String md5 = "87a99063152ca935a1bec87ef19e0dad";
+        String md5 = "93d2571e686740c5c775b1fb862b62ec";
 
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,050,000", 1,
@@ -248,7 +248,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L 1:10,000,000-10,500,000",
                 1,
-                Arrays.asList("84bc209f38d60f325f1a8b6292a82c82"));
+                Arrays.asList("3a6ba2d9b9a5c606389d3353bb27bbe8"));
 
         executeTest(String.format("test indel caller in SLX"), spec);
     }
@@ -276,7 +276,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                          " -o %s" +
                          " -L 1:10,000,000-10,500,000",
                  1,
-                 Arrays.asList("e9b4fef2cdfa4c4657f0df53309131b6"));
+                 Arrays.asList("592a214b8ca1b62733f9627adb631f16"));
 
          executeTest(String.format("test indel calling, multiple technologies"), spec);
      }
