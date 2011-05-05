@@ -563,6 +563,9 @@
     <target name="test.init.compile">
         <mkdir dir="${java.test.classes}"/>
         <mkdir dir="${scala.test.classes}"/>
+        <antcall target="resolve">
+          <param name="ivy.conf" value="test"/>
+        </antcall>            
     </target>
 
     <target name="test.java.compile" depends="init.buildall,dist,test.init.compile">
@@ -579,6 +582,9 @@
 
     <target name="test.scala.compile" depends="test.java.compile,scala.compile" if="scala.include">
         <echo message="Scala: Compiling test cases!"/>
+        <antcall target="resolve">
+          <param name="ivy.conf" value="test"/>
+        </antcall>          
         <scalac fork="true" jvmargs="-Xmx512m" srcdir="${scala.test.sources}" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
             <include name="**/*.scala"/>
             <exclude name="**/gridengine/**" unless="include.gridengine" />
@@ -809,7 +815,7 @@
     </path>
     <target         name="findbugs" depends="dist">
         <antcall    target  ="resolve">
-            <param  name    ="ivy.conf" value="findbugs"/>
+            <param  name    ="ivy.conf" value="test"/>
         </antcall>
         <!-- setup the taskdef, telling ant where to find the defined task for ant -->
         <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask" classpathref="findbugs.classpath"/>

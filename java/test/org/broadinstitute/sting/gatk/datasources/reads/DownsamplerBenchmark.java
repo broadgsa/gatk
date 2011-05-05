@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.datasources.reads.performance;
+package org.broadinstitute.sting.gatk.datasources.reads;
 
 import com.google.caliper.Param;
 import net.sf.picard.filter.FilteringIterator;

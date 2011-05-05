@@ -22,25 +22,26 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.datasources.reads.performance;
+package org.broadinstitute.sting.gatk.datasources.reads;
 
 import com.google.caliper.Param;
-import net.sf.samtools.Cigar;
-import net.sf.samtools.CigarElement;
+import com.google.caliper.SimpleBenchmark;
+import net.sf.picard.util.SamLocusIterator;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
 
 import java.io.File;
+import java.util.Iterator;
 
 /**
  * Created by IntelliJ IDEA.
  * User: mhanna
  * Date: Apr 22, 2011
- * Time: 4:01:23 PM
+ * Time: 3:51:06 PM
  * To change this template use File | Settings | File Templates.
  */
-public class TheoreticalMinimaBenchmark extends ReadProcessingBenchmark {
+public class PicardBaselineBenchmark extends ReadProcessingBenchmark {
     @Param
     private String bamFile;
 
@@ -52,62 +53,48 @@ public class TheoreticalMinimaBenchmark extends ReadProcessingBenchmark {
 
     @Override
     public Integer getMaxReads() { return maxReads; }
-
-    public void timeIterateOverEachBase(int reps) {
-        System.out.printf("Processing " + inputFile);
+    
+    public void timeDecompressBamFile(int reps) {
         for(int i = 0; i < reps; i++) {
             SAMFileReader reader = new SAMFileReader(inputFile);
             CloseableIterator<SAMRecord> iterator = reader.iterator();
-
-            long As=0,Cs=0,Gs=0,Ts=0;
-            while(iterator.hasNext()) {
-                SAMRecord read = iterator.next();
-                for(byte base: read.getReadBases()) {
-                    switch(base) {
-                        case 'A': As++; break;
-                        case 'C': Cs++; break;
-                        case 'G': Gs++; break;
-                        case 'T': Ts++; break;
-                    }
-                }
-            }
-            System.out.printf("As = %d; Cs = %d; Gs = %d; Ts = %d; total = %d%n",As,Cs,Gs,Ts,As+Cs+Gs+Ts);
+            while(iterator.hasNext())
+                iterator.next();
             iterator.close();
             reader.close();
         }
     }
 
-    public void timeIterateOverCigarString(int reps) {
+    public void timeExtractTag(int reps) {
         for(int i = 0; i < reps; i++) {
-            long matchMismatches = 0;
-            long insertions = 0;
-            long deletions = 0;
-            long others = 0;
-
             SAMFileReader reader = new SAMFileReader(inputFile);
             CloseableIterator<SAMRecord> iterator = reader.iterator();
             while(iterator.hasNext()) {
                 SAMRecord read = iterator.next();
-
-                Cigar cigar = read.getCigar();
-                for(CigarElement cigarElement: cigar.getCigarElements()) {
-                    int elementSize = cigarElement.getLength();
-                    while(elementSize > 0) {
-                        switch(cigarElement.getOperator()) {
-                            case M: matchMismatches++; break;
-                            case I: insertions++; break;
-                            case D: deletions++; break;
-                            default: others++; break;
-                        }
-                        elementSize--;
-                    }
-                }
+                read.getAttribute("OQ");
             }
-            System.out.printf("Ms = %d; Is = %d; Ds = %d; others = %d; total = %d%n",matchMismatches,insertions,deletions,others,matchMismatches+insertions+deletions+others);
-
             iterator.close();
             reader.close();
         }
     }
 
+    public void timeSamLocusIterator(int reps) {
+        for(int i = 0; i < reps; i++) {
+            SAMFileReader reader = new SAMFileReader(inputFile);
+            long loci = 0;
+
+            SamLocusIterator samLocusIterator = new SamLocusIterator(reader);
+            samLocusIterator.setEmitUncoveredLoci(false);
+            Iterator<SamLocusIterator.LocusInfo> workhorseIterator = samLocusIterator.iterator();
+
+            while(workhorseIterator.hasNext()) {
+                SamLocusIterator.LocusInfo locusInfo = workhorseIterator.next();
+                // Use the value of locusInfo to avoid optimization.
+                if(locusInfo != null) loci++;
+            }
+            System.out.printf("Total loci = %d%n",loci);
+
+            reader.close();
+        }
+    }
 }

@@ -25,8 +25,7 @@
     <module organisation="javax.mail" resolver="java.net" />
     <module organisation="javax.activation" resolver="java.net" />
     <module organisation="net.java.dev.jna" resolver="maven2-repository.dev.java.net" />
-    <!-- module organisation="com.google.code.caliper" resolver="sonatype" / -->
-    <module organisation="com.google.code.caliper" resolver="projects" />    
+    <module organisation="com.google.code.caliper" resolver="sonatype" />
     <module organisation="com.google.code.gson" revision="1.7-SNAPSHOT"  resolver="sonatype" />
   </modules>
 </ivysettings>
