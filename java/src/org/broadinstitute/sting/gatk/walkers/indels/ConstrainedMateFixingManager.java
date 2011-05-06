@@ -8,6 +8,7 @@ import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
@@ -77,6 +78,7 @@ import java.util.Queue;
  * @version 0.2
  */
 public class ConstrainedMateFixingManager {
+
     protected static final Logger logger = Logger.getLogger(ConstrainedMateFixingManager.class);
     private static final boolean DEBUG = false;
 
@@ -111,8 +113,19 @@ public class ConstrainedMateFixingManager {
     int counter = 0;
 
     /** read.name -> records */
-    HashMap<String, SAMRecord> forMateMatching = new HashMap<String, SAMRecord>();
+    HashMap<String, SAMRecordHashObject> forMateMatching = new HashMap<String, SAMRecordHashObject>();
     Queue<SAMRecord> waitingReads = new PriorityQueue<SAMRecord>(1000, comparer);
+
+    private class SAMRecordHashObject {
+        public SAMRecord record;
+        public boolean wasModified;
+
+        public SAMRecordHashObject(SAMRecord record, boolean wasModified) {
+            this.record = record;
+            this.wasModified = wasModified;
+        }
+    }
+
 
     //private SimpleTimer timer = new SimpleTimer("ConstrainedWriter");
     //private long PROGRESS_PRINT_FREQUENCY = 10 * 1000;             // in milliseconds
@@ -164,7 +177,7 @@ public class ConstrainedMateFixingManager {
         }
     }
 
-    public void addRead( SAMRecord newRead ) {
+    public void addRead(SAMRecord newRead, boolean readWasModified) {
         if ( DEBUG ) logger.info("New read pos " + newRead.getAlignmentStart() + " OP = " + newRead.getAttribute("OP"));
 
         //final long curTime = timer.currentTime();
@@ -189,13 +202,15 @@ public class ConstrainedMateFixingManager {
 
             if ( !tooManyReads )
                 forMateMatching.clear();
+            else
+                purgeUnmodifiedMates();
         }
 
         // fix mates, as needed
         // Since setMateInfo can move reads, we potentially need to remove the mate, and requeue
         // it to ensure proper sorting
         if ( newRead.getReadPairedFlag() ) {
-            SAMRecord mate = forMateMatching.get(newRead.getReadName());
+            SAMRecordHashObject mate = forMateMatching.get(newRead.getReadName());
             if ( mate != null ) {
                 // 1. Frustratingly, Picard's setMateInfo() method unaligns (by setting the reference contig
                 // to '*') read pairs when both of their flags have the unmapped bit set.  This is problematic
@@ -209,27 +224,27 @@ public class ConstrainedMateFixingManager {
                 // arbitrarily far away).  However, we do still want to move legitimately unmapped reads whose
                 // mates are mapped, so the compromise will be that if the mate is still in the queue then we'll
                 // move the read and otherwise we won't.
-                boolean doNotFixMates = newRead.getReadUnmappedFlag() && (mate.getReadUnmappedFlag() || !waitingReads.contains(mate));
+                boolean doNotFixMates = newRead.getReadUnmappedFlag() && (mate.record.getReadUnmappedFlag() || !waitingReads.contains(mate.record));
                 if ( !doNotFixMates ) {
 
-                    boolean reQueueMate = mate.getReadUnmappedFlag() && ! newRead.getReadUnmappedFlag();
+                    boolean reQueueMate = mate.record.getReadUnmappedFlag() && ! newRead.getReadUnmappedFlag();
                     if ( reQueueMate ) {
                         // the mate was unmapped, but newRead was mapped, so the mate may have been moved
                         // to be next-to newRead, so needs to be reinserted into the waitingReads queue
                         // note -- this must be called before the setMateInfo call below
-                        if ( ! waitingReads.remove(mate) )
+                        if ( ! waitingReads.remove(mate.record) )
                             // we must have hit a region with too much depth and flushed the queue
                             reQueueMate = false;
                     }
 
                     // we've already seen our mate -- set the mate info and remove it from the map
-                    SamPairUtil.setMateInfo(mate, newRead, null);
-                    if ( reQueueMate ) waitingReads.add(mate);
+                    SamPairUtil.setMateInfo(mate.record, newRead, null);
+                    if ( reQueueMate ) waitingReads.add(mate.record);
                 }
 
                 forMateMatching.remove(newRead.getReadName());
             } else if ( pairedReadIsMovable(newRead) ) {
-                forMateMatching.put(newRead.getReadName(), newRead);
+                forMateMatching.put(newRead.getReadName(), new SAMRecordHashObject(newRead, readWasModified));
             }
         }
 
@@ -275,6 +290,17 @@ public class ConstrainedMateFixingManager {
     public static boolean iSizeTooBigToMove(SAMRecord read, int maxInsertSizeForMovingReadPairs) {
         return ( read.getReadPairedFlag() && ! read.getMateUnmappedFlag() && read.getReferenceName() != read.getMateReferenceName() ) // maps to different chromosomes
                 || Math.abs(read.getInferredInsertSize()) > maxInsertSizeForMovingReadPairs;     // we won't try to move such a read
+    }
+
+    private void purgeUnmodifiedMates() {
+        HashMap<String, SAMRecordHashObject> forMateMatchingCleaned = new HashMap<String, SAMRecordHashObject>();
+        for ( Map.Entry<String, SAMRecordHashObject> entry : forMateMatching.entrySet() ) {
+            if ( entry.getValue().wasModified )
+                forMateMatchingCleaned.put(entry.getKey(), entry.getValue());
+        }
+
+        forMateMatching.clear(); // explicitly clear the memory
+        forMateMatching = forMateMatchingCleaned;
     }
 
     private boolean pairedReadIsMovable(SAMRecord read) {

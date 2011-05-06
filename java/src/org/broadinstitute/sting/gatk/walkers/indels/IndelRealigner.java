@@ -101,7 +101,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     @Argument(fullName="maxReadsInMemory", shortName="maxInMemory", doc="max reads allowed to be kept in memory at a time by the SAMFileWriter. "+
                 "Keep it low to minimize memory consumption (but the tool may skip realignment on regions with too much coverage.  If it is too low, it may generate errors during realignment); keep it high to maximize realignment (but make sure to give Java enough memory).", required=false)
-    protected int MAX_RECORDS_IN_MEMORY = 200000;
+    protected int MAX_RECORDS_IN_MEMORY = 150000;
 
     @Argument(fullName="maxIsizeForMovement", shortName="maxIsize", doc="maximum insert size of read pairs that we attempt to realign", required=false)
     protected int MAX_ISIZE_FOR_MOVEMENT = 3000;
@@ -192,6 +192,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private final ArrayList<SAMRecord> readsNotToClean = new ArrayList<SAMRecord>();
     private final ArrayList<VariantContext> knownIndelsToTry = new ArrayList<VariantContext>();
     private final HashSet<Object> indelRodsSeen = new HashSet<Object>();
+    private final HashSet<SAMRecord> readsActuallyCleaned = new HashSet<SAMRecord>();
 
     private static final int MAX_QUAL = 99;
 
@@ -213,6 +214,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private FileWriter snpsOutput = null;
 
     protected Map<SAMReaderID, ConstrainedMateFixingManager> nwayWriters = null;
+
 
     // debug info for lazy SW evaluation:
     private long exactMatchesFound = 0; // how many reads exactly matched a consensus we already had
@@ -388,6 +390,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     private void emit(final SAMRecord read) {
+
+        // check to see whether the read was modified by looking at the temporary tag
+        boolean wasModified = readsActuallyCleaned.contains(read);
+
         try {
             if ( N_WAY_OUT != null ) {
                 SAMReaderID rid =  getToolkit().getReaderIDForRead(read);
@@ -397,9 +403,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                     read.setAttribute("RG",
                             getToolkit().getReadsDataSource().getOriginalReadGroupId((String)read.getAttribute("RG")));
                 }
-                m.addRead(read);
+                m.addRead(read, wasModified);
             } else {
-                manager.addRead(read);
+                manager.addRead(read, wasModified);
             }
         } catch (RuntimeIOException e) {
             throw new UserException.ErrorWritingBamFile(e.getMessage());
@@ -414,6 +420,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             emit(read);
         readsToClean.clear();
         readsNotToClean.clear();
+        readsActuallyCleaned.clear();
     }
 
     public Integer map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
@@ -797,6 +804,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                         // TODO -- this is only temporary until Tim adds code to recalculate this value
                         if ( read.getAttribute(SAMTag.MD.name()) != null )
                             read.setAttribute(SAMTag.MD.name(), null);
+
+                        // mark that it was actually cleaned
+                        readsActuallyCleaned.add(read);
                     }
                 }
             }

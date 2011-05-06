@@ -106,7 +106,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     @Test
     public void testMaxReadsInMemory() {
         HashMap<String, String> e = new HashMap<String, String>();
-        e.put( "--maxReadsInMemory 10000", "f8e4279cba9fb3a2181d1ce28f7a62af" );
+        e.put( "--maxReadsInMemory 10000", "87605e2dea24d3e01efaeec5f44e8671" );
         e.put( "--maxReadsInMemory 40000",  base_md5 );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
