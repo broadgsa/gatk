@@ -95,14 +95,10 @@ public class VariantValidationAssessor extends RodWalker<Pair<VariantContext, By
         if ( tracker == null )
             return null;
 
-        List<Object> rods = tracker.getReferenceMetaData(INPUT_VARIANT_ROD_BINDING_NAME);
+        VariantContext vc = tracker.getVariantContext(ref, INPUT_VARIANT_ROD_BINDING_NAME, ref.getLocus());
         // ignore places where we don't have a variant
-        if ( rods.size() == 0 )
+        if ( vc == null )
             return null;
-
-        Object rod = rods.get(0);
-
-        VariantContext vc = VariantContextAdaptors.toVariantContext(INPUT_VARIANT_ROD_BINDING_NAME, rod, ref);
 
         if ( sampleNames == null )
             sampleNames = new TreeSet<String>(vc.getSampleNames());        
