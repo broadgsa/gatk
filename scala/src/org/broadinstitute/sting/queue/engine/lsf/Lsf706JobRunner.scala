@@ -56,7 +56,7 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
    * Dispatches the function on the LSF cluster.
    * @param function Command to run.
    */
-  def start() = {
+  def start() {
     Lsf706JobRunner.lsfLibLock.synchronized {
       val request = new submit
       for (i <- 0 until LibLsf.LSF_RLIM_NLIMITS)
@@ -79,12 +79,6 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
         request.options |= LibBat.SUB_ERR_FILE
       }
 
-      // If a project name is set specify the project name
-      if (function.jobProject != null) {
-        request.projectName = function.jobProject
-        request.options |= LibBat.SUB_PROJECT_NAME
-      }
-
       // If the job queue is set specify the job queue
       if (function.jobQueue != null) {
         request.queue = function.jobQueue
@@ -102,6 +96,11 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
         request.userPriority = function.jobPriority.get
         request.options2 |= LibBat.SUB2_JOB_PRIORITY
       }
+
+      // Broad specific requirement, our esub requires there be a project
+      // else it will spit out a warning to stdout. see $LSF_SERVERDIR/esub
+      request.projectName = if (function.jobProject != null) function.jobProject else "Queue"
+      request.options |= LibBat.SUB_PROJECT_NAME
 
       // LSF specific: get the max runtime for the jobQueue and pass it for this job
       request.rLimits(LibLsf.LSF_RLIMIT_RUN) = Lsf706JobRunner.getRlimitRun(function.jobQueue)
@@ -125,7 +124,7 @@ class Lsf706JobRunner(val function: CommandLineFunction) extends CommandLineJobR
 
   def status = this.lastStatus
 
-  private def updateStatus(updatedStatus: RunnerStatus.Value) = {
+  private def updateStatus(updatedStatus: RunnerStatus.Value) {
     this.lastStatus = updatedStatus
     this.lastStatusUpdate = System.currentTimeMillis
   }
