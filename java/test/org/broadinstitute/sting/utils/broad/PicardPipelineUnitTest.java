@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.broad;
 
-import junit.framework.Assert;
+import org.testng.Assert;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.broadinstitute.sting.BaseTest;
@@ -37,15 +37,15 @@ public class PicardPipelineUnitTest {
 
     private void validatePipeline(Pipeline pipeline, String name) {
         Assert.assertEquals(pipeline.getProject().getName(), name);
-        Assert.assertTrue("reference not found", pipeline.getProject().getReferenceFile().exists());
-        Assert.assertTrue("intervals not found", pipeline.getProject().getIntervalList().exists());
-        Assert.assertTrue("refseq not found", pipeline.getProject().getRefseqTable().exists());
-        Assert.assertTrue("genotype dbsnp not found", pipeline.getProject().getGenotypeDbsnp().exists());
-        Assert.assertTrue("eval dbsnp not found", pipeline.getProject().getEvalDbsnp().exists());
+        Assert.assertTrue(pipeline.getProject().getReferenceFile().exists(), "reference not found");
+        Assert.assertTrue(pipeline.getProject().getIntervalList().exists(), "intervals not found");
+        Assert.assertTrue(pipeline.getProject().getRefseqTable().exists(), "refseq not found");
+        Assert.assertTrue(pipeline.getProject().getGenotypeDbsnp().exists(), "genotype dbsnp not found");
+        Assert.assertTrue(pipeline.getProject().getEvalDbsnp().exists(), "eval dbsnp not found");
         Assert.assertEquals(pipeline.getSamples().size(), 1);
         for (PipelineSample sample: pipeline.getSamples()) {
             Assert.assertEquals(sample.getId(), PROJECT + "_" + SAMPLE);
-            Assert.assertTrue("bam not found", sample.getBamFiles().get(PicardPipeline.PICARD_BAM_TYPE).exists());
+            Assert.assertTrue(sample.getBamFiles().get(PicardPipeline.PICARD_BAM_TYPE).exists(), "bam not found");
             Assert.assertEquals(sample.getTags().get(PicardPipeline.PROJECT_TAG), PROJECT);
             Assert.assertEquals(sample.getTags().get(PicardPipeline.SAMPLE_TAG), SAMPLE);
         }
