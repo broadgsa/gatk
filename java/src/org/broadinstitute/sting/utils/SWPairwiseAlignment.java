@@ -432,6 +432,10 @@ public class SWPairwiseAlignment {
        }
 
     static void printAlignment(SWPairwiseAlignment a, byte[] ref, byte[] read) {
+        printAlignment(a,ref,read,100);
+    }
+    
+    static void printAlignment(SWPairwiseAlignment a, byte[] ref, byte[] read, int width) {
         StringBuilder bread = new StringBuilder();
         StringBuilder bref = new StringBuilder();
         StringBuilder match = new StringBuilder();
@@ -442,6 +446,7 @@ public class SWPairwiseAlignment {
         final int offset = a.getAlignmentStart2wrt1();
 
         Cigar cigar = a.getCigar();
+
 
         if ( offset < 0 ) {
             for (  ; j < (-offset) ; j++ ) {
@@ -498,9 +503,33 @@ public class SWPairwiseAlignment {
         for ( ; i < ref.length; i++ ) bref.append((char)ref[i]);
         for ( ; j < read.length; j++ ) bread.append((char)read[j]);
 
-        System.out.println(match);
-        System.out.println(bread);
-        System.out.println(bref);
+        int pos = 0 ;
+        int maxlength = Math.max(match.length(),Math.max(bread.length(),bref.length()));
+        while ( pos < maxlength ) {
+            print_cautiously(match,pos,width);
+            print_cautiously(bread,pos,width);
+            print_cautiously(bref,pos,width);
+            System.out.println();
+            pos += width;
+        }
+    }
+
+    /** String builder's substring is extremely stupid: instead of trimming and/or returning an empty
+     * string when one end/both ends of the interval are out of range, it crashes with an
+     * exception. This utility function simply prints the substring if the interval is within the index range
+     * or trims accordingly if it is not.
+     * @param s
+     * @param start
+     * @param width
+     */
+    private static void print_cautiously(StringBuilder s, int start, int width) {
+        if ( start >= s.length() ) {
+            System.out.println();
+            return;
+        }
+        int end = Math.min(start+width,s.length());
+        System.out.println(s.substring(start,end));
+
     }
 
 //    BELOW: main() method for testing; old implementations of the core methods are commented out below;
