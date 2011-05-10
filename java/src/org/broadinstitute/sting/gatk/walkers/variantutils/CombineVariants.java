@@ -153,7 +153,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         }
 
-        if (vcs.size() - numFilteredRecords < minimumN)
+        if (minimumN > 1 && (vcs.size() - numFilteredRecords < minimumN))
             return 0;
         
         VariantContext mergedVC = null;
