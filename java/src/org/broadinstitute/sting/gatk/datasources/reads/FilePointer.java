@@ -46,7 +46,7 @@ import java.util.TreeMap;
 /**
  * Represents a small section of a BAM file, and every associated interval.
  */
-class FilePointer {
+public class FilePointer {
     protected final SortedMap<SAMReaderID,SAMFileSpan> fileSpans = new TreeMap<SAMReaderID,SAMFileSpan>();
     protected final BAMOverlap overlap;
     protected final List<GenomeLoc> locations;
@@ -70,6 +70,14 @@ class FilePointer {
         this.overlap = overlap;
         this.locations = new ArrayList<GenomeLoc>();
         this.isRegionUnmapped = false;
+    }
+
+    /**
+     * Returns an immutable variant of the list of locations.
+     * @return
+     */
+    public List<GenomeLoc> getLocations() {
+        return Collections.unmodifiableList(locations);
     }
 
     @Override

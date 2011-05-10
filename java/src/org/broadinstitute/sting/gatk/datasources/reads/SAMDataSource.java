@@ -150,7 +150,7 @@ public class SAMDataSource {
                 new ArrayList<ReadFilter>(),
                 false,
                 false,
-                false);
+                true);
     }
 
     /**

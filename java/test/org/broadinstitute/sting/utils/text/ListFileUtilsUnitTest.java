@@ -22,11 +22,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk;
+package org.broadinstitute.sting.utils.text;
 
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.testng.Assert;
@@ -42,7 +43,7 @@ import java.util.List;
 /**
  * Tests selected functionality in the CommandLineExecutable class
  */
-public class CommandLineExecutableUnitTest extends BaseTest {
+public class ListFileUtilsUnitTest extends BaseTest {
 
     @Test
     public void testIgnoreBlankLinesInBAMListFiles() throws Exception {
@@ -90,13 +91,10 @@ public class CommandLineExecutableUnitTest extends BaseTest {
         List<String> bamFiles = new ArrayList<String>();
         bamFiles.add(tempListFile.getAbsolutePath());
 
-        GATKArgumentCollection argCollection = new GATKArgumentCollection();
-        argCollection.samFiles = bamFiles;
-
         CommandLineGATK testInstance = new CommandLineGATK();
         testInstance.setParser(new ParsingEngine(testInstance));
 
-        List<SAMReaderID> unpackedBAMFileList = testInstance.unpackBAMFileList(argCollection);
+        List<SAMReaderID> unpackedBAMFileList = ListFileUtils.unpackBAMFileList(bamFiles,new ParsingEngine(testInstance));
 
         Assert.assertEquals(unpackedBAMFileList.size(), expectedUnpackedFileList.size(),
                             "Unpacked BAM file list contains extraneous lines");

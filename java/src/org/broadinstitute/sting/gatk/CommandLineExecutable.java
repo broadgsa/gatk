@@ -47,6 +47,7 @@ import java.util.*;
 
 import net.sf.picard.filter.SamRecordFilter;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.text.ListFileUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
 /**
@@ -73,11 +74,6 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
     private final Collection<Object> argumentSources = new ArrayList<Object>();
 
     /**
-     * Lines starting with this String in .list files are considered comments.
-     */
-    public static final String LIST_FILE_COMMENT_START = "#";
-
-    /**
      * this is the function that the inheriting class can expect to have called
      * when the command line system has initialized.
      *
@@ -93,8 +89,8 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
             engine.setArguments(getArgumentCollection());
 
             // File lists can require a bit of additional expansion.  Set these explicitly by the engine. 
-            engine.setSAMFileIDs(unpackBAMFileList(getArgumentCollection()));
-            engine.setReferenceMetaDataFiles(unpackRODBindings(getArgumentCollection()));
+            engine.setSAMFileIDs(ListFileUtils.unpackBAMFileList(getArgumentCollection().samFiles,parser));
+            engine.setReferenceMetaDataFiles(ListFileUtils.unpackRODBindings(getArgumentCollection().RODBindings,getArgumentCollection().DBSNPFile,parser));
 
             engine.setWalker(walker);
             walker.setToolkit(engine);
@@ -200,104 +196,4 @@ public abstract class CommandLineExecutable extends CommandLineProgram {
         return engine.getWalkerName((Class<Walker>)argumentSource);
     }
 
-    /**
-     * Unpack the bam files to be processed, given a list of files.  That list of files can
-     * itself contain entries which are lists of other files to be read (note: you cannot have lists
-     * of lists of lists). Lines in .list files containing only whitespace or which begin with
-     * LIST_FILE_COMMENT_START are ignored.
-     *
-     * @param argCollection the command-line arguments from which to extract the BAM file list.
-     * @return a flattened list of the bam files provided
-     */
-    protected List<SAMReaderID> unpackBAMFileList(GATKArgumentCollection argCollection) {
-        List<SAMReaderID> unpackedReads = new ArrayList<SAMReaderID>();
-        for( String inputFileName: argCollection.samFiles ) {
-            Tags inputFileNameTags = parser.getTags(inputFileName);
-            inputFileName = expandFileName(inputFileName);
-            if (inputFileName.toLowerCase().endsWith(".list") ) {
-                try {
-                    for ( String fileName : new XReadLines(new File(inputFileName), true) ) {
-                        if ( fileName.length() > 0 && ! fileName.startsWith(LIST_FILE_COMMENT_START) ) {
-                            unpackedReads.add(new SAMReaderID(fileName,parser.getTags(inputFileName)));
-                        }
-                    }
-                }
-                catch( FileNotFoundException ex ) {
-                    throw new UserException.CouldNotReadInputFile(new File(inputFileName), "Unable to find file while unpacking reads", ex);
-                }
-            }
-            else if(inputFileName.toLowerCase().endsWith(".bam")) {
-                unpackedReads.add(new SAMReaderID(inputFileName,inputFileNameTags));
-            }
-            else if(inputFileName.endsWith("stdin")) {
-                unpackedReads.add(new SAMReaderID(inputFileName,inputFileNameTags));
-            }
-            else {
-                throw new UserException.CommandLineException(String.format("The GATK reads argument (-I) supports only BAM files with the .bam extension and lists of BAM files " +
-                        "with the .list extension, but the file %s has neither extension.  Please ensure that your BAM file or list " +
-                        "of BAM files is in the correct format, update the extension, and try again.",inputFileName));
-            }
-        }
-        return unpackedReads;
-    }
-    /**
-     * Convert command-line argument representation of ROD bindings to something more easily understandable by the engine.
-     * @param argCollection input arguments to the GATK.
-     * @return a list of expanded, bound RODs.
-     */
-    private Collection<RMDTriplet> unpackRODBindings(GATKArgumentCollection argCollection) {
-        Collection<RMDTriplet> rodBindings = new ArrayList<RMDTriplet>();
-
-        for (String fileName: argCollection.RODBindings) {
-            final Tags tags = parser.getTags(fileName);
-            fileName = expandFileName(fileName);
-
-            List<String> positionalTags = tags.getPositionalTags();
-            if(positionalTags.size() != 2)
-                throw new UserException("Invalid syntax for -B (reference-ordered data) input flag.  " +
-                        "Please use the following syntax when providing reference-ordered " +
-                        "data: -B:<name>,<type> <filename>.");
-            // Assume that if tags are present, those tags are name and type.
-            // Name is always first, followed by type.
-            String name = positionalTags.get(0);
-            String type = positionalTags.get(1);
-
-            RMDStorageType storageType = null;
-            if(tags.getValue("storage") != null)
-                storageType = Enum.valueOf(RMDStorageType.class,tags.getValue("storage"));
-            else if(fileName.toLowerCase().endsWith("stdin"))
-                storageType = RMDStorageType.STREAM;
-            else
-                storageType = RMDStorageType.FILE;
-
-            rodBindings.add(new RMDTriplet(name,type,fileName,storageType,tags));
-        }
-
-        if (argCollection.DBSNPFile != null) {
-            if(argCollection.DBSNPFile.toLowerCase().contains("vcf"))
-                throw new UserException("--DBSNP (-D) argument currently does not support VCF.  To use dbSNP in VCF format, please use -B:dbsnp,vcf <filename>.");
-
-            final Tags tags = parser.getTags(argCollection.DBSNPFile);
-            String fileName = expandFileName(argCollection.DBSNPFile);
-            RMDStorageType storageType = fileName.toLowerCase().endsWith("stdin") ? RMDStorageType.STREAM : RMDStorageType.FILE;
-
-            rodBindings.add(new RMDTriplet(DbSNPHelper.STANDARD_DBSNP_TRACK_NAME,"dbsnp",fileName,storageType,tags));
-        }
-
-        return rodBindings;
-    }
-
-    /**
-     * Expand any special characters that appear in the filename.  Right now, '-' is expanded to
-     * '/dev/stdin' only, but in the future, special characters like '~' and '*' that are passed
-     * directly to the command line in some circumstances could be expanded as well.  Be careful
-     * when adding UNIX-isms. 
-     * @param argument the text appearing on the command-line.
-     * @return An expanded string suitable for opening by Java/UNIX file handling utilities.
-     */
-    private String expandFileName(String argument) {
-        if(argument.trim().equals("-"))
-            return "/dev/stdin";
-        return argument;
-    }
 }
