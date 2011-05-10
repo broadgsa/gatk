@@ -83,6 +83,9 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="assumeIdenticalSamples", shortName="assumeIdenticalSamples", doc="If true, assume input VCFs have identical sample sets and disjoint calls so that one can simply perform a merge sort to combine the VCFs into one, drastically reducing the runtime.", required=false)
     public boolean ASSUME_IDENTICAL_SAMPLES = false;
 
+    @Argument(fullName="minimumN", shortName="minN", doc="Combine variants and output site only if variant is present in at least N input files.", required=false)
+    public int minimumN = 1;
+
     @Hidden
     @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
     public boolean MERGE_INFO_WITH_MAX_AC = false;
@@ -133,7 +136,7 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
         // get all of the vcf rods at this locus
         // Need to provide reference bases to simpleMerge starting at current locus
-        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, context.getLocation());
+        Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref, null,context.getLocation(), true, false);
 
         if ( ASSUME_IDENTICAL_SAMPLES ) {
             for ( final VariantContext vc : vcs ) {
@@ -143,6 +146,16 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             return vcs.isEmpty() ? 0 : 1;
         }
 
+        int numFilteredRecords = 0;
+        for (VariantContext vc : vcs) {
+            if (vc.filtersWereApplied() && vc.isFiltered())
+                numFilteredRecords++;
+
+        }
+
+        if (vcs.size() - numFilteredRecords < minimumN)
+            return 0;
+        
         VariantContext mergedVC = null;
         if ( variantMergeOption == VariantContextUtils.VariantMergeType.MASTER ) {
              mergedVC = VariantContextUtils.masterMerge(vcs, "master");
