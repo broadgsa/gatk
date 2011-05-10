@@ -7,10 +7,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Queue;
+import java.util.*;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -169,16 +166,17 @@ public class ConstrainedMateFixingManager {
         return pos + 2 * MAX_POS_MOVE_ALLOWED < addedRead.getAlignmentStart();
     }
 
-    private void writeRead(SAMRecord read) {
-        try {
-            writer.addAlignment(read);
-        } catch (IllegalArgumentException e) {
-            throw new UserException("If the maximum allowable reads in memory is too small, it may cause reads to be written out of order when trying to write the BAM; please see the --maxReadsInMemory argument for details.  " + e.getMessage(), e);
-        }
+    public void addRead(SAMRecord newRead, boolean readWasModified) {
+        addRead(newRead, readWasModified, true);
     }
 
-    public void addRead(SAMRecord newRead, boolean readWasModified) {
-        if ( DEBUG ) logger.info("New read pos " + newRead.getAlignmentStart() + " OP = " + newRead.getAttribute("OP"));
+    public void addReads(List<SAMRecord> newReads, Set<SAMRecord> modifiedReads) {
+        for ( SAMRecord newRead : newReads )
+            addRead(newRead, modifiedReads.contains(newRead), false);
+    }
+
+    private void addRead(SAMRecord newRead, boolean readWasModified, boolean canFlush) {
+        if ( DEBUG ) logger.info("New read pos " + newRead.getAlignmentStart() + " OP = " + newRead.getAttribute("OP") + " " + readWasModified);
 
         //final long curTime = timer.currentTime();
         //if ( curTime - lastProgressPrintTime > PROGRESS_PRINT_FREQUENCY ) {
@@ -188,7 +186,7 @@ public class ConstrainedMateFixingManager {
 
         // if the new read is on a different contig or we have too many reads, then we need to flush the queue and clear the map
         boolean tooManyReads = getNReadsInQueue() >= MAX_RECORDS_IN_MEMORY;
-        if ( tooManyReads || (getNReadsInQueue() > 0 && !waitingReads.peek().getReferenceIndex().equals(newRead.getReferenceIndex())) ) {
+        if ( canFlush && (tooManyReads || (getNReadsInQueue() > 0 && !waitingReads.peek().getReferenceIndex().equals(newRead.getReferenceIndex()))) ) {
             if ( DEBUG ) logger.warn("Flushing queue on " + (tooManyReads ? "too many reads" : ("move to new contig: " + newRead.getReferenceName() + " from " + waitingReads.peek().getReferenceName())) + " at " + newRead.getAlignmentStart());
 
             while ( getNReadsInQueue() > 1 ) {
@@ -276,6 +274,14 @@ public class ConstrainedMateFixingManager {
             }
 
             if ( DEBUG ) logger.warn(String.format("At %d: Done with emit cycle", newRead.getAlignmentStart()));
+        }
+    }
+
+    private void writeRead(SAMRecord read) {
+        try {
+            writer.addAlignment(read);
+        } catch (IllegalArgumentException e) {
+            throw new UserException("If the maximum allowable reads in memory is too small, it may cause reads to be written out of order when trying to write the BAM; please see the --maxReadsInMemory argument for details.  " + e.getMessage(), e);
         }
     }
 

@@ -416,8 +416,16 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // pre-merge lists to sort them in preparation for constrained SAMFileWriter
         readsNotToClean.addAll(readsToClean.getReads());
         ReadUtils.coordinateSortReads(readsNotToClean);
-        for ( SAMRecord read : readsNotToClean )
-            emit(read);
+        if ( N_WAY_OUT == null ) {
+            manager.addReads(readsNotToClean, readsActuallyCleaned);
+        } else {
+            // in this case, it is possible to have the following scenario: the realigner gets permission to realign,
+            // the cache in the ConstrainedMateFixingManager gets filled up while emitting reads, and then the
+            // first-of-pair mates of realigned reads don't get fixed because they were flushed out of the queue too early.
+            // Since the N-way option is @hidden, I'm not interested in fixing this right now.
+            for ( SAMRecord read : readsNotToClean )
+                emit(read);
+        }
         readsToClean.clear();
         readsNotToClean.clear();
         readsActuallyCleaned.clear();
