@@ -73,18 +73,28 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         if ( alternateAlleleToUse != null ) {
             bestAlternateAllele = alternateAlleleToUse.getBases()[0];
         } else if ( useAlleleFromVCF ) {
-            final VariantContext vcInput = tracker.getVariantContext(ref, "alleles", null, ref.getLocus(), true);
-            if ( vcInput == null || vcInput.isFiltered() || !vcInput.isSNP() )
-                return null;
-            if ( !vcInput.isSNP() ) {
-                logger.info("Record at position " + ref.getLocus() + " is not a SNP; skipping...");
-                return null;
+            VariantContext vc = null;
+
+            // search for usable record
+            for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", null, ref.getLocus(), true, false) ) {
+                if ( vc_input != null && ! vc_input.isFiltered() && vc_input.isSNP() ) {
+                    if ( vc == null ) {
+                        vc = vc_input;
+                    } else {
+                        logger.warn("Multiple valid VCF records detected at site " + ref.getLocus() + ", only considering alleles from first record only");
+                    }
+                }
             }
-            if ( !vcInput.isBiallelic() ) {
+
+            // ignore places where we don't have a variant
+            if ( vc == null )
+                return null;
+
+            if ( !vc.isBiallelic() ) {
                 // for multi-allelic sites go back to the reads and find the most likely alternate allele
                 initializeBestAlternateAllele(refBase, contexts);
             } else {
-                bestAlternateAllele = vcInput.getAlternateAllele(0).getBases()[0];
+                bestAlternateAllele = vc.getAlternateAllele(0).getBases()[0];
             }
         } else {
             initializeBestAlternateAllele(refBase, contexts);
