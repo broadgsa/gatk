@@ -36,7 +36,7 @@ class QSettings {
   var jobNamePrefix: String = QSettings.processNamePrefix
 
   @Argument(fullName="job_project", shortName="jobProject", doc="Default project for compute farm jobs.", required=false)
-  var jobProject: String = "Queue"
+  var jobProject: String = _
 
   @Argument(fullName="job_queue", shortName="jobQueue", doc="Default queue for compute farm jobs.", required=false)
   var jobQueue: String = _

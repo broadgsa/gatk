@@ -353,6 +353,8 @@ class QGraph extends Logging {
     try {
       if (settings.bsub)
         settings.jobRunner = "Lsf706"
+      else if (settings.qsub)
+        settings.jobRunner = "GridEngine"
       else if (settings.jobRunner == null)
         settings.jobRunner = "Shell"
       commandLineManager = commandLinePluginManager.createByName(settings.jobRunner)

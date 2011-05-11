@@ -42,6 +42,9 @@ class QGraphSettings {
   @Argument(fullName="bsub", shortName="bsub", doc="Equivalent to -jobRunner Lsf706", required=false)
   var bsub = false
 
+  @Argument(fullName="qsub", shortName="qsub", doc="Equivalent to -jobRunner GridEngine", required=false)
+  var qsub = false
+
   @Argument(fullName="status",shortName="status",doc="Get status of jobs for the qscript",required=false)
   var getStatus = false
 
