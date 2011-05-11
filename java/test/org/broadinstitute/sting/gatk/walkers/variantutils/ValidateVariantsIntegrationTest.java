@@ -42,7 +42,7 @@ public class ValidateVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString("validationExampleGood.vcf", "ALL"),
                 0,
-                Arrays.asList("")
+                Arrays.asList("d41d8cd98f00b204e9800998ecf8427e")
         );
 
         executeTest("test good file", spec);

@@ -16,7 +16,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-            baseTestString(" -sn A -sn '[CDH]' -sn " + samplesFile + " -env -ef -select 'DP < 250' -B:variant,VCF " + testfile + " -NO_HEADER"),
+            baseTestString(" -sn A -sn '[CDH]' -sn " + samplesFile + " -env -ef -select 'DP < 250' -B:variant,VCF3 " + testfile + " -NO_HEADER"),
             1,
             Arrays.asList("1df84e2b755cce19f1876710ec38dd2c")
         );
@@ -29,7 +29,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         String testfile = validationDataLocation + "test.dup.vcf";
 
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString(" -sn A -sn B -sn C -B:variant,VCF " + testfile + " -NO_HEADER"),
+                baseTestString(" -sn A -sn B -sn C -B:variant,VCF3 " + testfile + " -NO_HEADER"),
                 1,
                 Arrays.asList("fe6963e5fea1d3854634dcf3defd7b92")
         );

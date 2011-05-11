@@ -28,6 +28,7 @@ import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.Index;
+import org.broad.tribble.vcf.VCF3Codec;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -82,7 +83,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
     public void testBuilderIndexUnwriteable() {
         File vcfFile = new File(validationDataLocation + "/ROD_validation/read_only/relic.vcf");
         try {
-            builder.loadIndex(vcfFile, new VCFCodec());
+            builder.loadIndex(vcfFile, new VCF3Codec());
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail("IO exception unexpected" + e.getMessage());
@@ -118,7 +119,7 @@ public class RMDTrackBuilderUnitTest extends BaseTest {
 
         Index ind = null;
         try {
-            ind = builder.loadIndex(vcfFile, new VCFCodec());
+            ind = builder.loadIndex(vcfFile, new VCF3Codec());
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail("IO exception unexpected" + e.getMessage());

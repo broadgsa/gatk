@@ -28,6 +28,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 import org.broad.tribble.bed.BEDCodec;
 import org.broad.tribble.dbsnp.DbSNPCodec;
 import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCF3Codec;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broadinstitute.sting.commandline.Gather;
 import org.broadinstitute.sting.commandline.Output;
@@ -192,6 +193,7 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
             if( rod != null ) {
                 if( rod.getType().equals(DbSNPCodec.class) ||
                         rod.getType().equals(VCFCodec.class) ||
+                        rod.getType().equals(VCF3Codec.class) ||
                         rod.getType().equals(BEDCodec.class) ) {
                     foundDBSNP = true;
                     break;

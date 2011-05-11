@@ -21,7 +21,7 @@ public class ValidateRODForReadsIntegrationTest extends WalkerTest {
     @Test
     public void testSimpleVCFPileup() {
         WalkerTestSpec spec = new WalkerTestSpec(
-                baseTestString() + " -B:vcf,vcf " + vcfFile, 1,
+                baseTestString() + " -B:vcf,vcf3 " + vcfFile, 1,
                 Arrays.asList("f7919e9dc156fb5d3ad0541666864ea5"));
         executeTest("testSimpleVCFPileup", spec);
     }

@@ -38,7 +38,7 @@ public class LiftoverVariantsIntegrationTest extends WalkerTest {
     @Test
     public void testb36Tohg19() {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T LiftoverVariants -o %s -R " + b36KGReference + " -B:variant,vcf " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.noheader.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
+                 "-T LiftoverVariants -o %s -R " + b36KGReference + " -B:variant,vcf3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.noheader.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
                  1,
                  Arrays.asList("37e23efd7d6471fc0f807b31ccafe0eb"));
          executeTest("test b36 to hg19", spec);
@@ -47,7 +47,7 @@ public class LiftoverVariantsIntegrationTest extends WalkerTest {
     @Test
     public void testb36Tohg19UnsortedSamples() {
          WalkerTestSpec spec = new WalkerTestSpec(
-                 "-T LiftoverVariants -o %s -R " + b36KGReference + " -B:variant,vcf " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.noheader.unsortedSamples.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
+                 "-T LiftoverVariants -o %s -R " + b36KGReference + " -B:variant,vcf3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.noheader.unsortedSamples.vcf -chain " + validationDataLocation + "b36ToHg19.broad.over.chain -dict /seq/references/Homo_sapiens_assembly19/v0/Homo_sapiens_assembly19.dict",
                  1,
                  Arrays.asList("b6ef4a2f026fd3843aeb9ed764a66921"));
          executeTest("test b36 to hg19, unsorted samples", spec);

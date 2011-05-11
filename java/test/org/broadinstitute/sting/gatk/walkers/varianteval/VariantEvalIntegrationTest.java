@@ -18,13 +18,13 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     private static String root = cmdRoot +
             " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
-            " -B:eval,VCF " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
-            " -B:comp_genotypes,VCF " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
+            " -B:eval,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf" +
+            " -B:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf";
 
     private static String rootGZ = cmdRoot +
             " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
-            " -B:eval,VCF " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf.gz" +
-            " -B:comp_genotypes,VCF " + validationDataLocation + "yri.trio.gatk.ug.head.vcf.gz";
+            " -B:eval,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf.gz" +
+            " -B:comp_genotypes,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.head.vcf.gz";
 
     // TODO -- I can't seem to reindex this VCF using Tabix without it causing failures.  Looking into it.  [EB]
     // private static String[] testsEnumerations = {root, rootGZ};
@@ -355,7 +355,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
     public void testVEGenotypeConcordance() {
         String vcfFiles[] = {"GenotypeConcordanceEval.vcf", "GenotypeConcordanceEval.vcf.gz"};
         for (String vcfFile : vcfFiles) {
-            WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG -B:eval,VCF " + validationDataLocation + vcfFile + " -B:comp,VCF " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
+            WalkerTestSpec spec = new WalkerTestSpec(cmdRoot + " -ST CpG -B:eval,VCF3 " + validationDataLocation + vcfFile + " -B:comp,VCF3 " + validationDataLocation + "GenotypeConcordanceComp.vcf -noEV -EV GenotypeConcordance -o %s",
                     1,
                     Arrays.asList("732d32997b19d9c4f0291287858c56d2"));
             executeTestParallel("testVEGenotypeConcordance" + vcfFile, spec);
@@ -388,7 +388,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         HashMap<String, String> expectations = new HashMap<String, String>();
         String extraArgs1 = "-L " + validationDataLocation + "chr1_b36_pilot3.interval_list -family NA19238+NA19239=NA19240 -mvq 30 -EV MendelianViolationEvaluator -ST CpG" +
                 " -B:dbsnp_130,dbSNP " + GATKDataLocation + "dbsnp_130_b36.rod" +
-                " -B:comp_hapmap,VCF " + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
+                " -B:comp_hapmap,VCF3 " + validationDataLocation + "CEU_hapmap_nogt_23.vcf";
 
 
         expectations.put("", "700eba07bac9fba4ed963bbbdcab0e29");
@@ -410,7 +410,7 @@ public class VariantEvalIntegrationTest extends WalkerTest {
 
     @Test
     public void testCompVsEvalAC() {
-        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance -B:evalYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF /humgen/gsa-hpprojects/GATK/data/Validation_Data/yri.trio.gatk.fake.genotypes.ac.test.vcf";
+        String extraArgs = "-T VariantEval -R "+b36KGReference+" -o %s -ST CpG -EV GenotypeConcordance -B:evalYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.ug.very.few.lines.vcf -B:compYRI,VCF3 " + validationDataLocation + "yri.trio.gatk.fake.genotypes.ac.test.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(extraArgs,1,Arrays.asList("e68272d2f3b7a6439c4949cf0e34beeb"));
         executeTestParallel("testCompVsEvalAC",spec);
         //executeTest("testCompVsEvalAC",spec);
