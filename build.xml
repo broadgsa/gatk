@@ -242,7 +242,7 @@
     <target name="gatk.compile" depends="tribble,init,resolve"
             description="compile the source">
         <!-- Compile the java code from ${src} into build -->
-        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies">
+        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
             <exclude name="**/examples/**" />
             <exclude name="**/playground/**" unless="include.playground"/>
             <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
@@ -570,7 +570,7 @@
 
     <target name="test.java.compile" depends="init.buildall,dist,test.init.compile">
         <echo message="Sting: Compiling test cases!"/>
-        <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on">
+        <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
             <src path="${java.test.sources}"/>
             <classpath>
                 <path refid="external.dependencies" />
@@ -642,6 +642,7 @@
                 <jvmarg value="-Xmx${test.maxmemory}" />
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
+                <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
 <!--                 <jvmarg value="-Xdebug"/> -->
 <!--                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/> -->
                 <classpath>
