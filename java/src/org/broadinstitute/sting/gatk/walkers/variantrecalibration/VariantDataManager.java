@@ -118,7 +118,9 @@ public class VariantDataManager {
             }
         }
         logger.info( "Training with " + trainingData.size() + " variants after standard deviation thresholding." );
-        if( trainingData.size() < )
+        if( trainingData.size() < VRAC.MIN_NUM_BAD_VARIANTS ) {
+	    logger.warn("WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable.");
+	}
         return trainingData;
     }
 
