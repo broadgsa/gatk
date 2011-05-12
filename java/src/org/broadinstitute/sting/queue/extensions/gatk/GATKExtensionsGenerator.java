@@ -189,7 +189,8 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
      */
     private static final List<String> gatkPackages = Arrays.asList(
             "org.broadinstitute.sting.gatk",
-            "org.broadinstitute.sting.analyzecovariates");
+            "org.broadinstitute.sting.analyzecovariates",
+            "");
 
     /**
      * Returns true if the class is part of the GATK.
