@@ -1,6 +1,4 @@
-import java.io.{FileReader, BufferedReader}
 import org.broadinstitute.sting.commandline.Hidden
-import org.broadinstitute.sting.datasources.pipeline.Pipeline
 import org.broadinstitute.sting.gatk.walkers.genotyper.{GenotypeLikelihoodsCalculationModel, UnifiedGenotyperEngine}
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.library.ipf.vcf.{VCFSimpleMerge, VCFExtractSites,VCFExtractIntervals}
@@ -8,7 +6,6 @@ import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.baq.BAQ
 import org.broadinstitute.sting.utils.text.XReadLines
-import org.broadinstitute.sting.utils.yaml.YamlUtils
 
 class batchMergePipeline extends QScript {
   batchMerge =>
@@ -34,14 +31,29 @@ class batchMergePipeline extends QScript {
       this.keepQual = false
     }
 
+
+
+    trait CombineVariantsArgs extends CombineVariants {
+      this.reference_sequence = batchMerge.ref
+      this.jarFile = new File(batchMerge.stingDir+"/dist/GenomeAnalysisTK.jar")
+      this.scatterCount = 10
+      this.memoryLimit=4
+    }
+    var combine : CombineVariants = new CombineVariants with CombineVariantsArgs
+    combine.out = swapExt(batchOut,".vcf",".variant.combined.vcf")
+    combine.rodBind ++= vcfs.map( u => new RodBind(u.getName,"vcf",u) )
+
+    add(combine)
+
     var getVariantAlleles : List[VCFExtractSites] = vcfs.map( u => new VCFExtractSites(u, swapExt(batchOut.getParent,u,".vcf",".alleles.vcf")) with ExtractArgs)
     var combineVCFs : VCFSimpleMerge = new VCFSimpleMerge
     combineVCFs.vcfs = getVariantAlleles.map(u => u.outVCF)
     combineVCFs.fai = new File(ref.getAbsolutePath+".fai")
     combineVCFs.outVCF = swapExt(batchOut,".vcf",".pf.alleles.vcf")
-    var extractIntervals : VCFExtractIntervals = new VCFExtractIntervals(combineVCFs.outVCF,swapExt(combineVCFs.outVCF,".vcf",".intervals.list"),true)
-    addAll(getVariantAlleles)
-    add(combineVCFs,extractIntervals)
+    var extractIntervals : VCFExtractIntervals = new VCFExtractIntervals(combine.out,swapExt(combine.out,".vcf",".intervals.list"),true)
+    //addAll(getVariantAlleles)
+    //add(combineVCFs,extractIntervals)
+    add(extractIntervals)
 
     trait CalcLikelihoodArgs extends UGCalcLikelihoods {
       this.reference_sequence = batchMerge.ref
@@ -52,7 +64,7 @@ class batchMergePipeline extends QScript {
         this.baq = BAQ.CalculationMode.CALCULATE_AS_NECESSARY
       }
       this.intervals :+= extractIntervals.listOut
-      this.allelesVCF = combineVCFs.outVCF
+      this.allelesVCF = combine.out
       this.jarFile = new File(stingDir+"/dist/GenomeAnalysisTK.jar")
       this.memoryLimit = 4
       this.scatterCount = 60
@@ -84,20 +96,6 @@ class batchMergePipeline extends QScript {
     cVars.rodBind ++= calcs.map( a => new RodBind("variant"+a.out.getName.replace(".vcf",""),"vcf",a.out) )
     cVars.out = batchOut
     add(cVars)
-
-    trait CombineVariantsArgs extends CombineVariants {
-      this.reference_sequence = batchMerge.ref
-      this.intervals :+= extractIntervals.listOut
-      this.jarFile = new File(batchMerge.stingDir+"/dist/GenomeAnalysisTK.jar")
-      this.scatterCount = 10
-      this.memoryLimit=4
-    }
-
-    var combine : CombineVariants = new CombineVariants with CombineVariantsArgs
-    combine.out = swapExt(batchOut,".vcf",".variant.combined.vcf")
-    combine.rodBind ++= vcfs.map( u => new RodBind(u.getName,"vcf",u) )
-
-    add(combine)
   }
 
   override def extractFileEntries(in: File): List[File] = {
