@@ -4,6 +4,7 @@ import Jama.Matrix;
 import org.apache.commons.math.special.Gamma;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -88,14 +89,24 @@ public class MultivariateGaussian {
         }
     }
 
+    private void precomputeInverse() {
+        try {
+            cachedSigmaInverse = sigma.inverse();
+        } catch( Exception e ) {
+            throw new UserException("Error during clustering. Most likely there are too few variants used during Gaussian mixture modeling.");
+        }
+    }
+
+
     public void precomputeDenominatorForEvaluation() {
-        cachedSigmaInverse = sigma.inverse();
+        precomputeInverse();
         cachedDenomLog10 = Math.log10(Math.pow(2.0 * Math.PI, -1.0 * ((double) mu.length) / 2.0)) + Math.log10(Math.pow(sigma.det(), -0.5)) ;
     }
 
     public void precomputeDenominatorForVariationalBayes( final double sumHyperParameterLambda ) {
+
         // Variational Bayes calculations from Bishop
-        cachedSigmaInverse = sigma.inverse();
+        precomputeInverse();
         cachedSigmaInverse.timesEquals( hyperParameter_a );
         double sum = 0.0;
         for(int jjj = 1; jjj <= mu.length; jjj++) {

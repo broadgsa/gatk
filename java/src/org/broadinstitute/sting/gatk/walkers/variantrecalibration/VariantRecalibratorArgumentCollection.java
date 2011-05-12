@@ -36,4 +36,6 @@ public class VariantRecalibratorArgumentCollection {
     public double PRIOR_COUNTS = 20.0;
     @Argument(fullName="percentBadVariants", shortName="percentBad", doc="What percentage of the worst scoring variants to use when building the Gaussian mixture model of bad variants. 0.07 means bottom 7 percent.", required=false)
     public double PERCENT_BAD_VARIANTS = 0.015;
+    @Argument(fullName="minNumBadVariants", shortName="minNumBad", doc="The minimum amount of worst scoring variants to use when building the Gaussian mixture model of bad variants. Will override -percentBad arugment if necessary.", required=false)
+    public int MIN_NUM_BAD_VARIANTS = 2000;
 }

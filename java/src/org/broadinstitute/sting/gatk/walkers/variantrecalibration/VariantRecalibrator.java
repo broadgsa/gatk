@@ -225,7 +225,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         dataManager.normalizeData(); // Each data point is now (x - mean) / standard deviation
         final GaussianMixtureModel goodModel = engine.generateModel( dataManager.getTrainingData() );
         engine.evaluateData( dataManager.getData(), goodModel, false );
-        final GaussianMixtureModel badModel = engine.generateModel( dataManager.selectWorstVariants( VRAC.PERCENT_BAD_VARIANTS ) );
+        final GaussianMixtureModel badModel = engine.generateModel( dataManager.selectWorstVariants( VRAC.PERCENT_BAD_VARIANTS, VRAC.MIN_NUM_BAD_VARIANTS ) );
         engine.evaluateData( dataManager.getData(), badModel, true );
 
         final ExpandingArrayList<VariantDatum> randomData = dataManager.getRandomDataForPlotting( 6000 );

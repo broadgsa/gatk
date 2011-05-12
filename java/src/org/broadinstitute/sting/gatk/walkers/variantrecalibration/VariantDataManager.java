@@ -118,13 +118,21 @@ public class VariantDataManager {
             }
         }
         logger.info( "Training with " + trainingData.size() + " variants after standard deviation thresholding." );
+        if( trainingData.size() < )
         return trainingData;
     }
 
-    public ExpandingArrayList<VariantDatum> selectWorstVariants( final double bottomPercentage ) {
+    public ExpandingArrayList<VariantDatum> selectWorstVariants( double bottomPercentage, final int minimumNumber ) {
         Collections.sort( data );
         final ExpandingArrayList<VariantDatum> trainingData = new ExpandingArrayList<VariantDatum>();
-        final int numToAdd = Math.round((float)bottomPercentage * data.size());
+        final int numToAdd = Math.max( minimumNumber, Math.round((float)bottomPercentage * data.size()) );
+        if( numToAdd > data.size() ) {
+            throw new UserException.BadInput("Error during negative model training. Minimum number of variants to use in training is larger than the whole call set. One can attempt to lower the --minNumBadVariants arugment but this is unsafe.");
+        }
+        if( numToAdd == minimumNumber ) {
+            logger.warn("WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable.");
+            bottomPercentage = ((float) numToAdd) / ((float) data.size());
+        }
         int index = 0;
         int numAdded = 0;
         while( numAdded < numToAdd ) {

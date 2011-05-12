@@ -48,6 +48,7 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -L 20:1,000,000-40,000,000" +
                         " -an QD -an HaplotypeScore -an HRun" +
                         " -percentBad 0.07" +
+                        " --minNumBadVariants 0" +
                         " --trustAllPolymorphic" + // for speed
                         " -recalFile %s" +
                         " -tranchesFile %s",
