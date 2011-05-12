@@ -54,8 +54,9 @@ class GridEngineJobRunner(val function: CommandLineFunction) extends CommandLine
       // Force the remote environment to inherit local environment settings
       var nativeSpecString: String = "-V"
 
-      // Set the display name to 1024 characters of the description
-      gridEngineJob.setJobName(function.description.take(1024))
+      // Set the display name to < 512 characters of the description
+      // NOTE: Not sure if this is configuration specific?
+      gridEngineJob.setJobName(GridEngineJobRunner.toJobName(function.description.take(500)))
 
       // Set the output file for stdout
       gridEngineJob.setOutputPath(":" + function.jobOutputFile.getPath)
@@ -83,8 +84,9 @@ class GridEngineJobRunner(val function: CommandLineFunction) extends CommandLine
 
       // If the memory limit is set (GB) specify the memory limit
       if (function.memoryLimit.isDefined) {
-        val memLim: String = function.memoryLimit.get + "G"
-        nativeSpecString += " -l mem_free=" + memLim + ",h_vmem=" + memLim
+        val memAvl: String = function.memoryLimit.get + "G"
+        val memMax: String = (function.memoryLimit.get * 1.2 * 1024).ceil.toInt + "M"
+        nativeSpecString += " -l mem_free=" + memAvl + ",h_rss=" + memMax
       }
 
       // If the priority is set (user specified Int) specify the priority
@@ -144,7 +146,9 @@ object GridEngineJobRunner extends Logging {
       try {
         gridEngineSession.init("")
       } catch {
-        case de: DrmaaException => throw new QException("init() failed", de)
+        case de: DrmaaException =>
+          logger.error("Issue initializing Grid Engine", de)
+          throw new QException("init() failed", de)
       }
     }
   }
@@ -232,7 +236,14 @@ object GridEngineJobRunner extends Logging {
     }
   }
 
+  // Reap what we've sown
   override def finalize() {
     gridEngineSession.exit()
+  }
+
+  // Grid Engine disallows certain characters from being in job names.
+  // This replaces all illegal characters with underscores
+  private def toJobName(name: String): String = {
+    name.replaceAll("""[\n\t\r/:@\\*?]""", "_")
   }
 }
