@@ -54,6 +54,23 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         useAlleleFromVCF = UAC.GenotypingMode == GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
     }
 
+    public static VariantContext getSNPVCFromAllelesRod(RefMetaDataTracker tracker, ReferenceContext ref, boolean requireSNP, Logger logger) {
+        VariantContext vc = null;
+
+        // search for usable record
+        for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", null, ref.getLocus(), true, false) ) {
+            if ( vc_input != null && ! vc_input.isFiltered() && (! requireSNP || vc_input.isSNP() )) {
+                if ( vc == null ) {
+                    vc = vc_input;
+                } else {
+                    logger.warn("Multiple valid VCF records detected at site " + ref.getLocus() + ", only considering alleles from first record only");
+                }
+            }
+        }
+
+        return vc;
+    }
+
     public Allele getLikelihoods(RefMetaDataTracker tracker,
                                  ReferenceContext ref,
                                  Map<String, AlignmentContext> contexts,
@@ -73,18 +90,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         if ( alternateAlleleToUse != null ) {
             bestAlternateAllele = alternateAlleleToUse.getBases()[0];
         } else if ( useAlleleFromVCF ) {
-            VariantContext vc = null;
-
-            // search for usable record
-            for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", null, ref.getLocus(), true, false) ) {
-                if ( vc_input != null && ! vc_input.isFiltered() && vc_input.isSNP() ) {
-                    if ( vc == null ) {
-                        vc = vc_input;
-                    } else {
-                        logger.warn("Multiple valid VCF records detected at site " + ref.getLocus() + ", only considering alleles from first record only");
-                    }
-                }
-            }
+            VariantContext vc = getSNPVCFromAllelesRod(tracker, ref, true, logger);
 
             // ignore places where we don't have a variant
             if ( vc == null )
