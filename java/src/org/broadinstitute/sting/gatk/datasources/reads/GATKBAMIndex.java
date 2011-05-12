@@ -44,11 +44,17 @@ import java.util.*;
 
 /**
  * A basic interface for querying BAM indices.
+ * Very much not thread-safe.
  *
  * @author mhanna
  * @version 0.1
  */
 public class GATKBAMIndex {
+    /**
+     * BAM index file magic number.
+     */
+    private static final byte[] BAM_INDEX_MAGIC = "BAI\1".getBytes();
+
     /**
      * Reports the total amount of genomic data that any bin can index.
      */
@@ -66,48 +72,64 @@ public class GATKBAMIndex {
 
     private final File mFile;
 
-    private final List<GATKBin> bins = new ArrayList<GATKBin>();
-    private final LinearIndex linearIndex;
+    /**
+     * Number of sequences stored in this index.
+     */
+    private final int sequenceCount;
 
-    public GATKBAMIndex(final File file, final int referenceSequence) {
+    /**
+     * A cache of the starting positions of the sequences.
+     */
+    private final long[] sequenceStartCache;
+
+    private FileInputStream fileStream;
+    private FileChannel fileChannel;
+
+    public GATKBAMIndex(final File file) {
         mFile = file;
         // Open the file stream.
-
-        FileInputStream fileStream = null;
-        FileChannel fileChannel  = null;
-
-        try {
-            fileStream = new FileInputStream(mFile);
-            fileChannel = fileStream.getChannel();
-        }
-        catch (IOException exc) {
-            throw new RuntimeIOException(exc.getMessage(), exc);
-        }
+        openIndexFile();
 
         // Verify the magic number.
-        seek(fileChannel,0);
-        final byte[] buffer = readBytes(fileChannel,4);
-        if (!Arrays.equals(buffer, GATKBAMFileConstants.BAM_INDEX_MAGIC)) {
+        seek(0);
+        final byte[] buffer = readBytes(4);
+        if (!Arrays.equals(buffer, BAM_INDEX_MAGIC)) {
             throw new RuntimeException("Invalid file header in BAM index " + mFile +
                                        ": " + new String(buffer));
         }
 
-        seek(fileChannel,4);
+        seek(4);
 
-        final int sequenceCount = readInteger(fileChannel);
+        sequenceCount = readInteger();
+
+        // Create a cache of the starting position of each sequence.  Initialize it to -1.
+        sequenceStartCache = new long[sequenceCount];
+        for(int i = 1; i < sequenceCount; i++)
+            sequenceStartCache[i] = -1;
+
+        // Seed the first element in the array with the current position.
+        if(sequenceCount > 0)
+            sequenceStartCache[0] = position();
+
+        closeIndexFile();
+    }
+
+    public GATKBAMIndexData readReferenceSequence(final int referenceSequence) {
+        openIndexFile();
 
         if (referenceSequence >= sequenceCount)
             throw new ReviewedStingException("Invalid sequence number " + referenceSequence);
 
-        skipToSequence(fileChannel,referenceSequence);
+        skipToSequence(referenceSequence);
 
-        int binCount = readInteger(fileChannel);
+        int binCount = readInteger();
+        List<GATKBin> bins = new ArrayList<GATKBin>();
         for (int binNumber = 0; binNumber < binCount; binNumber++) {
-            final int indexBin = readInteger(fileChannel);
-            final int nChunks = readInteger(fileChannel);
+            final int indexBin = readInteger();
+            final int nChunks = readInteger();
 
             List<GATKChunk> chunks = new ArrayList<GATKChunk>(nChunks);
-            long[] rawChunkData = readLongs(fileChannel,nChunks*2);
+            long[] rawChunkData = readLongs(nChunks*2);
             for (int ci = 0; ci < nChunks; ci++) {
                 final long chunkBegin = rawChunkData[ci*2];
                 final long chunkEnd = rawChunkData[ci*2+1];
@@ -120,18 +142,14 @@ public class GATKBAMIndex {
             bins.set(indexBin,bin);
         }
 
-        final int nLinearBins = readInteger(fileChannel);
-        long[] linearIndexEntries = readLongs(fileChannel,nLinearBins);
+        final int nLinearBins = readInteger();
+        long[] linearIndexEntries = readLongs(nLinearBins);
 
-        linearIndex = new LinearIndex(referenceSequence,0,linearIndexEntries);
+        LinearIndex linearIndex = new LinearIndex(referenceSequence,0,linearIndexEntries);
 
-        try {
-            fileChannel.close();
-            fileStream.close();
-        }
-        catch (IOException exc) {
-            throw new RuntimeIOException(exc.getMessage(), exc);
-        }
+        closeIndexFile();
+
+        return new GATKBAMIndexData(this,referenceSequence,bins,linearIndex);
     }
 
     /**
@@ -204,72 +222,6 @@ public class GATKBAMIndex {
     }
 
     /**
-     * Perform an overlapping query of all bins bounding the given location.
-     * @param bin The bin over which to perform an overlapping query.
-     * @return The file pointers
-     */
-    public GATKBAMFileSpan getSpanOverlapping(final Bin bin) {
-        if(bin == null)
-            return null;
-
-        GATKBin gatkBin = new GATKBin(bin);
-
-        final int binLevel = getLevelForBin(bin);
-        final int firstLocusInBin = getFirstLocusInBin(bin);
-
-        // Add the specified bin to the tree if it exists.
-        List<GATKBin> binTree = new ArrayList<GATKBin>();
-        if(gatkBin.getBinNumber() < bins.size() && bins.get(gatkBin.getBinNumber()) != null)
-            binTree.add(bins.get(gatkBin.getBinNumber()));
-
-        int currentBinLevel = binLevel;
-        while(--currentBinLevel >= 0) {
-            final int binStart = getFirstBinInLevel(currentBinLevel);
-            final int binWidth = getMaxAddressibleGenomicLocation()/getLevelSize(currentBinLevel);
-            final int binNumber = firstLocusInBin/binWidth + binStart;
-            if(binNumber < bins.size() && bins.get(binNumber) != null)
-                binTree.add(bins.get(binNumber));
-        }
-
-        List<GATKChunk> chunkList = new ArrayList<GATKChunk>();
-        for(GATKBin coveringBin: binTree) {
-            for(GATKChunk chunk: coveringBin.getChunkList())
-                chunkList.add(chunk.clone());
-        }
-
-        final int start = getFirstLocusInBin(bin);
-        chunkList = optimizeChunkList(chunkList,linearIndex.getMinimumOffset(start));
-        return new GATKBAMFileSpan(chunkList.toArray(new GATKChunk[chunkList.size()]));
-    }
-
-    protected List<GATKChunk> optimizeChunkList(final List<GATKChunk> chunks, final long minimumOffset) {
-        GATKChunk lastChunk = null;
-        Collections.sort(chunks);
-        final List<GATKChunk> result = new ArrayList<GATKChunk>();
-        for (final GATKChunk chunk : chunks) {
-            if (chunk.getChunkEnd() <= minimumOffset) {
-                continue;               // linear index optimization
-            }
-            if (result.isEmpty()) {
-                result.add(chunk);
-                lastChunk = chunk;
-                continue;
-            }
-            // Coalesce chunks that are in adjacent file blocks.
-            // This is a performance optimization.
-            if (!lastChunk.overlaps(chunk) && !lastChunk.isAdjacentTo(chunk)) {
-                result.add(chunk);
-                lastChunk = chunk;
-            } else {
-                if (chunk.getChunkEnd() > lastChunk.getChunkEnd()) {
-                    lastChunk.setChunkEnd(chunk.getChunkEnd());
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
      * Gets the possible number of bins for a given reference sequence.
      * @return How many bins could possibly be used according to this indexing scheme to index a single contig.
      */
@@ -277,51 +229,84 @@ public class GATKBAMIndex {
         return BIN_GENOMIC_SPAN;
     }    
 
-    protected void skipToSequence(final FileChannel fileChannel, final int sequenceIndex) {
-        for (int i = 0; i < sequenceIndex; i++) {
+    protected void skipToSequence(final int referenceSequence) {
+        // Find the offset in the file of the last sequence whose position has been determined.  Start here
+        // when searching the sequence for the next value to read.  (Note that sequenceStartCache[0] will always
+        // be present, so no extra stopping condition is necessary.
+        int sequenceIndex = referenceSequence;
+        while(sequenceStartCache[sequenceIndex] == -1)
+            sequenceIndex--;
+
+        // Advance to the most recently found position.
+        seek(sequenceStartCache[sequenceIndex]);
+
+        for (int i = sequenceIndex; i < referenceSequence; i++) {
+            sequenceStartCache[i] = position();
+
             // System.out.println("# Sequence TID: " + i);
-            final int nBins = readInteger(fileChannel);
+            final int nBins = readInteger();
             // System.out.println("# nBins: " + nBins);
             for (int j = 0; j < nBins; j++) {
-                final int bin = readInteger(fileChannel);
-                final int nChunks = readInteger(fileChannel);
+                final int bin = readInteger();
+                final int nChunks = readInteger();
                 // System.out.println("# bin[" + j + "] = " + bin + ", nChunks = " + nChunks);
-                skipBytes(fileChannel, 16 * nChunks);
+                skipBytes(16 * nChunks);
             }
-            final int nLinearBins = readInteger(fileChannel);
+            final int nLinearBins = readInteger();
             // System.out.println("# nLinearBins: " + nLinearBins);
-            skipBytes(fileChannel, 8 * nLinearBins);
+            skipBytes(8 * nLinearBins);
+        }
+
+        sequenceStartCache[referenceSequence] = position();
+    }
+
+    private void openIndexFile() {
+        try {
+            fileStream = new FileInputStream(mFile);
+            fileChannel = fileStream.getChannel();
+        }
+        catch (IOException exc) {
+            throw new ReviewedStingException("Unable to open index file " + mFile, exc);            
+        }
+    }
+
+    private void closeIndexFile() {
+        try {
+            fileChannel.close();
+            fileStream.close();
+        }
+        catch (IOException exc) {
+            throw new ReviewedStingException("Unable to close index file " + mFile, exc);
         }
     }
 
     private static final int INT_SIZE_IN_BYTES = Integer.SIZE / 8;
     private static final int LONG_SIZE_IN_BYTES = Long.SIZE / 8;
 
-    private byte[] readBytes(final FileChannel fileChannel, int count) {
+    private byte[] readBytes(int count) {
         ByteBuffer buffer = getBuffer(count);
-        read(fileChannel,buffer);
+        read(buffer);
         buffer.flip();
         byte[] contents = new byte[count];
         buffer.get(contents);
         return contents;
     }
 
-    private int readInteger(final FileChannel fileChannel) {
+    private int readInteger() {
         ByteBuffer buffer = getBuffer(INT_SIZE_IN_BYTES);
-        read(fileChannel,buffer);
+        read(buffer);
         buffer.flip();
         return buffer.getInt();
     }
 
     /**
      * Reads an array of <count> longs from the file channel, returning the results as an array.
-     * @param fileChannel The file backing the schedule.
      * @param count Number of longs to read.
      * @return An array of longs.  Size of array should match count.
      */
-    private long[] readLongs(final FileChannel fileChannel, final int count) {
+    private long[] readLongs(final int count) {
         ByteBuffer buffer = getBuffer(count*LONG_SIZE_IN_BYTES);
-        read(fileChannel,buffer);
+        read(buffer);
         buffer.flip();
         long[] result = new long[count];
         for(int i = 0; i < count; i++)
@@ -329,7 +314,7 @@ public class GATKBAMIndex {
         return result;
     }
 
-    private void read(final FileChannel fileChannel, final ByteBuffer buffer) {
+    private void read(final ByteBuffer buffer) {
         try {
             fileChannel.read(buffer);
         }
@@ -356,7 +341,7 @@ public class GATKBAMIndex {
         return buffer;
     }
 
-    private void skipBytes(final FileChannel fileChannel, final int count) {
+    private void skipBytes(final int count) {
         try {
             fileChannel.position(fileChannel.position() + count);
         }
@@ -365,7 +350,7 @@ public class GATKBAMIndex {
         }
     }
 
-    private void seek(final FileChannel fileChannel, final int position) {
+    private void seek(final long position) {
         try {
             fileChannel.position(position);
         }
@@ -373,4 +358,17 @@ public class GATKBAMIndex {
             throw new ReviewedStingException("Index: unable to reposition of file channel.");
         }
     }
+
+    /**
+     * Retrieve the position from the current file channel.
+     * @return position of the current file channel.
+     */
+    private long position() {
+        try {
+            return fileChannel.position();
+        }
+        catch (IOException exc) {
+            throw new ReviewedStingException("Unable to read position from index file " + mFile, exc);
+        }
+    }    
 }

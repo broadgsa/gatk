@@ -85,7 +85,7 @@ public class SAMDataSource {
     /**
      * Store BAM indices for each reader present.
      */
-    private final Map<SAMReaderID,Object> bamIndices = new HashMap<SAMReaderID,Object>();
+    private final Map<SAMReaderID,GATKBAMIndex> bamIndices = new HashMap<SAMReaderID,GATKBAMIndex>();
 
     /**
      * How far along is each reader?
@@ -292,9 +292,8 @@ public class SAMDataSource {
         if(enableLowMemorySharding) {
             for(SAMReaderID id: readerIDs) {
                 File indexFile = findIndexFile(id.samFile);
-                if(indexFile != null) {
-                    bamIndices.put(id,indexFile);
-                }
+                if(indexFile != null)
+                    bamIndices.put(id,new GATKBAMIndex(indexFile));
             }
         }
 
@@ -424,6 +423,9 @@ public class SAMDataSource {
 
     /**
      * Gets the index for a particular reader.  Always preloaded.
+     * TODO: Should return object of type GATKBAMIndex, but cannot because there
+     * TODO: is no parent class of both BAMIndex and GATKBAMIndex.  Change when new
+     * TODO: sharding system goes live.      
      * @param id Id of the reader.
      * @return The index.  Will preload the index if necessary.
      */

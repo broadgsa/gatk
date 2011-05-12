@@ -29,6 +29,7 @@ import net.sf.samtools.SAMSequenceRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.Input;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.datasources.reads.FilePointer;
 import org.broadinstitute.sting.gatk.datasources.reads.LowMemoryIntervalSharder;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
@@ -42,6 +43,7 @@ import org.broadinstitute.sting.utils.text.ListFileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +62,9 @@ public class FindLargeShards extends CommandLineProgram {
 
     @Input(fullName = "intervals", shortName = "L", doc = "A list of genomic intervals over which to operate. Can be explicitly specified on the command line or in a file.",required=false)
     public List<String> intervals = null;
+
+    @Output(required=false)
+    public PrintStream out = System.out;
 
     /**
      * The square of the sum of all uncompressed data.  Based on the BAM spec, the size of this could be
@@ -99,7 +104,7 @@ public class FindLargeShards extends CommandLineProgram {
                 intervalSortedSet.add(genomeLocParser.createGenomeLoc(entry.getSequenceName(),1,entry.getSequenceLength()));
         }
 
-        logger.info(String.format("Calculating mean and variance: Contig\tRegion.Start\tRegion.Stop\tSize"));        
+        logger.info(String.format("PROGRESS: Calculating mean and variance: Contig\tRegion.Start\tRegion.Stop\tSize"));        
 
         LowMemoryIntervalSharder sharder = new LowMemoryIntervalSharder(dataSource,intervalSortedSet);
         while(sharder.hasNext()) {
@@ -115,7 +120,7 @@ public class FindLargeShards extends CommandLineProgram {
 
             if(numberOfShards % 1000 == 0) {
                 GenomeLoc boundingRegion = getBoundingRegion(filePointer,genomeLocParser);
-                logger.info(String.format("Calculating mean and variance: %s\t%d\t%d\t%d",boundingRegion.getContig(),boundingRegion.getStart(),boundingRegion.getStop(),size));
+                logger.info(String.format("PROGRESS: Calculating mean and variance: %s\t%d\t%d\t%d",boundingRegion.getContig(),boundingRegion.getStart(),boundingRegion.getStop(),size));
             }
 
         }
@@ -127,7 +132,9 @@ public class FindLargeShards extends CommandLineProgram {
 
         // Crank through the shards again, this time reporting on the shards significantly larger than the mean.
         long threshold = mean + stddev*5;
-        logger.warn(String.format("Searching for large shards: Contig\tRegion.Start\tRegion.Stop\tSize"));
+        logger.warn(String.format("PROGRESS: Searching for large shards: Contig\tRegion.Start\tRegion.Stop\tSize"));
+        out.printf("Contig\tRegion.Start\tRegion.Stop\tSize%n");
+
         sharder = new LowMemoryIntervalSharder(dataSource,intervalSortedSet);
         while(sharder.hasNext()) {
             FilePointer filePointer = sharder.next();
@@ -142,11 +149,11 @@ public class FindLargeShards extends CommandLineProgram {
 
             if(filePointer.size() <= threshold) {
                 if(numberOfShards % 1000 == 0) 
-                    logger.info(String.format("%s\t%d\t%d\t%d",boundingRegion.getContig(),boundingRegion.getStart(),boundingRegion.getStop(),size));
+                    logger.info(String.format("PROGRESS: Searching for large shards: %s\t%d\t%d\t%d",boundingRegion.getContig(),boundingRegion.getStart(),boundingRegion.getStop(),size));
                 continue;
             }
 
-            logger.warn(String.format("FOUND LARGE SHARD: %s\t%d\t%d\t%d",boundingRegion.getContig(),boundingRegion.getStart(),boundingRegion.getStop(),size));
+            out.printf("%s\t%d\t%d\t%d%n",boundingRegion.getContig(),boundingRegion.getStart(),boundingRegion.getStop(),size);
         }
 
         return 0;

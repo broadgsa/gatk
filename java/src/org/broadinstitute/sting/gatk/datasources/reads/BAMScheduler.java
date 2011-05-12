@@ -47,7 +47,7 @@ import java.util.NoSuchElementException;
 public class BAMScheduler implements Iterator<FilePointer> {
     private final SAMDataSource dataSource;
 
-    private final Map<SAMReaderID, File> indexFiles = new HashMap<SAMReaderID,File>();
+    private final Map<SAMReaderID,GATKBAMIndex> indexFiles = new HashMap<SAMReaderID,GATKBAMIndex>();
 
     private FilePointer nextFilePointer = null;
 
@@ -60,7 +60,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
     public BAMScheduler(final SAMDataSource dataSource, final GenomeLocSortedSet loci) {
         this.dataSource = dataSource;
         for(SAMReaderID reader: dataSource.getReaderIDs())
-            indexFiles.put(reader,(File)dataSource.getIndex(reader));
+            indexFiles.put(reader,(GATKBAMIndex)dataSource.getIndex(reader));
         this.loci = loci;
         locusIterator = new PeekableIterator<GenomeLoc>(loci.iterator());
         if(locusIterator.hasNext())
@@ -184,11 +184,11 @@ public class BAMScheduler implements Iterator<FilePointer> {
 
     /**
      * Get the next overlapping tree of bins associated with the given BAM file.
-     * @param indexFiles BAM index file.
+     * @param indices BAM indices.
      * @param currentLocus The actual locus for which to check overlap.
      * @return The next schedule entry overlapping with the given list of loci.
      */
-    private BAMScheduleEntry getNextOverlappingBAMScheduleEntry(final Map<SAMReaderID,File> indexFiles, final GenomeLoc currentLocus) {
+    private BAMScheduleEntry getNextOverlappingBAMScheduleEntry(final Map<SAMReaderID,GATKBAMIndex> indices, final GenomeLoc currentLocus) {
         // Stale reference sequence or first invocation.  (Re)create the binTreeIterator.
         if(lastReferenceSequenceLoaded == null || lastReferenceSequenceLoaded != currentLocus.getContigIndex()) {
             if(bamScheduleIterator != null)
@@ -202,7 +202,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
                     lociInContig.add(locus);
             }
 
-            bamScheduleIterator = new PeekableIterator<BAMScheduleEntry>(new BAMSchedule(indexFiles,lociInContig));
+            bamScheduleIterator = new PeekableIterator<BAMScheduleEntry>(new BAMSchedule(indices,lociInContig));
         }
 
         if(!bamScheduleIterator.hasNext())
