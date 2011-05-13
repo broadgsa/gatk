@@ -34,8 +34,8 @@ class WholeGenomePipeline extends QScript {
   @Argument(doc="path to tmp space for storing intermediate bam files", shortName="cleanerTmpDir", required=true)
   var cleanerTmpDir: String = _
 
-  @Argument(doc="Flag for running the whole genome (wg), chromosome 20 (chr20) or just the centromere of chromosome 1 (cent1). The default is cent1.", shortName="runType", required=false)
-  var runType = "cent1"
+  @Argument(doc="Flag for running the whole genome (wg) or chromosome 20 (chr20). The default is chr20.", shortName="runType", required=false)
+  var runType = "chr20"
 
   @Argument(doc="Chunk size. Defaults to 3,000,000", shortName="chunk", required=false)
   var chunkSize = 3000000
@@ -56,27 +56,32 @@ class WholeGenomePipeline extends QScript {
     override def toString = toInterval
   }
 
-  val chr1Centromere = new ChrRange("1", 121429168, 121529169)
-
   var runIntervals = List.empty[String]
 
   def script() {
 
+    val rangeMap = Map(
+      "cent1" -> new ChrRange("1", 121429168, 121529168),
+      "cent16" -> new ChrRange("16", 40844464, 40944464),
+      "chr20" -> new ChrRange("20", 1, 63025520),
+      "chr20_100k" -> new ChrRange("20", 100001, 200000))
+
     var ranges = Traversable.empty[ChrRange]
     val chrs = IntervalUtils.getContigSizes(reference)
-    runType match {
-      case "wg" =>
+
+    runType = runType.toLowerCase
+    if (runType == "wg") {
         // use all chromosomes from 1 to their length
         ranges = chrs.map { case (chr, len) => new ChrRange(chr, 1, len.longValue) }
         runIntervals = Nil
-      case "chr20" =>
-        // use chromosome 20 from 1 to its length
-        ranges = chrs.filterKeys(_ == "20").map { case (chr, len) => new ChrRange(chr, 1, len.longValue) }
-        runIntervals = List(ranges.head.toInterval)
-      case "cent1" =>
-        // use chromosome 1 centromere
-        ranges = List(chr1Centromere)
-        runIntervals = List(ranges.head.toInterval)
+    } else {
+      rangeMap.get(runType) match {
+        case Some(range) =>
+          ranges = List(range)
+          runIntervals = List(range.toInterval)
+        case None =>
+          throw new RuntimeException("Inalid runType: " + runType + ". Must be one of: " + rangeMap.keys.mkString(", ") + ", or wg")
+      }
     }
 
     val project = Array(".bams.list", ".bam.list", ".list").foldLeft(bamList.getName)(_.stripSuffix(_))
@@ -93,22 +98,24 @@ class WholeGenomePipeline extends QScript {
 
       while (start <= chrStop) {
         val stop = (start + chunkSize - 1) min chrStop
-        var interval = "%s:%d-%d".format(chr, start, stop)
+
         val chunkBase: String = "chunks/" + project + "." + runType + "_chunk_" + chr + "_" + chunkNumber
         val tmpBase: String = cleanerTmpDir + "/" + chunkBase
 
+        val chunkInterval = "%s:%d-%d".format(chr, start, stop)
+
         val target = new RealignerTargetCreator with CommandLineGATKArgs
-        target.intervalsString :+= interval
+        target.intervalsString = List(chunkInterval)
         target.input_file :+= bamList
         target.mismatchFraction = 0.0
         target.maxIntervalSize = 700
         target.out = tmpBase + ".target.intervals"
-        target.jobOutputFile = chunkBase + ".target.out"
+        target.jobOutputFile = chunkBase + ".target.intervals.out"
         target.isIntermediate = true
         add(target)
 
         val clean = new IndelRealigner with CommandLineGATKArgs
-        clean.intervalsString :+= interval
+        clean.intervalsString = List(chunkInterval)
         clean.input_file :+= bamList
         clean.targetIntervals = target.out
         clean.rodBind :+= RodBind("dbsnp", "VCF", dbsnp)
@@ -116,13 +123,13 @@ class WholeGenomePipeline extends QScript {
         clean.simplifyBAM = true
         clean.bam_compression = 1
         clean.out = tmpBase + ".cleaned.bam"
-        clean.jobOutputFile = chunkBase + ".clean.out"
+        clean.jobOutputFile = chunkBase + ".cleaned.bam.out"
         clean.jobPriority = 51
         clean.isIntermediate = true
         add(clean)
 
         val call = new UnifiedGenotyper with CommandLineGATKArgs
-        call.intervalsString :+= interval
+        call.intervalsString = List(chunkInterval)
         call.input_file :+= clean.out
         call.rodBind :+= RodBind("dbsnp", "VCF", dbsnp)
         call.downsample_to_coverage = 50
@@ -133,7 +140,7 @@ class WholeGenomePipeline extends QScript {
         call.genotype_likelihoods_model = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.BOTH
         call.GSA_PRODUCTION_ONLY = true
         call.out = chunkBase + ".vcf"
-        call.jobOutputFile = chunkBase + ".call.out"
+        call.jobOutputFile = call.out + ".out"
         call.jobPriority = 52
         add(call)
 
@@ -149,15 +156,15 @@ class WholeGenomePipeline extends QScript {
     combineVCFs.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
     combineVCFs.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.PRIORITIZE
     combineVCFs.out = projectBase + ".merged.vcf"
-    combineVCFs.jobOutputFile = projectBase + ".combine.out"
+    combineVCFs.jobOutputFile = combineVCFs.out + ".out"
     combineVCFs.assumeIdenticalSamples = true
     add(combineVCFs)
 
     val sv = new SelectVariants with CommandLineGATKArgs
     sv.selectIndels = true
     sv.rodBind :+= RodBind("variant", "VCF", combineVCFs.out)
-    sv.out = swapExt(combineVCFs.out, ".merged.vcf", ".indels.vcf")
-    sv.jobOutputFile = swapExt(combineVCFs.jobOutputFile, ".combine.out", ".sv.out")
+    sv.out = projectBase + ".indels.vcf"
+    sv.jobOutputFile = sv.out + ".out"
     add(sv)
 
     val filter = new VariantFiltration with CommandLineGATKArgs
@@ -165,7 +172,7 @@ class WholeGenomePipeline extends QScript {
     filter.filterName :+= "HARD_TO_VALIDATE"
     filter.filterExpression :+= "\"MQ0 >= 4 && (MQ0 / (1.0 * DP)) > 0.1\""
     filter.out = swapExt(sv.out, ".vcf", ".filtered.vcf")
-    filter.jobOutputFile = swapExt(sv.jobOutputFile, ".sv.out", ".filter.out")
+    filter.jobOutputFile = filter.out + ".out"
     add(filter)
 
     val recombine = new CombineVariants with CommandLineGATKArgs
@@ -174,28 +181,30 @@ class WholeGenomePipeline extends QScript {
     recombine.rod_priority_list = "indels,all"
     recombine.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.PRIORITIZE
     recombine.out = swapExt(combineVCFs.out, ".vcf", ".filtered.vcf")
-    recombine.jobOutputFile = swapExt(combineVCFs.jobOutputFile, ".combine.out", ".recombine.out")
+    recombine.jobOutputFile = recombine.out + ".out"
     add(recombine)
 
     val vr = new VariantRecalibrator with CommandLineGATKArgs
     vr.rodBind :+= RodBind("input", "VCF", recombine.out)
-    vr.rodBind :+= RodBind("hapmap", "VCF", hapmap, "training=true, prior=3.0")
-    vr.rodBind :+= RodBind("1kg", "VCF", omni, "training=true, prior=3.0")
-    vr.rodBind :+= RodBind("dbsnp", "VCF", dbsnp, "known=true")
+    vr.rodBind :+= RodBind("hapmap", "VCF", hapmap, "known=false,training=true,truth=true,prior=15.0")
+    vr.rodBind :+= RodBind("omni", "VCF", omni, "known=false,training=true,truth=false,prior=12.0")
+    vr.rodBind :+= RodBind("dbsnp", "VCF", dbsnp, "known=true,training=false,truth=false,prior=10.0")
     vr.use_annotation = List("QD", "SB", "HaplotypeScore", "HRun")
     vr.trustAllPolymorphic = true
-    vr.TStranche = List("0.1","0.5","0.75","1.0","1.25","1.35","1.5","1.7","1.8","1.9","2.0","2.1","2.2","2.3","2.5","3.0","5.0","8.0","10.0")
-    vr.tranches_file = swapExt(filter.out, ".merged.filtered.vcf", ".tranches")
-    vr.recal_file = swapExt(filter.out, ".merged.filtered.vcf", "")
-    vr.jobOutputFile = swapExt(combineVCFs.jobOutputFile, ".combine.out", ".cr.out")
+    vr.TStranche = List("100.0", "99.9", "99.5", "99.3", "99.0", "98.9", "98.8", "98.5", "98.4", "98.3", "98.2", "98.1", "98.0", "97.9", "97.8", "97.5", "97.0", "95.0", "90.0")
+    vr.tranches_file = swapExt(filter.out, ".vcf", ".tranches")
+    vr.recal_file = swapExt(filter.out, ".vcf", ".recal")
+    vr.jobOutputFile = vr.recal_file + ".out"
     add(vr)
 
     val ar = new ApplyRecalibration with CommandLineGATKArgs
+    ar.rodBind :+= RodBind("input", "VCF", recombine.out)
     ar.tranches_file = vr.tranches_file
     ar.recal_file = vr.recal_file
+    ar.ts_filter_level = 99.0
     ar.ignore_filter :+= "HARD_TO_VALIDATE"
-    ar.out = swapExt(filter.out, ".vcf", ".recalibrated.vcf")
-    ar.jobOutputFile = swapExt(combineVCFs.jobOutputFile, ".combine.out", ".ar.out")
+    ar.out = swapExt(recombine.out, ".vcf", ".recalibrated.vcf")
+    ar.jobOutputFile = ar.out + ".out"
     add(ar)
 
     val stdEval = new VariantEval with CommandLineGATKArgs
@@ -205,9 +214,9 @@ class WholeGenomePipeline extends QScript {
     stdEval.doNotUseAllStandardStratifications = true
     stdEval.doNotUseAllStandardModules = true
     stdEval.evalModule = List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
-    stdEval.stratificationModule = List("EvalRod", "CompRod", "Novelty")
+    stdEval.stratificationModule = List("EvalRod", "CompRod", "Novelty", "Filter", "FunctionalClass", "Sample")
     stdEval.out = swapExt(ar.out, ".vcf", ".eval")
-    stdEval.jobOutputFile = swapExt(combineVCFs.jobOutputFile, ".combine.out", ".eval.out")
+    stdEval.jobOutputFile = stdEval.out + ".out"
     add(stdEval)
   }
 }
