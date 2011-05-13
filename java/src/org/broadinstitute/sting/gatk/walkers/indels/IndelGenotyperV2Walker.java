@@ -199,6 +199,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
     private long lastGenotypedPosition = -1; // last position on the currentGenotypeInterval, for which a call was already printed;
                                      // can be 1 base before lastGenotyped start
 
+
     // "/humgen/gsa-scr1/GATK_Data/refGene.sorted.txt"
 
     private Set<VCFHeaderLine> getVCFHeaderInfo() {
@@ -211,12 +212,10 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         // FORMAT and INFO fields
 //        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings());
 
+        headerInfo.addAll(VCFIndelAttributes.getAttributeHeaderLines());
         if ( call_somatic ) {
-            headerInfo.addAll(VCFIndelAttributes.getAttributeHeaderLines("N_","In NORMAL: "));
-            headerInfo.addAll(VCFIndelAttributes.getAttributeHeaderLines("T_","In TUMOR: "));
             headerInfo.add(new VCFInfoHeaderLine(VCFConstants.SOMATIC_KEY, 0, VCFHeaderLineType.Flag, "Somatic event"));
         }  else {
-            headerInfo.addAll(VCFIndelAttributes.getAttributeHeaderLines("",""));
         }
 
         // all of the arguments from the argument collection
@@ -602,7 +601,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                         continue; // re-enter the loop to check against the interval we just loaded
                     }
 
-                    // we reach tjis point only if p is inside current genotyping interval; set the flag and bail out:
+                    // we reach this point only if p is inside current genotyping interval; set the flag and bail out:
                     genotype = true;
                     break;
                 }
@@ -1005,19 +1004,22 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         Map<String,Genotype> genotypes = new HashMap<String,Genotype>();
 
         for ( String sample : normalSamples ) {
+
+            Map<String,?> attrs = call.makeStatsAttributes(null);
+
             if ( call.isCall() ) // we made a call - put actual het genotype here:
-                genotypes.put(sample,new Genotype(sample, alleles));
+                genotypes.put(sample,new Genotype(sample,alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrs,false));
             else // no call: genotype is ref/ref (but alleles still contain the alt if we observed anything at all) 
-                genotypes.put(sample,new Genotype(sample, homref_alleles));
+                genotypes.put(sample,new Genotype(sample, homref_alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrs,false));
 
         }
         Set<String> filters = null;
         if ( call.getVariant() != null && ! call.isCall() ) {
             filters = new HashSet<String>();
-            filters.add("NOCALL");
+            filters.add("NoCall");
         }
         VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
-            -1.0 /* log error */,  filters, call.makeStatsAttributes("",null));
+            -1.0 /* log error */,  filters, null);
         vcf.add(vc,refBases[(int)start-1]);
     }
 
@@ -1051,8 +1053,10 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         if ( start == 0 )
             return;
 
-        Map<String,Object> attrs = nCall.makeStatsAttributes("N_",null);
-        attrs = tCall.makeStatsAttributes("T_",attrs);
+        Map<String,Object> attrsNormal = nCall.makeStatsAttributes(null);
+        Map<String,Object> attrsTumor = tCall.makeStatsAttributes(null);
+
+        Map<String,Object> attrs = new HashMap();
 
         boolean isSomatic = false;
         if ( nCall.getCoverage() >= minNormalCoverage && nCall.getVariant() == null && tCall.getVariant() != null ) {
@@ -1090,25 +1094,25 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         Map<String,Genotype> genotypes = new HashMap<String,Genotype>();
 
         for ( String sample : normalSamples ) {
-            genotypes.put(sample,new Genotype(sample, homRefN ? homRefAlleles : alleles,0));
+            genotypes.put(sample,new Genotype(sample, homRefN ? homRefAlleles : alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrsNormal,false));
         }
 
         for ( String sample : tumorSamples ) {
-            genotypes.put(sample,new Genotype(sample, homRefT ? homRefAlleles : alleles,0) );
+            genotypes.put(sample,new Genotype(sample, homRefT ? homRefAlleles : alleles,Genotype.NO_NEG_LOG_10PERROR,null,attrsTumor,false) );
         }
 
         Set<String> filters = null;
         if ( tCall.getVariant() != null && ! tCall.isCall() ) {
             filters = new HashSet<String>();
-            filters.add("NOCALL");
+            filters.add("NoCall");
         }
         if ( nCall.getCoverage() < minNormalCoverage ) {
             if ( filters == null ) filters = new HashSet<String>();
-            filters.add("NCOV");
+            filters.add("NCov");
         }
         if ( tCall.getCoverage() < minCoverage ) {
             if ( filters == null ) filters = new HashSet<String>();
-            filters.add("TCOV");
+            filters.add("TCov");
         }
 
         VariantContext vc = new VariantContext("IGv2_Indel_call", refName, start, stop, alleles, genotypes,
@@ -1160,6 +1164,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             public static enum Type { I, D};
             private String bases;
             private Type type;
+            private ArrayList<Integer> fromStartOffsets = null;
+            private ArrayList<Integer> fromEndOffsets = null;
 
             private Set<ExpandedSAMRecord> reads = new HashSet<ExpandedSAMRecord>(); // keep track of reads that have this indel
             private Set<String> samples = new HashSet<String>();   // which samples had the indel described by this object
@@ -1168,6 +1174,8 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 this.type = type;
                 this.bases = bases.toUpperCase();
                 addObservation(read);
+                fromStartOffsets = new ArrayList<Integer>();
+                fromEndOffsets = new ArrayList<Integer>();
             }
 
             /** Adds another observation for the current indel. It is assumed that the read being registered
@@ -1206,6 +1214,14 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 if ( sample != null )
                 samples.add(sample);
             }
+
+            public void addReadPositions(int fromStart, int fromEnd) {
+                fromStartOffsets.add(fromStart);
+                fromEndOffsets.add(fromEnd);
+            }
+
+            public List<Integer> getOffsetsFromStart() { return fromStartOffsets ; }
+            public List<Integer> getOffsetsFromEnd() { return fromEndOffsets; }
 
             public String getSamples() {
                 StringBuffer sb = new StringBuffer();
@@ -1282,6 +1298,11 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         private PrimitivePair.Int consensus_indel_read_orientation_cnt = new PrimitivePair.Int();
         private PrimitivePair.Int all_indel_read_orientation_cnt = new PrimitivePair.Int();
         private PrimitivePair.Int all_read_orientation_cnt = new PrimitivePair.Int();
+
+        private int from_start_median = 0;
+        private int from_start_mad = 0;
+        private int from_end_median = 0;
+        private int from_end_mad = 0;
 
         /** Makes an empty call (no-call) with all stats set to 0
          *
@@ -1388,6 +1409,43 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 //         }
 
             }
+
+            // compute median/mad for offsets from the read starts/ends
+            if ( consensus_indel != null ) {
+                from_start_median = median(consensus_indel.getOffsetsFromStart()) ;
+                from_start_mad = mad(consensus_indel.getOffsetsFromStart(),from_start_median);
+                from_end_median = median(consensus_indel.getOffsetsFromEnd()) ;
+                from_end_mad = mad(consensus_indel.getOffsetsFromEnd(),from_end_median);   
+            }
+        }
+
+        /** As a side effect will sort l!
+         *
+         * @param l
+         * @return
+         */
+        private int median(List<Integer> l) {
+            Collections.sort(l);
+            int k = l.size()/2;
+            return ( l.size() % 2 == 0 ?
+                  (l.get(k-1).intValue()+l.get(k).intValue())/2 :
+                   l.get(k).intValue());
+        }
+
+        private int median(int[] l) {
+            Arrays.sort(l);
+            int k = l.length/2;
+            return ( l.length % 2 == 0 ?
+                  (l[k-1]+l[k])/2 :
+                   l[k]);
+        }
+
+        private int mad(List<Integer> l, int med) {
+            int [] diff = new int[l.size()];
+            for ( int i = 0; i < l.size(); i++ ) {
+                   diff[i] = Math.abs(l.get(i).intValue() - med);
+            }
+            return median(diff);
         }
 
         public long getPosition() { return pos; }
@@ -1589,40 +1647,51 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
              PrimitivePair.Int strand_ref = getRefStrandCounts();
              message.append('\t');
              message.append(prefix+"STRAND_COUNTS[C/C/R/R]:"+strand_cons.first+"/"+strand_cons.second+"/"+strand_ref.first+"/"+strand_ref.second);
+
+             message.append('\t');
+             message.append(prefix+"OFFSET_RSTART:"+from_start_median+"/"+from_start_mad);
+             message.append('\t');
+             message.append(prefix+"OFFSET_REND:"+from_end_median+"/"+from_end_mad);
+
              return message.toString();
+
          }
 
         /**
          * Places alignment statistics into attribute map and returns the map. If attr parameter is null,
          * a new map is allocated, filled and returned. If attr is not null, new attributes are added to that
          * preexisting map, and the same instance of the (updated) map is returned.
-         * @param prefix
+         *
          * @param attr
          * @return
          */
-        public Map<String,Object> makeStatsAttributes(String prefix, Map<String,Object> attr) {
+        public Map<String,Object> makeStatsAttributes(Map<String,Object> attr) {
              if ( attr == null ) attr = new HashMap<String, Object>();
 
-             VCFIndelAttributes.recordDepth(prefix,getConsensusVariantCount(),getAllVariantCount(),getCoverage(),attr);
+             VCFIndelAttributes.recordDepth(getConsensusVariantCount(),getAllVariantCount(),getCoverage(),attr);
 
-             VCFIndelAttributes.recordAvMM(prefix,getAvConsensusMismatches(),getAvRefMismatches(),attr);
+             VCFIndelAttributes.recordAvMM(getAvConsensusMismatches(),getAvRefMismatches(),attr);
 
-             VCFIndelAttributes.recordAvMapQ(prefix,getAvConsensusMapq(),getAvRefMapq(),attr);
+             VCFIndelAttributes.recordAvMapQ(getAvConsensusMapq(),getAvRefMapq(),attr);
 
-             VCFIndelAttributes.recordNQSMMRate(prefix,getNQSConsensusMMRate(),getNQSRefMMRate(),attr);
+             VCFIndelAttributes.recordNQSMMRate(getNQSConsensusMMRate(),getNQSRefMMRate(),attr);
 
-             VCFIndelAttributes.recordNQSAvQ(prefix,getNQSConsensusAvQual(),getNQSRefAvQual(),attr);
+             VCFIndelAttributes.recordNQSAvQ(getNQSConsensusAvQual(),getNQSRefAvQual(),attr);
+
+             VCFIndelAttributes.recordOffsetFromStart(from_start_median,from_start_mad,attr);
+
+             VCFIndelAttributes.recordOffsetFromEnd(from_end_median,from_end_mad,attr);
 
              PrimitivePair.Int strand_cons = getConsensusStrandCounts();
              PrimitivePair.Int strand_ref = getRefStrandCounts();
 
-             VCFIndelAttributes.recordStrandCounts(prefix,strand_cons.first,strand_cons.second,strand_ref.first,strand_ref.second,attr);
+             VCFIndelAttributes.recordStrandCounts(strand_cons.first,strand_cons.second,strand_ref.first,strand_ref.second,attr);
              return attr;
          }
     }
 
     interface IndelListener {
-        public void addObservation(int pos, IndelVariant.Type t, String bases, ExpandedSAMRecord r);
+        public void addObservation(int pos, IndelVariant.Type t, String bases, int fromStart, int fromEnd, ExpandedSAMRecord r);
     }
 
     class WindowContext implements IndelListener {
@@ -1751,7 +1820,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 reads.add(er);
             }
 
-            public void addObservation(int pos, IndelVariant.Type type, String bases, ExpandedSAMRecord rec) {
+            public void addObservation(int pos, IndelVariant.Type type, String bases, int fromStart, int fromEnd, ExpandedSAMRecord rec) {
                 List<IndelVariant> indelsAtSite;
                 try {
                     indelsAtSite = indels.get(pos);
@@ -1770,19 +1839,20 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                     indels.set(pos, indelsAtSite);
                 }
 
-                boolean found = false;
+                IndelVariant indel = null;
                 for ( IndelVariant v : indelsAtSite ) {
                     if ( ! v.equals(type, bases) ) continue;
 
-                    v.addObservation(rec);
-                    found = true;
+                    indel = v;
+                    indel.addObservation(rec);
                     break;
                 }
                 
-                if ( ! found ) {
-                    IndelVariant v = new IndelVariant(rec, type, bases);
-                    indelsAtSite.add(v);
+                if ( indel == null ) {  // not found:
+                    indel = new IndelVariant(rec, type, bases);
+                    indelsAtSite.add(indel);
                 }
+                indel.addReadPositions(fromStart,fromEnd);
             }
 
             public List<IndelVariant> indelsAt( final long refPos ) {
@@ -1818,9 +1888,30 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
             Cigar c = read.getCigar();
             final int nCigarElems = c.numCigarElements();
 
+
+            int readLength = 0; // length of the aligned part of the read NOT counting clipped bases
+            for ( CigarElement cel : c.getCigarElements() ) {
+
+                switch(cel.getOperator()) {
+                case H:
+                case S:
+                case D:
+                case N:
+                case P:
+                    break; // do not count gaps or clipped bases
+                case I:
+                case M:
+                    readLength += cel.getLength();
+                    break; // advance along the gapless block in the alignment
+                default :
+                    throw new IllegalArgumentException("Unexpected operator in cigar string: "+cel.getOperator());
+                }
+            }
+
+            int fromStart = 0;
             int posOnRead = 0;
             int posOnRef = 0; // the chunk of reference ref[] that we have access to is aligned with the read:
-                              // its start on the actual full reference contig is r.getAlignmentStart()
+                                  // its start on the actual full reference contig is r.getAlignmentStart()
             for ( int i = 0 ; i < nCigarElems ; i++ ) {
 
                 final CigarElement ce = c.getCigarElement(i);
@@ -1854,6 +1945,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                         }
                         expanded_quals[posOnRef] = read.getBaseQualities()[posOnRead];
                     }
+                    fromStart += ce.getLength();
                     break; // advance along the gapless block in the alignment
                 default :
                     throw new IllegalArgumentException("Unexpected operator in cigar string: "+ce.getOperator());
@@ -1867,7 +1959,13 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
                 // note that here we will be assigning indels to the first deleted base or to the first
                 // base after insertion, not to the last base before the event!
-                l.addObservation((int)(offset+eventPosition), type, indel_bases, this);
+                int fromEnd = readLength - fromStart;
+                if ( type == IndelVariant.Type.I ) fromEnd -= ce.getLength();
+
+                l.addObservation((int)(offset+eventPosition), type, indel_bases, fromStart, fromEnd, this);
+
+                if ( type == IndelVariant.Type.I ) fromStart += ce.getLength();
+
             }
         }
 
@@ -1894,10 +1992,10 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
 
 class VCFIndelAttributes {
-    public static String DEPTH_INDEL_KEY = VCFConstants.ALLELE_COUNT_KEY;
+    public static String ALLELIC_DEPTH_KEY = "AD";
     public static String DEPTH_TOTAL_KEY = VCFConstants.DEPTH_KEY;
 
-    public static String MAPQ_KEY = "MQ";
+    public static String MAPQ_KEY = "MQS";
 
     public static String MM_KEY = "MM";
 
@@ -1906,54 +2004,69 @@ class VCFIndelAttributes {
     public static String NQS_AVQ_KEY = "NQSBQ";
 
     public static String STRAND_COUNT_KEY = "SC";
+    public static String RSTART_OFFSET_KEY = "RStart";
+    public static String REND_OFFSET_KEY = "REnd";
 
-    public static Set<VCFInfoHeaderLine> getAttributeHeaderLines(String prefix, String descr_prefix) {
-        Set<VCFInfoHeaderLine> lines = new HashSet<VCFInfoHeaderLine>();
+    public static Set<? extends VCFHeaderLine> getAttributeHeaderLines() {
+        Set<VCFHeaderLine> lines = new HashSet<VCFHeaderLine>();
 
-        lines.add(new VCFInfoHeaderLine(prefix+DEPTH_INDEL_KEY, 2, VCFHeaderLineType.Integer, descr_prefix+"# of reads supporting consensus indel/any indel at the site"));
-        lines.add(new VCFInfoHeaderLine(prefix+DEPTH_TOTAL_KEY, 1, VCFHeaderLineType.Integer, descr_prefix+"total coverage at the site"));
+        lines.add(new VCFFormatHeaderLine(ALLELIC_DEPTH_KEY, 2, VCFHeaderLineType.Integer, "# of reads supporting consensus indel/reference at the site"));
+        lines.add(new VCFFormatHeaderLine(DEPTH_TOTAL_KEY, 1, VCFHeaderLineType.Integer, "Total coverage at the site"));
 
-        lines.add(new VCFInfoHeaderLine(prefix+MAPQ_KEY, 2, VCFHeaderLineType.Float, descr_prefix+"average mapping quality of consensus indel-supporting reads/reference-supporting reads"));
+        lines.add(new VCFFormatHeaderLine(MAPQ_KEY, 2, VCFHeaderLineType.Float, "Average mapping qualities of consensus indel-supporting reads/reference-supporting reads"));
 
-        lines.add(new VCFInfoHeaderLine(prefix+MM_KEY, 2, VCFHeaderLineType.Float, descr_prefix+"average # of mismatches per consensus indel-supporting read/per reference-supporting read"));
+        lines.add(new VCFFormatHeaderLine(MM_KEY, 2, VCFHeaderLineType.Float, "Average # of mismatches per consensus indel-supporting read/per reference-supporting read"));
 
-        lines.add(new VCFInfoHeaderLine(prefix+NQS_MMRATE_KEY, 2, VCFHeaderLineType.Float, descr_prefix+"Within NQS window: fraction of mismatching bases in consensus indel-supporting reads/in reference-supporting reads"));
+        lines.add(new VCFFormatHeaderLine(NQS_MMRATE_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: fraction of mismatching bases in consensus indel-supporting reads/in reference-supporting reads"));
 
-        lines.add(new VCFInfoHeaderLine(prefix+NQS_AVQ_KEY, 2, VCFHeaderLineType.Float, descr_prefix+"Within NQS window: average quality of bases from consensus indel-supporting reads/from reference-supporting reads"));
+        lines.add(new VCFFormatHeaderLine(NQS_AVQ_KEY, 2, VCFHeaderLineType.Float, "Within NQS window: average quality of bases from consensus indel-supporting reads/from reference-supporting reads"));
 
-        lines.add(new VCFInfoHeaderLine(prefix+STRAND_COUNT_KEY, 4, VCFHeaderLineType.Integer, descr_prefix+"strandness: counts of forward-/reverse-aligned indel-supporting reads / forward-/reverse-aligned reference supporting reads"));
+        lines.add(new VCFFormatHeaderLine(STRAND_COUNT_KEY, 4, VCFHeaderLineType.Integer, "Strandness: counts of forward-/reverse-aligned indel-supporting reads / forward-/reverse-aligned reference supporting reads"));
+
+        lines.add(new VCFFormatHeaderLine(RSTART_OFFSET_KEY, 2, VCFHeaderLineType.Integer, "Median/mad of indel offsets from the starts of the reads"));
+        lines.add(new VCFFormatHeaderLine(REND_OFFSET_KEY, 2, VCFHeaderLineType.Integer, "Median/mad of indel offsets from the ends of the reads"));
 
         return lines;
     }
 
-    public static Map<String,Object> recordStrandCounts(String prefix, int cnt_cons_fwd, int cnt_cons_rev, int cnt_ref_fwd, int cnt_ref_rev, Map<String,Object> attrs) {
-        attrs.put(prefix+STRAND_COUNT_KEY, new Integer[] {cnt_cons_fwd, cnt_cons_rev, cnt_ref_fwd, cnt_ref_rev} );
+    public static Map<String,Object> recordStrandCounts(int cnt_cons_fwd, int cnt_cons_rev, int cnt_ref_fwd, int cnt_ref_rev, Map<String,Object> attrs) {
+        attrs.put(STRAND_COUNT_KEY, new Integer[] {cnt_cons_fwd, cnt_cons_rev, cnt_ref_fwd, cnt_ref_rev} );
         return attrs;
     }
 
-    public static Map<String,Object> recordDepth(String prefix, int cnt_cons, int cnt_indel, int cnt_total, Map<String,Object> attrs) {
-        attrs.put(prefix+DEPTH_INDEL_KEY, new Integer[] {cnt_cons, cnt_indel} );
-        attrs.put(prefix+DEPTH_TOTAL_KEY, cnt_total);
+    public static Map<String,Object> recordDepth(int cnt_cons, int cnt_indel, int cnt_total, Map<String,Object> attrs) {
+        attrs.put(ALLELIC_DEPTH_KEY, new Integer[] {cnt_cons, cnt_indel} );
+        attrs.put(DEPTH_TOTAL_KEY, cnt_total);
         return attrs;
     }
 
-    public static Map<String,Object> recordAvMapQ(String prefix, double cons, double ref, Map<String,Object> attrs) {
-        attrs.put(prefix+MAPQ_KEY, new Float[] {(float)cons, (float)ref} );
+    public static Map<String,Object> recordAvMapQ(double cons, double ref, Map<String,Object> attrs) {
+        attrs.put(MAPQ_KEY, new Float[] {(float)cons, (float)ref} );
         return attrs;
     }
 
-    public static Map<String,Object> recordAvMM(String prefix, double cons, double ref, Map<String,Object> attrs) {
-        attrs.put(prefix+MM_KEY, new Float[] {(float)cons, (float)ref} );
+    public static Map<String,Object> recordAvMM(double cons, double ref, Map<String,Object> attrs) {
+        attrs.put(MM_KEY, new Float[] {(float)cons, (float)ref} );
         return attrs;
     }
 
-    public static Map<String,Object> recordNQSMMRate(String prefix, double cons, double ref, Map<String,Object> attrs) {
-        attrs.put(prefix+NQS_MMRATE_KEY, new Float[] {(float)cons, (float)ref} );
+    public static Map<String,Object> recordNQSMMRate(double cons, double ref, Map<String,Object> attrs) {
+        attrs.put(NQS_MMRATE_KEY, new Float[] {(float)cons, (float)ref} );
         return attrs;
     }
 
-    public static Map<String,Object> recordNQSAvQ(String prefix, double cons, double ref, Map<String,Object> attrs) {
-        attrs.put(prefix+NQS_AVQ_KEY, new Float[] {(float)cons, (float)ref} );
+    public static Map<String,Object> recordNQSAvQ(double cons, double ref, Map<String,Object> attrs) {
+        attrs.put(NQS_AVQ_KEY, new Float[] {(float)cons, (float)ref} );
+        return attrs;
+    }
+
+    public static Map<String,Object> recordOffsetFromStart(int median, int mad, Map<String,Object> attrs) {
+        attrs.put(RSTART_OFFSET_KEY, new Integer[] {median, mad} );
+        return attrs;
+    }
+
+    public static Map<String,Object> recordOffsetFromEnd(int median, int mad, Map<String,Object> attrs) {
+        attrs.put(REND_OFFSET_KEY, new Integer[] {median, mad} );
         return attrs;
     }
 }
