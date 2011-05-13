@@ -52,8 +52,10 @@ public class SWPairwiseAlignment {
     private static final int MSTATE = 0;
     private static final int ISTATE = 1;
     private static final int DSTATE = 2;
+    private static final int CLIP = 3;
 
     private static boolean cutoff = false;
+    private static boolean DO_SOFTCLIP = true;
 
     double[] SW;
 
@@ -276,12 +278,17 @@ public class SWPairwiseAlignment {
         }
 //        System.out.println("  Found max score="+maxscore+" at p1="+p1+ " p2="+p2);
 
+        List<CigarElement> lce = new ArrayList<CigarElement>(5);
+
+        if ( segment_length > 0 && DO_SOFTCLIP ) {
+            lce.add(makeElement(CLIP, segment_length));
+            segment_length = 0;
+        }
 
         // we will be placing all insertions and deletions into sequence b, so the states are named w/regard
         // to that sequence
 
         int state = MSTATE;
-        List<CigarElement> lce = new ArrayList<CigarElement>(5);
 
         int data_offset = p1*(m+1)+p2;  // offset of element [p1][p2]
  //       System.out.println("Backtracking: starts at "+p1+":"+p2+" ("+sw[data_offset]+")");
@@ -331,16 +338,26 @@ public class SWPairwiseAlignment {
 
         // post-process the last segment we are still keeping;
         // NOTE: if reads "overhangs" the ref on the left (i.e. if p2>0) we are counting
-        // those extra bases sticking out of the ref into the first cigar element. For instance,
+        // those extra bases sticking out of the ref into the first cigar element if DO_SOFTCLIP is false;
+        // otherwise they will be softclipped. For instance,
         // if read length is 5 and alignment starts at offset -2 (i.e. read starts before the ref, and only
-        // last 3 bases of the read overlap with/align to the ref), the cigar will be still 5M (and not, e.g.
-        // 2I3M). The consumers need to check for the alignment offset and deal with it properly.
-        lce.add(makeElement(state, segment_length + p2));
-        alignment_offset = p1 - p2;
+        // last 3 bases of the read overlap with/align to the ref), the cigar will be still 5M if
+        // DO_SOFTCLIP is false or 2S3M if DO_SOFTCLIP is true.
+        // The consumers need to check for the alignment offset and deal with it properly.
+        if (DO_SOFTCLIP ) {
+            lce.add(makeElement(state, segment_length));
+            if ( p2> 0 ) lce.add(makeElement(CLIP, p2));
+            alignment_offset = p1 ;
+        } else {
+            lce.add(makeElement(state, segment_length + p2));
+            alignment_offset = p1 - p2;
+        }
 
         Collections.reverse(lce);
         alignmentCigar = new Cigar(lce);
+
     }
+
 
     private CigarElement makeElement(int state, int segment_length) {
         CigarOperator o = null;
@@ -348,6 +365,7 @@ public class SWPairwiseAlignment {
             case MSTATE: o = CigarOperator.M; break;
             case ISTATE: o = CigarOperator.I; break;
             case DSTATE: o = CigarOperator.D; break;
+            case CLIP: o = CigarOperator.S; break;
         }
         return new CigarElement(segment_length,o);
     }
@@ -447,25 +465,30 @@ public class SWPairwiseAlignment {
 
         Cigar cigar = a.getCigar();
 
+        if ( ! DO_SOFTCLIP ) {
 
-        if ( offset < 0 ) {
-            for (  ; j < (-offset) ; j++ ) {
-                bread.append((char)read[j]);
-                bref.append(' ');
-                match.append(' ');
-            }
-            // at negative offsets, our cigar's first element carries overhanging bases
-            // that we have just printed above. Tweak the first element to
-            // exclude those bases. Here we create a new list of cigar elements, so the original
-            // list/original cigar are unchanged (they are unmodifiable anyway!)
+            // we need to go through all the hassle below only if we do not do softclipping;
+            // otherwise offset is never negative
+            if ( offset < 0 ) {
+                for (  ; j < (-offset) ; j++ ) {
+                    bread.append((char)read[j]);
+                    bref.append(' ');
+                    match.append(' ');
+                }
+                // at negative offsets, our cigar's first element carries overhanging bases
+                // that we have just printed above. Tweak the first element to
+                // exclude those bases. Here we create a new list of cigar elements, so the original
+                // list/original cigar are unchanged (they are unmodifiable anyway!)
 
-            List<CigarElement> tweaked = new ArrayList<CigarElement>();
-            tweaked.addAll(cigar.getCigarElements());
-            tweaked.set(0,new CigarElement(cigar.getCigarElement(0).getLength()+offset,
+                List<CigarElement> tweaked = new ArrayList<CigarElement>();
+                tweaked.addAll(cigar.getCigarElements());
+                tweaked.set(0,new CigarElement(cigar.getCigarElement(0).getLength()+offset,
                         cigar.getCigarElement(0).getOperator()));
-            cigar = new Cigar(tweaked);
+                cigar = new Cigar(tweaked);
+            }
+        }
 
-        } else {
+        if ( offset > 0 ) { // note: the way this implementation works, cigar will ever start from S *only* if read starts before the ref, i.e. offset = 0
             for (  ; i < a.getAlignmentStart2wrt1() ; i++ ) {
                 bref.append((char)ref[i]);
                 bread.append(' ');
@@ -487,6 +510,13 @@ public class SWPairwiseAlignment {
                         bref.append('-');
                         bread.append((char)read[j]);
                         match.append('I');
+                    }
+                    break;
+                case S :
+                    for ( int z = 0 ; z < e.getLength(); z++, j++ ) {
+                        bref.append(' ');
+                        bread.append((char)read[j]);
+                        match.append('S');
                     }
                     break;
                 case D:
