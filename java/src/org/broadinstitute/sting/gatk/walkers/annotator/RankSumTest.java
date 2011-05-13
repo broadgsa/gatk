@@ -22,7 +22,7 @@ public abstract class RankSumTest implements InfoFieldAnnotation, StandardAnnota
         if ( stratifiedContexts.size() == 0 )
             return null;
          
-        if ( !vc.isBiallelic()  )
+        if ( !vc.isBiallelic() || !vc.isSNP() )
             return null;
         
         final Map<String, Genotype> genotypes = vc.getGenotypes();
