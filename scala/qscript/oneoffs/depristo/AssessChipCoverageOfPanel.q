@@ -47,13 +47,11 @@ class AssessChipCoverageOfPanel extends QScript {
     this.G = List("none")
     this.A :+= "ChromosomeCounts"
     this.nsl = true
+    this.nt = 4
 
     // make sure we have the right intervals
     this.BTIMR = org.broadinstitute.sting.utils.interval.IntervalSetRule.INTERSECTION
   }
-
-  // todo -- include AF from 1000G in annotation
-  // todo -- distance from SNP to nearest chip SNP
 
   class EvalCalls(@Input vcf: File) extends VariantEval with GATKArgs {
     this.o = swapExt(vcf, ".vcf", ".vcf.eval")
@@ -67,23 +65,29 @@ class AssessChipCoverageOfPanel extends QScript {
     this.rodBind :+= RodBind("variant", "VCF", vcf)
     this.rodBind :+= RodBind("compOMNI", "VCF", OMNI_VCF)
     this.rodBind :+= RodBind("compHapMap3", "VCF", HM3_VCF)
+    this.rodBind :+= RodBind("panel", "VCF", panelVCF)
+    this.expression = List("panel.AC", "panel.AN", "panel.AF")
   }
 
-  class MakeTable(@Input vcf: File, @Output table: File) extends VariantsToTable with GATKArgs {
+  class MakeTable(@Input vcf: File) extends VariantsToTable with GATKArgs {
+    @Output val table = new File(swapExt(vcf, ".vcf", ".vcf.table"))
     this.o = table
     this.rodBind :+= RodBind("variants", "VCF", vcf)
     this.allowMissingData = true
-    this.fields = List("CHROM", "POS", "REF", "ALT", "TRANSITION", "HapMap3", "OMNI", "AC", "AN", "AF")
+    this.fields = List("CHROM", "POS", "REF", "ALT", "TRANSITION", "HapMap3",
+      "OMNI", "AC", "AN", "AF", "panel.AC", "panel.AN", "panel.AF")
   }
 
   def script = {
     val genotyped = new File(swapExt(bam, ".bam", "_genotyped_at." + panelVCF.getName).getName)
+    val panelAnnotated = new File(swapExt(panelVCF, ".vcf", ".annotated.vcf"))
     val annotated = new File(swapExt(genotyped, ".vcf", ".annotated.vcf"))
-    val table = new File(swapExt(annotated, ".vcf", ".vcf.table"))
 
     add(new GenotypeBAMAtSites(bam, panelVCF, genotyped))
+    add(new AnnotateCalls(panelVCF, panelAnnotated))
     add(new AnnotateCalls(genotyped, annotated))
     add(new EvalCalls(annotated))
-    add(new MakeTable(annotated, table))
+    add(new MakeTable(annotated))
+    add(new MakeTable(panelAnnotated))
   }
 }
