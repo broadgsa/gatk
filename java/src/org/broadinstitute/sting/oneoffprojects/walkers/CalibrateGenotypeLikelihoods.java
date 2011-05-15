@@ -44,6 +44,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -94,10 +95,10 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
     }
 
     public static class Datum implements Comparable<Datum> {
-        // todo -- add event type (SNP, indel)
         String rgID, sample;
         GenotypeLikelihoods pl;
-        Genotype.Type compType;
+        VariantContext.Type siteType;
+        Genotype.Type genotypeType;
 
         @Override
         public int compareTo(Datum o) {
@@ -106,11 +107,12 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
             return bySample != 0 ? bySample : byRG;
         }
 
-        public Datum(String sample, String rgID, GenotypeLikelihoods pl, Genotype.Type compType) {
+        public Datum(String sample, String rgID, GenotypeLikelihoods pl, VariantContext.Type siteType, Genotype.Type genotypeType) {
             this.sample = sample;
             this.rgID = rgID;
             this.pl = pl;
-            this.compType = compType;
+            this.siteType = siteType;
+            this.genotypeType = genotypeType;
         }
     }
 
@@ -152,6 +154,9 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
         indelEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
     }
 
+    @Override
+    public boolean generateExtendedEvents() { return true; }
+
     //---------------------------------------------------------------------------------------------------------------
     //
     // map
@@ -191,7 +196,7 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
                 Genotype rgGT = call.getGenotype(sample);
 
                 if ( rgGT != null && ! rgGT.isNoCall() && rgGT.getLikelihoods().getAsVector() != null ) {
-                    Datum d = new Datum(sample, rgAC.getKey().getReadGroupId(), rgGT.getLikelihoods(), compGT.getType());
+                    Datum d = new Datum(sample, rgAC.getKey().getReadGroupId(), rgGT.getLikelihoods(), vcComp.getType(), compGT.getType());
                     data.values.add(d);
                 }
             }
@@ -235,15 +240,13 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
 
     @Override
     public void onTraversalDone(Data data) {
-        // todo -- print the event type (SNP, indel)
-
         // print the header
         List<String> pGNames = Arrays.asList("QofAAGivenD", "QofABGivenD", "QofBBGivenD");
-        List<String> fields = Arrays.asList("sample", "rg", "pls", "comp", "pGGivenDType", "pGGivenD");
+        List<String> fields = Arrays.asList("sample", "rg", "siteType", "pls", "comp", "pGGivenDType", "pGGivenD");
         out.println(Utils.join("\t", fields));
 
         double[] counts = new double[]{1, 1, 1};
-        for ( Datum d : data.values ) { counts[d.compType.ordinal()-1]++; }
+        for ( Datum d : data.values ) { counts[d.genotypeType.ordinal()-1]++; }
         double sum = MathUtils.sum(counts);
         logger.info(String.format("Types %s %s %s", Genotype.Type.values()[1], Genotype.Type.values()[2], Genotype.Type.values()[3]));
         logger.info(String.format("Counts %.0f %.0f %.0f %.0f", counts[0], counts[1], counts[2], sum));
@@ -257,8 +260,8 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
             for ( int i = 0; i < pGNames.size(); i++ ) {
                 int q = QualityUtils.probToQual(pOfGGivenD[i], Math.pow(10.0, -9.9));
                 if ( q > 1 ) { // tons of 1s, and not interesting
-                    out.printf("%s\t%s\t%s\t%s\t%s\t%d%n",
-                            d.sample, d.rgID, d.pl.getAsString(), d.compType.toString(),
+                    out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%d%n",
+                            d.sample, d.rgID, d.siteType, d.pl.getAsString(), d.genotypeType.toString(),
                             pGNames.get(i), q);
                 }
             }
