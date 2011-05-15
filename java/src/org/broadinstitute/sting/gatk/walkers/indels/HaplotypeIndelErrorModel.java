@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.SAMRecord;
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel;
 import org.broadinstitute.sting.utils.MathUtils;
@@ -37,6 +38,7 @@ import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 public class HaplotypeIndelErrorModel {
@@ -419,7 +421,7 @@ public class HaplotypeIndelErrorModel {
 
     }
 
-    public double[][] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, List<Haplotype> haplotypesInVC){
+    public double[] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, HashMap<Allele,Haplotype> haplotypesInVC){
         double[][] haplotypeLikehoodMatrix = new double[haplotypesInVC.size()][haplotypesInVC.size()];
         double readLikelihoods[][] = new double[pileup.getReads().size()][haplotypesInVC.size()];
         int i=0;
@@ -429,7 +431,8 @@ public class HaplotypeIndelErrorModel {
             }
             // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
             // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
-            for (int j=0; j < haplotypesInVC.size(); j++) {
+            int j=0;
+            for (Allele a: haplotypesInVC.keySet()) {
                 readLikelihoods[i][j]= computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(j), read);
                 if (DEBUG) {
                     System.out.print(read.getReadName()+" ");
@@ -438,7 +441,7 @@ public class HaplotypeIndelErrorModel {
                             read.getUnclippedStart(), read.getAlignmentEnd(), read.getUnclippedEnd(),
                             read.getCigarString(), readLikelihoods[i][j]);
                 }
-
+                j++;
             }
             i++;
         }
@@ -465,11 +468,11 @@ public class HaplotypeIndelErrorModel {
             }
         }
 
-        return haplotypeLikehoodMatrix;
+        return getHaplotypeLikelihoods(haplotypeLikehoodMatrix);
 
     }
 
-    public static double[] getHaplotypeLikelihoods(double[][] haplotypeLikehoodMatrix) {
+    private double[] getHaplotypeLikelihoods(double[][] haplotypeLikehoodMatrix) {
         int hSize = haplotypeLikehoodMatrix.length;
         double[] genotypeLikelihoods = new double[hSize*(hSize+1)/2];
 

@@ -31,9 +31,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class Haplotype {
     protected byte[] bases = null;
@@ -108,11 +106,11 @@ public class Haplotype {
         return isReference;
     }
 
-    public static List<Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref,
+    public static LinkedHashMap<Allele,Haplotype> makeHaplotypeListFromAlleles(List<Allele> alleleList, int startPos, ReferenceContext ref,
                                                                final int haplotypeSize, final int numPrefBases) {
 
 
-        List<Haplotype> haplotypeList = new ArrayList<Haplotype>();
+        LinkedHashMap<Allele,Haplotype> haplotypeMap = new LinkedHashMap<Allele,Haplotype>();
 
         Allele refAllele = null;
 
@@ -153,11 +151,11 @@ public class Haplotype {
             String haplotypeString = new String(basesBeforeVariant) + new String(alleleBases) + new String(basesAfterVariant);
             haplotypeString = haplotypeString.substring(0,haplotypeSize);
 
-           haplotypeList.add(new Haplotype(haplotypeString.getBytes(), locus, a.isReference()));
+           haplotypeMap.put(a,new Haplotype(haplotypeString.getBytes(), locus, a.isReference()));
 
         }
 
-        return haplotypeList;
+        return haplotypeMap;
     }
 
 }

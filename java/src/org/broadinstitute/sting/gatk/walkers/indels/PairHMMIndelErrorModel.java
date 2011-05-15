@@ -29,6 +29,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Covariate;
 import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDataManager;
@@ -41,6 +42,7 @@ import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
@@ -48,9 +50,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 
@@ -697,29 +697,31 @@ public class PairHMMIndelErrorModel {
 
     }
 
-    private void fillGapProbabilities(int hIndex, int[] hrunProfile,
-                                      double[][] contextLogGapOpenProbabilities, double[][] contextLogGapContinuationProbabilities) {
+    private void fillGapProbabilities(int[] hrunProfile,
+                                      double[] contextLogGapOpenProbabilities, double[] contextLogGapContinuationProbabilities) {
         // fill based on lookup table
         for (int i = 0; i < hrunProfile.length; i++) {
             if (hrunProfile[i] >= MAX_HRUN_GAP_IDX) {
-                contextLogGapOpenProbabilities[hIndex][i] = GAP_OPEN_PROB_TABLE[MAX_HRUN_GAP_IDX-1];
-                contextLogGapContinuationProbabilities[hIndex][i] = GAP_CONT_PROB_TABLE[MAX_HRUN_GAP_IDX-1];
+                contextLogGapOpenProbabilities[i] = GAP_OPEN_PROB_TABLE[MAX_HRUN_GAP_IDX-1];
+                contextLogGapContinuationProbabilities[i] = GAP_CONT_PROB_TABLE[MAX_HRUN_GAP_IDX-1];
             }
             else {
-                contextLogGapOpenProbabilities[hIndex][i] = GAP_OPEN_PROB_TABLE[hrunProfile[i]];
-                contextLogGapContinuationProbabilities[hIndex][i] = GAP_CONT_PROB_TABLE[hrunProfile[i]];
+                contextLogGapOpenProbabilities[i] = GAP_OPEN_PROB_TABLE[hrunProfile[i]];
+                contextLogGapContinuationProbabilities[i] = GAP_CONT_PROB_TABLE[hrunProfile[i]];
             }
         }
     }
-    public synchronized double[][] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, List<Haplotype> haplotypesInVC,
-                                                                   ReferenceContext ref, int haplotypeSize, int eventLength){
-        double[][] haplotypeLikehoodMatrix = new double[haplotypesInVC.size()][haplotypesInVC.size()];
-        double readLikelihoods[][] = new double[pileup.getReads().size()][haplotypesInVC.size()];
+    public synchronized double[] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, LinkedHashMap<Allele,Haplotype> haplotypeMap,
+                                                                   ReferenceContext ref, int haplotypeSize, int eventLength,
+                                                                   HashMap<PileupElement, LinkedHashMap<Allele,Double>> indelLikelihoodMap){
+
+        int numHaplotypes = haplotypeMap.size();
+        double[][] haplotypeLikehoodMatrix = new double[numHaplotypes][numHaplotypes];
+        double readLikelihoods[][] = new double[pileup.getReads().size()][numHaplotypes];
         int readIdx=0;
 
-        double[][] contextLogGapOpenProbabilities = null;
-        double[][] contextLogGapContinuationProbabilities = null;
-
+        LinkedHashMap<Allele,double[]> gapOpenProbabilityMap = new LinkedHashMap<Allele,double[]>();
+        LinkedHashMap<Allele,double[]> gapContProbabilityMap = new LinkedHashMap<Allele,double[]>();
 
         if (DEBUG) {
             System.out.println("Reference bases:");
@@ -727,15 +729,15 @@ public class PairHMMIndelErrorModel {
         }
 
         if (doContextDependentPenalties && !getGapPenaltiesFromFile)   {
-            // will context dependent probabilities based on homopolymet run. Probabilities are filled based on total complete haplotypes.
+            // will context dependent probabilities based on homopolymer run. Probabilities are filled based on total complete haplotypes.
 
-            for (int j=0; j < haplotypesInVC.size(); j++) {
-                Haplotype haplotype = haplotypesInVC.get(j);
+
+            for (Allele a: haplotypeMap.keySet()) {
+                Haplotype haplotype = haplotypeMap.get(a);
                 byte[] haplotypeBases = haplotype.getBasesAsBytes();
-                if (contextLogGapOpenProbabilities == null) {
-                    contextLogGapOpenProbabilities = new double[haplotypesInVC.size()][haplotypeBases.length];
-                    contextLogGapContinuationProbabilities = new double[haplotypesInVC.size()][haplotypeBases.length];
-                }
+                double[] contextLogGapOpenProbabilities = new double[haplotypeBases.length];
+                double[] contextLogGapContinuationProbabilities = new double[haplotypeBases.length];
+
                 // get homopolymer length profile for current haplotype
                 int[] hrunProfile = new int[haplotypeBases.length];
                 getContextHomopolymerLength(haplotypeBases,hrunProfile);
@@ -746,239 +748,261 @@ public class PairHMMIndelErrorModel {
                         System.out.format("%d",hrunProfile[i]);
                     System.out.println();
                 }
-                fillGapProbabilities(j, hrunProfile, contextLogGapOpenProbabilities, contextLogGapContinuationProbabilities);
+                fillGapProbabilities(hrunProfile, contextLogGapOpenProbabilities, contextLogGapContinuationProbabilities);
+
+                gapOpenProbabilityMap.put(a,contextLogGapOpenProbabilities);
+                gapContProbabilityMap.put(a,contextLogGapContinuationProbabilities);
 
             }
         }
-        for (SAMRecord pread : pileup.getReads()) {
-            GATKSAMRecord read = ReadUtils.hardClipAdaptorSequence(pread);
-            if (read == null)
-                continue;
+        for (PileupElement p: pileup) {
 
-            if(ReadUtils.is454Read(read) && !getGapPenaltiesFromFile) {
-                continue;
-            }
-
-            double[] recalQuals = null;
-            if (getGapPenaltiesFromFile) {
-                RecalDataManager.parseSAMRecord( read, RAC );
-
-
-                recalQuals = new double[read.getReadLength()];
-
-                //compute all covariate values for this read
-                final Comparable[][] covariateValues_offset_x_covar =
-                        RecalDataManager.computeCovariates((GATKSAMRecord) read, requestedCovariates);
-                // For each base in the read
-                for( int offset = 0; offset < read.getReadLength(); offset++ ) {
-
-                    final Object[] fullCovariateKey = covariateValues_offset_x_covar[offset];
-
-                    Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKey);
-                    if(qualityScore == null)
-                    {
-                        qualityScore = performSequentialQualityCalculation( fullCovariateKey );
-                        qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKey);
-                    }
-
-                    recalQuals[offset] = -((double)qualityScore)/10.0;
-                }
-
-                // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
-                // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
-                if (DEBUG)  {
-                    System.out.format("\n\nStarting read:%s S:%d US:%d E:%d UE:%d C:%s\n",read.getReadName(),
-                            read.getAlignmentStart(),
-                            read.getUnclippedStart(), read.getAlignmentEnd(), read.getUnclippedEnd(),
-                            read.getCigarString());
-
-                    byte[] bases = read.getReadBases();
-                    for (int k = 0; k < recalQuals.length; k++) {
-                        System.out.format("%c",bases[k]);
-                    }
-                    System.out.println();
-
-                    for (int k = 0; k < recalQuals.length; k++) {
-                        System.out.format("%.0f ",recalQuals[k]);
-                    }
-                    System.out.println();
-                }
-            }
-            // get bases of candidate haplotypes that overlap with reads
-            final int trailingBases = 3;
-
-            long readStart = read.getUnclippedStart();
-            long readEnd = read.getUnclippedEnd();
-
-            int numStartSoftClippedBases, numEndSoftClippedBases;
-
-            // see if we want to use soft clipped bases. Aligners may soft clip all bases at insertions because they don't match,
-            // but they're actually consistent with the insertion!
-            // Rule: if a read starts in interval [eventStart-eventLength,eventStart+1] and we are at an insertion, we'll use all soft clipped bases at the beginning.
-            // Conversely, if a read ends at [eventStart,eventStart+eventLength] we'll use all soft clipped bases in the end of the read.
-            long eventStartPos = ref.getLocus().getStart();
-
-            // compute total number of clipped bases (soft or hard clipped)
-            numStartSoftClippedBases = read.getAlignmentStart()- read.getUnclippedStart();
-            numEndSoftClippedBases = read.getUnclippedEnd()- read.getAlignmentEnd();
-
-            // check for hard clips (never consider these bases):
-/*            Cigar c = read.getCigar();
-            CigarElement first = c.getCigarElement(0);
-            CigarElement last = c.getCigarElement(c.numCigarElements()-1);
-            int numStartHardClippedBases = 0, numEndHardClippedBases = 0;
-
-            if (first.getOperator() == CigarOperator.H) {
-                numStartHardClippedBases = first.getLength();
-            }
-
-            if (last.getOperator() == CigarOperator.H) {
-                numEndHardClippedBases = last.getLength();
-            }
-
-            // correct for hard clips
-            numStartSoftClippedBases -= numStartHardClippedBases;
-            numEndSoftClippedBases -= numEndHardClippedBases;
-            readStart += numStartHardClippedBases;
-            readEnd -= numEndHardClippedBases;
- */
-            // remove soft clips if necessary
-            if ((read.getAlignmentStart()>=eventStartPos-eventLength && read.getAlignmentStart() <= eventStartPos+1) ||
-                    (read.getAlignmentEnd() >= eventStartPos && read.getAlignmentEnd() <= eventStartPos + eventLength)) {
-                numStartSoftClippedBases = 0;
-                numEndSoftClippedBases = 0;
-            }
-
-
-
-            byte[] unclippedReadBases, unclippedReadQuals;
-
-            int numStartClippedBases = numStartSoftClippedBases;
-            int numEndClippedBases = numEndSoftClippedBases;
-            unclippedReadBases = read.getReadBases();
-            unclippedReadQuals = read.getBaseQualities();
-
-            // Do a stricter base clipping than provided by CIGAR string, since this one may be too conservative,
-            // and may leave a string of Q2 bases still hanging off the reads.
-            for (int i=numStartSoftClippedBases; i < unclippedReadBases.length; i++) {
-                if (unclippedReadQuals[i] < BASE_QUAL_THRESHOLD)
-                    numStartClippedBases++;
-                else
-                    break;
-
-            }
-            for (int i=unclippedReadBases.length-numEndSoftClippedBases-1; i >= 0; i-- ){
-                if (unclippedReadQuals[i] < BASE_QUAL_THRESHOLD)
-                    numEndClippedBases++;
-                else
-                    break;
-            }
-
-            int extraOffset = Math.abs(eventLength);
-
-            long start = Math.max(readStart + numStartClippedBases - trailingBases - ReadUtils.getFirstInsertionOffset(read)-extraOffset, 0);
-            long stop =  readEnd -numEndClippedBases  + trailingBases + ReadUtils.getLastInsertionOffset(read)+extraOffset;
-
-            // Variables start and stop are coordinates (inclusive) where we want to get the haplotype from.
-            int readLength = read.getReadLength()-numStartSoftClippedBases-numEndSoftClippedBases;
-            // check if start of read will be before start of reference context
-            if (start < ref.getWindow().getStart())// read starts before haplotype: read will have to be cut
-                start = ref.getWindow().getStart();
-
-            // check also if end of read will go beyond reference context
-            if (stop > ref.getWindow().getStop())
-                stop = ref.getWindow().getStop();
-
-            // if there's an insertion in the read, the read stop position will be less than start + read legnth,
-            // but we want to compute likelihoods in the whole region that a read might overlap
-            if (stop <= start + readLength) {
-                stop = start + readLength-1;
-            }
-
-            // ok, we now figured out total number of clipped bases on both ends.
-            // Figure out where we want to place the haplotype to score read against
-            if (DEBUG)
-                System.out.format("numStartClippedBases: %d numEndClippedBases: %d WinStart:%d WinStop:%d start: %d stop: %d readLength: %d\n",
-                        numStartClippedBases, numEndClippedBases, ref.getWindow().getStart(), ref.getWindow().getStop(), start, stop, read.getReadLength());
-
-
-
-            if (numStartClippedBases + numEndClippedBases >= unclippedReadBases.length) {
-                if (DEBUG)
-                    System.out.println("BAD READ!!");
-
-                for (int j=0; j < haplotypesInVC.size(); j++) {
-                    readLikelihoods[readIdx][j]= 0;
+            // check if we've already computed likelihoods for this pileup element (i.e. for this read at this location)
+            if (indelLikelihoodMap.containsKey(p)) {
+                HashMap<Allele,Double> el =  indelLikelihoodMap.get(p);
+                int j=0;
+                for (Allele a: haplotypeMap.keySet()) {
+                    readLikelihoods[readIdx][j++] = el.get(a);
                 }
             }
             else {
-                byte[] readBases = Arrays.copyOfRange(unclippedReadBases,numStartClippedBases,
-                        unclippedReadBases.length-numEndClippedBases);
+                GATKSAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
+                if (read == null)
+                    continue;
 
-                byte[] readQuals = Arrays.copyOfRange(unclippedReadQuals,numStartClippedBases,
-                        unclippedReadBases.length-numEndClippedBases);
+                if(ReadUtils.is454Read(read) && !getGapPenaltiesFromFile) {
+                    continue;
+                }
 
-                double[] recalCDP = null;
+                double[] recalQuals = null;
+
+
                 if (getGapPenaltiesFromFile) {
-                    recalCDP = Arrays.copyOfRange(recalQuals,numStartClippedBases,
+                    RecalDataManager.parseSAMRecord( read, RAC );
+
+
+                    recalQuals = new double[read.getReadLength()];
+
+                    //compute all covariate values for this read
+                    final Comparable[][] covariateValues_offset_x_covar =
+                            RecalDataManager.computeCovariates((GATKSAMRecord) read, requestedCovariates);
+                    // For each base in the read
+                    for( int offset = 0; offset < read.getReadLength(); offset++ ) {
+
+                        final Object[] fullCovariateKey = covariateValues_offset_x_covar[offset];
+
+                        Byte qualityScore = (Byte) qualityScoreByFullCovariateKey.get(fullCovariateKey);
+                        if(qualityScore == null)
+                        {
+                            qualityScore = performSequentialQualityCalculation( fullCovariateKey );
+                            qualityScoreByFullCovariateKey.put(qualityScore, fullCovariateKey);
+                        }
+
+                        recalQuals[offset] = -((double)qualityScore)/10.0;
+                    }
+
+                    // for each read/haplotype combination, compute likelihoods, ie -10*log10(Pr(R | Hi))
+                    // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
+                    if (DEBUG)  {
+                        System.out.format("\n\nStarting read:%s S:%d US:%d E:%d UE:%d C:%s\n",read.getReadName(),
+                                read.getAlignmentStart(),
+                                read.getUnclippedStart(), read.getAlignmentEnd(), read.getUnclippedEnd(),
+                                read.getCigarString());
+
+                        byte[] bases = read.getReadBases();
+                        for (int k = 0; k < recalQuals.length; k++) {
+                            System.out.format("%c",bases[k]);
+                        }
+                        System.out.println();
+
+                        for (int k = 0; k < recalQuals.length; k++) {
+                            System.out.format("%.0f ",recalQuals[k]);
+                        }
+                        System.out.println();
+                    }
+                }
+                // get bases of candidate haplotypes that overlap with reads
+                final int trailingBases = 3;
+
+                long readStart = read.getUnclippedStart();
+                long readEnd = read.getUnclippedEnd();
+
+                int numStartSoftClippedBases, numEndSoftClippedBases;
+
+                // see if we want to use soft clipped bases. Aligners may soft clip all bases at insertions because they don't match,
+                // but they're actually consistent with the insertion!
+                // Rule: if a read starts in interval [eventStart-eventLength,eventStart+1] and we are at an insertion, we'll use all soft clipped bases at the beginning.
+                // Conversely, if a read ends at [eventStart,eventStart+eventLength] we'll use all soft clipped bases in the end of the read.
+                long eventStartPos = ref.getLocus().getStart();
+
+                // compute total number of clipped bases (soft or hard clipped)
+                numStartSoftClippedBases = read.getAlignmentStart()- read.getUnclippedStart();
+                numEndSoftClippedBases = read.getUnclippedEnd()- read.getAlignmentEnd();
+
+                // check for hard clips (never consider these bases):
+    /*            Cigar c = read.getCigar();
+                CigarElement first = c.getCigarElement(0);
+                CigarElement last = c.getCigarElement(c.numCigarElements()-1);
+                int numStartHardClippedBases = 0, numEndHardClippedBases = 0;
+
+                if (first.getOperator() == CigarOperator.H) {
+                    numStartHardClippedBases = first.getLength();
+                }
+
+                if (last.getOperator() == CigarOperator.H) {
+                    numEndHardClippedBases = last.getLength();
+                }
+
+                // correct for hard clips
+                numStartSoftClippedBases -= numStartHardClippedBases;
+                numEndSoftClippedBases -= numEndHardClippedBases;
+                readStart += numStartHardClippedBases;
+                readEnd -= numEndHardClippedBases;
+      */
+                // remove soft clips if necessary
+                if ((read.getAlignmentStart()>=eventStartPos-eventLength && read.getAlignmentStart() <= eventStartPos+1) ||
+                        (read.getAlignmentEnd() >= eventStartPos && read.getAlignmentEnd() <= eventStartPos + eventLength)) {
+                    numStartSoftClippedBases = 0;
+                    numEndSoftClippedBases = 0;
+                }
+
+
+
+                byte[] unclippedReadBases, unclippedReadQuals;
+
+                int numStartClippedBases = numStartSoftClippedBases;
+                int numEndClippedBases = numEndSoftClippedBases;
+                unclippedReadBases = read.getReadBases();
+                unclippedReadQuals = read.getBaseQualities();
+
+                // Do a stricter base clipping than provided by CIGAR string, since this one may be too conservative,
+                // and may leave a string of Q2 bases still hanging off the reads.
+                for (int i=numStartSoftClippedBases; i < unclippedReadBases.length; i++) {
+                    if (unclippedReadQuals[i] < BASE_QUAL_THRESHOLD)
+                        numStartClippedBases++;
+                    else
+                        break;
+
+                }
+                for (int i=unclippedReadBases.length-numEndSoftClippedBases-1; i >= 0; i-- ){
+                    if (unclippedReadQuals[i] < BASE_QUAL_THRESHOLD)
+                        numEndClippedBases++;
+                    else
+                        break;
+                }
+
+                int extraOffset = Math.abs(eventLength);
+
+                long start = Math.max(readStart + numStartClippedBases - trailingBases - ReadUtils.getFirstInsertionOffset(read)-extraOffset, 0);
+                long stop =  readEnd -numEndClippedBases  + trailingBases + ReadUtils.getLastInsertionOffset(read)+extraOffset;
+
+                // Variables start and stop are coordinates (inclusive) where we want to get the haplotype from.
+                int readLength = read.getReadLength()-numStartSoftClippedBases-numEndSoftClippedBases;
+                // check if start of read will be before start of reference context
+                if (start < ref.getWindow().getStart())// read starts before haplotype: read will have to be cut
+                    start = ref.getWindow().getStart();
+
+                // check also if end of read will go beyond reference context
+                if (stop > ref.getWindow().getStop())
+                    stop = ref.getWindow().getStop();
+
+                // if there's an insertion in the read, the read stop position will be less than start + read legnth,
+                // but we want to compute likelihoods in the whole region that a read might overlap
+                if (stop <= start + readLength) {
+                    stop = start + readLength-1;
+                }
+
+                // ok, we now figured out total number of clipped bases on both ends.
+                // Figure out where we want to place the haplotype to score read against
+                if (DEBUG)
+                    System.out.format("numStartClippedBases: %d numEndClippedBases: %d WinStart:%d WinStop:%d start: %d stop: %d readLength: %d\n",
+                            numStartClippedBases, numEndClippedBases, ref.getWindow().getStart(), ref.getWindow().getStop(), start, stop, read.getReadLength());
+
+
+
+                LinkedHashMap<Allele,Double> readEl = new LinkedHashMap<Allele,Double>();
+
+                if (numStartClippedBases + numEndClippedBases >= unclippedReadBases.length) {
+                    if (DEBUG)
+                        System.out.println("BAD READ!!");
+
+                    int j=0;
+                    for (Allele a: haplotypeMap.keySet()) {
+                        readEl.put(a,0.0);
+                        readLikelihoods[readIdx][j++] = 0.0;
+                    }
+
+                }
+                else {
+                    byte[] readBases = Arrays.copyOfRange(unclippedReadBases,numStartClippedBases,
                             unclippedReadBases.length-numEndClippedBases);
 
-                }
+                    byte[] readQuals = Arrays.copyOfRange(unclippedReadQuals,numStartClippedBases,
+                            unclippedReadBases.length-numEndClippedBases);
 
-                if (DEBUG) {
-                    System.out.println("Read bases:");
-                    System.out.println(new String(readBases));
-                }
+                    double[] recalCDP = null;
+                    if (getGapPenaltiesFromFile) {
+                        recalCDP = Arrays.copyOfRange(recalQuals,numStartClippedBases,
+                                unclippedReadBases.length-numEndClippedBases);
 
-
-                // start and stop have indices into
-
-                for (int j=0; j < haplotypesInVC.size(); j++) {
-                    Haplotype haplotype = haplotypesInVC.get(j);
-
-                    if (stop > haplotype.getStopPosition())
-                        stop = haplotype.getStopPosition();
-
-                    if (start < haplotype.getStartPosition())
-                        start = haplotype.getStartPosition();
-
-                    // cut haplotype bases
-                    long indStart = start - haplotype.getStartPosition();
-                    long indStop =  stop - haplotype.getStartPosition();
-
-                    byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
-                            (int)indStart, (int)indStop);
+                    }
 
                     if (DEBUG) {
-                        System.out.println("Haplotype to test:");
-                        System.out.println(new String(haplotypeBases));
+                        System.out.println("Read bases:");
+                        System.out.println(new String(readBases));
                     }
 
-                    if (useAffineGapModel) {
+                    int j=0;
+                    for (Allele a: haplotypeMap.keySet()) {
 
-                        double[] currentContextGOP = null;
-                        double[] currentContextGCP = null;
 
-                        if (doContextDependentPenalties) {
+                        Haplotype haplotype = haplotypeMap.get(a);
+                        if (stop > haplotype.getStopPosition())
+                            stop = haplotype.getStopPosition();
 
-                           if (getGapPenaltiesFromFile) {
-                               readLikelihoods[readIdx][j]= computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, recalCDP, null);
+                        if (start < haplotype.getStartPosition())
+                            start = haplotype.getStartPosition();
 
-                           }  else {
-                               currentContextGOP = Arrays.copyOfRange(contextLogGapOpenProbabilities[j], (int)indStart, (int)indStop);
-                               currentContextGCP = Arrays.copyOfRange(contextLogGapContinuationProbabilities[j], (int)indStart, (int)indStop);
-                               readLikelihoods[readIdx][j]= computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, currentContextGOP, currentContextGCP);
-                           }
+                        // cut haplotype bases
+                        long indStart = start - haplotype.getStartPosition();
+                        long indStop =  stop - haplotype.getStartPosition();
+
+                        byte[] haplotypeBases = Arrays.copyOfRange(haplotype.getBasesAsBytes(),
+                                (int)indStart, (int)indStop);
+
+                        if (DEBUG) {
+                            System.out.println("Haplotype to test:");
+                            System.out.println(new String(haplotypeBases));
                         }
- 
+
+                        Double readLikelihood = 0.0;
+                        if (useAffineGapModel) {
+
+                            double[] currentContextGOP = null;
+                            double[] currentContextGCP = null;
+
+                            if (doContextDependentPenalties) {
+
+                               if (getGapPenaltiesFromFile) {
+                                   readLikelihood = computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, recalCDP, null);
+
+                               }  else {
+                                   currentContextGOP = Arrays.copyOfRange(gapOpenProbabilityMap.get(a), (int)indStart, (int)indStop);
+                                   currentContextGCP = Arrays.copyOfRange(gapContProbabilityMap.get(a), (int)indStart, (int)indStop);
+                                   readLikelihood = computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, currentContextGOP, currentContextGCP);
+                               }
+                            }
+
+                        }
+                        else
+                            readLikelihood = computeReadLikelihoodGivenHaplotype(haplotypeBases, readBases, readQuals);
+
+                        readEl.put(a,readLikelihood);
+                        readLikelihoods[readIdx][j++] = readLikelihood;
                     }
-                    else
-                        readLikelihoods[readIdx][j]= computeReadLikelihoodGivenHaplotype(haplotypeBases, readBases, readQuals);
-
-
                 }
+                indelLikelihoodMap.put(p,readEl);
             }
-
             readIdx++;
         }
 
@@ -992,8 +1016,8 @@ public class PairHMMIndelErrorModel {
             }
 
         }
-        for (int i=0; i < haplotypesInVC.size(); i++) {
-            for (int j=i; j < haplotypesInVC.size(); j++){
+        for (int i=0; i < numHaplotypes; i++) {
+            for (int j=i; j < numHaplotypes; j++){
                 // combine likelihoods of haplotypeLikelihoods[i], haplotypeLikelihoods[j]
                 // L(Hi, Hj) = sum_reads ( Pr(R|Hi)/2 + Pr(R|Hj)/2)
                 //readLikelihoods[k][j] has log10(Pr(R_k) | H[j] )
@@ -1002,7 +1026,7 @@ public class PairHMMIndelErrorModel {
 
                     // Compute log10(10^x1/2 + 10^x2/2) = log10(10^x1+10^x2)-log10(2)
                     // First term is approximated by Jacobian log with table lookup.
-                    if (Double.isInfinite(readLikelihoods[readIdx][i]) || Double.isInfinite(readLikelihoods[readIdx][j]))
+                    if (Double.isInfinite(readLikelihoods[readIdx][i]) && Double.isInfinite(readLikelihoods[readIdx][j]))
                         continue;
                     haplotypeLikehoodMatrix[i][j] += ( MathUtils.softMax(readLikelihoods[readIdx][i],
                             readLikelihoods[readIdx][j]) + LOG_ONE_HALF);
@@ -1013,7 +1037,7 @@ public class PairHMMIndelErrorModel {
             }
         }
 
-        return haplotypeLikehoodMatrix;
+        return getHaplotypeLikelihoods(haplotypeLikehoodMatrix);
 
     }
 
