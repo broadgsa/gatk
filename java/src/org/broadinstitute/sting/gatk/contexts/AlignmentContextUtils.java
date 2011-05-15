@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
+import net.sf.samtools.SAMReadGroupRecord;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -111,6 +112,25 @@ public class AlignmentContextUtils {
                 }
                 contexts.put(assumedSingleSample,new AlignmentContext(loc, pileupBySample));
             }
+        }
+
+        return contexts;
+    }
+
+    /**
+     * Splits the AlignmentContext into one context per read group
+     *
+     * @param context the original pileup
+     * @return a Map of ReadGroup to AlignmentContext
+     *
+     **/
+    public static Map<SAMReadGroupRecord, AlignmentContext> splitContextByReadGroup(AlignmentContext context, Collection<SAMReadGroupRecord> readGroups) {
+        HashMap<SAMReadGroupRecord, AlignmentContext> contexts = new HashMap<SAMReadGroupRecord, AlignmentContext>();
+
+        for (SAMReadGroupRecord rg : readGroups) {
+            ReadBackedPileup rgPileup = context.getBasePileup().getPileupForReadGroup(rg.getReadGroupId());
+            if ( rgPileup != null ) // there we some reads for RG
+                contexts.put(rg, new AlignmentContext(context.getLocation(), rgPileup));
         }
 
         return contexts;

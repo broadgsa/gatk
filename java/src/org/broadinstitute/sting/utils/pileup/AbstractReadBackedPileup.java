@@ -501,8 +501,7 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
                 if(pileup != null)
                     filteredTracker.addElements(sample,pileup.pileupElementTracker);
             }
-            return (RBP)createNewPileup(loc,filteredTracker);
-
+            return filteredTracker.size()>0 ? (RBP)createNewPileup(loc,filteredTracker) : null;
         }
         else {
             UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();

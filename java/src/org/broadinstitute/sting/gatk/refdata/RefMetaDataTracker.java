@@ -162,6 +162,9 @@ public class RefMetaDataTracker {
         return bound;
     }
 
+    /**
+     * @return the number of ROD bindings (name -> value) where value is not empty in this tracker
+     */
     public int getNBoundRodTracks() {
         return getNBoundRodTracks(null);
     }
