@@ -433,7 +433,7 @@ public class HaplotypeIndelErrorModel {
             // = sum_j(-10*log10(Pr(R_j | Hi) since reads are assumed to be independent
             int j=0;
             for (Allele a: haplotypesInVC.keySet()) {
-                readLikelihoods[i][j]= computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(j), read);
+                readLikelihoods[i][j]= computeReadLikelihoodGivenHaplotype(haplotypesInVC.get(a), read);
                 if (DEBUG) {
                     System.out.print(read.getReadName()+" ");
 
