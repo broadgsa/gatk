@@ -68,10 +68,11 @@ public class VariantRecalibratorEngine {
             model.maximizationStep( data );
             currentChangeInMixtureCoefficients = model.normalizePMixtureLog10();
             model.expectationStep(data);
-            logger.info("Current change in mixture coefficients = " + String.format("%.5f", currentChangeInMixtureCoefficients));
-            logger.info("Finished iteration " + iteration );
+            if( iteration % 5 == 0 ) { // cut down on the number of output lines so that users can read the warning messages
+                logger.info("Finished iteration " + iteration + ". \tCurrent change in mixture coefficients = " + String.format("%.5f", currentChangeInMixtureCoefficients));
+            }
             if( iteration > 2 && currentChangeInMixtureCoefficients < MIN_PROB_CONVERGENCE ) {
-                logger.info("Convergence!");
+                logger.info("Convergence after " + iteration + " iterations!");
                 break;
             }
         }
