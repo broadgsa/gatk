@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.queue.extensions.gatk;
 
-import net.sf.picard.filter.SamRecordFilter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -136,37 +135,48 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
 
             for (Class<? extends CommandLineProgram> clp: clpManager.getPlugins()) {
 
-                if (!isGatkProgram(clp))
-                    continue;
+                try {
+                    if (!isGatkProgram(clp)) {
+                        logger.debug("Skipping: " + clp);
+                        continue;
+                    }
 
-                String clpClassName = clpManager.getName(clp);
-                String clpConstructor = String.format("analysisName = \"%s\"%njavaMainClass = \"%s\"%n", clpClassName, clp.getName());
+                    logger.debug("Generating: " + clp);
+                    String clpClassName = clpManager.getName(clp);
+                    String clpConstructor = String.format("analysisName = \"%s\"%njavaMainClass = \"%s\"%n", clpClassName, clp.getName());
 
-                writeClass("org.broadinstitute.sting.queue.function.JavaCommandLineFunction", clpClassName,
-                        false, clpConstructor, ArgumentDefinitionField.getArgumentFields(parser,clp), dependents);
+                    writeClass("org.broadinstitute.sting.queue.function.JavaCommandLineFunction", clpClassName,
+                            false, clpConstructor, ArgumentDefinitionField.getArgumentFields(parser,clp), dependents);
 
-                if (clp == CommandLineGATK.class) {
-                    for (Entry<String, Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage(false).entrySet()) {
-                        for(Class<? extends Walker> walkerType: walkersByPackage.getValue()) {
-                            String walkerName = walkerManager.getName(walkerType);
-                            List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
+                    if (clp == CommandLineGATK.class) {
+                        for (Entry<String, Collection<Class<? extends Walker>>> walkersByPackage: walkerManager.getWalkerNamesByPackage(false).entrySet()) {
+                            for(Class<? extends Walker> walkerType: walkersByPackage.getValue()) {
+                                try {
+                                    String walkerName = walkerManager.getName(walkerType);
+                                    List<ArgumentField> argumentFields = new ArrayList<ArgumentField>();
 
-                            argumentFields.addAll(ArgumentDefinitionField.getArgumentFields(parser,walkerType));
-                            argumentFields.addAll(RodBindField.getRodArguments(walkerType, trackBuilder));
-                            argumentFields.addAll(ReadFilterField.getFilterArguments(parser,walkerType));
+                                    argumentFields.addAll(ArgumentDefinitionField.getArgumentFields(parser,walkerType));
+                                    argumentFields.addAll(RodBindField.getRodArguments(walkerType, trackBuilder));
+                                    argumentFields.addAll(ReadFilterField.getFilterArguments(parser,walkerType));
 
-                            String constructor = String.format("analysisName = \"%1$s\"%nanalysis_type = \"%1$s\"%n", walkerName);
-                            String scatterClass = getScatterClass(walkerType);
-                            boolean isScatter = false;
-                            if (scatterClass != null) {
-                                isScatter = true;
-                                constructor += String.format("scatterClass = classOf[%s]%n", scatterClass);
+                                    String constructor = String.format("analysisName = \"%1$s\"%nanalysis_type = \"%1$s\"%n", walkerName);
+                                    String scatterClass = getScatterClass(walkerType);
+                                    boolean isScatter = false;
+                                    if (scatterClass != null) {
+                                        isScatter = true;
+                                        constructor += String.format("scatterClass = classOf[%s]%n", scatterClass);
+                                    }
+
+                                    writeClass(GATK_EXTENSIONS_PACKAGE_NAME + "." + clpClassName, walkerName,
+                                            isScatter, constructor, argumentFields, dependents);
+                                } catch (Exception e) {
+                                    throw new ReviewedStingException("Error generating wrappers for walker " + walkerType, e);
+                                }
                             }
-
-                            writeClass(GATK_EXTENSIONS_PACKAGE_NAME + "." + clpClassName, walkerName,
-                                    isScatter, constructor, argumentFields, dependents);
                         }
                     }
+                } catch (Exception e) {
+                    throw new ReviewedStingException("Error generating wrappers for " + clp, e);
                 }
             }
 
@@ -190,7 +200,7 @@ public class GATKExtensionsGenerator extends CommandLineProgram {
     private static final List<String> gatkPackages = Arrays.asList(
             "org.broadinstitute.sting.gatk",
             "org.broadinstitute.sting.analyzecovariates",
-            "");
+            "org.broadinstitute.sting.gatk.datasources.reads.utilities");
 
     /**
      * Returns true if the class is part of the GATK.
