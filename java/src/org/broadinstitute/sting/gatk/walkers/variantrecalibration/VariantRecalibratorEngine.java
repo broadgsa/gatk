@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.List;
 
@@ -45,6 +46,13 @@ public class VariantRecalibratorEngine {
         logger.info("Evaluating full set of " + data.size() + " variants...");
         for( final VariantDatum datum : data ) {
             final double thisLod = evaluateDatum( datum, model );
+            if( Double.isNaN(thisLod) ) {
+                if( evaluateContrastively ) {
+                    throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe. Please consider raising the number of variants used to train the negative model (via --percentBadVariants 0.05, for example) or lowering the maximum number of Gaussians to use in the model (via --maxGaussians 4, for example)");
+                } else {
+                    throw new UserException("NaN LOD value assigned. Clustering with this few variants and these annotations is unsafe.");
+                }
+            }
             datum.lod = ( evaluateContrastively ? (datum.prior + datum.lod - thisLod) : thisLod );
         }
     }
@@ -62,7 +70,7 @@ public class VariantRecalibratorEngine {
         model.expectationStep( data );
         double currentChangeInMixtureCoefficients;
         int iteration = 0;
-        logger.info("Finished iteration " + iteration );
+        logger.info("Finished iteration " + iteration + ".");
         while( iteration < VRAC.MAX_ITERATIONS ) {
             iteration++;
             model.maximizationStep( data );
