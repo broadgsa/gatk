@@ -50,10 +50,14 @@ public class VariantDataManager {
 
     public void normalizeData() {
         boolean foundZeroVarianceAnnotation = false;
-        for( int iii = 0; iii < meanVector.length; iii++ ) { //BUGBUG: to clean up
-            final double theMean = mean(iii); //BUGBUG: to clean up
-            final double theSTD = standardDeviation(theMean, iii); //BUGBUG: to clean up
+        for( int iii = 0; iii < meanVector.length; iii++ ) {
+            final double theMean = mean(iii);
+            final double theSTD = standardDeviation(theMean, iii);
             logger.info( annotationKeys.get(iii) + String.format(": \t mean = %.2f\t standard deviation = %.2f", theMean, theSTD) );
+            if( Double.isNaN(theMean) ) {
+                throw new UserException.BadInput("Annotations values for " + annotationKeys.get(iii) + " annotation not detected for ANY training variant in the input callset. VariantAnnotator may be used to add these annotations. See http://www.broadinstitute.org/gsa/wiki/index.php/VariantAnnotator");
+            }
+
             foundZeroVarianceAnnotation = foundZeroVarianceAnnotation || (theSTD < 1E-6);
             if( annotationKeys.get(iii).toLowerCase().contains("ranksum") ) { // BUGBUG: to clean up
                 for( final VariantDatum datum : data ) {
@@ -216,7 +220,7 @@ public class VariantDataManager {
             } catch( final Exception e ) {
                 value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating clusters.
                 if( !warnedUserMissingValue ) {
-                    logger.warn("WARNING: Missing value detected for " + annotationKey + ". The VQSR will work with missing data by marginalizing over this dimension for this variant. This warning message is only shown once but there may be other annotations missing as well.");
+                    logger.warn("WARNING: Missing value detected for " + annotationKey + ". The VQSR will work with missing data by marginalizing over this dimension for this variant. This warning message is only shown once so there may be other annotations missing as well.");
                     warnedUserMissingValue = true;
                 }
             }
