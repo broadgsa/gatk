@@ -31,6 +31,7 @@
     <property name="external.dir" value="external" />
     <property name="java.source.dir" value="java/src" />
     <property name="java.classes" value="${build.dir}/java/classes" />
+    <property name="java.contracts" value="${build.dir}/java/contracts" />
     <property name="resource.file" value="StingText.properties" />
     <property name="resource.path" value="${java.classes}/StingText.properties" />
 
@@ -38,6 +39,11 @@
     <property name="scala.classes" value="${build.dir}/scala/classes" />
 
     <property name="queue-extensions.source.dir" value="${build.dir}/queue-extensions/src" />
+    
+    <!-- Contracts for Java -->
+    <!-- <property name="use.contracts" value="true" /> --> <!-- uncomment out to enable building contracts -->
+    <property name="cofojaDir" value="settings/repository/com.google/"/>
+    <property name="cofoja.jar" value="${cofojaDir}/cofoja-1.0-r120.jar"/>
     
     <!-- where to find the tribble distro -->
     <property name="tribble.dir" value="tribble" />
@@ -124,6 +130,7 @@
   
       <mkdir dir="lib"/>
       <mkdir dir="${ivy.jar.dir}"/>
+      <copy file="${cofoja.jar}" toFile="lib/cofoja.jar"/>
       <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/${ivy.jar.file}"
            dest="${ivy.jar.dir}/${ivy.jar.file}"
            usetimestamp="true"/>
@@ -210,6 +217,7 @@
       <!-- Create the build directory structure used by compile -->
       <mkdir dir="${build.dir}"/>
       <mkdir dir="${java.classes}"/>
+      <mkdir dir="${java.contracts}"/>
 
       <pathconvert property="external.build.dir">
         <path path="${java.classes}"/>
@@ -239,13 +247,14 @@
         </taskdef>
     </target>
 
-    <target name="gatk.compile" depends="tribble,init,resolve"
+    <target name="gatk.compile.source" depends="tribble,init,resolve"
             description="compile the source">
         <!-- Compile the java code from ${src} into build -->
         <javac fork="true" memoryMaximumSize="512m" srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
             <exclude name="**/examples/**" />
             <exclude name="**/playground/**" unless="include.playground"/>
             <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
+            <compilerarg value="-proc:none"/>
         </javac>
 
         <subant target="compile" genericantfile="build.xml">
@@ -255,6 +264,23 @@
             <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
         </subant>
     </target>
+
+    <target name="gatk.contracts" depends="gatk.compile.source" description="create GATK contracts" if="use.contracts">
+        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.source.dir}" destdir="${java.contracts}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
+            <exclude name="**/examples/**" />
+            <exclude name="**/playground/**" unless="include.playground"/>
+            <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
+            <classpath>
+                <path refid="external.dependencies" />
+                <pathelement path="${java.classes}" />
+            </classpath>
+            <compilerarg value="-Acom.google.java.contract.debug"/>
+            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
+            <compilerarg value="-proc:only"/>
+        </javac>
+    </target>
+    
+    <target name="gatk.compile" depends="tribble,init,resolve,gatk.compile.source,gatk.contracts" />
 
     <target name="init.queue-extensions.generate" depends="gatk.compile">
         <condition property="uptodate.queue-extensions.generate">
@@ -394,6 +420,7 @@
             description="generate the GATK distribution">
         <jar jarfile="${dist.dir}/GenomeAnalysisTK.jar">
             <path refid="gatk.resources"/>
+            <fileset dir="${java.contracts}" />
             <fileset dir="${java.classes}">
 	          <include name="${resource.file}" />
               <include name="**/gatk/**/*.class" />
