@@ -92,7 +92,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="selectSNPs", shortName="snps", doc="Select only SNPs.", required=false)
     private boolean SELECT_SNPS = false;
 
-    @Argument(fullName="selectIndels", shortName="indels", doc="Select only SNPs.", required=false)
+    @Argument(fullName="selectIndels", shortName="indels", doc="Select only Indels.", required=false)
     private boolean SELECT_INDELS = false;
 
 
