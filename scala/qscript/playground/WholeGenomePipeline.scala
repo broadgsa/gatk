@@ -31,6 +31,9 @@ class WholeGenomePipeline extends QScript {
   @Input(doc="Bam file list", shortName = "I", required=true)
   var bamList: File = _
 
+  @Input(doc="Exclude intervals list", shortName = "XL", required=false)
+  var excludeIntervals: List[File] = Nil
+
   @Argument(doc="path to tmp space for storing intermediate bam files", shortName="cleanerTmpDir", required=true)
   var cleanerTmpDir: String = _
 
@@ -40,10 +43,12 @@ class WholeGenomePipeline extends QScript {
   @Argument(doc="Chunk size. Defaults to 3,000,000", shortName="chunk", required=false)
   var chunkSize = 3000000
 
-  val reference = "/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta"
-  val dbsnp = "/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.vcf"
-  val hapmap = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf"
-  val omni = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf"
+  val resources = "/humgen/gsa-pipeline/resources/5777/b37/"
+  val reference = resources + "human_g1k_v37.fasta"
+  val dbsnp = resources + "dbsnp_132.b37.vcf"
+  val indels = resources + "1000G_indels_for_realignment.b37.vcf"
+  val omni = resources + "1000G_omni2.5.b37.sites.vcf"
+  val hapmap = resources + "hapmap_3.3.b37.sites.vcf"
 
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.reference_sequence = reference
@@ -102,46 +107,48 @@ class WholeGenomePipeline extends QScript {
         val chunkBase: String = "chunks/" + project + "." + runType + "_chunk_" + chr + "_" + chunkNumber
         val tmpBase: String = cleanerTmpDir + "/" + chunkBase
 
-        val chunkInterval = "%s:%d-%d".format(chr, start, stop)
+        val chunkInterval = List("%s:%d-%d".format(chr, start, stop))
 
         val target = new RealignerTargetCreator with CommandLineGATKArgs
-        target.intervalsString = List(chunkInterval)
         target.input_file :+= bamList
+        target.intervalsString = chunkInterval
+        target.excludeIntervals = excludeIntervals
         target.mismatchFraction = 0.0
-        target.maxIntervalSize = 700
+        target.rodBind :+= RodBind("dbsnp", "VCF", dbsnp)
+        target.rodBind :+= RodBind("indels", "VCF", indels)
         target.out = tmpBase + ".target.intervals"
         target.jobOutputFile = chunkBase + ".target.intervals.out"
         target.isIntermediate = true
         add(target)
 
         val clean = new IndelRealigner with CommandLineGATKArgs
-        clean.intervalsString = List(chunkInterval)
         clean.input_file :+= bamList
+        clean.intervalsString = chunkInterval
+        clean.excludeIntervals = excludeIntervals
         clean.targetIntervals = target.out
         clean.rodBind :+= RodBind("dbsnp", "VCF", dbsnp)
+        clean.rodBind :+= RodBind("indels", "VCF", indels)
         clean.doNotUseSW = true
         clean.simplifyBAM = true
         clean.bam_compression = 1
         clean.out = tmpBase + ".cleaned.bam"
         clean.jobOutputFile = chunkBase + ".cleaned.bam.out"
-        clean.jobPriority = 51
         clean.isIntermediate = true
         add(clean)
 
         val call = new UnifiedGenotyper with CommandLineGATKArgs
-        call.intervalsString = List(chunkInterval)
         call.input_file :+= clean.out
+        call.intervalsString = chunkInterval
+        call.excludeIntervals = excludeIntervals
         call.rodBind :+= RodBind("dbsnp", "VCF", dbsnp)
         call.downsample_to_coverage = 50
         call.standard_min_confidence_threshold_for_calling = 4.0
         call.standard_min_confidence_threshold_for_emitting = 4.0
         call.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY
-        call.exactCalculation = org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL
         call.genotype_likelihoods_model = org.broadinstitute.sting.gatk.walkers.genotyper.GenotypeLikelihoodsCalculationModel.Model.BOTH
         call.GSA_PRODUCTION_ONLY = true
         call.out = chunkBase + ".vcf"
         call.jobOutputFile = call.out + ".out"
-        call.jobPriority = 52
         add(call)
 
         chunkVcfs :+= call.out
