@@ -34,7 +34,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
     /**
      * The data source for reads.  Will probably come directly from the BAM file.
      */
-    private final PeekableIterator<AlignmentContext> sourceIterator;
+    private final Iterator<AlignmentContext> sourceIterator;
 
     /**
      * Stores the sequence of intervals that the windowmaker should be tracking.
@@ -45,6 +45,14 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
      * In the case of monolithic sharding, this case returns whether the only shard has been generated.
      */
     private boolean shardGenerated = false;
+
+    /**
+     * The alignment context to return from this shard's iterator.  Lazy implementation: the iterator will not find the
+     * currentAlignmentContext until absolutely required to do so.   If currentAlignmentContext is null and advance()
+     * doesn't populate it, no more elements are available.  If currentAlignmentContext is non-null, currentAlignmentContext
+     * should be returned by next().
+     */
+    private AlignmentContext currentAlignmentContext;
 
     /**
      * Create a new window maker with the given iterator as a data source, covering
@@ -58,10 +66,7 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         this.sourceInfo = shard.getReadProperties();
         this.readIterator = iterator;
 
-        LocusIterator locusIterator = new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleData);
-
-
-        this.sourceIterator = new PeekableIterator<AlignmentContext>(locusIterator);
+        this.sourceIterator = new LocusIteratorByState(iterator,sourceInfo,genomeLocParser,sampleData);
         this.intervalIterator = intervals.size()>0 ? new PeekableIterator<GenomeLoc>(intervals.iterator()) : null;
     }
 
@@ -92,9 +97,14 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
          */
         private final GenomeLoc locus;
 
+        /**
+         * Signal not to advance the iterator because we're currently sitting at the next element.
+         */
+        private boolean atNextElement = false;
+
         public WindowMakerIterator(GenomeLoc locus) {
             this.locus = locus;
-            seedNextLocus();
+            advance();
         }
 
         public ReadProperties getSourceInfo() {
@@ -110,19 +120,60 @@ public class WindowMaker implements Iterable<WindowMaker.WindowMakerIterator>, I
         }
 
         public boolean hasNext() {
-            // locus == null when doing monolithic sharding.
-            return sourceIterator.hasNext() && sourceIterator.peek().getLocation().overlapsP(locus);
+            advance();
+            return atNextElement;
         }
 
         public AlignmentContext next() {
-            if(!hasNext()) throw new NoSuchElementException("WindowMakerIterator is out of elements for this interval.");
-            return sourceIterator.next();
+            advance();
+            if(!atNextElement) throw new NoSuchElementException("WindowMakerIterator is out of elements for this interval.");
+
+            // Prepare object state for no next element.
+            AlignmentContext toReturn = currentAlignmentContext;
+            currentAlignmentContext = null;
+            atNextElement = false;
+
+            // Return the current element.
+            return toReturn;
         }
 
-        public void seedNextLocus() {
-            // locus == null when doing monolithic sharding.
-            while(sourceIterator.hasNext() && sourceIterator.peek().getLocation().isBefore(locus))
-                sourceIterator.next();                
+        private void advance() {
+            // No shard boundaries specified.  If currentAlignmentContext has been consumed, grab the next one.
+            if(locus == null) {
+                if(!atNextElement && sourceIterator.hasNext()) {
+                    currentAlignmentContext = sourceIterator.next();
+                    atNextElement = true;
+                }
+                return;
+            }
+
+            // Can't possibly find another element.  Skip out early.
+            if(currentAlignmentContext == null && !sourceIterator.hasNext())
+                return;
+
+            // Need to find the next element that is not past shard boundaries.  If we travel past the edge of
+            // shard boundaries, stop and let the next interval pick it up.
+            while(sourceIterator.hasNext()) {
+                // Seed the current alignment context first time through the loop.
+                if(currentAlignmentContext == null)
+                    currentAlignmentContext = sourceIterator.next();
+
+                // Found a match.
+                if(locus.containsP(currentAlignmentContext.getLocation())) {
+                    atNextElement = true;
+                    break;
+                }
+                // Whoops.  Skipped passed the end of the region.  Iteration for this window is complete.
+                if(locus.isBefore(currentAlignmentContext.getLocation()))
+                    break;
+
+                // No more elements to examine.  Iteration is complete.
+                if(!sourceIterator.hasNext())
+                    break;
+
+                // Advance the iterator and try again.
+                currentAlignmentContext = sourceIterator.next();
+            }
         }
     }
 }

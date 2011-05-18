@@ -50,8 +50,9 @@ public abstract class LocusView extends LocusIterator implements View {
     private LocusIterator loci;
 
     /**
-     * The next locus context from the iterator.  This value must always be within
-     * the shard; if its null, there's nothing for the consumer to look at. 
+     * The next locus context from the iterator.  Lazy loaded: if nextLocus is null and advance() doesn't
+     * populate it, the iterator is exhausted.  If populated, this is the value that should be returned by
+     * next(). 
      */
     private AlignmentContext nextLocus = null;
 
@@ -62,7 +63,7 @@ public abstract class LocusView extends LocusIterator implements View {
         this.genomeLocParser = provider.getGenomeLocParser();
         this.loci = provider.getLocusIterator();
 
-        seedNextLocus();
+        advance();
 
         provider.register(this);
     }
@@ -113,6 +114,7 @@ public abstract class LocusView extends LocusIterator implements View {
      * @return True if another locus context is bounded by this shard.
      */
     protected boolean hasNextLocus() {
+        advance();
         return nextLocus != null;
     }
 
@@ -122,16 +124,17 @@ public abstract class LocusView extends LocusIterator implements View {
      * @throw NoSuchElementException if the next element is missing.
      */
     protected AlignmentContext nextLocus() {
+        advance();
         if(nextLocus == null)
             throw new NoSuchElementException("No more elements remain in locus context queue.");
 
         // Cache the current and apply filtering.
         AlignmentContext current = nextLocus;
-
-        // Find the next.
-        seedNextLocus();
         if( sourceInfo.getDownsamplingMethod().type == DownsampleType.ALL_READS && sourceInfo.getDownsamplingMethod().toCoverage != null )
             current.downsampleToCoverage( sourceInfo.getDownsamplingMethod().toCoverage );
+
+        // Indicate that the next operation will need to advance.
+        nextLocus = null;
         
         return current;
     }
@@ -139,7 +142,11 @@ public abstract class LocusView extends LocusIterator implements View {
     /**
      * Seed the nextLocus variable with the contents of the next locus (if one exists).
      */
-    private void seedNextLocus() {
+    private void advance() {
+        // Already an unclaimed locus present
+        if(nextLocus != null)
+            return;
+
         //System.out.printf("loci is %s%n", loci);
         if( !loci.hasNext() ) {
             nextLocus = null;
@@ -155,7 +162,7 @@ public abstract class LocusView extends LocusIterator implements View {
             while( nextLocus != null && !isContainedInShard(nextLocus.getLocation()) && loci.hasNext() )
                 nextLocus = loci.next();
 
-            // If nothing in the shard was found, indicate that by setting nextAlignmentContext to null.
+            // If nothing in the shard was found, indicate that by setting nextLocus to null.
             if( nextLocus != null && !isContainedInShard(nextLocus.getLocation()) )
                 nextLocus = null;
         }
