@@ -94,7 +94,7 @@ public class BAMScheduler implements Iterator<FilePointer> {
             if(currentLocus == GenomeLoc.UNMAPPED) {
                 nextFilePointer = new FilePointer(GenomeLoc.UNMAPPED);
                 for(SAMReaderID id: dataSource.getReaderIDs())
-                    nextFilePointer.addFileSpans(id,null);
+                    nextFilePointer.addFileSpans(id,new GATKBAMFileSpan());
                 currentLocus = null;
                 continue;
             }
