@@ -1,6 +1,3 @@
-import org.broadinstitute.sting.queue.QScript
-import org.broadinstitute.sting.queue.extensions.gatk.{RealignerTargetCreator, RodBind, IndelRealigner}
-
 /**
  * Created by IntelliJ IDEA.
  * User: carneiro
@@ -8,6 +5,9 @@ import org.broadinstitute.sting.queue.extensions.gatk.{RealignerTargetCreator, R
  * Time: 11:29 AM
  * To change this template use File | Settings | File Templates.
  */
+
+import org.broadinstitute.sting.queue.extensions.gatk.{IndelRealigner, RealignerTargetCreator, RodBind}
+import org.broadinstitute.sting.queue.QScript
 
 
 class justClean extends QScript {
@@ -62,7 +62,7 @@ class justClean extends QScript {
     clean.doNotUseSW = false
     clean.jobName = queueLogDir + outBam + ".clean"
     clean.jarFile = GATKjar
-    clean.memoryLimit = 24
+    clean.memoryLimit = 8
     clean.scatterCount = 84
 
     add(target, clean);

@@ -3,6 +3,7 @@ package oneoffs.carneiro
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 import scala.io.Source._
+
 /**
  * Created by IntelliJ IDEA.
  * User: carneiro
@@ -38,6 +39,12 @@ class downsampling extends QScript {
   @Input(doc="Reference fasta file", shortName="R", required=false)
   var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
+  @Input(doc="HapMap file", shortName="H", required=false)
+  var hapmap: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/HapMap/3.3/sites_r27_nr.b37_fwd.vcf")
+
+  @Input(doc="Omni file", shortName="O", required=false)
+  var omni: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/Omni25_sites_1525_samples.b37.vcf")
+
   @Input(doc="dbSNP file", shortName="D", required=false)
   var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_132_b37.leftAligned.vcf")
 
@@ -55,6 +62,7 @@ class downsampling extends QScript {
   val queueLogDir: String = ".qlog/"
   val outFile: String = "cov.out"
   val fullCoverageVCF = new File("/humgen/gsa-hpprojects/dev/carneiro/downsampling/analysis/fullcov/fullcov.F1.filtered.vcf")
+  val trancheTarget = "99.0"
 
   def script = {
     val nIntervals = math.min(200, countLines(targetIntervals))
@@ -118,6 +126,32 @@ class downsampling extends QScript {
     this.out = outFile
     this.analysisName = outFile + "_filter"
     this.jobName = queueLogDir + outFile
+  }
+
+  // 3.) Variant Quality Score Recalibration - Generate Recalibration table
+  case class VQSR(inFile: File, tranchesFiles: File, outFile: File) extends VariantRecalibrator with CommandLineGATKArgs {
+    this.rodBind :+= RodBind("input", "VCF", inFile)
+    this.rodBind :+= RodBind("hapmap", "VCF", hapmap, "known=false,training=true,truth=true,prior=15.0")
+    this.rodBind :+= RodBind("omni", "VCF", omni, "known=false,training=true,truth=true,prior=12.0")
+    this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP, "known=true,training=false,truth=false,prior=10.0")
+    this.use_annotation ++= List("QD", "HaplotypeScore", "MQRankSum", "ReadPosRankSum", "HRun")
+    this.tranches_file = tranchesFile
+    this.recal_file = outFile
+    this.allPoly = true
+    this.tranche ++= List("100.0", "99.9", "99.5", "99.3", "99.0", "98.9", "98.8", "98.5", "98.4", "98.3", "98.2", "98.1", "98.0", "97.9", "97.8", "97.5", "97.0", "95.0", "90.0")
+    this.analysisName = t.name + "_VQSR"
+    this.jobName =  queueLogDir + outFile
+  }
+
+  // 4.) Apply the recalibration table to the appropriate tranches
+  case class applyVQSR (inFile: File, tranchesFiles: File, outFile: File) extends ApplyRecalibration with CommandLineGATKArgs {
+    this.rodBind :+= RodBind("input", "VCF", inFile)
+    this.tranches_file = tranchesFile
+    this.recal_file = inFile
+    this.ts_filter_level = trancheTarget
+    this.out = outFile
+    this.analysisName = outFile + "_AVQSR"
+    this.jobName =  queueLogDir + outFile
   }
 
   case class eval (inFile: File, outFile: File) extends VariantEval with CommandLineGATKArgs {
