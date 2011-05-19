@@ -238,7 +238,7 @@ public class BaseUtils {
     }
 
     static public boolean isNBase(byte base) {
-        return base == 'N';
+        return base == 'N' || base == 'n';
     }
 
     /**

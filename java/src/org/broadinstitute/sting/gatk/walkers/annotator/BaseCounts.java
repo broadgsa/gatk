@@ -62,7 +62,7 @@ public class BaseCounts implements InfoFieldAnnotation {
             }
         }
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put("BaseCounts", counts);
+        map.put(getKeyNames().get(0), counts);
         return map;
     }
 

@@ -1,0 +1,51 @@
+package org.broadinstitute.sting.gatk.walkers.annotator;
+
+import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFHeaderLineType;
+import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: rpoplin
+ * Date: 5/16/11
+ */
+
+public class NBaseCount implements InfoFieldAnnotation {
+    public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+        if( stratifiedContexts.size() == 0 )
+            return null;
+
+        int countNBaseSolid = 0;
+        int countRegularBaseSolid = 0;
+
+        for( final Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
+            for( final PileupElement p : sample.getValue().getBasePileup()) {
+                if( p.getRead().getReadGroup().getPlatform().toUpperCase().contains("SOLID") ) {
+                    if( BaseUtils.isNBase( p.getBase() ) ) {
+                        countNBaseSolid++;
+                    } else if( BaseUtils.isRegularBase( p.getBase() ) ) {
+                        countRegularBaseSolid++;
+                    }
+                }
+            }
+        }
+        final Map<String, Object> map = new HashMap<String, Object>();
+        map.put(getKeyNames().get(0), String.format("%.4f", (double)countNBaseSolid / (double)(countNBaseSolid + countRegularBaseSolid + 1)));
+        return map;
+    }
+
+    public List<String> getKeyNames() { return Arrays.asList("PercentNBaseSolid"); }
+
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("PercentNBaseSolid", 4, VCFHeaderLineType.Float, "Percentage of N bases in the pileup (counting only SOLiD reads)")); }
+}
