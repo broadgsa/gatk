@@ -125,7 +125,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/NA12878.WEx.cleaned.recal.bam"),
               new File("/home/radon01/depristo/work/oneOffProjects/1000GenomesProcessingPaper/wgs.v13/GA2.WEx.cleaned.ug.snpfiltered.indelfiltered.vcf"),
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.targets.interval_list", 2.6, 97.0, !lowPass),
-    "WExTrio" -> new Target("CEUTrio.WEx", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
+    "WExTrio" -> new Target("CEUTrio.WGS", hg19, dbSNP_b37_129, hapmap_b37, indelMask_b37,
               new File("/humgen/gsa-hpprojects/NA12878Collection/bams/CEUTrio.HiSeq.WEx.bwa.cleaned.recal.bam"),
               new File("/humgen/gsa-hpprojects/dev/carneiro/trio/analysis/snps/CEUTrio.WEx.filtered.vcf"),
               "/seq/references/HybSelOligos/whole_exome_agilent_1.1_refseq_plus_3_boosters/whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list", 2.6, 97.0, !lowPass),
