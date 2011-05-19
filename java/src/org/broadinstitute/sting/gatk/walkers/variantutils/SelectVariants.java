@@ -150,6 +150,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
         Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
 
+        // TODO -- This causes the sample ordering in the VCF to be "random" (i.e. whatever order they are pulled from the HashSet).
+        // TODO -- We should either enforce alphabetical ordering here (as with other walkers) or base it on the order from the command-line - but we shouldn't leave this up to Java to decide.
         samples = SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS);
         for (String sample : samples) {
             logger.info("Including sample '" + sample + "'");
