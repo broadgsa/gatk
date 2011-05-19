@@ -25,17 +25,17 @@
 package org.broadinstitute.sting.queue.pipeline.playground
 
 import org.testng.annotations.{DataProvider, Test}
-import collection.JavaConversions._
 import java.io.File
 import org.broadinstitute.sting.datasources.pipeline.{PipelineSample, Pipeline}
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.queue.pipeline._
+import org.broadinstitute.sting.BaseTest
 
-class FullCallingPipelineTest {
+class HybridSelectionPipelineTest {
   def datasets = List(k1gChr20Dataset)
 
   val k1gChr20Dataset = {
-    val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20", true)
+    val dataset = newK1gDataset("Barcoded_1000G_WEx_chr20", BaseTest.hg19Chr20Intervals)
 
     dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.all.all", "nCalledLoci", 1392)
     dataset.validations :+= new IntegerValidation("CountVariants", "dbsnp.eval.called.all.known.all", "nCalledLoci", 1143)
@@ -47,8 +47,8 @@ class FullCallingPipelineTest {
     dataset
   }
 
-  def newK1gDataset(projectName: String, chr20: Boolean) = {
-    val project = PipelineTest.createHg19Project(projectName, chr20)
+  def newK1gDataset(projectName: String, intervals: String) = {
+    val project = PipelineTest.createHg19Project(projectName, intervals)
     var samples = List.empty[PipelineSample]
     for (k1gBam <- PipelineTest.k1gBams)
       samples :+= PipelineTest.createK1gSample(projectName, k1gBam)
@@ -60,14 +60,14 @@ class FullCallingPipelineTest {
     datasets.map(dataset => Array(dataset.asInstanceOf[AnyRef])).toArray
 
   @Test(dataProvider="datasets")
-  def testFullCallingPipeline(dataset: PipelineDataset) {
+  def testHybridSelectionPipeline(dataset: PipelineDataset) {
     val projectName = dataset.pipeline.getProject.getName
-    val testName = "FullCallingPipeline-" + projectName
+    val testName = "HybridSelectionPipeline-" + projectName
     val yamlFile = writeYaml(testName, dataset.pipeline)
 
     // Run the pipeline with the expected inputs.
     val pipelineCommand =
-      "-retry 1 -S scala/qscript/playground/FullCallingPipeline.q -jobProject %s -Y %s"
+      "-retry 1 -S scala/qscript/playground/HybridSelectionPipeline.scala -jobProject %s -Y %s"
         .format(projectName, yamlFile)
 
     val pipelineSpec = new PipelineTestSpec
@@ -76,7 +76,7 @@ class FullCallingPipelineTest {
     pipelineSpec.jobQueue = dataset.jobQueue
 
     pipelineSpec.evalSpec = new PipelineTestEvalSpec
-    pipelineSpec.evalSpec.evalReport = projectName + ".cleaned.snps_and_indels.filtered.annotated.eval"
+    pipelineSpec.evalSpec.evalReport = projectName + ".eval"
     pipelineSpec.evalSpec.validations = dataset.validations
 
     PipelineTest.executeTest(pipelineSpec)

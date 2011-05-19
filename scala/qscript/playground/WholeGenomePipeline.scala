@@ -24,7 +24,6 @@
 
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
-import collection.JavaConversions._
 import org.broadinstitute.sting.utils.interval.IntervalUtils
 
 class WholeGenomePipeline extends QScript {
@@ -56,36 +55,35 @@ class WholeGenomePipeline extends QScript {
     this.memoryLimit = 2
   }
 
-  case class ChrRange(chr: String, start: Long, stop: Long) {
-    def toInterval = "%s:%d-%d".format(chr, start, stop)
-    override def toString = toInterval
+  case class Interval(chr: String, start: Long, stop: Long) {
+    override def toString = "%s:%d-%d".format(chr, start, stop)
   }
 
   var runIntervals = List.empty[String]
 
   def script() {
 
-    val rangeMap = Map(
-      "cent1" -> new ChrRange("1", 121429168, 121529168),
-      "cent16" -> new ChrRange("16", 40844464, 40944464),
-      "chr20" -> new ChrRange("20", 1, 63025520),
-      "chr20_100k" -> new ChrRange("20", 100001, 200000))
-
-    var ranges = Traversable.empty[ChrRange]
-    val chrs = IntervalUtils.getContigSizes(reference)
+    var intervals = Traversable.empty[Interval]
 
     runType = runType.toLowerCase
     if (runType == "wg") {
-        // use all chromosomes from 1 to their length
-        ranges = chrs.map { case (chr, len) => new ChrRange(chr, 1, len.longValue) }
-        runIntervals = Nil
+      val contigs = (1 to 22).map(_.toString) ++ List("X", "Y", "MT")
+      val sizes = IntervalUtils.getContigSizes(reference)
+      intervals = contigs.map(chr => new Interval(chr, 1, sizes.get(chr).longValue))
+      runIntervals = Nil
     } else {
-      rangeMap.get(runType) match {
+      val locs = Map(
+        "cent1" -> new Interval("1", 121429168, 121529168),
+        "cent16" -> new Interval("16", 40844464, 40944464),
+        "chr20" -> new Interval("20", 1, 63025520),
+        "chr20_100k" -> new Interval("20", 100001, 200000))
+
+      locs.get(runType) match {
         case Some(range) =>
-          ranges = List(range)
-          runIntervals = List(range.toInterval)
+          intervals = List(range)
+          runIntervals = List(range.toString)
         case None =>
-          throw new RuntimeException("Inalid runType: " + runType + ". Must be one of: " + rangeMap.keys.mkString(", ") + ", or wg")
+          throw new RuntimeException("Invalid runType: " + runType + ". Must be one of: " + locs.keys.mkString(", ") + ", or wg")
       }
     }
 
@@ -93,10 +91,10 @@ class WholeGenomePipeline extends QScript {
     val projectBase = project + "." + runType
 
     var chunkVcfs = List.empty[File]
-    for (range <- ranges) {
-      val chr = range.chr
-      val chrStart = range.start
-      val chrStop = range.stop
+    for (interval <- intervals) {
+      val chr = interval.chr
+      val chrStart = interval.start
+      val chrStop = interval.stop
 
       var start = chrStart
       var chunkNumber = 1
@@ -157,73 +155,88 @@ class WholeGenomePipeline extends QScript {
       }
     }
 
-    val combineVCFs = new CombineVariants with CommandLineGATKArgs
-    combineVCFs.rodBind = chunkVcfs.zipWithIndex.map { case (vcf, index) => RodBind("input"+index, "VCF", vcf) }
-    combineVCFs.rod_priority_list = chunkVcfs.zipWithIndex.map { case (vcf, index) => "input"+index }.mkString(",")
-    combineVCFs.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
-    combineVCFs.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.PRIORITIZE
-    combineVCFs.out = projectBase + ".merged.vcf"
-    combineVCFs.jobOutputFile = combineVCFs.out + ".out"
-    combineVCFs.assumeIdenticalSamples = true
-    add(combineVCFs)
+    val combineChunks = new CombineVariants with CommandLineGATKArgs
+    combineChunks.rodBind = chunkVcfs.zipWithIndex.map { case (vcf, index) => RodBind("input"+index, "VCF", vcf) }
+    combineChunks.rod_priority_list = chunkVcfs.zipWithIndex.map { case (vcf, index) => "input"+index }.mkString(",")
+    combineChunks.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
+    combineChunks.assumeIdenticalSamples = true
+    combineChunks.out = projectBase + ".unfiltered.vcf"
+    combineChunks.jobOutputFile = combineChunks.out + ".out"
+    add(combineChunks)
 
-    val sv = new SelectVariants with CommandLineGATKArgs
-    sv.selectIndels = true
-    sv.rodBind :+= RodBind("variant", "VCF", combineVCFs.out)
-    sv.out = projectBase + ".indels.vcf"
-    sv.jobOutputFile = sv.out + ".out"
-    add(sv)
+    val selectSNPs = new SelectVariants with CommandLineGATKArgs
+    selectSNPs.selectSNPs = true
+    selectSNPs.rodBind :+= RodBind("variant", "VCF", combineChunks.out)
+    selectSNPs.out = projectBase + ".snps.unrecalibrated.vcf"
+    selectSNPs.jobOutputFile = selectSNPs.out + ".out"
+    add(selectSNPs)
 
-    val filter = new VariantFiltration with CommandLineGATKArgs
-    filter.variantVCF = sv.out
-    filter.filterName :+= "HARD_TO_VALIDATE"
-    filter.filterExpression :+= "\"MQ0 >= 4 && (MQ0 / (1.0 * DP)) > 0.1\""
-    filter.out = swapExt(sv.out, ".vcf", ".filtered.vcf")
-    filter.jobOutputFile = filter.out + ".out"
-    add(filter)
+    val selectIndels = new SelectVariants with CommandLineGATKArgs
+    selectIndels.selectIndels = true
+    selectIndels.rodBind :+= RodBind("variant", "VCF", combineChunks.out)
+    selectIndels.out = projectBase + ".indels.unfiltered.vcf"
+    selectIndels.jobOutputFile = selectIndels.out + ".out"
+    add(selectIndels)
 
-    val recombine = new CombineVariants with CommandLineGATKArgs
-    recombine.rodBind :+= RodBind("indels", "VCF", sv.out)
-    recombine.rodBind :+= RodBind("all", "VCF", combineVCFs.out)
-    recombine.rod_priority_list = "indels,all"
-    recombine.genotypemergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.GenotypeMergeType.PRIORITIZE
-    recombine.out = swapExt(combineVCFs.out, ".vcf", ".filtered.vcf")
-    recombine.jobOutputFile = recombine.out + ".out"
-    add(recombine)
+    val filterIndels = new VariantFiltration with CommandLineGATKArgs
+    filterIndels.variantVCF = selectIndels.out
+    filterIndels.filterName = List("Indel_QUAL", "Indel_SB", "Indel_QD", "Indel_HRun", "Indel_HaplotypeScore")
+    filterIndels.filterExpression = List("\"QUAL<30.0\"", "\"SB>-1.0\"", "\"QD<2.0\"", "\"HRun>15\"", "\"HaplotypeScore>20.0\"")
+    filterIndels.out = projectBase + ".indels.filtered.vcf"
+    filterIndels.jobOutputFile = filterIndels.out + ".out"
+    add(filterIndels)
 
+    val combineSNPsIndels = new CombineVariants with CommandLineGATKArgs
+    combineSNPsIndels.rodBind :+= RodBind("indels", "VCF", selectIndels.out)
+    combineSNPsIndels.rodBind :+= RodBind("all", "VCF", combineChunks.out)
+    combineSNPsIndels.rod_priority_list = "indels,all"
+    combineSNPsIndels.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
+    combineSNPsIndels.assumeIdenticalSamples = true
+    combineSNPsIndels.out = projectBase + ".unrecalibrated.vcf"
+    combineSNPsIndels.jobOutputFile = combineSNPsIndels.out + ".out"
+    add(combineSNPsIndels)
+ 
     val vr = new VariantRecalibrator with CommandLineGATKArgs
-    vr.rodBind :+= RodBind("input", "VCF", recombine.out)
+    vr.rodBind :+= RodBind("input", "VCF", combineSNPsIndels.out)
     vr.rodBind :+= RodBind("hapmap", "VCF", hapmap, "known=false,training=true,truth=true,prior=15.0")
     vr.rodBind :+= RodBind("omni", "VCF", omni, "known=false,training=true,truth=false,prior=12.0")
-    vr.rodBind :+= RodBind("dbsnp", "VCF", dbsnp, "known=true,training=false,truth=false,prior=10.0")
-    vr.use_annotation = List("QD", "SB", "HaplotypeScore", "HRun")
+    vr.rodBind :+= RodBind("dbsnp", "VCF", dbsnp, "known=true,training=false,truth=false,prior=8.0")
     vr.trustAllPolymorphic = true
-    vr.TStranche = List("100.0", "99.9", "99.5", "99.3", "99.0", "98.9", "98.8", "98.5", "98.4", "98.3", "98.2", "98.1", "98.0", "97.9", "97.8", "97.5", "97.0", "95.0", "90.0")
-    vr.tranches_file = swapExt(filter.out, ".vcf", ".tranches")
-    vr.recal_file = swapExt(filter.out, ".vcf", ".recal")
+    vr.use_annotation = List("QD", "HaplotypeScore", "HRun", "MQRankSum", "ReadPosRankSum")
+    vr.TStranche = List(
+      "100.0", "99.9", "99.5", "99.3",
+      "99.0", "98.9", "98.8",
+      "98.5", "98.4", "98.3", "98.2", "98.1",
+      "98.0",
+      "97.0",
+      "95.0",
+      "90.0")
+    vr.tranches_file = projectBase + ".tranches"
+    vr.recal_file = projectBase + ".recal"
     vr.jobOutputFile = vr.recal_file + ".out"
     add(vr)
 
-    val ar = new ApplyRecalibration with CommandLineGATKArgs
-    ar.rodBind :+= RodBind("input", "VCF", recombine.out)
-    ar.tranches_file = vr.tranches_file
-    ar.recal_file = vr.recal_file
-    ar.ts_filter_level = 99.0
-    ar.ignore_filter :+= "HARD_TO_VALIDATE"
-    ar.out = swapExt(recombine.out, ".vcf", ".recalibrated.vcf")
-    ar.jobOutputFile = ar.out + ".out"
-    add(ar)
+    for (tranche <- vr.TStranche) {
+      val ar = new ApplyRecalibration with CommandLineGATKArgs
+      ar.rodBind :+= RodBind("input", "VCF", combineSNPsIndels.out)
+      ar.tranches_file = vr.tranches_file
+      ar.recal_file = vr.recal_file
+      ar.ts_filter_level = tranche.toDouble
+      ar.out = projectBase + ".recalibrated." + tranche + ".vcf"
+      ar.jobOutputFile = ar.out + ".out"
+      add(ar)
 
-    val stdEval = new VariantEval with CommandLineGATKArgs
-    stdEval.tranchesFile = vr.tranches_file
-    stdEval.rodBind :+= RodBind("dbsnp", "VCF", dbsnp)
-    stdEval.rodBind :+= RodBind("eval", "VCF", ar.out)
-    stdEval.doNotUseAllStandardStratifications = true
-    stdEval.doNotUseAllStandardModules = true
-    stdEval.evalModule = List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
-    stdEval.stratificationModule = List("EvalRod", "CompRod", "Novelty", "Filter", "FunctionalClass", "Sample")
-    stdEval.out = swapExt(ar.out, ".vcf", ".eval")
-    stdEval.jobOutputFile = stdEval.out + ".out"
-    add(stdEval)
+      val eval = new VariantEval with CommandLineGATKArgs
+      eval.tranchesFile = vr.tranches_file
+      eval.rodBind :+= RodBind("eval", "VCF", ar.out)
+      eval.rodBind :+= RodBind("dbsnp", "VCF", dbsnp)
+      eval.doNotUseAllStandardStratifications = true
+      eval.doNotUseAllStandardModules = true
+      eval.evalModule = List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
+      eval.stratificationModule = List("EvalRod", "CompRod", "Novelty", "Filter", "FunctionalClass", "Sample")
+      eval.out = swapExt(ar.out, ".vcf", ".eval")
+      eval.jobOutputFile = eval.out + ".out"
+      add(eval)
+    }
   }
 }

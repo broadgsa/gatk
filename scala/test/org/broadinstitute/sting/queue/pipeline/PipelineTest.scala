@@ -31,7 +31,7 @@ import org.broadinstitute.sting.commandline.CommandLineProgram
 import java.util.Date
 import java.text.SimpleDateFormat
 import org.broadinstitute.sting.BaseTest
-import org.broadinstitute.sting.queue.{QException, QCommandLine}
+import org.broadinstitute.sting.queue.QCommandLine
 import org.broadinstitute.sting.datasources.pipeline.{Pipeline, PipelineProject, PipelineSample}
 import org.broadinstitute.sting.utils.broad.PicardAggregationUtils
 import org.broadinstitute.sting.queue.util.{Logging, ProcessController}
@@ -114,17 +114,17 @@ object PipelineTest extends BaseTest with Logging {
   /**
    * Creates a new pipeline project for hg19 with b37 132 dbsnp for genotyping, and b37 129 dbsnp for eval.
    * @param projectName Name of the project.
-   * @param chr20 True if only chr20 should be evaluated or the whole exome.
+   * @param intervals The intervals file to use.
    * @return a new pipeline project.
    */
-  def createHg19Project(projectName: String, chr20: Boolean) = {
+  def createHg19Project(projectName: String, intervals: String) = {
     val project = new PipelineProject
     project.setName(projectName)
     project.setReferenceFile(new File(BaseTest.hg19Reference))
     project.setGenotypeDbsnp(new File(BaseTest.b37dbSNP132))
     project.setEvalDbsnp(new File(BaseTest.b37dbSNP129))
     project.setRefseqTable(new File(BaseTest.hg19Refseq))
-    project.setIntervalList(new File(if (chr20) BaseTest.hg19Chr20Intervals else BaseTest.hg19Intervals))
+    project.setIntervalList(new File(intervals))
     project
   }
 
