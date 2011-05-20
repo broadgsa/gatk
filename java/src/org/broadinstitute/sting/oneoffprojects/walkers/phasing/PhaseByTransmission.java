@@ -19,14 +19,17 @@ import java.util.*;
  * Given genotypes for a trio, phases child by transmission.  Computes probability that the determined phase is correct
  * given that the genotypes for mom and dad are correct (useful if you want to use this to compare phasing accuracy, but
  * want to break that comparison down by phasing confidence in the truth set).  Optionally filters out sites where the
- * phasing is indeterminate.
+ * phasing is indeterminate.  This walker assumes there are only three samples in the VCF file to begin with.
  */
 public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     @Argument(shortName="f", fullName="familyPattern", required=true, doc="Pattern for the family structure (usage: mom+dad=child)")
     public String familyStr = null;
 
-    @Argument(shortName="filter", fullName="filterPhaseIndeterminateSites", required=false, doc="Filters out sites that are phase-indeterminate")
+    @Argument(shortName="filter_ind", fullName="filterPhaseIndeterminateSites", required=false, doc="Filters out sites that are phase-indeterminate")
     public Boolean filterPhaseIndeterminateSites = false;
+
+    @Argument(shortName="filter_amb", fullName="filterAmbiguousAlleleOriginSites", required=false, doc="Filters out sites where the parental origin of the alleles is ambiguous (i.e. triple-het situations)")
+    public Boolean filterAmbiguousAlleleOriginSites = false;
 
     @Output
     protected VCFWriter vcfWriter = null;
@@ -34,6 +37,9 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     private String SAMPLE_NAME_MOM;
     private String SAMPLE_NAME_DAD;
     private String SAMPLE_NAME_CHILD;
+
+    private class AmbiguousAlleleOriginException extends Exception {};
+    private class NoAppropriatePhasedGenotypeException extends Exception {};
 
     /**
      * Parse the familial relationship specification, and initialize VCF writer
@@ -62,19 +68,24 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
      * @param mom    mom's genotype
      * @param dad    dad's genotype
      * @param child  child's genotype
-     * @return  phased version of child's genotype, or null in the case that the phasing cannot be determined
+     * @return  phased version of child's genotype
+     * @throws  AmbiguousAlleleOriginException if the parentage of the alleles can't be determined (i.e. a triple-het situation),
+     * @throws  NoAppropriatePhasedGenotypeException if there is insufficient information to determine the phase
      */
-    private Genotype getPhasedChildGenotype(Genotype mom, Genotype dad, Genotype child) {
-        List<Allele> momAlleles = mom.getAlleles();
-        List<Allele> dadAlleles = dad.getAlleles();
+    private Genotype getPhasedChildGenotype(Genotype mom, Genotype dad, Genotype child) throws AmbiguousAlleleOriginException, NoAppropriatePhasedGenotypeException {
+        Set<Allele> momAlleles = new HashSet<Allele>();
+        momAlleles.addAll(mom.getAlleles());
 
-        Set<Genotype> possiblePhasedChildGenotypes = new HashSet<Genotype>();
+        Set<Allele> dadAlleles = new HashSet<Allele>();
+        dadAlleles.addAll(dad.getAlleles());
 
         double transmissionProb = QualityUtils.qualToProb(mom.getNegLog10PError())*QualityUtils.qualToProb(dad.getNegLog10PError());
 
         Map<String, Object> attributes = new HashMap<String, Object>();
         attributes.putAll(child.getAttributes());
         attributes.put("TP", transmissionProb);
+
+        Set<Genotype> possiblePhasedChildGenotypes = new HashSet<Genotype>();
 
         for (Allele momAllele : momAlleles) {
             for (Allele dadAllele : dadAlleles) {
@@ -84,18 +95,36 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                     possiblePhasedChildAlleles.add(dadAllele);
 
                     Genotype possiblePhasedChildGenotype = new Genotype(child.getSampleName(), possiblePhasedChildAlleles, child.getNegLog10PError(), null, attributes, true);
+
                     possiblePhasedChildGenotypes.add(possiblePhasedChildGenotype);
+                }
+            }
+        }
+
+        Set<Genotype> ambiguousAlleleOriginGenotypes = new HashSet<Genotype>();
+
+        for (Genotype g1 : possiblePhasedChildGenotypes) {
+            for (Genotype g2 : possiblePhasedChildGenotypes) {
+                if (!g1.equals(g2)) {
+                    if (g1.sameGenotype(g2, true)) {
+                        ambiguousAlleleOriginGenotypes.add(g1);
+                        ambiguousAlleleOriginGenotypes.add(g2);
+                    }
                 }
             }
         }
 
         for (Genotype possiblePhasedChildGenotype : possiblePhasedChildGenotypes) {
             if (child.sameGenotype(possiblePhasedChildGenotype, true)) {
+                if (ambiguousAlleleOriginGenotypes.contains(possiblePhasedChildGenotype)) {
+                    throw new AmbiguousAlleleOriginException();
+                }
+
                 return possiblePhasedChildGenotype;
             }
         }
 
-        return null;
+        throw new NoAppropriatePhasedGenotypeException();
     }
 
     /**
@@ -116,28 +145,30 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 Genotype dad = vc.getGenotype(SAMPLE_NAME_DAD);
                 Genotype child = vc.getGenotype(SAMPLE_NAME_CHILD);
 
-                Genotype childPhased = getPhasedChildGenotype(mom, dad, child);
-
-                Collection<Genotype> phasedGenotypes = new ArrayList<Genotype>();
-                Collection<Allele> alleles = vc.getAlleles();
                 Set<String> filters = new HashSet<String>();
-                Map<String, Object> attributes = new HashMap<String, Object>();
-
-                phasedGenotypes.add(mom);
-                phasedGenotypes.add(dad);
-
                 filters.addAll(vc.getFilters());
-                attributes.putAll(vc.getAttributes());
 
-                if (childPhased == null) {
-                    phasedGenotypes.add(child);
-
+                try {
+                    child = getPhasedChildGenotype(mom, dad, child);
+                } catch (AmbiguousAlleleOriginException e) {
+                    if (filterAmbiguousAlleleOriginSites) {
+                        filters.add("AMBIGUOUS_ALLELE_ORIGIN");
+                    }
+                } catch (NoAppropriatePhasedGenotypeException e) {
                     if (filterPhaseIndeterminateSites) {
                         filters.add("PHASE_INDETERMINATE");
                     }
-                } else {
-                    phasedGenotypes.add(childPhased);
                 }
+
+                Map<String, Object> attributes = new HashMap<String, Object>();
+                attributes.putAll(vc.getAttributes());
+
+                Collection<Genotype> phasedGenotypes = new ArrayList<Genotype>();
+                Collection<Allele> alleles = vc.getAlleles();
+
+                phasedGenotypes.add(mom);
+                phasedGenotypes.add(dad);
+                phasedGenotypes.add(child);
 
                 VariantContext newvc = new VariantContext("PhaseByTransmission", ref.getLocus().getContig(), vc.getStart(), vc.getStart(), alleles, phasedGenotypes, vc.getNegLog10PError(), filters, attributes);
 
