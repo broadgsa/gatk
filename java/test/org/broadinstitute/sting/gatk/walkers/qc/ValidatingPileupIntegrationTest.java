@@ -12,7 +12,7 @@ import java.util.Collections;
  * @version 0.1
  */
 public class ValidatingPileupIntegrationTest extends WalkerTest {
-    @Test
+    @Test(enabled = false)
     public void testEcoliThreaded() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T ValidatingPileup" +

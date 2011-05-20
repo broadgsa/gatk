@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.gatk;
 
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.*;
@@ -622,7 +621,7 @@ public class GenomeAnalysisEngine {
         // if include argument isn't given, create new set of all possible intervals
         GenomeLocSortedSet includeSortedSet = (argCollection.intervals == null && argCollection.RODToInterval == null ?
             GenomeLocSortedSet.createSetFromSequenceDictionary(this.referenceDataSource.getReference().getSequenceDictionary()) :
-            loadIntervals(argCollection.intervals, genomeLocParser.mergeIntervalLocations(getRODIntervals(), argCollection.intervalMerging)));
+            loadIntervals(argCollection.intervals, IntervalUtils.mergeIntervalLocations(getRODIntervals(), argCollection.intervalMerging)));
 
         // if no exclude arguments, can return parseIntervalArguments directly
         if (argCollection.excludeIntervals == null)

@@ -555,7 +555,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<GenomeLoc> locs = IntervalUtils.parseIntervalArguments(hg18GenomeLocParser, Collections.singletonList(validationDataLocation + unmergedIntervals), false);
         Assert.assertEquals(locs.size(), 2);
 
-        List<GenomeLoc> merged = hg18GenomeLocParser.mergeIntervalLocations(locs, IntervalMergingRule.ALL);
+        List<GenomeLoc> merged = IntervalUtils.mergeIntervalLocations(locs, IntervalMergingRule.ALL);
         Assert.assertEquals(merged.size(), 1);
     }
 }

@@ -83,7 +83,7 @@ public class PrintIntervalsNotInBedWalker extends RodWalker<Integer, Integer> {
             }
             else {
                 printed += printWaitingIntervalAsBed();
-                waitingInterval = ref.getLocus().clone();
+                waitingInterval = ref.getLocus();
             }
         }
         else {

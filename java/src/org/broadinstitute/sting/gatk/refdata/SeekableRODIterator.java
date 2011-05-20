@@ -356,7 +356,7 @@ public class SeekableRODIterator implements LocationAwareSeekableRODIterator {
         }
 
         if ( records.size() > 0 ) {
-            return new RODRecordListImpl(name,records,interval.clone());
+            return new RODRecordListImpl(name,records,interval);
         } else {
             return null;
         }

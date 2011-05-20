@@ -5,6 +5,7 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.ArtificialSAMUtils;
 
 import static org.testng.Assert.assertEquals;
@@ -30,20 +31,39 @@ public class GenomeLocParserUnitTest extends BaseTest {
 
     @Test(expectedExceptions=RuntimeException.class)
     public void testGetContigIndex() {
-        assertEquals(genomeLocParser.getContigIndex("blah",true), -1); // should not be in the reference
+        assertEquals(genomeLocParser.getContigIndex("blah"), -1); // should not be in the reference
     }                
 
     @Test
     public void testGetContigIndexValid() {
         SAMFileHeader header = ArtificialSAMUtils.createArtificialSamHeader(1, 1, 10);
-        assertEquals(genomeLocParser.getContigIndex("chr1",true), 0); // should be in the reference
+        assertEquals(genomeLocParser.getContigIndex("chr1"), 0); // should be in the reference
     }
 
-    @Test
-    public void testGetContigInfoUnknownContig() {
-        assertEquals(null, genomeLocParser.getContigInfo("blah")); // should be in the reference
+    @Test(expectedExceptions=UserException.class)
+    public void testGetContigInfoUnknownContig1() {
+        assertEquals(null, genomeLocParser.getContigInfo("blah")); // should *not* be in the reference
     }
 
+    @Test(expectedExceptions=UserException.class)
+    public void testGetContigInfoUnknownContig2() {
+        assertEquals(null, genomeLocParser.getContigInfo(null)); // should *not* be in the reference
+    }
+
+    @Test()
+    public void testHasContigInfoUnknownContig1() {
+        assertEquals(false, genomeLocParser.contigIsInDictionary("blah")); // should *not* be in the reference
+    }
+
+    @Test()
+    public void testHasContigInfoUnknownContig2() {
+        assertEquals(false, genomeLocParser.contigIsInDictionary(null)); // should *not* be in the reference
+    }
+
+    @Test()
+    public void testHasContigInfoKnownContig() {
+        assertEquals(true, genomeLocParser.contigIsInDictionary("chr1")); // should be in the reference
+    }
 
     @Test
     public void testGetContigInfoKnownContig() {

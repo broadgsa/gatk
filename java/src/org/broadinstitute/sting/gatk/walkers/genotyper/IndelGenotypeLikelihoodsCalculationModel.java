@@ -304,7 +304,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         if (!ref.getLocus().equals(lastSiteVisited)) {
             // starting a new site: clear allele list
             alleleList.clear();
-            lastSiteVisited = ref.getLocus().clone();
+            lastSiteVisited = ref.getLocus();
             indelLikelihoodMap.clear();
             haplotypeMap.clear();
 

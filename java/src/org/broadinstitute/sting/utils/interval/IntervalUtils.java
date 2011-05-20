@@ -1,14 +1,18 @@
 package org.broadinstitute.sting.utils.interval;
 
+import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalList;
 import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.bed.BedParser;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.text.XReadLines;
 
+import java.io.IOException;
 import java.util.*;
 import java.io.File;
 
@@ -54,7 +58,7 @@ public class IntervalUtils {
                     // if it's a file, add items to raw interval list
                     else if (isIntervalFile(fileOrInterval)) {
                         try {
-                            rawIntervals.addAll(parser.intervalFileToList(fileOrInterval, allowEmptyIntervalList));
+                            rawIntervals.addAll(intervalFileToList(parser, fileOrInterval, allowEmptyIntervalList));
                         }
                         catch ( UserException.MalformedGenomeLoc e ) {
                             throw e;
@@ -73,6 +77,65 @@ public class IntervalUtils {
         }
 
         return rawIntervals;
+    }
+
+        /**
+     * Read a file of genome locations to process. The file may be in BED, Picard,
+     * or GATK interval format.
+     *
+     * @param file_name interval file
+     * @param allowEmptyIntervalList if false an exception will be thrown for files that contain no intervals
+     * @return List<GenomeLoc> List of Genome Locs that have been parsed from file
+     */
+    public static List<GenomeLoc> intervalFileToList(final GenomeLocParser glParser, final String file_name, boolean allowEmptyIntervalList) {
+        // try to open file
+        File inputFile = new File(file_name);
+        List<GenomeLoc> ret = new ArrayList<GenomeLoc>();
+
+        // case: BED file
+        if (file_name.toUpperCase().endsWith(".BED")) {
+            BedParser parser = new BedParser(glParser,inputFile);
+            ret.addAll(parser.getLocations());
+        }
+        else {
+            /**
+             * IF not a BED file:
+             * first try to read it as a Picard interval file since that's well structured
+             * we'll fail quickly if it's not a valid file.
+             */
+            try {
+                // Note: Picard will skip over intervals with contigs not in the sequence dictionary
+                IntervalList il = IntervalList.fromFile(inputFile);
+
+                for (Interval interval : il.getIntervals()) {
+                    ret.add(glParser.createGenomeLoc(interval.getSequence(), interval.getStart(), interval.getEnd()));
+                }
+            }
+
+            // if that didn't work, try parsing file as a GATK interval file
+            catch (Exception e) {
+                try {
+                    XReadLines reader = new XReadLines(new File(file_name));
+                    for(String line: reader) {
+                        if ( line.trim().length() > 0 ) {
+                            ret.add(glParser.parseGenomeInterval(line));
+                        }
+                    }
+                    reader.close();
+                }
+                catch (IOException e2) {
+                    throw new UserException.CouldNotReadInputFile(inputFile, e2);
+                }
+            }
+        }
+
+        if ( ret.isEmpty() && ! allowEmptyIntervalList ) {
+            throw new UserException("The interval file " + inputFile.getAbsolutePath() + " contains no intervals " +
+                                    "that could be parsed, and the unsafe operation ALLOW_EMPTY_INTERVAL_LIST has " +
+                                    "not been enabled");
+        }
+
+        return ret;
     }
 
     /**
@@ -145,7 +208,7 @@ public class IntervalUtils {
         // sort raw interval list
         Collections.sort(intervals);
         // now merge raw interval list
-        intervals = parser.mergeIntervalLocations(intervals, mergingRule);
+        intervals = mergeIntervalLocations(intervals, mergingRule);
 
         return GenomeLocSortedSet.createSetFromList(parser,intervals);
     }
@@ -330,5 +393,36 @@ public class IntervalUtils {
      */
     private static net.sf.picard.util.Interval toInterval(GenomeLoc loc, int locIndex) {
         return new net.sf.picard.util.Interval(loc.getContig(), loc.getStart(), loc.getStop(), false, "interval_" + locIndex);
+    }
+
+    /**
+     * merge a list of genome locs that may be overlapping, returning the list of unique genomic locations
+     *
+     * @param raw the unchecked genome loc list
+     * @param rule the merging rule we're using
+     *
+     * @return the list of merged locations
+     */
+    public static List<GenomeLoc> mergeIntervalLocations(final List<GenomeLoc> raw, IntervalMergingRule rule) {
+        if (raw.size() <= 1)
+            return raw;
+        else {
+            ArrayList<GenomeLoc> merged = new ArrayList<GenomeLoc>();
+            Iterator<GenomeLoc> it = raw.iterator();
+            GenomeLoc prev = it.next();
+            while (it.hasNext()) {
+                GenomeLoc curr = it.next();
+                if (prev.overlapsP(curr)) {
+                    prev = prev.merge(curr);
+                } else if (prev.contiguousP(curr) && rule == IntervalMergingRule.ALL) {
+                    prev = prev.merge(curr);
+                } else {
+                    merged.add(prev);
+                    prev = curr;
+                }
+            }
+            merged.add(prev);
+            return merged;
+        }
     }
 }

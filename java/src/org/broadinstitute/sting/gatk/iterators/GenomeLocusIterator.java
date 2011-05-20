@@ -64,7 +64,7 @@ public class GenomeLocusIterator implements Iterator<GenomeLoc> {
     public GenomeLoc next() {
         if( !hasNext() )
             throw new NoSuchElementException("No elements remaining in bounded reference region.");
-        GenomeLoc toReturn = (GenomeLoc)currentLocus.clone();
+        GenomeLoc toReturn = currentLocus;
         currentLocus = parser.incPos(currentLocus);
         return toReturn;
     }
