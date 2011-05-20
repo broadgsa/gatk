@@ -31,7 +31,6 @@
     <property name="external.dir" value="external" />
     <property name="java.source.dir" value="java/src" />
     <property name="java.classes" value="${build.dir}/java/classes" />
-    <property name="java.contracts" value="${build.dir}/java/contracts" />
     <property name="resource.file" value="StingText.properties" />
     <property name="resource.path" value="${java.classes}/StingText.properties" />
 
@@ -41,7 +40,9 @@
     <property name="queue-extensions.source.dir" value="${build.dir}/queue-extensions/src" />
     
     <!-- Contracts for Java -->
-    <!-- <property name="use.contracts" value="true" /> --> <!-- uncomment out to enable building contracts -->
+    <!-- uncomment out to enable building contracts -->
+    <property name="use.contracts" value="true" /> 
+    <property name="java.contracts" value="${build.dir}/java/contracts" />
     <property name="cofojaDir" value="settings/repository/com.google/"/>
     <property name="cofoja.jar" value="${cofojaDir}/cofoja-1.0-r120.jar"/>
     
@@ -604,6 +605,10 @@
                 <pathelement location="${java.classes}"/>
                 <pathelement location="lib/testng-5.14.1.jar"/>
             </classpath>
+<!-- 
+            <compilerarg value="-Acom.google.java.contract.debug"/>
+            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
+ -->
         </javac>
     </target>
 
@@ -670,12 +675,18 @@
                 <jvmarg value="-Djava.awt.headless=true" />
                 <jvmarg value="-Dpipeline.run=${pipeline.run}" />
                 <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
-<!--                 <jvmarg value="-Xdebug"/> -->
-<!--                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/> -->
+                <!-- needs to be if -->
+                <jvmarg value="-javaagent:lib/cofoja.jar"/>
+                <jvmarg value="-Dcom.google.java.contract.log.contract=false"/>
+<!-- 
+                <jvmarg value="-Xdebug"/>
+                <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
+ -->
                 <classpath>
                     <path refid="external.dependencies" />
                     <pathelement location="${java.classes}" />
                     <pathelement location="${scala.classes}" />
+                    <pathelement location="${java.contracts}" />
                     <pathelement location="${java.test.classes}" />
                     <pathelement location="${scala.test.classes}" />
                 </classpath>
