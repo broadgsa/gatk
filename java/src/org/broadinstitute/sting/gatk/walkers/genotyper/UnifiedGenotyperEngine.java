@@ -99,7 +99,8 @@ public class UnifiedGenotyperEngine {
         else
             samples = SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader());
 
-        initialize(UAC, null, null, null, samples.size());
+        final Logger logger = Logger.getLogger(UnifiedGenotyperEngine.class);
+        initialize(UAC, logger, null, null, samples.size());
     }
 
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, Set<String> samples) {

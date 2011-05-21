@@ -32,6 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
@@ -63,6 +64,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
      * @param UAC           unified arg collection
      */
     protected GenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
+        if ( logger == null || UAC == null ) throw new ReviewedStingException("Bad arguments");
         this.UAC = UAC.clone();
         this.logger = logger;
     }

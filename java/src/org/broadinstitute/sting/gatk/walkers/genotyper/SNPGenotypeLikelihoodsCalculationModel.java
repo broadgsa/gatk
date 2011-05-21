@@ -30,6 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
@@ -55,6 +56,8 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
     }
 
     public static VariantContext getSNPVCFromAllelesRod(RefMetaDataTracker tracker, ReferenceContext ref, boolean requireSNP, Logger logger) {
+        if ( tracker == null || ref == null || logger == null )
+            throw new ReviewedStingException("Bad arguments: tracker=" + tracker + " ref=" + ref + " logger=" + logger);
         VariantContext vc = null;
 
         // search for usable record
