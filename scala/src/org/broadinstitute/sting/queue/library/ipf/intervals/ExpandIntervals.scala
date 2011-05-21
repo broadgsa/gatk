@@ -121,7 +121,7 @@ class ExpandIntervals(in : File, start: Int, size: Int, out: File, ref: File, ip
   def parseGenomeInterval( s : String ) : GenomeLoc = {
     val sp = s.split("\\s+")
     // todo -- maybe specify whether the bed format [0,6) --> (1,2,3,4,5) is what's wanted  
-    if ( s.contains(":") ) parser.parseGenomeInterval(s) else parser.createGenomeLoc(sp(0),sp(1).toInt+offsetIn,sp(2).toInt-offsetIn)
+    if ( s.contains(":") ) parser.parseGenomeLoc(s) else parser.createGenomeLoc(sp(0),sp(1).toInt+offsetIn,sp(2).toInt-offsetIn)
   }
 
   object IntervalFormatType extends Enumeration("INTERVALS","BED","TDF") {

@@ -88,7 +88,7 @@ public class BedParser {
         }
 
         // we currently drop the rest of the bed record, which can contain names, scores, etc
-        return genomeLocParser.createGenomeLoc(contig, start, stop);
+        return genomeLocParser.createGenomeLoc(contig, start, stop, true);
 
     }
 

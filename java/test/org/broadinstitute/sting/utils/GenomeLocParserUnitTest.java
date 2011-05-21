@@ -29,7 +29,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         genomeLocParser = new GenomeLocParser(header.getSequenceDictionary());
     }
 
-    @Test(expectedExceptions=RuntimeException.class)
+    @Test(expectedExceptions=UserException.MalformedGenomeLoc.class)
     public void testGetContigIndex() {
         assertEquals(genomeLocParser.getContigIndex("blah"), -1); // should not be in the reference
     }                
@@ -78,9 +78,9 @@ public class GenomeLocParserUnitTest extends BaseTest {
 
     @Test
     public void testParseGoodString() {
-        GenomeLoc loc = genomeLocParser.parseGenomeLoc("chr1:1-100");
+        GenomeLoc loc = genomeLocParser.parseGenomeLoc("chr1:1-10");
         assertEquals(0, loc.getContigIndex());
-        assertEquals(loc.getStop(), 100);
+        assertEquals(loc.getStop(), 10);
         assertEquals(loc.getStart(), 1);
     }
     
@@ -165,7 +165,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals(loc.getStart(), 1);
     }
 
-    @Test(expectedExceptions=ReviewedStingException.class)
+    @Test(expectedExceptions=UserException.class)
     public void testGenomeLocBad2() {
         GenomeLoc loc = genomeLocParser.parseGenomeLoc("chr1:1-500-0");
         assertEquals(loc.getContigIndex(), 0);
@@ -173,7 +173,7 @@ public class GenomeLocParserUnitTest extends BaseTest {
         assertEquals(loc.getStart(), 1);
     }
 
-    @Test(expectedExceptions=ReviewedStingException.class)
+    @Test(expectedExceptions=UserException.class)
     public void testGenomeLocBad3() {
         GenomeLoc loc = genomeLocParser.parseGenomeLoc("chr1:1--0");
         assertEquals(loc.getContigIndex(), 0);
@@ -184,19 +184,11 @@ public class GenomeLocParserUnitTest extends BaseTest {
     // test out the validating methods
     @Test
     public void testValidationOfGenomeLocs() {
-        assertTrue(genomeLocParser.validGenomeLoc("chr1",1,1));
-        assertTrue(!genomeLocParser.validGenomeLoc("chr2",1,1)); // shouldn't have an entry
-        assertTrue(!genomeLocParser.validGenomeLoc("chr1",1,11)); // past the end of the contig
-        assertTrue(!genomeLocParser.validGenomeLoc("chr1",-1,10)); // bad start
-        assertTrue(!genomeLocParser.validGenomeLoc("chr1",1,-2)); // bad stop
-        assertTrue(!genomeLocParser.validGenomeLoc("chr1",10,11)); // bad start, past end
-
-        assertTrue(genomeLocParser.validGenomeLoc(0,1,1));
-        assertTrue(!genomeLocParser.validGenomeLoc(1,1,1)); // shouldn't have an entry
-        assertTrue(!genomeLocParser.validGenomeLoc(0,1,11)); // past the end of the contig
-        assertTrue(!genomeLocParser.validGenomeLoc(-1,0,10)); // bad start
-        assertTrue(!genomeLocParser.validGenomeLoc(0,1,-2)); // bad stop
-        assertTrue(!genomeLocParser.validGenomeLoc(0,10,11)); // bad start, past end
-
+        assertTrue(genomeLocParser.isValidGenomeLoc("chr1",1,1));
+        assertTrue(!genomeLocParser.isValidGenomeLoc("chr2",1,1)); // shouldn't have an entry
+        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",1,11)); // past the end of the contig
+        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",-1,10)); // bad start
+        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",1,-2)); // bad stop
+        assertTrue(!genomeLocParser.isValidGenomeLoc("chr1",10,11)); // bad start, past end
     }
 }

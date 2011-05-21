@@ -275,7 +275,7 @@ public abstract class LocusViewTemplate extends BaseTest {
     private static ReferenceSequenceFile fakeReferenceSequenceFile() {
         return new ReferenceSequenceFile() {
             public SAMSequenceDictionary getSequenceDictionary() {
-                SAMSequenceRecord sequenceRecord = new SAMSequenceRecord("chr1");
+                SAMSequenceRecord sequenceRecord = new SAMSequenceRecord("chr1", 1000000);
                 SAMSequenceDictionary dictionary = new SAMSequenceDictionary(Collections.singletonList(sequenceRecord));
                 return dictionary;
             }

@@ -44,7 +44,7 @@ class VCFSimpleMerge extends InProcessFunction {
 
   def genomeLoc(xrl : PeekableXRL, p : GenomeLocParser ) : GenomeLoc = {
     var slp = xrl.peek.split("\t",3)
-    return p.parseGenomeLoc(slp(0),Integer.parseInt(slp(1)),Integer.parseInt(slp(1)))
+    return p.createGenomeLoc(slp(0),Integer.parseInt(slp(1)),Integer.parseInt(slp(1)))
   }
 
   def run = {

@@ -245,7 +245,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if (IntervalUtils.isIntervalFile(fileOrInterval)) {
                     merger.add(new IntervalFileMergingIterator( getToolkit().getGenomeLocParser(), new java.io.File(fileOrInterval), IntervalMergingRule.OVERLAPPING_ONLY ) );
                 } else {
-                    rawIntervals.add(getToolkit().getGenomeLocParser().parseGenomeInterval(fileOrInterval));
+                    rawIntervals.add(getToolkit().getGenomeLocParser().parseGenomeLoc(fileOrInterval));
                 }
             }
             if ( ! rawIntervals.isEmpty() ) merger.add(rawIntervals.iterator());

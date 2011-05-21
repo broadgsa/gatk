@@ -138,7 +138,7 @@ public class IntervalUtilsUnitTest extends BaseTest {
             return hg18ReferenceLocs;
         List<GenomeLoc> locs = new ArrayList<GenomeLoc>();
         for (String interval: intervals)
-            locs.add(hg18GenomeLocParser.parseGenomeInterval(interval));
+            locs.add(hg18GenomeLocParser.parseGenomeLoc(interval));
         return locs;
     }
 
@@ -167,9 +167,9 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @Test
     public void testFixedScatterIntervalsBasic() {
-        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1");
-        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2");
-        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3");
+        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1");
+        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2");
+        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3");
 
         List<File> files = testFiles("basic.", 3, ".intervals");
 
@@ -192,10 +192,10 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @Test
     public void testScatterFixedIntervalsLessFiles() {
-        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1");
-        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2");
-        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3");
-        GenomeLoc chr4 = hg18GenomeLocParser.parseGenomeInterval("chr4");
+        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1");
+        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2");
+        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3");
+        GenomeLoc chr4 = hg18GenomeLocParser.parseGenomeLoc("chr4");
 
         List<File> files = testFiles("less.", 3, ".intervals");
 
@@ -234,10 +234,10 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @Test
     public void testScatterFixedIntervalsStart() {
         List<String> intervals = Arrays.asList("chr1:1-2", "chr1:4-5", "chr2:1-1", "chr3:2-2");
-        GenomeLoc chr1a = hg18GenomeLocParser.parseGenomeInterval("chr1:1-2");
-        GenomeLoc chr1b = hg18GenomeLocParser.parseGenomeInterval("chr1:4-5");
-        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2:1-1");
-        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3:2-2");
+        GenomeLoc chr1a = hg18GenomeLocParser.parseGenomeLoc("chr1:1-2");
+        GenomeLoc chr1b = hg18GenomeLocParser.parseGenomeLoc("chr1:4-5");
+        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2:1-1");
+        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3:2-2");
 
         List<File> files = testFiles("split.", 3, ".intervals");
 
@@ -262,10 +262,10 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @Test
     public void testScatterFixedIntervalsMiddle() {
         List<String> intervals = Arrays.asList("chr1:1-1", "chr2:1-2", "chr2:4-5", "chr3:2-2");
-        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1:1-1");
-        GenomeLoc chr2a = hg18GenomeLocParser.parseGenomeInterval("chr2:1-2");
-        GenomeLoc chr2b = hg18GenomeLocParser.parseGenomeInterval("chr2:4-5");
-        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3:2-2");
+        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1:1-1");
+        GenomeLoc chr2a = hg18GenomeLocParser.parseGenomeLoc("chr2:1-2");
+        GenomeLoc chr2b = hg18GenomeLocParser.parseGenomeLoc("chr2:4-5");
+        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3:2-2");
 
         List<File> files = testFiles("split.", 3, ".intervals");
 
@@ -290,10 +290,10 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @Test
     public void testScatterFixedIntervalsEnd() {
         List<String> intervals = Arrays.asList("chr1:1-1", "chr2:2-2", "chr3:1-2", "chr3:4-5");
-        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1:1-1");
-        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2:2-2");
-        GenomeLoc chr3a = hg18GenomeLocParser.parseGenomeInterval("chr3:1-2");
-        GenomeLoc chr3b = hg18GenomeLocParser.parseGenomeInterval("chr3:4-5");
+        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1:1-1");
+        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2:2-2");
+        GenomeLoc chr3a = hg18GenomeLocParser.parseGenomeLoc("chr3:1-2");
+        GenomeLoc chr3b = hg18GenomeLocParser.parseGenomeLoc("chr3:4-5");
 
         List<File> files = testFiles("split.", 3, ".intervals");
 
@@ -322,10 +322,13 @@ public class IntervalUtilsUnitTest extends BaseTest {
         List<Integer> splits = IntervalUtils.splitFixedIntervals(locs, files.size());
 
         int[] counts = {
-                5169, 5573, 10017, 10567, 10551,
-                5087, 4908, 10120, 10435, 10399,
-                5391, 4735, 10621, 10352, 10654,
-                5227, 5256, 10151, 9649, 9825
+                125, 138, 287, 291, 312, 105, 155, 324,
+                295, 298, 141, 121, 285, 302, 282, 88,
+                116, 274, 282, 248
+//                5169, 5573, 10017, 10567, 10551,
+//                5087, 4908, 10120, 10435, 10399,
+//                5391, 4735, 10621, 10352, 10654,
+//                5227, 5256, 10151, 9649, 9825
         };
 
         //String splitCounts = "";
@@ -368,9 +371,9 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @Test
     public void testScatterContigIntervalsOrder() {
         List<String> intervals = Arrays.asList("chr2:1-1", "chr1:1-1", "chr3:2-2");
-        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1:1-1");
-        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2:1-1");
-        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3:2-2");
+        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1:1-1");
+        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2:1-1");
+        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3:2-2");
 
         List<File> files = testFiles("split.", 3, ".intervals");
 
@@ -391,9 +394,9 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @Test
     public void testScatterContigIntervalsBasic() {
-        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1");
-        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2");
-        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3");
+        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1");
+        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2");
+        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3");
 
         List<File> files = testFiles("contig_basic.", 3, ".intervals");
 
@@ -414,10 +417,10 @@ public class IntervalUtilsUnitTest extends BaseTest {
 
     @Test
     public void testScatterContigIntervalsLessFiles() {
-        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1");
-        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2");
-        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3");
-        GenomeLoc chr4 = hg18GenomeLocParser.parseGenomeInterval("chr4");
+        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1");
+        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2");
+        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3");
+        GenomeLoc chr4 = hg18GenomeLocParser.parseGenomeLoc("chr4");
 
         List<File> files = testFiles("contig_less.", 3, ".intervals");
 
@@ -446,10 +449,10 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @Test
     public void testScatterContigIntervalsStart() {
         List<String> intervals = Arrays.asList("chr1:1-2", "chr1:4-5", "chr2:1-1", "chr3:2-2");
-        GenomeLoc chr1a = hg18GenomeLocParser.parseGenomeInterval("chr1:1-2");
-        GenomeLoc chr1b = hg18GenomeLocParser.parseGenomeInterval("chr1:4-5");
-        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2:1-1");
-        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3:2-2");
+        GenomeLoc chr1a = hg18GenomeLocParser.parseGenomeLoc("chr1:1-2");
+        GenomeLoc chr1b = hg18GenomeLocParser.parseGenomeLoc("chr1:4-5");
+        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2:1-1");
+        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3:2-2");
 
         List<File> files = testFiles("contig_split_start.", 3, ".intervals");
 
@@ -472,10 +475,10 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @Test
     public void testScatterContigIntervalsMiddle() {
         List<String> intervals = Arrays.asList("chr1:1-1", "chr2:1-2", "chr2:4-5", "chr3:2-2");
-        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1:1-1");
-        GenomeLoc chr2a = hg18GenomeLocParser.parseGenomeInterval("chr2:1-2");
-        GenomeLoc chr2b = hg18GenomeLocParser.parseGenomeInterval("chr2:4-5");
-        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3:2-2");
+        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1:1-1");
+        GenomeLoc chr2a = hg18GenomeLocParser.parseGenomeLoc("chr2:1-2");
+        GenomeLoc chr2b = hg18GenomeLocParser.parseGenomeLoc("chr2:4-5");
+        GenomeLoc chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3:2-2");
 
         List<File> files = testFiles("contig_split_middle.", 3, ".intervals");
 
@@ -498,10 +501,10 @@ public class IntervalUtilsUnitTest extends BaseTest {
     @Test
     public void testScatterContigIntervalsEnd() {
         List<String> intervals = Arrays.asList("chr1:1-1", "chr2:2-2", "chr3:1-2", "chr3:4-5");
-        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1:1-1");
-        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2:2-2");
-        GenomeLoc chr3a = hg18GenomeLocParser.parseGenomeInterval("chr3:1-2");
-        GenomeLoc chr3b = hg18GenomeLocParser.parseGenomeInterval("chr3:4-5");
+        GenomeLoc chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1:1-1");
+        GenomeLoc chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2:2-2");
+        GenomeLoc chr3a = hg18GenomeLocParser.parseGenomeLoc("chr3:1-2");
+        GenomeLoc chr3b = hg18GenomeLocParser.parseGenomeLoc("chr3:4-5");
 
         List<File> files = testFiles("contig_split_end.", 3 ,".intervals");
 

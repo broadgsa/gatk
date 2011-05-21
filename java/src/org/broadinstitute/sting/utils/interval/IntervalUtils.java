@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.interval;
 import net.sf.picard.util.Interval;
 import net.sf.picard.util.IntervalList;
 import net.sf.samtools.SAMFileHeader;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
@@ -24,6 +25,8 @@ import java.io.File;
  * @version 0.1
  */
 public class IntervalUtils {
+    private static Logger logger = Logger.getLogger(IntervalUtils.class);
+
     /**
      * Turns a set of strings describing intervals into a parsed set of intervals.  Valid string elements can be files,
      * intervals in samtools notation (chrA:B-C), or some combination of the above separated by semicolons.  Additionally,
@@ -70,7 +73,7 @@ public class IntervalUtils {
 
                         // otherwise treat as an interval -> parse and add to raw interval list
                     else {
-                        rawIntervals.add(parser.parseGenomeInterval(fileOrInterval));
+                        rawIntervals.add(parser.parseGenomeLoc(fileOrInterval));
                     }
                 }
             }
@@ -103,28 +106,41 @@ public class IntervalUtils {
              * first try to read it as a Picard interval file since that's well structured
              * we'll fail quickly if it's not a valid file.
              */
+            boolean isPicardInterval = false;
             try {
                 // Note: Picard will skip over intervals with contigs not in the sequence dictionary
                 IntervalList il = IntervalList.fromFile(inputFile);
+                isPicardInterval = true;
 
+                int nInvalidIntervals = 0;
                 for (Interval interval : il.getIntervals()) {
-                    ret.add(glParser.createGenomeLoc(interval.getSequence(), interval.getStart(), interval.getEnd()));
+                    if ( glParser.isValidGenomeLoc(interval.getSequence(), interval.getStart(), interval.getEnd(), true))
+                        ret.add(glParser.createGenomeLoc(interval.getSequence(), interval.getStart(), interval.getEnd(), true));
+                    else {
+                        nInvalidIntervals++;
+                    }
                 }
+                if ( nInvalidIntervals > 0 )
+                    logger.warn("Ignoring " + nInvalidIntervals + " invalid intervals from " + inputFile);
             }
 
             // if that didn't work, try parsing file as a GATK interval file
             catch (Exception e) {
-                try {
-                    XReadLines reader = new XReadLines(new File(file_name));
-                    for(String line: reader) {
-                        if ( line.trim().length() > 0 ) {
-                            ret.add(glParser.parseGenomeInterval(line));
+                if ( isPicardInterval ) // definitely a picard file, but we failed to parse
+                    throw new UserException.CouldNotReadInputFile(inputFile, e);
+                else {
+                    try {
+                        XReadLines reader = new XReadLines(new File(file_name));
+                        for(String line: reader) {
+                            if ( line.trim().length() > 0 ) {
+                                ret.add(glParser.parseGenomeLoc(line));
+                            }
                         }
+                        reader.close();
                     }
-                    reader.close();
-                }
-                catch (IOException e2) {
-                    throw new UserException.CouldNotReadInputFile(inputFile, e2);
+                    catch (IOException e2) {
+                        throw new UserException.CouldNotReadInputFile(inputFile, e2);
+                    }
                 }
             }
         }

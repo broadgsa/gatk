@@ -84,7 +84,7 @@ public class StringToGenomeLocIteratorAdapter implements Iterator<GenomeLoc> {
 
     public GenomeLoc next() {
 
-        if ( myFormat == FORMAT.GATK ) return genomeLocParser.parseGenomeInterval( it.next() );
+        if ( myFormat == FORMAT.GATK ) return genomeLocParser.parseGenomeLoc(it.next());
         return BedParser.parseLocation( genomeLocParser,it.next() );
     }
 

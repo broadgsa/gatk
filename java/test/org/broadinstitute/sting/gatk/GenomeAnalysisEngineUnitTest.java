@@ -113,7 +113,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
                                                String contig, int intervalStart, int intervalEnd ) throws Exception {
 
         List<String> intervalArgs = new ArrayList<String>();
-        List<GenomeLoc> rodIntervals = Arrays.asList(genomeLocParser.createGenomeLocWithoutValidation(contig, intervalStart, intervalEnd));
+        List<GenomeLoc> rodIntervals = Arrays.asList(genomeLocParser.createGenomeLoc(contig, intervalStart, intervalEnd, true));
 
         testEngine.loadIntervals(intervalArgs, rodIntervals);
     }
@@ -124,7 +124,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         // We need to adjust intervalStart, since BED intervals are 0-based. We don't need to adjust intervalEnd,
         // since the ending point is an open interval.
         File bedFile = createTempFile("testInvalidBedIntervalHandling", ".bed",
-                                      String.format("%s %d %d", contig, intervalStart - 1, intervalEnd));
+                                      String.format("%s %d %d", contig, intervalStart -1, intervalEnd));
 
         List<String> intervalArgs = Arrays.asList(bedFile.getAbsolutePath());
         List<GenomeLoc> rodIntervals = new ArrayList<GenomeLoc>();

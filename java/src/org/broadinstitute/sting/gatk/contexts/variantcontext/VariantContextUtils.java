@@ -795,7 +795,7 @@ public class VariantContextUtils {
      * @return the genomeLoc
      */
     public static final GenomeLoc getLocation(GenomeLocParser genomeLocParser,VariantContext vc) {
-        return genomeLocParser.createGenomeLoc(vc.getChr(),(int)vc.getStart(),(int)vc.getEnd());
+        return genomeLocParser.createGenomeLoc(vc.getChr(),(int)vc.getStart(),(int)vc.getEnd(), true);
     }
 
     public abstract static class AlleleMergeRule {

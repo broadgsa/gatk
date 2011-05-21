@@ -46,9 +46,9 @@ class GATKIntervalsUnitTest {
 
   @Test
   def testWithIntervals() {
-    val chr1 = hg18GenomeLocParser.parseGenomeInterval("chr1:1-1")
-    val chr2 = hg18GenomeLocParser.parseGenomeInterval("chr2:2-3")
-    val chr3 = hg18GenomeLocParser.parseGenomeInterval("chr3:3-5")
+    val chr1 = hg18GenomeLocParser.parseGenomeLoc("chr1:1-1")
+    val chr2 = hg18GenomeLocParser.parseGenomeLoc("chr2:2-3")
+    val chr3 = hg18GenomeLocParser.parseGenomeLoc("chr3:3-5")
 
     val gi = new GATKIntervals(hg18Reference, List("chr1:1-1", "chr2:2-3", "chr3:3-5"))
     Assert.assertEquals(gi.locs.toList, List(chr1, chr2, chr3))

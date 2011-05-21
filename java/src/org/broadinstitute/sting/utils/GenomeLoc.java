@@ -13,7 +13,9 @@ import java.io.Serializable;
  * Date: Mar 2, 2009
  * Time: 8:50:11 AM
  *
- * Genome location representation.  It is *** 1 *** based closed.
+ * Genome location representation.  It is *** 1 *** based closed.  Note that GenomeLocs start and stop values
+ * can be any positive or negative number, by design.  Bound validation is a feature of the GenomeLocParser,
+ * and not a fundamental constraint of the GenomeLoc
  */
 public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenomeLocation {
     /**
@@ -48,7 +50,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     @Requires({
             "contig != null",
             "contigIndex >= 0", // I believe we aren't allowed to create GenomeLocs without a valid contigIndex
-            "start >= 0 && start <= stop"})
+            "start <= stop"})
     protected GenomeLoc( final String contig, final int contigIndex, final int start, final int stop ) {
         this.contigName = contig;
         this.contigIndex = contigIndex;
@@ -122,8 +124,7 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
      */
     @Requires({
             "that != null",
-            "! isUnmapped(this)",
-            "! isUnmapped(that)"})
+            "isUnmapped(this) == isUnmapped(that)"})
     @Ensures("result != null")
     public GenomeLoc merge( GenomeLoc that ) throws ReviewedStingException {
         if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {

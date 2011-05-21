@@ -275,7 +275,7 @@ public class RealignerTargetCreator extends RodWalker<RealignerTargetCreator.Eve
         }
 
         public boolean isReportableEvent() {
-            return getToolkit().getGenomeLocParser().validGenomeLoc(loc.getContig(), eventStartPos, eventStopPos) && eventStopPos >= 0 && eventStopPos - eventStartPos < maxIntervalSize;
+            return getToolkit().getGenomeLocParser().isValidGenomeLoc(loc.getContig(), eventStartPos, eventStopPos, true) && eventStopPos >= 0 && eventStopPos - eventStartPos < maxIntervalSize;
         }
 
         public String toString() {

@@ -177,7 +177,7 @@ public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature
 
         BeagleFeature bglFeature = new BeagleFeature();
 
-        final GenomeLoc loc = genomeLocParser.parseGenomeLoc(tokens[markerPosition]); //GenomeLocParser.parseGenomeInterval(values.get(0)); - TODO switch to this
+        final GenomeLoc loc = genomeLocParser.parseGenomeLoc(tokens[markerPosition]); //GenomeLocParser.parseGenomeLoc(values.get(0)); - TODO switch to this
 
         //parse the location: common to all readers
         bglFeature.setChr(loc.getContig());

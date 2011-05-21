@@ -253,12 +253,14 @@ public class GenomeLocSortedSet extends AbstractSet<GenomeLoc> {
              * |------|  + |--------|
              *
              */
-            GenomeLoc before = genomeLocParser.createGenomeLoc(g.getContig(), g.getStart(), e.getStart() - 1);
-            GenomeLoc after = genomeLocParser.createGenomeLoc(g.getContig(), e.getStop() + 1, g.getStop());
-            if (after.getStop() - after.getStart() >= 0) {
+            int afterStop = g.getStop(), afterStart = e.getStop() + 1;
+            int beforeStop = e.getStart() - 1, beforeStart = g.getStart();
+            if (afterStop - afterStart >= 0) {
+                GenomeLoc after = genomeLocParser.createGenomeLoc(g.getContig(), afterStart, afterStop);
                 l.add(after);
             }
-            if (before.getStop() - before.getStart() >= 0) {
+            if (beforeStop - beforeStart >= 0) {
+                GenomeLoc before = genomeLocParser.createGenomeLoc(g.getContig(), beforeStart, beforeStop);
                 l.add(before);
             }
 

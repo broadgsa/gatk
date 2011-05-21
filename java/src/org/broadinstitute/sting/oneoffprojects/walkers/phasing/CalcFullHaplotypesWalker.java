@@ -101,7 +101,7 @@ public class CalcFullHaplotypesWalker extends RodWalker<Integer, Integer> {
             if (waitingHaplotype == null) {// changed to a new contig:
                 // Set the new haplotype to extend from [1, prevPosition]
                 if (prevPosition >= 1) {
-                    GenomeLoc startInterval = getToolkit().getGenomeLocParser().parseGenomeLoc(curLocus.getContig(), 1, prevPosition);
+                    GenomeLoc startInterval = getToolkit().getGenomeLocParser().createGenomeLoc(curLocus.getContig(), 1, prevPosition);
                     waitingHaplotype = new Haplotype(startInterval, sampleHapEntry.getKey());
                     sampleHapEntry.setValue(waitingHaplotype);
                 }
@@ -201,7 +201,7 @@ public class CalcFullHaplotypesWalker extends RodWalker<Integer, Integer> {
 
         public void extend(int stop) {
             if (stop > interval.getStop())
-                interval = getToolkit().getGenomeLocParser().parseGenomeLoc(interval.getContig(), interval.getStart(), stop);
+                interval = getToolkit().getGenomeLocParser().createGenomeLoc(interval.getContig(), interval.getStart(), stop);
         }
 
         public void incrementHetCount() {

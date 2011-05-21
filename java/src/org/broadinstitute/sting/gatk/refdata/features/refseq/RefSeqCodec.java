@@ -55,8 +55,8 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
         else throw new UserException.MalformedFile("Expected strand symbol (+/-), found: "+fields[3] + " for line=" + line);
 
 
-        feature.setTranscript_interval(genomeLocParser.parseGenomeLoc(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5])));
-        feature.setTranscript_coding_interval(genomeLocParser.parseGenomeLoc(contig_name, Integer.parseInt(fields[6])+1, Integer.parseInt(fields[7])));
+        feature.setTranscript_interval(genomeLocParser.createGenomeLoc(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5])));
+        feature.setTranscript_coding_interval(genomeLocParser.createGenomeLoc(contig_name, Integer.parseInt(fields[6])+1, Integer.parseInt(fields[7])));
         feature.setGene_name(fields[12]);
         String[] exon_starts = fields[9].split(",");
         String[] exon_stops = fields[10].split(",");
@@ -71,7 +71,7 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
         ArrayList<Integer> exon_frames = new ArrayList<Integer>(eframes.length);
 
         for ( int i = 0 ; i < exon_starts.length  ; i++ ) {
-            exons.add(genomeLocParser.parseGenomeLoc(contig_name, Integer.parseInt(exon_starts[i])+1, Integer.parseInt(exon_stops[i]) ) );
+            exons.add(genomeLocParser.createGenomeLoc(contig_name, Integer.parseInt(exon_starts[i])+1, Integer.parseInt(exon_stops[i]) ) );
             exon_frames.add(Integer.decode(eframes[i]));
         }
 

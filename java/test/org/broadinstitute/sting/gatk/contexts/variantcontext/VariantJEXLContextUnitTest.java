@@ -80,7 +80,7 @@ public class VariantJEXLContextUnitTest extends BaseTest {
         } catch (Exception e) {
             Assert.fail("Unable to create expression" + e.getMessage());
         }
-        snpLoc = genomeLocParser.createGenomeLoc("chr1", 10, 10);
+        snpLoc = genomeLocParser.createGenomeLoc("chr1", 10, 10, true);
     }
 
     @BeforeMethod

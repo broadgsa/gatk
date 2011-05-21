@@ -655,10 +655,6 @@ public class GenomeAnalysisEngine {
                                           argCollection.unsafe == ValidationExclusion.TYPE.ALL);
 
         List<GenomeLoc> nonRODIntervals = IntervalUtils.parseIntervalArguments(genomeLocParser, argList, allowEmptyIntervalList);
-
-        genomeLocParser.validateGenomeLocList(nonRODIntervals);
-        genomeLocParser.validateGenomeLocList(rodIntervals);
-
         List<GenomeLoc> allIntervals = IntervalUtils.mergeListsBySetOperator(rodIntervals, nonRODIntervals, argCollection.BTIMergeRule);
 
         return IntervalUtils.sortAndMergeIntervals(genomeLocParser, allIntervals, argCollection.intervalMerging);
