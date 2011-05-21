@@ -97,6 +97,7 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
     public static class Datum implements Comparable<Datum> {
         String rgID, sample;
         GenotypeLikelihoods pl;
+        String ref, alt;
         VariantContext.Type siteType;
         Genotype.Type genotypeType;
 
@@ -107,7 +108,9 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
             return bySample != 0 ? bySample : byRG;
         }
 
-        public Datum(String sample, String rgID, GenotypeLikelihoods pl, VariantContext.Type siteType, Genotype.Type genotypeType) {
+        public Datum(String ref, String alt, String sample, String rgID, GenotypeLikelihoods pl, VariantContext.Type siteType, Genotype.Type genotypeType) {
+            this.ref = ref;
+            this.alt = alt;
             this.sample = sample;
             this.rgID = rgID;
             this.pl = pl;
@@ -196,7 +199,8 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
                 Genotype rgGT = call.getGenotype(sample);
 
                 if ( rgGT != null && ! rgGT.isNoCall() && rgGT.getLikelihoods().getAsVector() != null ) {
-                    Datum d = new Datum(sample, rgAC.getKey().getReadGroupId(), rgGT.getLikelihoods(), vcComp.getType(), compGT.getType());
+                    Datum d = new Datum(vcComp.getReference().getBaseString(), vcComp.getAlternateAllele(0).getBaseString(),
+                            sample, rgAC.getKey().getReadGroupId(), rgGT.getLikelihoods(), vcComp.getType(), compGT.getType());
                     data.values.add(d);
                 }
             }
@@ -242,7 +246,7 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
     public void onTraversalDone(Data data) {
         // print the header
         List<String> pGNames = Arrays.asList("QofAAGivenD", "QofABGivenD", "QofBBGivenD");
-        List<String> fields = Arrays.asList("sample", "rg", "siteType", "pls", "comp", "pGGivenDType", "pGGivenD");
+        List<String> fields = Arrays.asList("sample", "rg", "ref", "alt", "siteType", "pls", "comp", "pGGivenDType", "pGGivenD");
         out.println(Utils.join("\t", fields));
 
         double[] counts = new double[]{1, 1, 1};
@@ -260,8 +264,8 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
             for ( int i = 0; i < pGNames.size(); i++ ) {
                 int q = QualityUtils.probToQual(pOfGGivenD[i], Math.pow(10.0, -9.9));
                 if ( q > 1 ) { // tons of 1s, and not interesting
-                    out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%d%n",
-                            d.sample, d.rgID, d.siteType, d.pl.getAsString(), d.genotypeType.toString(),
+                    out.printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d%n",
+                            d.sample, d.rgID, d.ref, d.alt, d.siteType, d.pl.getAsString(), d.genotypeType.toString(),
                             pGNames.get(i), q);
                 }
             }
