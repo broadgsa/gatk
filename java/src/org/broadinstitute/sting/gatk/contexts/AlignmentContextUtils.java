@@ -121,19 +121,23 @@ public class AlignmentContextUtils {
      * Splits the AlignmentContext into one context per read group
      *
      * @param context the original pileup
-     * @return a Map of ReadGroup to AlignmentContext
+     * @return a Map of ReadGroup to AlignmentContext, or an empty map if context has no base pileup
      *
      **/
     public static Map<SAMReadGroupRecord, AlignmentContext> splitContextByReadGroup(AlignmentContext context, Collection<SAMReadGroupRecord> readGroups) {
-        HashMap<SAMReadGroupRecord, AlignmentContext> contexts = new HashMap<SAMReadGroupRecord, AlignmentContext>();
+        if ( ! context.hasBasePileup() ) {
+            return Collections.emptyMap();
+        } else {
+            HashMap<SAMReadGroupRecord, AlignmentContext> contexts = new HashMap<SAMReadGroupRecord, AlignmentContext>();
 
-        for (SAMReadGroupRecord rg : readGroups) {
-            ReadBackedPileup rgPileup = context.getBasePileup().getPileupForReadGroup(rg.getReadGroupId());
-            if ( rgPileup != null ) // there we some reads for RG
-                contexts.put(rg, new AlignmentContext(context.getLocation(), rgPileup));
+            for (SAMReadGroupRecord rg : readGroups) {
+                ReadBackedPileup rgPileup = context.getBasePileup().getPileupForReadGroup(rg.getReadGroupId());
+                if ( rgPileup != null ) // there we some reads for RG
+                    contexts.put(rg, new AlignmentContext(context.getLocation(), rgPileup));
+            }
+
+            return contexts;
         }
-
-        return contexts;
     }
 
     public static Map<String, AlignmentContext> splitContextBySampleName(ReadBackedPileup pileup, String assumedSingleSample) {

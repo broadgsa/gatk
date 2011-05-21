@@ -31,7 +31,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -sn B -sn C -B:variant,VCF3 " + testfile + " -NO_HEADER"),
                 1,
-                Arrays.asList("fe6963e5fea1d3854634dcf3defd7b92")
+                Arrays.asList("5ba7536a0819421b330350a160e4261a")
         );
 
         executeTest("testRepeatedLineSelection--" + testfile, spec);

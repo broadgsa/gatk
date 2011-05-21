@@ -314,7 +314,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 genotypes.add(genotypePair.getValue());
         }
         
-        VariantContext sub = vc.subContextFromGenotypes(genotypes);
+        VariantContext sub = vc.subContextFromGenotypes(genotypes, vc.getAlleles());
 
         HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
 
