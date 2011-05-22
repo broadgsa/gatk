@@ -603,6 +603,7 @@
             <classpath>
                 <path refid="external.dependencies" />
                 <pathelement location="${java.classes}"/>
+                <pathelement location="${java.contracts}"/>
                 <pathelement location="lib/testng-5.14.1.jar"/>
             </classpath>
 <!-- 
