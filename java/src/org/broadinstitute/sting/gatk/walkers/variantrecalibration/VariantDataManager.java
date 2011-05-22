@@ -207,7 +207,7 @@ public class VariantDataManager {
 
     private static double decodeAnnotation( final String annotationKey, final VariantContext vc, final boolean jitter ) {
         double value;
-        if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // HRun values must be jittered a bit to work in this GMM
+        if( jitter && ( annotationKey.equalsIgnoreCase("HRUN") || annotationKey.equalsIgnoreCase("FS") ) ) { // Integer valued annotations must be jittered a bit to work in this GMM
             value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
             value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
         } else if( annotationKey.equals("QUAL") ) {
