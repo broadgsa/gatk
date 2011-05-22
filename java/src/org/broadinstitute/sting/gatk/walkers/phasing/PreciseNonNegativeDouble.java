@@ -21,7 +21,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package org.broadinstitute.sting.utils;
+package org.broadinstitute.sting.gatk.walkers.phasing;
 
 /* PreciseNonNegativeDouble permits arithmetic operations on NON-NEGATIVE double values
    with precision (prevents underflow by representing in log10 space).
