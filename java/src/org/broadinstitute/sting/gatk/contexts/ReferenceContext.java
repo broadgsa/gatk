@@ -26,10 +26,10 @@
 package org.broadinstitute.sting.gatk.contexts;
 
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.BaseUtils;
 import net.sf.samtools.util.StringUtil;
+import com.google.java.contract.*;
 
 /**
  * The section of the reference that overlaps with the given
@@ -45,17 +45,17 @@ public class ReferenceContext {
     /**
      * Facilitates creation of new GenomeLocs.
      */
-    private GenomeLocParser genomeLocParser;
+    final private GenomeLocParser genomeLocParser;
 
     /**
      * The locus.
      */
-    private GenomeLoc locus;
+    final private GenomeLoc locus;
 
     /**
      * The window of reference information around the current locus.
      */
-    private GenomeLoc window;
+    final private GenomeLoc window;
 
     /**
      * The bases in the window around the current locus.  If null, then bases haven't been fetched yet
@@ -65,12 +65,7 @@ public class ReferenceContext {
     /**
      * Lazy loader to fetch reference bases
      */
-    private ReferenceContextRefProvider basesProvider;
-
-    /**
-     * A cache of the bases converted to characters for walkers not yet using byte[] interface
-     */
-    private char[] basesAsCharCached = null;
+    final private ReferenceContextRefProvider basesProvider;
 
     /**
      * Interface to create byte[] contexts for lazy loading of the reference
@@ -85,6 +80,7 @@ public class ReferenceContext {
          *
          * @return
          */
+        @Ensures("result != null")
         public byte[] getBases();
     }
 
@@ -107,23 +103,45 @@ public class ReferenceContext {
      * @param locus locus of interest.
      * @param base reference base at that locus.
      */
+    @Requires({
+            "genomeLocParser != null",
+            "locus != null",
+            "locus.size() > 0"})
     public ReferenceContext( GenomeLocParser genomeLocParser, GenomeLoc locus, byte base ) {
         this( genomeLocParser, locus, locus, new ForwardingProvider(base) );
     }
 
+    @Requires({
+            "genomeLocParser != null",
+            "locus != null",
+            "locus.size() > 0",
+            "window != null",
+            "window.size() > 0",
+            "bases != null && bases.length > 0"})
     public ReferenceContext( GenomeLocParser genomeLocParser, GenomeLoc locus, GenomeLoc window, byte[] bases ) {
         this( genomeLocParser, locus, window, new ForwardingProvider(bases) );
     }
 
+    @Requires({
+            "genomeLocParser != null",
+            "locus != null",
+            "locus.size() > 0",
+            "window != null",
+            "window.size() > 0",
+            "basesProvider != null"})
     public ReferenceContext( GenomeLocParser genomeLocParser, GenomeLoc locus, GenomeLoc window, ReferenceContextRefProvider basesProvider ) {
-  //      if( !window.containsP(locus) )
-  //          throw new StingException("Invalid locus or window; window does not contain locus");
         this.genomeLocParser = genomeLocParser;
         this.locus = locus;
         this.window = window;
         this.basesProvider = basesProvider;
     }
 
+    /**
+     * Utility function to load bases from the provider to the cache, if necessary
+     */
+    @Ensures({
+            "basesCache != null",
+            "old(basesCache) == null || old(basesCache) == basesCache"})
     private void fetchBasesFromProvider() {
         if ( basesCache == null ) {
             basesCache = basesProvider.getBases();
@@ -131,6 +149,10 @@ public class ReferenceContext {
         }
     }
 
+    /**
+     * @return The genome loc parser associated with this reference context
+     */
+    @Ensures("result != null")
     public GenomeLocParser getGenomeLocParser() {
         return genomeLocParser;
     }
@@ -139,10 +161,12 @@ public class ReferenceContext {
      * The locus currently being examined.
      * @return The current locus.
      */
+    @Ensures("result != null")
     public GenomeLoc getLocus() {
         return locus;
     }
 
+    @Ensures("result != null")
     public GenomeLoc getWindow() {
         return window;
     }
@@ -155,6 +179,17 @@ public class ReferenceContext {
         return getBases()[(int)(locus.getStart() - window.getStart())];
     }
 
+    /**
+     * All the bases in the window currently being examined.
+     * @return All bases available.  If the window is of size [0,0], the array will
+     *         contain only the base at the given locus.
+     */
+    @Ensures({"result != null", "result.length > 0"})
+    public byte[] getBases() {
+        fetchBasesFromProvider();
+        return basesCache;
+    }
+
     @Deprecated
     public char getBaseAsChar() {
         return (char)getBase();
@@ -164,47 +199,8 @@ public class ReferenceContext {
      * Get the base at the given locus.
      * @return The base at the given locus from the reference.
      */
+    @Deprecated()
     public int getBaseIndex() {
         return BaseUtils.simpleBaseToBaseIndex(getBase());
-    }
-
-    /**
-     * All the bases in the window currently being examined.
-     * @return All bases available.  If the window is of size [0,0], the array will
-     *         contain only the base at the given locus.
-     */
-    public byte[] getBases() {
-        fetchBasesFromProvider();
-        return basesCache;
-    }
-
-    @Deprecated
-    public char[] getBasesAsChars() {
-        if ( basesAsCharCached == null )
-            basesAsCharCached = new String(getBases()).toCharArray();
-        return basesAsCharCached;
-    }
-
-
-    /** Extracts from the current window and returns n bases starting at this context's locus (NOT
-     * from the window start!). The returned array of chars is newly allocated. If n is too large (runs beyond
-     * the right boundary of this context's window), an exception will be thrown. If n==(-1), all bases starting
-     * from this context's locus through the end of the window will be returned.
-     * @param n number of requested bases including and starting from the current locus
-     * @return
-     */
-    public byte[] getBasesAtLocus(int n) {
-        byte[] bases = getBases();
-        int start = (int)(locus.getStart()-window.getStart());
-        int stop = ( n==(-1) ? bases.length : start+n );
-
-        byte[] b = new byte[stop-start];
-
-        if ( stop > bases.length )
-            throw new ReviewedStingException("Bases beyond the current window requested: window="+window+", requested="+n);
-
-        int i = 0;
-        for ( int j = start ;  j < stop ; j++) b[i++]=bases[j];
-        return b;
     }
 }
