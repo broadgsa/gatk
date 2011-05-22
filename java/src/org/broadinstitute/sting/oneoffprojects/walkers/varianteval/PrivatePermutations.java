@@ -9,9 +9,8 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
-import org.broadinstitute.sting.utils.report.utils.TableType;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.TableType;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 

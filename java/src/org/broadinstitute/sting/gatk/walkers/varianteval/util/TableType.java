@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.report.utils;
+package org.broadinstitute.sting.gatk.walkers.varianteval.util;
 
 
 /**

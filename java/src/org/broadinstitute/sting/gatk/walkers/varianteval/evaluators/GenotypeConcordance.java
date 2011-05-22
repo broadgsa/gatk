@@ -13,7 +13,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.report.utils.TableType;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.TableType;
 
 import java.util.*;
 

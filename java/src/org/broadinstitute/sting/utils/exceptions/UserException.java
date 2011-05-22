@@ -244,4 +244,24 @@ public class UserException extends ReviewedStingException {
             super(String.format("Unable to execute QScript: " + message), e);
         }
     }
+
+    public static class CouldNotCreateReferenceIndexFile extends UserException {
+        public CouldNotCreateReferenceIndexFile(File f, Exception e) {
+            this(f, "", e);
+        }
+
+        public CouldNotCreateReferenceIndexFile(File f, String message, Exception e) {
+            super(String.format("Index file %s does not exist but could not be created because: %s. ", f, message)
+                    + (e == null ? "" : e.getMessage()));
+        }
+    }
+
+    public static class CouldNotCreateReferenceIndexFileBecauseOfLock extends UserException.CouldNotCreateReferenceIndexFile {
+        public CouldNotCreateReferenceIndexFileBecauseOfLock(File f) {
+            super(f, "could not be written because an exclusive file lock could not be obtained. " +
+                    "If you are running multiple instances of GATK, another GATK process is " +
+                    "probably creating this file now, and has locked it. Please wait until this process finishes " +
+                    "and try again.", null);
+        }
+    }
 }

@@ -12,7 +12,7 @@ import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.StateKey;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.report.utils.TableType;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.TableType;
 
 import java.util.ArrayList;
 
