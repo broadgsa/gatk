@@ -9,7 +9,6 @@ import org.broadinstitute.sting.queue.extensions.samtools._
 import org.broadinstitute.sting.queue.{QException, QScript}
 import collection.JavaConversions._
 import org.broadinstitute.sting.utils.yaml.YamlUtils
-import org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType
 import scala.collection.mutable.HashMap
 
 class omni_qc extends QScript {

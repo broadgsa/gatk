@@ -98,7 +98,7 @@ class expanded_targets extends QScript {
     eval.rodBind :+= new RodBind("compHiSeq_atSites","vcf",callHiseq.out)
     eval.rodBind :+= new RodBind("compOMNI","vcf",new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/Omni2.5_chip/764samples.deduped.b37.annot.vcf"))
     eval.out = swapExt(iList,".interval_list",".eval")
-    eval.reportType = org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV
+    //eval.reportType = org.broadinstitute.sting.utils.report.VE2ReportFactory.VE2TemplateType.CSV
     eval.memoryLimit = 4
 
     add(eval)
