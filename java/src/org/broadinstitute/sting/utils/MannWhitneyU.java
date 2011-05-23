@@ -367,8 +367,9 @@ public class MannWhitneyU {
                 seenInvalid = true;
             }
 
-            return ! seenInvalid && seen1 && seen2;
         }
+
+            return ! seenInvalid && seen1 && seen2;
     }
 
     /**
