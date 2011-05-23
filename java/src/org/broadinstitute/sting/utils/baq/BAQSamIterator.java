@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.utils.baq;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -12,11 +14,11 @@ import java.util.Iterator;
  * Simple iterator that applies Heng's BAQ calculation to a stream of incoming reads
  */
 public class BAQSamIterator implements StingSAMIterator {
-    StingSAMIterator it;
-    BAQ baqHMM = new BAQ();         // creates a BAQ creator with default parameters
-    IndexedFastaSequenceFile refReader = null;
-    BAQ.CalculationMode cmode;
-    BAQ.QualityMode qmode;
+    private final StingSAMIterator it;
+    private final BAQ baqHMM = new BAQ();         // creates a BAQ creator with default parameters
+    private final IndexedFastaSequenceFile refReader;
+    private final BAQ.CalculationMode cmode;
+    private final BAQ.QualityMode qmode;
 
     /**
      * Creates a new BAMSamIterator using the reference getter refReader and applies the BAM to the reads coming
@@ -27,6 +29,11 @@ public class BAQSamIterator implements StingSAMIterator {
      * @param cmode
      * @param qmode
      */
+    @Requires({
+            "refReader != null",
+            "it != null",
+            "cmode != null" ,
+            "qmode != null"})
     public BAQSamIterator(IndexedFastaSequenceFile refReader, StingSAMIterator it, BAQ.CalculationMode cmode, BAQ.QualityMode qmode) {
         if ( cmode == BAQ.CalculationMode.OFF) throw new ReviewedStingException("BUG: shouldn't create BAQSamIterator with calculation mode OFF");
         if ( qmode == BAQ.QualityMode.DONT_MODIFY ) throw new ReviewedStingException("BUG: shouldn't create BAQSamIterator with quailty mode DONT_MODIFY");
@@ -37,6 +44,8 @@ public class BAQSamIterator implements StingSAMIterator {
         this.qmode = qmode;
     }
 
+    @Requires("hasNext()")
+    @Ensures("result != null")
     public SAMRecord next()     {
         //System.out.printf("BAQing during input%n");
         SAMRecord read = it.next();
