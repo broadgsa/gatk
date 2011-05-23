@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers;
+package org.broadinstitute.sting.utils;
 
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.oneoffprojects.walkers.newassociation.features.ReadFeatureAggregator;
@@ -17,7 +17,7 @@ import org.testng.Assert;
  * Time: 2:06 PM
  * To change this template use File | Settings | File Templates.
  */
-public class RFAUnitTest extends BaseTest {
+public class MWUnitTest extends BaseTest {
     @BeforeClass
     public void init() { }
 

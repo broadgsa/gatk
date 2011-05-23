@@ -305,8 +305,7 @@ public class MannWhitneyU {
      * @return same as cpr
      * @deprecated - for testing only (really)
      */
-    @Deprecated
-    public static double calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(int n, int m, long u) {
+    protected static double calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(int n, int m, long u) {
         return cpr(n,m,u);
     }
 
@@ -336,8 +335,7 @@ public class MannWhitneyU {
      * @return  observations
      * @deprecated - only for testing
      */
-    @Deprecated
-    public TreeSet<Pair<Number,USet>> getObservations() {
+    protected TreeSet<Pair<Number,USet>> getObservations() {
         return observations;
     }
 
@@ -346,7 +344,7 @@ public class MannWhitneyU {
      * @return size set 1, size set 2
      * @deprecated - only for testing
      */
-    public Pair<Integer,Integer> getSetSizes() {
+    protected Pair<Integer,Integer> getSetSizes() {
         return new Pair<Integer,Integer>(sizeSet1,sizeSet2);
     }
 
