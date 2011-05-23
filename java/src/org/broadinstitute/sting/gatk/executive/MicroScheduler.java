@@ -165,6 +165,7 @@ public abstract class MicroScheduler implements MicroSchedulerMBean {
         // create the processing tracker
         //
         if ( engine.getArguments().processingTrackerFile != null ) {
+            logger.warn("Distributed GATK is an experimental engine feature, and is likely to not work correctly or reliably.");
             if ( engine.getArguments().restartProcessingTracker && engine.getArguments().processingTrackerFile.exists() ) {
                 engine.getArguments().processingTrackerFile.delete();
                 logger.info("Deleting ProcessingTracker file " + engine.getArguments().processingTrackerFile);

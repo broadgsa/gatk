@@ -82,10 +82,13 @@ public abstract class GenomeLocProcessingTracker {
 
     //
     // Timers for recording performance information
+    // Note -- these cannot be used because this class isn't thread safe, and neither are the
+    // timers, so they result in invalid operations w.r.t. the SimpleTimer contract
     //
-    protected final SimpleTimer writeTimer = new SimpleTimer("writeTimer");
-    protected final SimpleTimer readTimer = new SimpleTimer("readTimer");
-    protected final SimpleTimer lockWaitTimer = new SimpleTimer("lockWaitTimer");
+//    protected final SimpleTimer writeTimer = new SimpleTimer("writeTimer");
+//    protected final SimpleTimer readTimer = new SimpleTimer("readTimer");
+//    protected final SimpleTimer lockWaitTimer = new SimpleTimer("lockWaitTimer");
+    protected final SimpleTimer timer = new SimpleTimer();
     protected long nLocks = 0, nWrites = 0, nReads = 0;
 
     // --------------------------------------------------------------------------------
@@ -318,10 +321,10 @@ public abstract class GenomeLocProcessingTracker {
     protected final Map<GenomeLoc, ProcessingLoc> updateAndGetProcessingLocs(String myName) {
         return new WithLock<Map<GenomeLoc, ProcessingLoc>>(myName) {
             public Map<GenomeLoc, ProcessingLoc> doBody() {
-                readTimer.restart();
+//                readTimer.restart();
                 for ( ProcessingLoc p : readNewLocs() )
                     processingLocs.put(p.getLocation(), p);
-                readTimer.stop();
+//                readTimer.stop();
                 nReads++;
                 return processingLocs;
             }
@@ -335,10 +338,10 @@ public abstract class GenomeLocProcessingTracker {
      * @param myName
      */
     protected final void registerNewLocsWithTimers(Collection<ProcessingLoc> plocs, String myName) {
-        writeTimer.restart();
+//        writeTimer.restart();
         registerNewLocs(plocs);
         nWrites++;
-        writeTimer.stop();
+//        writeTimer.stop();
     }
 
     private final void printStatusHeader() {
@@ -360,15 +363,15 @@ public abstract class GenomeLocProcessingTracker {
      * @param id the name of the process doing the locking
      */
     private final void lock(String id) {
-        lockWaitTimer.restart();
+        //lockWaitTimer.restart();
         boolean hadLock = lock.ownsLock();
         if ( ! hadLock ) {
             nLocks++;
-            printStatus(id, lockWaitTimer.currentTime(), GOING_FOR_LOCK);
+            //printStatus(id, lockWaitTimer.currentTime(), GOING_FOR_LOCK);
         }
         lock.lock();
-        lockWaitTimer.stop();
-        if ( ! hadLock ) printStatus(id, lockWaitTimer.currentTime(), HAVE_LOCK);
+        //lockWaitTimer.stop();
+        //if ( ! hadLock ) printStatus(id, lockWaitTimer.currentTime(), HAVE_LOCK);
     }
 
     /**
@@ -376,18 +379,18 @@ public abstract class GenomeLocProcessingTracker {
      * @param id the name of the process doing the unlocking
      */
     private final void unlock(String id) {
-        if ( lock.getHoldCount() == 1 ) printStatus(id, lockWaitTimer.currentTime(), RELEASING_LOCK);
+        if ( lock.getHoldCount() == 1 ) printStatus(id, timer.currentTime(), RELEASING_LOCK);
         lock.unlock();
-        if ( ! lock.ownsLock() ) printStatus(id, lockWaitTimer.currentTime(), RUNNING);
+        if ( ! lock.ownsLock() ) printStatus(id, timer.currentTime(), RUNNING);
     }
 
     // useful code for getting
     public final long getNLocks() { return nLocks; }
     public final long getNReads() { return nReads; }
     public final long getNWrites() { return nWrites; }
-    public final double getTimePerLock() { return lockWaitTimer.getElapsedTime() / Math.max(nLocks, 1); }
-    public final double getTimePerRead() { return readTimer.getElapsedTime() / Math.max(nReads,1); }
-    public final double getTimePerWrite() { return writeTimer.getElapsedTime() / Math.max(nWrites,1); }
+//    public final double getTimePerLock() { return lockWaitTimer.getElapsedTime() / Math.max(nLocks, 1); }
+//    public final double getTimePerRead() { return readTimer.getElapsedTime() / Math.max(nReads,1); }
+//    public final double getTimePerWrite() { return writeTimer.getElapsedTime() / Math.max(nWrites,1); }
 
     // --------------------------------------------------------------------------------
     //
