@@ -1,6 +1,6 @@
 import java.io.File
 import org.broadinstitute.sting.commandline.Argument
-import org.broadinstitute.sting.queue.extensions.gatk.{SelectVariants, RodBind}
+import org.broadinstitute.sting.queue.extensions.gatk.{SelectVariants, RodBind, VariantsToTable}
 import org.broadinstitute.sting.queue.QScript
 
 /*
@@ -13,11 +13,11 @@ import org.broadinstitute.sting.queue.QScript
 class mendelianViolation extends QScript
 {
 
-  @Argument(shortName="trio", doc="input trio VCF file", required=false)
-  var trio: File = new File("/home/radon00/carneiro/prj/trio/analysis/calls/CEUTrio.WEx.recalibrated.vcf")
+  @Argument(shortName="trio", doc="input trio VCF file", required=true)
+  var trio: File = _
 
-  @Argument(shortName="daughter", doc="daughter input VCF file", required=false)
-  var daughter: File = "/humgen/gsa-hpprojects/dev/rpoplin/perfectCalls/NA12878/chart/sting/NA12878.HiSeq19.recalibrated.hapmapCut.vcf"
+  @Argument(shortName="daughter", doc="daughter input VCF file", required=true)
+  var daughter: File = _
 
   @Argument(shortName="family", doc="family string", required=false)
   var family: String = "NA12891+NA12892=NA12878"
