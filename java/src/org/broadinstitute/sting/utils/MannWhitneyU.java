@@ -64,8 +64,8 @@ public class MannWhitneyU {
      * @param lessThanOther - either Set1 or Set2
      * @return - u-based z-approximation, and p-value associated with the test (p-value is exact for small n,m)
      */
-    @Requires({"validateObservations(observations)", "lessThanOther != null"})
-    @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
+    @Requires({"lessThanOther != null"})
+    @Ensures({"validateObservations(observations) || Double.isNaN(result.getFirst())","result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
     public Pair<Double,Double> runOneSidedTest(USet lessThanOther) {
         long u = calculateOneSidedU(observations, lessThanOther);
         int n = lessThanOther == USet.SET1 ? sizeSet1 : sizeSet2;
@@ -84,7 +84,7 @@ public class MannWhitneyU {
      * @return a pair holding the u and p-value.
      */
     @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    @Requires({"validateObservations(observations)"})
+    //@Requires({"validateObservations(observations)"})
     public Pair<Double,Double> runTwoSidedTest() {
         Pair<Long,USet> uPair = calculateTwoSidedU(observations);
         long u = uPair.first;
@@ -218,7 +218,7 @@ public class MannWhitneyU {
      * @param observed - the observed data
      * @return the minimum of the U counts (set1 dominates 2, set 2 dominates 1)
      */
-    @Requires({"observed != null", "observed.size() > 0", "validateObservations(observed)"})
+    @Requires({"observed != null", "observed.size() > 0"})
     @Ensures({"result != null","result.first > 0"})
     public static Pair<Long,USet> calculateTwoSidedU(TreeSet<Pair<Number,USet>> observed) {
         int set1SeenSoFar = 0;
@@ -255,7 +255,7 @@ public class MannWhitneyU {
      * @param dominator - the set that is hypothesized to be stochastically dominating
      * @return the u-statistic associated with the hypothesis that dominator stochastically dominates the other set
      */
-    @Requires({"observed != null","dominator != null","observed.size() > 0","validateObservations(observed)"})
+    @Requires({"observed != null","dominator != null","observed.size() > 0"})
     @Ensures({"result >= 0"})
     public static long calculateOneSidedU(TreeSet<Pair<Number,USet>> observed,USet dominator) {
         long otherBeforeDominator = 0l;
@@ -281,7 +281,7 @@ public class MannWhitneyU {
      * @param twoSided: whether the test is two sided or not. The recursive formula is symmetric, multiply by two for two-sidedness.
      * @return the probability under the hypothesis that all sequences are equally likely of finding a set-two entry preceding a set-one entry "u" times.
      */
-    @Requires({"m > 0","n > 0","u > 0"})
+    @Requires({"m > 0","n > 0","u >= 0"})
     @Ensures({"result != null","! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
     public static Pair<Double,Double> calculatePRecursively(int n, int m, long u, boolean twoSided) {
         if ( m > 8 && n > 5 ) { throw new StingException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
