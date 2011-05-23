@@ -161,7 +161,7 @@ public class MannWhitneyU {
      * @return the asymptotic z-approximation corresponding to the MWU p-value for n < m
      */
     @Requires({"m > 0","n > 0"})
-    @Ensures({"result != null", "! Double.isInfinite(result)"})
+    @Ensures({"! Double.isNaN(result)", "! Double.isInfinite(result)"})
     private static double getZApprox(int n, int m, long u) {
         double mean = ( ((long)m)*n+1.0)/2;
         double var = (((long) n)*m*(n+m+1.0))/12;
@@ -253,10 +253,10 @@ public class MannWhitneyU {
      * the other U-set. Note that if S1 dominates S2, we want to count the occurrences of points in S2 coming before points in S1.
      * @param observed - the observed data points, tagged by each set
      * @param dominator - the set that is hypothesized to be stochastically dominating
-     * @return the u-statistic associated with the hypothesis
+     * @return the u-statistic associated with the hypothesis that dominator stochastically dominates the other set
      */
     @Requires({"observed != null","dominator != null","observed.size() > 0","validateObservations(observed)"})
-    @Ensures({"return > 0"})
+    @Ensures({"result >= 0"})
     public static long calculateOneSidedU(TreeSet<Pair<Number,USet>> observed,USet dominator) {
         long otherBeforeDominator = 0l;
         int otherSeenSoFar = 0;
