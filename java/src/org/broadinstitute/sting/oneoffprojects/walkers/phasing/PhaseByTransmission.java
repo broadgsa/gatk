@@ -8,9 +8,12 @@ import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.QualityUtils;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.*;
@@ -25,11 +28,8 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     @Argument(shortName="f", fullName="familyPattern", required=true, doc="Pattern for the family structure (usage: mom+dad=child)")
     public String familyStr = null;
 
-    @Argument(shortName="filter_ind", fullName="filterPhaseIndeterminateSites", required=false, doc="Filters out sites that are phase-indeterminate")
-    public Boolean filterPhaseIndeterminateSites = false;
-
-    @Argument(shortName="filter_amb", fullName="filterAmbiguousAlleleOriginSites", required=false, doc="Filters out sites where the parental origin of the alleles is ambiguous (i.e. triple-het situations)")
-    public Boolean filterAmbiguousAlleleOriginSites = false;
+    @Argument(shortName="nofilters", fullName="disableFilters", required=false, doc="Disable filters for sites where the phase can't be determined, where the parental origin of the alleles is ambiguous (i.e. everyone is heterozygous), or Mendelian violations")
+    public Boolean noFilters = false;
 
     @Output
     protected VCFWriter vcfWriter = null;
@@ -38,8 +38,16 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     private String SAMPLE_NAME_DAD;
     private String SAMPLE_NAME_CHILD;
 
-    private class AmbiguousAlleleOriginException extends Exception {};
-    private class NoAppropriatePhasedGenotypeException extends Exception {};
+    private class AmbiguousAlleleOriginException extends Exception {}
+    private class InsufficientInfoToPhaseGenotypeException extends Exception {}
+    private class MendelianViolationException extends Exception {}
+
+    private final String ROD_NAME = "variant";
+    private final String AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME = "AmbiguousAlleleOrigin";
+    private final String PHASE_INDETERMINATE_FILTER_NAME = "PhaseIndeterminate";
+    private final String MENDELIAN_VIOLATION_FILTER_NAME = "MendelianViolation";
+    private final String TRANSMISSION_PROBABILITY_TAG_NAME = "TP";
+    private final String SOURCE_NAME = "PhaseByTransmission";
 
     /**
      * Parse the familial relationship specification, and initialize VCF writer
@@ -51,6 +59,24 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         SAMPLE_NAME_DAD = pieces[1];
         SAMPLE_NAME_CHILD = pieces[2];
 
+        ArrayList<String> rodNames = new ArrayList<String>();
+        rodNames.add(ROD_NAME);
+
+        Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
+        Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
+
+        if (vcfSamples.size() != 3) {
+            throw new UserException("File to phase by transmission contains more than three samples.  This walker only" +
+                                    "accepts VCFs with three samples, so that the meaning of the applied filters is" +
+                                    "unambiguous.");
+        }
+
+        if (!vcfSamples.contains(SAMPLE_NAME_MOM) || !vcfSamples.contains(SAMPLE_NAME_DAD) || !vcfSamples.contains(SAMPLE_NAME_CHILD)) {
+            throw new UserException("One or more of the samples specified in the familyPattern argument is not present" +
+                                    "in this file.  Please supply a VCF file that contains only three samples: the" +
+                                    "mother, the father, and the child");
+        }
+
         Set<String> samples = new HashSet<String>();
         samples.add(SAMPLE_NAME_MOM);
         samples.add(SAMPLE_NAME_DAD);
@@ -58,7 +84,10 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
 
         Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
         headerLines.addAll(VCFUtils.getHeaderFields(this.getToolkit()));
-        headerLines.add(new VCFInfoHeaderLine("TP", 1, VCFHeaderLineType.Float, "Probability that the phase is correct given that the genotypes are correct"));
+        headerLines.add(new VCFFilterHeaderLine(AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME, "The parental origin of each of the child's allele cannot be determined (ie everyone is heterozygous)"));
+        headerLines.add(new VCFFilterHeaderLine(PHASE_INDETERMINATE_FILTER_NAME, "The phase of the child's genotype cannot be determined (ie someone is a no-call)"));
+        headerLines.add(new VCFFilterHeaderLine(MENDELIAN_VIOLATION_FILTER_NAME, "No combination of the parents' alleles can yield the child's genotype (ie a possible Mendelian violation)"));
+        headerLines.add(new VCFFormatHeaderLine(TRANSMISSION_PROBABILITY_TAG_NAME, 1, VCFHeaderLineType.Float, "Probability that the phase is correct given that the genotypes are correct"));
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 
@@ -70,9 +99,14 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
      * @param child  child's genotype
      * @return  phased version of child's genotype
      * @throws  AmbiguousAlleleOriginException if the parentage of the alleles can't be determined (i.e. a triple-het situation),
-     * @throws  NoAppropriatePhasedGenotypeException if there is insufficient information to determine the phase
+     * @throws  InsufficientInfoToPhaseGenotypeException if there is insufficient information to determine the phase
+     * @throws  MendelianViolationException if no combination of the parental alleles can yield the child's genotype
      */
-    private Genotype getPhasedChildGenotype(Genotype mom, Genotype dad, Genotype child) throws AmbiguousAlleleOriginException, NoAppropriatePhasedGenotypeException {
+    private Genotype getPhasedChildGenotype(Genotype mom, Genotype dad, Genotype child) throws AmbiguousAlleleOriginException, InsufficientInfoToPhaseGenotypeException, MendelianViolationException {
+        if (mom.isNoCall() || dad.isNoCall() || child.isNoCall()) {
+            throw new InsufficientInfoToPhaseGenotypeException();
+        }
+
         Set<Allele> momAlleles = new HashSet<Allele>();
         momAlleles.addAll(mom.getAlleles());
 
@@ -83,7 +117,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
 
         Map<String, Object> attributes = new HashMap<String, Object>();
         attributes.putAll(child.getAttributes());
-        attributes.put("TP", transmissionProb);
+        attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, transmissionProb);
 
         Set<Genotype> possiblePhasedChildGenotypes = new HashSet<Genotype>();
 
@@ -124,7 +158,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
             }
         }
 
-        throw new NoAppropriatePhasedGenotypeException();
+        throw new MendelianViolationException();
     }
 
     /**
@@ -138,7 +172,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     @Override
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         if (tracker != null) {
-            Collection<VariantContext> vcs = tracker.getVariantContexts(ref, "variant", null, context.getLocation(), true, true);
+            Collection<VariantContext> vcs = tracker.getVariantContexts(ref, ROD_NAME, null, context.getLocation(), true, true);
 
             for (VariantContext vc : vcs) {
                 Genotype mom = vc.getGenotype(SAMPLE_NAME_MOM);
@@ -151,12 +185,16 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 try {
                     child = getPhasedChildGenotype(mom, dad, child);
                 } catch (AmbiguousAlleleOriginException e) {
-                    if (filterAmbiguousAlleleOriginSites) {
-                        filters.add("AMBIGUOUS_ALLELE_ORIGIN");
+                    if (!noFilters) {
+                        filters.add(AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME);
                     }
-                } catch (NoAppropriatePhasedGenotypeException e) {
-                    if (filterPhaseIndeterminateSites) {
-                        filters.add("PHASE_INDETERMINATE");
+                } catch (InsufficientInfoToPhaseGenotypeException e) {
+                    if (!noFilters) {
+                        filters.add(PHASE_INDETERMINATE_FILTER_NAME);
+                    }
+                } catch (MendelianViolationException e) {
+                    if (!noFilters) {
+                        filters.add(MENDELIAN_VIOLATION_FILTER_NAME);
                     }
                 }
 
@@ -170,7 +208,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                 phasedGenotypes.add(dad);
                 phasedGenotypes.add(child);
 
-                VariantContext newvc = new VariantContext("PhaseByTransmission", ref.getLocus().getContig(), vc.getStart(), vc.getStart(), alleles, phasedGenotypes, vc.getNegLog10PError(), filters, attributes);
+                VariantContext newvc = new VariantContext(SOURCE_NAME, ref.getLocus().getContig(), vc.getStart(), vc.getStart(), alleles, phasedGenotypes, vc.getNegLog10PError(), filters, attributes);
 
                 vcfWriter.add(newvc, ref.getBase());
             }
