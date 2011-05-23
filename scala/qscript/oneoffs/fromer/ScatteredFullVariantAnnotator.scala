@@ -28,6 +28,8 @@ class ScatteredFullVariantAnnotator extends QScript {
   @Output(doc = "annotated file to output", shortName = "o", required = true)
   var outputAnnotated: File = _
 
+  @Output(doc = "Memory limit", fullName = "memoryLimit", shortName = "m", required = false)
+  var memoryLimit = 3
 
   def script = {
     add(new ScatteredFullVariantAnnotator())
@@ -38,6 +40,8 @@ class ScatteredFullVariantAnnotator extends QScript {
     this.jarFile = qscript.gatkJarFile
     this.reference_sequence = qscript.referenceFile
     this.input_file = List(qscript.bams)
+
+    this.memoryLimit = qscript.memoryLimit
     this.logging_level = "INFO"
 
     this.rodToIntervalTrackName = "variant"
