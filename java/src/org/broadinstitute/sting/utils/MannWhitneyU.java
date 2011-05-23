@@ -2,6 +2,11 @@ package org.broadinstitute.sting.utils;
 
 import cern.jet.math.Arithmetic;
 import cern.jet.random.Normal;
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
+import org.apache.commons.math.MathException;
+import org.apache.commons.math.distribution.NormalDistribution;
+import org.apache.commons.math.distribution.NormalDistributionImpl;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
@@ -16,6 +21,7 @@ import java.util.TreeSet;
 public class MannWhitneyU {
 
     private static Normal STANDARD_NORMAL = new Normal(0.0,1.0,null);
+    private static NormalDistribution APACHE_NORMAL = new NormalDistributionImpl(0.0,1.0,1e-2);
 
     private TreeSet<Pair<Number,USet>> observations;
     private int sizeSet1;
@@ -58,26 +64,37 @@ public class MannWhitneyU {
      * @param lessThanOther - either Set1 or Set2
      * @return - u-based z-approximation, and p-value associated with the test (p-value is exact for small n,m)
      */
+    @Requires({"validateObservations(observations)", "lessThanOther != null"})
+    @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
     public Pair<Double,Double> runOneSidedTest(USet lessThanOther) {
         long u = calculateOneSidedU(observations, lessThanOther);
         int n = lessThanOther == USet.SET1 ? sizeSet1 : sizeSet2;
         int m = lessThanOther == USet.SET1 ? sizeSet2 : sizeSet1;
-        double pval = calculateP(n,m,u,false);
-        return new Pair<Double,Double>(getZApprox(n,m,u),pval);
+        if ( n == 0 || m == 0 ) {
+            // test is uninformative as one or both sets have no observations
+            return new Pair<Double,Double>(Double.NaN,Double.NaN);
+        }
+
+        return calculateP(n, m, u, false);
     }
 
     /**
      * Runs the standard two-sided test,
      * returns the u-based z-approximate and p values.
-     * @Returns a pair holding the u and p-value.
+     * @return a pair holding the u and p-value.
      */
+    @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
+    @Requires({"validateObservations(observations)"})
     public Pair<Double,Double> runTwoSidedTest() {
         Pair<Long,USet> uPair = calculateTwoSidedU(observations);
         long u = uPair.first;
         int n = uPair.second == USet.SET1 ? sizeSet1 : sizeSet2;
         int m = uPair.second == USet.SET1 ? sizeSet2 : sizeSet1;
-        double pval = calculateP(n,m,u,true);
-        return new Pair<Double,Double>(getZApprox(n,m,u),pval);
+        if ( n == 0 || m == 0 ) {
+            // test is uninformative as one or both sets have no observations
+            return new Pair<Double,Double>(Double.NaN,Double.NaN);
+        }
+        return calculateP(n, m, u, true);
     }
 
     /**
@@ -86,35 +103,35 @@ public class MannWhitneyU {
      * @param m - The number of entries in the stochastically larger (dominated) set
      * @param u - the Mann-Whitney U value
      * @param twoSided - is the test twosided
-     * @return the (possibly approximate) p-value associated with the MWU test
+     * @return the (possibly approximate) p-value associated with the MWU test, and the (possibly approximate) z-value associated with it
      * todo -- there must be an approximation for small m and large n
      */
-    public static double calculateP(int n, int m, long u, boolean twoSided) {
-        double pval;
-        if ( m == 0 || n == 0 ) {
-            pval = 1.0;
-        } else if ( n > 8 && m > 8 ) {
+    @Requires({"m > 0","n > 0"})
+    @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
+    public static Pair<Double,Double> calculateP(int n, int m, long u, boolean twoSided) {
+        Pair<Double,Double> zandP;
+        if ( n > 8 && m > 8 ) {
             // large m and n - normal approx
-            pval = calculatePNormalApproximation(n,m,u);
+            zandP = calculatePNormalApproximation(n,m,u, twoSided);
         } else if ( n > 5 && m > 7 ) {
             // large m, small n - sum uniform approx
-            // todo -- find the appropriate regimes where this approximation is actually better
+            // todo -- find the appropriate regimes where this approximation is actually better enough to merit slowness
             // pval = calculatePUniformApproximation(n,m,u);
-            pval = calculatePNormalApproximation(n,m,u);
+            zandP = calculatePNormalApproximation(n, m, u, twoSided);
         } else if ( n > 8 || m > 8 ) {
-            pval = calculatePFromTable(n,m,u);
+            zandP = calculatePFromTable(n, m, u, twoSided);
         } else {
             // small m and n - full approx
-            pval = calculatePRecursively(n,m,u);
+            zandP = calculatePRecursively(n,m,u, twoSided);
         }
 
-        return twoSided ? 2*pval : pval;
+        return zandP;
     }
 
-    public static double calculatePFromTable(int n, int m, long u) {
+    public static Pair<Double,Double> calculatePFromTable(int n, int m, long u, boolean twoSided) {
         // todo -- actually use a table for:
         // todo      - n large, m small
-        return calculatePNormalApproximation(n,m,u);
+        return calculatePNormalApproximation(n,m,u, twoSided);
     }
 
     /**
@@ -122,11 +139,18 @@ public class MannWhitneyU {
      * @param n - The number of entries in the stochastically smaller (dominant) set
      * @param m - The number of entries in the stochastically larger (dominated) set
      * @param u - the Mann-Whitney U value
+     * @param twoSided - whether the test should be two sided
      * @return p-value associated with the normal approximation
      */
-    public static double calculatePNormalApproximation(int n,int m,long u) {
+    @Requires({"m > 0","n > 0"})
+    @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
+    public static Pair<Double,Double> calculatePNormalApproximation(int n,int m,long u, boolean twoSided) {
         double z = getZApprox(n,m,u);
-        return z < 0 ? STANDARD_NORMAL.cdf(z) : 1.0-STANDARD_NORMAL.cdf(z);
+        if ( twoSided ) {
+            return new Pair<Double,Double>(z,2.0*(z < 0 ? STANDARD_NORMAL.cdf(z) : 1.0-STANDARD_NORMAL.cdf(z)));
+        } else {
+            return new Pair<Double,Double>(z,STANDARD_NORMAL.cdf(z));
+        }
     }
 
     /**
@@ -134,8 +158,10 @@ public class MannWhitneyU {
      * @param n - The number of entries in the stochastically smaller (dominant) set
      * @param m - The number of entries in the stochastically larger (dominated) set
      * @param u - the Mann-Whitney U value
-     * @return z-score associated with the normal approximation
+     * @return the asymptotic z-approximation corresponding to the MWU p-value for n < m
      */
+    @Requires({"m > 0","n > 0"})
+    @Ensures({"result != null", "! Double.isInfinite(result)"})
     private static double getZApprox(int n, int m, long u) {
         double mean = ( ((long)m)*n+1.0)/2;
         double var = (((long) n)*m*(n+m+1.0))/12;
@@ -150,6 +176,8 @@ public class MannWhitneyU {
      * @param m - The number of entries in the stochastically larger (dominated) set
      * @param u - mann-whitney u value
      * @return p-value according to sum of uniform approx
+     * todo -- this is currently not called due to not having a good characterization of where it is significantly more accurate than the
+     * todo -- normal approxmation (e.g. enough to merit the runtime hit)
      */
     public static double calculatePUniformApproximation(int n, int m, long u) {
         long R = u + (n*(n+1))/2;
@@ -190,6 +218,8 @@ public class MannWhitneyU {
      * @param observed - the observed data
      * @return the minimum of the U counts (set1 dominates 2, set 2 dominates 1)
      */
+    @Requires({"observed != null", "observed.size() > 0", "validateObservations(observed)"})
+    @Ensures({"result != null","result.first > 0"})
     public static Pair<Long,USet> calculateTwoSidedU(TreeSet<Pair<Number,USet>> observed) {
         int set1SeenSoFar = 0;
         int set2SeenSoFar = 0;
@@ -225,6 +255,8 @@ public class MannWhitneyU {
      * @param dominator - the set that is hypothesized to be stochastically dominating
      * @return the u-statistic associated with the hypothesis
      */
+    @Requires({"observed != null","dominator != null","observed.size() > 0","validateObservations(observed)"})
+    @Ensures({"return > 0"})
     public static long calculateOneSidedU(TreeSet<Pair<Number,USet>> observed,USet dominator) {
         long otherBeforeDominator = 0l;
         int otherSeenSoFar = 0;
@@ -246,15 +278,31 @@ public class MannWhitneyU {
      * @param n: number of set-one entries (hypothesis: set one is stochastically less than set two)
      * @param m: number of set-two entries
      * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
+     * @param twoSided: whether the test is two sided or not. The recursive formula is symmetric, multiply by two for two-sidedness.
      * @return the probability under the hypothesis that all sequences are equally likely of finding a set-two entry preceding a set-one entry "u" times.
      */
-    public static double calculatePRecursively(int n, int m, long u) {
+    @Requires({"m > 0","n > 0","u > 0"})
+    @Ensures({"result != null","! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
+    public static Pair<Double,Double> calculatePRecursively(int n, int m, long u, boolean twoSided) {
         if ( m > 8 && n > 5 ) { throw new StingException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
-        return cpr(n,m,u);
+        double p = cpr(n,m,u);
+        double z;
+        try {
+            z = APACHE_NORMAL.inverseCumulativeProbability(p);
+        } catch (MathException me) {
+            throw new StingException("A math exception occurred in inverting the probability",me);
+        }
+
+        return new Pair<Double,Double>(z,(twoSided ? 2.0*p : p));
     }
 
     /**
      * Hook into CPR with sufficient warning (for testing purposes)
+     * calls into that recursive calculation.
+     * @param n: number of set-one entries (hypothesis: set one is stochastically less than set two)
+     * @param m: number of set-two entries
+     * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
+     * @return same as cpr
      * @deprecated - for testing only (really)
      */
     @Deprecated
@@ -263,10 +311,11 @@ public class MannWhitneyU {
     }
 
     /**
-     * @doc: just a shorter name for calculatePRecursively. See Mann, Whitney, [1947]
-     * @n: number of set-1 entries
-     * @m: number of set-2 entries
-     * @u: number of times a set-2 entry as preceded a set-1 entry
+     * : just a shorter name for calculatePRecursively. See Mann, Whitney, [1947]
+     * @param n: number of set-1 entries
+     * @param m: number of set-2 entries
+     * @param u: number of times a set-2 entry as preceded a set-1 entry
+     * @return recursive p-value
      */
     private static double cpr(int n, int m, long u) {
         if ( u < 0 || n == 0 && m == 0 ) {
@@ -299,6 +348,27 @@ public class MannWhitneyU {
      */
     public Pair<Integer,Integer> getSetSizes() {
         return new Pair<Integer,Integer>(sizeSet1,sizeSet2);
+    }
+
+    protected static boolean validateObservations(TreeSet<Pair<Number,USet>> tree) {
+        boolean seen1 = false;
+        boolean seen2 = false;
+        boolean seenInvalid = false;
+        for ( Pair<Number,USet> p : tree) {
+            if ( ! seen1 && p.getSecond() == USet.SET1 ) {
+                seen1 = true;
+            }
+
+            if ( ! seen2 && p.getSecond() == USet.SET2 ) {
+                seen2 = true;
+            }
+
+            if ( Double.isNaN(p.getFirst().doubleValue()) || Double.isInfinite(p.getFirst().doubleValue())) {
+                seenInvalid = true;
+            }
+
+            return ! seenInvalid && seen1 && seen2;
+        }
     }
 
     /**

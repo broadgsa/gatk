@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.oneoffprojects.walkers.newassociation.features.ReadFeatureAggregator;
 import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.collections.Pair;
@@ -7,10 +9,6 @@ import org.broadinstitute.sting.utils.collections.Pair;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.testng.Assert;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by IntelliJ IDEA.
@@ -56,14 +54,15 @@ public class RFAUnitTest extends BaseTest {
         Assert.assertEquals(MannWhitneyU.calculateOneSidedU(mwu2.getObservations(),MannWhitneyU.USet.SET2),30l);
         Pair<Integer,Integer> sizes = mwu2.getSetSizes();
         Assert.assertEquals(MannWhitneyU.calculatePUniformApproximation(sizes.first,sizes.second,10l),0.4180519701814064,1e-14);
-        Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.first,sizes.second,10l),0.021756021756021756,1e-14);
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.first,sizes.second,10l),0.06214143703127617,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.first,sizes.second,10l,false).second,0.021756021756021756,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.first,sizes.second,10l,false).second,0.06214143703127617,1e-14);
+        logger.warn("Testing two-sided");
         Assert.assertEquals((double)mwu2.runTwoSidedTest().second,2*0.021756021756021756,1e-8);
 
         // tests using the hypothesis that set 1 dominates set 2 (U value = 30) -- empirical should be identical, normall approx close, uniform way off
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.second,sizes.first,30l),0.08216463976903321,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.second,sizes.first,30l,true).second,2.0*0.08216463976903321,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePUniformApproximation(sizes.second,sizes.first,30l),0.0023473625009328147,1e-14);
-        Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,30l),0.021756021756021756,1e-14); // note -- exactly same value as above
+        Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,30l,false).second,0.021756021756021756,1e-14); // note -- exactly same value as above
 
         logger.warn("Set 1");
         Assert.assertEquals((double)mwu2.runOneSidedTest(MannWhitneyU.USet.SET1).second,0.021756021756021756,1e-8);
@@ -80,7 +79,7 @@ public class RFAUnitTest extends BaseTest {
         long u = MannWhitneyU.calculateOneSidedU(mwu3.getObservations(),MannWhitneyU.USet.SET1);
         Pair<Integer,Integer> nums = mwu3.getSetSizes();
         Assert.assertEquals(MannWhitneyU.calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(nums.first,nums.second,u),3.665689149560116E-4,1e-14);
-        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums.first,nums.second,u),0.0032240865760884696,1e-14);
+        Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(nums.first,nums.second,u,false).second,0.0032240865760884696,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePUniformApproximation(nums.first,nums.second,u),0.0026195003025784036,1e-14);
 
     }

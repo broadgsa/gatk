@@ -39,7 +39,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testHasAnnotsAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B:variant,VCF3 " + validationDataLocation + "vcfexample3.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
-                Arrays.asList("4fb98442f2c09247fab296872abb5655"));
+                Arrays.asList("f559fa1754f82a00454894ecd518a3b0"));
         executeTest("test file has annotations, asking for annotations, #2", spec);
     }
 
@@ -71,7 +71,7 @@ public class VariantAnnotatorIntegrationTest extends WalkerTest {
     public void testNoAnnotsAsking2() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString() + " -G \"Standard\" -B:variant,VCF3 " + validationDataLocation + "vcfexample3empty.vcf -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -L 1:10,000,000-10,050,000", 1,
-                Arrays.asList("c92e614ec796a5b39c5fdcc426410a9b"));
+                Arrays.asList("709a1f482cce68992c637da3cff824a8 "));
         executeTest("test file doesn't have annotations, asking for annotations, #2", spec);
     }
 

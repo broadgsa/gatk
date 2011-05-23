@@ -52,7 +52,8 @@ public abstract class RankSumTest implements InfoFieldAnnotation, StandardAnnota
         final Pair<Double,Double> testResults = mannWhitneyU.runOneSidedTest( MannWhitneyU.USet.SET1 );
 
         final Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.3f", testResults.first));
+        if ( ! Double.isNaN(testResults.first) )
+            map.put(getKeyNames().get(0), String.format("%.3f", testResults.first));
         return map;
     }
 
