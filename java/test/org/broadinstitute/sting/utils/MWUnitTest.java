@@ -1,8 +1,5 @@
 package org.broadinstitute.sting.utils;
 
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.oneoffprojects.walkers.newassociation.features.ReadFeatureAggregator;
-import org.broadinstitute.sting.utils.MannWhitneyU;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.collections.Pair;
 
