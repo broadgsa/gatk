@@ -12,14 +12,14 @@ import java.util.Collections;
  * @version 0.1
  */
 public class ValidatingPileupIntegrationTest extends WalkerTest {
-    @Test(enabled = false)
+    @Test(enabled = true)
     public void testEcoliThreaded() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 "-T ValidatingPileup" +
                 " -I " + validationDataLocation + "MV1994.selected.bam" +
                 " -R " + validationDataLocation + "Escherichia_coli_K12_MG1655.fasta" +
                 " -B:pileup,SAMPileup "+ validationDataLocation + "MV1994.selected.pileup" +
-                " -S SILENT -nt 8 -U ALLOW_SEQ_DICT_INCOMPATIBILITY",0, Collections.<String>emptyList());
+                " -S SILENT -nt 8",0, Collections.<String>emptyList());
         executeTest("testEcoliThreaded",spec);
     }
 }

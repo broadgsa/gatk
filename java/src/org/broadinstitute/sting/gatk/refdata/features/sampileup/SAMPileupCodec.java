@@ -108,7 +108,7 @@ public class SAMPileupCodec implements FeatureCodec<SAMPileupFeature> {
         if ( feature.getRef() == '*' ) {
             parseIndels(observedString,feature) ;
             if ( feature.isDeletion() ) feature.setEnd(feature.getStart()+feature.length()-1);
-            else feature.setEnd(feature.getStart()-1); // if it's not a deletion and we are biallelic, this got to be an insertion; otherwise the state is inconsistent!!!!
+            else feature.setEnd(feature.getStart()); // if it's not a deletion and we are biallelic, this got to be an insertion; otherwise the state is inconsistent!!!!
         } else {
             parseBasesAndQuals(feature,tokens[8],tokens[9]);
             // if the variant is a SNP or a reference base (i.e. no variant at all)
