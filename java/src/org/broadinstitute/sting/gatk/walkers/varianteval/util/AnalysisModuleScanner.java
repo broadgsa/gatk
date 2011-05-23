@@ -25,7 +25,6 @@ package org.broadinstitute.sting.gatk.walkers.varianteval.util;
 
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
-import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Param;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.annotation.Annotation;
@@ -45,7 +44,6 @@ import java.util.Map;
 public class AnalysisModuleScanner {
 
     // what we extracted from the class
-    private Map<Field, Param> parameters = new LinkedHashMap<Field, Param>();   // the parameter annotations
     private Map<Field, DataPoint> datums = new LinkedHashMap<Field, DataPoint>();   // the data we've discovered
     private Analysis analysis;  // the analysis annotation
 
@@ -89,20 +87,10 @@ public class AnalysisModuleScanner {
         for ( Class superCls = cls; superCls != null; superCls=superCls.getSuperclass() ) {
             for (Field f : superCls.getDeclaredFields())
                 for (Annotation annotation : f.getAnnotations()) {
-                    if (annotation.annotationType().equals(Param.class))
-                        parameters.put(f, (Param) annotation);
                     if (annotation.annotationType().equals(DataPoint.class))
                         datums.put(f,(DataPoint) annotation);
                 }
         }
-    }
-
-    /**
-     *
-     * @return get the list of parameters we found
-     */
-    public Map<Field, Param> getParameters() {
-        return parameters;
     }
 
     /**
