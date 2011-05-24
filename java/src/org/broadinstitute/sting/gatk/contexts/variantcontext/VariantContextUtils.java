@@ -317,8 +317,8 @@ public class VariantContextUtils {
         UNIQUIFY, PRIORITIZE, UNSORTED, REQUIRE_UNIQUE
     }
 
-    public enum VariantMergeType {
-        UNION, INTERSECT, MASTER
+    public enum FilteredRecordMergeType {
+        KEEP_IF_ANY_UNFILTERED, KEEP_IF_ALL_UNFILTERED
     }
 
     /**
@@ -392,7 +392,7 @@ public class VariantContextUtils {
 
 
     public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, byte refBase) {
-        return simpleMerge(genomeLocParser, unsortedVCs, null, VariantMergeType.INTERSECT, GenotypeMergeType.UNSORTED, false, false, refBase);
+        return simpleMerge(genomeLocParser, unsortedVCs, null, FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED, GenotypeMergeType.UNSORTED, false, false, refBase);
     }
 
 
@@ -403,19 +403,19 @@ public class VariantContextUtils {
      *
      * @param unsortedVCs
      * @param priorityListOfVCs
-     * @param variantMergeOptions
+     * @param filteredRecordMergeType
      * @param genotypeMergeOptions
      * @return
      */
     public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
-                                             VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
+                                             FilteredRecordMergeType filteredRecordMergeType, GenotypeMergeType genotypeMergeOptions,
                                              boolean annotateOrigin, boolean printMessages, byte inputRefBase ) {
 
-        return simpleMerge(genomeLocParser, unsortedVCs, priorityListOfVCs, variantMergeOptions, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBase, "set", false, false);
+        return simpleMerge(genomeLocParser, unsortedVCs, priorityListOfVCs, filteredRecordMergeType, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBase, "set", false, false);
     }
 
     public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
-                                             VariantMergeType variantMergeOptions, GenotypeMergeType genotypeMergeOptions,
+                                             FilteredRecordMergeType filteredRecordMergeType, GenotypeMergeType genotypeMergeOptions,
                                              boolean annotateOrigin, boolean printMessages, byte inputRefBase, String setKey,
                                              boolean filteredAreUncalled, boolean mergeInfoWithMaxAC ) {
         if ( unsortedVCs == null || unsortedVCs.size() == 0 )
@@ -536,7 +536,7 @@ public class VariantContextUtils {
         }
 
         // if at least one record was unfiltered and we want a union, clear all of the filters
-        if ( variantMergeOptions == VariantMergeType.UNION && nFiltered != VCs.size() )
+        if ( filteredRecordMergeType == filteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size() )
             filters.clear();
 
         // we care about where the call came from

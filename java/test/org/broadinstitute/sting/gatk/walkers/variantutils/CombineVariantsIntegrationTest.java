@@ -59,6 +59,18 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
          executeTest("combine2 1:" + new File(file1).getName() + " 2:" + new File(file2).getName(), spec);
     }
 
+    public void combineSites(String args, String md5) {
+        String file1 = "1000G_omni2.5.b37.sites.vcf";
+        String file2 = "hapmap_3.3.b37.sites.vcf";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T CombineVariants -NO_HEADER -o %s -R " + b37KGReference
+                        + " -L 1:1-10,000,000 -B:omni,VCF " + validationDataLocation + file1
+                        + " -B:hm3,VCF " + validationDataLocation + file2 + args,
+                1,
+                Arrays.asList(md5));
+        executeTest("combineSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
+    }
+
 
     @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "2117fff6e0d182cd20be508e9661829c", true); }
     @Test public void test2SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "2cfaf7af3dd119df08b8a9c1f72e2f93", " -setKey foo", true); }
@@ -76,6 +88,9 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
 
     @Test public void uniqueSNPs() { combine2("pilot2.snps.vcf4.genotypes.vcf", "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf", "", "b3783384b7c8e877b971033e90beba48", true); }
 
+    @Test public void omniHM3Union() { combineSites(" -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED", "902e541c87caa72134db6293fc46f0ad"); }
+    @Test public void omniHM3Intersect() { combineSites(" -filteredRecordsMergeType KEEP_IF_ALL_UNFILTERED", "f339ad4bb5863b58b9c919ce7d040bb9"); }
+
     @Test public void threeWayWithRefs() {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -B:NA19240_BGI,VCF "+validationDataLocation+"NA19240.BGI.RG.vcf" +
@@ -83,7 +98,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
                         " -B:NA19240_WUGSC,VCF "+validationDataLocation+"NA19240.WUGSC.RG.vcf" +
                         " -B:denovoInfo,VCF "+validationDataLocation+"yri_merged_validation_data_240610.annotated.b36.vcf" +
                         " -setKey centerSet" +
-                        " -variantMergeOptions UNION" +
+                        " -filteredRecordsMergeType KEEP_IF_ANY_UNFILTERED" +
                         " -priority NA19240_BGI,NA19240_ILLUMINA,NA19240_WUGSC,denovoInfo" +
                         " -genotypeMergeOptions UNIQUIFY -L 1"),
                 1,

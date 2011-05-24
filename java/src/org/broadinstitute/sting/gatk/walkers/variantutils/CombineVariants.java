@@ -62,8 +62,8 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
     @Argument(shortName="genotypeMergeOptions", doc="How should we merge genotype records for samples shared across the ROD files?", required=false)
     public VariantContextUtils.GenotypeMergeType genotypeMergeOption = VariantContextUtils.GenotypeMergeType.PRIORITIZE;
 
-    @Argument(shortName="variantMergeOptions", doc="How should we merge variant records across RODs?  Union leaves the record if any record is unfiltered, Intersection requires all records to be unfiltered", required=false)
-    public VariantContextUtils.VariantMergeType variantMergeOption = VariantContextUtils.VariantMergeType.UNION;
+    @Argument(shortName="filteredRecordsMergeType", doc="How should we deal with records seen at the same site in the VCF, but with different FILTER fields?  KEEP_IF_ANY_UNFILTERED PASSes the record if any record is unfiltered, KEEP_IF_ALL_UNFILTERED requires all records to be unfiltered", required=false)
+    public VariantContextUtils.FilteredRecordMergeType filteredRecordsMergeType = VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED;
 
     @Argument(fullName="rod_priority_list", shortName="priority", doc="When taking the union of variants containing genotypes: a comma-separated string describing the priority ordering for the genotypes as far as which record gets emitted; a complete priority list MUST be provided", required=false)
     public String PRIORITY_STRING = null;
@@ -85,6 +85,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
 
     @Argument(fullName="minimumN", shortName="minN", doc="Combine variants and output site only if variant is present in at least N input files.", required=false)
     public int minimumN = 1;
+
+    @Hidden
+    @Argument(fullName="masterMerge", shortName="master", doc="Master merge mode -- experts only.  You need to look at the code to understand it", required=false)
+    public boolean master = false;
 
     @Hidden
     @Argument(fullName="mergeInfoWithMaxAC", shortName="mergeInfoWithMaxAC", doc="If true, when VCF records overlap the info field is taken from the one with the max AC instead of only taking the fields which are identical across the overlapping records.", required=false)
@@ -157,10 +161,10 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             return 0;
         
         VariantContext mergedVC = null;
-        if ( variantMergeOption == VariantContextUtils.VariantMergeType.MASTER ) {
+        if ( master ) {
              mergedVC = VariantContextUtils.masterMerge(vcs, "master");
         } else {
-            mergedVC = VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(),vcs, priority, variantMergeOption,
+            mergedVC = VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(),vcs, priority, filteredRecordsMergeType,
                     genotypeMergeOption, true, printComplexMerges, ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC);
         }
 
