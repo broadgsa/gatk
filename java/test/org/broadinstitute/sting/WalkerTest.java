@@ -230,7 +230,7 @@ public class WalkerTest extends BaseTest {
      * @return a pair of file and string lists
      */
     private Pair<List<File>, List<String>> executeTest(String name, File outputFileLocation, List<String> md5s, List<File> tmpFiles, String args, Class expectedException) {
-        qcMD5s(name, md5s);
+        if ( md5s != null ) qcMD5s(name, md5s);
 
         if (outputFileLocation != null)
             args += " -o " + outputFileLocation.getAbsolutePath();
