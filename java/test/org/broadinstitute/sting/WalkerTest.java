@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting;
 
+import org.apache.commons.lang.StringUtils;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.vcf.VCFCodec;
@@ -204,6 +205,21 @@ public class WalkerTest extends BaseTest {
         }
     }
 
+    private void qcMD5s(String name, List<String> md5s) {
+        final String exampleMD5 = "709a1f482cce68992c637da3cff824a8";
+        for (String md5 : md5s) {
+            if ( md5 == null )
+                throw new IllegalArgumentException("Null MD5 found in test " + name);
+            if ( md5.equals("") ) // ok
+                ;
+            if ( ! StringUtils.isAlphanumeric(md5) )
+                throw new IllegalArgumentException("MD5 contains non-alphanumeric characters test " + name + " md5=" + md5);
+            if ( md5.length() != exampleMD5.length() )
+                throw new IllegalArgumentException("Non-empty MD5 of unexpected number of characters test " + name + " md5=" + md5);
+        }
+    }
+
+
     /**
      * execute the test, given the following:
      * @param name     the name of the test
@@ -214,6 +230,8 @@ public class WalkerTest extends BaseTest {
      * @return a pair of file and string lists
      */
     private Pair<List<File>, List<String>> executeTest(String name, File outputFileLocation, List<String> md5s, List<File> tmpFiles, String args, Class expectedException) {
+        qcMD5s(name, md5s);
+
         if (outputFileLocation != null)
             args += " -o " + outputFileLocation.getAbsolutePath();
         executeTest(name, args, expectedException);
