@@ -63,7 +63,7 @@ public class WalkerTest extends BaseTest {
             }
 
             System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
-            Assert.assertTrue(IndexFactory.onDiskIndexEqualToNewlyCreatedIndex(resultFile, indexFile, new VCFCodec()));
+            Assert.assertTrue(IndexFactory.onDiskIndexEqualToNewlyCreatedIndex(resultFile, indexFile, new VCFCodec()), "Index on disk from indexing on the fly not equal to the index created after the run completed");
         }
     }
 
