@@ -158,7 +158,7 @@ class WholeGenomePipeline extends QScript {
     val combineChunks = new CombineVariants with CommandLineGATKArgs
     combineChunks.rodBind = chunkVcfs.zipWithIndex.map { case (vcf, index) => RodBind("input"+index, "VCF", vcf) }
     combineChunks.rod_priority_list = chunkVcfs.zipWithIndex.map { case (vcf, index) => "input"+index }.mkString(",")
-    combineChunks.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
+    combineChunks.filteredRecordsMergeType = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.FilteredRecordMergeType.UNION
     combineChunks.assumeIdenticalSamples = true
     combineChunks.out = projectBase + ".unfiltered.vcf"
     combineChunks.jobOutputFile = combineChunks.out + ".out"
