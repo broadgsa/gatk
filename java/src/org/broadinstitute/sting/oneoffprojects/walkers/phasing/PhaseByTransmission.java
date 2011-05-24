@@ -11,7 +11,6 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -19,10 +18,15 @@ import org.broadinstitute.sting.utils.vcf.VCFUtils;
 import java.util.*;
 
 /**
- * Given genotypes for a trio, phases child by transmission.  Computes probability that the determined phase is correct
- * given that the genotypes for mom and dad are correct (useful if you want to use this to compare phasing accuracy, but
- * want to break that comparison down by phasing confidence in the truth set).  Optionally filters out sites where the
- * phasing is indeterminate.  This walker assumes there are only three samples in the VCF file to begin with.
+ * Phases a trio VCF (child phased by transmission, implied phase carried over to parents).  Given genotypes for a trio,
+ * this walker modifies the genotypes (if necessary) to reflect the most likely configuration given the genotype
+ * likelihoods and inheritance constraints, phases child by transmission and carries over implied phase to the parents
+ * (their alleles in their genotypes are ordered as transmitted|untransmitted).  Computes probability that the
+ * determined phase is correct given that the genotype configuration is correct (useful if you want to use this to
+ * compare phasing accuracy, but want to break that comparison down by phasing confidence in the truth set).  Optionally
+ * filters out sites where the phasing is indeterminate (site has no-calls), ambiguous (everyone is heterozygous), or
+ * the genotypes exhibit a Mendelian violation.  This walker assumes there are only three samples in the VCF file to
+ * begin.
  */
 public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     @Argument(shortName="f", fullName="familyPattern", required=true, doc="Pattern for the family structure (usage: mom+dad=child)")
@@ -38,16 +42,14 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
     private String SAMPLE_NAME_DAD;
     private String SAMPLE_NAME_CHILD;
 
-    private class AmbiguousAlleleOriginException extends Exception {}
-    private class InsufficientInfoToPhaseGenotypeException extends Exception {}
-    private class MendelianViolationException extends Exception {}
-
     private final String ROD_NAME = "variant";
     private final String AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME = "AmbiguousAlleleOrigin";
-    private final String PHASE_INDETERMINATE_FILTER_NAME = "PhaseIndeterminate";
+    private final String INSUFFICIENT_DATA_FILTER_NAME = "InsufficientInformation";
     private final String MENDELIAN_VIOLATION_FILTER_NAME = "MendelianViolation";
     private final String TRANSMISSION_PROBABILITY_TAG_NAME = "TP";
     private final String SOURCE_NAME = "PhaseByTransmission";
+
+    private final Double MENDELIAN_VIOLATION_PRIOR = 1e-8;
 
     /**
      * Parse the familial relationship specification, and initialize VCF writer
@@ -85,80 +87,203 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         Set<VCFHeaderLine> headerLines = new HashSet<VCFHeaderLine>();
         headerLines.addAll(VCFUtils.getHeaderFields(this.getToolkit()));
         headerLines.add(new VCFFilterHeaderLine(AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME, "The parental origin of each of the child's allele cannot be determined (ie everyone is heterozygous)"));
-        headerLines.add(new VCFFilterHeaderLine(PHASE_INDETERMINATE_FILTER_NAME, "The phase of the child's genotype cannot be determined (ie someone is a no-call)"));
+        headerLines.add(new VCFFilterHeaderLine(INSUFFICIENT_DATA_FILTER_NAME, "The phase of the child's genotype cannot be determined (ie someone is a no-call)"));
         headerLines.add(new VCFFilterHeaderLine(MENDELIAN_VIOLATION_FILTER_NAME, "No combination of the parents' alleles can yield the child's genotype (ie a possible Mendelian violation)"));
-        headerLines.add(new VCFFormatHeaderLine(TRANSMISSION_PROBABILITY_TAG_NAME, 1, VCFHeaderLineType.Float, "Probability that the phase is correct given that the genotypes are correct"));
+        headerLines.add(new VCFInfoHeaderLine(TRANSMISSION_PROBABILITY_TAG_NAME, 1, VCFHeaderLineType.Float, "Probability that the phase is correct given that the genotypes are correct"));
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 
-    /**
-     * Given genotypes for mom, dad, and child, determine the phase for the child by examining the possible transmitted alleles.
-     *
-     * @param mom    mom's genotype
-     * @param dad    dad's genotype
-     * @param child  child's genotype
-     * @return  phased version of child's genotype
-     * @throws  AmbiguousAlleleOriginException if the parentage of the alleles can't be determined (i.e. a triple-het situation),
-     * @throws  InsufficientInfoToPhaseGenotypeException if there is insufficient information to determine the phase
-     * @throws  MendelianViolationException if no combination of the parental alleles can yield the child's genotype
-     */
-    private Genotype getPhasedChildGenotype(Genotype mom, Genotype dad, Genotype child) throws AmbiguousAlleleOriginException, InsufficientInfoToPhaseGenotypeException, MendelianViolationException {
-        if (mom.isNoCall() || dad.isNoCall() || child.isNoCall()) {
-            throw new InsufficientInfoToPhaseGenotypeException();
+    private int genotypeToIndex(Genotype g) {
+        if (g.isHomRef()) {
+            return 0;
+        } else if (g.isHet()) {
+            return 1;
         }
+        
+        return 2;
+    }
 
-        Set<Allele> momAlleles = new HashSet<Allele>();
-        momAlleles.addAll(mom.getAlleles());
+    private double computeTransmissionLikelihoodOfGenotypeConfiguration(Genotype mom, Genotype dad, Genotype child) {
+        double[] momLikelihoods = mom.getLikelihoods().getAsVector();
+        double[] dadLikelihoods = dad.getLikelihoods().getAsVector();
+        double[] childLikelihoods = child.getLikelihoods().getAsVector();
 
-        Set<Allele> dadAlleles = new HashSet<Allele>();
-        dadAlleles.addAll(dad.getAlleles());
+        int momIndex = genotypeToIndex(mom);
+        int dadIndex = genotypeToIndex(dad);
+        int childIndex = genotypeToIndex(child);
 
-        double transmissionProb = QualityUtils.qualToProb(mom.getNegLog10PError())*QualityUtils.qualToProb(dad.getNegLog10PError());
+        return momLikelihoods[momIndex] + dadLikelihoods[dadIndex] + childLikelihoods[childIndex];
+    }
 
-        Map<String, Object> attributes = new HashMap<String, Object>();
-        attributes.putAll(child.getAttributes());
-        attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, transmissionProb);
+    private ArrayList<Genotype> createAllThreeGenotypes(Allele refAllele, Allele altAllele, Genotype g) {
+        List<Allele> homRefAlleles = new ArrayList<Allele>();
+        homRefAlleles.add(refAllele);
+        homRefAlleles.add(refAllele);
+        Genotype homRef = new Genotype(g.getSampleName(), homRefAlleles, g.getNegLog10PError(), null, g.getAttributes(), false);
 
-        Set<Genotype> possiblePhasedChildGenotypes = new HashSet<Genotype>();
+        List<Allele> hetAlleles = new ArrayList<Allele>();
+        hetAlleles.add(refAllele);
+        hetAlleles.add(altAllele);
+        Genotype het = new Genotype(g.getSampleName(), hetAlleles, g.getNegLog10PError(), null, g.getAttributes(), false);
 
-        for (Allele momAllele : momAlleles) {
-            for (Allele dadAllele : dadAlleles) {
-                if (momAllele.isCalled() && dadAllele.isCalled()) {
-                    List<Allele> possiblePhasedChildAlleles = new ArrayList<Allele>();
-                    possiblePhasedChildAlleles.add(momAllele);
-                    possiblePhasedChildAlleles.add(dadAllele);
+        List<Allele> homVarAlleles = new ArrayList<Allele>();
+        homVarAlleles.add(altAllele);
+        homVarAlleles.add(altAllele);
+        Genotype homVar = new Genotype(g.getSampleName(), homVarAlleles, g.getNegLog10PError(), null, g.getAttributes(), false);
 
-                    Genotype possiblePhasedChildGenotype = new Genotype(child.getSampleName(), possiblePhasedChildAlleles, child.getNegLog10PError(), null, attributes, true);
+        ArrayList<Genotype> genotypes = new ArrayList<Genotype>();
+        genotypes.add(homRef);
+        genotypes.add(het);
+        genotypes.add(homVar);
 
-                    possiblePhasedChildGenotypes.add(possiblePhasedChildGenotype);
-                }
+        return genotypes;
+    }
+
+    private int getNumberOfMatchingAlleles(Allele alleleToMatch, Genotype g) {
+        List<Allele> alleles = g.getAlleles();
+        int matchingAlleles = 0;
+
+        for (Allele a : alleles) {
+            if (!alleleToMatch.equals(a)) {
+                matchingAlleles++;
             }
         }
 
-        Set<Genotype> ambiguousAlleleOriginGenotypes = new HashSet<Genotype>();
+        return matchingAlleles;
+    }
 
-        for (Genotype g1 : possiblePhasedChildGenotypes) {
-            for (Genotype g2 : possiblePhasedChildGenotypes) {
-                if (!g1.equals(g2)) {
-                    if (g1.sameGenotype(g2, true)) {
-                        ambiguousAlleleOriginGenotypes.add(g1);
-                        ambiguousAlleleOriginGenotypes.add(g2);
+    private boolean isMendelianViolation(Allele refAllele, Allele altAllele, Genotype mom, Genotype dad, Genotype child) {
+        int numMomRefAlleles = getNumberOfMatchingAlleles(refAllele, mom) > 0 ? 1 : 0;
+        int numMomAltAlleles = getNumberOfMatchingAlleles(altAllele, mom) > 0 ? 1 : 0;
+
+        int numDadRefAlleles = getNumberOfMatchingAlleles(refAllele, dad) > 0 ? 1 : 0;
+        int numDadAltAlleles = getNumberOfMatchingAlleles(altAllele, dad) > 0 ? 1 : 0;
+
+        int numChildRefAlleles = getNumberOfMatchingAlleles(refAllele, child);
+        int numChildAltAlleles = getNumberOfMatchingAlleles(altAllele, child);
+
+        return (numMomRefAlleles + numDadRefAlleles < numChildRefAlleles || numMomAltAlleles + numDadAltAlleles < numChildAltAlleles);
+    }
+
+    private ArrayList<Genotype> getPhasedGenotypes(Genotype mom, Genotype dad, Genotype child) {
+        Set<Genotype> possiblePhasedChildGenotypes = new HashSet<Genotype>();
+
+        for (Allele momAllele : mom.getAlleles()) {
+            for (Allele dadAllele : dad.getAlleles()) {
+                ArrayList<Allele> possiblePhasedChildAlleles = new ArrayList<Allele>();
+                possiblePhasedChildAlleles.add(momAllele);
+                possiblePhasedChildAlleles.add(dadAllele);
+
+                Genotype possiblePhasedChildGenotype = new Genotype(child.getSampleName(), possiblePhasedChildAlleles, child.getNegLog10PError(), child.getFilters(), child.getAttributes(), true);
+
+                possiblePhasedChildGenotypes.add(possiblePhasedChildGenotype);
+            }
+        }
+
+        ArrayList<Genotype> finalGenotypes = new ArrayList<Genotype>();
+
+        for (Genotype phasedChildGenotype : possiblePhasedChildGenotypes) {
+            if (child.sameGenotype(phasedChildGenotype, true)) {
+                Allele momTransmittedAllele = phasedChildGenotype.getAllele(0);
+                Allele momUntransmittedAllele = mom.getAllele(0) != momTransmittedAllele ? mom.getAllele(0) : mom.getAllele(1);
+
+                ArrayList<Allele> phasedMomAlleles = new ArrayList<Allele>();
+                phasedMomAlleles.add(momTransmittedAllele);
+                phasedMomAlleles.add(momUntransmittedAllele);
+
+                Genotype phasedMomGenotype = new Genotype(mom.getSampleName(), phasedMomAlleles, mom.getNegLog10PError(), mom.getFilters(), mom.getAttributes(), true);
+
+                Allele dadTransmittedAllele = phasedChildGenotype.getAllele(1);
+                Allele dadUntransmittedAllele = dad.getAllele(0) != dadTransmittedAllele ? dad.getAllele(0) : dad.getAllele(1);
+
+                ArrayList<Allele> phasedDadAlleles = new ArrayList<Allele>();
+                phasedDadAlleles.add(dadTransmittedAllele);
+                phasedDadAlleles.add(dadUntransmittedAllele);
+
+                Genotype phasedDadGenotype = new Genotype(dad.getSampleName(), phasedDadAlleles, dad.getNegLog10PError(), dad.getFilters(), dad.getAttributes(), true);
+
+                finalGenotypes.add(phasedMomGenotype);
+                finalGenotypes.add(phasedDadGenotype);
+                finalGenotypes.add(phasedChildGenotype);
+
+                return finalGenotypes;
+            }
+        }
+
+        finalGenotypes.add(mom);
+        finalGenotypes.add(dad);
+        finalGenotypes.add(child);
+
+        return finalGenotypes;
+    }
+
+    private VariantContext phaseTrioGenotypes(VariantContext vc) {
+        Genotype mom = vc.getGenotype(SAMPLE_NAME_MOM);
+        Genotype dad = vc.getGenotype(SAMPLE_NAME_DAD);
+        Genotype child = vc.getGenotype(SAMPLE_NAME_CHILD);
+
+        Set<String> filters = new HashSet<String>();
+        filters.addAll(vc.getFilters());
+
+        Map<String, Object> attributes = new HashMap<String, Object>();
+        attributes.putAll(vc.getAttributes());
+        attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, 0.0);
+
+        ArrayList<Genotype> finalGenotypes = new ArrayList<Genotype>();
+        finalGenotypes.add(mom);
+        finalGenotypes.add(dad);
+        finalGenotypes.add(child);
+
+        if (!mom.isCalled() || !dad.isCalled() || !child.isCalled()) {
+            filters.add(INSUFFICIENT_DATA_FILTER_NAME);
+        } else {
+            ArrayList<Genotype> possibleMomGenotypes = createAllThreeGenotypes(vc.getReference(), vc.getAlternateAllele(0), mom);
+            ArrayList<Genotype> possibleDadGenotypes = createAllThreeGenotypes(vc.getReference(), vc.getAlternateAllele(0), dad);
+            ArrayList<Genotype> possibleChildGenotypes = createAllThreeGenotypes(vc.getReference(), vc.getAlternateAllele(0), child);
+
+            double bestConfigurationLikelihood = 0.0;
+            double bestPrior = 0.0;
+            Genotype bestMomGenotype = mom;
+            Genotype bestDadGenotype = dad;
+            Genotype bestChildGenotype = child;
+
+            double norm = 0.0;
+
+            for (Genotype momGenotype : possibleMomGenotypes) {
+                for (Genotype dadGenotype : possibleDadGenotypes) {
+                    for (Genotype childGenotype : possibleChildGenotypes) {
+                        double configurationLikelihood = computeTransmissionLikelihoodOfGenotypeConfiguration(momGenotype, dadGenotype, childGenotype);
+                        double prior = isMendelianViolation(vc.getReference(), vc.getAlternateAllele(0), momGenotype, dadGenotype, childGenotype) ? Math.log10(MENDELIAN_VIOLATION_PRIOR) : Math.log10(1.0 - 12*MENDELIAN_VIOLATION_PRIOR);
+
+                        if (configurationLikelihood > bestConfigurationLikelihood) {
+                            bestConfigurationLikelihood = configurationLikelihood;
+                            bestPrior = prior;
+                            bestMomGenotype = momGenotype;
+                            bestDadGenotype = dadGenotype;
+                            bestChildGenotype = childGenotype;
+                        }
+
+                        norm += Math.pow(10, configurationLikelihood)*Math.pow(10, prior);
                     }
                 }
             }
-        }
 
-        for (Genotype possiblePhasedChildGenotype : possiblePhasedChildGenotypes) {
-            if (child.sameGenotype(possiblePhasedChildGenotype, true)) {
-                if (ambiguousAlleleOriginGenotypes.contains(possiblePhasedChildGenotype)) {
-                    throw new AmbiguousAlleleOriginException();
-                }
+            if (isMendelianViolation(vc.getReference(), vc.getAlternateAllele(0), bestMomGenotype, bestDadGenotype, bestChildGenotype)) {
+                filters.add(MENDELIAN_VIOLATION_FILTER_NAME);
+            } else if (bestMomGenotype.isHet() && bestDadGenotype.isHet() && bestChildGenotype.isHet()) {
+                filters.add(AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME);
+            } else {
+                finalGenotypes = getPhasedGenotypes(bestMomGenotype, bestDadGenotype, bestChildGenotype);
 
-                return possiblePhasedChildGenotype;
+                double normLikelihood = Math.log10(norm);
+                double logProb = bestPrior + bestConfigurationLikelihood - normLikelihood;
+                double prob = Math.pow(10.0, logProb);
+
+                attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, prob);
             }
         }
 
-        throw new MendelianViolationException();
+        return new VariantContext(SOURCE_NAME, vc.getChr(), vc.getStart(), vc.getStart(), vc.getAlleles(), finalGenotypes, vc.getNegLog10PError(), noFilters ? vc.getFilters() : filters, attributes);
     }
 
     /**
@@ -175,42 +300,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
             Collection<VariantContext> vcs = tracker.getVariantContexts(ref, ROD_NAME, null, context.getLocation(), true, true);
 
             for (VariantContext vc : vcs) {
-                Genotype mom = vc.getGenotype(SAMPLE_NAME_MOM);
-                Genotype dad = vc.getGenotype(SAMPLE_NAME_DAD);
-                Genotype child = vc.getGenotype(SAMPLE_NAME_CHILD);
-
-                Set<String> filters = new HashSet<String>();
-                filters.addAll(vc.getFilters());
-
-                try {
-                    child = getPhasedChildGenotype(mom, dad, child);
-                } catch (AmbiguousAlleleOriginException e) {
-                    if (!noFilters) {
-                        filters.add(AMBIGUOUS_ALLELE_ORIGIN_FILTER_NAME);
-                    }
-                } catch (InsufficientInfoToPhaseGenotypeException e) {
-                    if (!noFilters) {
-                        filters.add(PHASE_INDETERMINATE_FILTER_NAME);
-                    }
-                } catch (MendelianViolationException e) {
-                    if (!noFilters) {
-                        filters.add(MENDELIAN_VIOLATION_FILTER_NAME);
-                    }
-                }
-
-                Map<String, Object> attributes = new HashMap<String, Object>();
-                attributes.putAll(vc.getAttributes());
-
-                Collection<Genotype> phasedGenotypes = new ArrayList<Genotype>();
-                Collection<Allele> alleles = vc.getAlleles();
-
-                phasedGenotypes.add(mom);
-                phasedGenotypes.add(dad);
-                phasedGenotypes.add(child);
-
-                VariantContext newvc = new VariantContext(SOURCE_NAME, ref.getLocus().getContig(), vc.getStart(), vc.getStart(), alleles, phasedGenotypes, vc.getNegLog10PError(), filters, attributes);
-
-                vcfWriter.add(newvc, ref.getBase());
+                vcfWriter.add(phaseTrioGenotypes(vc), ref.getBase());
             }
         }
 
