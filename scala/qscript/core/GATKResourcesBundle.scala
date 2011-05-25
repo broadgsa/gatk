@@ -100,7 +100,7 @@ class GATKResourcesBundle extends QScript {
     //
     // references
     //
-    hg19 = new Reference("hg19", new File("/humgen/gsa-hpprojects/GATK/bundle/ucsc.hg19/ucsc.hg19.fasta"))
+    hg19 = new Reference("hg19", new File("/humgen/gsa-hpprojects/GATK/data/ucsc.hg19/ucsc.hg19.fasta"))
     b37 = new Reference("b37", new File("/humgen/1kg/reference/human_g1k_v37.fasta"))
     hg18 = new Reference("hg18", new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"))
     b36 = new Reference("b36", new File("/humgen/1kg/reference/human_b36_both.fasta"))
