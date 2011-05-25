@@ -44,7 +44,7 @@ class HelloWorldPipelineTest {
     PipelineTest.executeTest(spec)
   }
 
-  @Test
+  @Test(enabled=false)
   def testHelloWorldWithPriority {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithPriority"

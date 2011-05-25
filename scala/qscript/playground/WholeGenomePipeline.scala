@@ -190,7 +190,7 @@ class WholeGenomePipeline extends QScript {
     combineSNPsIndels.rodBind :+= RodBind("indels", "VCF", selectIndels.out)
     combineSNPsIndels.rodBind :+= RodBind("all", "VCF", combineChunks.out)
     combineSNPsIndels.rod_priority_list = "indels,all"
-    combineSNPsIndels.variantmergeoption = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.VariantMergeType.UNION
+    combineSNPsIndels.filteredRecordsMergeType = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED
     combineSNPsIndels.assumeIdenticalSamples = true
     combineSNPsIndels.out = projectBase + ".unrecalibrated.vcf"
     combineSNPsIndels.jobOutputFile = combineSNPsIndels.out + ".out"

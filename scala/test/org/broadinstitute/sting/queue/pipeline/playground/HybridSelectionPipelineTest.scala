@@ -67,8 +67,8 @@ class HybridSelectionPipelineTest {
 
     // Run the pipeline with the expected inputs.
     val pipelineCommand =
-      "-retry 1 -S scala/qscript/playground/HybridSelectionPipeline.scala -jobProject %s -Y %s"
-        .format(projectName, yamlFile)
+      "-retry 1 -S scala/qscript/playground/HybridSelectionPipeline.scala -Y %s"
+        .format(yamlFile)
 
     val pipelineSpec = new PipelineTestSpec
     pipelineSpec.name = testName
@@ -83,9 +83,7 @@ class HybridSelectionPipelineTest {
   }
 
   private def writeYaml(testName: String, pipeline: Pipeline) = {
-    val runDir = PipelineTest.runDir(testName)
-    val yamlFile = new File(runDir, pipeline.getProject.getName + ".yaml")
-    yamlFile.getParentFile.mkdirs
+    val yamlFile = BaseTest.createTempFile(pipeline.getProject.getName, ".yaml")
     YamlUtils.dump(pipeline, yamlFile)
     yamlFile
   }

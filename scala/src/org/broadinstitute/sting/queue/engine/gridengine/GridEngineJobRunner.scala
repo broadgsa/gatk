@@ -103,7 +103,7 @@ class GridEngineJobRunner(val function: CommandLineFunction) extends CommandLine
       // Allow advanced users to update the request via QFunction.updateJobRun()
       updateJobRun(gridEngineJob)
 
-      updateStatus(RunnerStatus.PENDING)
+      updateStatus(RunnerStatus.RUNNING)
 
       // Start the job and store the id so it can be killed in tryStop
       try {
@@ -195,7 +195,7 @@ object GridEngineJobRunner extends Logging {
     try {
       val jobStatus = gridEngineSession.getJobProgramStatus(runner.jobId);
       jobStatus match {
-        case Session.QUEUED_ACTIVE => returnStatus = RunnerStatus.PENDING
+        case Session.QUEUED_ACTIVE => returnStatus = RunnerStatus.RUNNING
         case Session.DONE =>
           val jobInfo: JobInfo = gridEngineSession.wait(runner.jobId, Session.TIMEOUT_NO_WAIT)
           if ((jobInfo.hasExited && jobInfo.getExitStatus > 0)
