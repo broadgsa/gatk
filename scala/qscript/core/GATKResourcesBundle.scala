@@ -56,7 +56,7 @@ class GATKResourcesBundle extends QScript {
     //Console.printf("liftover(%s => %s)%n", inRef.name, outRef.name)
     (inRef.name, outRef.name) match {
       case ("b37", "hg19") =>
-        return new LiftOverPerl(in, out, new File("chainFiles/b37Tohg19.chain"), inRef, outRef)
+        return new LiftOverPerl(in, out, new File("chainFiles/b37tohg19.chain"), inRef, outRef)
       case ("b37", "hg18") =>
         return new LiftOverPerl(in, out, new File("chainFiles/b37tohg18.chain"), inRef, outRef)
       case ("b37", "b36") =>
@@ -100,14 +100,16 @@ class GATKResourcesBundle extends QScript {
     //
     // references
     //
+    hg19 = new Reference("hg19", new File("/humgen/gsa-hpprojects/GATK/bundle/ucsc.hg19/ucsc.hg19.fasta"))
     b37 = new Reference("b37", new File("/humgen/1kg/reference/human_g1k_v37.fasta"))
     hg18 = new Reference("hg18", new File("/seq/references/Homo_sapiens_assembly18/v0/Homo_sapiens_assembly18.fasta"))
     b36 = new Reference("b36", new File("/humgen/1kg/reference/human_b36_both.fasta"))
     exampleFASTA = new Reference("exampleFASTA", new File("testdata/exampleFASTA.fasta"))
-    refs = List(b37, hg18, b36, exampleFASTA)
+    refs = List(hg19, b37, hg18, b36, exampleFASTA)
 
     addResource(new Resource(b37.file, "", b37, false))
     addResource(new Resource(b36.file, "", b36, false))
+    addResource(new Resource(hg19.file, "", hg19, false))
     addResource(new Resource(hg18.file, "", hg18, false))
 
     //
