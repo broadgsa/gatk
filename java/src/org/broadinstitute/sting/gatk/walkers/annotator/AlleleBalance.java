@@ -82,7 +82,7 @@ public class AlleleBalance implements InfoFieldAnnotation {
                 // weight the allele balance by genotype quality so that e.g. mis-called homs don't affect the ratio too much
                 ratio += genotype.getValue().getNegLog10PError() * ((double)refCount / (double)(refCount + altCount));
                 totalWeights += genotype.getValue().getNegLog10PError();
-            } else if ( vc.isIndel() ) {
+            } else if ( vc.isIndel() && context.hasExtendedEventPileup() ) {
                 final ReadBackedExtendedEventPileup indelPileup = context.getExtendedEventPileup();
                 if ( indelPileup == null ) {
                     continue;
