@@ -10,6 +10,7 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import sun.awt.SunHints;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -124,8 +125,8 @@ public class VariantDataManager {
         }
         logger.info( "Training with " + trainingData.size() + " variants after standard deviation thresholding." );
         if( trainingData.size() < VRAC.MIN_NUM_BAD_VARIANTS ) {
-	    logger.warn("WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable.");
-	}
+            logger.warn("WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable.");
+        }
         return trainingData;
     }
 
@@ -169,7 +170,7 @@ public class VariantDataManager {
             if( datum.usedForTraining == -1 && !datum.failingSTDThreshold ) { returnData.add(datum); }
             else { iii--; }
         }
-                       
+
         return returnData;
     }
 
@@ -207,23 +208,23 @@ public class VariantDataManager {
 
     private static double decodeAnnotation( final String annotationKey, final VariantContext vc, final boolean jitter ) {
         double value;
-        if( jitter && ( annotationKey.equalsIgnoreCase("HRUN") || annotationKey.equalsIgnoreCase("FS") ) ) { // Integer valued annotations must be jittered a bit to work in this GMM
-            value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
-            value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
-        } else if( annotationKey.equals("QUAL") ) {
+
+        if( annotationKey.equals("QUAL") ) {
             value = vc.getPhredScaledQual();
         } else {
             try {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
-                if(Double.isInfinite(value)) { value = Double.NaN; }
-                if(annotationKey.equals("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
+                if (Double.isInfinite(value))
+                    value = Double.NaN;
             } catch( final Exception e ) {
                 value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating clusters.
                 if( !warnedUserMissingValue ) {
                     logger.warn("WARNING: Missing value detected for " + annotationKey + ". The VQSR will work with missing data by marginalizing over this dimension for this variant. This warning message is only shown once so there may be other annotations missing as well.");
                     warnedUserMissingValue = true;
                 }
+
             }
+
         }
         return value;
     }
