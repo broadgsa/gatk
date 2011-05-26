@@ -28,13 +28,13 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testMultiSamplePilot1() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "low_coverage_CEU.chr1.10k-11k.bam -o %s -L 1:10,022,000-10,025,000", 1,
-                Arrays.asList("14a3814607d8ff18ef40f49c454739f2"));
+                Arrays.asList("91246d154ba379cb04a1920d365f11c3"));
         executeTest("test MultiSample Pilot1", spec);
     }
 
     @Test
     public void testMultiSamplePilot2AndRecallingWithAlleles() {
-        String md5 = "6aa91d95c360693e5c5f459c132bda32";
+        String md5 = "24876505e3526a58fc709ecf44372cfb";
 
         WalkerTest.WalkerTestSpec spec1 = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "pilot2_daughters.chr20.10k-11k.bam -o %s -L 20:10,000,000-10,050,000", 1,
@@ -66,7 +66,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testSingleSamplePilot2() {
         WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                 baseCommand + " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.SLX.bam -o %s -L 1:10,000,000-10,100,000", 1,
-                Arrays.asList("6276a53a4dbf87c59dc84b356cca332f"));
+                Arrays.asList("3474828a82c070242346b78dc8b760c9"));
         executeTest("test SingleSample Pilot2", spec);
     }
 
@@ -76,7 +76,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private final static String COMPRESSED_OUTPUT_MD5 = "af45d5a45ad2f030d777926717fc9049";
+    private final static String COMPRESSED_OUTPUT_MD5 = "a5e0673fdda01a1bcdfe122299c734f9";
 
     @Test
     public void testCompressedOutput() {
@@ -153,8 +153,8 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     public void testOutputParameter() {
         HashMap<String, String> e = new HashMap<String, String>();
         e.put( "-sites_only", "919d4b034ef0e07c8d50ea05b8fa0725" );
-        e.put( "--output_mode EMIT_ALL_CONFIDENT_SITES", "a9bf545b6078eb772b9d01db4eaa4deb" );
-        e.put( "--output_mode EMIT_ALL_SITES", "ab32c0f15401809d861cd8a0edb6f8ff" );
+        e.put( "--output_mode EMIT_ALL_CONFIDENT_SITES", "b793fca3450c0afcde2418d79bbf2724" );
+        e.put( "--output_mode EMIT_ALL_SITES", "6e47e30c029e4bba63a492d7deb022f2" );
 
         for ( Map.Entry<String, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -185,8 +185,8 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
     @Test
     public void testHeterozyosity() {
         HashMap<Double, String> e = new HashMap<Double, String>();
-        e.put( 0.01, "7db98e357bcebec5d362aacb0b176ca8" );
-        e.put( 1.0 / 1850, "f3a25877f5ec5e0fa436a1d29b6a9b04" );
+        e.put( 0.01, "966ceb5a7a6d87ad417046c2f60e69fd" );
+        e.put( 1.0 / 1850, "85057e3f2df0433392409c586af1be33" );
 
         for ( Map.Entry<Double, String> entry : e.entrySet() ) {
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
@@ -210,7 +210,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L 1:10,000,000-10,100,000",
                 1,
-                Arrays.asList("b58d99ce5a71ed1dbd351cb509a83ac3"));
+                Arrays.asList("f9d92a81294569b9c918848932c1a0ca"));
 
         executeTest(String.format("test multiple technologies"), spec);
     }
@@ -229,7 +229,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -L 1:10,000,000-10,100,000" +
                         " -baq CALCULATE_AS_NECESSARY",
                 1,
-                Arrays.asList("032e33e33ede77d87c9442fb9895a2f8"));
+                Arrays.asList("930dc1d9bc2006b86e8c90a50d349151"));
 
         executeTest(String.format("test calling with BAQ"), spec);
     }
@@ -248,7 +248,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -o %s" +
                         " -L 1:10,000,000-10,500,000",
                 1,
-                Arrays.asList("3a6ba2d9b9a5c606389d3353bb27bbe8"));
+                Arrays.asList("51726ce0b309a77cb833dd2e11e2219e"));
 
         executeTest(String.format("test indel caller in SLX"), spec);
     }
@@ -263,7 +263,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                         " -minIndelCnt 1" +
                         " -L 1:10,000,000-10,100,000",
                 1,
-                Arrays.asList("f536ca23cb86b14fc20e453859dafc01"));
+                Arrays.asList("11d761009bfbc04ba23cbee000a62954"));
 
         executeTest(String.format("test indel caller in SLX witn low min allele count"), spec);
     }
@@ -276,7 +276,7 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
                          " -o %s" +
                          " -L 1:10,000,000-10,500,000",
                  1,
-                 Arrays.asList("592a214b8ca1b62733f9627adb631f16"));
+                 Arrays.asList("32a06420a3357c1451fdc36a40df4d08"));
 
          executeTest(String.format("test indel calling, multiple technologies"), spec);
      }

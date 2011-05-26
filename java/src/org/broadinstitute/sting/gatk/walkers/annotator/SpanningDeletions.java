@@ -22,6 +22,11 @@ public class SpanningDeletions implements InfoFieldAnnotation, StandardAnnotatio
         if ( stratifiedContexts.size() == 0 )
             return null;
 
+        // not meaningful when we're at an indel location: deletions that start at location N are by definition called at the position  N-1, and at position N-1
+        // there are no informative deletions in the pileup
+        if (!vc.isSNP())
+            return null;
+
         int deletions = 0;
         int depth = 0;
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
