@@ -216,7 +216,12 @@ public class VariantDataManager {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
                 if (Double.isInfinite(value))
                     value = Double.NaN;
-            } catch( final Exception e ) {
+                else
+                    if( jitter && ( annotationKey.equalsIgnoreCase("HRUN") || annotationKey.equalsIgnoreCase("FS") ) ) { // Integer valued annotations must be jittered a bit to work in this GMM
+                          value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
+                    }
+
+             } catch( final Exception e ) {
                 value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating clusters.
                 if( !warnedUserMissingValue ) {
                     logger.warn("WARNING: Missing value detected for " + annotationKey + ". The VQSR will work with missing data by marginalizing over this dimension for this variant. This warning message is only shown once so there may be other annotations missing as well.");
