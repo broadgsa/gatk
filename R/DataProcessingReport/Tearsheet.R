@@ -1,46 +1,13 @@
-#tearsheet (for cori's use)
 #New tearsheet generator
-.libPaths('/humgen/gsa-firehose2/pipeline/repositories/StingProduction/R/') 
+.libPaths('/humgen/gsa-pipeline/.repository/R/') 
 
 suppressMessages(library(gplots));
 suppressMessages(library(ReadImages));
-
 suppressMessages(library(gsalib));
 
-cmdargs = gsa.getargs(
-    list(
-        title = list(value=NA, doc="Title for the tearsheet"),
-        tsv = list(value=NA, doc="pipeline tsv file"),
-        evalroot = list(value=NA, doc="VariantEval file base (everything before the .eval)"),
-        tearout = list(value=NA, doc="Output path for tearsheet PDF")#,
-        #plotout = list(value=NA, doc="Output path for plot PDF")
-    ),
-    doc="Creates a tearsheet"
-);
-
-read.delim(cmdargs$tsv)->settable
-
-squids<-unique(settable[,1])
-
-lane<-data.frame()
-samp<-data.frame()
-for(squid in squids){
-  gsa.read.squidmetrics(squid, TRUE)->lanemetrics 
-  addlanes<-lanemetrics[which(lanemetrics$"Individual ID" %in% settable[,2]),]
-  gsa.read.squidmetrics(squid, FALSE)->samplemetrics 
-  addsamps<-samplemetrics[which(samplemetrics$"Sample" %in% settable[,2]),]
-  lane<-rbind(lane, addlanes)
-  samp<-rbind(samp, addsamps)
-}
-print("Picard Data Obtained...")
-gsa.read.gatkreport(paste(cmdargs$evalroot, ".eval", sep=""))->FCeval 
-gsa.read.gatkreport(paste(cmdargs$evalroot, ".extraFC.eval", sep=""))->FCeval 
-gsa.read.gatkreport(paste(cmdargs$evalroot, ".extraSA.eval", sep=""))->SAeval 
-print("Evals read")
 tearsheet<-function(){
   
-  pdf(file= cmdargs$tearout, width=22, height=17, pagecentre=TRUE, pointsize=24) 
-    print("PDF created...")
+def.par <- par(no.readonly = TRUE)
 
 	#define layout
 	postable<-matrix(c(1, 1,  1, 1, rep(c(2, 2, 4, 4), 5), rep(c(3, 3, 4, 4), 3), rep(c(3,3,5,5), 5), 6,7,8,9), nrow=15, ncol=4, byrow=TRUE)
@@ -156,10 +123,9 @@ tearsheet<-function(){
 		instrument<-paste(instrument[1], instrument[2], sep=" and ")
 		}	
 
-	used_lanes = length(unique(paste(lane$Flowcell, lane$Lane)));
+  used_lanes = length(unique(paste(lane$Flowcell, lane$Lane)));
 	unused_lanes_by_sequencing = 0; #can we get this?
 	unused_lanes_by_analysis = 0;
-
 
 	lanes_per_sample_mean = mean(table(lane$"External ID"), na.rm=TRUE);
 	lanes_per_sample_sd = sd(table(lane$"External ID"), na.rm=TRUE);
@@ -168,22 +134,21 @@ tearsheet<-function(){
 	lanes_widowed = length(unique(paste(subset(lane, lane$"Lane Type" == "Widowed")$Flowcell, subset(lane, lane$"Lane Type" == "Widowed")$Lane)));
 	lanes_single = length(unique(paste(subset(lane, lane$"Lane Type" == "Single")$Flowcell, subset(lane, lane$"Lane Type" == "Single")$Lane)));
 
-	read_length_mean = mean(lane$"Mean Read Length (P)");
+  read_length_mean = mean(lane$"Mean Read Length (P)");
 	read_length_sd = sd(lane$"Mean Read Length (P)");
 	read_length_median = median(lane$"Mean Read Length (P)");
 
-	date = lane$"Run Date";
-	date = sort(as.Date(date, format="%d-%b-%y"));
+
+	date = sort(as.Date(lane$"Run Date", format="%d-%b-%y"));
 
 	start_date = format(date[1], "%B %d, %Y");
 	end_date = format(date[length(date)], "%B %d, %Y");
-	
-	if(nrow(lane)>used_lanes){
+ 
+if(nrow(lane)>used_lanes){
     used_lanes<-paste(used_lanes, " (multiplexed; ", nrow(lane), " total barcoded readgroups)", sep="")
 	}
 	table3<-rbind(paste(instrument), used_lanes, sprintf("%s rejected by sequencing, %s by analysis\n", unused_lanes_by_sequencing, unused_lanes_by_analysis), sprintf("%0.1f +/- %0.1f lanes (median=%0.1f)\n", lanes_per_sample_mean, lanes_per_sample_sd, lanes_per_sample_median), sprintf("%s paired, %s widowed, %s single\n", lanes_paired, lanes_widowed, lanes_single), sprintf("%0.1f +/- %0.1f bases (median=%0.1f)\n", read_length_mean, read_length_sd, read_length_median), sprintf("\tSequencing dates: %s to %s\n", start_date, end_date))
 	
-
   rownames(table3)<-c("Sequencer", "Used lanes", "Unused lanes","Used lanes/sample", "Lane parities", "Read lengths", "Sequencing dates")
 	par(mar=c(0,0,1,0))
 	textplot(table3, rmar=1, col.rownames="dark blue", show.colnames=FALSE, cex=1.25, valign="top")
@@ -194,12 +159,30 @@ tearsheet<-function(){
 # Variant summary
  
 	eval.counts = basiceval$CountVariants
+  if("FunctionalClass" %in% colnames(eval.counts)){
+    eval.counts= subset(eval.counts, FunctionalClass == "all")
+  }
+  if("Sample" %in% colnames(eval.counts)){
+    eval.counts= subset(eval.counts, Sample == "all")
+  }
+  if("Filter" %in% colnames(eval.counts)){
+    eval.counts= subset(eval.counts, Filter == "called")
+  }
 	eval.counts.all = subset(eval.counts,  Novelty == "all")$nVariantLoci;
 	eval.counts.known = subset(eval.counts,Novelty == "known")$nVariantLoci;
 	eval.counts.novel = subset(eval.counts, Novelty == "novel")$nVariantLoci;
 
 	eval.titv = basiceval$TiTvVariantEvaluator
-	eval.titv.all = subset(eval.titv, Novelty == "all")$tiTvRatio;
+	if("FunctionalClass" %in% colnames(eval.titv)){
+    eval.titv= subset(eval.titv, FunctionalClass == "all")
+  }
+  if("Sample" %in% colnames(eval.titv)){
+    eval.titv= subset(eval.titv, Sample == "all")
+  }
+  if("Filter" %in% colnames(eval.titv)){
+    eval.titv= subset(eval.titv, Filter == "called")
+  }
+  eval.titv.all = subset(eval.titv, Novelty == "all")$tiTvRatio;
 	eval.titv.known = subset(eval.titv, Novelty == "known")$tiTvRatio;
 	eval.titv.novel = subset(eval.titv, Novelty == "novel")$tiTvRatio;
 
@@ -226,10 +209,20 @@ tearsheet<-function(){
 
 
   eval.ac = basiceval$SimpleMetricsByAC.metrics
-	eval.ac.all = subset(eval.ac, Novelty == "all");
+  if("FunctionalClass" %in% colnames(eval.titv)){
+    eval.ac= subset(eval.ac, FunctionalClass == "all")
+  }
+  if("Sample" %in% colnames(eval.titv)){
+    eval.ac= subset(eval.ac, Sample == "all")
+  }
+  if("Filter" %in% colnames(eval.titv)){
+    eval.ac= subset(eval.ac, Filter == "called")
+  }
+  
+  eval.ac.all = subset(eval.ac, Novelty == "all");
 	eval.ac.known = subset(eval.ac, Novelty == "known");
- 	eval.ac.novel = subset(eval.ac, Novelty == "novel");
-
+  eval.ac.novel = subset(eval.ac, Novelty == "novel");
+  
 	eval.func = FCeval$CountVariants
 
   par(mar=c(5, 5, 4, 2) + 0.1)
@@ -239,19 +232,26 @@ tearsheet<-function(){
 
 	par(mar=c(7, 5, 4, 2) + 0.1)
 	ind = order(eval.bysample.all$nVariantLoci);
-	plot(c(1:length(eval.bysample.all$nVariantLoci)), eval.bysample.all$nVariantLoci[ind], xlab="", col="black", xaxt="n", cex=1.1, cex.lab=1.1, cex.axis=1.1, main="Variants per Sample", ylab="Number of variants\n(axis in log space)", bty="n", log="y",ylim=c(100, max(eval.bysample.all$nVariantLoci)));
-	points(c(1:length(eval.bysample.known$nVariantLoci)), eval.bysample.known$nVariantLoci[ind], col="blue", cex=1.3);
-	points(c(1:length(eval.bysample.novel$nVariantLoci)), eval.bysample.novel$nVariantLoci[ind], col="red", cex=1.3);
-	legend("bottomleft", max(eval.bysample.all$nVariantLoci)/2, c("All", "Known", "Novel"), col=c("black", "blue", "red"), pt.cex=1.3, pch=21);
-  axis(1, at=c(1:length(eval.bysample.all$nVariantLoci)), lab=eval.bysample.all$Sample[ind], cex=.7, las=2)
-
+	plot(eval.bysample.all$nVariantLoci[ind], xlab="",pch=16, col="black", xaxt="n", cex=1.1, cex.lab=1.1, cex.axis=1.1, main="Variants per Sample", ylab="Number of variants\n(axis in log space)", bty="n", log="y",ylim=c(1, max(eval.bysample.all$nVariantLoci)));
+	points(eval.bysample.known$nVariantLoci[ind], pch=16, col="blue", cex=1.3);
+	points(eval.bysample.novel$nVariantLoci[ind], pch=16,col="red", cex=1.3);
+	legend("bottomleft", max(eval.bysample.all$nVariantLoci)/2, c("All", "Known", "Novel"), , col=c("black", "blue", "red"), pt.cex=1.3, pch=16);
+  if(nrow(samp)<25){
+    axis(1, at=c(1:length(eval.bysample.all$Sample[ind])), lab=eval.bysample.all$Sample[ind], cex=.7, las=2 )
+  }else{
+    axis(1, at=c(1:nrow(samp)), lab=rep("", nrow(samp)), cex=0.1, las=2, lwd.ticks=0)
+    title(xlab="Sample\n(too many individuals to label)")
+  }
 
 	par(mar=c(6, 5, 4, 2) + 0.1)
 	plot(sort(eval.ac.all$AC), eval.ac.all$n[order(eval.ac.all$AC)], ylim=c(1, max(eval.ac$n)), col="black", type="l", lwd=2, cex=1.1, cex.lab=1.1, cex.axis=1.1, xlab="Allele count\n(axis in log space)", ylab="Number of variants\n(axis in log space)", main="Variants by Allele Count", log="xy", bty="n");
 	points(sort(eval.ac.known$AC), eval.ac.known$n[order(eval.ac.known$AC)], col="blue", type="l", lwd=2);
 	points(sort(eval.ac.novel$AC), eval.ac.novel$n[order(eval.ac.novel$AC)], col="red", type="l", lwd=2);
-	legend("bottomleft", c("All", "Known", "Novel"), col=c("black", "blue", "red"), lwd=2);
-  
+	if(nrow(samp)<25){
+    legend("bottomleft", c("All", "Known", "Novel"), col=c("black", "blue", "red"), lwd=2);
+	}else{
+    legend("topright", c("All", "Known", "Novel"), col=c("black", "blue", "red"), lwd=2);
+  }
   par(mar=c(5, 5, 4, 2) + 0.1)
 
   barplot(eval.func$nVariantLoci[4:nrow(eval.func)], col=c("dark gray", "blue", "red"), space=c(.2,0,0), log="y", main="Variants by Functional Class", xlab="Functional Class", ylab="Number of variants\n(axis in log space)")
@@ -260,8 +260,7 @@ tearsheet<-function(){
 
   print("Graphs created...")
 	
-	dev.off()
   print("All done!")
+  par(def.par)#- reset to default
 	}
 
-tearsheet()
