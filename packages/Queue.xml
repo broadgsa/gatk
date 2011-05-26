@@ -56,6 +56,9 @@
 
             <!-- JNA, including embedded native libraries -->
             <dir name="com/sun/jna" />
+
+            <!-- Contracts for Java -->
+            <package name="class com.google.java.contract.**" />
         </dependencies>
         <modules>
             <module file="GATKEngine.xml"/>
