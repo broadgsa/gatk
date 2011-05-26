@@ -25,7 +25,6 @@
 package org.broadinstitute.sting.queue.pipeline.playground
 
 import org.testng.annotations.{DataProvider, Test}
-import java.io.File
 import org.broadinstitute.sting.datasources.pipeline.{PipelineSample, Pipeline}
 import org.broadinstitute.sting.utils.yaml.YamlUtils
 import org.broadinstitute.sting.queue.pipeline._
@@ -83,7 +82,7 @@ class HybridSelectionPipelineTest {
   }
 
   private def writeYaml(testName: String, pipeline: Pipeline) = {
-    val yamlFile = BaseTest.createTempFile(pipeline.getProject.getName, ".yaml")
+    val yamlFile = BaseTest.createTempFile(pipeline.getProject.getName + ".", ".yaml")
     YamlUtils.dump(pipeline, yamlFile)
     yamlFile
   }
