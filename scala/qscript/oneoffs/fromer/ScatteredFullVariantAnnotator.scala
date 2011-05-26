@@ -14,7 +14,7 @@ class ScatteredFullVariantAnnotator extends QScript {
   var referenceFile: File = _
 
   @Argument(shortName = "L", doc = "Intervals", required = false)
-  var intervals: String = _
+  var intervals: String = null
 
   @Input(doc = "level of parallelism. By default is set to 0 [no scattering].", shortName = "scatter", required = false)
   var scatterCount = 0
@@ -36,7 +36,9 @@ class ScatteredFullVariantAnnotator extends QScript {
   }
 
   trait CommandLineGATKArgs extends CommandLineGATK {
-    this.intervalsString = List(qscript.intervals)
+    if (qscript.intervals != null) {
+      this.intervalsString = List(qscript.intervals)
+    }
     this.jarFile = qscript.gatkJarFile
     this.reference_sequence = qscript.referenceFile
     this.input_file = List(qscript.bams)

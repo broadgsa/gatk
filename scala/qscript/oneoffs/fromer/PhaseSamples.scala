@@ -23,7 +23,7 @@ class PhaseSamples extends QScript {
   var prefix: String = ""
 
   @Argument(shortName = "L", doc = "Intervals", required = false)
-  var intervals: String = _
+  var intervals: String = null
 
   @Input(doc = "level of parallelism for BAM phaser.   By default is set to 0 [no scattering].", shortName = "scatter", required = false)
   var scatterCount = 0
@@ -35,7 +35,9 @@ class PhaseSamples extends QScript {
   var outputPhased: File = _
 
   trait CommandLineGATKArgs extends CommandLineGATK {
-    this.intervalsString = List(qscript.intervals)
+    if (qscript.intervals != null) {
+      this.intervalsString = List(qscript.intervals)
+    }
     this.jarFile = qscript.gatkJarFile
     this.reference_sequence = qscript.referenceFile
     this.memoryLimit = 3
