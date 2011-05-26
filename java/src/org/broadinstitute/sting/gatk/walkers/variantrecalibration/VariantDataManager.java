@@ -10,7 +10,6 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import sun.awt.SunHints;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -220,6 +219,7 @@ public class VariantDataManager {
                     if( jitter && ( annotationKey.equalsIgnoreCase("HRUN") || annotationKey.equalsIgnoreCase("FS") ) ) { // Integer valued annotations must be jittered a bit to work in this GMM
                           value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
                     }
+                    if(annotationKey.equals("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
 
              } catch( final Exception e ) {
                 value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating clusters.
