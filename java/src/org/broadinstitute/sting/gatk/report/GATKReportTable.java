@@ -195,6 +195,10 @@ public class GATKReportTable {
      * @param columnName  the name of the column
      */
     private void verifyEntry(Object primaryKey, String columnName) {
+        if (!columns.containsKey(columnName)) {
+            throw new ReviewedStingException("Attempted to access column '" + columnName + "' that does not exist in table '" + tableName + "'.");
+        }
+
         primaryKeyColumn.add(primaryKey);
 
         if (!columns.get(columnName).containsKey(primaryKey)) {
