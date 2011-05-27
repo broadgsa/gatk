@@ -58,7 +58,7 @@ public class ReadClipper {
             try {
                 SAMRecord clippedRead = (SAMRecord) read.clone();
                 for (ClippingOp op : getOps()) {
-                    op.apply(algorithm, clippedRead);
+                    clippedRead = op.apply(algorithm, clippedRead);
                 }
                 return clippedRead;
             } catch (CloneNotSupportedException e) {

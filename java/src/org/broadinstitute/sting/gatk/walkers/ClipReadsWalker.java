@@ -47,6 +47,7 @@ import java.io.File;
 import java.io.PrintStream;
 
 import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 /**
  * This ReadWalker provides simple, yet powerful read clipping capabilities.  It allows the user to clip bases in reads
@@ -154,8 +155,10 @@ public class ClipReadsWalker extends ReadWalker<ReadClipper, ClipReadsWalker.Cli
             }
         }
 
-        if (outputBam != null)
-            outputBam.setPresorted(clippingRepresentation != ClippingRepresentation.SOFTCLIP_BASES);
+        if (outputBam != null) {
+            EnumSet<ClippingRepresentation> presorted = EnumSet.of(ClippingRepresentation.WRITE_NS, ClippingRepresentation.WRITE_NS_Q0S, ClippingRepresentation.WRITE_Q0S);
+            outputBam.setPresorted(presorted.contains(clippingRepresentation));
+        }
     }
 
     /**
@@ -179,6 +182,9 @@ public class ClipReadsWalker extends ReadWalker<ReadClipper, ClipReadsWalker.Cli
      */
     public ReadClipper map(ReferenceContext ref, SAMRecord read, ReadMetaDataTracker metaDataTracker) {
         if ( onlyDoRead == null || read.getReadName().equals(onlyDoRead) ) {
+            if ( clippingRepresentation == ClippingRepresentation.HARDCLIP_BASES ) {
+                read = ReadUtils.replaceSoftClipsWithMatches(read);
+            }
             ReadClipper clipper = new ReadClipper(read);
 
             //
@@ -323,10 +329,11 @@ public class ClipReadsWalker extends ReadWalker<ReadClipper, ClipReadsWalker.Cli
         if ( clipper == null )
             return data;
 
+        SAMRecord clippedRead = clipper.clipRead(clippingRepresentation);
         if (outputBam != null) {
-            outputBam.addAlignment(clipper.clipRead(clippingRepresentation));
+            outputBam.addAlignment(clippedRead);
         } else {
-            out.println(clipper.clipRead(clippingRepresentation).format());
+            out.println(clippedRead.format());
         }
 
         data.nTotalReads++;

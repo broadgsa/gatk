@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.utils.sam;
 
+import com.google.java.contract.*;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
@@ -370,23 +371,26 @@ public class ReadUtils {
      * @param rec
      * @return
      */
+    @Requires("rec != null")
+    @Ensures("result != null")
     public static SAMRecord hardClipSoftClippedBases(SAMRecord rec) {
         List<CigarElement> cigarElts = rec.getCigar().getCigarElements();
 
         if ( cigarElts.size() == 1 ) // can't be soft clipped, just return
             return rec;
 
-        int basesStart = 0;
+        int keepStart = 0, keepEnd = rec.getReadLength() - 1;
         List<CigarElement> newCigarElements = new LinkedList<CigarElement>();
-        int basesToClip = 0;
 
         for ( int i = 0; i < cigarElts.size(); i++ ) {
             CigarElement ce = cigarElts.get(i);
             int l = ce.getLength();
             switch ( ce.getOperator() ) {
                 case S:
-                    basesToClip += l;
-                    if ( i == 0 ) basesStart += l;
+                    if ( i == 0 )
+                        keepStart = l;
+                    else
+                        keepEnd = rec.getReadLength() - l - 1;
                     newCigarElements.add(new CigarElement(l, CigarOperator.HARD_CLIP));
                     break;
                 case H:
@@ -398,23 +402,46 @@ public class ReadUtils {
             }
         }
 
-        if ( basesToClip > 0 ) {
+        return hardClipBases(rec, keepStart, keepEnd, newCigarElements);
+    }
+
+    /**
+     * Hard clips out the bases in rec, keeping the bases from keepStart to keepEnd, inclusive.  Note these
+     * are offsets, so they are 0 based
+     *
+     * @param rec
+     * @param keepStart
+     * @param keepEnd
+     * @param newCigarElements
+     * @return
+     */
+    @Requires({
+            "rec != null",
+            "keepStart >= 0",
+            "keepEnd < rec.getReadLength()",
+            "rec.getReadUnmappedFlag() || newCigarElements != null"})
+    @Ensures("result != null")
+    public static SAMRecord hardClipBases(SAMRecord rec, int keepStart, int keepEnd,
+                                          List<CigarElement> newCigarElements) {
+        int newLength = keepEnd - keepStart + 1;
+        if ( newLength != rec.getReadLength() ) {
             try {
                 rec = SimplifyingSAMFileWriter.simplifyRead((SAMRecord)rec.clone());
                 // copy over the unclipped bases
                 final byte[] bases = rec.getReadBases();
                 final byte[] quals = rec.getBaseQualities();
-                int newLength = bases.length - basesToClip;
                 byte[] newBases = new byte[newLength];
                 byte[] newQuals = new byte[newLength];
-                System.arraycopy(bases, basesStart, newBases, 0, newLength);
-                System.arraycopy(quals, basesStart, newQuals, 0, newLength);
+                System.arraycopy(bases, keepStart, newBases, 0, newLength);
+                System.arraycopy(quals, keepStart, newQuals, 0, newLength);
                 rec.setReadBases(newBases);
                 rec.setBaseQualities(newQuals);
 
-                // now add a CIGAR element for the clipped bases
-                Cigar newCigar = new Cigar(newCigarElements);
-                rec.setCigar(newCigar);
+                // now add a CIGAR element for the clipped bases, if the read isn't unmapped
+                if ( ! rec.getReadUnmappedFlag() ) {
+                    Cigar newCigar = new Cigar(newCigarElements);
+                    rec.setCigar(newCigar);
+                }
             } catch ( CloneNotSupportedException e ) {
                 throw new ReviewedStingException("WTF, where did clone go?", e);
             }
@@ -422,6 +449,39 @@ public class ReadUtils {
 
         return rec;
     }
+
+    public static SAMRecord replaceSoftClipsWithMatches(SAMRecord read) {
+        List<CigarElement> newCigarElements = new ArrayList<CigarElement>();
+
+        for ( CigarElement ce : read.getCigar().getCigarElements() ) {
+            if ( ce.getOperator() == CigarOperator.SOFT_CLIP )
+                newCigarElements.add(new CigarElement(ce.getLength(), CigarOperator.MATCH_OR_MISMATCH));
+            else
+                newCigarElements.add(ce);
+        }
+
+        if ( newCigarElements.size() > 1 ) { //
+            CigarElement first = newCigarElements.get(0);
+            CigarElement second = newCigarElements.get(1);
+            if ( first.getOperator() == CigarOperator.MATCH_OR_MISMATCH && second.getOperator() == CigarOperator.MATCH_OR_MISMATCH ) {
+                newCigarElements.set(0, new CigarElement(first.getLength() + second.getLength(), CigarOperator.MATCH_OR_MISMATCH));
+                newCigarElements.remove(1);
+            }
+        }
+
+        if ( newCigarElements.size() > 1 ) { //
+            CigarElement penult = newCigarElements.get(newCigarElements.size()-2);
+            CigarElement last = newCigarElements.get(newCigarElements.size()-1);
+            if ( penult.getOperator() == CigarOperator.MATCH_OR_MISMATCH && penult.getOperator() == CigarOperator.MATCH_OR_MISMATCH ) {
+                newCigarElements.set(newCigarElements.size()-2, new CigarElement(penult.getLength() + last.getLength(), CigarOperator.MATCH_OR_MISMATCH));
+                newCigarElements.remove(newCigarElements.size()-1);
+            }
+        }
+
+        read.setCigar(new Cigar(newCigarElements));
+        return read;
+    }
+
 
     private static int DEFAULT_ADAPTOR_SIZE = 100;
 

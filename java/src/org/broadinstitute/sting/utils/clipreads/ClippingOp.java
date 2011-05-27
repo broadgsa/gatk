@@ -7,6 +7,7 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.walkers.ClipReadsWalker;
 import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.Vector;
 
@@ -45,7 +46,7 @@ public class ClippingOp {
      * @param algorithm
      * @param clippedRead
      */
-    public void apply(ClippingRepresentation algorithm, SAMRecord clippedRead) {
+    public SAMRecord apply(ClippingRepresentation algorithm, SAMRecord clippedRead) {
         //clippedRead.setReferenceIndex(1);
         byte[] quals = clippedRead.getBaseQualities();
         byte[] bases = clippedRead.getReadBases();
@@ -72,6 +73,7 @@ public class ClippingOp {
                 clippedRead.setReadBases(bases);
                 clippedRead.setBaseQualities(quals);
                 break;
+            case HARDCLIP_BASES:
             case SOFTCLIP_BASES:
                 if ( ! clippedRead.getReadUnmappedFlag() ) {
                     // we can't process unmapped reads
@@ -97,18 +99,6 @@ public class ClippingOp {
                     else
                         scRight = start;
 
-//                    if ( clippedRead.getReadNegativeStrandFlag() ) {
-//                        if ( start == 0 )
-//                            scLeft = myStop + 1;
-//                        else
-//                            scRight = start;
-//                    } else {
-//                        if ( start == 0 )
-//                            scLeft = myStop;
-//                        else
-//                            scRight = start;
-//                    }
-
                     Cigar newCigar = softClip(oldCigar, scLeft, scRight);
                     clippedRead.setCigar(newCigar);
 
@@ -116,14 +106,22 @@ public class ClippingOp {
                     int newStart = clippedRead.getAlignmentStart() + newClippedStart;
                     clippedRead.setAlignmentStart(newStart);
 
+                    if ( algorithm == ClippingRepresentation.HARDCLIP_BASES )
+                        clippedRead = ReadUtils.hardClipSoftClippedBases(clippedRead);
                     //System.out.printf("%s clipping at %d %d / %d %d => %s and %d%n", oldCigar.toString(), start, stop, scLeft, scRight, newCigar.toString(), newStart);
+                } else if  ( algorithm == ClippingRepresentation.HARDCLIP_BASES ) {
+                    // we can hard clip unmapped reads
+                    if ( clippedRead.getReadNegativeStrandFlag() )
+                        clippedRead = ReadUtils.hardClipBases(clippedRead, 0, start, null);
+                    else
+                        clippedRead = ReadUtils.hardClipBases(clippedRead, start, start + getLength(), null);
                 }
-
                 break;
-                //throw new RuntimeException("Softclipping of bases not yet implemented.");
             default:
                 throw new IllegalStateException("Unexpected Clipping operator type " + algorithm);
         }
+
+        return clippedRead;
     }
 
     /**
