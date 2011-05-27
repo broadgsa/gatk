@@ -10,7 +10,11 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.report.GATKReport;
+import org.broadinstitute.sting.gatk.report.GATKReportTable;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
+import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
@@ -93,26 +97,16 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
     }
 
-    private int genotypeToIndex(Genotype g) {
-        if (g.isHomRef()) {
-            return 0;
-        } else if (g.isHet()) {
-            return 1;
-        }
-        
-        return 2;
-    }
-
     private double computeTransmissionLikelihoodOfGenotypeConfiguration(Genotype mom, Genotype dad, Genotype child) {
-        double[] momLikelihoods = mom.getLikelihoods().getAsVector();
-        double[] dadLikelihoods = dad.getLikelihoods().getAsVector();
-        double[] childLikelihoods = child.getLikelihoods().getAsVector();
+        double[] momLikelihoods = MathUtils.normalizeFromLog10(mom.getLikelihoods().getAsVector());
+        double[] dadLikelihoods = MathUtils.normalizeFromLog10(dad.getLikelihoods().getAsVector());
+        double[] childLikelihoods = MathUtils.normalizeFromLog10(child.getLikelihoods().getAsVector());
 
-        int momIndex = genotypeToIndex(mom);
-        int dadIndex = genotypeToIndex(dad);
-        int childIndex = genotypeToIndex(child);
+        int momIndex = mom.getType().ordinal() - 1;
+        int dadIndex = dad.getType().ordinal() - 1;
+        int childIndex = child.getType().ordinal() - 1;
 
-        return momLikelihoods[momIndex] + dadLikelihoods[dadIndex] + childLikelihoods[childIndex];
+        return momLikelihoods[momIndex]*dadLikelihoods[dadIndex]*childLikelihoods[childIndex];
     }
 
     private ArrayList<Genotype> createAllThreeGenotypes(Allele refAllele, Allele altAllele, Genotype g) {
@@ -249,13 +243,27 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
 
             double norm = 0.0;
 
+            GATKReport report = new GATKReport();
+            report.addTable("TransmissionProbability", "Reports various quantities used to compute transmission probability");
+
+            GATKReportTable table = report.getTable("TransmissionProbability");
+            table.addPrimaryKey("config", false);
+            table.addColumn("mom", "unknown");
+            table.addColumn("momProbability", "unknown");
+            table.addColumn("dad", "unknown");
+            table.addColumn("dadProbability", "unknown");
+            table.addColumn("child", "unknown");
+            table.addColumn("childProbability", "unknown");
+            table.addColumn("configLikelihood", "unknown");
+
             for (Genotype momGenotype : possibleMomGenotypes) {
                 for (Genotype dadGenotype : possibleDadGenotypes) {
                     for (Genotype childGenotype : possibleChildGenotypes) {
+                        double prior = isMendelianViolation(vc.getReference(), vc.getAlternateAllele(0), momGenotype, dadGenotype, childGenotype) ? MENDELIAN_VIOLATION_PRIOR : 1.0 - 12*MENDELIAN_VIOLATION_PRIOR;
                         double configurationLikelihood = computeTransmissionLikelihoodOfGenotypeConfiguration(momGenotype, dadGenotype, childGenotype);
-                        double prior = isMendelianViolation(vc.getReference(), vc.getAlternateAllele(0), momGenotype, dadGenotype, childGenotype) ? Math.log10(MENDELIAN_VIOLATION_PRIOR) : Math.log10(1.0 - 12*MENDELIAN_VIOLATION_PRIOR);
+                        norm += prior*configurationLikelihood;
 
-                        if (configurationLikelihood > bestConfigurationLikelihood) {
+                        if (prior*configurationLikelihood > bestPrior*bestConfigurationLikelihood) {
                             bestConfigurationLikelihood = configurationLikelihood;
                             bestPrior = prior;
                             bestMomGenotype = momGenotype;
@@ -263,10 +271,41 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                             bestChildGenotype = childGenotype;
                         }
 
-                        norm += Math.pow(10, configurationLikelihood)*Math.pow(10, prior);
+                        String config = momGenotype.toString() + dadGenotype.toString() + childGenotype.toString();
+
+                        double[] momLikelihoods = MathUtils.normalizeFromLog10(momGenotype.getLikelihoods().getAsVector());
+                        double momProbability = momLikelihoods[momGenotype.getType().ordinal() - 1];
+
+                        table.set(config, "mom", momGenotype.toString());
+                        table.set(config, "momProbability", momProbability);
+
+                        double[] dadLikelihoods = MathUtils.normalizeFromLog10(dadGenotype.getLikelihoods().getAsVector());
+                        double dadProbability = dadLikelihoods[dadGenotype.getType().ordinal() - 1];
+
+                        table.set(config, "dad", dadGenotype.toString());
+                        table.set(config, "dadProbability", dadProbability);
+
+                        double[] childLikelihoods = MathUtils.normalizeFromLog10(childGenotype.getLikelihoods().getAsVector());
+                        double childProbability = childLikelihoods[childGenotype.getType().ordinal() - 1];
+
+                        table.set(config, "child", childGenotype.toString());
+                        table.set(config, "childProbability", childProbability);
+
+                        table.set(config, "configLikelihood", prior*configurationLikelihood);
                     }
                 }
             }
+
+            /*
+            if (!mom.sameGenotype(bestMomGenotype) || !dad.sameGenotype(bestDadGenotype) || !child.sameGenotype(bestChildGenotype)) {
+                System.out.println("Found a better genotype configuration!");
+                table.write(System.out);
+                System.out.println(mom.toBriefString() + " " + dad.toBriefString() + " " + child.toBriefString());
+                System.out.println(bestMomGenotype.toBriefString() + " " + bestDadGenotype.toBriefString() + " " + bestChildGenotype.toBriefString());
+                System.out.println(bestPrior*bestConfigurationLikelihood / norm);
+                System.out.println("");
+            }
+            */
 
             if (isMendelianViolation(vc.getReference(), vc.getAlternateAllele(0), bestMomGenotype, bestDadGenotype, bestChildGenotype)) {
                 filters.add(MENDELIAN_VIOLATION_FILTER_NAME);
@@ -275,11 +314,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
             } else {
                 finalGenotypes = getPhasedGenotypes(bestMomGenotype, bestDadGenotype, bestChildGenotype);
 
-                double normLikelihood = Math.log10(norm);
-                double logProb = bestPrior + bestConfigurationLikelihood - normLikelihood;
-                double prob = Math.pow(10.0, logProb);
-
-                attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, prob);
+                attributes.put(TRANSMISSION_PROBABILITY_TAG_NAME, bestPrior*bestConfigurationLikelihood / norm);
             }
         }
 
