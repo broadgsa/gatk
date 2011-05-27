@@ -188,8 +188,8 @@ public class GenomeAnalysisEngine {
     private static Random randomGenerator = new Random(GATK_RANDOM_SEED);
 
     public static Random getRandomGenerator() { return randomGenerator; }
-    public static void resetRandomGenerator() { randomGenerator.setSeed(GATK_RANDOM_SEED); }
-    public static void resetRandomGenerator(long seed) { randomGenerator.setSeed(seed); }
+    public static void resetRandomGenerator() { System.out.printf("Reset random seed to %d\n", GATK_RANDOM_SEED); randomGenerator.setSeed(GATK_RANDOM_SEED); }
+    public static void resetRandomGenerator(long seed) { System.out.printf("Reset random seed to %d\n", seed); randomGenerator.setSeed(seed); }
     /**
      * Actually run the GATK with the specified walker.
      *
