@@ -744,27 +744,52 @@
     <!-- ***************************************************************************** -->
     <!-- ***********                     Tribble                             ********* -->
     <!-- ***************************************************************************** -->
+    <target name="tribble.init" description="checks if tribble is available to build from source">
+        <condition property="tribble.compile.exists">
+            <available file="${tribble.dir}/build.xml"/>
+        </condition>
+    </target>
+
     <!-- compile the library -->
-    <target name="tribble.compile" description="compiles the tribble library">
+    <target name="tribble.compile" description="compiles the tribble library" depends="tribble.init" if="tribble.compile.exists">
         <echo message="Building the Tribble Library..."/>
         <ant antfile="build.xml" target="all" dir="${tribble.dir}" inheritAll="false"/>
     </target>
 
-    <!-- build the jar -->
-    <target name="tribble" description="Builds the tribble jar" depends="tribble.compile">
+    <!-- copy the compiled library -->
+    <target name="tribble.compile.copy" description="Copies the compiled tribble library" depends="tribble.compile" if="tribble.compile.exists">
         <copy todir="lib">
-                <fileset dir="${tribble.dir}/dist" includes="*.jar"/>
-            </copy>
+            <fileset dir="${tribble.dir}/dist" includes="*.jar"/>
+        </copy>
+    </target>
+
+    <!-- copy the precompiled library -->
+    <target name="tribble.library.copy" description="Copies the precompiled tribble library" depends="tribble.init" unless="tribble.compile.exists">
+        <echo message="Copying the Tribble Library..."/>
+        <copy todir="lib">
+            <fileset dir="settings/repository/org.broad" includes="tribble*.jar"/>
+        </copy>
+    </target>
+
+    <target name="tribble" description="Copies the tribble jar" depends="tribble.compile.copy,tribble.library.copy"/>
+
+    <target name="tribble.test.init" description="runs the tribble tests" depends="tribble.init">
+        <condition property="tribble.test.run">
+            <and>
+                <isset property="tribble.compile.exists"/>
+                <not><isset property="single"/></not>
+            </and>
+        </condition>
     </target>
 
     <!-- test tribble using the unit tests set in tribble -->
-    <target name="tribble.test" description="runs the tribble tests" depends="tribble.compile" unless="single">
+    <target name="tribble.test" description="runs the tribble tests" depends="tribble.test.init,tribble.compile" if="tribble.test.run">
         <echo message="Testing the Tribble Library..."/>
         <ant antfile="build.xml" target="test" dir="${tribble.dir}" inheritAll="false"/>
     </target>
 
     <!-- clean tribble -->
-    <target name="tribble.clean" description="cleans the tribble library">
+    <target name="tribble.clean" description="cleans the tribble library" depends="tribble.init" if="tribble.compile.exists">
         <echo message="Cleaning the Tribble Library..."/>
         <ant antfile="build.xml" target="clean" dir="${tribble.dir}" inheritAll="false"/>
     </target>
@@ -880,8 +905,6 @@
         <delete dir="staging"/>
         <delete dir="${dist.dir}"/>
         <delete dir="pipelinetests"/>
-        <!-- When we clean, make sure to clean out tribble as well -->
-        <ant antfile="tribble/build.xml" target="clean"/>
     </target>
 
     <!-- Build gsalib R module -->
