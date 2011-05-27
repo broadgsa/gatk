@@ -10,6 +10,7 @@ import net.sf.samtools.{SAMFileReader,SAMReadGroupRecord}
 import scala.io.Source._
 import collection.JavaConversions._
 import org.broadinstitute.sting.queue.function.scattergather.ScatterFunction
+import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter
 
 
 class dataProcessingV2 extends QScript {
@@ -59,6 +60,9 @@ class dataProcessingV2 extends QScript {
 
   @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
+
+  @Input(doc="The path to the binary of samtools (required if using BWA)", fullName="path_to_sam", shortName="sam", required=false)
+  var samPath: File = _
 
   @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=false)
   var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
@@ -111,8 +115,8 @@ class dataProcessingV2 extends QScript {
     var sample: String = ""
     for (r <- readGroups) {
       if (sample.isEmpty)
-        sample = r.getSample()
-      else if (sample != r.getSample())
+        sample = r.getSample
+      else if (sample != r.getSample)
           return true;
     }
     return false
@@ -126,8 +130,8 @@ class dataProcessingV2 extends QScript {
     val sampleTable = scala.collection.mutable.Map.empty[String, List[File]]
     for (bam <- bamFiles) {
       val samReader = new SAMFileReader(bam)
-      val header = samReader.getFileHeader()
-      val readGroups = header.getReadGroups()
+      val header = samReader.getFileHeader
+      val readGroups = header.getReadGroups
 
       // only allow one sample per file. Bam files with multiple samples would require pre-processing of the file
       // with PrintReads to separate the samples. Tell user to do it himself!
@@ -135,7 +139,7 @@ class dataProcessingV2 extends QScript {
 
       // Fill out the sample table with the readgroups in this file
       for (rg <- readGroups) {
-        val sample = rg.getSample()
+        val sample = rg.getSample
         if (!sampleTable.contains(sample))
           sampleTable(sample) = List(bam)
         else if ( !sampleTable(sample).contains(bam))
@@ -160,10 +164,46 @@ class dataProcessingV2 extends QScript {
   }
 
 
-  // Takes a list of processed BAM files, revert them to unprocessed and realigns each lane, producing a list of
-  // per-lane aligned bam files, ready to be processed.
-  def performAlignment(bamList: File): List[File] = {
-    return List()
+  def buildReadGroupString(samReader: SAMFileReader): String = {
+    val readGroups = samReader.getFileHeader.getReadGroups
+    var s = ""
+    for (rg <- readGroups) {
+      if (s != "") {
+        s = s + "\n"
+      }
+      s = s + "@RG\t" +
+        SAMReadGroupRecord.READ_GROUP_ID_TAG     + ":" + rg.getReadGroupId      + "\t" +
+        SAMReadGroupRecord.PLATFORM_TAG          + ":" + rg.getPlatformUnit     + "\t" +
+        SAMReadGroupRecord.LIBRARY_TAG           + ":" + rg.getLibrary          + "\t" +
+        SAMReadGroupRecord.READ_GROUP_SAMPLE_TAG + ":" + rg.getSample           + "\t" +
+        SAMReadGroupRecord.SEQUENCING_CENTER_TAG + ":" + rg.getSequencingCenter + "\t"
+    }
+    return s
+}
+
+  // Takes a list of processed BAM files and realign them using the BWA option requested  (bwase or bwape).
+  // Returns a list of realigned BAM files.
+  def performAlignment(bamMap: Map[String, File]) {
+    for (key <- bamMap.keysIterator) {
+      val bam: File = bamMap(key)
+      val saiFile1 = swapExt(bam, ".bam", "1.sai")
+      val saiFile2 = swapExt(bam, ".bam", "2.sai")
+      val realignedSamFile = swapExt(bam, ".bam", ".realigned.sam")
+      val realignedBamFile = swapExt(bam, ".bam", ".realigned.bam")
+      val readGroupString: String = buildReadGroupString(new SAMFileReader())
+      if (useBWAse) {
+        add(bwa_aln_se(bam, saiFile1),
+            bwa_sam_se(bam, saiFile1, realignedSamFile, readGroupString),
+            to_bam(realignedSamFile, realignedBamFile))
+      }
+      else if (useBWApe) {
+        add(bwa_aln_pe(bam, saiFile1),
+            bwa_aln_pe(bam, saiFile2),
+            bwa_sam_pe(bam, saiFile1, saiFile2, realignedSamFile, readGroupString),
+            to_bam(realignedSamFile, realignedBamFile))
+      }
+      bamMap(key) = realignedBamFile
+    }
   }
 
   def createListFromFile(in: File):List[File] = {
@@ -184,14 +224,18 @@ class dataProcessingV2 extends QScript {
 
   def script = {
 
-    //todo -- (option - BWA) run BWA on each bam file (per lane bam file) before performing per sample processing
-    val perLaneAlignedBamFiles: List[File] = if (useBWApe || useBWAse) { performAlignment(input) } else { createListFromFile(input) }
+    // keep a record of the number of contigs in the first bam file in the list
+    val bams = createListFromFile(input)
+    nContigs = getNumberOfContigs(bams(0))
 
     // Generate a BAM file per sample joining all per lane files if necessary
-    val sampleBamFiles = createSampleFiles(perLaneAlignedBamFiles)
+    val sampleBamFiles: Map[String, File] = createSampleFiles(bams)
 
-    // keep a record of the number of contigs in the first bam file in the list
-    nContigs = getNumberOfContigs(perLaneAlignedBamFiles(0))
+    //todo -- (option - BWA) run BWA on each bam file (per lane bam file) before performing per sample processing
+    if (useBWApe || useBWAse) {
+      performAlignment(sampleBamFiles)
+    }
+
 
     println("nContigs: " + nContigs)
 
@@ -408,22 +452,13 @@ class dataProcessingV2 extends QScript {
     this.jobName = queueLogDir + outSai + ".bwa_aln_se"
   }
 
-  case class bwa_aln_pe1 (inBam: File, outSai1: File) extends CommandLineFunction {
+  case class bwa_aln_pe (inBam: File, outSai1: File) extends CommandLineFunction {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Output(doc="output sai file for 1st mating pair") var sai = outSai1
     def commandLine = bwaPath + " aln -q 5 " + reference + " -b1 " + bam + " > " + sai
     this.isIntermediate = true
     this.analysisName = queueLogDir + outSai1 + ".bwa_aln_pe1"
     this.jobName = queueLogDir + outSai1 + ".bwa_aln_pe1"
-  }
-
-  case class bwa_aln_pe2 (inBam: File, outSai2: File) extends CommandLineFunction {
-    @Input(doc="bam file to be aligned") var bam = inBam
-    @Output(doc="output sai file for 2nd mating pair") var sai = outSai2
-    def commandLine = bwaPath + " aln -q 5 " + reference + " -b2 " + bam + " > " + sai
-    this.isIntermediate = true
-    this.analysisName = queueLogDir + outSai2 + ".bwa_aln_pe2"
-    this.jobName = queueLogDir + outSai2 + ".bwa_aln_pe2"
   }
 
   case class bwa_sam_se (inBam: File, inSai: File, outBam: File, readGroup: String) extends CommandLineFunction {
@@ -445,6 +480,15 @@ class dataProcessingV2 extends QScript {
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".bwa_sam_pe"
     this.jobName = queueLogDir + outBam + ".bwa_sam_pe"
+  }
+
+  case class to_bam (inSam: File, outBam: File) extends CommandLineFunction {
+    @Input(doc="sam file to become bam") var sam = inSam
+    @Output(doc="bam file") var bam = outBam
+    def commandLine = samPath + " view -b " + sam + " > " + bam
+    this.isIntermediate = true
+    this.analysisName = queueLogDir + outBam + ".to_bam"
+    this.jobName = queueLogDir + outBam + ".to_bam"
   }
 
   case class writeList(inBams: List[File], outBamList: File) extends ListWriterFunction {
