@@ -74,6 +74,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     val filteredIndelVCF = new File(name + ".filtered.indel.vcf")
     val recalibratedVCF = new File(name + ".recalibrated.vcf")
     val tranchesFile = new File(name + ".tranches")
+    val vqsrRscript = name + ".vqsr.r"
     val recalFile = new File(name + ".tranches.recal")
     val goldStandardRecalibratedVCF = new File(name + "goldStandard.recalibrated.vcf")
     val goldStandardTranchesFile = new File(name + "goldStandard.tranches")
@@ -217,6 +218,7 @@ class MethodsDevelopmentCallingPipeline extends QScript {
     this.baq = if (noBAQ) {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.OFF} else {org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY}
     this.analysisName = t.name + "_UGs"
     this.jobName =  queueLogDir + t.name + ".snpcall"
+    this.A ++= List("FisherStrand")
   }
 
   // 1b.) Call Indels with UG
@@ -262,11 +264,12 @@ class MethodsDevelopmentCallingPipeline extends QScript {
       this.rodBind :+= RodBind("dbsnp", "DBSNP", t.dbsnpFile, "known=true,training=false,truth=false,prior=10.0")
     else if (t.dbsnpFile.endsWith(".vcf"))
       this.rodBind :+= RodBind("dbsnp", "VCF", t.dbsnpFile, "known=true,training=false,truth=false,prior=10.0")
-    this.use_annotation ++= List("QD", "HaplotypeScore", "MQRankSum", "ReadPosRankSum", "HRun")
+    this.use_annotation ++= List("QD", "HaplotypeScore", "MQRankSum", "ReadPosRankSum", "HRun", "FS")
     this.tranches_file = if ( goldStandard ) { t.goldStandardTranchesFile } else { t.tranchesFile }
     this.recal_file = if ( goldStandard ) { t.goldStandardRecalFile } else { t.recalFile }
     this.allPoly = true
     this.tranche ++= List("100.0", "99.9", "99.5", "99.3", "99.0", "98.9", "98.8", "98.5", "98.4", "98.3", "98.2", "98.1", "98.0", "97.9", "97.8", "97.5", "97.0", "95.0", "90.0")
+    this.rscript_file = t.vqsrRscript
     this.analysisName = t.name + "_VQSR"
     this.jobName =  queueLogDir + t.name + ".VQSR"
   }
