@@ -11,8 +11,7 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import java.io.PrintStream;
 
 /**
- * Walks over the input data set, calculating the total number of covered loci for diagnostic purposes.
- * Simplest example of a locus walker.
+ * Walks over the input data set, calculating the percentage of loci covered by at least 20 reads.
  */
 public class Percent20xCoverage extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
     @Output(doc="Write count to this file instead of STDOUT")
@@ -39,16 +38,14 @@ public class Percent20xCoverage extends LocusWalker<Integer, Long> implements Tr
         return 0;
     }
 
-    public Long reduceInit() { return 0l; }
+    public Long reduceInit() {
+        return 0l;
+    }
 
     public Long reduce(Integer value, Long sum) {
         return value + sum;
     }
 
-    /**
-     * Reduces two subtrees together.  In this case, the implementation of the tree reduce
-     * is exactly the same as the implementation of the single reduce.
-     */
     public Long treeReduce(Long lhs, Long rhs) {
         return lhs + rhs;
     }
