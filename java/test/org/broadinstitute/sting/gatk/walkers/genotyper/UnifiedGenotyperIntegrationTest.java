@@ -234,6 +234,20 @@ public class UnifiedGenotyperIntegrationTest extends WalkerTest {
         executeTest(String.format("test calling with BAQ"), spec);
     }
 
+    @Test
+    public void testCallingWithBAQOff() {
+        WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
+                baseCommand +
+                        " -I " + validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" +
+                        " -o %s" +
+                        " -L 1:10,000,000-10,100,000" +
+                        " -baq OFF",
+                1,
+                Arrays.asList("f9d92a81294569b9c918848932c1a0ca"));
+
+        executeTest(String.format("test calling with BAQ OFF"), spec);
+    }
+
     // --------------------------------------------------------------------------------------------------------------
     //
     // testing indel caller

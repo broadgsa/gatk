@@ -211,7 +211,7 @@ public class WalkerTest extends BaseTest {
             if ( md5 == null )
                 throw new IllegalArgumentException("Null MD5 found in test " + name);
             if ( md5.equals("") ) // ok
-                ;
+                continue;
             if ( ! StringUtils.isAlphanumeric(md5) )
                 throw new IllegalArgumentException("MD5 contains non-alphanumeric characters test " + name + " md5=" + md5);
             if ( md5.length() != exampleMD5.length() )

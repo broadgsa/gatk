@@ -101,12 +101,12 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
 
             if ( !vc.isBiallelic() ) {
                 // for multi-allelic sites go back to the reads and find the most likely alternate allele
-                initializeBestAlternateAllele(refBase, contexts);
+                initializeBestAlternateAllele(refBase, contexts, useBAQedPileup);
             } else {
                 bestAlternateAllele = vc.getAlternateAllele(0).getBases()[0];
             }
         } else {
-            initializeBestAlternateAllele(refBase, contexts);
+            initializeBestAlternateAllele(refBase, contexts, useBAQedPileup);
         }
 
         // if there are no non-ref bases...
@@ -148,12 +148,12 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
         return refAllele;
     }
 
-    protected void initializeBestAlternateAllele(byte ref, Map<String, AlignmentContext> contexts) {
+    protected void initializeBestAlternateAllele(byte ref, Map<String, AlignmentContext> contexts, boolean useBAQedPileup) {
         int[] qualCounts = new int[4];
 
         for ( Map.Entry<String, AlignmentContext> sample : contexts.entrySet() ) {
             // calculate the sum of quality scores for each base
-            ReadBackedPileup pileup = createBAQedPileup( sample.getValue().getBasePileup() );
+            ReadBackedPileup pileup = useBAQedPileup ? createBAQedPileup( sample.getValue().getBasePileup() ) : sample.getValue().getBasePileup();
             for ( PileupElement p : pileup ) {
                 // ignore deletions
                 if ( p.isDeletion() || p.getQual() < UAC.MIN_BASE_QUALTY_SCORE )

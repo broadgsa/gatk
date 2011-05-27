@@ -37,14 +37,15 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.pileup.*;
 import org.broad.tribble.vcf.VCFConstants;
+import com.google.java.contract.*;
 
 import java.io.PrintStream;
 import java.util.*;
 
 public class UnifiedGenotyperEngine {
-
     public static final String LOW_QUAL_FILTER_NAME = "LowQual";
 
     public enum OUTPUT_MODE {
@@ -54,10 +55,10 @@ public class UnifiedGenotyperEngine {
     }
 
     // the unified argument collection
-    private UnifiedArgumentCollection UAC = null;
+    private final UnifiedArgumentCollection UAC;
 
     // the annotation engine
-    private VariantAnnotatorEngine annotationEngine;
+    private final VariantAnnotatorEngine annotationEngine;
 
     // the model used for calculating genotypes
     private ThreadLocal<Map<GenotypeLikelihoodsCalculationModel.Model, GenotypeLikelihoodsCalculationModel>> glcm = new ThreadLocal<Map<GenotypeLikelihoodsCalculationModel.Model, GenotypeLikelihoodsCalculationModel>>();
@@ -66,49 +67,52 @@ public class UnifiedGenotyperEngine {
     private ThreadLocal<AlleleFrequencyCalculationModel> afcm = new ThreadLocal<AlleleFrequencyCalculationModel>();
 
     // because the allele frequency priors are constant for a given i, we cache the results to avoid having to recompute everything
-    private double[] log10AlleleFrequencyPriorsSNPs;
-    private double[] log10AlleleFrequencyPriorsIndels;
+    private final double[] log10AlleleFrequencyPriorsSNPs;
+    private final double[] log10AlleleFrequencyPriorsIndels;
 
     // the allele frequency likelihoods (allocated once as an optimization)
     private ThreadLocal<double[]> log10AlleleFrequencyPosteriors = new ThreadLocal<double[]>();
 
     // the priors object
-    private GenotypePriors genotypePriorsSNPs;
-    private GenotypePriors genotypePriorsIndels;
+    private final GenotypePriors genotypePriorsSNPs;
+    private final GenotypePriors genotypePriorsIndels;
 
     // samples in input
-    private Set<String> samples = new TreeSet<String>();
+    private final Set<String> samples;
 
     // the various loggers and writers
-    private Logger logger = null;
-    private PrintStream verboseWriter = null;
+    private final Logger logger;
+    private final PrintStream verboseWriter;
 
     // number of chromosomes (2 * samples) in input
-    private int N;
+    private final int N;
 
     // the standard filter to use for calls below the confidence threshold but above the emit threshold
     private static final Set<String> filter = new HashSet<String>(1);
 
+    private final boolean BAQEnabledOnCMDLine;
 
+
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Public interface functions
+    //
+    // ---------------------------------------------------------------------------------------------------------
+    @Requires({"toolkit != null", "UAC != null"})
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC) {
-        // get the number of samples
-        // if we're supposed to assume a single sample, do so
-        samples = new TreeSet<String>();
-        if ( UAC.ASSUME_SINGLE_SAMPLE != null )
-            samples.add(UAC.ASSUME_SINGLE_SAMPLE);
-        else
-            samples = SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader());
-
-        final Logger logger = Logger.getLogger(UnifiedGenotyperEngine.class);
-        initialize(UAC, logger, null, null, samples.size());
+        this(toolkit, UAC, Logger.getLogger(UnifiedGenotyperEngine.class), null, null,
+                // get the number of samples
+                // if we're supposed to assume a single sample, do so
+                UAC.ASSUME_SINGLE_SAMPLE != null ?
+                        new TreeSet<String>(Arrays.asList(UAC.ASSUME_SINGLE_SAMPLE)) :
+                        SampleUtils.getSAMFileSamples(toolkit.getSAMFileHeader()));
     }
 
+    @Requires({"toolkit != null", "UAC != null", "logger != null", "samples != null && samples.size() > 0"})
     public UnifiedGenotyperEngine(GenomeAnalysisEngine toolkit, UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, Set<String> samples) {
+        this.BAQEnabledOnCMDLine = toolkit.getArguments().BAQMode != BAQ.CalculationMode.OFF;
         this.samples = new TreeSet<String>(samples);
-        initialize(UAC, logger, verboseWriter, engine, samples.size());
-    }
-
-    private void initialize(UnifiedArgumentCollection UAC, Logger logger, PrintStream verboseWriter, VariantAnnotatorEngine engine, int numSamples) {
         // note that, because we cap the base quality by the mapping quality, minMQ cannot be less than minBQ
         this.UAC = UAC.clone();
         this.UAC.MIN_MAPPING_QUALTY_SCORE = Math.max(UAC.MIN_MAPPING_QUALTY_SCORE, UAC.MIN_BASE_QUALTY_SCORE);
@@ -117,7 +121,7 @@ public class UnifiedGenotyperEngine {
         this.verboseWriter = verboseWriter;
         this.annotationEngine = engine;
 
-        N = 2 * numSamples;
+        N = 2 * this.samples.size();
         log10AlleleFrequencyPriorsSNPs = new double[N+1];
         log10AlleleFrequencyPriorsIndels = new double[N+1];
         computeAlleleFrequencyPriors(N, log10AlleleFrequencyPriorsSNPs, GenotypeLikelihoodsCalculationModel.Model.SNP);
@@ -178,6 +182,33 @@ public class UnifiedGenotyperEngine {
         return calculateLikelihoods(tracker, refContext, stratifiedContexts, AlignmentContextUtils.ReadOrientation.COMPLETE, null, true, model);
     }
 
+    /**
+     * Compute genotypes at a given locus. Entry point for engine calls from UGCallVariants.
+     *
+     * @param tracker    the meta data tracker
+     * @param refContext the reference base
+     * @param rawContext contextual information around the locus
+     * @param vc         the GL-annotated variant context
+     * @return the VariantCallContext object
+     */
+    public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, VariantContext vc) {
+        final GenotypeLikelihoodsCalculationModel.Model model = getCurrentGLModel( rawContext );
+        if( model == null ) {
+            return null;
+        }
+        Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
+        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model);
+    }
+
+
+
+
+    // ---------------------------------------------------------------------------------------------------------
+    //
+    // Private implementation helpers
+    //
+    // ---------------------------------------------------------------------------------------------------------
+
     // private method called by both UnifiedGenotyper and UGCalcLikelihoods entry points into the engine
     private VariantContext calculateLikelihoods(RefMetaDataTracker tracker, ReferenceContext refContext, Map<String, AlignmentContext> stratifiedContexts, AlignmentContextUtils.ReadOrientation type, Allele alternateAlleleToUse, boolean useBAQedPileup, final GenotypeLikelihoodsCalculationModel.Model model) {
 
@@ -188,7 +219,7 @@ public class UnifiedGenotyperEngine {
 
         Map<String, BiallelicGenotypeLikelihoods> GLs = new HashMap<String, BiallelicGenotypeLikelihoods>();
 
-        Allele refAllele = glcm.get().get(model).getLikelihoods(tracker, refContext, stratifiedContexts, type, getGenotypePriors(model), GLs, alternateAlleleToUse, useBAQedPileup);
+        Allele refAllele = glcm.get().get(model).getLikelihoods(tracker, refContext, stratifiedContexts, type, getGenotypePriors(model), GLs, alternateAlleleToUse, useBAQedPileup && BAQEnabledOnCMDLine);
 
         if ( refAllele != null )
             return createVariantContextFromLikelihoods(refContext, refAllele, GLs);
@@ -266,24 +297,6 @@ public class UnifiedGenotyperEngine {
                 VariantContext.NO_NEG_LOG_10PERROR,
                 null,
                 null);
-    }
-
-    /**
-     * Compute genotypes at a given locus. Entry point for engine calls from UGCallVariants.
-     *
-     * @param tracker    the meta data tracker
-     * @param refContext the reference base
-     * @param rawContext contextual information around the locus
-     * @param vc         the GL-annotated variant context
-     * @return the VariantCallContext object
-     */
-    public VariantCallContext calculateGenotypes(RefMetaDataTracker tracker, ReferenceContext refContext, AlignmentContext rawContext, VariantContext vc) {
-        final GenotypeLikelihoodsCalculationModel.Model model = getCurrentGLModel( rawContext );
-        if( model == null ) {
-            return null;
-        }
-        Map<String, AlignmentContext> stratifiedContexts = getFilteredAndStratifiedContexts(UAC, refContext, rawContext, model);
-        return calculateGenotypes(tracker, refContext, rawContext, stratifiedContexts, vc, model);
     }
 
     // private method called by both UnifiedGenotyper and UGCallVariants entry points into the engine
