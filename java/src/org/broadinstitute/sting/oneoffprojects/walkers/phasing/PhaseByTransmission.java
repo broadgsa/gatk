@@ -243,6 +243,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
 
             double norm = 0.0;
 
+            /*
             GATKReport report = new GATKReport();
             report.addTable("TransmissionProbability", "Reports various quantities used to compute transmission probability");
 
@@ -255,6 +256,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
             table.addColumn("child", "unknown");
             table.addColumn("childProbability", "unknown");
             table.addColumn("configLikelihood", "unknown");
+            */
 
             for (Genotype momGenotype : possibleMomGenotypes) {
                 for (Genotype dadGenotype : possibleDadGenotypes) {
@@ -271,6 +273,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                             bestChildGenotype = childGenotype;
                         }
 
+                        /*
                         String config = momGenotype.toString() + dadGenotype.toString() + childGenotype.toString();
 
                         double[] momLikelihoods = MathUtils.normalizeFromLog10(momGenotype.getLikelihoods().getAsVector());
@@ -292,6 +295,7 @@ public class PhaseByTransmission extends RodWalker<Integer, Integer> {
                         table.set(config, "childProbability", childProbability);
 
                         table.set(config, "configLikelihood", prior*configurationLikelihood);
+                        */
                     }
                 }
             }
