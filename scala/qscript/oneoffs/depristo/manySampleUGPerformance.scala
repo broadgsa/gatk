@@ -31,13 +31,13 @@ class ManySampleUGPerformanceTesting extends QScript {
     this.jarFile = gatkJarFile;
     this.intervals = List(new File(TARGET_INTERVAL));
     this.reference_sequence = referenceFile;
-    this.jobQueue = "gsa";
-    this.memoryLimit = 8
+    //this.jobQueue = "gsa";
+    this.memoryLimit = 4
     //this.commandDirectory = new File("results");
   }
 
   def script = {
-    for (nSamples <- if ( EXOME_NSAMPLES) List(1, 2, 4, 8, 16, 32, 60) else List(1, 2, 5, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900) ) {
+    for (nSamples <- if ( EXOME_NSAMPLES) List(1, 2, 5, 10, 25, 50, 100, 200, 300, 400, 500) else List(1, 2, 5, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900) ) {
 //    for (nSamples <- List(10)) {
       val sublist = new SliceList(nSamples)
       val mergeSublist = new MergeBAMs(sublist.list)
@@ -69,7 +69,7 @@ class ManySampleUGPerformanceTesting extends QScript {
   }
 
   class Index(bamIn: File) extends SamtoolsIndexFunction {
-    this.jobQueue = "gsa"
+    //this.jobQueue = "gsa"
     bamFile = bamIn
   }
 
@@ -98,7 +98,7 @@ class ManySampleUGPerformanceTesting extends QScript {
   class SliceList(n: Int) extends CommandLineFunction {
     @Output(doc="foo") var list: File = new File("bams.%d.list".format(n))
     def commandLine = "head -n %d %s > %s".format(n, FULL_BAM_LIST, list)
-    this.jobQueue = "gsa";
+    //this.jobQueue = "gsa";
   }
 }
 
