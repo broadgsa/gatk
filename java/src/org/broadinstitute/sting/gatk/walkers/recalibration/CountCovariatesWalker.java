@@ -37,6 +37,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
@@ -289,10 +290,10 @@ public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.Cou
      */
     public CountedData map( RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context ) {
 
-        // Pull out data for this locus for all the input RODs and check if this is a known variant site in any of them
+        // If any ROD covers this site then we assume it is a site of known genetic variation and we skip it
         boolean isSNP = false;
-        for( final VariantContext vc : tracker.getAllVariantContexts(ref, null, context.getLocation(), false, false) ) {
-            if( vc != null ) {
+        for( final GATKFeature rod : tracker.getAllRods() ) {
+            if( rod != null ) {
                 isSNP = true;
                 break;
             }
