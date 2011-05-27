@@ -208,29 +208,27 @@ public class VariantDataManager {
     private static double decodeAnnotation( final String annotationKey, final VariantContext vc, final boolean jitter ) {
         double value;
 
-        if( annotationKey.equals("QUAL") ) {
-            value = vc.getPhredScaledQual();
-        } else {
-            try {
+        try {
+            if( annotationKey.equals("QUAL") ) {
+                value = vc.getPhredScaledQual();
+            } else {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
-                if (Double.isInfinite(value))
-                    value = Double.NaN;
-                else
-                    if( jitter && ( annotationKey.equalsIgnoreCase("HRUN") || annotationKey.equalsIgnoreCase("FS") ) ) { // Integer valued annotations must be jittered a bit to work in this GMM
-                          value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
-                    }
-                    if(annotationKey.equals("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
-
-             } catch( final Exception e ) {
-                value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating clusters.
-                if( !warnedUserMissingValue ) {
-                    logger.warn("WARNING: Missing value detected for " + annotationKey + ". The VQSR will work with missing data by marginalizing over this dimension for this variant. This warning message is only shown once so there may be other annotations missing as well.");
-                    warnedUserMissingValue = true;
+                if( Double.isInfinite(value) ) { value = Double.NaN; }
+                if( jitter && ( annotationKey.equalsIgnoreCase("HRUN") || annotationKey.equalsIgnoreCase("FS") ) ) { // Integer valued annotations must be jittered a bit to work in this GMM
+                      value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
                 }
+                if( annotationKey.equals("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
+            }
 
+         } catch( final Exception e ) {
+            value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating clusters.
+            if( !warnedUserMissingValue ) {
+                logger.warn("WARNING: Missing value detected for " + annotationKey + ". The VQSR will work with missing data by marginalizing over this dimension for this variant. This warning message is only shown once so there may be other annotations missing as well.");
+                warnedUserMissingValue = true;
             }
 
         }
+
         return value;
     }
 
