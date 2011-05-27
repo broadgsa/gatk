@@ -31,11 +31,11 @@ import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Covariate;
+/*import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Covariate;
 import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDataManager;
 import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDatum;
 import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalibrationArgumentCollection;
-import org.broadinstitute.sting.utils.MathUtils;
+*/import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 import org.broadinstitute.sting.utils.collections.NestedHashMap;
@@ -124,7 +124,7 @@ public class PairHMMIndelErrorModel {
     // Private Member Variables
     /////////////////////////////
 //copy+
-    private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
+/*    private RecalDataManager dataManager; // Holds the data HashMap, mostly used by TableRecalibrationWalker to create collapsed data hashmaps
     private final ArrayList<Covariate> requestedCovariates = new ArrayList<Covariate>(); // List of covariates to be used in this calculation
     private static final Pattern COMMENT_PATTERN = Pattern.compile("^#.*");
     private static final Pattern OLD_RECALIBRATOR_HEADER = Pattern.compile("^rg,.*");
@@ -133,7 +133,7 @@ public class PairHMMIndelErrorModel {
     private long numReadsWithMalformedColorSpace = 0;
     private RecalibrationArgumentCollection RAC = new RecalibrationArgumentCollection();
     private NestedHashMap qualityScoreByFullCovariateKey = new NestedHashMap(); // Caches the result of performSequentialQualityCalculation(..) for all sets of covariate values.
-
+  */
 //copy-
     static {
         LOG_ONE_HALF= -Math.log10(2.0);
@@ -157,7 +157,7 @@ public class PairHMMIndelErrorModel {
 
         // read data from recal file
         // gdebug - start copy from TableRecalibrationWalker
-        if (gpf) {
+/*        if (gpf) {
             boolean sawEOF = false;
             boolean REQUIRE_EOF = false;
 
@@ -244,12 +244,12 @@ public class PairHMMIndelErrorModel {
             dataManager.generateEmpiricalQualities( SMOOTHING, MAX_QUALITY_SCORE );
         }
         // debug end copy
-
+  */
     }
     /**
      * For each covariate read in a value and parse it. Associate those values with the data itself (num observation and num mismatches)
-     * @param line A line of CSV data read from the recalibration table data file
      */
+ /*
     private void addCSVData(final File file, final String line) {
         final String[] vals = line.split(",");
 
@@ -273,7 +273,7 @@ public class PairHMMIndelErrorModel {
         dataManager.addToAllTables( key, datum, PRESERVE_QSCORES_LESS_THAN );
     }
 
-
+*/
     public  PairHMMIndelErrorModel(double indelGOP, double indelGCP, boolean deb, boolean doCDP, boolean dovit) {
         this(indelGOP, indelGCP, deb, doCDP);
         this.doViterbi = dovit;
@@ -766,6 +766,7 @@ public class PairHMMIndelErrorModel {
                 }
             }
             else {
+                //System.out.format("%d %s\n",p.getRead().getAlignmentStart(), p.getRead().getClass().getName());
                 GATKSAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
                     continue;
@@ -776,7 +777,7 @@ public class PairHMMIndelErrorModel {
 
                 double[] recalQuals = null;
 
-
+ /*
                 if (getGapPenaltiesFromFile) {
                     RecalDataManager.parseSAMRecord( read, RAC );
 
@@ -820,7 +821,7 @@ public class PairHMMIndelErrorModel {
                         }
                         System.out.println();
                     }
-                }
+                }        */
                 // get bases of candidate haplotypes that overlap with reads
                 final int trailingBases = 3;
 
@@ -1078,6 +1079,7 @@ public class PairHMMIndelErrorModel {
      * @param key The list of Comparables that were calculated from the covariates
      * @return A recalibrated quality score as a byte
      */
+ /*
     private byte performSequentialQualityCalculation( final Object... key ) {
 
         final byte qualFromRead = (byte)Integer.parseInt(key[1].toString());
@@ -1133,6 +1135,7 @@ public class PairHMMIndelErrorModel {
         //}
 
         //return newQualityByte;
-    }
 
+    }
+*/
 }
