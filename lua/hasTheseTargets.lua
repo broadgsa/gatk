@@ -114,8 +114,6 @@ local function findInterval(i, intervals)
   local finish = table.getn(intervals)
   local current = math.floor((start + finish) / 2)
 
---  print("findInterval: ", start, finish, current, intervals[current].c, intervals[current].s, intervals[current].e)
-
   while start < finish and not intervalContainsInterval(i, intervals[current]) and not isInterceptingInterval(i, intervals[current]) do
     if compIntervals(i, intervals[current]) < 0 then
       finish = current - 1
@@ -123,7 +121,6 @@ local function findInterval(i, intervals)
       start = current + 1
     end
     current = math.floor((start + finish) / 2)
---    print("findInterval: ", start, finish, current, intervals[current].c, intervals[current].s, intervals[current].e)
   end
   return intervalContainsInterval(i, intervals[current]), current
 end
@@ -138,7 +135,6 @@ for l in io.lines(targetSet) do
   if not isIntervalHeaderLine(l) then
     local c, s, e, st, info = parseIntervalLine(l)
     local intA = newInterval(c,s,e,st,info)
---    print("Debug: ", c,s,e,info)
     local intervalExists, i = findInterval(intA, a)
     if intervalExists then
       print(a[i].c, a[i].s, a[i].e, st, info)

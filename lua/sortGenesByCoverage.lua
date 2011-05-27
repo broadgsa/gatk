@@ -8,7 +8,7 @@
 -- Global script variables
 -------------------------------------------------------------------------------
 local coverage = arg[1]
-local genesOfInterest= arg[2] or "/Volumes/humgen/gsa-hpprojects/dev/carneiro/top_genes/data/disease.genes.annotated.interval_list"
+local genesOfInterest= arg[2]
 
 local genes = {}
 local header = ""
@@ -33,7 +33,6 @@ for l in io.lines(genesOfInterest) do
   if l:sub(1,1) == "@" then header = header .. l .."\n"
   else
     local c, s, e, info = l:match("(%w+)%s+(%d+)%s+(%d+)%s+%+%s+(.*)")
---    print("Debug: adding gene: ",c,s,e,info)
     table.insert(genes, {c=c, s=tonumber(s), e=tonumber(e), info=info})
   end
 end
@@ -46,7 +45,6 @@ for l in io.lines(coverage) do
     s = tonumber(s)
     e = tonumber(e)
     while genes[i] ~= nil and (isSameGene(i, c, s, e) or isMergedGene(i, c, s, e)) do
---      print("Debug: ", c, s, e, "--",genes[i].c, genes[i].s, genes[i].e)
       genes[i].totalCoverage = tonumber(totalCoverage)
       genes[i].avgCoverage = tonumber(avgCoverage)
       geneOk = true
