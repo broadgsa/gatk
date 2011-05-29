@@ -188,8 +188,8 @@ class WholeGenomePipeline extends QScript {
 
     val combineSNPsIndels = new CombineVariants with CommandLineGATKArgs
     combineSNPsIndels.rodBind :+= RodBind("indels", "VCF", selectIndels.out)
-    combineSNPsIndels.rodBind :+= RodBind("all", "VCF", combineChunks.out)
-    combineSNPsIndels.rod_priority_list = "indels,all"
+    combineSNPsIndels.rodBind :+= RodBind("snps", "VCF", selectSNPs.out)
+    combineSNPsIndels.rod_priority_list = "indels,snps"
     combineSNPsIndels.filteredRecordsMergeType = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED
     combineSNPsIndels.assumeIdenticalSamples = true
     combineSNPsIndels.out = projectBase + ".unrecalibrated.vcf"
