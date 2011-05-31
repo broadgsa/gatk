@@ -36,7 +36,7 @@ public class PrintReadsIntegrationTest extends WalkerTest {
                         params.args +
                         " -o %s",
                 Arrays.asList(params.md5));
-        executeTest("testVariantRecalibrator-"+params.args, spec).getFirst();
+        executeTest("testPrintReads-"+params.args, spec).getFirst();
     }
 }
 
