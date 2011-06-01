@@ -12,7 +12,6 @@ import org.broad.tribble.vcf.*;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
-import org.broadinstitute.sting.playground.gatk.features.maf.MafFeature;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
 
 import java.util.*;
