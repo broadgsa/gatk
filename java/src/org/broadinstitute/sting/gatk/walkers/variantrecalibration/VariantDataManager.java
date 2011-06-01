@@ -214,7 +214,7 @@ public class VariantDataManager {
             } else {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
                 if( Double.isInfinite(value) ) { value = Double.NaN; }
-                if( jitter && ( annotationKey.equalsIgnoreCase("HRUN") || annotationKey.equalsIgnoreCase("FS") ) ) { // Integer valued annotations must be jittered a bit to work in this GMM
+                if( jitter && ( annotationKey.equalsIgnoreCase("HRUN") ) ) { // Integer valued annotations must be jittered a bit to work in this GMM
                       value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
                 }
                 if( annotationKey.equals("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }

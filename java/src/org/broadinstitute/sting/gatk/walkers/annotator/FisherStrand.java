@@ -49,29 +49,21 @@ public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotati
     private static final String ALTFWD = "ALTFWD";
     private static final String ALTREV = "ALTREV";
     private static final String FS = "FS";
+    private static final double MIN_PVALUE = 1E-320;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( ! vc.isVariant() || vc.isFiltered() || ! vc.isBiallelic() || ! vc.isSNP() )
             return null;
 
         int[][] table = getContingencyTable(stratifiedContexts, vc.getReference(), vc.getAlternateAllele(0));
-        Double pvalue = pValueForContingencyTable(table);
+        Double pvalue = Math.max(pValueForContingencyTable(table), MIN_PVALUE);
         if ( pvalue == null )
             return null;
 
         // use Math.abs to prevent -0's
         Map<String, Object> map = new HashMap<String, Object>();
-        int phredPValue = (int)Math.round(QualityUtils.phredScaleErrorRate(pvalue));
-        addInt(map, REFFWD, table[0][0]);
-        addInt(map, REFREV, table[0][1]);
-        addInt(map, ALTFWD, table[1][0]);
-        addInt(map, ALTREV, table[1][1]);
-        addInt(map, FS, phredPValue);
+        map.put(FS, String.format("%.3f", QualityUtils.phredScaleErrorRate(pvalue)));
         return map;
-    }
-
-    private static void addInt(Map<String, Object> map, String key, int value)  {
-        map.put(key, String.format("%d", value));
     }
 
     public List<String> getKeyNames() {
@@ -80,11 +72,7 @@ public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotati
 
     public List<VCFInfoHeaderLine> getDescriptions() {
         return Arrays.asList(
-                new VCFInfoHeaderLine(REFFWD, 1, VCFHeaderLineType.Integer, "Count of bases with REF allele, forward strand"),
-                new VCFInfoHeaderLine(REFREV, 1, VCFHeaderLineType.Integer, "Count of bases with REF allele, reverse strand"),
-                new VCFInfoHeaderLine(ALTFWD, 1, VCFHeaderLineType.Integer, "Count of bases with ALT allele, forward strand"),
-                new VCFInfoHeaderLine(ALTREV, 1, VCFHeaderLineType.Integer, "Count of bases with ALT allele, reverse strand"),
-                new VCFInfoHeaderLine(FS, 1, VCFHeaderLineType.Integer, "Integer-rounded Phred-scaled p-value using Fisher's exact test to detect strand bias"));
+            new VCFInfoHeaderLine(FS, 1, VCFHeaderLineType.Float, "Phred-scaled p-value using Fisher's exact test to detect strand bias"));
     }
 
     private Double pValueForContingencyTable(int[][] originalTable) {
