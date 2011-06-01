@@ -71,8 +71,10 @@ public class MWUnitTest extends BaseTest {
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,11L,false,cm).second,0.08547008547008,1e-14); // r does a correction, subtracting 1 from U
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,11L,false,cm).first,-1.36918910442,1e-2); // apache inversion set to be good only to 1e-2
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,29L,false,cm).first,1.36918910442,1e-2); // apache inversion set to be good only to 1e-2
-        Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,29L,false,pm).first,1.4908546184916176,1e-8); // PDF should be similar
-        Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,11L,false,pm).first,-1.4908546184916176,1e-8); // PDF should be similar
+        Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,29L,false,pm).first,1.2558754796642067,1e-8); // PDF should be similar
+        Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.second,sizes.first,11L,false,pm).first,-1.2558754796642067,1e-8); // PDF should be similar
+        Assert.assertEquals(MannWhitneyU.calculatePRecursively(4,5,10L,false,pm).second,0.0952381,1e-5);
+        Assert.assertEquals(MannWhitneyU.calculatePRecursively(4,5,10L,false,pm).first,0.0,1e-14);
 
         logger.warn("Set 1");
         Assert.assertEquals((double)mwu2.runOneSidedTest(MannWhitneyU.USet.SET1).second,0.021756021756021756,1e-8);

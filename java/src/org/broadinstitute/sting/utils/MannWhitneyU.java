@@ -305,11 +305,16 @@ public class MannWhitneyU {
             if ( mode == ExactMode.CUMULATIVE ) {
                 z = APACHE_NORMAL.inverseCumulativeProbability(p);
             } else {
-                double sd = Math.sqrt((1.0/(n+m))*(n*m*(1+n+m))/12); // biased variance empirically better fit to distribution then asymptotic variance
-                if ( u >= n*m/2 ) {
-                    z = (1.0/sd)*Math.sqrt(-2.0*sd*(Math.log(sd)+Math.log(p)+LNSQRT2PI));
+                double sd = Math.sqrt((1.0+1.0/(1+n+m))*(n*m)*(1.0+n+m)/12); // biased variance empirically better fit to distribution then asymptotic variance
+                //System.out.printf("SD is %f and Max is %f and prob is %f%n",sd,1.0/Math.sqrt(sd*sd*2.0*Math.PI),p);
+                if ( p > 1.0/Math.sqrt(sd*sd*2.0*Math.PI) ) { // possible for p-value to be outside the range of the normal. Happens at the mean, so z is 0.
+                    z = 0.0;
                 } else {
-                    z = -(1.0/sd)*Math.sqrt(-2.0*sd*(Math.log(sd)+Math.log(p)+LNSQRT2PI));
+                    if ( u >= n*m/2 ) {
+                        z = Math.sqrt(-2.0*(Math.log(sd)+Math.log(p)+LNSQRT2PI));
+                    } else {
+                        z = -Math.sqrt(-2.0*(Math.log(sd)+Math.log(p)+LNSQRT2PI));
+                    }
                 }
             }
 
@@ -398,6 +403,11 @@ public class MannWhitneyU {
         return new Pair<Integer,Integer>(sizeSet1,sizeSet2);
     }
 
+    /**
+     * Validates that observations are in the correct format for a MWU test -- this is only called by the contracts API during testing
+     * @param tree - the collection of labeled observations
+     * @return true iff the tree set is valid (no INFs or NaNs, at least one data point in each set)
+     */
     protected static boolean validateObservations(TreeSet<Pair<Number,USet>> tree) {
         boolean seen1 = false;
         boolean seen2 = false;
