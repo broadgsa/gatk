@@ -31,9 +31,9 @@ import net.sf.samtools.util.StringUtil;
 import org.apache.commons.jexl2.*;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
 import org.broad.tribble.util.variantcontext.*;
+import org.broad.tribble.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.utils.*;
-import org.broad.tribble.vcf.VCFCodecUtils;
 import org.broad.tribble.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -566,7 +566,7 @@ public class VariantContextUtils {
 
         VariantContext merged = new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, (mergeInfoWithMaxAC ? maxACAttributes : attributes) );
         // Trim the padded bases of all alleles if necessary
-        merged = VCFCodecUtils.createVariantContextWithTrimmedAlleles(merged);
+        merged = AbstractVCFCodec.createVariantContextWithTrimmedAlleles(merged);
 
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
