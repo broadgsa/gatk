@@ -22,15 +22,23 @@ public class MannWhitneyU {
 
     private static Normal STANDARD_NORMAL = new Normal(0.0,1.0,null);
     private static NormalDistribution APACHE_NORMAL = new NormalDistributionImpl(0.0,1.0,1e-2);
+    private static double LNSQRT2PI = Math.log(Math.sqrt(2.0*Math.PI));
 
     private TreeSet<Pair<Number,USet>> observations;
     private int sizeSet1;
     private int sizeSet2;
+    private ExactMode exactMode;
 
     public MannWhitneyU() {
         observations = new TreeSet<Pair<Number,USet>>(new DitheringComparator());
         sizeSet1 = 0;
         sizeSet2 = 0;
+        exactMode = ExactMode.POINT;
+    }
+
+    public MannWhitneyU(ExactMode mode) {
+        super();
+        exactMode = mode;
     }
 
     /**
@@ -75,7 +83,10 @@ public class MannWhitneyU {
             return new Pair<Double,Double>(Double.NaN,Double.NaN);
         }
 
-        return calculateP(n, m, u, false);
+        // the null hypothesis is that {N} is stochastically less than {M}, so U has counted
+        // occurrences of {M}s before {N}s. We would expect that this should be less than (n*m+1)/2 under
+        // the null hypothesis, so we want to integrate from K=0 to K=U for cumulative cases. Always.
+        return calculateP(n, m, u, false, exactMode);
     }
 
     /**
@@ -94,7 +105,7 @@ public class MannWhitneyU {
             // test is uninformative as one or both sets have no observations
             return new Pair<Double,Double>(Double.NaN,Double.NaN);
         }
-        return calculateP(n, m, u, true);
+        return calculateP(n, m, u, true, exactMode);
     }
 
     /**
@@ -108,7 +119,7 @@ public class MannWhitneyU {
      */
     @Requires({"m > 0","n > 0"})
     @Ensures({"result != null", "! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    public static Pair<Double,Double> calculateP(int n, int m, long u, boolean twoSided) {
+    protected static Pair<Double,Double> calculateP(int n, int m, long u, boolean twoSided, ExactMode exactMode) {
         Pair<Double,Double> zandP;
         if ( n > 8 && m > 8 ) {
             // large m and n - normal approx
@@ -122,7 +133,7 @@ public class MannWhitneyU {
             zandP = calculatePFromTable(n, m, u, twoSided);
         } else {
             // small m and n - full approx
-            zandP = calculatePRecursively(n,m,u, twoSided);
+            zandP = calculatePRecursively(n,m,u,twoSided,exactMode);
         }
 
         return zandP;
@@ -279,16 +290,29 @@ public class MannWhitneyU {
      * @param m: number of set-two entries
      * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
      * @param twoSided: whether the test is two sided or not. The recursive formula is symmetric, multiply by two for two-sidedness.
+     * @param  mode: whether the mode is a point probability, or a cumulative distribution
      * @return the probability under the hypothesis that all sequences are equally likely of finding a set-two entry preceding a set-one entry "u" times.
      */
     @Requires({"m > 0","n > 0","u >= 0"})
     @Ensures({"result != null","! Double.isInfinite(result.getFirst())", "! Double.isInfinite(result.getSecond())"})
-    public static Pair<Double,Double> calculatePRecursively(int n, int m, long u, boolean twoSided) {
+    public static Pair<Double,Double> calculatePRecursively(int n, int m, long u, boolean twoSided, ExactMode mode) {
         if ( m > 8 && n > 5 ) { throw new StingException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
-        double p = cpr(n,m,u);
+        double p = mode == ExactMode.POINT ? cpr(n,m,u) : cumulativeCPR(n,m,u);
+        p *= twoSided ? 2.0 : 1.0;
         double z;
         try {
-            z = APACHE_NORMAL.inverseCumulativeProbability(p);
+
+            if ( mode == ExactMode.CUMULATIVE ) {
+                z = APACHE_NORMAL.inverseCumulativeProbability(p);
+            } else {
+                double sd = Math.sqrt((1.0/(n+m))*(n*m*(1+n+m))/12); // biased variance empirically better fit to distribution then asymptotic variance
+                if ( u >= n*m/2 ) {
+                    z = (1.0/sd)*Math.sqrt(-2.0*sd*(Math.log(sd)+Math.log(p)+LNSQRT2PI));
+                } else {
+                    z = -(1.0/sd)*Math.sqrt(-2.0*sd*(Math.log(sd)+Math.log(p)+LNSQRT2PI));
+                }
+            }
+
         } catch (MathException me) {
             throw new StingException("A math exception occurred in inverting the probability",me);
         }
@@ -303,10 +327,23 @@ public class MannWhitneyU {
      * @param m: number of set-two entries
      * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
      * @return same as cpr
-     * @deprecated - for testing only (really)
      */
     protected static double calculatePRecursivelyDoNotCheckValuesEvenThoughItIsSlow(int n, int m, long u) {
         return cpr(n,m,u);
+    }
+
+    /**
+     * For testing
+     *
+     * @param n: number of set-one entries (hypothesis: set one is stochastically less than set two)
+     * @param m: number of set-two entries
+     * @param u: number of set-two entries that precede set-one entries (e.g. 0,1,0,1,0 -> 3 )
+     */
+    protected static long countSequences(int n, int m, long u) {
+        if ( u < 0 ) { return 0; }
+        if ( m == 0 || n == 0 ) { return u == 0 ? 1 : 0; }
+
+        return countSequences(n-1,m,u-m) + countSequences(n,m-1,u);
     }
 
     /**
@@ -317,7 +354,7 @@ public class MannWhitneyU {
      * @return recursive p-value
      */
     private static double cpr(int n, int m, long u) {
-        if ( u < 0 || n == 0 && m == 0 ) {
+        if ( u < 0 ) {
             return 0.0;
         }
         if ( m == 0 || n == 0 ) {
@@ -330,10 +367,24 @@ public class MannWhitneyU {
         return (((double)n)/(n+m))*cpr(n-1,m,u-m) + (((double)m)/(n+m))*cpr(n,m-1,u);
     }
 
+    private static double cumulativeCPR(int n, int m, long u ) {
+        // from above:
+        // the null hypothesis is that {N} is stochastically less than {M}, so U has counted
+        // occurrences of {M}s before {N}s. We would expect that this should be less than (n*m+1)/2 under
+        // the null hypothesis, so we want to integrate from K=0 to K=U for cumulative cases. Always.
+        double p = 0.0;
+        // optimization using symmetry, use the least amount of sums possible
+        long uSym = ( u <= n*m/2 ) ? u : ((long)n)*m-u;
+        for ( long uu = 0; uu < uSym; uu++ ) {
+            p += cpr(n,m,uu);
+        }
+        // correct by 1.0-p if the optimization above was used (e.g. 1-right tail = left tail)
+        return (u <= n*m/2) ? p : 1.0-p;
+    }
+
     /**
      * hook into the data tree, for testing purposes only
      * @return  observations
-     * @deprecated - only for testing
      */
     protected TreeSet<Pair<Number,USet>> getObservations() {
         return observations;
@@ -342,7 +393,6 @@ public class MannWhitneyU {
     /**
      * hook into the set sizes, for testing purposes only
      * @return size set 1, size set 2
-     * @deprecated - only for testing
      */
     protected Pair<Integer,Integer> getSetSizes() {
         return new Pair<Integer,Integer>(sizeSet1,sizeSet2);
@@ -389,5 +439,6 @@ public class MannWhitneyU {
     }
 
     public enum USet { SET1, SET2 }
+    public enum ExactMode { POINT, CUMULATIVE }
 
 }
