@@ -643,17 +643,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
         // TODO -- REMOVE ME WHEN WE FIND THE NON-DETERMINISM
         if ( OUT_STATS != null ) {
-            logger.warn("ERIC: altConsenses.size() after seeing known indels = " + altConsenses.size());
+            logger.warn("ERIC: reads.size() = " + reads.size());
         }
 
         // decide which reads potentially need to be cleaned;
         // if there are reads with a single indel in them, add that indel to the list of alternate consenses
         long totalRawMismatchSum = determineReadsThatNeedCleaning(reads, refReads, altReads, altAlignmentsToTest, altConsenses, leftmostIndex, reference);
-
-        // TODO -- REMOVE ME WHEN WE FIND THE NON-DETERMINISM
-        if ( OUT_STATS != null ) {
-            logger.warn("ERIC: altAlignmentsToTest.size() = " + altAlignmentsToTest.size());
-        }
 
         // use 'Smith-Waterman' to create alternate consenses from reads that mismatch the reference, using totalRawMismatchSum as the random seed
         if ( !USE_KNOWN_INDELS_ONLY && !NO_SW )
@@ -707,11 +702,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 //  THIS MUST BE DISABLED IF WE DECIDE TO ALLOW MORE THAN ONE ALTERNATE CONSENSUS!
                 if ( bestConsensus != null && consensus.mismatchSum > bestConsensus.mismatchSum )
                     break;
-            }
-
-            // TODO -- REMOVE ME WHEN WE FIND THE NON-DETERMINISM
-            if ( OUT_STATS != null ) {
-                logger.warn("ERIC: bestConsensus = " + bestConsensus + ", this consensus = " + consensus);
             }
 
             //logger.debug("Mismatch sum of new consensus: " + consensus.mismatchSum);
@@ -880,6 +870,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( read.getCigar().numCigarElements() == 0 ) {
                 refReadsToPopulate.add(read);
                 continue;
+            }
+
+            // TODO -- REMOVE ME WHEN WE FIND THE NON-DETERMINISM
+            if ( OUT_STATS != null ) {
+                logger.warn("ERIC: read = " + read.getReadName() + " " + read.getCigarString());
             }
 
             final AlignedRead aRead = new AlignedRead(read);
