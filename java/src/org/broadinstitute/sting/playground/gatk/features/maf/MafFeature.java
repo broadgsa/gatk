@@ -26,6 +26,12 @@
 package org.broadinstitute.sting.playground.gatk.features.maf;
 
 import org.broad.tribble.Feature;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
+import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broad.tribble.vcf.VCFConstants;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.VariantContextAdaptors;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
@@ -263,4 +269,126 @@ public class MafFeature implements Feature {
         return stop;
     }
     
+}
+
+class MafAdaptor implements VariantContextAdaptors.VCAdaptor {
+    /**
+     * Converts Maf features to VariantContext.
+     * @return MafFeature.
+     */
+    @Override
+    public Class<? extends Feature> getAdaptableFeatureType() { return MafFeature.class; }
+
+    /**
+     * convert to a Variant Context, given:
+     * @param name the name of the ROD
+     * @param input the Rod object, in this case a MafFeature
+     * @return a VariantContext object
+     */
+//        VariantContext convert(String name, Object input) {
+//            return convert(name, input, null);
+//        }
+
+    /**
+     * convert to a Variant Context, given:
+     * @param name  the name of the ROD
+     * @param input the Rod object, in this case a MafFeature
+     * @param ref   the reference context
+     * @return a VariantContext object
+     */
+    @Override
+    public VariantContext convert(String name, Object input, ReferenceContext ref) {
+
+        if ( ref == null )
+            throw new UnsupportedOperationException("Conversion from MAF to VariantContext requires a reference context, null received");
+
+        MafFeature maf = (MafFeature)input;
+        if ( ! Allele.acceptableAlleleBases(maf.getRefBases()) )
+            return null;
+
+        List<Allele> alleles = new ArrayList<Allele>();
+
+        Allele refAllele = Allele.create(maf.getRefBases(), true);
+        // add the reference allele:
+        alleles.add(refAllele);
+
+        // add all of the alt alleles
+        for ( String alt : maf.getAllNonRefAlleleList() ) {
+            if ( ! Allele.acceptableAlleleBases(alt) ) {
+                //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
+                return null;
+            }
+            alleles.add(Allele.create(alt, false));
+        }
+
+        // make a mapping from sample to genotype
+
+        String normalSample = maf.getNormalSampleId();
+        String tumorSample = maf.getTumorSampleId();
+
+//                String[] genotypeStrings = hapmap.getGenotypes();
+
+        Map<String, Genotype> genotypes = new HashMap<String, Genotype>(2);
+
+        addGenotype(genotypes, normalSample, maf.getObservedNormalAlleleList(),maf.getRefBases());
+        addGenotype(genotypes,tumorSample,maf.getObservedTumorAlleleList(),maf.getRefBases());
+
+
+        HashMap<String, Object> attrs = new HashMap<String, Object>(10);
+        // fill attributes:
+        if ( maf.getHugoGeneSymbol() != null && ! maf.getHugoGeneSymbol().equals("Unknown"))
+            attrs.put("Gene",maf.getHugoGeneSymbol());
+
+        if ( maf.isSomatic() ) {
+            attrs.put(VCFConstants.SOMATIC_KEY,true);
+            attrs.put("SS","Somatic");
+        } else {
+            attrs.put("SS","Germline");
+        }
+
+        if ( maf.getVariantClassification() != null ) {
+            switch(maf.getVariantClassification()) {
+                case Intergenic: attrs.put("VC","Genomic"); break;
+                case Intron: attrs.put("VC","Intron"); break;
+                case Noncoding_transcript: attrs.put("VC","Noncoding_transcript"); break;
+                case UTR3: attrs.put("VC","3'UTR"); break;
+                case UTR5: attrs.put("VC","5'UTR"); break;
+                case Flank5: attrs.put("VC","5'flank"); break;
+                case Promoter: attrs.put("VC","5'flank"); break;
+                case De_novo_start: attrs.put("VC","De_novo_start"); break;
+                case De_novo_start_out_of_frame: attrs.put("VC","De_novo_start_out_of_frame"); break;
+                case Silent: attrs.put("VC","Silent"); break;
+                case Missense: attrs.put("VC","Missense"); break;
+                case Nonsense: attrs.put("VC","Nonsense"); break;
+                case Splice_site: attrs.put("VC","Splice_site"); break;
+                case miRNA: attrs.put("VC","miRNA"); break;
+                case Frameshift: attrs.put("VC","Frameshift"); break;
+                case Inframe: attrs.put("VC","Inframe"); break;
+                case Stop_deletion: attrs.put("VC","Stop_codon_deletion");
+                case Unclassified: attrs.put("VC","Unclassified");
+                default:
+            }
+        }
+
+        attrs.put("VT",maf.getType());
+
+//                attrs.put(VariantContext.ID_KEY, hapmap.getName());
+        int end = maf.getEnd();
+        VariantContext vc = new VariantContext(name, maf.getChr(), maf.getStart(), end, alleles,
+                genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs);
+        return vc;
+    }
+
+    private void addGenotype(Map<String,Genotype> dest, String sampleId, List<String> alleles, String refAllele) {
+        List<Allele> myAlleles = new ArrayList<Allele>(2);
+
+        boolean success = true;
+
+        for ( String a : alleles ) {
+            if ( a.isEmpty() || a.contains("N") || a.contains(".")) return; // bad allele found
+            myAlleles.add(Allele.create(a,refAllele.equals(a)));
+        }
+        dest.put(sampleId, new Genotype(sampleId,myAlleles));
+    }
+
 }

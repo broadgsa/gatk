@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.refdata;
 
+import org.broad.tribble.Feature;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.gelitext.GeliTextFeature;
 import org.broad.tribble.hapmap.HapMapFeature;
@@ -12,6 +13,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.playground.gatk.features.maf.MafFeature;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
 
 import java.util.*;
 
@@ -36,14 +38,13 @@ public class VariantContextAdaptors {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private static Map<Class, VCAdaptor> adaptors = new HashMap<Class, VCAdaptor>();
+    private static Map<Class<? extends Feature>,VCAdaptor> adaptors = new HashMap<Class<? extends Feature>,VCAdaptor>();
 
     static {
-        adaptors.put(DbSNPFeature.class, new DBSnpAdaptor());
-        adaptors.put(HapMapFeature.class, new HapMapAdaptor());
-        adaptors.put(GeliTextFeature.class, new GeliTextAdaptor());
-        adaptors.put(VariantContext.class, new VariantContextAdaptor());
-        adaptors.put(MafFeature.class, new MafAdaptor());
+        PluginManager<VCAdaptor> vcAdaptorManager = new PluginManager<VCAdaptor>(VCAdaptor.class);
+        List<VCAdaptor> adaptorInstances = vcAdaptorManager.createAllTypes();
+        for(VCAdaptor adaptor: adaptorInstances)
+            adaptors.put(adaptor.getAdaptableFeatureType(),adaptor);
     }
 
     public static boolean canBeConvertedToVariantContext(Object variantContainingObject) {
@@ -51,8 +52,13 @@ public class VariantContextAdaptors {
     }
 
     /** generic superclass */
-    private static abstract class VCAdaptor {
-        abstract VariantContext convert(String name, Object input, ReferenceContext ref);
+    public interface VCAdaptor {
+        /**
+         * Gets the type of feature that this adaptor can 'adapt' into a VariantContext.
+         * @return Type of adaptable feature.  Must be a Tribble feature class.
+         */
+        Class<? extends Feature> getAdaptableFeatureType();
+        VariantContext convert(String name, Object input, ReferenceContext ref);
     }
 
     public static VariantContext toVariantContext(String name, Object variantContainingObject, ReferenceContext ref) {
@@ -68,10 +74,17 @@ public class VariantContextAdaptors {
     // From here below you can add adaptor classes for new rods (or other types) to convert to VC
     //
     // --------------------------------------------------------------------------------------------------------------
+    private static class VariantContextAdaptor implements VCAdaptor {
+        /**
+         * 'Null' adaptor; adapts variant contexts to variant contexts.
+         * @return VariantContext.
+         */
+        @Override
+        public Class<? extends Feature> getAdaptableFeatureType() { return VariantContext.class; }
 
-    private static class VariantContextAdaptor extends VCAdaptor {
         // already a VC, just cast and return it
-        VariantContext convert(String name, Object input, ReferenceContext ref) {
+        @Override        
+        public VariantContext convert(String name, Object input, ReferenceContext ref) {
             return (VariantContext)input;
         }
     }
@@ -82,8 +95,16 @@ public class VariantContextAdaptors {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private static class DBSnpAdaptor extends VCAdaptor {
-        VariantContext convert(String name, Object input, ReferenceContext ref) {
+    private static class DBSnpAdaptor implements VCAdaptor {
+        /**
+         * Converts non-VCF formatted dbSNP records to VariantContext. 
+         * @return DbSNPFeature.
+         */
+        @Override
+        public Class<? extends Feature> getAdaptableFeatureType() { return DbSNPFeature.class; }
+
+        @Override        
+        public VariantContext convert(String name, Object input, ReferenceContext ref) {
             DbSNPFeature dbsnp = (DbSNPFeature)input;
             if ( ! Allele.acceptableAlleleBases(DbSNPHelper.getReference(dbsnp)) )
                 return null;
@@ -128,7 +149,14 @@ public class VariantContextAdaptors {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private static class GeliTextAdaptor extends VCAdaptor {
+    private static class GeliTextAdaptor implements VCAdaptor {
+        /**
+         * Converts Geli text records to VariantContext. 
+         * @return GeliTextFeature.
+         */
+        @Override
+        public Class<? extends Feature> getAdaptableFeatureType() { return GeliTextFeature.class; }
+
           /**
          * convert to a Variant Context, given:
          * @param name the name of the ROD
@@ -146,7 +174,8 @@ public class VariantContextAdaptors {
          * @param ref   the reference context
          * @return a VariantContext object
          */
-        VariantContext convert(String name, Object input, ReferenceContext ref) {
+        @Override
+        public VariantContext convert(String name, Object input, ReferenceContext ref) {
             GeliTextFeature geli = (GeliTextFeature)input;
             if ( ! Allele.acceptableAlleleBases(String.valueOf(geli.getRefBase())) )
                 return null;
@@ -195,7 +224,14 @@ public class VariantContextAdaptors {
     //
     // --------------------------------------------------------------------------------------------------------------
 
-    private static class HapMapAdaptor extends VCAdaptor {
+    private static class HapMapAdaptor implements VCAdaptor {
+        /**
+         * Converts HapMap records to VariantContext. 
+         * @return HapMapFeature.
+         */
+        @Override
+        public Class<? extends Feature> getAdaptableFeatureType() { return HapMapFeature.class; }
+
           /**
          * convert to a Variant Context, given:
          * @param name the name of the ROD
@@ -213,7 +249,8 @@ public class VariantContextAdaptors {
          * @param ref   the reference context
          * @return a VariantContext object
          */
-        VariantContext convert(String name, Object input, ReferenceContext ref) {
+        @Override        
+        public VariantContext convert(String name, Object input, ReferenceContext ref) {
             if ( ref == null )
                 throw new UnsupportedOperationException("Conversion from HapMap to VariantContext requires a reference context");
 
@@ -281,120 +318,4 @@ public class VariantContextAdaptors {
             return vc;
        }
     }
-
-    private static class MafAdaptor extends VCAdaptor {
-              /**
-             * convert to a Variant Context, given:
-             * @param name the name of the ROD
-             * @param input the Rod object, in this case a MafFeature
-             * @return a VariantContext object
-             */
-//        VariantContext convert(String name, Object input) {
-//            return convert(name, input, null);
-//        }
-
-            /**
-             * convert to a Variant Context, given:
-             * @param name  the name of the ROD
-             * @param input the Rod object, in this case a MafFeature
-             * @param ref   the reference context
-             * @return a VariantContext object
-             */
-            VariantContext convert(String name, Object input, ReferenceContext ref) {
-
-                if ( ref == null )
-                    throw new UnsupportedOperationException("Conversion from MAF to VariantContext requires a reference context, null received");
-
-                MafFeature maf = (MafFeature)input;
-                if ( ! Allele.acceptableAlleleBases(maf.getRefBases()) )
-                    return null;
-
-                List<Allele> alleles = new ArrayList<Allele>();
-
-                Allele refAllele = Allele.create(maf.getRefBases(), true);
-                // add the reference allele:
-                alleles.add(refAllele);
-
-                // add all of the alt alleles
-                for ( String alt : maf.getAllNonRefAlleleList() ) {
-                    if ( ! Allele.acceptableAlleleBases(alt) ) {
-                        //System.out.printf("Excluding dbsnp record %s%n", dbsnp);
-                        return null;
-                    }
-                    alleles.add(Allele.create(alt, false));
-                }
-
-                // make a mapping from sample to genotype
-
-                String normalSample = maf.getNormalSampleId();
-                String tumorSample = maf.getTumorSampleId();
-
-//                String[] genotypeStrings = hapmap.getGenotypes();
-
-                Map<String, Genotype> genotypes = new HashMap<String, Genotype>(2);
-                                                                                                    
-                addGenotype(genotypes, normalSample, maf.getObservedNormalAlleleList(),maf.getRefBases());
-                addGenotype(genotypes,tumorSample,maf.getObservedTumorAlleleList(),maf.getRefBases());
-
-
-                HashMap<String, Object> attrs = new HashMap<String, Object>(10);
-                // fill attributes:
-                if ( maf.getHugoGeneSymbol() != null && ! maf.getHugoGeneSymbol().equals("Unknown"))
-                    attrs.put("Gene",maf.getHugoGeneSymbol());
-
-                if ( maf.isSomatic() ) {
-                    attrs.put(VCFConstants.SOMATIC_KEY,true);
-                    attrs.put("SS","Somatic");
-                } else {
-                    attrs.put("SS","Germline");                    
-                }
-
-                if ( maf.getVariantClassification() != null ) {
-                    switch(maf.getVariantClassification()) {
-                        case Intergenic: attrs.put("VC","Genomic"); break;
-                        case Intron: attrs.put("VC","Intron"); break;
-                        case Noncoding_transcript: attrs.put("VC","Noncoding_transcript"); break;
-                        case UTR3: attrs.put("VC","3'UTR"); break;
-                        case UTR5: attrs.put("VC","5'UTR"); break;
-                        case Flank5: attrs.put("VC","5'flank"); break;
-                        case Promoter: attrs.put("VC","5'flank"); break;
-                        case De_novo_start: attrs.put("VC","De_novo_start"); break;
-                        case De_novo_start_out_of_frame: attrs.put("VC","De_novo_start_out_of_frame"); break;
-                        case Silent: attrs.put("VC","Silent"); break;
-                        case Missense: attrs.put("VC","Missense"); break;
-                        case Nonsense: attrs.put("VC","Nonsense"); break;
-                        case Splice_site: attrs.put("VC","Splice_site"); break;
-                        case miRNA: attrs.put("VC","miRNA"); break;
-                        case Frameshift: attrs.put("VC","Frameshift"); break;
-                        case Inframe: attrs.put("VC","Inframe"); break;
-                        case Stop_deletion: attrs.put("VC","Stop_codon_deletion");
-                        case Unclassified: attrs.put("VC","Unclassified");
-                        default:
-                    }
-                }
-
-                attrs.put("VT",maf.getType());
-
-//                attrs.put(VariantContext.ID_KEY, hapmap.getName());
-                int end = maf.getEnd();
-                VariantContext vc = new VariantContext(name, maf.getChr(), maf.getStart(), end, alleles, 
-                        genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attrs);
-                return vc;
-           }
-
-            private void addGenotype(Map<String,Genotype> dest, String sampleId, List<String> alleles, String refAllele) {
-                List<Allele> myAlleles = new ArrayList<Allele>(2);
-
-                boolean success = true;
-
-                for ( String a : alleles ) {
-                    if ( a.isEmpty() || a.contains("N") || a.contains(".")) return; // bad allele found
-                    myAlleles.add(Allele.create(a,refAllele.equals(a)));
-                }
-                dest.put(sampleId, new Genotype(sampleId,myAlleles));
-            }
-
-        }
-
-
 }

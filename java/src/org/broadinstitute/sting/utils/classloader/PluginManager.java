@@ -35,6 +35,7 @@ import org.reflections.scanners.SubTypesScanner;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -249,10 +250,11 @@ public class PluginManager<PluginType> {
      * @param pluginType type of the plugin to create.
      * @return The plugin object if created; null otherwise.
      */
-    @SuppressWarnings("unchecked")
-    public PluginType createByType(Class pluginType) {
+    public PluginType createByType(Class<? extends PluginType> pluginType) {
         try {
-            return ((Class<? extends PluginType>) pluginType).newInstance();
+            Constructor<? extends PluginType> noArgsConstructor = pluginType.getDeclaredConstructor((Class[])null);
+            noArgsConstructor.setAccessible(true);
+            return noArgsConstructor.newInstance();
         } catch (Exception e) {
             throw new DynamicClassResolutionException(pluginType, e);
         }
@@ -265,11 +267,7 @@ public class PluginManager<PluginType> {
     public List<PluginType> createAllTypes() {
         List<PluginType> instances = new ArrayList<PluginType>();
         for ( Class<? extends PluginType> c : getPlugins() ) {
-            try {
-                instances.add(c.newInstance());
-            } catch (Exception e) {
-                throw new DynamicClassResolutionException(c, e);
-            }
+            instances.add(createByType(c));
         }
         return instances;
     }
