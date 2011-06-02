@@ -38,5 +38,15 @@ public class PrintReadsIntegrationTest extends WalkerTest {
                 Arrays.asList(params.md5));
         executeTest("testPrintReads-"+params.args, spec).getFirst();
     }
+
+    @Test
+    public void testPrintReadsReadAllInsertion() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T PrintReads -R " + b37KGReference +
+                        " -I " + validationDataLocation + "oneReadAllInsertion.bam" +
+                        " -o %s",
+                Arrays.asList("6caec4f8a25befb6aba562955401af93"));
+        executeTest("testPrintReads-oneReadAllInsertion", spec);
+    }
 }
 
