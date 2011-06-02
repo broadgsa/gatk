@@ -23,7 +23,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.oneoffprojects.walkers.reducereads;
+package org.broadinstitute.sting.playground.gatk.walkers.reducereads;
 
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;

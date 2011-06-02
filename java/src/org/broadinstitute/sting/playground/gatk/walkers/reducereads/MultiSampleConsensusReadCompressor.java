@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.reducereads;
+package org.broadinstitute.sting.playground.gatk.walkers.reducereads;
 
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
@@ -9,8 +9,6 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
-
-//import org.broadinstitute.sting.utils.SimpleTimer;
 
 /*
  * Copyright (c) 2009 The Broad Institute

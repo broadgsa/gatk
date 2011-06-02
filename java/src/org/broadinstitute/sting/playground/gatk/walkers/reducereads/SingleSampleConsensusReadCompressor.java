@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.reducereads;
+package org.broadinstitute.sting.playground.gatk.walkers.reducereads;
 
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
@@ -16,8 +16,6 @@ import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.io.PrintStream;
 import java.util.*;
-
-//import org.broadinstitute.sting.utils.SimpleTimer;
 
 /*
  * Copyright (c) 2009 The Broad Institute

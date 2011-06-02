@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.oneoffprojects.walkers.reducereads;
+package org.broadinstitute.sting.playground.gatk.walkers.reducereads;
 
 import net.sf.picard.sam.SamPairUtil;
 import net.sf.samtools.*;
