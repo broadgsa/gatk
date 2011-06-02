@@ -61,7 +61,7 @@ public class MWUnitTest extends BaseTest {
         Assert.assertEquals(MannWhitneyU.calculatePRecursively(sizes.first,sizes.second,10L,false,pm).second,0.021756021756021756,1e-14);
         Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.first,sizes.second,10L,false).second,0.06214143703127617,1e-14);
         logger.warn("Testing two-sided");
-        Assert.assertEquals((double)mwu2.runTwoSidedTest().second,4*0.021756021756021756,1e-8);
+        Assert.assertEquals((double)mwu2.runTwoSidedTest().second,2*0.021756021756021756,1e-8);
 
         // tests using the hypothesis that set 1 dominates set 2 (U value = 30) -- empirical should be identical, normall approx close, uniform way off
         Assert.assertEquals(MannWhitneyU.calculatePNormalApproximation(sizes.second,sizes.first,30L,true).second,2.0*0.08216463976903321,1e-14);
