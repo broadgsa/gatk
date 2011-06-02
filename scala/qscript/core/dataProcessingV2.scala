@@ -1,4 +1,4 @@
-package oneoffs.carneiro
+package core
 
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
