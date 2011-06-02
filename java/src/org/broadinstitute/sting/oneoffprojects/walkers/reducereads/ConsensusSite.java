@@ -18,7 +18,7 @@ import java.util.Set;
 * User: depristo
 * Date: 4/8/11
 * Time: 3:01 PM
-* To change this template use File | Settings | File Templates.
+*
 */
 final class ConsensusSite {
     final GenomeLoc loc;
@@ -26,7 +26,7 @@ final class ConsensusSite {
     final int offset;
     final BaseCounts counts = new BaseCounts();
 
-    ConsensusType markedType = null;
+    ConsensusSpan.Type markedType = null;
 
     public ConsensusSite(GenomeLoc loc, int offset) {
         this.loc = loc;
@@ -88,14 +88,12 @@ final class ConsensusSite {
         return counts.toString();
     }
 
-    public void setMarkedType(ConsensusType markedType) {
+    public void setMarkedType(ConsensusSpan.Type markedType) {
         this.markedType = markedType;
     }
 
-    public ConsensusType getMarkedType() {
+    public ConsensusSpan.Type getMarkedType() {
         if ( markedType == null ) throw new ReviewedStingException("markedType not yet set!");
         return markedType;
     }
-
-
 }

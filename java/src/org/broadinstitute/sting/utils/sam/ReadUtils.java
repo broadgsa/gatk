@@ -41,6 +41,8 @@ import java.io.File;
  * @version 0.1
  */
 public class ReadUtils {
+    public static final String REDUCED_READ_QUALITY_TAG = "RQ";
+
     private ReadUtils() { }
 
     public static SAMFileHeader copySAMFileHeader(SAMFileHeader toCopy) {

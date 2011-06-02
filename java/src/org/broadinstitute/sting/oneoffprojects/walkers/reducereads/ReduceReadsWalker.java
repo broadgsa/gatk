@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers.reducereads;
 
+import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -69,10 +70,20 @@ public class ReduceReadsWalker extends ReadWalker<SAMRecord, ConsensusReadCompre
     protected int totalReads = 0;
     int nCompressedReads = 0;
 
+    MultiSampleConsensusReadCompressor compressor;
+
     @Override
     public void initialize() {
         super.initialize();
+
+        compressor = new MultiSampleConsensusReadCompressor(getToolkit().getSAMFileHeader(),
+                contextSize, getToolkit().getGenomeLocParser(),
+                minBpForRunningConsensus, maxReadsAtVariableSites);
+
         out.setPresorted(false);
+
+        for ( SAMReadGroupRecord rg : compressor.getReducedReadGroups())
+            out.getFileHeader().addReadGroup(rg);
     }
 
     @Override
@@ -89,9 +100,7 @@ public class ReduceReadsWalker extends ReadWalker<SAMRecord, ConsensusReadCompre
      */
     @Override
     public ConsensusReadCompressor reduceInit() {
-        return new MultiSampleConsensusReadCompressor(getToolkit().getSAMFileHeader(),
-                contextSize, getToolkit().getGenomeLocParser(), "20", // todo fixme
-                minBpForRunningConsensus, maxReadsAtVariableSites);
+        return compressor;
     }
 
     /**

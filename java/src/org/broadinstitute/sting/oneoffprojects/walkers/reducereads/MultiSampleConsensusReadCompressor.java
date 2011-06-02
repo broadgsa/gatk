@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.oneoffprojects.walkers.reducereads;
 
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -49,15 +50,24 @@ public class MultiSampleConsensusReadCompressor implements ConsensusReadCompress
     public MultiSampleConsensusReadCompressor(SAMFileHeader header,
                                               final int readContextSize,
                                               final GenomeLocParser glParser,
-                                              final String contig,
                                               final int minBpForRunningConsensus,
                                               final int maxReadsAtVariableSites) {
         for ( String name : SampleUtils.getSAMFileSamples(header) ) {
             compressorsPerSample.put(name,
-                    new SingleSampleConsensusReadCompressor(readContextSize,
-                            glParser, contig, minBpForRunningConsensus, maxReadsAtVariableSites));
+                    new SingleSampleConsensusReadCompressor(name, readContextSize,
+                            glParser, minBpForRunningConsensus, maxReadsAtVariableSites));
             // todo -- argument for minConsensusSize
         }
+    }
+
+    public Collection<SAMReadGroupRecord> getReducedReadGroups() {
+        List<SAMReadGroupRecord> rgs = new ArrayList<SAMReadGroupRecord>();
+
+        for ( SingleSampleConsensusReadCompressor comp : compressorsPerSample.values() ) {
+            rgs.add(comp.getReducedReadGroup());
+        }
+
+        return rgs;
     }
 
     @Override

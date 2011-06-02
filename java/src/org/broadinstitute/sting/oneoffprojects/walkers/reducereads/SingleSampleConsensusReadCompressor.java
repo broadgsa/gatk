@@ -58,6 +58,9 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
     private static final double MAX_FRACTION_DISAGREEING_BASES = 0.1;
     private static final ClippingRepresentation VARIABLE_READ_REPRESENTATION = ClippingRepresentation.SOFTCLIP_BASES;
     private static final double MIN_FRACT_BASES_FOR_VARIABLE_READ = 0.33;  // todo -- should be variable
+    private static final int MIN_BASES_IN_VARIABLE_SPAN_TO_INCLUDE_READ = 10;
+    protected final static String RG_POSTFIX = ".ReducedReads";
+    public final static int REDUCED_READ_BASE_QUALITY = 30;
 
     // todo  -- should merge close together spans
 
@@ -68,22 +71,39 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
     final int maxReadsAtVariableSites;
     final int minBpForRunningConsensus;
     int retryTimer = 0;
+    int consensusCounter = 0;
 
-    final String contig;
+    final SAMReadGroupRecord reducedReadGroup;
+    String contig = null;
     final GenomeLocParser glParser;
     SAMFileHeader header;
     GenomeLoc lastProcessedRegion = null;
 
-    public SingleSampleConsensusReadCompressor(final int readContextSize,
+    public SingleSampleConsensusReadCompressor(final String sampleName,
+                                               final int readContextSize,
                                                final GenomeLocParser glParser,
-                                               final String contig,
                                                final int minBpForRunningConsensus,
                                                final int maxReadsAtVariableSites) {
         this.readContextSize = readContextSize;
         this.glParser = glParser;
-        this.contig = contig;
         this.minBpForRunningConsensus = minBpForRunningConsensus;
         this.maxReadsAtVariableSites = maxReadsAtVariableSites;
+        this.reducedReadGroup = createReducedReadGroup(sampleName);
+    }
+
+    /**
+     * Helper function to create a read group for these reduced reads
+     * @param sampleName
+     * @return
+     */
+    private static final SAMReadGroupRecord createReducedReadGroup(final String sampleName) {
+        SAMReadGroupRecord rg = new SAMReadGroupRecord(sampleName + RG_POSTFIX);
+        rg.setSample(sampleName);
+        return rg;
+    }
+
+    public SAMReadGroupRecord getReducedReadGroup() {
+        return reducedReadGroup;
     }
 
     // ------------------------------------------------------------------------------------------
@@ -97,6 +117,11 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
      */
     @Override
     public Iterable<SAMRecord> addAlignment( SAMRecord read ) {
+        if ( contig == null )
+            contig = read.getReferenceName();
+        if ( ! read.getReferenceName().equals(contig) )
+            throw new ReviewedStingException("ConsensusRead system doesn't support multiple contig processing right now");
+
         if ( header == null )
             header = read.getHeader();
 
@@ -200,7 +225,7 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
 
     private List<ConsensusSite> expandVariableSites(List<ConsensusSite> sites) {
         for ( ConsensusSite site : sites )
-            site.setMarkedType(ConsensusType.CONSERVED);
+            site.setMarkedType(ConsensusSpan.Type.CONSERVED);
 
         for ( int i = 0; i < sites.size(); i++ ) {
             ConsensusSite site = sites.get(i);
@@ -209,7 +234,7 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
                 int stop = Math.min(sites.size(), i + readContextSize + 1);
                 for ( int j = start; j < stop; j++ ) {
                     // aggressive tagging -- you are only conserved if you are never variable
-                    sites.get(j).setMarkedType(ConsensusType.VARIABLE);
+                    sites.get(j).setMarkedType(ConsensusSpan.Type.VARIABLE);
                 }
             }
         }
@@ -223,7 +248,7 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
         int start = 0;
 
         // our first span type is the type of the first site
-        ConsensusType consensusType = sites.get(0).getMarkedType();
+        ConsensusSpan.Type consensusType = sites.get(0).getMarkedType();
         while ( start < sites.size() ) {
             ConsensusSpan span = findSpan(sites, start, consensusType);
 
@@ -234,20 +259,20 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
                 start += span.size();
             }
 
-            consensusType = ConsensusType.otherType(consensusType);
+            consensusType = ConsensusSpan.Type.otherType(consensusType);
         }
 
         return spans;
     }
 
-    private ConsensusSpan findSpan(List<ConsensusSite> sites, int start, ConsensusType consensusType) {
+    private ConsensusSpan findSpan(List<ConsensusSite> sites, int start, ConsensusSpan.Type consensusType) {
         int refStart = sites.get(0).getLoc().getStart();
 
         for ( int end = start + 1; end < sites.size(); end++ ) {
             ConsensusSite site = sites.get(end);
-            boolean conserved = site.getMarkedType() == ConsensusType.CONSERVED;
-            if ( (consensusType == ConsensusType.CONSERVED && ! conserved) ||
-                 (consensusType == ConsensusType.VARIABLE && conserved) ||
+            boolean conserved = site.getMarkedType() == ConsensusSpan.Type.CONSERVED;
+            if ( (consensusType == ConsensusSpan.Type.CONSERVED && ! conserved) ||
+                 (consensusType == ConsensusSpan.Type.VARIABLE && conserved) ||
                  end + 1 == sites.size() ) { // we are done with the complete interval
                 GenomeLoc loc = glParser.createGenomeLoc(contig, start+refStart, end+refStart-1);
                 return new ConsensusSpan(refStart, loc, consensusType);
@@ -319,7 +344,7 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
         for ( int i = 0; i < span.size(); i++ ) {
             int refI = i + span.getOffsetFromStartOfSites();
             ConsensusSite site = sites.get(refI);
-            if ( site.getMarkedType() == ConsensusType.VARIABLE )
+            if ( site.getMarkedType() == ConsensusSpan.Type.VARIABLE )
                 throw new ReviewedStingException("Variable site included in consensus: " + site);
             final int count = site.counts.countOfMostCommonBase();
             final byte base = count == 0 ? (byte)'N' : site.counts.baseWithMostCounts();
@@ -328,10 +353,13 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
         }
 
         SAMRecord consensus = new SAMRecord(header);
+        consensus.setAttribute("RG", reducedReadGroup.getId());
+        consensus.setAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG, Integer.valueOf(REDUCED_READ_BASE_QUALITY));
         consensus.setReferenceName(contig);
-        consensus.setReadName("Mark");
-        consensus.setCigarString(String.format("%dM", span.size()));
+        consensus.setReadName(String.format("%s.read.%d", reducedReadGroup.getId(), consensusCounter++));
         consensus.setReadPairedFlag(false);
+        consensus.setReadUnmappedFlag(false);
+        consensus.setCigarString(String.format("%dM", span.size()));
         consensus.setAlignmentStart(span.getGenomeStart());
         consensus.setReadBases(bases);
         consensus.setBaseQualities(quals);
@@ -347,20 +375,27 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
     private Collection<SAMRecord> variableSpanReads(List<ConsensusSite> sites, ConsensusSpan span) {
         Set<SAMRecord> reads = new HashSet<SAMRecord>();
 
-        int minNumBasesInRead = (int)Math.floor(MIN_FRACT_BASES_FOR_VARIABLE_READ * span.size());
+        // todo -- this code is grossly inefficient, as it checks each variable read at each site in the span
         for ( int i = 0; i < span.size(); i++ ) {
             int refI = i + span.getOffsetFromStartOfSites();
             ConsensusSite site = sites.get(refI);
             for ( PileupElement p : site.getOverlappingReads() ) {
-//                if ( reads.contains(p.getRead()))
-//                    logger.info("Skipping already added read: " + p.getRead().getReadName());
                 SAMRecord read = clipReadToSpan(p.getRead(), span);
-                if ( read.getReadLength() >= minNumBasesInRead )
+                if ( keepClippedReadInVariableSpan(p.getRead(), read) )
                     reads.add(read);
             }
         }
 
         return reads;
+    }
+
+    private final static boolean keepClippedReadInVariableSpan(SAMRecord originalRead, SAMRecord variableRead) {
+        int originalReadLength = originalRead.getReadLength();
+        int variableReadLength = variableRead.getReadLength();
+
+        return variableReadLength >= MIN_BASES_IN_VARIABLE_SPAN_TO_INCLUDE_READ;
+//        &&
+//                ((1.0 * variableReadLength) / originalReadLength) >= MIN_FRACT_BASES_FOR_VARIABLE_READ;
     }
 
     private SAMRecord clipReadToSpan(SAMRecord read, ConsensusSpan span) {
@@ -371,7 +406,7 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
 
         for ( RefPileupElement p : RefPileupElement.walkRead(read) ) {
             if ( p.getRefOffset() == spanStart && p.getOffset() != 0 ) {
-                clipper.addOp(new ClippingOp(0, p.getOffset()));
+                clipper.addOp(new ClippingOp(0, p.getOffset() - 1));
             }
 
             if ( p.getRefOffset() == spanEnd && p.getOffset() != readLen - 1 ) {
