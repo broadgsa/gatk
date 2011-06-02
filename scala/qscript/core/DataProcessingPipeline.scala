@@ -11,7 +11,7 @@ import scala.io.Source._
 import collection.JavaConversions._
 
 
-class dataProcessingV2 extends QScript {
+class DataProcessingPipeline extends QScript {
   qscript =>
 
   /****************************************************************************
