@@ -435,7 +435,8 @@ public class GenomeLocParser {
             // read is unmapped and not placed anywhere on the genome
             return GenomeLoc.UNMAPPED;
         else {
-            int end = read.getReadUnmappedFlag() ? read.getAlignmentStart() : read.getAlignmentEnd();
+            //
+            int end = read.getReadUnmappedFlag() ? read.getAlignmentStart() : Math.max(read.getAlignmentEnd(), read.getAlignmentStart());
             return createGenomeLoc(read.getReferenceName(), read.getReferenceIndex(), read.getAlignmentStart(), end, false);
         }
     }
