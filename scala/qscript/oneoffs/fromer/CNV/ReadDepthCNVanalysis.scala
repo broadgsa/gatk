@@ -1,4 +1,4 @@
-package oneoffs.fromer
+package oneoffs.fromer.CNV
 
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
