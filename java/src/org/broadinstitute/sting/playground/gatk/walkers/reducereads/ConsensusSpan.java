@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.reducereads;
 
+import com.google.java.contract.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 /*
@@ -28,12 +29,14 @@ import org.broadinstitute.sting.utils.GenomeLoc;
  */
 
 /**
-* Created by IntelliJ IDEA.
-* User: depristo
-* Date: 4/8/11
-* Time: 3:01 PM
-* To change this template use File | Settings | File Templates.
-*/
+ * Created by IntelliJ IDEA.
+ * User: depristo
+ * Date: 4/8/11
+ * Time: 3:01 PM
+ *
+ * Represents a span of a consensus region (conserved, or variable) on the reference genome.  Supports
+ * either absolute or relative (refStart) positioning of the span.
+ */
 final class ConsensusSpan {
 
     /**
@@ -58,7 +61,13 @@ final class ConsensusSpan {
     final GenomeLoc loc;
     final Type consensusType;
 
+    @Requires({"refStart >= 0", "loc != null", "consensusType != null"})
+    @Ensures({"this.refStart == refStart", "this.loc.equals(loc)", "this.consensusType.equals(consensusType)"})
     public ConsensusSpan(final int refStart, GenomeLoc loc, ConsensusSpan.Type consensusType) {
+        if ( refStart < 0 ) throw new RuntimeException("RefStart must be greater than 0: " + refStart);
+        if ( loc == null ) throw new RuntimeException("Loc must not be null");
+        if ( consensusType == null ) throw new RuntimeException("ConsensusType must not be null");
+
         this.refStart = refStart;
         this.loc = loc;
         this.consensusType = consensusType;
@@ -68,10 +77,12 @@ final class ConsensusSpan {
         return loc.getStart() - refStart;
     }
 
+    @Ensures("result >= 0")
     public int getGenomeStart() {
         return loc.getStart();
     }
 
+    @Ensures("result >= 0")
     public int getGenomeStop() {
         return loc.getStop();
     }
@@ -80,13 +91,18 @@ final class ConsensusSpan {
         return consensusType;
     }
 
+    @Ensures("result >= 0")
     public int size() {
         return getGenomeStop() - getGenomeStart() + 1;
     }
 
+    @Ensures("result == !isVariable()")
     public boolean isConserved() { return getConsensusType() == Type.CONSERVED; }
+
+    @Ensures("result == !isConserved()")
     public boolean isVariable() { return getConsensusType() == Type.VARIABLE; }
 
+    @Ensures("result != null")
     public String toString() {
         return String.format("%s %s", consensusType, loc);
     }
