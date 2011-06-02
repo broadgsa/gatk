@@ -298,7 +298,7 @@ public class MannWhitneyU {
     public static Pair<Double,Double> calculatePRecursively(int n, int m, long u, boolean twoSided, ExactMode mode) {
         if ( m > 8 && n > 5 ) { throw new StingException(String.format("Please use the appropriate (normal or sum of uniform) approximation. Values n: %d, m: %d",n,m)); }
         double p = mode == ExactMode.POINT ? cpr(n,m,u) : cumulativeCPR(n,m,u);
-        p *= twoSided ? 2.0 : 1.0;
+        //p *= twoSided ? 2.0 : 1.0;
         double z;
         try {
 
