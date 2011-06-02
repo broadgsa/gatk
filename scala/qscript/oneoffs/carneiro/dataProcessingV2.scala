@@ -9,8 +9,6 @@ import net.sf.samtools.{SAMFileReader,SAMReadGroupRecord}
 
 import scala.io.Source._
 import collection.JavaConversions._
-import org.broadinstitute.sting.queue.function.scattergather.ScatterFunction
-import org.broadinstitute.sting.gatk.filters.ReadGroupBlackListFilter
 
 
 class dataProcessingV2 extends QScript {
@@ -106,7 +104,7 @@ class dataProcessingV2 extends QScript {
 
 
   /****************************************************************************
-  * Helper functions
+  * Helper classes and methods
   ****************************************************************************/
 
 
@@ -163,7 +161,7 @@ class dataProcessingV2 extends QScript {
     return samReader.getFileHeader.getSequenceDictionary.getSequences.size()
   }
 
-
+  // Rebuilds the Read Group string to give BWA
   def buildReadGroupString(samReader: SAMFileReader): String = {
     val readGroups = samReader.getFileHeader.getReadGroups
     var s = ""
@@ -183,14 +181,14 @@ class dataProcessingV2 extends QScript {
 
   // Takes a list of processed BAM files and realign them using the BWA option requested  (bwase or bwape).
   // Returns a list of realigned BAM files.
-  def performAlignment(bamMap: Map[String, File]) {
-    for (key <- bamMap.keysIterator) {
-      val bam: File = bamMap(key)
+  def performAlignment(sampleBams: Map[String, File]) {
+    for (key <- sampleBams.keysIterator) {
+      val bam: File = sampleBams(key)
       val saiFile1 = swapExt(bam, ".bam", "1.sai")
       val saiFile2 = swapExt(bam, ".bam", "2.sai")
       val realignedSamFile = swapExt(bam, ".bam", ".realigned.sam")
       val realignedBamFile = swapExt(bam, ".bam", ".realigned.bam")
-      val readGroupString: String = buildReadGroupString(new SAMFileReader())
+      val readGroupString: String = buildReadGroupString(new SAMFileReader(bam))
       if (useBWAse) {
         add(bwa_aln_se(bam, saiFile1),
             bwa_sam_se(bam, saiFile1, realignedSamFile, readGroupString),
@@ -202,7 +200,7 @@ class dataProcessingV2 extends QScript {
             bwa_sam_pe(bam, saiFile1, saiFile2, realignedSamFile, readGroupString),
             to_bam(realignedSamFile, realignedBamFile))
       }
-      bamMap(key) = realignedBamFile
+      sampleBams(key) = realignedBamFile
     }
   }
 
@@ -231,7 +229,6 @@ class dataProcessingV2 extends QScript {
     // Generate a BAM file per sample joining all per lane files if necessary
     val sampleBamFiles: Map[String, File] = createSampleFiles(bams)
 
-    //todo -- (option - BWA) run BWA on each bam file (per lane bam file) before performing per sample processing
     if (useBWApe || useBWAse) {
       performAlignment(sampleBamFiles)
     }
@@ -328,7 +325,6 @@ class dataProcessingV2 extends QScript {
     this.useOnlyKnownIndels = knownsOnly
     this.doNotUseSW = !useSW
     this.compress = 0
-//    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outBam + ".clean"
     this.jobName = queueLogDir + outBam + ".clean"
@@ -353,7 +349,6 @@ class dataProcessingV2 extends QScript {
     this.out = outBam
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
-//    this.U = org.broadinstitute.sting.gatk.arguments.ValidationExclusion.TYPE.NO_READ_ORDER_VERIFICATION  // todo -- update this with the last consensus between Tim, Matt and Eric. This is ugly!
     this.scatterCount = nContigs
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
