@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.vcf.VCFCodec;
 import org.broad.tribble.vcf.VCFHeader;
 import org.broad.tribble.vcf.VCFHeaderLine;
@@ -9,6 +10,7 @@ import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import org.testng.annotations.Test;
 
+import java.io.StringBufferInputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -19,54 +21,50 @@ import java.util.Set;
 public class CombineVariantsUnitTest {
 
     // this header is a small subset of the header in VCFHeaderUnitTest: VCF4headerStrings
-    public static String[] VCF4headerStringsSmallSubset = {
-                "##fileformat=VCFv4.0",
-                "##filedate=2010-06-21",
-                "##reference=NCBI36",
-                "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">",
-                "##INFO=<ID=DP, Number=1, Type=Integer, Description=\"Total number of reads in haplotype window\">",
-                "##INFO=<ID=AF, Number=1, Type=Float, Description=\"Dindel estimated population allele frequency\">",
-                "##FILTER=<ID=NoQCALL, Description=\"Variant called by Dindel but not confirmed by QCALL\">",
-                "##FORMAT=<ID=GT, Number=1, Type=String, Description=\"Genotype\">",
-                "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">",
-                "##FORMAT=<ID=GQ, Number=1, Type=Integer, Description=\"Genotype quality\">",
-                };
+    public static String VCF4headerStringsSmallSubset =
+                "##fileformat=VCFv4.0\n" +
+                "##filedate=2010-06-21\n"+
+                "##reference=NCBI36\n"+
+                "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">\n"+
+                "##INFO=<ID=DP, Number=1, Type=Integer, Description=\"Total number of reads in haplotype window\">\n"+
+                "##INFO=<ID=AF, Number=1, Type=Float, Description=\"Dindel estimated population allele frequency\">\n"+
+                "##FILTER=<ID=NoQCALL, Description=\"Variant called by Dindel but not confirmed by QCALL\">\n"+
+                "##FORMAT=<ID=GT, Number=1, Type=String, Description=\"Genotype\">\n"+
+                "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">\n"+
+                "##FORMAT=<ID=GQ, Number=1, Type=Integer, Description=\"Genotype quality\">\n"+
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
 
     // altered info field
-    public static String[] VCF4headerStringsBrokenInfo = {
-                "##fileformat=VCFv4.0",
-                "##filedate=2010-06-21",
-                "##reference=NCBI36",
-                "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">",
-                "##INFO=<ID=DP, Number=1, Type=Integer, Description=\"Total number of reads in haplotype window\">",
-                "##INFO=<ID=AF, Number=1, Type=String, Description=\"Dindel estimated population allele frequency\">", // string to integer
-                "##FILTER=<ID=NoQCALL, Description=\"Variant called by Dindel but not confirmed by QCALL\">",
-                "##FORMAT=<ID=GT, Number=1, Type=String, Description=\"Genotype\">",
-                "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">",
-                "##FORMAT=<ID=GQ, Number=1, Type=Integer, Description=\"Genotype quality\">",
-                };
+    public static String VCF4headerStringsBrokenInfo =
+                "##fileformat=VCFv4.0\n"+
+                "##filedate=2010-06-21\n"+
+                "##reference=NCBI36\n"+
+                "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">\n"+
+                "##INFO=<ID=DP, Number=1, Type=Integer, Description=\"Total number of reads in haplotype window\">\n"+
+                "##INFO=<ID=AF, Number=1, Type=String, Description=\"Dindel estimated population allele frequency\">\n"+ // string to integer
+                "##FILTER=<ID=NoQCALL, Description=\"Variant called by Dindel but not confirmed by QCALL\">\n"+
+                "##FORMAT=<ID=GT, Number=1, Type=String, Description=\"Genotype\">\n"+
+                "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">\n"+
+                "##FORMAT=<ID=GQ, Number=1, Type=Integer, Description=\"Genotype quality\">\n"+
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
 
     // altered format field
-    public static String[] VCF4headerStringsBrokenFormat = {
-                "##fileformat=VCFv4.0",
-                "##filedate=2010-06-21",
-                "##reference=NCBI36",
-                "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">",
-                "##INFO=<ID=DP, Number=1, Type=Integer, Description=\"Total number of reads in haplotype window\">",
-                "##INFO=<ID=AF, Number=1, Type=Float, Description=\"Dindel estimated population allele frequency\">",
-                "##FILTER=<ID=NoQCALL, Description=\"Variant called by Dindel but not confirmed by QCALL\">",
-                "##FORMAT=<ID=GT, Number=6, Type=String, Description=\"Genotype\">", // changed 1 to 6 here
-                "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">",
-                "##FORMAT=<ID=GQ, Number=1, Type=Integer, Description=\"Genotype quality\">",
-                };
+    public static String VCF4headerStringsBrokenFormat =
+                "##fileformat=VCFv4.0\n"+
+                "##filedate=2010-06-21\n"+
+                "##reference=NCBI36\n"+
+                "##INFO=<ID=GC, Number=0, Type=Flag, Description=\"Overlap with Gencode CCDS coding sequence\">\n"+
+                "##INFO=<ID=DP, Number=1, Type=Integer, Description=\"Total number of reads in haplotype window\">\n"+
+                "##INFO=<ID=AF, Number=1, Type=Float, Description=\"Dindel estimated population allele frequency\">\n"+
+                "##FILTER=<ID=NoQCALL, Description=\"Variant called by Dindel but not confirmed by QCALL\">\n"+
+                "##FORMAT=<ID=GT, Number=6, Type=String, Description=\"Genotype\">\n"+ // changed 1 to 6 here
+                "##FORMAT=<ID=HQ, Number=2, Type=Integer, Description=\"Haplotype quality\">\n"+
+                "##FORMAT=<ID=GQ, Number=1, Type=Integer, Description=\"Genotype quality\">\n"+
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n";
 
-    private VCFHeader createHeader(String[] headerStr) {
+    private VCFHeader createHeader(String headerStr) {
         VCFCodec codec = new VCFCodec();
-        List<String> headerFields = new ArrayList<String>();
-        for (String str : headerStr)
-            headerFields.add(str);
-        VCFHeader head = (VCFHeader)codec.createHeader(headerFields,"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO");
-        Assert.assertEquals(head.getMetaData().size(), headerStr.length /* for the # line */);
+        VCFHeader head = (VCFHeader)codec.readHeader(new AsciiLineReader(new StringBufferInputStream(headerStr)));
         return head;
     }
 
@@ -78,7 +76,7 @@ public class CombineVariantsUnitTest {
         headers.add(one);
         headers.add(two);
         Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(headers, null);
-        Assert.assertEquals(lines.size(), VCFHeaderUnitTest.VCF4headerStrings.length);
+        Assert.assertEquals(lines.size(), VCFHeaderUnitTest.VCF4headerStringCount);
     }
 
     @Test(expectedExceptions=IllegalStateException.class)
@@ -89,7 +87,7 @@ public class CombineVariantsUnitTest {
         headers.add(one);
         headers.add(two);
         Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(headers, null);
-        Assert.assertEquals(lines.size(), VCFHeaderUnitTest.VCF4headerStrings.length);
+        Assert.assertEquals(lines.size(), VCFHeaderUnitTest.VCF4headerStringCount);
     }
 
     @Test
@@ -100,6 +98,6 @@ public class CombineVariantsUnitTest {
         headers.add(one);
         headers.add(two);
         Set<VCFHeaderLine> lines = VCFUtils.smartMergeHeaders(headers, null);
-        Assert.assertEquals(lines.size(), VCFHeaderUnitTest.VCF4headerStrings.length);
+        Assert.assertEquals(lines.size(), VCFHeaderUnitTest.VCF4headerStringCount);
     }
 }
