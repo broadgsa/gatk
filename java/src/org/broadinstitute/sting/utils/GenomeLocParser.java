@@ -435,7 +435,7 @@ public class GenomeLocParser {
             // read is unmapped and not placed anywhere on the genome
             return GenomeLoc.UNMAPPED;
         else {
-            //
+            // Use Math.max to ensure that end >= start (Picard assigns the end to reads that are entirely within an insertion as start-1)
             int end = read.getReadUnmappedFlag() ? read.getAlignmentStart() : Math.max(read.getAlignmentEnd(), read.getAlignmentStart());
             return createGenomeLoc(read.getReferenceName(), read.getReferenceIndex(), read.getAlignmentStart(), end, false);
         }
