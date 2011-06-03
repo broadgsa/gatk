@@ -32,6 +32,7 @@ import org.broadinstitute.sting.utils.pileup.FragmentPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import static java.lang.Math.log10;
 import static java.lang.Math.pow;
@@ -270,8 +271,18 @@ public class DiploidSNPGenotypeLikelihoods implements Cloneable {
     }
     public int add(PileupElement elt, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {
         byte obsBase = elt.getBase();
-        byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
-        return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0) : 0;
+
+        if ( elt.isReducedRead() ) {
+            // reduced read representation
+            byte qual = elt.getReducedQual();
+            for ( int i = 0; i < elt.getReducedCount(); i++ ) {
+                add(obsBase, qual, (byte)0, (byte)0);
+            }
+            return elt.getQual();
+        } else {
+            byte qual = qualToUse(elt, ignoreBadBases, capBaseQualsAtMappingQual, minBaseQual);
+            return qual > 0 ? add(obsBase, qual, (byte)0, (byte)0) : 0;
+        }
     }
 
     public int add(FragmentPileup.TwoReadPileupElement twoRead, boolean ignoreBadBases, boolean capBaseQualsAtMappingQual, int minBaseQual) {

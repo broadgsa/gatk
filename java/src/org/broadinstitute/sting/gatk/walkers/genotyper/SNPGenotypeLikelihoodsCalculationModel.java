@@ -156,7 +156,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             ReadBackedPileup pileup = useBAQedPileup ? createBAQedPileup( sample.getValue().getBasePileup() ) : sample.getValue().getBasePileup();
             for ( PileupElement p : pileup ) {
                 // ignore deletions
-                if ( p.isDeletion() || p.getQual() < UAC.MIN_BASE_QUALTY_SCORE )
+                if ( p.isDeletion() || (! p.isReducedRead() && p.getQual() < UAC.MIN_BASE_QUALTY_SCORE ))
                     continue;
 
                 final int index = BaseUtils.simpleBaseToBaseIndex(p.getBase());

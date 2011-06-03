@@ -2,13 +2,14 @@ package org.broadinstitute.sting.utils.pileup;
 
 import org.broadinstitute.sting.utils.*;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
+import com.google.java.contract.*;
 
 /**
  * Created by IntelliJ IDEA.
  * User: depristo
  * Date: Apr 14, 2009
  * Time: 8:54:05 AM
- * To change this template use File | Settings | File Templates.
  */
 public class PileupElement {
     public static final byte DELETION_BASE = BaseUtils.D;
@@ -18,9 +19,13 @@ public class PileupElement {
     public static final byte T_FOLLOWED_BY_INSERTION_BASE = (byte) 89;
     public static final byte G_FOLLOWED_BY_INSERTION_BASE = (byte) 90;
 
-    protected SAMRecord read;
-    protected int offset;
+    protected final SAMRecord read;
+    protected final int offset;
 
+    @Requires({
+            "read != null",
+            "offset >= -1",
+            "offset <= read.getReadLength()"})
     public PileupElement( SAMRecord read, int offset ) {
         this.read = read;
         this.offset = offset;
@@ -30,7 +35,10 @@ public class PileupElement {
         return offset == -1;
     }
 
+    @Ensures("result != null")
     public SAMRecord getRead() { return read; }
+
+    @Ensures("result == offset")
     public int getOffset() { return offset; }
 
     public byte getBase() {
@@ -45,8 +53,11 @@ public class PileupElement {
         return getQual(offset);
     }
 
-    public int getMappingQual() { return read.getMappingQuality(); }
+    public int getMappingQual() {
+        return read.getMappingQuality();
+    }
 
+    @Ensures("result != null")
     public String toString() {
         return String.format("%s @ %d = %c Q%d", getRead().getReadName(), getOffset(), (char)getBase(), getQual());
     }
@@ -62,4 +73,27 @@ public class PileupElement {
     protected byte getQual(final int offset) {
         return isDeletion() ? DELETION_QUAL : read.getBaseQualities()[offset];
     }
+
+    // --------------------------------------------------------------------------
+    //
+    // Reduced read accessors
+    //
+    // --------------------------------------------------------------------------
+
+    private Integer getReducedReadQualityTagValue() {
+        return (Integer)getRead().getAttribute(ReadUtils.REDUCED_READ_QUALITY_TAG);
+    }
+
+    public boolean isReducedRead() {
+        return getReducedReadQualityTagValue() != null;
+    }
+
+    public int getReducedCount() {
+        return (int)getQual();
+    }
+
+    public byte getReducedQual() {
+        return (byte)(int)getReducedReadQualityTagValue();
+    }
+
 }
