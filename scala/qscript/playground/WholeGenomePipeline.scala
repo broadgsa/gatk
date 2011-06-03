@@ -42,6 +42,9 @@ class WholeGenomePipeline extends QScript {
   @Argument(doc="Chunk size. Defaults to 3,000,000", shortName="chunk", required=false)
   var chunkSize = 3000000
 
+  @Argument(doc="Memory limit. Defaults to 4g", shortName="pipeMemory", required=false)
+  var pipelineMemoryLimit = 4
+
   val resources = "/humgen/gsa-pipeline/resources/5777/b37/"
   val reference = resources + "human_g1k_v37.fasta"
   val dbsnp = resources + "dbsnp_132.b37.vcf"
@@ -52,7 +55,7 @@ class WholeGenomePipeline extends QScript {
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.reference_sequence = reference
     this.intervalsString = runIntervals
-    this.memoryLimit = 2
+    this.memoryLimit = pipelineMemoryLimit
   }
 
   case class Interval(chr: String, start: Long, stop: Long) {
@@ -214,6 +217,7 @@ class WholeGenomePipeline extends QScript {
     vr.tranches_file = projectBase + ".tranches"
     vr.recal_file = projectBase + ".recal"
     vr.jobOutputFile = vr.recal_file + ".out"
+    vr.memoryLimit = 32
     add(vr)
 
     for (tranche <- vr.TStranche) {
@@ -224,6 +228,7 @@ class WholeGenomePipeline extends QScript {
       ar.ts_filter_level = tranche.toDouble
       ar.out = projectBase + ".recalibrated." + tranche + ".vcf"
       ar.jobOutputFile = ar.out + ".out"
+      ar.memoryLimit = 32
       add(ar)
 
       val eval = new VariantEval with CommandLineGATKArgs
@@ -233,9 +238,10 @@ class WholeGenomePipeline extends QScript {
       eval.doNotUseAllStandardStratifications = true
       eval.doNotUseAllStandardModules = true
       eval.evalModule = List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
-      eval.stratificationModule = List("EvalRod", "CompRod", "Novelty", "Filter", "FunctionalClass", "Sample")
+      eval.stratificationModule = List("EvalRod", "CompRod", "Novelty")
       eval.out = swapExt(ar.out, ".vcf", ".eval")
       eval.jobOutputFile = eval.out + ".out"
+      eval.memoryLimit = 32
       add(eval)
     }
   }

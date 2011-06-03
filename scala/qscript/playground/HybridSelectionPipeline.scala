@@ -36,21 +36,24 @@ class HybridSelectionPipeline extends QScript {
   @Argument(doc="the YAML file specifying inputs, interval lists, reference sequence, etc.", shortName="Y")
   var yamlFile: File = _
 
-  @Input(doc="level of parallelism for UnifiedGenotyper. By default is set to 20.", shortName="varScatter", required=false)
+  @Input(doc="level of parallelism for UnifiedGenotyper. By default set to 20.", shortName="varScatter", required=false)
   var variantCallerScatterCount = 20
 
-  @Argument(doc="memory limit for UnifiedGenotyper. By default is set to 4g.", shortName="varMemory", required=false)
-  var variantCallerMemory = 4
+  @Argument(doc="memory limit for UnifiedGenotyper. By default set to 2g.", shortName="varMemory", required=false)
+  var variantCallerMemory = 2
 
-  @Argument(doc="expand each target in input intervals by the specified number of bases (50 bases by default)", shortName="expand", required=false)
+  @Argument(doc="expand each target in input intervals by the specified number of bases. By default set to 50 bases.", shortName="expand", required=false)
   var expandIntervals = 50
+
+  @Argument(doc="pipeline memory limit. By default set to 2g.", shortName="pipeMemory", required=false)
+  var pipelineMemoryLimit = 2
 
   private var pipeline: Pipeline = _
 
   trait CommandLineGATKArgs extends CommandLineGATK {
     this.reference_sequence = qscript.pipeline.getProject.getReferenceFile
     this.intervals = List(qscript.pipeline.getProject.getIntervalList)
-    this.memoryLimit = 4
+    this.memoryLimit = pipelineMemoryLimit
   }
 
   def script() {
