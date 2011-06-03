@@ -53,11 +53,11 @@ public class CNVstatsWalker extends RodWalker<CNVstatistics, CNVstatistics> {
     @Output(doc = "File to which copy number counts should be written", required = true)
     protected PrintStream out;
 
-    @Argument(fullName = "alleleCountsCopyCounts", shortName = "AC_CC", doc = "File to which discovered allele copy and copy number counts should be written", required = false)
-    private PrintStream alleleCountsCopyCounts = null;
+    @Argument(fullName = "alleleCountsCopyNumberFreqs", shortName = "AC_CNF", doc = "File to which discovered allele copy and copy number frequencies should be written", required = false)
+    private PrintStream alleleCountsCopyNumberFreqs = null;
 
-    @Argument(fullName = "allowFilteredGenotypes", shortName = "allowFilteredGenotypes", doc = "Include filtered genotypes in the output/calculations", required = false)
-    private boolean ALLOW_FILTERED_GENOTYPES = false;
+    @Argument(fullName = "minFracPassGt", shortName = "minFracPassGt", doc = "Minimum fraction of callable genotypes required to report any genotypes at all", required = false)
+    private double minFracPassGt = 0.0;
 
     private LinkedList<String> rodNames = null;
 
@@ -100,7 +100,7 @@ public class CNVstatsWalker extends RodWalker<CNVstatistics, CNVstatistics> {
         boolean requireStartHere = true; // only see each VariantContext once
         boolean takeFirstOnly = false; // take as many entries as the VCF file has
         for (VariantContext vc : tracker.getVariantContexts(ref, rodNames, null, context.getLocation(), requireStartHere, takeFirstOnly)) {
-            if (vc.isMixed() && vc.isBiallelic()) {
+            if (vc.isSymbolic() && vc.isBiallelic()) {
                 Allele altAll = vc.getAlternateAllele(0);
                 if (altAll.isSymbolic() && altAll.getDisplayString().equals(CNV_TAG)) {
                     logger.debug("Found CNV at locus...");
@@ -113,7 +113,7 @@ public class CNVstatsWalker extends RodWalker<CNVstatistics, CNVstatistics> {
                     for (Map.Entry<String, Genotype> gtEntry : vc.getGenotypes().entrySet()) {
                         Genotype gt = gtEntry.getValue();
                         Integer copyNum = gt.getAttributeAsIntegerNoException(CN_FIELD);
-                        if (copyNum != null && (ALLOW_FILTERED_GENOTYPES || gt.isNotFiltered())) {
+                        if (copyNum != null && gt.isNotFiltered()) {
                             cnc.incrementCopyNumber(copyNum);
 
                             if (copyNum == DIPLOID)
@@ -123,14 +123,20 @@ public class CNVstatsWalker extends RodWalker<CNVstatistics, CNVstatistics> {
                         }
                     }
 
-                    if (hasDiploidGt && hasNonDiploidGt) {
-                        stats.diploidAndNonDiploidLoci++;
+                    double calledFreq = ((double) cnc.calledCount()) / vc.getNSamples();
+                    if (calledFreq < minFracPassGt) { // reset data as if it did not appear
+                        cnc.resetCounts();
                     }
                     else {
-                        if (hasDiploidGt)
-                            stats.diploidOnlyLoci++;
-                        if (hasNonDiploidGt)
-                            stats.nonDiploidOnlyLoci++;
+                        if (hasDiploidGt && hasNonDiploidGt) {
+                            stats.diploidAndNonDiploidLoci++;
+                        }
+                        else {
+                            if (hasDiploidGt)
+                                stats.diploidOnlyLoci++;
+                            if (hasNonDiploidGt)
+                                stats.nonDiploidOnlyLoci++;
+                        }
                     }
 
                     int cnvEnd = vc.getEnd();
@@ -145,12 +151,12 @@ public class CNVstatsWalker extends RodWalker<CNVstatistics, CNVstatistics> {
                     }
                     out.println();
 
-                    if (alleleCountsCopyCounts != null) {
+                    if (alleleCountsCopyNumberFreqs != null) {
                         Integer ac = vc.getAttributeAsIntegerNoException(AC_FIELD);
-                        CopyNumberCounts.DeletionDuplicationCounts counts = cnc.deletionDuplicationCounts();
-                        double cnvCount = counts.deletionCount + counts.duplicationCount;
+                        CopyNumberCounts.DeletionDuplicationFreqs freqs = cnc.deletionDuplicationFreqs();
+                        double cnvCount = freqs.deletionFreq + freqs.duplicationFreq;
 
-                        alleleCountsCopyCounts.println(vcLoc + "\t" + ac + "\t" + counts.deletionCount + "\t" + counts.duplicationCount + "\t" + cnvCount);
+                        alleleCountsCopyNumberFreqs.println(vcLoc + "\t" + ac + "\t" + freqs.deletionFreq + "\t" + freqs.duplicationFreq + "\t" + cnvCount);
                     }
                 }
             }
@@ -235,9 +241,11 @@ class CNVstatistics {
 
 class CopyNumberCounts {
     private Map<Integer, Integer> copyNumToCountsMap;
+    private int calledCount;
 
     public CopyNumberCounts() {
         this.copyNumToCountsMap = new TreeMap<Integer, Integer>();
+        this.resetCounts();
     }
 
     public void incrementCopyNumber(int copyNum) {
@@ -246,43 +254,53 @@ class CopyNumberCounts {
             count = 0;
 
         copyNumToCountsMap.put(copyNum, count + 1);
+        calledCount++;
     }
-    
+
     public Set<Map.Entry<Integer, Integer>> entrySet() {
         return copyNumToCountsMap.entrySet();
     }
 
-    class DeletionDuplicationCounts {
-        public double deletionCount;
-        public double duplicationCount;
+    public int calledCount() {
+        return calledCount;
+    }
 
-        public DeletionDuplicationCounts() {
-            this.deletionCount = 0;
-            this.duplicationCount = 0;
+    public void resetCounts() {
+        copyNumToCountsMap.clear();
+        calledCount = 0;
+    }
+
+    class DeletionDuplicationFreqs {
+        public double deletionFreq;
+        public double duplicationFreq;
+
+        public DeletionDuplicationFreqs() {
+            this.deletionFreq = 0;
+            this.duplicationFreq = 0;
         }
     }
 
-    public DeletionDuplicationCounts deletionDuplicationCounts() {
+    public DeletionDuplicationFreqs deletionDuplicationFreqs() {
         int total = 0;
-        DeletionDuplicationCounts counts = new DeletionDuplicationCounts();
+        DeletionDuplicationFreqs freqs = new DeletionDuplicationFreqs();
 
         for (Map.Entry<Integer, Integer> copyNumEntry : this.entrySet()) {
             int copyNum = copyNumEntry.getKey();
             int count = copyNumEntry.getValue();
 
             if (copyNum < CNVstatsWalker.DIPLOID) {
-                counts.deletionCount += count;
+                freqs.deletionFreq += count;
             }
             else if (copyNum > CNVstatsWalker.DIPLOID) {
-                counts.duplicationCount += count;
+                freqs.duplicationFreq += count;
             }
 
             total += count;
         }
 
-        //counts.deletionCount /= total;
-        //counts.duplicationCount /= total;
+        freqs.deletionFreq /= total;
+        freqs.duplicationFreq /= total;
 
-        return counts;
+        return freqs;
     }
 }
