@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 
 import java.util.ArrayList;
 
@@ -19,10 +20,15 @@ public class MultiallelicGenotypeLikelihoods {
 
     public MultiallelicGenotypeLikelihoods(String sample,
                                          ArrayList<Allele> A,
-                                         double[] log10AALikelihoods, int depth) {
+                                         double[] log10Likelihoods, int depth) {
+        /* Check for consistency between likelihood vector and number of alleles */
+        int numAlleles = A.size();
+        if (log10Likelihoods.length != numAlleles*(numAlleles+1)/2)
+            throw new StingException(("BUG: Incorrect length of GL vector when creating MultiallelicGenotypeLikelihoods object!"));
+
          this.sample = sample;
          this.alleleList = A;
-         this.GLs = log10AALikelihoods;
+         this.GLs = log10Likelihoods;
          this.depth = depth;
      }
 

@@ -82,7 +82,9 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
     public boolean includeReadsWithDeletionAtLoci() { return true; }
 
     // enable extended events for indels
-    public boolean generateExtendedEvents() { return UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP; }
+    public boolean generateExtendedEvents() {
+        return (UAC.GLmodel != GenotypeLikelihoodsCalculationModel.Model.SNP && UAC.GenotypingMode != GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES);
+    }
 
     /**
      * Inner class for collecting output statistics from the UG

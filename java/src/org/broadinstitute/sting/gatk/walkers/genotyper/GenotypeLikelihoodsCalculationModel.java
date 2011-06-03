@@ -88,7 +88,7 @@ public abstract class GenotypeLikelihoodsCalculationModel implements Cloneable {
                                           Map<String, AlignmentContext> contexts,
                                           AlignmentContextUtils.ReadOrientation contextType,
                                           GenotypePriors priors,
-                                          Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                          Map<String, MultiallelicGenotypeLikelihoods> GLs,
                                           Allele alternateAlleleToUse, boolean useBAQedPileup);
 
     protected int getFilteredDepth(ReadBackedPileup pileup) {

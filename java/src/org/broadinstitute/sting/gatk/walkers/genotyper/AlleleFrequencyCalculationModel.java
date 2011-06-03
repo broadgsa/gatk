@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.apache.log4j.Logger;
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -66,12 +67,13 @@ public abstract class AlleleFrequencyCalculationModel implements Cloneable {
      * @param tracker                         rod data
      * @param ref                             reference context
      * @param GLs                             genotype likelihoods
+     * @param Alleles                       Alleles corresponding to GLs
      * @param log10AlleleFrequencyPriors      priors
      * @param log10AlleleFrequencyPosteriors  array (pre-allocated) to store results
      */
     protected abstract void getLog10PNonRef(RefMetaDataTracker tracker,
                                             ReferenceContext ref,
-                                            Map<String, Genotype> GLs,
+                                            Map<String, Genotype> GLs,  Set<Allele> Alleles,
                                             double[] log10AlleleFrequencyPriors,
                                             double[] log10AlleleFrequencyPosteriors);
 

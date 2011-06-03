@@ -79,7 +79,7 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
                                  Map<String, AlignmentContext> contexts,
                                  AlignmentContextUtils.ReadOrientation contextType,
                                  GenotypePriors priors,
-                                 Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                 Map<String, MultiallelicGenotypeLikelihoods> GLs,
                                  Allele alternateAlleleToUse,
                                  boolean useBAQedPileup) {
 
@@ -136,13 +136,12 @@ public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsC
             DiploidGenotype refGenotype = DiploidGenotype.createHomGenotype(refBase);
             DiploidGenotype hetGenotype = DiploidGenotype.createDiploidGenotype(refBase, bestAlternateAllele);
             DiploidGenotype homGenotype = DiploidGenotype.createHomGenotype(bestAlternateAllele);
-            GLs.put(sample.getKey(), new BiallelicGenotypeLikelihoods(sample.getKey(),
-                    refAllele,
-                    altAllele,
-                    likelihoods[refGenotype.ordinal()],
-                    likelihoods[hetGenotype.ordinal()],
-                    likelihoods[homGenotype.ordinal()],
-                    getFilteredDepth(pileup)));
+            ArrayList<Allele> aList = new ArrayList<Allele>();
+            aList.add(refAllele);
+            aList.add(altAllele);
+            double[] dlike = new double[]{likelihoods[refGenotype.ordinal()],likelihoods[hetGenotype.ordinal()],likelihoods[homGenotype.ordinal()]} ;
+            GLs.put(sample.getKey(), new MultiallelicGenotypeLikelihoods(sample.getKey(),
+                    aList,  dlike, getFilteredDepth(pileup)));
         }
 
         return refAllele;

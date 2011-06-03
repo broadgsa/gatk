@@ -60,7 +60,13 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     private PairHMMIndelErrorModel pairModel;
 
-    private HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap;
+    private static ThreadLocal<HashMap<PileupElement,LinkedHashMap<Allele,Double>>> indelLikelihoodMap =
+            new ThreadLocal<HashMap<PileupElement,LinkedHashMap<Allele,Double>>>() {
+            protected synchronized HashMap<PileupElement,LinkedHashMap<Allele,Double>> initialValue() {
+                return new HashMap<PileupElement,LinkedHashMap<Allele,Double>>();
+        }
+    };
+
     private LinkedHashMap<Allele,Haplotype> haplotypeMap;
 
     // gdebug removeme
@@ -69,7 +75,12 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
     private boolean useOldWrongHorribleHackedUpLikelihoodModel = false;
 //
     private GenomeLoc lastSiteVisited;
-    private List<Allele> alleleList;
+    private ArrayList<Allele> alleleList;
+
+    static {
+        indelLikelihoodMap.set(new HashMap<PileupElement,LinkedHashMap<Allele,Double>>());
+    }
+
 
     protected IndelGenotypeLikelihoodsCalculationModel(UnifiedArgumentCollection UAC, Logger logger) {
         super(UAC, logger);
@@ -99,7 +110,6 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         HAPLOTYPE_SIZE = UAC.INDEL_HAPLOTYPE_SIZE;
         DEBUG = UAC.OUTPUT_DEBUG_INDEL_INFO;
 
-        indelLikelihoodMap = new HashMap<PileupElement,LinkedHashMap<Allele,Double>>();
         haplotypeMap = new LinkedHashMap<Allele,Haplotype>();
 
     }
@@ -289,7 +299,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                                  Map<String, AlignmentContext> contexts,
                                  AlignmentContextUtils.ReadOrientation contextType,
                                  GenotypePriors priors,
-                                 Map<String, BiallelicGenotypeLikelihoods> GLs,
+                                 Map<String, MultiallelicGenotypeLikelihoods> GLs,
                                  Allele alternateAlleleToUse,
                                  boolean useBAQedPileup) {
 
@@ -305,23 +315,21 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             // starting a new site: clear allele list
             alleleList.clear();
             lastSiteVisited = ref.getLocus();
-            indelLikelihoodMap.clear();
+            indelLikelihoodMap.set(new HashMap<PileupElement,LinkedHashMap<Allele,Double>>());
             haplotypeMap.clear();
 
             if (getAlleleListFromVCF) {
-
-                 for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles", null, ref.getLocus(), false, false) ) {
-                     if( vc_input != null && ! vc_input.isFiltered() && vc_input.isIndel() && ref.getLocus().getStart() == vc_input.getStart()) {
+                 EnumSet<VariantContext.Type> allowableTypes = EnumSet.of(VariantContext.Type.INDEL);
+                 allowableTypes.add(VariantContext.Type.MIXED);
+                 for( final VariantContext vc_input : tracker.getVariantContexts(ref, "alleles",
+                         allowableTypes, ref.getLocus(), false, false) ) {
+                      if( vc_input != null && ref.getLocus().getStart() == vc_input.getStart()) {
                          vc = vc_input;
                          break;
                      }
                  }
                  // ignore places where we don't have a variant
                  if ( vc == null )
-                     return null;
-
-
-                 if (!vc.isIndel())
                      return null;
 
                 alleleList.clear();
@@ -350,11 +358,19 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         
         refAllele = alleleList.get(0);
         altAllele = alleleList.get(1);
+
+        // look for alt allele that has biggest length distance to ref allele
+        int maxLenDiff = 0;
+        for (Allele a: alleleList) {
+            if(a.isNonReference())  {
+                int lenDiff = Math.abs(a.getBaseString().length() - refAllele.getBaseString().length());
+                if (lenDiff > maxLenDiff) {
+                    maxLenDiff = lenDiff;
+                    altAllele = a;
+                }
+            }
+        }
         int eventLength = altAllele.getBaseString().length() - refAllele.getBaseString().length();
-        // assume only one alt allele for now
-
-        //List<Haplotype> haplotypesInVC;
-
         int hsize = (int)ref.getWindow().size()-Math.abs(eventLength)-1;
         int numPrefBases= ref.getLocus().getStart()-ref.getWindow().getStart()+1;
 
@@ -386,27 +402,34 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
             if (pileup != null ) {
                 double[] genotypeLikelihoods;
                 if (useOldWrongHorribleHackedUpLikelihoodModel)
-                    genotypeLikelihoods = model.computeReadHaplotypeLikelihoods( pileup, haplotypeMap);
+                   genotypeLikelihoods = model.computeReadHaplotypeLikelihoods( pileup, haplotypeMap);
                 else
-                    genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypeMap, ref, HAPLOTYPE_SIZE, eventLength, indelLikelihoodMap);
+                    genotypeLikelihoods = pairModel.computeReadHaplotypeLikelihoods( pileup, haplotypeMap, ref, eventLength, getIndelLikelihoodMap());
 
 
 
-                GLs.put(sample.getKey(), new BiallelicGenotypeLikelihoods(sample.getKey(),
-                        refAllele,
-                        altAllele,
-                        genotypeLikelihoods[0],
-                        genotypeLikelihoods[1],
-                        genotypeLikelihoods[2],
+                // which genotype likelihoods correspond to two most likely alleles? By convention, likelihood vector is lexically ordered, for example
+                // for 3 alleles it's 00 01 02 11 12 22
+                 GLs.put(sample.getKey(), new MultiallelicGenotypeLikelihoods(sample.getKey(),
+                        alleleList,
+                        genotypeLikelihoods,
                         getFilteredDepth(pileup)));
-                if (DEBUG)
-                    System.out.format("Sample:%s GL:%4.2f %4.2f %4.2f\n",sample.getKey(), genotypeLikelihoods[0],genotypeLikelihoods[1], genotypeLikelihoods[2]);
+
+                if (DEBUG) {
+                    System.out.format("Sample:%s Alleles:%s GL:",sample.getKey(), alleleList.toString());
+                    for (int k=0; k < genotypeLikelihoods.length; k++)
+                        System.out.format("%1.4f ",genotypeLikelihoods[k]);
+                    System.out.println();
+                }
             }
         }
 
         return refAllele;
     }
 
- 
+
+    public static HashMap<PileupElement,LinkedHashMap<Allele,Double>> getIndelLikelihoodMap() {
+        return indelLikelihoodMap.get();
+    }
 
 }

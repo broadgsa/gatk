@@ -58,7 +58,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     private boolean SIMPLE_GREEDY_GENOTYPER = false;
 
- 
+
 
     final private ExactCalculation calcToUse;
     protected ExactAFCalculationModel(UnifiedArgumentCollection UAC, int N, Logger logger, PrintStream verboseWriter) {
@@ -68,7 +68,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     public void getLog10PNonRef(RefMetaDataTracker tracker,
                                 ReferenceContext ref,
-                                Map<String, Genotype> GLs,
+                                Map<String, Genotype> GLs, Set<Allele>alleles,
                                 double[] log10AlleleFrequencyPriors,
                                 double[] log10AlleleFrequencyPosteriors) {
         // todo -- REMOVE ME AFTER TESTING
@@ -78,11 +78,15 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         if ( COMPARE_TO_GS ) // due to annoying special values in incoming array, we have to clone up here
             gsPosteriors = log10AlleleFrequencyPosteriors.clone();
 
+        int idxAA = GenotypeType.AA.ordinal();
+        int idxAB = GenotypeType.AB.ordinal();
+        int idxBB = GenotypeType.BB.ordinal();
+
         // todo -- remove me after testing
         if ( N_CYCLES > 1 ) {
             for ( int i = 0; i < N_CYCLES; i++) {
                 timerGS.restart();
-                linearExact(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.clone());
+                linearExact(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors.clone(), idxAA, idxAB, idxBB);
                 timerGS.stop();
 
                 timerExpt.restart();
@@ -95,20 +99,60 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         }
 
         int lastK = -1;
-        switch ( calcToUse ) {
-            case N2_GOLD_STANDARD:
-                lastK = gdaN2GoldStandard(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors);
-                break;
-            case LINEAR_EXPERIMENTAL:
-                lastK = linearExact(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors);
-                break;
+
+        int numAlleles = alleles.size();
+
+        int idxDiag = numAlleles;
+        int incr = numAlleles - 1;
+
+        double[][] posteriorCache = new double[numAlleles-1][];
+        double[] bestAFguess = new double[numAlleles-1];
+
+        for (int k=1; k < numAlleles; k++) {
+            // multi-allelic approximation, part 1: Ideally
+            // for each alt allele compute marginal (suboptimal) posteriors -
+            // compute indices for AA,AB,BB for current allele - genotype likelihoods are a linear vector that can be thought of
+            // as a row-wise upper triangular matrix of likelihoods.
+            // So, for example, with 2 alt alleles, likelihoods have AA,AB,AC,BB,BC,CC.
+            // 3 alt alleles: AA,AB,AC,AD BB BC BD CC CD DD
+
+            idxAA = 0;
+            idxAB = k;
+            // yy is always element on the diagonal.
+            // 2 alleles: BBelement 2
+            // 3 alleles: BB element  3. CC element 5
+            // 4 alleles:
+            idxBB = idxDiag;
+            idxDiag += incr--;
+
+            // todo - possible cleanup
+            switch ( calcToUse ) {
+                case N2_GOLD_STANDARD:
+                    lastK = gdaN2GoldStandard(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors, idxAA, idxAB, idxBB);
+                    break;
+                case LINEAR_EXPERIMENTAL:
+                    lastK = linearExact(GLs, log10AlleleFrequencyPriors, log10AlleleFrequencyPosteriors, idxAA, idxAB, idxBB);
+                    break;
+            }
+            if (numAlleles > 2) {
+                posteriorCache[k-1] = log10AlleleFrequencyPosteriors.clone();
+                bestAFguess[k-1] = (double)MathUtils.maxElementIndex(log10AlleleFrequencyPosteriors);
+            }
         }
 
+        if (numAlleles > 2) {
+            // multiallelic approximation, part 2:
+            // report posteriors for allele that has highest estimated AC
+            int mostLikelyAlleleIdx = MathUtils.maxElementIndex(bestAFguess);
+            for (int k=0; k < log10AlleleFrequencyPosteriors.length-1; k++)
+                log10AlleleFrequencyPosteriors[k] = (posteriorCache[mostLikelyAlleleIdx][k]);
+
+        }
         // todo -- REMOVE ME AFTER TESTING
         // todo -- REMOVE ME AFTER TESTING
         // todo -- REMOVE ME AFTER TESTING
         if ( COMPARE_TO_GS ) {
-            gdaN2GoldStandard(GLs, log10AlleleFrequencyPriors, gsPosteriors);
+            gdaN2GoldStandard(GLs, log10AlleleFrequencyPriors, gsPosteriors, idxAA, idxAB, idxBB);
 
             double log10thisPVar = Math.log10(MathUtils.normalizeFromLog10(log10AlleleFrequencyPosteriors)[0]);
             double log10gsPVar = Math.log10(MathUtils.normalizeFromLog10(gsPosteriors)[0]);
@@ -268,7 +312,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
     public int linearExact(Map<String, Genotype> GLs,
                            double[] log10AlleleFrequencyPriors,
-                           double[] log10AlleleFrequencyPosteriors) {
+                           double[] log10AlleleFrequencyPosteriors, int idxAA, int idxAB, int idxBB) {
         final int numSamples = GLs.size();
         final int numChr = 2*numSamples;
         final double[][] genotypeLikelihoods = getGLs(GLs);
@@ -285,7 +329,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             if ( k == 0 ) { // special case for k = 0
                 for ( int j=1; j <= numSamples; j++ ) {
-                    kMinus0[j] = kMinus0[j-1] + genotypeLikelihoods[j][GenotypeType.AA.ordinal()];
+                    kMinus0[j] = kMinus0[j-1] + genotypeLikelihoods[j][idxAA];
                 }
             } else { // k > 0
                 final double[] kMinus1 = logY.getkMinus1();
@@ -298,14 +342,14 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                     double aa = Double.NEGATIVE_INFINITY;
                     double ab = Double.NEGATIVE_INFINITY;
                     if (k < 2*j-1)
-                        aa = MathUtils.log10Cache[2*j-k] + MathUtils.log10Cache[2*j-k-1] + kMinus0[j-1] + gl[GenotypeType.AA.ordinal()];
+                        aa = MathUtils.log10Cache[2*j-k] + MathUtils.log10Cache[2*j-k-1] + kMinus0[j-1] + gl[idxAA];
 
                     if (k < 2*j)
-                        ab = MathUtils.log10Cache[2*k] + MathUtils.log10Cache[2*j-k]+ kMinus1[j-1] + gl[GenotypeType.AB.ordinal()];
+                        ab = MathUtils.log10Cache[2*k] + MathUtils.log10Cache[2*j-k]+ kMinus1[j-1] + gl[idxAB];
 
                     double log10Max;
                     if (k > 1) {
-                        final double bb = MathUtils.log10Cache[k] + MathUtils.log10Cache[k-1] + kMinus2[j-1] + gl[GenotypeType.BB.ordinal()];
+                        final double bb = MathUtils.log10Cache[k] + MathUtils.log10Cache[k-1] + kMinus2[j-1] + gl[idxBB];
                         log10Max = approximateLog10SumLog10(aa, ab, bb);
                     } else {
                         // we know we aren't considering the BB case, so we can use an optimized log10 function
@@ -385,8 +429,10 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
         if ( !vc.isVariant() )
             throw new UserException("The VCF record passed in does not contain an ALT allele at " + vc.getChr() + ":" + vc.getStart());
 
-        Allele refAllele = vc.getReference();
-        Allele altAllele = vc.getAlternateAllele(0);
+        boolean multiAllelicRecord = false;
+
+        if (vc.getAlternateAlleles().size() > 1)
+            multiAllelicRecord = true;
 
         Map<String, Genotype> GLs = vc.getGenotypes();
         double[][] pathMetricArray = new double[GLs.size()+1][AFofMaxLikelihood+1];
@@ -402,7 +448,8 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
         pathMetricArray[0][0] = 0.0;
 
-        if (SIMPLE_GREEDY_GENOTYPER) {
+        // todo = can't deal with optimal dynamic programming solution with multiallelic records
+        if (SIMPLE_GREEDY_GENOTYPER || multiAllelicRecord) {
             sampleIndices.addAll(GLs.keySet());
             sampleIdx = GLs.size();
         }
@@ -453,7 +500,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             if ( !g.hasLikelihoods() )
                 continue;
 
-            if (SIMPLE_GREEDY_GENOTYPER)
+            if (SIMPLE_GREEDY_GENOTYPER || multiAllelicRecord)
                 bestGTguess = Utils.findIndexOfMaxEntry(g.getLikelihoods().getAsVector());
             else {
                 int newIdx = tracebackArray[k][startIdx];
@@ -463,24 +510,48 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             ArrayList<Allele> myAlleles = new ArrayList<Allele>();
 
-            double qual;
+            double qual = Double.NEGATIVE_INFINITY;
             double[] likelihoods = g.getLikelihoods().getAsVector();
+ /*           System.out.format("Sample: %s GL:",sample);
+            for (int i=0; i < likelihoods.length; i++)
+                System.out.format("%1.4f ",likelihoods[i]);
+    */
 
-            if (bestGTguess == 0) {
-                myAlleles.add(refAllele);
-                myAlleles.add(refAllele);
-                qual = likelihoods[0] - Math.max(likelihoods[1], likelihoods[2]);
-            } else if(bestGTguess == 1) {
-                myAlleles.add(refAllele);
-                myAlleles.add(altAllele);
-                qual = likelihoods[1] - Math.max(likelihoods[0], likelihoods[2]);
-
-            }  else {
-                myAlleles.add(altAllele);
-                myAlleles.add(altAllele);
-                qual = likelihoods[2] - Math.max(likelihoods[1], likelihoods[0]);
+            for (int i=0; i < likelihoods.length; i++) {
+                if (i==bestGTguess)
+                    continue;
+                if (likelihoods[i] >= qual)
+                    qual = likelihoods[i];
             }
+            // qual contains now max(likelihoods[k]) for all k != bestGTguess
+            qual = likelihoods[bestGTguess] - qual;
 
+            // likelihoods are stored row-wise in upper triangular matrix. IE
+            // for 2 alleles they have ordering AA,AB,BB
+            // for 3 alleles they are ordered AA,AB,AC,BB,BC,CC
+            // Get now alleles corresponding to best index
+            int kk=0;
+            boolean done = false;
+            for (int i=0; i < vc.getNAlleles(); i++) {
+                for (int j=i; j < vc.getNAlleles(); j++){
+                    if (kk++ == bestGTguess) {
+                        if (i==0)
+                            myAlleles.add(vc.getReference());
+                        else
+                            myAlleles.add(vc.getAlternateAllele(i-1));
+
+                        if (j==0)
+                            myAlleles.add(vc.getReference());
+                        else
+                            myAlleles.add(vc.getAlternateAllele(j-1));
+                        done = true;
+                        break;
+                    }
+
+                }
+                if (done)
+                    break;
+            }
 
             if (qual < 0) {
                 // QUAL can be negative if the chosen genotype is not the most likely one individually.
@@ -489,7 +560,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                 double chosenGenotype = normalized[bestGTguess];
                 qual = -1.0 * Math.log10(1.0 - chosenGenotype);
             }
-
+ //System.out.println(myAlleles.toString());
             calls.put(sample, new Genotype(sample, myAlleles, qual, null, g.getAttributes(), false));
 
         }
@@ -506,7 +577,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
     // -------------------------------------------------------------------------------------
     public int gdaN2GoldStandard(Map<String, Genotype> GLs,
                                  double[] log10AlleleFrequencyPriors,
-                                 double[] log10AlleleFrequencyPosteriors) {
+                                 double[] log10AlleleFrequencyPosteriors, int idxAA, int idxAB, int idxBB) {
         int numSamples = GLs.size();
         int numChr = 2*numSamples;
 
@@ -516,7 +587,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
             for (int j=0; j <=numChr; j++)
                 logYMatrix[i][j] = Double.NEGATIVE_INFINITY;
 
-        //YMatrix[0][0] = 1.0;
+         //YMatrix[0][0] = 1.0;
         logYMatrix[0][0] = 0.0;
         int j=0;
 
@@ -533,7 +604,7 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
 
             // special treatment for k=0: iteration reduces to:
             //YMatrix[j][0] = YMatrix[j-1][0]*genotypeLikelihoods[GenotypeType.AA.ordinal()];
-            logYMatrix[j][0] = logYMatrix[j-1][0] + genotypeLikelihoods[GenotypeType.AA.ordinal()];
+            logYMatrix[j][0] = logYMatrix[j-1][0] + genotypeLikelihoods[idxAA];
 
             for (int k=1; k <= 2*j; k++ ) {
 
@@ -542,20 +613,20 @@ public class ExactAFCalculationModel extends AlleleFrequencyCalculationModel {
                 logNumerator = new double[3];
                 if (k < 2*j-1)
                     logNumerator[0] = MathUtils.log10Cache[2*j-k] + MathUtils.log10Cache[2*j-k-1] + logYMatrix[j-1][k] +
-                            genotypeLikelihoods[GenotypeType.AA.ordinal()];
+                            genotypeLikelihoods[idxAA];
                 else
                     logNumerator[0] = Double.NEGATIVE_INFINITY;
 
 
                 if (k < 2*j)
                     logNumerator[1] = MathUtils.log10Cache[2*k] + MathUtils.log10Cache[2*j-k]+ logYMatrix[j-1][k-1] +
-                            genotypeLikelihoods[GenotypeType.AB.ordinal()];
+                            genotypeLikelihoods[idxAB];
                 else
                     logNumerator[1] = Double.NEGATIVE_INFINITY;
 
                 if (k > 1)
                     logNumerator[2] = MathUtils.log10Cache[k] + MathUtils.log10Cache[k-1] + logYMatrix[j-1][k-2] +
-                            genotypeLikelihoods[GenotypeType.BB.ordinal()];
+                            genotypeLikelihoods[idxBB];
                 else
                     logNumerator[2] = Double.NEGATIVE_INFINITY;
 

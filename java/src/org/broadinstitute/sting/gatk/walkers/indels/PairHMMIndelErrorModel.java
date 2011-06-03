@@ -712,7 +712,7 @@ public class PairHMMIndelErrorModel {
         }
     }
     public synchronized double[] computeReadHaplotypeLikelihoods(ReadBackedPileup pileup, LinkedHashMap<Allele,Haplotype> haplotypeMap,
-                                                                   ReferenceContext ref, int haplotypeSize, int eventLength,
+                                                                   ReferenceContext ref, int eventLength,
                                                                    HashMap<PileupElement, LinkedHashMap<Allele,Double>> indelLikelihoodMap){
 
         int numHaplotypes = haplotypeMap.size();
@@ -1022,8 +1022,7 @@ public class PairHMMIndelErrorModel {
                 // combine likelihoods of haplotypeLikelihoods[i], haplotypeLikelihoods[j]
                 // L(Hi, Hj) = sum_reads ( Pr(R|Hi)/2 + Pr(R|Hj)/2)
                 //readLikelihoods[k][j] has log10(Pr(R_k) | H[j] )
-                double[] readLikelihood = new double[2]; // diploid sample
-                for (readIdx=0; readIdx < pileup.getReads().size(); readIdx++) {
+                 for (readIdx=0; readIdx < pileup.getReads().size(); readIdx++) {
 
                     // Compute log10(10^x1/2 + 10^x2/2) = log10(10^x1+10^x2)-log10(2)
                     // First term is approximated by Jacobian log with table lookup.
