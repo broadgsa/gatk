@@ -46,7 +46,7 @@ trait CommandLineFunction extends QFunction with Logging {
   /**
    * Sets all field values.
    */
-  override def freezeFieldValues = {
+  override def freezeFieldValues() {
     if (jobQueue == null)
       jobQueue = qSettings.jobQueue
 

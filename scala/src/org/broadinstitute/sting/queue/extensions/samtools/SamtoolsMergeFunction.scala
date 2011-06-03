@@ -25,30 +25,24 @@
 package org.broadinstitute.sting.queue.extensions.samtools
 
 import java.io.File
-import org.broadinstitute.sting.commandline.{Output, Input}
+import org.broadinstitute.sting.commandline.{Argument, Output, Input}
 
 /**
- * Indexes a BAM file using samtools.
+ * Merges BAM files using samtools.
  */
-class SamtoolsIndexFunction extends SamtoolsCommandLineFunction {
-  analysisName = "samtools index"
+class SamtoolsMergeFunction extends SamtoolsCommandLineFunction {
+  analysisName = "samtools merge"
 
-  @Input(doc="BAM file to index")
-  var bamFile: File = _
+  @Input(doc="BAM file input")
+  var inputBams: List[File] = Nil
 
-  @Output(doc="BAM file index to output", required=false)
-  var bamFileIndex: File = _
+  @Output(doc="BAM file output")
+  var outputBam: File = _
 
-  /**
-   * Sets the bam file index to the bam file name + ".bai".
-   */
-  override def freezeFieldValues() {
-    super.freezeFieldValues()
-    if (bamFileIndex == null && bamFile != null)
-      bamFileIndex = new File(bamFile.getPath + ".bai")
-  }
+  @Argument(doc="region", required=false)
+  var region: String = _
 
-  def commandLine = "%s index %s %s".format(samtools, bamFile, bamFileIndex)
-
-  override def dotString = "Index: %s".format(bamFile.getName)
+  def commandLine = "%s merge%s %s%s".format(
+    samtools, optional(" -R ", region),
+    outputBam, repeat(" ", inputBams))
 }

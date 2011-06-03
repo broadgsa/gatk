@@ -225,7 +225,7 @@ trait QFunction extends Logging {
   /**
    * Deletes the output files and all the status files for this function.
    */
-  def deleteOutputs() = {
+  def deleteOutputs() {
     commandOutputs.foreach(file => IOUtils.tryDelete(file))
     doneOutputs.foreach(file => IOUtils.tryDelete(file))
     failOutputs.foreach(file => IOUtils.tryDelete(file))
@@ -234,7 +234,7 @@ trait QFunction extends Logging {
   /**
    * Creates the output directories for this function if it doesn't exist.
    */
-  def mkOutputDirectories() = {
+  def mkOutputDirectories() {
     outputDirectories.foreach(dir => {
       if (!dir.exists && !dir.mkdirs)
         throw new QException("Unable to create directory: " + dir)
@@ -322,15 +322,15 @@ trait QFunction extends Logging {
    * The function is allow to make necessary updates internally to make sure
    * the inputs and outputs will be equal to other inputs and outputs.
    */
-  final def freeze = {
-    freezeFieldValues
-    canonFieldValues
+  final def freeze() {
+    freezeFieldValues()
+    canonFieldValues()
   }
 
   /**
    * Sets all field values.
    */
-  def freezeFieldValues = {
+  def freezeFieldValues() {
     if (jobNamePrefix == null)
       jobNamePrefix = qSettings.jobNamePrefix
 
@@ -355,14 +355,15 @@ trait QFunction extends Logging {
   /**
    * If the command directory is relative, insert the run directory ahead of it.
    */
-  def absoluteCommandDirectory() =
+  def absoluteCommandDirectory() {
     commandDirectory = IOUtils.absolute(qSettings.runDirectory, commandDirectory)
+  }
 
   /**
    * Makes all field values canonical so that the graph can match the
    * inputs of one function to the output of another using equals().
    */
-  def canonFieldValues = {
+  def canonFieldValues() {
     for (field <- this.functionFields) {
       var fieldValue = this.getFieldValue(field)
       fieldValue = CollectionUtils.updated(fieldValue, canon).asInstanceOf[AnyRef]
@@ -413,7 +414,7 @@ trait QFunction extends Logging {
    * @return the isRequired value from the field annotation.
    */
   private def isRequired(field: ArgumentSource, annotation: Class[_ <: Annotation]) =
-    ReflectionUtils.getAnnotation(field.field, annotation).asInstanceOf[ArgumentAnnotation].required
+    ReflectionUtils.getAnnotation(field.field, annotation).asInstanceOf[ArgumentAnnotation].required()
 
   /**
    * Returns an array of ArgumentSources from functionFields listed in the exclusiveOf of the original field
@@ -422,7 +423,7 @@ trait QFunction extends Logging {
    * @return the Array[ArgumentSource] that may be set instead of the field.
    */
   private def exclusiveOf(field: ArgumentSource, annotation: Class[_ <: Annotation]) =
-    ReflectionUtils.getAnnotation(field.field, annotation).asInstanceOf[ArgumentAnnotation].exclusiveOf
+    ReflectionUtils.getAnnotation(field.field, annotation).asInstanceOf[ArgumentAnnotation].exclusiveOf()
             .split(",").map(_.trim).filter(_.length > 0)
             .map(fieldName => functionFields.find(fieldName == _.field.getName) match {
       case Some(x) => x
@@ -436,7 +437,7 @@ trait QFunction extends Logging {
    * @return the doc value from the field annotation.
    */
   private def doc(field: ArgumentSource, annotation: Class[_ <: Annotation]) =
-    ReflectionUtils.getAnnotation(field.field, annotation).asInstanceOf[ArgumentAnnotation].doc
+    ReflectionUtils.getAnnotation(field.field, annotation).asInstanceOf[ArgumentAnnotation].doc()
 
   /**
    * Returns true if the field has a value.

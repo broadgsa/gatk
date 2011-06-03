@@ -22,6 +22,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import io.Source
+import org.broadinstitute.sting.queue.extensions.samtools.{SamtoolsIndexFunction, SamtoolsMergeFunction}
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.utils.interval.IntervalUtils
@@ -93,6 +95,24 @@ class WholeGenomePipeline extends QScript {
     val project = Array(".bams.list", ".bam.list", ".list").foldLeft(bamList.getName)(_.stripSuffix(_))
     val projectBase = project + "." + runType
 
+    val mergeBam = new SamtoolsMergeFunction
+    mergeBam.inputBams = Source.fromFile(bamList).getLines().toList
+    if (runType != "wg")
+      mergeBam.region = intervals.head.toString
+    mergeBam.memoryLimit = pipelineMemoryLimit
+    mergeBam.outputBam = cleanerTmpDir + "/" + projectBase + ".unclean.bam"
+    mergeBam.jobOutputFile = projectBase + ".unclean.bam.out"
+    mergeBam.isIntermediate = true
+    mergeBam.memoryLimit = pipelineMemoryLimit
+    add(mergeBam)
+
+    val indexBam = new SamtoolsIndexFunction
+    indexBam.bamFile = mergeBam.outputBam
+    indexBam.memoryLimit = pipelineMemoryLimit
+    indexBam.jobOutputFile = projectBase + ".unclean.bam.bai.out"
+    indexBam.isIntermediate = true
+    add(indexBam)
+
     var chunkVcfs = List.empty[File]
     for (interval <- intervals) {
       val chr = interval.chr
@@ -111,7 +131,7 @@ class WholeGenomePipeline extends QScript {
         val chunkInterval = List("%s:%d-%d".format(chr, start, stop))
 
         val target = new RealignerTargetCreator with CommandLineGATKArgs
-        target.input_file :+= bamList
+        target.input_file :+= mergeBam.outputBam
         target.intervalsString = chunkInterval
         target.excludeIntervals = excludeIntervals
         target.mismatchFraction = 0.0
@@ -123,7 +143,7 @@ class WholeGenomePipeline extends QScript {
         add(target)
 
         val clean = new IndelRealigner with CommandLineGATKArgs
-        clean.input_file :+= bamList
+        clean.input_file :+= mergeBam.outputBam
         clean.intervalsString = chunkInterval
         clean.excludeIntervals = excludeIntervals
         clean.targetIntervals = target.out
