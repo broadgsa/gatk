@@ -3,6 +3,7 @@ package org.broadinstitute.sting.playground.gatk.walkers.reducereads;
 import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.QualityUtils;
@@ -264,7 +265,7 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
     }
 
     private ConsensusSpan findSpan(List<ConsensusSite> sites, int start, ConsensusSpan.Type consensusType) {
-        int refStart = sites.get(0).getLoc().getStart();
+        int refStart = sites.get(0).getPosition();
 
         for ( int end = start + 1; end < sites.size(); end++ ) {
             ConsensusSite site = sites.get(end);
@@ -282,6 +283,22 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
 
 
     private List<ConsensusSite> calculateConsensusSites(Collection<SAMRecord> reads, boolean useAllRemainingReads, GenomeLoc lastProcessedRegion) {
+        List<ConsensusSite> consensusSites = createEmptyConsensusSites(reads, lastProcessedRegion);
+        int refStart = consensusSites.get(0).getPosition();
+
+        for ( SAMRecord read : reads ) {
+            for ( RefPileupElement p : RefPileupElement.walkRead(read, refStart) ) {
+                // add to the consensus at this site
+                if ( p.getRefOffset() >= consensusSites.size() )
+                    throw new ReviewedStingException("BUG: ref offset off the consensus site list: " + p.getRead() + " at " + p.getRefOffset());
+                consensusSites.get(p.getRefOffset()).addOverlappingRead(p);
+            }
+        }
+
+        return consensusSites;
+    }
+
+    private static List<ConsensusSite> createEmptyConsensusSites(Collection<SAMRecord> reads, GenomeLoc lastProcessedRegion) {
         SAMRecord firstRead = reads.iterator().next();
 
         int minStart = lastProcessedRegion == null ? -1 : lastProcessedRegion.getStop() + 1;
@@ -293,16 +310,9 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
         List<ConsensusSite> consensusSites = new ArrayList<ConsensusSite>();
         int len = refEnd - refStart + 1;
         for ( int i = 0; i < len; i++ ) {
-            int l = refStart + i;
-            GenomeLoc loc = glParser.createGenomeLoc(contig, l, l);
-            consensusSites.add(new ConsensusSite(loc, i));
-        }
-
-        for ( SAMRecord read : reads ) {
-            for ( RefPileupElement p : RefPileupElement.walkRead(read, refStart) ) {
-                // add to the consensus at this site
-                consensusSites.get(p.getRefOffset()).addOverlappingRead(p);
-            }
+            int position = refStart + i;
+            //GenomeLoc loc = glParser.createGenomeLoc(contig, l, l);
+            consensusSites.add(new ConsensusSite(position, i));
         }
 
         return consensusSites;
@@ -345,7 +355,13 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
             if ( site.getMarkedType() == ConsensusSpan.Type.VARIABLE )
                 throw new ReviewedStingException("Variable site included in consensus: " + site);
             final int count = site.counts.countOfMostCommonBase();
-            final byte base = count == 0 ? (byte)'N' : site.counts.baseWithMostCounts();
+            byte base = count == 0 ? (byte)'N' : site.counts.baseWithMostCounts();
+            if ( !BaseUtils.isRegularBase(base) ) {
+                // todo -- this code needs to be replaced with cigar building code as well
+                logger.warn("Substituting N for non-regular consensus base " + (char)base);
+                base = (byte)'N';
+            }
+
             bases[i] = base;
             quals[i] = QualityUtils.boundQual(count, (byte)64);
         }

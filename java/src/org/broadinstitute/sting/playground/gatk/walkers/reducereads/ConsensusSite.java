@@ -39,29 +39,29 @@ import java.util.Set;
  */
 
 /**
-* Created by IntelliJ IDEA.
-* User: depristo
-* Date: 4/8/11
-* Time: 3:01 PM
-*
-*/
+ * Created by IntelliJ IDEA.
+ * User: depristo
+ * Date: 4/8/11
+ * Time: 3:01 PM
+ *
+ * Represents a single base site in the consensus calculation.  A site corresponds to a place
+ * on the reference genome, or is a dummy site that is only used to calculate insertion statistics
+ */
 final class ConsensusSite {
-    final GenomeLoc loc;
     final Set<PileupElement> overlappingReads = new HashSet<PileupElement>();
-    final int offset;
+    final int offset, position;
     final BaseCounts counts = new BaseCounts();
 
     ConsensusSpan.Type markedType = null;
 
-    public ConsensusSite(GenomeLoc loc, int offset) {
-        this.loc = loc;
-
+    public ConsensusSite(int position, int offset) {
+        this.position = position;
         this.offset = offset;
 
     }
 
-    public GenomeLoc getLoc() {
-        return loc;
+    public int getPosition() {
+        return position;
     }
 
     public Set<PileupElement> getOverlappingReads() {
@@ -75,7 +75,7 @@ final class ConsensusSite {
 
     public boolean isStrongConsensus(final double maxFractionDisagreeingBases) {
         int mostCommon = counts.countOfMostCommonBase();
-        int total = counts.totalCounts();
+        int total = counts.totalCount();
         double fractionCommonBase = (1.0 * mostCommon) / total;
         return (1 - fractionCommonBase) < maxFractionDisagreeingBases;
     }

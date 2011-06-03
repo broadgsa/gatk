@@ -65,6 +65,8 @@ public class RefPileupElement extends PileupElement {
             public Iterator<RefPileupElement> iterator() {
                 List<RefPileupElement> elts = new ArrayList<RefPileupElement>();
 
+                // todo -- need to be ++X not X++ operators.  The refI should go from -1, for reads like 2I2M,
+                // todo -- so that we can represent insertions to the left of the read
                 int readI = 0, refI = read.getAlignmentStart() - refIStart;
                 for ( CigarElement elt : read.getCigar().getCigarElements() ) {
                     int l = elt.getLength();
@@ -80,7 +82,9 @@ public class RefPileupElement extends PileupElement {
                         case I :
                             for ( int i = 0; i < l; i++)
                                 if ( refI >= 0 )
-                                    elts.add(new RefPileupElement(read, readI++, refI));
+                                    readI++;
+                            // todo -- replace when insertions handled correctly
+//                                    elts.add(new RefPileupElement(read, readI++, refI));
                             break;
                         case D :
                             for ( int i = 0; i < l; i++)
