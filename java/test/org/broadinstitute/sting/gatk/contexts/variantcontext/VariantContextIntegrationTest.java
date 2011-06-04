@@ -24,7 +24,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "566ea10d38e8b7685ec95e4774a6fa05");
         expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "81fd480369c7e98a479a79b792d42305");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "2097e32988d603d3b353b50218c86d3b");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "629ffd6b3b9ea1bce29cb715576f5c8a");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "8559d91b3f347c059d829fca1ada439e");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "d4b812b2fec231f8f5b61d6f26cf86a5");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "546e8e546f2cdfba31f91ed083137c42");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
