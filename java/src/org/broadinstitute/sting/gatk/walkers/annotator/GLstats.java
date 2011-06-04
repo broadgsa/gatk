@@ -29,9 +29,19 @@ public class GLstats implements InfoFieldAnnotation {
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
 
         final Map<String, Genotype> genotypes = vc.getGenotypes();
-        if ( genotypes == null || genotypes.size() < MIN_SAMPLES || !vc.isBiallelic() )
+        if ( genotypes == null || genotypes.size() < MIN_SAMPLES )
             return null;
 
+        int idxAA = 0, idxAB = 1, idxBB = 2;
+
+        if (!vc.isBiallelic()) {
+            // for non-bliallelic case, do test with most common alt allele.
+            // Get then corresponding indeces in GL vectors to retrieve GL of AA,AB and BB.
+            int[] idxVector = vc.getGLIndecesOfAllele(vc.getAltAlleleWithHighestAlleleCount());
+            idxAA = idxVector[0];
+            idxAB = idxVector[1];
+            idxBB = idxVector[2];
+        }
         double refCount = 0.0;
         double hetCount = 0.0;
         double homCount = 0.0;
@@ -43,9 +53,9 @@ public class GLstats implements InfoFieldAnnotation {
 
             N++;
             final double[] normalizedLikelihoods = MathUtils.normalizeFromLog10( g.getLikelihoods().getAsVector() );
-            refCount += normalizedLikelihoods[0];
-            hetCount += normalizedLikelihoods[1];
-            homCount += normalizedLikelihoods[2];
+            refCount += normalizedLikelihoods[idxAA];
+            hetCount += normalizedLikelihoods[idxAB];
+            homCount += normalizedLikelihoods[idxBB];
         }
 
         final double p = ( 2.0 * refCount + hetCount ) / ( 2.0 * (refCount + hetCount + homCount) ); // expected reference allele frequency

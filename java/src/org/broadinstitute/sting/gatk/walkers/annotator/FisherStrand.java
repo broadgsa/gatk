@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.WorkInProgressAnnotation;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broad.tribble.util.variantcontext.VariantContext;
@@ -36,11 +37,10 @@ import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import cern.jet.math.Arithmetic;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 
 
 public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotation {
@@ -52,10 +52,22 @@ public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotati
     private static final double MIN_PVALUE = 1E-320;
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( ! vc.isVariant() || vc.isFiltered() || ! vc.isBiallelic() || ! vc.isSNP() )
+        if ( ! vc.isVariant() || vc.isFiltered()  )
             return null;
 
-        int[][] table = getContingencyTable(stratifiedContexts, vc.getReference(), vc.getAlternateAllele(0));
+
+        int[][] table;
+
+        if (vc.isBiallelic() && vc.isSNP())
+            table = getSNPContingencyTable(stratifiedContexts, vc.getReference(), vc.getAlternateAllele(0));
+        else if (vc.isIndel() || vc.isMixed()) {
+            table = getIndelContingencyTable(stratifiedContexts, vc);
+            if (table == null)
+                return null;
+        }
+        else
+            return null;
+
         Double pvalue = Math.max(pValueForContingencyTable(table), MIN_PVALUE);
         if ( pvalue == null )
             return null;
@@ -188,7 +200,7 @@ public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotati
      *   allele2   #       #
      * @return a 2x2 contingency table
      */
-    private static int[][] getContingencyTable(Map<String, AlignmentContext> stratifiedContexts, Allele ref, Allele alt) {
+    private static int[][] getSNPContingencyTable(Map<String, AlignmentContext> stratifiedContexts, Allele ref, Allele alt) {
         int[][] table = new int[2][2];
 
         for ( Map.Entry<String, AlignmentContext> sample : stratifiedContexts.entrySet() ) {
@@ -209,6 +221,79 @@ public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotati
                     int column = isFW ? 0 : 1;
 
                     table[row][column]++;
+                }
+            }
+        }
+
+        return table;
+    }
+    /**
+     Allocate and fill a 2x2 strand contingency table.  In the end, it'll look something like this:
+     *             fw      rc
+     *   allele1   #       #
+     *   allele2   #       #
+     * @return a 2x2 contingency table
+     */
+    private static int[][] getIndelContingencyTable(Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
+        final double INDEL_LIKELIHOOD_THRESH = 0.3;
+        final HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();
+
+        if (indelLikelihoodMap == null)
+            return null;
+        
+        int[][] table = new int[2][2];
+
+        for ( String sample : stratifiedContexts.keySet() ) {
+            final AlignmentContext context = stratifiedContexts.get(sample);
+            if ( context == null ) 
+                continue;
+
+            ReadBackedPileup pileup = null;
+             if (context.hasExtendedEventPileup())
+                 pileup = context.getExtendedEventPileup();
+             else if (context.hasBasePileup())
+                 pileup = context.getBasePileup();
+
+             if (pileup == null)
+                 continue;
+
+            for (final PileupElement p: pileup) {
+                if ( p.getRead().getMappingQuality() < 20)
+                    continue;
+                if (indelLikelihoodMap.containsKey(p)) {
+                    // to classify a pileup element as ref or alt, we look at the likelihood associated with the allele associated to this element.
+                    // A pileup element then has a list of pairs of form (Allele, likelihood of this allele).
+                    // To classify a pileup element as Ref or Alt, we look at the likelihood of corresponding alleles.
+                    // If likelihood of ref allele > highest likelihood of all alt alleles  + epsilon, then this pileup element is "ref"
+                    // otherwise  if highest alt allele likelihood is > ref likelihood + epsilon, then this pileup element it "alt"
+                    // retrieve likelihood information corresponding to this read
+                    LinkedHashMap<Allele,Double> el = indelLikelihoodMap.get(p);
+                    // by design, first element in LinkedHashMap was ref allele
+                    boolean isFW = !p.getRead().getReadNegativeStrandFlag();
+
+                    double refLikelihood=0.0, altLikelihood=Double.NEGATIVE_INFINITY;
+
+                    for (Allele a : el.keySet()) {
+
+                        if (a.isReference())
+                            refLikelihood =el.get(a);
+                        else {
+                            double like = el.get(a);
+                            if (like >= altLikelihood)
+                                altLikelihood = like;
+                        }
+                    }
+
+                    boolean matchesRef = (refLikelihood > (altLikelihood + INDEL_LIKELIHOOD_THRESH));
+                    boolean matchesAlt = (altLikelihood > (refLikelihood + INDEL_LIKELIHOOD_THRESH));
+                    if ( matchesRef || matchesAlt ) {
+                        int row = matchesRef ? 0 : 1;
+                        int column = isFW ? 0 : 1;
+
+                         table[row][column]++;
+                    }
+
+
                 }
             }
         }

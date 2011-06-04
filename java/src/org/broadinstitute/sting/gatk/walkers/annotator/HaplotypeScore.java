@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFHeaderLineType;
@@ -33,6 +34,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
+import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.genotype.Haplotype;
@@ -49,9 +51,12 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
     private final static char REGEXP_WILDCARD = '.';
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
-        if ( !vc.isBiallelic() || stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
+        if (stratifiedContexts.size() == 0 ) // size 0 means that call was made by someone else and we have no data here
             return null;
-        
+
+        if (vc.isSNP() &&  !vc.isBiallelic())
+            return null;
+
         final AlignmentContext context = AlignmentContextUtils.joinContexts(stratifiedContexts.values());
 
         final int contextWingSize = Math.min(((int)ref.getWindow().size() - 1)/2, MIN_CONTEXT_WING_SIZE);
@@ -69,7 +74,7 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         if (pileup == null)
             return null;
         
-        final List<Haplotype> haplotypes = computeHaplotypes(pileup, contextSize, locus);
+        final List<Haplotype> haplotypes = computeHaplotypes(pileup, contextSize, locus, vc);
 
 	    final MathUtils.RunningAverage scoreRA = new MathUtils.RunningAverage();
         if (haplotypes != null) {
@@ -86,7 +91,17 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
                         thisPileup = null;
 
                     if (thisPileup != null) {
-                        scoreRA.add( scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus) ); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
+                        if (vc.isSNP())
+                            scoreRA.add( scoreReadsAgainstHaplotypes(haplotypes, thisPileup, contextSize, locus) ); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
+                        else if (vc.isIndel() || vc.isMixed()) {
+                            Double d = scoreIndelsAgainstHaplotypes(thisPileup);
+                            if (d == null)
+                                return null;
+                            scoreRA.add( d ); // Taking the simple average of all sample's score since the score can be negative and the RMS doesn't make sense
+                        }
+                        else
+                            return null;
+
                     }
                 }
             }
@@ -110,8 +125,11 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
         }
     }
 
-    private List<Haplotype> computeHaplotypes(final ReadBackedPileup pileup, final int contextSize, final int locus) {
+    private List<Haplotype> computeHaplotypes(final ReadBackedPileup pileup, final int contextSize, final int locus, final VariantContext vc) {
         // Compute all possible haplotypes consistent with current pileup
+
+        int haplotypesToCompute = vc.getAlternateAlleles().size()+1;
+
         final PriorityQueue<Haplotype> candidateHaplotypeQueue = new PriorityQueue<Haplotype>(100, new HaplotypeComparator());
         final PriorityQueue<Haplotype> consensusHaplotypeQueue = new PriorityQueue<Haplotype>(MAX_CONSENSUS_HAPLOTYPES_TO_CONSIDER, new HaplotypeComparator());
 
@@ -148,16 +166,22 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
             }
         }
 
-        // Now retrieve the two most popular haplotypes
+        // Now retrieve the N most popular haplotypes
         if (consensusHaplotypeQueue.size() > 0) {
             // Since the consensus haplotypes are in a quality-ordered priority queue, the two best haplotypes are just the first two in the queue
             final Haplotype haplotype1 = consensusHaplotypeQueue.poll();
-            Haplotype haplotype2 = consensusHaplotypeQueue.poll();
-            if(haplotype2 == null ) { haplotype2 = haplotype1; } // Sometimes only the reference haplotype can be found
-            return Arrays.asList(new Haplotype(haplotype1.getBasesAsBytes(), 60), new Haplotype(haplotype2.getBasesAsBytes(), 20)); // These qual values aren't used for anything
-        } else {
+
+            List<Haplotype>hlist = new ArrayList<Haplotype>();
+            hlist.add(new Haplotype(haplotype1.getBasesAsBytes(), 60));
+
+            for (int k=1;k < haplotypesToCompute; k++) {
+                Haplotype haplotype2 = consensusHaplotypeQueue.poll();
+                if(haplotype2 == null ) { haplotype2 = haplotype1; } // Sometimes only the reference haplotype can be found
+                hlist.add(new Haplotype(haplotype2.getBasesAsBytes(), 20));
+            }
+            return hlist;
+        } else
             return null;
-        }
     }
 
     private Haplotype getHaplotypeFromRead(final PileupElement p, final int contextSize, final int locus) {
@@ -320,6 +344,44 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
 
         return mismatches - expected;
     }
+
+
+
+    private Double scoreIndelsAgainstHaplotypes(final ReadBackedPileup pileup) {
+        final ArrayList<double[]> haplotypeScores = new ArrayList<double[]>();
+
+        final HashMap<PileupElement,LinkedHashMap<Allele,Double>> indelLikelihoodMap = IndelGenotypeLikelihoodsCalculationModel.getIndelLikelihoodMap();
+
+        if (indelLikelihoodMap== null)
+            return null;
+
+        for (final PileupElement p: pileup) {
+            if (indelLikelihoodMap.containsKey(p)) {
+                // retrieve likelihood information corresponding to this read
+                LinkedHashMap<Allele,Double> el = indelLikelihoodMap.get(p);
+
+                // Score all the reads in the pileup, even the filtered ones
+                final double[] scores = new double[el.size()];
+                int i = 0;
+                for (Allele a: el.keySet() ) {
+                    scores[i++] = -el.get(a);
+                    if ( DEBUG ) { System.out.printf("  vs. haplotype %d = %f%n", i-1, scores[i-1]); }
+                }
+
+                haplotypeScores.add(scores);
+            }
+        }
+
+        // indel likelihoods are stric log-probs, not phred scored
+        double overallScore = 0.0;
+        for ( final double[] readHaplotypeScores : haplotypeScores ) {
+            overallScore += MathUtils.arrayMin(readHaplotypeScores);
+        }
+
+        return overallScore;
+
+    }
+
 
     public List<String> getKeyNames() { return Arrays.asList("HaplotypeScore"); }
     public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("HaplotypeScore", 1, VCFHeaderLineType.Float, "Consistency of the site with at most two segregating haplotypes")); }
