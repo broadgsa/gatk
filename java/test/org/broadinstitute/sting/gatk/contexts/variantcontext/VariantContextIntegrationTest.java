@@ -19,14 +19,14 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
     static HashMap<String, String> expectations = new HashMap<String, String>();
     static {
-        expectations.put("-L 1:1-10000 --printPerLocus", "fcc9b7ea66c4407f60317112c7d17aa0");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "897de66b05e10c80de01492c03842083");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "566ea10d38e8b7685ec95e4774a6fa05");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "81fd480369c7e98a479a79b792d42305");
+        expectations.put("-L 1:1-10000 --printPerLocus", "26ad6d6695a45c45e8451477fd9476a6");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "47772be91e4392d68aba901438aecdf2");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "e34688fa2450b0898ce55d0a5323db9a");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "06505d1b90680862613ad374218b0d25");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "2097e32988d603d3b353b50218c86d3b");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "8559d91b3f347c059d829fca1ada439e");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "d4b812b2fec231f8f5b61d6f26cf86a5");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "546e8e546f2cdfba31f91ed083137c42");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "358330e2b373a38269abdf6e65180c0a");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "e5a00766f8c1ff9cf92310bafdec3126");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
     }
 
