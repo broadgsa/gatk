@@ -641,11 +641,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // if there are any known indels for this region, get them and create alternate consenses
         generateAlternateConsensesFromKnownIndels(altConsenses, leftmostIndex, reference);
 
-        // TODO -- REMOVE ME WHEN WE FIND THE NON-DETERMINISM
-        if ( OUT_STATS != null ) {
-            logger.warn("ERIC: reads.size() = " + reads.size());
-        }
-
         // decide which reads potentially need to be cleaned;
         // if there are reads with a single indel in them, add that indel to the list of alternate consenses
         long totalRawMismatchSum = determineReadsThatNeedCleaning(reads, refReads, altReads, altAlignmentsToTest, altConsenses, leftmostIndex, reference);
@@ -655,11 +650,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference, leftmostIndex);
 
         // if ( debugOn ) System.out.println("------\nChecking consenses...\n--------\n");
-
-        // TODO -- REMOVE ME WHEN WE FIND THE NON-DETERMINISM
-        if ( OUT_STATS != null ) {
-            logger.warn("ERIC: altConsenses.size() after seeing reads = " + altConsenses.size());
-        }
 
         Consensus bestConsensus = null;
         Iterator<Consensus> iter = altConsenses.iterator();
@@ -870,11 +860,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             if ( read.getCigar().numCigarElements() == 0 ) {
                 refReadsToPopulate.add(read);
                 continue;
-            }
-
-            // TODO -- REMOVE ME WHEN WE FIND THE NON-DETERMINISM
-            if ( OUT_STATS != null ) {
-                logger.warn("ERIC: read = " + read.getReadName() + " " + read.getCigarString());
             }
 
             final AlignedRead aRead = new AlignedRead(read);
@@ -1582,6 +1567,14 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 loc = getToolkit().getGenomeLocParser().createGenomeLoc(loc.getContig(), padLeft, padRight);
                 reference = referenceReader.getSubsequenceAt(loc.getContig(), loc.getStart(), loc.getStop()).getBases();
                 StringUtil.toUpperCase(reference);
+
+                // TODO -- REMOVE ME WHEN WE FIND THE NON-DETERMINISM
+                if ( OUT_STATS != null ) {
+                    logger.warn("ERIC: padLeft = " + padLeft);
+                    logger.warn("ERIC: padRight = " + padRight);
+                    logger.warn("ERIC: loc = " + loc);
+                    logger.warn("ERIC: reference = " + new String(reference));
+                }
             }
 
             return reference;
