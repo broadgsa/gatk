@@ -111,7 +111,13 @@ public class ConstrainedMateFixingManager {
 
     /** read.name -> records */
     HashMap<String, SAMRecordHashObject> forMateMatching = new HashMap<String, SAMRecordHashObject>();
-    Queue<SAMRecord> waitingReads = new PriorityQueue<SAMRecord>(1000, comparer);
+    TreeSet<SAMRecord> waitingReads = new TreeSet<SAMRecord>(comparer);
+
+    private <T> T remove(TreeSet<T> treeSet) {
+        final T first = treeSet.first();
+        treeSet.remove(first);
+        return first;
+    }
 
     private class SAMRecordHashObject {
         public SAMRecord record;
@@ -186,15 +192,15 @@ public class ConstrainedMateFixingManager {
 
         // if the new read is on a different contig or we have too many reads, then we need to flush the queue and clear the map
         boolean tooManyReads = getNReadsInQueue() >= MAX_RECORDS_IN_MEMORY;
-        if ( canFlush && (tooManyReads || (getNReadsInQueue() > 0 && !waitingReads.peek().getReferenceIndex().equals(newRead.getReferenceIndex()))) ) {
-            if ( DEBUG ) logger.warn("Flushing queue on " + (tooManyReads ? "too many reads" : ("move to new contig: " + newRead.getReferenceName() + " from " + waitingReads.peek().getReferenceName())) + " at " + newRead.getAlignmentStart());
+        if ( canFlush && (tooManyReads || (getNReadsInQueue() > 0 && !waitingReads.first().getReferenceIndex().equals(newRead.getReferenceIndex()))) ) {
+            if ( DEBUG ) logger.warn("Flushing queue on " + (tooManyReads ? "too many reads" : ("move to new contig: " + newRead.getReferenceName() + " from " + waitingReads.first().getReferenceName())) + " at " + newRead.getAlignmentStart());
 
             while ( getNReadsInQueue() > 1 ) {
                 // emit to disk
-                writeRead(waitingReads.remove());
+                writeRead(remove(waitingReads));
             }
 
-            SAMRecord lastRead = waitingReads.remove();
+            SAMRecord lastRead = remove(waitingReads);
             lastLocFlushed = (lastRead.getReferenceIndex() == -1) ? null : genomeLocParser.createGenomeLoc(lastRead);
             writeRead(lastRead);
 
@@ -250,7 +256,7 @@ public class ConstrainedMateFixingManager {
 
         if ( ++counter % EMIT_FREQUENCY == 0 ) {
             while ( ! waitingReads.isEmpty() ) { // there's something in the queue
-                SAMRecord read = waitingReads.peek();
+                SAMRecord read = waitingReads.first();
 
                 if ( noReadCanMoveBefore(read.getAlignmentStart(), newRead) &&
                         (!pairedReadIsMovable(read)                               // we won't try to move such a read
@@ -264,7 +270,7 @@ public class ConstrainedMateFixingManager {
                                 newRead.getAlignmentStart(), read.getReadName(), read.getAlignmentStart(),
                                 read.getInferredInsertSize(), read.getMateAlignmentStart(), read.getAttribute("OP")));
                     // emit to disk
-                    writeRead(waitingReads.remove());
+                    writeRead(remove(waitingReads));
                 } else {
                     if ( DEBUG )
                         logger.warn(String.format("At %d: read %s at %d with isize %d couldn't be emited, mate start %d",
@@ -319,7 +325,7 @@ public class ConstrainedMateFixingManager {
     public void close() {
         // write out all of the remaining reads
         while ( ! waitingReads.isEmpty() ) { // there's something in the queue
-            writeRead(waitingReads.remove());
+            writeRead(remove(waitingReads));
         }
     }
 }
