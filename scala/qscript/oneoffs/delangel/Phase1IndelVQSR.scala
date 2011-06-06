@@ -30,8 +30,17 @@ class Phase1IndelVQSR extends QScript {
   @Argument(shortName = "outDir", doc="Path to the output files", required=false)
   val OUT_DIR = "/humgen/gsa-scr1/delangel/VQSRIndels"
 
+  @Argument(shortName = "rawCalls", doc="VQSR raw input file", required=false)
+  var rawCalls: File = new File("/humgen/gsa-hpprojects/dev/delangel/Phase1Calls/20110525VQSRConsensus/calls/combined.phase1.chr20.raw.indels.vcf")
+
   @Argument(shortName = "truth", doc="VQSR truth file", required=false)
   var truthFile: File = new File("/humgen/gsa-scr1/delangel/devine_data/indel_hg19_051711_leftAligned_75percent_chr20.vcf"  )
+
+  @Argument(shortName = "training", doc="VQSR training file", required=false)
+  var trainingFile: File = new File("/humgen/gsa-scr1/delangel/devine_data/indel_hg19_051711_leftAligned_75percent_chr20.vcf"  )
+
+  var noMultiallelicSites: Boolean = false;
+
   val populations = List("EUR","AMR","ASN","AFR")
 
   @Argument(shortName = "evalStandard1000GCalls", doc="If provided, we'll include some standard 1000G data for evaluation", required=false)
@@ -41,7 +50,7 @@ class Phase1IndelVQSR extends QScript {
   val numG: Int = 4
 
   @Argument(shortName = "pctBad", doc="If provided, we'll include some standard 1000G data for evaluation", required=false)
-    val pctBad: Double = 0.05
+  val pctBad: Double = 0.05
 
   @Argument(shortName = "runName", doc="Run Name", required=false)
   val runName:String = "mills100"
@@ -66,6 +75,14 @@ class Phase1IndelVQSR extends QScript {
 
   // path to b37 DBSNP
   val MY_DBSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Validated/dbSNP/dbsnp_129_b37.leftAligned.vcf")
+  val dindelCalls: String = "/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf"
+
+
+  val DINDEL: String =  "/humgen/gsa-scr1/delangel/officialCalls/20110201_chr20_phase1_indels/dindel/20110208.chr20.dindel2.ALL.sites.fixed.vcf"
+  val SI: String =  "/humgen/gsa-scr1/delangel/officialCalls/20101123.chr20.si.v2.combined.sites.leftAligned.vcf"
+  val BI: String =   "/humgen/1kg/processing/official_release/phase1/ALL.wgs.broad.20101123.indels.sites.vcf"
+  val BC: String =   "/humgen/gsa-scr1/delangel/officialCalls/20110201_chr20_phase1_indels/ALL.chr20.bc.20101123.indels.sites.leftAligned.vcf"
+  val OX: String =  "/humgen/gsa-scr1/delangel/otherIndelCallerAnalysis/ALL.chr20.Oxford.20110407.indels.genotypes.sites.vcf"
 
   var COMPS: List[Comp] = Nil
   def addComp(comp: Comp) { COMPS = comp :: COMPS }
@@ -79,7 +96,7 @@ class Phase1IndelVQSR extends QScript {
     this.reference_sequence = qscript.referenceFile
     this.memoryLimit = Some(2)
     // this.rodBind :+= RodBind("dbsnp", "VCF", qscript.dbSNP )
-    this.jobQueue = "week"
+    this.jobQueue = "hour"
     this.intervalsString = List(TARGET_INTERVAL);
 
   }
@@ -100,7 +117,8 @@ class Phase1IndelVQSR extends QScript {
     //addComp(new Comp("NA12878.hand_curated", "indels", "NA12878.validated.curated.polymorphic.indels.vcf"))
     addComp(new Comp("NA12878.Mullikin", "indels", COMPS_DIR+"NA12878.DIPline.NQScm.expanded.chr20.b37.minReads_2_or_gt2bp.vcf"))
     addComp(new Comp("Mills.25pct", "indels", "/humgen/gsa-scr1/delangel/devine_data/indel_hg19_051711_leftAligned_25percent_chr20.vcf"))
-    addComp(new Comp("Phase1Validation", "indels", "/humgen/gsa-scr1/delangel/VQSRIndels/1KG_Validation_Phase1_SNPs_05032011.HG19.finalized.vcf"))
+    //addComp(new Comp("Phase1Validation", "indels", "/humgen/gsa-scr1/delangel/VQSRIndels/1KG_Validation_Phase1_SNPs_05032011.HG19.finalized.vcf"))
+   addComp(new Comp("Phase1Validation", "indels", "/humgen/gsa-scr1/delangel/VQSRIndels/1000G.20101123.validation_set_v1.QCed.indels.vcf"))
 
 
     //
@@ -108,120 +126,117 @@ class Phase1IndelVQSR extends QScript {
     //
 
     if ( EVAL_STANDARD_1000G_CALLS ) {
-//      addEval(new Eval("dindel", "indels", "/humgen/gsa-scr1/delangel/officialCalls/20110201_chr20_phase1_indels/dindel/20110208.chr20.dindel2.ALL.sites.vcf"))
-      addEval(new Eval("si", "indels", "/humgen/gsa-scr1/delangel/officialCalls/20101123.chr20.si.v2.combined.sites.leftAligned.vcf"))
-      addEval(new Eval("bi", "indels", "/humgen/1kg/processing/official_release/phase1/ALL.wgs.broad.20101123.indels.sites.vcf"))
-      addEval(new Eval("bc", "indels", "/humgen/gsa-scr1/delangel/officialCalls/20110201_chr20_phase1_indels/ALL.chr20.bc.20101123.indels.sites.leftAligned.vcf"))
-      addEval(new Eval("ox", "indels", "/humgen/gsa-scr1/delangel/otherIndelCallerAnalysis/ALL.chr20.Oxford.20110407.indels.genotypes.sites.vcf"))
+      addEval(new Eval("dindel", "indels",qscript.DINDEL))
+      addEval(new Eval("si", "indels",qscript.SI))
+      addEval(new Eval("bi", "indels", qscript.BI))
+      addEval(new Eval("bc", "indels", qscript.BC))
+      addEval(new Eval("ox", "indels", qscript.OX))
       addEval(new Eval("2of5", "indels", "/humgen/gsa-scr1/delangel/otherIndelCallerAnalysis/ALL.indels.2of5.chr20.vcf"))
-      }
+      addEval(new Eval("2of5noMulti", "indels", "/humgen/gsa-scr1/delangel/otherIndelCallerAnalysis/ALL.indels.2of5.chr20.noMultiAllelic.vcf"))
+      addEval(new Eval("union", "indels", "/humgen/gsa-scr1/delangel/otherIndelCallerAnalysis/ALL.indels.combined.chr20.vcf"))
+//       addEval(new Eval("unionNoMulti", "indels", "/humgen/gsa-scr1/delangel/otherIndelCallerAnalysis/ALL.indels.combined.chr20.noMultiAllelic.vcf"))
+    }
 
-    //
-    // Standard evaluation files for SNPs
-    //
-    /*   addComp(new Comp("NA12878.homvar.GATK", "snps", "NA12878.HiSeq19.cut.vcf", true))
-    addComp(new Comp("CG.38samples", "snps", "CG.38samples.b37.vcf"))
-    addComp(new Comp("NA12878.homvar.CG", "snps", "NA12878.CG.b37.snps.vcf", true))
-    addComp(new Comp("HapMap3.3", "snps", "hapmap3.3.sites_r27_nr.b37_fwd.vcf"))
-    addComp(new Comp("OMNI.2.5M", "snps", "omni2.5.1212samples.b37.sites.chr20.monoAreAC0.vcf"))
-    addComp(new Comp("g1k.pilot1.validation", "snps", "1000G.snp.validation.b37.vcf"))
-    */
-    //
-    // SNP call sets
-    //
   }
 
   def script = {
 
     initializeStandardDataFiles();
 
-    // add additional files for evaluation, if necessary
-    //moreSNPsToEval.foreach(addEvalFromCMD(_, "snps"))
-    //moreIndelsToEval.foreach(addEvalFromCMD(_, "indels"))
-
-
     var ts:Double = 0.0
-    var tranches =  List("99.9","99.0","98.0","97.0","95.0","92.0","90.0")
+    var tranches =  List("99.9","99.0","98.0","97.0","96.0","95.0","92.0","90.0","85.0","80.0","70.0")
 
     var numG:Int = qscript.numG
     var pctBad:Double = qscript.pctBad
     val runName:String = qscript.runName +  "_mG%d_pb%1.2f_QD_FS_HS_RP_IC".format(numG,pctBad)
 
-    for( pop <- qscript.populations ) {
-      val rawCalls = new File("/humgen/gsa-hpprojects/dev/delangel/Phase1Calls/20110516Dev/calls/chr20/%s/%s.phase1.chr20.raw.indels.vcf".format(pop,pop))
-      //val filteredCalls = new File(baseName + ".v5."+runStr+".filtered.vcf")
-      // val runname =
-      //val clusterFile = new File(baseName + ".omni.clusters")
-      //val recalibratedCalls = new File(baseName + ".recal.vcf")
-      var tranchesFile = new File(qscript.baseDir +"%s_%s.tranches".format(pop,runName))
-      var recalFile = new File(qscript.baseDir +"%s_%s.recal".format(pop,runName))
-      var rscriptFile = new File(qscript.baseDir +"%s_%s.plots.R".format(pop,runName))
+    val rawCalls = qscript.rawCalls
+    var tranchesFile = new File(qscript.baseDir +"%s.tranches".format(runName))
+    var recalFile = new File(qscript.baseDir +"%s.recal".format(runName))
+    var rscriptFile = new File(qscript.baseDir +"%s.plots.R".format(runName))
 
 
 
-      var vr = new VariantRecalibrator with CommandLineGATKArgs
-      vr.rodBind :+= RodBind("input", "VCF",rawCalls )
-      vr.rodBind :+= RodBind("truth", "VCF",qscript.truthFile,"known=true,training=true,truth=true,prior=20.0" )
-      vr.mode = VariantRecalibratorArgumentCollection.Mode.INDEL
-      vr.tranchesFile = tranchesFile
-      vr.recalFile = recalFile
-      vr.rscriptFile = rscriptFile
-      vr.an = List("QD","FS","HaplotypeScore","ReadPosRankSum","InbreedingCoeff")
-      vr.maxGaussians = Some(numG)
-      vr.tranche = tranches
-      vr.nt = Some(8)
-      vr.percentBad = Some(pctBad)
-      add(vr)
+    var vr = new VariantRecalibrator with CommandLineGATKArgs
+    vr.rodBind :+= RodBind("input", "VCF",rawCalls )
+    vr.rodBind :+= RodBind("truth", "VCF",qscript.truthFile,"known=true,training=false,truth=true,prior=15.0" )
+    vr.rodBind :+= RodBind("training", "VCF",qscript.trainingFile,"known=true,training=true,truth=false,prior=12.0" )
+    //vr.rodBind :+= RodBind("training2", "VCF",qscript.dindelCalls,"known=true,training=true,truth=false,prior=12.0" )
+    vr.rodBind :+= RodBind("dbsnp", "VCF",qscript.MY_DBSNP,"known=true,training=false,truth=false,prior=8.0" )
 
+    vr.rodBind :+= RodBind("BC", "VCF",qscript.BC,"consensus=true" )
+    vr.rodBind :+= RodBind("BI", "VCF",qscript.BI,"consensus=true" )
+    vr.rodBind :+= RodBind("SI", "VCF",qscript.SI,"consensus=true" )
+    vr.rodBind :+= RodBind("DINDEL", "VCF",qscript.DINDEL,"consensus=true" )
+    vr.rodBind :+= RodBind("OXFORD", "VCF",qscript.OX,"consensus=true" )
 
-      for (tas: String <- tranches) {
-        ts = tas.toDouble
-        val outFile = new File("/humgen/gsa-hpprojects/dev/delangel/Phase1Calls/20110516Dev/calls/chr20/%s/%s.phase1.chr20.recal_%s_ts_%4.1f.indels.sites.vcf".format(pop,pop,runName,ts))
-
-        var ar = new ApplyRecalibration with CommandLineGATKArgs
-        ar.rodBind :+= RodBind("input", "VCF",rawCalls )
-        ar.mode = VariantRecalibratorArgumentCollection.Mode.INDEL
-        ar.tranchesFile = tranchesFile
-        ar.recalFile = recalFile
-        ar.ts_filter_level = Some(ts)
-        ar.sites_only = true
-        ar.o = outFile
-        add(ar)
-      }
-    }
-
+    vr.mode = VariantRecalibratorArgumentCollection.Mode.INDEL
+    vr.tranchesFile = tranchesFile
+    vr.recalFile = recalFile
+    vr.rscriptFile = rscriptFile
+//    vr.an = List("QD","FS","HaplotypeScore","ReadPosRankSum","InbreedingCoeff","SB","")
+    vr.an = List("QD","FS","HaplotypeScore","ReadPosRankSum","InbreedingCoeff")
+    vr.maxGaussians = Some(numG)
+    vr.tranche = tranches
+    vr.nt = Some(8)
+    vr.percentBad = Some(pctBad)
+    vr.std = Some(12.0)
+    //vr.ignore_filter = List("LowQual")
+    add(vr)
 
     val VE = new MyEval()
     VE.VT = VARIANT_TYPE_VT("indels")
     VE.o = new File(OUT_DIR+"/"+ runName + ".eval")
-    //VE.nt = Some(8)
 
     for (tas: String <- tranches) {
       ts = tas.toDouble
-      var cm = new CombineVariants with CommandLineGATKArgs
+      val outFile = new File("/humgen/gsa-hpprojects/dev/delangel/Phase1Calls/20110603VQSRConsensus/calls/phase1.chr20.recal_%s_ts_%4.1f.indels.sites.vcf".format(runName,ts))
 
-      cm.o = new File("/humgen/gsa-hpprojects/dev/delangel/Phase1Calls/20110516Dev/calls/chr20/ALL.phase1.chr20.recal_%s_ts_%4.1f.indels.sites.vcf".format(runName,ts))
-      for( pop <- qscript.populations ) {
-        val outFile = new File("/humgen/gsa-hpprojects/dev/delangel/Phase1Calls/20110516Dev/calls/chr20/%s/%s.phase1.chr20.recal_%s_ts_%4.1f.indels.sites.vcf".format(pop,pop,runName,ts))
-        cm.rodBind :+= RodBind(pop, "VCF", outFile)
-      }
-      add(cm)
+      var ar = new ApplyRecalibration with CommandLineGATKArgs
+      ar.rodBind :+= RodBind("input", "VCF",rawCalls )
+      ar.mode = VariantRecalibratorArgumentCollection.Mode.INDEL
+      ar.tranchesFile = tranchesFile
+      ar.recalFile = recalFile
+      ar.ts_filter_level = Some(ts)
+      ar.sites_only = true
+      ar.o = outFile
+      add(ar)
 
-      VE.rodBind :+= RodBind("eval_ts%4.1f".format(ts), "VCF", cm.o)
+      VE.rodBind :+= RodBind("eval_ts%4.1f".format(ts), "VCF", ar.o)
 
     }
+
+
+    //VE.nt = Some(8)
+
     // add evals
     for ( calls <- EVALS )
       VE.rodBind :+= RodBind("eval_" + calls.name, "VCF", calls.file)
 
     // add comps
-//    VE.rodBind :+= RodBind("dbsnp", "VCF", MY_DBSNP)
+    //    VE.rodBind :+= RodBind("dbsnp", "VCF", MY_DBSNP)
     for ( comp <- COMPS )
       VE.rodBind :+= RodBind("comp_" + comp.name, "VCF", comp.file)
 
     add(VE)
 
-   }
+    var  ve2 = new MyEval
+    for (tas: String <- tranches) {
+      ts = tas.toDouble
+      val outFile = new File("/humgen/gsa-hpprojects/dev/delangel/Phase1Calls/20110603VQSRConsensus/calls/phase1.chr20.recal_%s_ts_%4.1f.indels.sites.vcf".format(runName,ts))
+      ve2.rodBind :+= RodBind("eval_ts%4.1f".format(ts), "VCF", outFile)
+    }
+
+    // comps are now other callsets to measure overlap
+    ve2.rodBind :+= RodBind("comp_dindel", "VCF",qscript.DINDEL)
+    ve2.rodBind :+= RodBind("comp_bc", "VCF", qscript.BC)
+    ve2.rodBind :+= RodBind("comp_bi", "VCF", qscript.BI)
+    ve2.rodBind :+= RodBind("comp_ox", "VCF", qscript.OX)
+    ve2.rodBind :+= RodBind("comp_2of5", "VCF", "/humgen/gsa-scr1/delangel/otherIndelCallerAnalysis/ALL.indels.2of5.chr20.vcf")
+    ve2.VT = VARIANT_TYPE_VT("indels")
+    ve2.o = new File(OUT_DIR+"/"+ runName + ".comps.eval")
+    add(ve2)
+  }
 
 
   /**
@@ -229,10 +244,12 @@ class Phase1IndelVQSR extends QScript {
    */
   class MyEval() extends VariantEval with CommandLineGATKArgs {
     this.noST = true
+    this.nt = Some(8)
     this.evalModule :+= "ValidationReport"
     //this.evalModule :+= "IndelMetricsByAC"
     this.evalModule :+= "IndelStatistics"
     this.evalModule :+= "CountVariants"
+    this.evalModule :+= "CompOverlap"
     //this.evalModule :+= "IndelClasses"
   }
 
