@@ -252,7 +252,6 @@
             description="compile the source">
         <!-- Compile the java code from ${src} into build -->
         <javac fork="true" memoryMaximumSize="512m" srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
-            <exclude name="**/examples/**" />
             <exclude name="**/playground/**" unless="include.playground"/>
             <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
             <compilerarg value="-proc:none"/>
@@ -268,7 +267,6 @@
 
     <target name="gatk.contracts" depends="gatk.compile.source" description="create GATK contracts" if="use.contracts">
         <javac fork="true" memoryMaximumSize="512m" srcdir="${java.source.dir}" destdir="${java.contracts}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
-            <exclude name="**/examples/**" />
             <exclude name="**/playground/**" unless="include.playground"/>
             <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
             <classpath>
@@ -679,10 +677,8 @@
                 <!-- needs to be if -->
                 <jvmarg value="-javaagent:lib/cofoja.jar"/>
                 <jvmarg value="-Dcom.google.java.contract.log.contract=false"/>
-<!-- 
-                <jvmarg value="-Xdebug"/>
-                <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
- -->
+<!--                 <jvmarg value="-Xdebug"/> -->
+<!--                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/> -->
                 <classpath>
                     <path refid="external.dependencies" />
                     <pathelement location="${java.classes}" />
