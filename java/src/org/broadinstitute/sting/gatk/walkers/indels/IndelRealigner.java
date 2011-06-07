@@ -1567,14 +1567,6 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 loc = getToolkit().getGenomeLocParser().createGenomeLoc(loc.getContig(), padLeft, padRight);
                 reference = referenceReader.getSubsequenceAt(loc.getContig(), loc.getStart(), loc.getStop()).getBases();
                 StringUtil.toUpperCase(reference);
-
-                // TODO -- REMOVE ME WHEN WE FIND THE NON-DETERMINISM
-                if ( OUT_STATS != null ) {
-                    logger.warn("ERIC: padLeft = " + padLeft);
-                    logger.warn("ERIC: padRight = " + padRight);
-                    logger.warn("ERIC: loc = " + loc);
-                    logger.warn("ERIC: reference = " + new String(reference));
-                }
             }
 
             return reference;
