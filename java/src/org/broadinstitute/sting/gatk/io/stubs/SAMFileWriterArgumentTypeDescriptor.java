@@ -52,6 +52,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
     public static final String SIMPLIFY_BAM_SHORTNAME = SIMPLIFY_BAM_FULLNAME;
 
     public static final String DISABLE_INDEXING_FULLNAME = "disable_bam_indexing";
+    public static final String ENABLE_MD5_FULLNAME = "generate_md5";
 
     /**
      * The engine into which output stubs should be fed.
@@ -83,6 +84,7 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
         return Arrays.asList( createBAMArgumentDefinition(source),
                               createBAMCompressionArgumentDefinition(source),
                               disableWriteIndexArgumentDefinition(source),
+                              enableMD5GenerationArgumentDefinition(source),
                               createSimplifyBAMArgumentDefinition(source));
     }
 
@@ -102,23 +104,39 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
 
     @Override
     public Object parse( ParsingEngine parsingEngine, ArgumentSource source, Class type, ArgumentMatches matches )  {
+        // Extract all possible parameters that could be passed to a BAM file writer?
         ArgumentDefinition bamArgumentDefinition = createBAMArgumentDefinition(source);
         String writerFileName = getArgumentValue( bamArgumentDefinition, matches );
 
-        // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
-        // therefore, the user must have failed to specify a type default
-        if(writerFileName == null && !source.isRequired())
-            throw new MissingArgumentValueException(bamArgumentDefinition);
-
-        SAMFileWriterStub stub = new SAMFileWriterStub(engine, new File(writerFileName));
-
         String compressionLevelText = getArgumentValue( createBAMCompressionArgumentDefinition(source), matches );
         Integer compressionLevel = compressionLevelText != null ? Integer.valueOf(compressionLevelText) : null;
+
+        Boolean indexOnTheFly = !argumentIsPresent(disableWriteIndexArgumentDefinition(source),matches) ? true : null;
+        Boolean generateMD5 = argumentIsPresent(this.enableMD5GenerationArgumentDefinition(source),matches) ? true : null;
+        Boolean simplifyBAM = argumentIsPresent(createSimplifyBAMArgumentDefinition(source),matches);
+
+        // Validate the combination of parameters passed in.
+
+        // This parser has been passed a null filename and the GATK is not responsible for creating a type default for the object;
+        // therefore, the user must have failed to specify a type default
+        if(writerFileName == null) {
+            if(!source.isRequired())
+                throw new MissingArgumentValueException(bamArgumentDefinition);
+            if(generateMD5)
+                throw new ArgumentException("MD5 generation specified, but no output file specified.  If md5 generation is desired, please specify a BAM output file and an md5 file will be written alongside.");
+        }
+
+        // Create the stub and set parameters.
+        SAMFileWriterStub stub = new SAMFileWriterStub(engine, new File(writerFileName));
+
         if( compressionLevel != null )
             stub.setCompressionLevel(compressionLevel);
-
-        stub.setIndexOnTheFly(!argumentIsPresent(disableWriteIndexArgumentDefinition(source),matches));
-        stub.setSimplifyBAM(argumentIsPresent(createSimplifyBAMArgumentDefinition(source),matches));
+        if(indexOnTheFly != null)
+            stub.setIndexOnTheFly(indexOnTheFly);
+        if(generateMD5 != null)
+            stub.setGenerateMD5(generateMD5);
+        if(simplifyBAM != null)
+            stub.setSimplifyBAM(simplifyBAM);
 
         // WARNING: Side effects required by engine!
         parsingEngine.addTags(stub,getArgumentTags(matches));
@@ -186,6 +204,23 @@ public class SAMFileWriterArgumentTypeDescriptor extends ArgumentTypeDescriptor 
                                        null,
                                        null );
     }
+
+    private ArgumentDefinition enableMD5GenerationArgumentDefinition(ArgumentSource source) {
+        return new ArgumentDefinition( ArgumentIOType.ARGUMENT,
+                                       boolean.class,
+                                       ENABLE_MD5_FULLNAME,
+                                       null,
+                                       "Enable on-the-fly creation of md5s for output BAM files.",
+                                       false,
+                                       true,
+                                       false,
+                                       source.isHidden(),
+                                       null,
+                                       null,
+                                       null,
+                                       null );
+    }
+
 
     private ArgumentDefinition createSimplifyBAMArgumentDefinition(ArgumentSource source) {
         return new ArgumentDefinition( ArgumentIOType.ARGUMENT,

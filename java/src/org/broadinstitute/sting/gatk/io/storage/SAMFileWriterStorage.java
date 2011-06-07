@@ -60,16 +60,13 @@ public class SAMFileWriterStorage implements SAMFileWriter, Storage<SAMFileWrite
         // Enable automatic index creation for pre-sorted BAMs.
         if (stub.getFileHeader().getSortOrder().equals(SAMFileHeader.SortOrder.coordinate) && stub.getIndexOnTheFly())
             factory.setCreateIndex(true);
+        if (stub.getGenerateMD5())
+            factory.setCreateMd5File(true);
         // Adjust max records in RAM.
         if(stub.getMaxRecordsInRam() != null)
             factory.setMaxRecordsInRam(stub.getMaxRecordsInRam());
 
         if(stub.getSAMFile() != null) {
-            // HACK: Turn setCreateIndex off if the SAM file is null.  Picard has pledged to fix this
-            //       during the week of 14 Sept 2010.  Eliminate this check when they do.
-            if(stub.getSAMFile().getPath().equals("/dev/null"))
-                factory.setCreateIndex(false);
-
             try {
                 this.writer = createBAMWriter(factory,stub.getFileHeader(),stub.isPresorted(),file,stub.getCompressionLevel());
             }

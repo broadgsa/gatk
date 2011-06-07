@@ -78,6 +78,11 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
     private boolean indexOnTheFly = false;
 
     /**
+     * Should the GATK generate an md5 for the output BAM?
+     */
+    private boolean generateMD5 = false;
+
+    /**
      * Should this BAM be presorted?
      */
     private boolean presorted = true;
@@ -196,6 +201,24 @@ public class SAMFileWriterStub implements Stub<SAMFileWriter>, StingSAMFileWrite
         if(writeStarted)
             throw new UserException("Attempted to index a BAM on the fly of a file with alignments already in it.");
         this.indexOnTheFly = indexOnTheFly;
+    }
+
+    /**
+     * Gets whether to generate an md5 on-the-fly for this BAM.
+     * @return True generates the md5.  False means skip writing the file.
+     */
+    public Boolean getGenerateMD5() {
+        return generateMD5;
+    }
+
+    /**
+     * Gets whether to generate an md5 on-the-fly for this BAM.
+     * @return True generates the md5.  False means skip writing the file.
+     */
+    public void setGenerateMD5(boolean generateMD5) {
+        if(writeStarted)
+            throw new UserException("Attempted to turn on md5 generation for BAM file with alignments already in it.");        
+        this.generateMD5 = generateMD5;
     }
 
     /**
