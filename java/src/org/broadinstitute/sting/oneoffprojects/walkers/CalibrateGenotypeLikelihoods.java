@@ -28,26 +28,19 @@ package org.broadinstitute.sting.oneoffprojects.walkers;
 import net.sf.samtools.SAMReadGroupRecord;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.GenotypeLikelihoods;
-import org.broad.tribble.util.variantcontext.MutableVariantContext;
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
-import org.broad.tribble.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.gatk.walkers.genotyper.*;
 import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -55,11 +48,11 @@ import java.util.*;
 import static org.broadinstitute.sting.utils.IndelUtils.isInsideExtendedIndel;
 
 /**
- * Validates the calls on a ROD track using a BAM dataset.
+ * Computes raw GL calibration data for read groups in BAMs against a comp VCF track of genotypes
  *
- * @author carneiro
- * @since Mar 3, 2011
- * @help.summary Validates the calls on a ROD track using a BAM dataset.
+ * @author depristo
+ * @since May, 2011
+ * @help.summary Computes raw GL calibration data for read groups in BAMs against a comp VCF track of genotypes
  */
 
 @Requires(value={DataSource.READS, DataSource.REFERENCE},referenceMetaData=@RMD(name="alleles",type=VariantContext.class))
@@ -85,6 +78,9 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
 
     Set<String> samples;
 
+    /**
+     * Trivial wrapper class.  Data is a collection of Datum.
+     */
     public static class Data {
         Collection<Datum> values;
 
@@ -94,12 +90,18 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
         final public static Data EMPTY_DATA = new Data(Collections.<Datum>emptyList());
     }
 
+    /**
+     * The raw datapoints we are tracking for a specific site for a specific sample.
+     * read group id and sample name.  The PL object.
+     * the ref and alt alleles. The type of the variant context.  And the genotype of the
+     * comp. track at this site.
+     */
     public static class Datum implements Comparable<Datum> {
-        String rgID, sample;
-        GenotypeLikelihoods pl;
-        String ref, alt;
-        VariantContext.Type siteType;
-        Genotype.Type genotypeType;
+        final String rgID, sample;
+        final GenotypeLikelihoods pl;
+        final String ref, alt;
+        final VariantContext.Type siteType;
+        final Genotype.Type genotypeType;
 
         @Override
         public int compareTo(Datum o) {
@@ -129,8 +131,11 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
     //---------------------------------------------------------------------------------------------------------------
 
     public void initialize() {
+        // We only operate over the samples in the BAM file
         samples = SampleUtils.getSAMFileSamples(getToolkit().getSAMFileHeader());
         logger.info("Samples: " + samples);
+        if ( samples.size() > 1 ) // todo -- remove me when we support multiple samples
+            throw new UserException.BadInput("CalibrateGenotypeLikelihoods does not currently support comparison of multiple samples simulatenously.  To enable, see TODO in code");
 
         List<ReferenceOrderedDataSource> rodList = this.getToolkit().getRodDataSources();
         if ( rodList.size() != 1 )
@@ -143,12 +148,9 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
         uac.OutputMode = UnifiedGenotyperEngine.OUTPUT_MODE.EMIT_ALL_SITES;
         uac.GenotypingMode = GenotypeLikelihoodsCalculationModel.GENOTYPING_MODE.GENOTYPE_GIVEN_ALLELES;
         uac.NO_SLOD = true;
-
         if (mbq >= 0) uac.MIN_BASE_QUALTY_SCORE = mbq;
         if (deletions >= 0) uac.MAX_DELETION_FRACTION = deletions;
-
         uac.STANDARD_CONFIDENCE_FOR_CALLING = callConf;
-
         uac.GLmodel = GenotypeLikelihoodsCalculationModel.Model.SNP;
         snpEngine = new UnifiedGenotyperEngine(getToolkit(), uac);
 
@@ -158,6 +160,7 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
     }
 
     @Override
+    // todo -- remove me when the new indel genotyping is done
     public boolean generateExtendedEvents() { return true; }
 
     //---------------------------------------------------------------------------------------------------------------
@@ -169,26 +172,29 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
         if ( tracker == null || tracker.getNBoundRodTracks() == 0 )
             return Data.EMPTY_DATA;
 
+        // Grabs a usable VariantContext from the Alleles ROD
         VariantContext vcComp = SNPGenotypeLikelihoodsCalculationModel.getSNPVCFromAllelesRod(tracker, ref, false, logger);
         if( vcComp == null )
             return Data.EMPTY_DATA;
 
-        //todo - not sure I want this, may be misleading to filter extended indel events.
-        if (isInsideExtendedIndel(vcComp,  ref))
-            return Data.EMPTY_DATA;
-
         Data data = new Data();
         for ( String sample : samples ) {
+            // What's the genotype of our sample at this record?
             Genotype compGT = getGenotype(tracker, ref, sample, COMP_NAME);
             if ( compGT == null || compGT.isNoCall() )
                 continue;
 
+            // For each read group
+            // todo -- this only works with a single sample right now.  For multi-sample BAMs
+            // todo -- this loop needs to be refactored so that the spliting by read group only happens once
+            // todo -- and the read groups appropriate to each sample is used.
             Map<SAMReadGroupRecord,AlignmentContext> byRG = AlignmentContextUtils.splitContextByReadGroup(context, getToolkit().getSAMFileHeader().getReadGroups());
-            //byRG.put(new SAMReadGroupRecord("ALL"), context);
+            //byRG.put(new SAMReadGroupRecord("ALL"), context);     // uncomment to include a synthetic RG for all RG for the sample
             for ( Map.Entry<SAMReadGroupRecord, AlignmentContext> rgAC : byRG.entrySet() ) {
                 VariantCallContext call;
                 if ( vcComp.isIndel() ) {
-                    call = indelEngine.calculateLikelihoodsAndGenotypes(tracker, ref, rgAC.getValue());
+                    throw new UserException.BadInput("CalibrateGenotypeLikelihoods does not currently support indel GL calibration.  This capability needs to be tested and verified to be working with the new genotyping code for indels in UG");
+                    //call = indelEngine.calculateLikelihoodsAndGenotypes(tracker, ref, rgAC.getValue());
                 } else {
                     call = snpEngine.calculateLikelihoodsAndGenotypes(tracker, ref, rgAC.getValue());
                 }
@@ -209,6 +215,15 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
         return data;
     }
 
+    /**
+     * Convenience function that determines the genotype in the comp VC for sample
+     *
+     * @param tracker
+     * @param ref
+     * @param sample
+     * @param rod
+     * @return
+     */
     private Genotype getGenotype(RefMetaDataTracker tracker, ReferenceContext ref, String sample, String rod) {
         for ( VariantContext vc : tracker.getVariantContexts(ref, rod, null, ref.getLocus(), true, false) ) {
             if ( vc.isNotFiltered() && vc.hasGenotype(sample) )
@@ -249,6 +264,7 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
         List<String> fields = Arrays.asList("sample", "rg", "ref", "alt", "siteType", "pls", "comp", "pGGivenDType", "pGGivenD");
         out.println(Utils.join("\t", fields));
 
+        // determine the priors by counting all of the events we've seen in comp
         double[] counts = new double[]{1, 1, 1};
         for ( Datum d : data.values ) { counts[d.genotypeType.ordinal()-1]++; }
         double sum = MathUtils.sum(counts);
@@ -257,6 +273,7 @@ public class CalibrateGenotypeLikelihoods extends RodWalker<CalibrateGenotypeLik
         double[] log10priors = new double[]{Math.log10(counts[0] / sum), Math.log10(counts[1] / sum), Math.log10(counts[2] / sum)};
         logger.info(String.format("Priors %.2f %.2f %.2f", log10priors[0], log10priors[1], log10priors[2]));
 
+        // emit the molten data set
         for ( Datum d : data.values ) {
             double[] log10pGGivenD = d.pl.getAsVector().clone();
             for ( int i = 0; i < log10priors.length; i++ ) log10pGGivenD[i] += log10priors[i];
