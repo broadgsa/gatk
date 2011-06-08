@@ -841,7 +841,7 @@ public class PairHMMIndelErrorModel {
                 numEndSoftClippedBases = read.getUnclippedEnd()- read.getAlignmentEnd();
 
                 // check for hard clips (never consider these bases):
-    /*            Cigar c = read.getCigar();
+                Cigar c = read.getCigar();
                 CigarElement first = c.getCigarElement(0);
                 CigarElement last = c.getCigarElement(c.numCigarElements()-1);
                 int numStartHardClippedBases = 0, numEndHardClippedBases = 0;
@@ -859,7 +859,7 @@ public class PairHMMIndelErrorModel {
                 numEndSoftClippedBases -= numEndHardClippedBases;
                 readStart += numStartHardClippedBases;
                 readEnd -= numEndHardClippedBases;
-      */
+
                 // remove soft clips if necessary
                 if ((read.getAlignmentStart()>=eventStartPos-eventLength && read.getAlignmentStart() <= eventStartPos+1) ||
                         (read.getAlignmentEnd() >= eventStartPos && read.getAlignmentEnd() <= eventStartPos + eventLength)) {
