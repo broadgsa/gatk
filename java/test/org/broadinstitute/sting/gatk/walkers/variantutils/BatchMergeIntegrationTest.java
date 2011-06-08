@@ -36,11 +36,11 @@ public class BatchMergeIntegrationTest extends WalkerTest {
         String bam = validationDataLocation + "NA12878.HiSeq.b37.chr20.10_11mb.bam";
         String alleles = validationDataLocation +  "batch.merge.alleles.vcf";
         WalkerTestSpec spec = new WalkerTestSpec(
-                "-T UnifiedGenotyper -NO_HEADER -BTI alleles -glm BOTH -G none -nsl -gt_mode GENOTYPE_GIVEN_ALLELES -out_mode EMIT_ALL_SITES -o %s -R " + b37KGReference
+                "-T UnifiedGenotyper -NO_HEADER -BTI alleles -stand_call_conf 0.0 -glm BOTH -G none -nsl -gt_mode GENOTYPE_GIVEN_ALLELES -out_mode EMIT_ALL_SITES -o %s -R " + b37KGReference
                         + " -B:alleles,VCF " + alleles
                         + " -I " + bam,
                 1,
-                Arrays.asList("db0611522fb691adbd9903d325b879f7"));
+                Arrays.asList("b7839064dc4979400af4792460d9884b"));
         executeTest("testBatchMerge UG genotype given alleles:" + new File(bam).getName() + " with " + new File(alleles).getName(), spec);
     }
 }
