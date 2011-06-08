@@ -34,7 +34,6 @@ import java.util.Arrays;
  * Tests CombineVariants
  */
 public class CombineVariantsIntegrationTest extends WalkerTest {
-
     public static String baseTestString(String args) {
         return "-T CombineVariants -NO_HEADER -L 1:1-50,000,000 -o %s -R " + b36KGReference + args;
     }
@@ -104,6 +103,24 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
                 1,
                 Arrays.asList("a07995587b855f3214fb71940bf23c0f"));
         executeTest("threeWayWithRefs", spec);
-        
     }
+
+
+    // complex examples with filtering, indels, and multiple alleles
+    public void combineComplexSites(String args, String md5) {
+        String file1 = "combine.1.vcf";
+        String file2 = "combine.2.vcf";
+        WalkerTestSpec spec = new WalkerTestSpec(
+                "-T CombineVariants -NO_HEADER -o %s -R " + b37KGReference
+                        + " -B:one,VCF " + validationDataLocation + file1
+                        + " -B:two,VCF " + validationDataLocation + file2 + args,
+                1,
+                Arrays.asList(md5));
+        executeTest("combineComplexSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
+    }
+
+    @Test public void complexTestFull() { combineComplexSites("", "ec593a12f932af92f0f6e38cf9c4bc60"); }
+    @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "977e27e407674e8a162f1773310294a5"); }
+    @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "4bcab3ae334c718f4cf3203fe38d7ce6"); }
+    @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "c70d0ccdb821921ea5bf7975364ad5a0"); }
 }

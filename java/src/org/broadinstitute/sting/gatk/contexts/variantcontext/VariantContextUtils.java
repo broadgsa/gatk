@@ -26,6 +26,7 @@ package org.broadinstitute.sting.gatk.contexts.variantcontext;
 import java.io.Serializable;
 import java.util.*;
 
+import com.google.java.contract.*;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.util.StringUtil;
 import org.apache.commons.jexl2.*;
@@ -282,11 +283,39 @@ public class VariantContextUtils {
         return HardyWeinbergCalculation.hwCalculate(vc.getHomRefCount(), vc.getHetCount(), vc.getHomVarCount());
     }
 
+    /**
+     * Returns a newly allocated VC that is the same as VC, but without genotypes
+     * @param vc
+     * @return
+     */
+    @Requires("vc != null")
+    @Ensures("result != null")
+    public static VariantContext sitesOnlyVariantContext(VariantContext vc) {
+        return new VariantContext(vc.getSource(), vc.getChr(), vc.getStart(), vc.getEnd(),
+                vc.getAlleles(), vc.getNegLog10PError(),
+                vc.filtersWereApplied() ? vc.getFilters() : null,
+                vc.getAttributes());
+    }
+
+    /**
+     * Returns a newly allocated list of VC, where each VC is the same as the input VCs, but without genotypes
+     * @param vcs
+     * @return
+     */
+    @Requires("vcs != null")
+    @Ensures("result != null")
+    public static Collection<VariantContext> sitesOnlyVariantContexts(Collection<VariantContext> vcs) {
+        List<VariantContext> r = new ArrayList<VariantContext>();
+        for ( VariantContext vc : vcs )
+            r.add(sitesOnlyVariantContext(vc));
+        return r;
+    }
+
     public static VariantContext pruneVariantContext(VariantContext vc) {
         return pruneVariantContext(vc, null);
     }
 
-    public static VariantContext pruneVariantContext(VariantContext vc, Set<String> keysToPreserve ) {
+    public static VariantContext pruneVariantContext(VariantContext vc, Collection<String> keysToPreserve ) {
         MutableVariantContext mvc = new MutableVariantContext(vc);
 
         if ( keysToPreserve == null || keysToPreserve.size() == 0 )
@@ -304,9 +333,10 @@ public class VariantContextUtils {
         for ( Genotype g : gs ) {
             MutableGenotype mg = new MutableGenotype(g);
             mg.clearAttributes();
-            for ( String key : keysToPreserve )
-                if ( g.hasAttribute(key) )
-                    mg.putAttribute(key, g.getAttribute(key));
+            if ( keysToPreserve != null )
+                for ( String key : keysToPreserve )
+                    if ( g.hasAttribute(key) )
+                        mg.putAttribute(key, g.getAttribute(key));
             mvc.addGenotype(mg);
         }
 
@@ -536,7 +566,7 @@ public class VariantContextUtils {
         }
 
         // if at least one record was unfiltered and we want a union, clear all of the filters
-        if ( filteredRecordMergeType == filteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size() )
+        if ( filteredRecordMergeType == FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size() )
             filters.clear();
 
         // we care about where the call came from
@@ -795,7 +825,7 @@ public class VariantContextUtils {
      * @return the genomeLoc
      */
     public static final GenomeLoc getLocation(GenomeLocParser genomeLocParser,VariantContext vc) {
-        return genomeLocParser.createGenomeLoc(vc.getChr(),(int)vc.getStart(),(int)vc.getEnd(), true);
+        return genomeLocParser.createGenomeLoc(vc.getChr(), vc.getStart(), vc.getEnd(), true);
     }
 
     public abstract static class AlleleMergeRule {
