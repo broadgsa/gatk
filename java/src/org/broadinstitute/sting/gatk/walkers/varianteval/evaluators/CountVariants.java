@@ -53,6 +53,8 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
     public long nHomVar = 0;
     @DataPoint(description = "Number of singletons")
     public long nSingletons = 0;
+    @DataPoint(description = "Number of derived homozygotes")
+    public long nHomDerived = 0;
 
     // calculations that get set in the finalizeEvaluation method
     @DataPoint(description = "heterozygosity per locus rate")
@@ -115,19 +117,47 @@ public class CountVariants extends VariantEvaluator implements StandardEval {
                 throw new ReviewedStingException("Unexpected VariantContext type " + vc1.getType());
         }
 
+        String refStr = vc1.getReference().getBaseString().toUpperCase();
+
+        String aaStr = vc1.hasAttribute("ANCESTRALALLELE") ? vc1.getAttributeAsString("ANCESTRALALLELE").toUpperCase() : null;
+//        if (aaStr.equals(".")) {
+//            aaStr = refStr;
+//        }
+
+        // ref  aa  alt  class
+        // A    C   A    der homozygote
+        // A    C   C    anc homozygote
+
+        // A    A   A    ref homozygote
+        // A    A   C
+        // A    C   A
+        // A    C   C
+
         for (Genotype g : vc1.getGenotypes().values()) {
+            String altStr = vc1.getAlternateAlleles().size() > 0 ? vc1.getAlternateAllele(0).getBaseString().toUpperCase() : null;
+
             switch (g.getType()) {
                 case NO_CALL:
                     nNoCalls++;
                     break;
                 case HOM_REF:
                     nHomRef++;
+
+                    if ( aaStr != null && altStr != null && !refStr.equalsIgnoreCase(aaStr) ) {
+                        nHomDerived++;
+                    }
+
                     break;
                 case HET:
                     nHets++;
                     break;
                 case HOM_VAR:
                     nHomVar++;
+
+                    if ( aaStr != null && altStr != null && !altStr.equalsIgnoreCase(aaStr) ) {
+                        nHomDerived++;
+                    }
+
                     break;
                 default:
                     throw new ReviewedStingException("BUG: Unexpected genotype type: " + g);

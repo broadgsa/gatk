@@ -30,6 +30,13 @@ import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.TableType;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
+import net.sf.picard.reference.FastaSequenceFile;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
+import org.broadinstitute.sting.gatk.walkers.fasta.FastaSequence;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import net.sf.picard.reference.ReferenceSequence;
+import java.io.FileNotFoundException;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -95,6 +102,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
     @Argument(fullName="tranchesFile", shortName="tf", doc="The input tranches file describing where to cut the data", required=false)
     private String TRANCHE_FILENAME = null;
 
+    @Argument(fullName="ancestralAlignments", shortName="aa", doc="Fasta file with ancestral alleles", required=false)
+    private File ancestralAlignmentsFile = null;
+
     // Variables
     private Set<SortableJexlVCMatchExp> jexlExpressions = new TreeSet<SortableJexlVCMatchExp>();
     private Set<String> compNames = new TreeSet<String>();
@@ -119,6 +129,9 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
     // Utility class
     private final VariantEvalUtils variantEvalUtils = new VariantEvalUtils(this);
+
+    // Ancestral alignments
+    private IndexedFastaSequenceFile ancestralAlignments = null;
 
     /**
      * Initialize the stratifications, evaluations, evaluation contexts, and reporting object
@@ -165,7 +178,6 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         sampleNamesForStratification.add(ALL_SAMPLE_NAME);
 
         // Initialize select expressions
-        //jexlExpressions.addAll(VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS));
         for (VariantContextUtils.JexlVCMatchExp jexl : VariantContextUtils.initializeMatchExps(SELECT_NAMES, SELECT_EXPS)) {
             SortableJexlVCMatchExp sjexl = new SortableJexlVCMatchExp(jexl.name, jexl.exp);
             jexlExpressions.add(sjexl);
@@ -190,6 +202,15 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
 
         // Initialize report table
         report = variantEvalUtils.initializeGATKReport(stratificationObjects, evaluationObjects);
+
+        // Load ancestral alignments
+        if (ancestralAlignmentsFile != null) {
+            try {
+                ancestralAlignments = new IndexedFastaSequenceFile(ancestralAlignmentsFile);
+            } catch (FileNotFoundException e) {
+                throw new ReviewedStingException(String.format("The ancestral alignments file, '%s', could not be found", ancestralAlignmentsFile.getAbsolutePath()));
+            }
+        }
     }
 
     /**
@@ -204,6 +225,8 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
 
         if (tracker != null) {
+            String aastr = (ancestralAlignments == null) ? null : new String(ancestralAlignments.getSubsequenceAt(ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop()).getBases());
+
             //      track           sample  vc
             HashMap<String, HashMap<String, VariantContext>> vcs = variantEvalUtils.getVariantContexts(tracker, ref, compNames, evalNames, typesToUse != null);
 
@@ -218,6 +241,13 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
                             if ( eval != null && ! typesToUse.contains(eval.getType()) ) eval = null;
                             if ( comp != null && ! typesToUse.contains(comp.getType()) ) comp = null;
 //                            if ( eval != null ) logger.info("Keeping " + eval);
+                        }
+
+                        if (eval != null && aastr != null) {
+                            HashMap<String, Object> newAts = new HashMap<String, Object>(eval.getAttributes());
+                            newAts.put("ANCESTRALALLELE", aastr);
+
+                            eval = VariantContext.modifyAttributes(eval, newAts);
                         }
 
                         HashMap<VariantStratifier, ArrayList<String>> stateMap = new HashMap<VariantStratifier, ArrayList<String>>();

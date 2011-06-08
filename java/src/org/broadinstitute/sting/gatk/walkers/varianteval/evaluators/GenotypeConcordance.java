@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
 import org.apache.log4j.Logger;
-import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broad.tribble.vcf.VCFConstants;
@@ -48,27 +47,13 @@ public class GenotypeConcordance extends VariantEvaluator {
 
     protected final static Logger logger = Logger.getLogger(GenotypeConcordance.class);
 
-    // a mapping from allele count to stats
-    @DataPoint(description = "the frequency statistics for each allele")
-    FrequencyStats alleleFreqStats = new FrequencyStats();
-
     // a mapping from sample to stats
-    @DataPoint(description = "the concordance statistics for each sample")
-    SampleStats sampleStats = null;
+    @DataPoint(description = "the detailed concordance statistics for each sample")
+    SampleStats detailedStats = null;
 
     // a mapping from sample to stats summary
-    @DataPoint(description = "the concordance statistics summary for each sample")
-    SampleSummaryStats sampleSummaryStats = null;
-
-    // two histograms of variant quality scores, for true positive and false positive calls
-    @DataPoint(description = "the variant quality score histograms for true positive and false positive calls")
-    QualityScoreHistograms qualityScoreHistograms = null;
-
-    @DataPoint(description = "the concordance statistics summary by allele count")
-    ACSummaryStats alleleCountSummary = null;
-
-    @DataPoint(description = "the concordance statistics by allele count")
-    ACStats alleleCountStats = null;
+    @DataPoint(description = "the simplified concordance statistics for each sample")
+    SampleSummaryStats simplifiedStats = null;
 
     private static final int MAX_MISSED_VALIDATION_DATA = 100;
 
@@ -253,27 +238,11 @@ public class GenotypeConcordance extends VariantEvaluator {
             return interesting;
         }
 
-        if( qualityScoreHistograms == null ) {
-            qualityScoreHistograms = new QualityScoreHistograms();
-        }
-
-        if ( alleleCountStats == null && eval != null && validation != null && validation.getSampleNames().size() > 0) {
-            alleleCountStats = new ACStats(eval,validation,Genotype.Type.values().length);
-            alleleCountSummary = new ACSummaryStats(eval, validation);
-        }
-
-        if ( alleleCountStats != null ) {
-//            for ( int i = 0; i <= 2*validation.getGenotypes().size(); i++ ) {
-//                concordanceStats.put(String.format("compAC%d",i), new long[nGenotypeTypes][nGenotypeTypes]);
-//                rowKeys[1+2*evalvc.getGenotypes().size()+i] = String.format("compAC%d",i);
-//            }
-        }
-
-        if (sampleStats == null) {
+        if (detailedStats == null) {
             if (eval != null) {
                 // initialize the concordance table
-                sampleStats = new SampleStats(eval,Genotype.Type.values().length);
-                sampleSummaryStats = new SampleSummaryStats(eval);
+                detailedStats = new SampleStats(eval,Genotype.Type.values().length);
+                simplifiedStats = new SampleSummaryStats(eval);
                 for (final VariantContext vc : missedValidationData) {
                     determineStats(null, vc);
                 }
@@ -323,11 +292,7 @@ public class GenotypeConcordance extends VariantEvaluator {
                     }
                 }
 
-                sampleStats.incrValue(sample, truth, called);
-                if ( evalAC != null && validationAC != null) {
-                    alleleCountStats.incrValue(evalAC,truth,called);
-                    alleleCountStats.incrValue(validationAC,truth,called);
-                }
+                detailedStats.incrValue(sample, truth, called);
             }
         }
         // otherwise, mark no-calls for all samples
@@ -336,10 +301,8 @@ public class GenotypeConcordance extends VariantEvaluator {
 
             for (final String sample : validation.getGenotypes().keySet()) {
                 final Genotype.Type truth = validation.getGenotype(sample).getType();
-                sampleStats.incrValue(sample, truth, called);
-                if ( evalAC != null ) {
-                    alleleCountStats.incrValue(evalAC,truth,called);
-                }
+                detailedStats.incrValue(sample, truth, called);
+
                 // print out interesting sites
                 /*
                 if ( PRINT_INTERESTING_SITES && super.getVEWalker().gcLog != null ) {
@@ -354,33 +317,6 @@ public class GenotypeConcordance extends VariantEvaluator {
             }
         }
 
-        // determine allele count concordance () // this is really a FN rate estimate -- CH
-        if (validationIsValidVC && validation.isPolymorphic()) {
-            int trueAlleleCount = 0;
-            for (final Allele a : validation.getAlternateAlleles()) {
-                trueAlleleCount += validation.getChromosomeCount(a);
-            }
-            if (eval != null) {
-                alleleFreqStats.incrementFoundCount(trueAlleleCount);
-            } else {
-                alleleFreqStats.incrementMissedCount(trueAlleleCount);
-            }
-        }
-
-        // TP & FP quality score histograms
-        if( eval != null && eval.isPolymorphic() && validationIsValidVC ) {
-            if( eval.getGenotypes().keySet().size() == 1 ) { // single sample calls
-                for( final String sample : eval.getGenotypes().keySet() ) { // only one sample
-                    if( validation.hasGenotype(sample) ) {
-                        final Genotype truth = validation.getGenotype(sample);
-                        qualityScoreHistograms.incrValue( eval.getPhredScaledQual(), !truth.isHomRef() );
-                    }
-                }
-            } else { // multi sample calls
-                qualityScoreHistograms.incrValue( eval.getPhredScaledQual(), validation.isPolymorphic() );
-            }
-        }
-
         return interesting;
     }
 
@@ -389,16 +325,8 @@ public class GenotypeConcordance extends VariantEvaluator {
     }
 
     public void finalizeEvaluation() {
-        if( qualityScoreHistograms != null ) {
-            qualityScoreHistograms.organizeHistogramTables();
-        }
-
-        if( sampleSummaryStats != null && sampleStats != null ) {
-            sampleSummaryStats.generateSampleSummaryStats( sampleStats );
-        }
-
-        if ( alleleCountSummary != null && alleleCountStats != null ) {
-            alleleCountSummary.generateSampleSummaryStats( alleleCountStats );
+        if( simplifiedStats != null && detailedStats != null ) {
+            simplifiedStats.generateSampleSummaryStats(detailedStats);
         }
     }
 

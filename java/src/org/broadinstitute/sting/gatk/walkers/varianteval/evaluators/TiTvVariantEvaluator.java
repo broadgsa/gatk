@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
+import org.broadinstitute.sting.utils.BaseUtils;
 
 @Analysis(description = "Ti/Tv Variant Evaluator")
 public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEval {
@@ -23,6 +24,12 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
     long nTvInComp = 0;
     @DataPoint(description = "the transition to transversion ratio for comp sites")
     double TiTvRatioStandard = 0.0;
+    @DataPoint(description = "number of derived transition loci")
+    long nTiDerived = 0;
+    @DataPoint(description = "number of derived transversion loci")
+    long nTvDerived = 0;
+    @DataPoint(description = "the derived transition to transversion ratio")
+    double tiTvDerivedRatio = 0.0;
 
     public boolean enabled() {
         return true;
@@ -41,6 +48,21 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
                 if (updateStandard) nTvInComp++;
                 else nTv++;
             }
+
+            String refStr = vc.getReference().getBaseString().toUpperCase();
+            String aaStr = vc.getAttributeAsString("ANCESTRALALLELE").toUpperCase();
+
+            if (aaStr != null && !aaStr.equalsIgnoreCase("null") && !aaStr.equals(".")) {
+                BaseUtils.BaseSubstitutionType aaSubType = BaseUtils.SNPSubstitutionType(aaStr.getBytes()[0], vc.getAlternateAllele(0).getBases()[0]);
+
+                //System.out.println(refStr + " " + vc.getAttributeAsString("ANCESTRALALLELE").toUpperCase() + " " + aaSubType);
+
+                if (aaSubType == BaseUtils.BaseSubstitutionType.TRANSITION) {
+                    nTiDerived++;
+                } else if (aaSubType == BaseUtils.BaseSubstitutionType.TRANSVERSION) {
+                    nTvDerived++;
+                }
+            }
         }
     }
 
@@ -55,6 +77,7 @@ public class TiTvVariantEvaluator extends VariantEvaluator implements StandardEv
     public void finalizeEvaluation() {
         // the ti/tv ratio needs to be set (it's not calculated per-variant).
         this.tiTvRatio = rate(nTi,nTv);
+        this.tiTvDerivedRatio = rate(nTiDerived,nTvDerived);
         this.TiTvRatioStandard = rate(nTiInComp, nTvInComp);
     }
 }
