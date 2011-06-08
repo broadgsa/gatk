@@ -42,6 +42,19 @@ class SamtoolsMergeFunction extends SamtoolsCommandLineFunction {
   @Argument(doc="region", required=false)
   var region: String = _
 
+  @Input(doc="BAM file input indexes")
+  var inputBamIndexes: List[File] = Nil
+
+  override def freezeFieldValues = {
+    super.freezeFieldValues
+    inputBamIndexes ++= inputBams
+      .filter(orig => orig != null && orig.getName.endsWith(".bam"))
+      .flatMap(orig => Array(
+        new File(orig.getPath + ".bai"),
+        new File(orig.getPath.stripSuffix(".bam") + ".bai")
+      ))
+  }
+
   def commandLine = "%s merge%s %s%s".format(
     samtools, optional(" -R ", region),
     outputBam, repeat(" ", inputBams))
