@@ -31,7 +31,7 @@ package org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates;
  * Date: Nov 16, 2009
  */
 //public class Dinuc implements Comparable<org.broadinstitute.sting.gatk.walkers.recalibration.Dinuc>{
-public class Dinuc implements Comparable<org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Dinuc>{
+public class Dinuc implements Comparable<Dinuc>{
     private byte first;
     private byte second;
 
@@ -50,7 +50,7 @@ public class Dinuc implements Comparable<org.broadinstitute.sting.oneoffprojects
         second = _second;
     }
 
-    public int compareTo(final org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Dinuc that) {
+    public int compareTo(final Dinuc that) {
         if( this.first > that.first ) { return 1; }
         else if( this.first < that.first ) { return -1; }
         else { //this.first equals that.first

@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.playground.gatk.walkers.reducereads;
 
-import org.broadinstitute.sting.alignment.reference.bwt.Counts;
 import org.broadinstitute.sting.utils.BaseUtils;
 import com.google.java.contract.*;
 
