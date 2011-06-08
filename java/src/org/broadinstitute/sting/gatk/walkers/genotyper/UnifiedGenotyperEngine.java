@@ -446,17 +446,35 @@ public class UnifiedGenotyperEngine {
     private int calculateEndPos(Set<Allele> alleles, Allele refAllele, GenomeLoc loc) {
         // TODO - temp fix until we can deal with extended events properly
         // for indels, stop location is one more than ref allele length
-        boolean isSNP = true;
+        boolean isSNP = true, hasNullAltAllele = false;
         for (Allele a : alleles){
-            if (a.getBaseString().length() != 1) {
+            if (a.length() != 1) {
                 isSNP = false;
                 break;
             }
         }
+        for (Allele a : alleles){
+            if (a.isNull()) {
+                hasNullAltAllele = true;
+                break;
+            }
+        }
+        // standard deletion: ref allele length = del length. endLoc = startLoc + refAllele.length(), alt allele = null
+        // standard insertion: ref allele length = 0, endLos = startLoc
+        // mixed: want end loc = start Loc for case {A*,AT,T} but say  {ATG*,A,T} : want then end loc = start loc + refAllele.length
+        // So, in general, end loc = startLoc + refAllele.length, except in complex substitutions where it's one less
+        //
+        // todo - this is unnecessarily complicated and is so just because of Tribble's arbitrary vc conventions, should be cleaner/simpler,
+        // the whole vc processing infrastructure seems too brittle and riddled with special case handling
+
 
         int endLoc = loc.getStart();
-        if ( !isSNP )
+        if ( !isSNP) {
             endLoc += refAllele.length();
+            if(!hasNullAltAllele)
+                endLoc--;
+
+        }
 
         return endLoc;
     }
