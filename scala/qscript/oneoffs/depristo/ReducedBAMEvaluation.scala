@@ -43,14 +43,26 @@ class ReducedBAMEvaluation extends QScript {
   def script = {
     val reducedBAM = new ReduceBAM(bam)
     add(reducedBAM)
-    callAndEvaluateBAM(reducedBAM.out)
+    val reducedBAMVCF = callAndEvaluateBAM(reducedBAM.out)
 
     val slicedBAM = new SliceBAM(bam)
     add(slicedBAM)
-    callAndEvaluateBAM(slicedBAM.out)
+    val fullBAMVCF = callAndEvaluateBAM(slicedBAM.out)
+
+    val combineCalls = new CombineVariants with UNIVERSAL_GATK_ARGS
+    combineCalls.rodBind :+= RodBind("fullBAM", "VCF", fullBAMVCF)
+    combineCalls.rodBind :+= RodBind("reducedBAM", "VCF", reducedBAMVCF)
+    combineCalls.rod_priority_list = "reducedBAM,fullBAM"
+    combineCalls.filteredrecordsmergetype = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED
+    combineCalls.out = swapExt(reducedBAM.out,".bam",".filtered.combined.vcf")
+    add(combineCalls)
+    val eval = new Eval(combineCalls.out) // evaluate the combined VCF
+    eval.select = List("'set==\"Intersection\"'", "'set==\"fullBAM\"'", "'set==\"reducedBAM\"'", "'set==\"filterInreducedBAM-fullBAM\"'", "'set==\"reducedBAM-filterInfullBAM\"'")
+    eval.selectName = List("Intersection", "fullBAM", "reducedBAM", "filterInreducedBAM-fullBAM", "reducedBAM-filterInfullBAM")
+    add(eval)
   }
 
-  def callAndEvaluateBAM(bam: File) = {
+  def callAndEvaluateBAM(bam: File): File = {
     val rawVCF = new Call(bam)
     add(rawVCF)
 
@@ -63,21 +75,29 @@ class ReducedBAMEvaluation extends QScript {
     filterSNPs.out = swapExt(rawVCF.out,".vcf",".filtered.vcf")
     add(filterSNPs)
 
-    val targetEval = new VariantEval with UNIVERSAL_GATK_ARGS
-    targetEval.rodBind :+= RodBind("eval", "VCF", filterSNPs.out)
-    if ( dbSNP.exists() )
-      targetEval.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    targetEval.doNotUseAllStandardStratifications = true
-    targetEval.doNotUseAllStandardModules = true
-    targetEval.evalModule = List("SimpleMetricsByAC", "TiTvVariantEvaluator", "CountVariants")
-    targetEval.stratificationModule = List("EvalRod", "CompRod", "Novelty", "Filter")
-    targetEval.out = swapExt(filterSNPs.out,".vcf",".eval")
-    add(targetEval)
+    // create a variant eval for us
+    add(new Eval(filterSNPs.out))
 
     // for convenient diffing
     add(new DiffableTable(rawVCF.out))
     add(new DiffableTable(filterSNPs.out))
+
+    return filterSNPs.out
   }
+
+  class Eval(@Input vcf: File) extends VariantEval with UNIVERSAL_GATK_ARGS {
+    this.rodBind :+= RodBind("eval", "VCF", vcf)
+    if ( dbSNP.exists() )
+      this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
+    this.doNotUseAllStandardStratifications = true
+    this.doNotUseAllStandardModules = true
+    this.evalModule = List("TiTvVariantEvaluator", "CountVariants")
+    this.stratificationModule = List("EvalRod", "CompRod", "Novelty", "Filter", "JexlExpression")
+    this.out = swapExt(vcf,".vcf",".eval")
+    if ( CALLING_INTERVAL != null )
+      this.intervalsString = List(CALLING_INTERVAL);
+  }
+
 
   class ReduceBAM(bam: File) extends ReduceReads with UNIVERSAL_GATK_ARGS with CoFoJa {
     this.memoryLimit = 3
@@ -106,6 +126,9 @@ class ReducedBAMEvaluation extends QScript {
     this.stand_emit_conf = 50.0
     this.dcov = DCOV;
     this.o = outVCF
+
+    if ( dbSNP.exists() )
+      this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
 
     if ( minimalVCF )
       this.group = List("none")

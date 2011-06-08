@@ -1,6 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.reducereads;
 
 import net.sf.samtools.*;
+import org.apache.commons.math.stat.descriptive.summary.Sum;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.BaseUtils;
@@ -67,7 +68,7 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
     Queue<SAMRecord> waitingReads = new LinkedList<SAMRecord>();
 
     final int readContextSize;
-    final int maxReadsAtVariableSites;
+    final int targetDepthAtVariableSites;
     final int minBpForRunningConsensus;
     int retryTimer = 0;
     int consensusCounter = 0;
@@ -82,11 +83,11 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
                                                final int readContextSize,
                                                final GenomeLocParser glParser,
                                                final int minBpForRunningConsensus,
-                                               final int maxReadsAtVariableSites) {
+                                               final int targetDepthAtVariableSites) {
         this.readContextSize = readContextSize;
         this.glParser = glParser;
         this.minBpForRunningConsensus = minBpForRunningConsensus;
-        this.maxReadsAtVariableSites = maxReadsAtVariableSites;
+        this.targetDepthAtVariableSites = targetDepthAtVariableSites;
         this.reducedReadGroup = createReducedReadGroup(sampleName);
     }
 
@@ -326,23 +327,52 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
             if ( span.isConserved() )
                 reads.addAll(conservedSpanReads(sites, span));
             else
-                reads.addAll(downsample(variableSpanReads(sites, span)));
+                reads.addAll(downsample(variableSpanReads(sites, span), span));
         }
 
         return reads;
     }
 
-    // todo -- should be smart -- should take reads in some priority order
-    // todo -- by length, and by strand, ideally.  Perhaps alternating by strand
-    // todo -- in order of length?
-    private Collection<SAMRecord> downsample(Collection<SAMRecord> reads) {
-        if ( reads.size() > maxReadsAtVariableSites ) {
-            List<SAMRecord> readArray = new ArrayList<SAMRecord>(reads);
-            Collections.shuffle(readArray, GenomeAnalysisEngine.getRandomGenerator());
-            return readArray.subList(0, maxReadsAtVariableSites);
-        } else {
+    /**
+     * Downsamples the reads until we have 2x the ideal target depth in the span.
+     *
+     * todo: perhaps it would be better to smooth coverage, so that the probability of
+     * todo: retaining a read would be proportional to the over-coverage of each site
+     *
+     * @param reads
+     * @param span
+     * @return
+     */
+    private Collection<SAMRecord> downsample(Collection<SAMRecord> reads, ConsensusSpan span) {
+        // ideally, we would have exactly span bp at target depth, x2 for the directionality of reads
+        int idealBPinSpan = span.size() * targetDepthAtVariableSites * 2;
+        int rawBPinSpan = readsBP(reads);
+
+        // The chance we want to keep a particular bp is ideal / actual
+        double pKeepPerBP = (1.0 * idealBPinSpan) / rawBPinSpan;
+
+        if ( pKeepPerBP >= 1.0 ) { // not enough coverage
             return reads;
+        } else { // we don'need to downsample
+            List<SAMRecord> downsampled = new ArrayList<SAMRecord>();
+            for ( SAMRecord read : reads ) {
+                // should this be proportional to read length?
+                double pKeep = pKeepPerBP; //  * read.getReadLength();
+                if ( GenomeAnalysisEngine.getRandomGenerator().nextDouble() < pKeep ) {
+                    downsampled.add(read);
+                }
+            }
+
+            logger.info(String.format("targetDepth=%d, idealBP=%d, rawBP=%d, pKeepPerBP=%.2e, nRawReads=%d, nKeptReads=%d, keptBP=%d",
+                    targetDepthAtVariableSites, idealBPinSpan, rawBPinSpan, pKeepPerBP, reads.size(), downsampled.size(), readsBP(downsampled)));
+            return downsampled;
         }
+    }
+
+    private static final int readsBP(Collection<SAMRecord> reads) {
+        int sum = 0;
+        for ( SAMRecord read : reads ) sum += read.getReadLength();
+        return sum;
     }
 
     private List<SAMRecord> conservedSpanReads(List<ConsensusSite> sites, ConsensusSpan span) {

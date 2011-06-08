@@ -49,11 +49,11 @@ public class MultiSampleConsensusReadCompressor implements ConsensusReadCompress
                                               final int readContextSize,
                                               final GenomeLocParser glParser,
                                               final int minBpForRunningConsensus,
-                                              final int maxReadsAtVariableSites) {
+                                              final int targetDepthAtVariableSites) {
         for ( String name : SampleUtils.getSAMFileSamples(header) ) {
             compressorsPerSample.put(name,
                     new SingleSampleConsensusReadCompressor(name, readContextSize,
-                            glParser, minBpForRunningConsensus, maxReadsAtVariableSites));
+                            glParser, minBpForRunningConsensus, targetDepthAtVariableSites));
             // todo -- argument for minConsensusSize
         }
     }
