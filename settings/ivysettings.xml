@@ -11,7 +11,6 @@
     <ibiblio name="reflections-repo" m2compatible="true" root="http://reflections.googlecode.com/svn/repo" />
     <ibiblio name="java.net" m2compatible="false" root="http://download.java.net/maven/1/" pattern="[organisation]/jars/[artifact]-[revision].[ext]"/>
     <ibiblio name="maven2-repository.dev.java.net" m2compatible="true" root="http://download.java.net/maven/2/" />
-    <ibiblio name="sonatype" m2compatible="true" root="https://oss.sonatype.org/content/repositories/snapshots" />
   </resolvers>
   <modules>
     <module organisation="edu.mit.broad" resolver="projects" />
@@ -25,7 +24,6 @@
     <module organisation="javax.mail" resolver="java.net" />
     <module organisation="javax.activation" resolver="java.net" />
     <module organisation="net.java.dev.jna" resolver="maven2-repository.dev.java.net" />
-    <module organisation="com.google.code.caliper" resolver="sonatype" />
-    <module organisation="com.google.code.gson" revision="1.7-SNAPSHOT"  resolver="sonatype" />
+    <module organisation="com.google.code.caliper" resolver="projects" />
   </modules>
 </ivysettings>
