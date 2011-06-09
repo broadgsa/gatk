@@ -44,7 +44,7 @@
     <property name="use.contracts" value="true" /> 
     <property name="java.contracts" value="${build.dir}/java/contracts" />
     <property name="cofojaDir" value="settings/repository/com.google/"/>
-    <property name="cofoja.jar" value="${cofojaDir}/cofoja-1.0-r120.jar"/>
+    <property name="cofoja.jar" value="${cofojaDir}/cofoja-1.0-20110609.jar"/>
     
     <!-- where to find the tribble distro -->
     <property name="tribble.dir" value="tribble" />
