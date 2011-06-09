@@ -97,6 +97,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     @Hidden
     @Argument(fullName = "trustAllPolymorphic", shortName = "allPoly", doc = "Trust that all the input training sets' unfiltered records contain only polymorphic sites to drastically speed up the computation.", required = false)
     protected Boolean TRUST_ALL_POLYMORPHIC = false;
+    @Hidden
+    @Argument(fullName = "projectConsensus", shortName = "projectConsensus", doc = "Perform 1000G project consensus. This implies an extra prior factor based on the individual participant callsets passed in with consensus=true rod binding tags.", required = false)
+    protected Boolean PERFORM_PROJECT_CONSENSUS = false;
 
     /////////////////////////////
     // Private Member Variables
@@ -174,7 +177,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     // Loop through the training data sets and if they overlap this loci then update the prior and training status appropriately
                     dataManager.parseTrainingSets( tracker, ref, context, vc, datum, TRUST_ALL_POLYMORPHIC );
                     double priorFactor = QualityUtils.qualToProb( datum.prior );
-                    if( datum.consensusCount != 0 ) {
+                    if( PERFORM_PROJECT_CONSENSUS ) {
                         final double consensusPrior = QualityUtils.qualToProb( 1.0 + 5.0 * datum.consensusCount );
                         priorFactor = 1.0 - ((1.0 - priorFactor) * (1.0 - consensusPrior));
                     }
@@ -252,7 +255,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         // Execute Rscript command to create the tranche plot
         // Print out the command line to make it clear to the user what is being executed and how one might modify it
         final String rScriptTranchesCommandLine = PATH_TO_RSCRIPT + " " + PATH_TO_RESOURCES + "plot_Tranches.R" + " " + TRANCHES_FILE.getAbsolutePath() + " " + TARGET_TITV;
-        logger.info( rScriptTranchesCommandLine );
+        logger.info( "Executing: " + rScriptTranchesCommandLine );
 
         // Execute the RScript command to plot the table of truth values
         try {
@@ -331,12 +334,20 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
                 stream.println(surfaceFrame + " <- data.frame(x=s[,1], y=s[,2], lod=s[,3])");
                 stream.println(dataFrame + " <- data.frame(x=d[,1], y=d[,2], retained=d[,3], training=d[,4], novelty=d[,5])");
+                stream.println("dummyData <- " + dataFrame + "[1,]");
+                stream.println("dummyData$x <- NaN");
+                stream.println("dummyData$y <- NaN");
                 stream.println("p <- ggplot(data=" + surfaceFrame + ", aes(x=x, y=y)) + opts(panel.background = theme_rect(colour = NA), panel.grid.minor = theme_line(colour = NA), panel.grid.major = theme_line(colour = NA))");
                 stream.println("p1 = p + opts(title=\"model PDF\") + labs(x=\""+ USE_ANNOTATIONS[iii] +"\", y=\""+ USE_ANNOTATIONS[jjj] +"\") + geom_tile(aes(fill = lod)) + scale_fill_gradient(high=\"green\", low=\"red\")");
-                stream.println("p <- ggplot(data=" + dataFrame + ", aes(x=x, y=y)) + opts(panel.background = theme_rect(colour = NA), panel.grid.minor = theme_line(colour = NA), panel.grid.major = theme_line(colour = NA))");
-                stream.println("p2 = p + labs(x=\""+ USE_ANNOTATIONS[iii] +"\", y=\""+ USE_ANNOTATIONS[jjj] +"\") + geom_point(data="+ dataFrame + ", aes(x=x, y=y, colour = retained, alpha=0.3, size=1.5)) + scale_colour_gradient(name=\"\", high=\"black\", low=\"red\",breaks=c(-1,1),labels=c(\"filtered\",\"retained\"))");
-                stream.println("p3 = p + labs(x=\""+ USE_ANNOTATIONS[iii] +"\", y=\""+ USE_ANNOTATIONS[jjj] +"\") + geom_point(data="+ dataFrame + "["+dataFrame+"$training==0,], aes(x=x, y=y, colour = training, alpha=0.3, size=1.5)) + geom_point(data="+ dataFrame + "["+dataFrame+"$training!=0,], aes(x=x, y=y, colour = training, alpha=0.3, size=1.5)) + scale_colour_gradient2(high=\"green\", mid=\"lightgrey\", low=\"purple\",breaks=c(-1,0,1), labels=c(\"bad\", \"\", \"good\"))");
-                stream.println("p4 = p + labs(x=\""+ USE_ANNOTATIONS[iii] +"\", y=\""+ USE_ANNOTATIONS[jjj] +"\") + geom_point(data="+ dataFrame + ", aes(x=x, y=y, colour = novelty, alpha=0.3, size=1.5)) + scale_colour_gradient(name=\"\", high=\"blue\", low=\"red\",breaks=c(-1,1), labels=c(\"novel\",\"known\"))");
+                stream.println("p <- qplot(x,y,data=" + dataFrame + ", color=retained, alpha=I(1/7),legend=FALSE) + opts(panel.background = theme_rect(colour = NA), panel.grid.minor = theme_line(colour = NA), panel.grid.major = theme_line(colour = NA))");
+                stream.println("q <- geom_point(aes(x=x,y=y,color=retained),data=dummyData, alpha=1.0, na.rm=TRUE)");
+                stream.println("p2 = p + q + labs(x=\""+ USE_ANNOTATIONS[iii] +"\", y=\""+ USE_ANNOTATIONS[jjj] +"\") + scale_colour_gradient(name=\"outcome\", high=\"black\", low=\"red\",breaks=c(-1,1),labels=c(\"filtered\",\"retained\"))");
+                stream.println("p <- qplot(x,y,data="+ dataFrame + "["+dataFrame+"$training != 0,], color=training, alpha=I(1/7)) + opts(panel.background = theme_rect(colour = NA), panel.grid.minor = theme_line(colour = NA), panel.grid.major = theme_line(colour = NA))");
+                stream.println("q <- geom_point(aes(x=x,y=y,color=training),data=dummyData, alpha=1.0, na.rm=TRUE)");
+                stream.println("p3 = p + q + labs(x=\""+ USE_ANNOTATIONS[iii] +"\", y=\""+ USE_ANNOTATIONS[jjj] +"\") + scale_colour_gradient(high=\"green\", low=\"purple\",breaks=c(-1,1), labels=c(\"neg\", \"pos\"))");
+                stream.println("p <- qplot(x,y,data=" + dataFrame + ", color=novelty, alpha=I(1/7)) + opts(panel.background = theme_rect(colour = NA), panel.grid.minor = theme_line(colour = NA), panel.grid.major = theme_line(colour = NA))");
+                stream.println("q <- geom_point(aes(x=x,y=y,color=novelty),data=dummyData, alpha=1.0, na.rm=TRUE)");
+                stream.println("p4 = p + q + labs(x=\""+ USE_ANNOTATIONS[iii] +"\", y=\""+ USE_ANNOTATIONS[jjj] +"\") + scale_colour_gradient(name=\"novelty\", high=\"blue\", low=\"red\",breaks=c(-1,1), labels=c(\"novel\",\"known\"))");
                 stream.println("arrange(p1, p2, p3, p4, ncol=2)");
             }
         }

@@ -144,7 +144,7 @@ public class VariantDataManager {
         int numAdded = 0;
         while( numAdded < numToAdd ) {
             final VariantDatum datum = data.get(index++);
-            if( !datum.failingSTDThreshold ) {
+            if( !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
                 trainingData.add( datum );
                 datum.usedForTraining = -1;
                 numAdded++;
@@ -209,15 +209,16 @@ public class VariantDataManager {
         double value;
 
         try {
-            if( annotationKey.equals("QUAL") ) {
+            if( annotationKey.equalsIgnoreCase("QUAL") ) {
                 value = vc.getPhredScaledQual();
             } else {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
                 if( Double.isInfinite(value) ) { value = Double.NaN; }
-                if( jitter && ( annotationKey.equalsIgnoreCase("HRUN") ) ) { // Integer valued annotations must be jittered a bit to work in this GMM
+                if( annotationKey.equalsIgnoreCase("InbreedingCoeff") && value > 0.01 ) { value = Double.NaN; }
+                if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
                       value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
                 }
-                if( annotationKey.equals("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
+                if( annotationKey.equalsIgnoreCase("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
             }
 
          } catch( final Exception e ) {
@@ -226,7 +227,6 @@ public class VariantDataManager {
                 logger.warn("WARNING: Missing value detected for " + annotationKey + ". The VQSR will work with missing data by marginalizing over this dimension for this variant. This warning message is only shown once so there may be other annotations missing as well.");
                 warnedUserMissingValue = true;
             }
-
         }
 
         return value;

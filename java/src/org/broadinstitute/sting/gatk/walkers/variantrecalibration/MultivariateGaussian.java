@@ -93,7 +93,7 @@ public class MultivariateGaussian {
         try {
             cachedSigmaInverse = sigma.inverse();
         } catch( Exception e ) {
-            throw new UserException("Error during clustering. Most likely there are too few variants used during Gaussian mixture modeling.");
+            throw new UserException("Error during clustering. Most likely there are too few variants used during Gaussian mixture modeling. Please consider raising the number of variants used to train the negative model (via --percentBadVariants 0.05, for example) or lowering the maximum number of Gaussians to use in the model (via --maxGaussians 4, for example).");
         }
     }
 
