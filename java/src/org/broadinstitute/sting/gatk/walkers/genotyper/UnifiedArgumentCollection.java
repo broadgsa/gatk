@@ -124,6 +124,11 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "exactCalculation", shortName = "exactCalculation", doc = "expt", required = false)
     public ExactAFCalculationModel.ExactCalculation EXACT_CALCULATION_TYPE = ExactAFCalculationModel.ExactCalculation.LINEAR_EXPERIMENTAL;
 
+    @Hidden
+     @Argument(fullName = "ignoreSNPAlleles", shortName = "ignoreSNPAlleles", doc = "expt", required = false)
+    public boolean IGNORE_SNP_ALLELES = false;
+
+
     @Deprecated
     @Argument(fullName="output_all_callable_bases", shortName="all_bases", doc="Please use --output_mode EMIT_ALL_SITES instead" ,required=false)
     private Boolean ALL_BASES_DEPRECATED = false;   
@@ -165,6 +170,7 @@ public class UnifiedArgumentCollection {
         uac.COVERAGE_AT_WHICH_TO_ABORT = COVERAGE_AT_WHICH_TO_ABORT;
         uac.dovit = dovit;
         uac.GSA_PRODUCTION_ONLY = GSA_PRODUCTION_ONLY;
+        uac.IGNORE_SNP_ALLELES = IGNORE_SNP_ALLELES;
         
         return uac;
     }

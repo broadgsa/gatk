@@ -58,6 +58,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
     private boolean DEBUG = false;
 
+    private boolean ignoreSNPAllelesWhenGenotypingIndels = false;
+
     private PairHMMIndelErrorModel pairModel;
 
     private static ThreadLocal<HashMap<PileupElement,LinkedHashMap<Allele,Double>>> indelLikelihoodMap =
@@ -111,7 +113,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         DEBUG = UAC.OUTPUT_DEBUG_INDEL_INFO;
 
         haplotypeMap = new LinkedHashMap<Allele,Haplotype>();
-
+        ignoreSNPAllelesWhenGenotypingIndels = UAC.IGNORE_SNP_ALLELES;
     }
 
 
@@ -333,8 +335,19 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                      return null;
 
                 alleleList.clear();
-                for (Allele a : vc.getAlleles())
-                    alleleList.add(a);
+                if (ignoreSNPAllelesWhenGenotypingIndels) {
+                    // if there's an allele that has same length as the reference (i.e. a SNP or MNP), ignore it and don't genotype it
+                    for (Allele a : vc.getAlleles())
+                        if (a.isNonReference() && a.getBases().length == vc.getReference().getBases().length)
+                            continue;
+                        else
+                            alleleList.add(a);
+
+                }
+                else {
+                    for (Allele a : vc.getAlleles())
+                        alleleList.add(a);
+                }
 
             }
             else {

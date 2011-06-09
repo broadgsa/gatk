@@ -194,7 +194,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
     public static boolean checkRecalibrationMode( final VariantContext vc, final VariantRecalibratorArgumentCollection.Mode mode ) {
         return mode == VariantRecalibratorArgumentCollection.Mode.BOTH ||
                 (mode == VariantRecalibratorArgumentCollection.Mode.SNP && vc.isSNP()) ||
-                (mode == VariantRecalibratorArgumentCollection.Mode.INDEL && vc.isIndel());
+	    (mode == VariantRecalibratorArgumentCollection.Mode.INDEL && (vc.isIndel() || vc.isMixed()));
     }
 
     //---------------------------------------------------------------------------------------------------------------
