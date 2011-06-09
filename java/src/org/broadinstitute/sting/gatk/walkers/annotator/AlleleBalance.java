@@ -105,7 +105,7 @@ public class AlleleBalance implements InfoFieldAnnotation {
             return null;
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put(getKeyNames().get(0), String.format("%.2f", (ratio / totalWeights)));
+        map.put(getKeyNames().get(0), String.format("%.3f", (ratio / totalWeights)));
         return map;
     }
 

@@ -22,7 +22,7 @@ import java.util.Arrays;
  */
 
 // A set of annotations calculated directly from the GLs
-public class GLstats implements InfoFieldAnnotation {
+public class GLstats implements InfoFieldAnnotation, StandardAnnotation {
 
     private static final int MIN_SAMPLES = 10;
 
@@ -42,13 +42,14 @@ public class GLstats implements InfoFieldAnnotation {
             idxAB = idxVector[1];
             idxBB = idxVector[2];
         }
+
         double refCount = 0.0;
         double hetCount = 0.0;
         double homCount = 0.0;
         int N = 0; // number of samples that have likelihoods
         for ( final Map.Entry<String, Genotype> genotypeMap : genotypes.entrySet() ) {
             Genotype g = genotypeMap.getValue();
-            if ( g.isNoCall() )
+            if ( g.isNoCall() || !g.hasLikelihoods() )
                 continue;
 
             N++;
@@ -56,6 +57,10 @@ public class GLstats implements InfoFieldAnnotation {
             refCount += normalizedLikelihoods[idxAA];
             hetCount += normalizedLikelihoods[idxAB];
             homCount += normalizedLikelihoods[idxBB];
+        }
+
+        if( N < MIN_SAMPLES ) {
+            return null;
         }
 
         final double p = ( 2.0 * refCount + hetCount ) / ( 2.0 * (refCount + hetCount + homCount) ); // expected reference allele frequency

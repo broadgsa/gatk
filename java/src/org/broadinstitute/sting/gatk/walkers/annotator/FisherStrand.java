@@ -27,7 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.annotator;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.WorkInProgressAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.StandardAnnotation;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.utils.*;
@@ -38,16 +38,11 @@ import org.broad.tribble.vcf.VCFInfoHeaderLine;
 import org.broad.tribble.vcf.VCFHeaderLineType;
 import cern.jet.math.Arithmetic;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
-import org.broadinstitute.sting.utils.sam.AlignmentUtils;
 
 import java.util.*;
 
 
-public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotation {
-    private static final String REFFWD = "REFFWD";
-    private static final String REFREV = "REFREV";
-    private static final String ALTFWD = "ALTFWD";
-    private static final String ALTREV = "ALTREV";
+public class FisherStrand implements InfoFieldAnnotation, StandardAnnotation {
     private static final String FS = "FS";
     private static final double MIN_PVALUE = 1E-320;
 
@@ -79,7 +74,7 @@ public class FisherStrand implements InfoFieldAnnotation, WorkInProgressAnnotati
     }
 
     public List<String> getKeyNames() {
-        return Arrays.asList(REFFWD,REFREV,ALTFWD,ALTREV,FS);
+        return Arrays.asList(FS);
     }
 
     public List<VCFInfoHeaderLine> getDescriptions() {

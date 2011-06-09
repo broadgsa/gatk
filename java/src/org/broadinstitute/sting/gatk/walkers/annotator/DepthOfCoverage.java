@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Arrays;
 
 
-public class DepthOfCoverage implements InfoFieldAnnotation {
+public class DepthOfCoverage implements InfoFieldAnnotation, StandardAnnotation {
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {
         if ( stratifiedContexts.size() == 0 )
@@ -31,5 +31,5 @@ public class DepthOfCoverage implements InfoFieldAnnotation {
 
     public List<String> getKeyNames() { return Arrays.asList(VCFConstants.DEPTH_KEY); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Integer, "Total Depth")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Integer, "Filtered Depth")); }
 }
