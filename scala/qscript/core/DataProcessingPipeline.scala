@@ -418,7 +418,7 @@ class DataProcessingPipeline extends QScript {
     @Output(doc="validation log") var validate = outLog
     override def inputBams = List(inBam)
     override def outputBam = outLog
-    override def commandLine = super.commandLine + " VALIDATE_INDEX=true MODE=SUMMARY REFERENCE_SEQUENCE=" + qscript.reference
+    override def commandLine = super.commandLine + " VALIDATE_INDEX=true MAX_RECORDS_IN_RAM=100000 MODE=SUMMARY REFERENCE_SEQUENCE=" + qscript.reference
     sortOrder = null
     this.jarFile = qscript.validateSamJar
     this.isIntermediate = false
