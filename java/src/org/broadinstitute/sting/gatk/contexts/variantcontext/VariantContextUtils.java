@@ -586,7 +586,10 @@ public class VariantContextUtils {
                 setValue = Utils.join("-", s);
             }
 
-            if ( setKey != null ) attributes.put(setKey, setValue);
+            if ( setKey != null ) {
+                attributes.put(setKey, setValue);
+                if( mergeInfoWithMaxAC ) { maxACAttributes.put(setKey, setValue); }
+            }
         }
 
         if ( depth > 0 )
