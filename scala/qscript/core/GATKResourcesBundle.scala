@@ -37,6 +37,7 @@ class GATKResourcesBundle extends QScript {
 
   // REFERENCES
   class Reference( val name: String, val file: File ) { }
+  var hg19: Reference = _
   var b37: Reference = _
   var hg18: Reference = _
   var b36: Reference = _
