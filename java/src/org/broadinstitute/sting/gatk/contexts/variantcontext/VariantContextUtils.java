@@ -483,7 +483,8 @@ public class VariantContextUtils {
         String rsID = null;
         int depth = 0;
         int maxAC = -1;
-        Map<String, Object> maxACAttributes = new TreeMap<String, Object>();
+        Map<String, Object> attributesWithMaxAC = new TreeMap<String, Object>();
+        VariantContext vcWithMaxAC = null;
 
         // counting the number of filtered and variant VCs
         int nFiltered = 0, nVariant = 0;
@@ -532,14 +533,14 @@ public class VariantContextUtils {
                         final int ac = Integer.valueOf(alleleCount.trim());
                         if (ac > maxAC) {
                             maxAC = ac;
-                            maxACAttributes = vc.getAttributes();
+                            vcWithMaxAC = vc;
                         }
                     }
                 } else {
                     final int ac = Integer.valueOf(rawAlleleCounts);
                     if (ac > maxAC) {
                         maxAC = ac;
-                        maxACAttributes = vc.getAttributes();
+                        vcWithMaxAC = vc;
                     }
                 }
             }
@@ -565,6 +566,11 @@ public class VariantContextUtils {
             }
         }
 
+        // take the VC with the maxAC and pull the attributes into a modifiable map
+        if ( mergeInfoWithMaxAC && vcWithMaxAC != null ) {
+            attributesWithMaxAC.putAll(vcWithMaxAC.getAttributes());
+        }
+
         // if at least one record was unfiltered and we want a union, clear all of the filters
         if ( filteredRecordMergeType == FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED && nFiltered != VCs.size() )
             filters.clear();
@@ -588,7 +594,7 @@ public class VariantContextUtils {
 
             if ( setKey != null ) {
                 attributes.put(setKey, setValue);
-                if( mergeInfoWithMaxAC ) { maxACAttributes.put(setKey, setValue); }
+                if( mergeInfoWithMaxAC && vcWithMaxAC != null ) { attributesWithMaxAC.put(setKey, vcWithMaxAC.getSource()); }
             }
         }
 
@@ -597,7 +603,7 @@ public class VariantContextUtils {
         if ( rsID != null )
             attributes.put(VariantContext.ID_KEY, rsID);
 
-        VariantContext merged = new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, (mergeInfoWithMaxAC ? maxACAttributes : attributes) );
+        VariantContext merged = new VariantContext(name, loc.getContig(), loc.getStart(), loc.getStop(), alleles, genotypes, negLog10PError, filters, (mergeInfoWithMaxAC ? attributesWithMaxAC : attributes) );
         // Trim the padded bases of all alleles if necessary
         merged = AbstractVCFCodec.createVariantContextWithTrimmedAlleles(merged);
 
