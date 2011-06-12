@@ -31,6 +31,7 @@ import net.sf.samtools.GATKChunk;
 import net.sf.samtools.util.CloseableIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.io.File;
 import java.io.IOException;
@@ -267,7 +268,7 @@ public class BAMSchedule implements CloseableIterator<BAMScheduleEntry> {
             scheduleFileChannel = new RandomAccessFile(scheduleFile,"rw").getChannel();
         }
         catch(IOException ex) {
-            throw new ReviewedStingException("Unable to create BAM schedule file.",ex);
+            throw new UserException("Unable to create a temporary BAM schedule file.  Please make sure Java can write to the default temp directory or use -Djava.io.tmpdir= to instruct it to use a different temp directory instead.",ex);
         }
         scheduleFile.deleteOnExit();
 
