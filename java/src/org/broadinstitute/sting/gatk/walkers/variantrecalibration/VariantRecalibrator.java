@@ -168,7 +168,9 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                 if( checkRecalibrationMode( vc, VRAC.MODE ) ) {
                     final VariantDatum datum = new VariantDatum();
                     dataManager.decodeAnnotations( datum, vc, true ); //BUGBUG: when run with HierarchicalMicroScheduler this is non-deterministic because order of calls depends on load of machine
-                    datum.pos = context.getLocation();
+                    datum.contig = vc.getChr();
+                    datum.start = vc.getStart();
+                    datum.stop = vc.getEnd();
                     datum.originalQual = vc.getPhredScaledQual();
                     datum.isSNP = vc.isSNP() && vc.isBiallelic();
                     datum.isTransition = datum.isSNP && VariantContextUtils.isTransition(vc);

@@ -253,7 +253,7 @@ public class VariantDataManager {
 
     public void writeOutRecalibrationTable( final PrintStream RECAL_FILE ) {
         for( final VariantDatum datum : data ) {
-            RECAL_FILE.println(String.format("%s,%d,%d,%.4f", datum.pos.getContig(), datum.pos.getStart(), datum.pos.getStop(), datum.lod));
+            RECAL_FILE.println(String.format("%s,%d,%d,%.4f", datum.contig, datum.start, datum.stop, datum.lod));
         }
     }
 }

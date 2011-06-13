@@ -170,35 +170,36 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
 
         for( VariantContext vc : tracker.getVariantContexts(ref, inputNames, null, context.getLocation(), true, false) ) {
             if( vc != null ) {
-                if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) ) {
+                if( VariantRecalibrator.checkRecalibrationMode( vc, MODE ) && (vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters())) ) {
                     String filterString = null;
                     final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
-                    final Double lod = (Double) lodMap.get( ref.getLocus().getContig(), ref.getLocus().getStart(), ref.getLocus().getStop() );
-                    if( vc.isNotFiltered() || ignoreInputFilterSet.containsAll(vc.getFilters()) ) {
-                        attrs.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
-                        for( int i = tranches.size() - 1; i >= 0; i-- ) {
-                            final Tranche tranche = tranches.get(i);
-                            if( lod >= tranche.minVQSLod ) {
-                                if( i == tranches.size() - 1 ) {
-                                    filterString = VCFConstants.PASSES_FILTERS_v4;
-                                } else {
-                                    filterString = tranche.name;
-                                }
-                                break;
+                    final Double lod = (Double) lodMap.get( vc.getChr(), vc.getStart(), vc.getEnd() );
+                    if( lod == null ) {
+                        throw new UserException("Encountered input variant which isn't found in the input recal file. Please make sure VariantRecalibrator and ApplyRecalibration were run on the same set of input variants. First seen at: " + vc );
+                    }
+
+                    attrs.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
+                    for( int i = tranches.size() - 1; i >= 0; i-- ) {
+                        final Tranche tranche = tranches.get(i);
+                        if( lod >= tranche.minVQSLod ) {
+                            if( i == tranches.size() - 1 ) {
+                                filterString = VCFConstants.PASSES_FILTERS_v4;
+                            } else {
+                                filterString = tranche.name;
                             }
-                        }
-
-                        if( filterString == null ) {
-                            filterString = tranches.get(0).name+"+";
-                        }
-
-                        if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
-                            final Set<String> filters = new HashSet<String>();
-                            filters.add(filterString);
-                            vc = VariantContext.modifyFilters(vc, filters);
+                            break;
                         }
                     }
 
+                    if( filterString == null ) {
+                        filterString = tranches.get(0).name+"+";
+                    }
+
+                    if( !filterString.equals(VCFConstants.PASSES_FILTERS_v4) ) {
+                        final Set<String> filters = new HashSet<String>();
+                        filters.add(filterString);
+                        vc = VariantContext.modifyFilters(vc, filters);
+                    }
                     vcfWriter.add( VariantContext.modifyPErrorFiltersAndAttributes(vc, vc.getNegLog10PError(), vc.getFilters(), attrs), ref.getBase() );
                 } else { // valid VC but not compatible with this mode, so just emit the variant untouched
                     vcfWriter.add( vc, ref.getBase() );
