@@ -156,7 +156,7 @@ perSamplePlots <- function(metricsBySamples) {
   sampleTextLabel <- geom_text(aes(label=Sample, size=highlightTextSizes)) 
   sampleTextLabelScale <- scale_size("Highlighted samples", to=c(3,5), breaks=c(1,2), labels=c("regular", "highlighted"))
   xAxis <- scale_x_discrete("Sample (ordered by nSNPs)", formatter=function(x) "")
-  myRug <- geom_rug(position=jitter)
+  myRug <- geom_rug(position="jitter")
   #myRug <- geom_rug(aes(x = NULL))
 
   measures = c("nSNPs", "tiTvRatio", "nSingletons", "nIndels", "nInsertions", "nDeletions", "deletionInsertionRatio")
