@@ -1,8 +1,8 @@
 library("gsalib", lib.loc="/Users/depristo/Desktop/broadLocal/GATK/trunk/R/")
 require("ggplot2")
+require("gplots")
 
-args = commandArgs(TRUE);
-
+args = commandArgs(TRUE)
 onCMDLine = ! is.na(args[1])
 LOAD_DATA = F
 
@@ -21,7 +21,7 @@ if ( onCMDLine ) {
     highlightSamples = c()
 } else {
   ProjectName = "InDevelopmentInR"
-  preQCFile <- "~/Desktop/broadLocal/GATK/trunk/qcTestData/GoT2D_exomes_batch_005.cleaned.snps_and_indels.filtered.annotated.preQC.tsv"
+  preQCFile <- "~/Desktop/broadLocal/GATK/trunk/qcTestData/GoT2D_exomes_batch_005_per_sample_metrics.tsv"
   VariantEvalRoot <- "~/Desktop/broadLocal/GATK/trunk/qcTestData/GoT2D_exomes_batch_005.cleaned.snps_and_indels.filtered.annotated"
   outputPDF = "bar.pdf"
   highlightSamples = c() # parseHighlightSamples("29029,47243")
@@ -128,8 +128,8 @@ addSection <- function(name) {
  
 createMetricsBySamples <- function(VariantEvalRoot) {
   byAFEval <- expandVEReport(gsa.read.gatkreport(paste(VariantEvalRoot, ".bySample.eval", sep="")))
-  #preQCMetrics <- read.table(preQCFile, header=T) 
-  r = merge(byAFEval$TiTvVariantEvaluator, byAFEval$CountVariants)
+  preQCMetrics <- read.table(preQCFile, header=T) 
+  r = merge(merge(byAFEval$TiTvVariantEvaluator, byAFEval$CountVariants), preQCMetrics)
 
   # order the samples by nSNPs -- it's the natural ordering.
   x = subset(r, Novelty=="all")
@@ -188,7 +188,7 @@ perSamplePlots <- function(metricsBySamples) {
     p <- p + facet_grid(variable ~ ., scales="free")
     # how do we remove the labels?
     p <- p + xAxis
-print(p)
+    print(p)
   }
 }
 
