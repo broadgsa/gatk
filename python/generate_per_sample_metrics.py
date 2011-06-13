@@ -56,9 +56,9 @@ for sample_id,filename in samples.items():
         max_haplotypes_confidently_matching = str(max(haplotypes_confidently_matching))
         median_haplotypes_confidently_matching = str(median(haplotypes_confidently_matching))
     else:
-        min_haplotypes_confidently_matching = 'N/A'
-        max_haplotypes_confidently_matching = 'N/A'
-        median_haplotypes_confidently_matching = 'N/A'
+        min_haplotypes_confidently_matching = 'NA'
+        max_haplotypes_confidently_matching = 'NA'
+        median_haplotypes_confidently_matching = 'NA'
 
     hybrid_selection_metrics = get_metrics('%s.%s' % (basepath,'hybrid_selection_metrics'))[0]
     alignment_summary_metrics = get_metrics('%s.%s' % (basepath,'alignment_summary_metrics'))[0]
