@@ -65,7 +65,7 @@ for sample_id,filename in samples.items():
     insert_size_metrics = get_metrics('%s.%s' % (basepath,'insert_size_metrics'))[0]
     dbsnp_matches = get_metrics('%s.%s' % (basepath,'dbsnp_matches'))[0]
 
-    print string.join(data,'\t')%(sample_id,str(min(haplotypes_confidently_matching)),str(max(haplotypes_confidently_matching)),str(median(haplotypes_confidently_matching)),
+    print string.join(data,'\t')%(sample_id,min_haplotypes_confidently_matching,max_haplotypes_confidently_matching,median_haplotypes_confidently_matching,
                                   hybrid_selection_metrics.BAIT_SET,hybrid_selection_metrics.GENOME_SIZE,hybrid_selection_metrics.PCT_SELECTED_BASES,
                                   hybrid_selection_metrics.MEAN_TARGET_COVERAGE,hybrid_selection_metrics.ZERO_CVG_TARGETS_PCT,hybrid_selection_metrics.FOLD_80_BASE_PENALTY,
                                   hybrid_selection_metrics.HS_LIBRARY_SIZE,alignment_summary_metrics.PCT_PF_READS_ALIGNED,alignment_summary_metrics.PF_HQ_ERROR_RATE,
