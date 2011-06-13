@@ -240,7 +240,10 @@ public class VariantDataManager {
         datum.consensusCount = 0;
         for( final TrainingSet trainingSet : trainingSets ) {
             for( final VariantContext trainVC : tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), false, false ) ) {
-                if( trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() && ((evalVC.isSNP() && trainVC.isSNP())) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed())) && (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {
+                if( trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
+                        ((evalVC.isSNP() && trainVC.isSNP()) || ((evalVC.isIndel()||evalVC.isMixed()) && (trainVC.isIndel()||trainVC.isMixed()))) &&
+                        (TRUST_ALL_POLYMORPHIC || !trainVC.hasGenotypes() || trainVC.isPolymorphic()) ) {
+
                     datum.isKnown = datum.isKnown || trainingSet.isKnown;
                     datum.atTruthSite = datum.atTruthSite || trainingSet.isTruth;
                     datum.atTrainingSite = datum.atTrainingSite || trainingSet.isTraining;
