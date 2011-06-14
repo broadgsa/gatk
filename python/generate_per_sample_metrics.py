@@ -1,8 +1,6 @@
 from java.lang import *
 from java.io import File,FileReader
 from net.sf.picard.metrics import MetricsFile
-from org.broadinstitute.sting.datasources.pipeline import Pipeline
-from org.broadinstitute.sting.utils.yaml import YamlUtils
 
 import os,string,sys
 
@@ -25,13 +23,12 @@ if len(sys.argv) != 2:
     print 'USAGE: %s <pipeline_file.yaml>'
     sys.exit(1)
 if not os.path.exists(sys.argv[1]):
-    print 'Pipeline file %s not found' % sys.argv[1]
+    print 'BAM list %s not found' % sys.argv[1]
     sys.exit(1)
 
-pipeline_file = sys.argv[1]
-pipeline = YamlUtils.load(Pipeline,File(pipeline_file))
+bam_list_filename = sys.argv[1]
 
-header = ['SAMPLE','HAPLOTYPES_CONFIDENTLY_MATCHING.MIN','HAPLOTYPES_CONFIDENTLY_MATCHING.MAX','HAPLOTYPES_CONFIDENTLY_MATCHING.MEDIAN',
+header = ['sample','HAPLOTYPES_CONFIDENTLY_MATCHING.MIN','HAPLOTYPES_CONFIDENTLY_MATCHING.MAX','HAPLOTYPES_CONFIDENTLY_MATCHING.MEDIAN',
           'BAIT_SET','GENOME_SIZE','PCT_SELECTED_BASES','MEAN_TARGET_COVERAGE','ZERO_CVG_TARGETS_PCT','FOLD_80_BASE_PENALTY','HS_LIBRARY_SIZE',
           'PCT_PF_READS_ALIGNED','PF_HQ_ERROR_RATE','MEAN_READ_LENGTH','BAD_CYCLES','STRAND_BALANCE','PCT_CHIMERAS','PCT_ADAPTER','MEDIAN_INSERT_SIZE',
           'TOTAL_SNPS']
@@ -40,13 +37,20 @@ data = ['%s'] * len(header)
 print string.join(header,'\t')
 
 # get a representative BAM file for each sample, to use as a base path.  Note that this assumes every sample corresponds to the same base path.
+bam_list = open(bam_list_filename,'r')
 samples = dict()
-for sample in pipeline.getSamples():
-    if sample.getBamFiles().size() > 0:
-        samples[sample.getId()] = sample.getBamFiles().values().iterator().next()
+
+for bam_filename in bam_list:
+    bam_filename = bam_filename.strip()
+    if bam_filename == '':
+        continue
+    bam_filename_tokens = bam_filename.split('/')
+    sample_id = bam_filename_tokens[len(bam_filename_tokens)-3]
+    samples[sample_id] = bam_filename
+bam_list.close()
 
 for sample_id,filename in samples.items():
-    basepath = filename.getAbsolutePath()[0:filename.getAbsolutePath().rindex('.bam')]
+    basepath = filename[:filename.rindex('.bam')]
     
     fingerprinting_summary_metrics = get_metrics('%s.%s' % (basepath,'fingerprinting_summary_metrics'))
 
