@@ -642,8 +642,10 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 // if indel is too close to the end of the window but we need to emit anyway (force-shift), adjust right:
                 if ( right > normal_context.getStop() ) right = normal_context.getStop();
 
-                location = getToolkit().getGenomeLocParser().setStart(location,pos);
-                location = getToolkit().getGenomeLocParser().setStop(location,pos); // retrieve annotation data
+    //            location = getToolkit().getGenomeLocParser().setStart(location,pos);
+    //            location = getToolkit().getGenomeLocParser().setStop(location,pos); // retrieve annotation data
+
+                location = getToolkit().getGenomeLocParser().createGenomeLoc(location.getContig(), pos);
 
                 boolean haveCall = normalCall.isCall(); // cache the value
 
@@ -816,8 +818,10 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 
             if ( right > tumor_context.getStop() ) right = tumor_context.getStop(); // if indel is too close to the end of the window but we need to emit anyway (force-shift), adjust right
 
-            location = getToolkit().getGenomeLocParser().setStart(location,pos);
-            location = getToolkit().getGenomeLocParser().setStop(location,pos); // retrieve annotation data
+//            location = getToolkit().getGenomeLocParser().setStart(location,pos);
+//            location = getToolkit().getGenomeLocParser().setStop(location,pos); // retrieve annotation data
+
+            location = getToolkit().getGenomeLocParser().createGenomeLoc(location.getContig(),pos); // retrieve annotation data
 
             boolean haveCall = tumorCall.isCall(); // cache the value
 
