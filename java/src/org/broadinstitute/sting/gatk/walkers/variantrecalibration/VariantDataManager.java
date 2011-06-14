@@ -211,14 +211,17 @@ public class VariantDataManager {
         try {
             if( annotationKey.equalsIgnoreCase("QUAL") ) {
                 value = vc.getPhredScaledQual();
+            } else if( annotationKey.equalsIgnoreCase("DP") ) {
+                value = Double.parseDouble( (String)vc.getAttribute( "DP" ) ) / Double.parseDouble( (String)vc.getAttribute( "AN" ) );
             } else {
                 value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
                 if( Double.isInfinite(value) ) { value = Double.NaN; }
-                if( annotationKey.equalsIgnoreCase("InbreedingCoeff") && value > 0.01 ) { value = Double.NaN; }
+                if( annotationKey.equalsIgnoreCase("InbreedingCoeff") && value > 0.05 ) { value = Double.NaN; }
                 if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
                       value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
                 }
                 if( annotationKey.equalsIgnoreCase("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
+                if( annotationKey.equalsIgnoreCase("FS") && MathUtils.compareDoubles(value, 0.0, 0.01) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
             }
 
          } catch( final Exception e ) {

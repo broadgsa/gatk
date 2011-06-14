@@ -101,7 +101,6 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
                         }
                         else
                             return null;
-
                     }
                 }
             }
@@ -168,13 +167,13 @@ public class HaplotypeScore implements InfoFieldAnnotation, StandardAnnotation {
 
         // Now retrieve the N most popular haplotypes
         if (consensusHaplotypeQueue.size() > 0) {
-            // Since the consensus haplotypes are in a quality-ordered priority queue, the two best haplotypes are just the first two in the queue
+            // The consensus haplotypes are in a quality-ordered priority queue, so the best haplotypes are just the ones at the front of the queue
             final Haplotype haplotype1 = consensusHaplotypeQueue.poll();
 
             List<Haplotype>hlist = new ArrayList<Haplotype>();
             hlist.add(new Haplotype(haplotype1.getBasesAsBytes(), 60));
 
-            for (int k=1;k < haplotypesToCompute; k++) {
+            for (int k=1; k < haplotypesToCompute; k++) {
                 Haplotype haplotype2 = consensusHaplotypeQueue.poll();
                 if(haplotype2 == null ) { haplotype2 = haplotype1; } // Sometimes only the reference haplotype can be found
                 hlist.add(new Haplotype(haplotype2.getBasesAsBytes(), 20));
