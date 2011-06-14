@@ -1,3 +1,17 @@
+#
+# Reads in selected Picard metrics, generating an R-compatible TSV suitable for pre-QC analysis.
+#
+# To run:
+#   /humgen/gsa-hpprojects/software/bin/jython2.5.2/jython \
+#     -J-classpath $STING_HOME/dist/sam-1.44.794.jar:$STING_HOME/dist/picard-1.44.794.jar:$STING_HOME/dist/picard-private-parts-1859.jar \
+#     $STING_HOME/python/generate_per_sample_metrics.py <bam.list> > <output_metrics_file.tsv>
+#
+# To add a new metric:
+#   - If the metric file is new to Picard, add the relevant parser to the picard-private jar
+#     (see http://www.broadinstitute.org/gsa/wiki/index.php/Adding_and_updating_dependencies for details).
+#   - Add the field name to the header array.
+#   - Add the field data to the statement printing the data array.
+#
 from java.lang import *
 from java.io import File,FileReader
 from net.sf.picard.metrics import MetricsFile
