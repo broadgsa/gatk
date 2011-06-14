@@ -21,6 +21,8 @@
       <class name="edu.mit.broad.picard.variation.DbSnpFileGenerator" />
       <class name="net.sf.picard.util.IlluminaUtil" />
       <class name="edu.mit.broad.picard.genotype.fingerprint.v2.FingerprintingSummaryMetrics" />
+      <class name="edu.mit.broad.picard.genotype.concordance.DbSnpMatchMetrics" />
     </dependencies>
+
   </executable>
 </package>
