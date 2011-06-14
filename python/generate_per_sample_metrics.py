@@ -3,7 +3,7 @@
 #
 # To run:
 #   /humgen/gsa-hpprojects/software/bin/jython2.5.2/jython \
-#     -J-classpath $STING_HOME/dist/sam-1.44.794.jar:$STING_HOME/dist/picard-1.44.794.jar:$STING_HOME/dist/picard-private-parts-1859.jar \
+#     -J-classpath $STING_HOME/dist/sam-1.47.869.jar:$STING_HOME/dist/picard-1.47.869.jar:$STING_HOME/dist/picard-private-parts-1941.jar \
 #     $STING_HOME/python/generate_per_sample_metrics.py <bam.list> > <output_metrics_file.tsv>
 #
 # To add a new metric:
@@ -45,7 +45,7 @@ bam_list_filename = sys.argv[1]
 header = ['sample','HAPLOTYPES_CONFIDENTLY_MATCHING.MIN','HAPLOTYPES_CONFIDENTLY_MATCHING.MAX','HAPLOTYPES_CONFIDENTLY_MATCHING.MEDIAN',
           'BAIT_SET','GENOME_SIZE','PCT_SELECTED_BASES','MEAN_TARGET_COVERAGE','ZERO_CVG_TARGETS_PCT','FOLD_80_BASE_PENALTY','PCT_TARGET_BASES_2X',
           'PCT_TARGET_BASES_10X','PCT_TARGET_BASES_20X','PCT_TARGET_BASES_30X','HS_LIBRARY_SIZE','PCT_PF_READS_ALIGNED','PF_HQ_ERROR_RATE',
-          'MEAN_READ_LENGTH','BAD_CYCLES','STRAND_BALANCE','PCT_CHIMERAS','PCT_ADAPTER','MEDIAN_INSERT_SIZE','TOTAL_SNPS']
+          'PF_INDEL_RATE','MEAN_READ_LENGTH','BAD_CYCLES','STRAND_BALANCE','PCT_CHIMERAS','PCT_ADAPTER','MEDIAN_INSERT_SIZE','TOTAL_SNPS']
 data = ['%s'] * len(header)
 
 print string.join(header,'\t')
@@ -88,6 +88,6 @@ for sample_id,filename in samples.items():
                                   hybrid_selection_metrics.MEAN_TARGET_COVERAGE,hybrid_selection_metrics.ZERO_CVG_TARGETS_PCT,hybrid_selection_metrics.FOLD_80_BASE_PENALTY,
                                   hybrid_selection_metrics.PCT_TARGET_BASES_2X,hybrid_selection_metrics.PCT_TARGET_BASES_10X,hybrid_selection_metrics.PCT_TARGET_BASES_20X,
                                   hybrid_selection_metrics.PCT_TARGET_BASES_30X,hybrid_selection_metrics.HS_LIBRARY_SIZE,alignment_summary_metrics.PCT_PF_READS_ALIGNED,
-                                  alignment_summary_metrics.PF_HQ_ERROR_RATE,alignment_summary_metrics.MEAN_READ_LENGTH,alignment_summary_metrics.BAD_CYCLES,
-                                  alignment_summary_metrics.STRAND_BALANCE,alignment_summary_metrics.PCT_CHIMERAS,alignment_summary_metrics.PCT_ADAPTER,
-                                  insert_size_metrics.MEDIAN_INSERT_SIZE,dbsnp_matches.TOTAL_SNPS)
+                                  alignment_summary_metrics.PF_HQ_ERROR_RATE,alignment_summary_metrics.PF_INDEL_RATE,alignment_summary_metrics.MEAN_READ_LENGTH,
+                                  alignment_summary_metrics.BAD_CYCLES,alignment_summary_metrics.STRAND_BALANCE,alignment_summary_metrics.PCT_CHIMERAS,
+                                  alignment_summary_metrics.PCT_ADAPTER,insert_size_metrics.MEDIAN_INSERT_SIZE,dbsnp_matches.TOTAL_SNPS)
