@@ -2,10 +2,16 @@ library("gsalib", lib.loc="/Users/depristo/Desktop/broadLocal/GATK/trunk/R/")
 require("ggplot2")
 require("gplots")
 
+# TODOs:
+#  Assumes you have indels in your call set.  If not you will get errors
+#  Create pre/post calling sections
+#  Allow conditional use of the preQCFile (where it's not available)
+
 args = commandArgs(TRUE)
 onCMDLine = ! is.na(args[1])
-LOAD_DATA = F
+LOAD_DATA = T
 
+# creates an array of c(sampleName1, ..., sampleNameN)
 parseHighlightSamples <- function(s) {
   return(unlist(strsplit(s, ",", fixed=T)))
 }
@@ -142,6 +148,7 @@ createMetricsBySamples <- function(VariantEvalRoot) {
   return(subset(r, Sample != "all"))
 }
 
+# actually load the data.
 if ( onCMDLine || LOAD_DATA ) {
   metricsBySites <- createMetricsBySites(VariantEvalRoot)
   metricsBySamples <- createMetricsBySamples(VariantEvalRoot)
@@ -211,61 +218,4 @@ if ( ! is.na(outputPDF) ) {
   dev.off()
 } 
 
-
-# countVariants = subset(as.data.frame(d$CountVariants), Filter=="called" & Novelty != "all" & Sample != "all")
-# countVariantsNoNovelty = subset(as.data.frame(d$CountVariants), Filter=="called" & Novelty == "all" & Sample != "all")
-# titv = subset(as.data.frame(d$TiTvVariantEvaluator), Filter=="called" & Novelty != "all" & Sample != "all")
-# titv$count = titv$nTi + titv$nTv
-# 
-# print(qplot(data=titv, Sample, tiTvRatio, group=Novelty, color=Novelty, facets = FunctionalClass ~ Novelty, size=log10(count))
-#  + geom_point()
-#  + geom_smooth(weight=count))
-# 
-# print(qplot(data=titv, Sample, tiTvRatio, group=Novelty, color=Novelty, facets = FunctionalClass ~ Novelty, size=log10(count))
-# + geom_point()
-# + geom_smooth(weight=count, level=0.99, method="lm"))
-# 
-# print(qplot(data=countVariants, Sample, nInsertions, group=Novelty, color=Novelty, facets = FunctionalClass ~ Novelty, size=log10(nVariantLoci))
-# + geom_point()
-# + geom_smooth(weight=count))
-# 
-# # moltenCountVariants = melt(subset(countVariants, Filter == "called" & FunctionalClass == "all"), id.vars=c("Sample", "Novelty"), 
-# #   measure.vars=c("hetHomRatio", "deletionInsertionRatio"))
-# #   
-# # qplot(data=subset(moltenCountVariants), Sample, value, facets = Novelty ~ variable, log="", color=Novelty)
-# 
-# # TODO -- really could use nIndels, not just nInsertions and nDeletions, as CountVariants output
-# 
-# plotByNoveltyAndSample <- function(data, measures) {
-#   sub = subset(data, Filter == "called" & FunctionalClass == "all")
-#   molten = melt(sub, id.vars=c("Sample", "Novelty"), measure.vars=measures)
-#   print(qplot(data=molten, Sample, value, color=Novelty) + facet_grid( variable ~ ., scales="free"))
-# }
-# 
-# plotBySample <- function(data, measures) {
-#   sub = subset(data, Filter == "called" & FunctionalClass == "all" & Novelty == "all")
-#   molten = melt(sub, id.vars=c("Sample"), measure.vars=measures)
-#   print(summary(molten))
-#   print(head(molten))
-#   print(qplot(data=molten, Sample, value) + facet_grid( variable ~ ., scales="free"))
-#   molten
-# }
-# 
-# scatterCounts <- function(data, measures) {
-#   sub = subset(data, Filter == "called" & FunctionalClass == "all")
-#   for ( measure in measures ) {
-#       print(measure)
-#       raw = melt(sub, id.vars=c("Sample", "Novelty"), measure.vars=c(measure))
-#       xy = cast(raw, Sample ~ Novelty)
-#       print(qplot(data=xy, known, novel, geom="blank", main=measure) + geom_text(aes(label=Sample)))
-#   }
-# }
-# 
-# variantMeasures = c("nSNPs", "nInsertions", "nDeletions", "nSingletons")
-# genotypingMeasures = c("nHomVar", "nHets", "nNoCalls")
-# 
-# plotByNoveltyAndSample(countVariants, variantMeasures)
-# scatterCounts(countVariants, variantMeasures)
-# 
-# plotBySample(countVariantsNoNovelty, genotypingMeasures)
 
