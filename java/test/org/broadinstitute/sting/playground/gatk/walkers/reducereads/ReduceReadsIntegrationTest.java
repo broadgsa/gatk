@@ -19,17 +19,17 @@ public class ReduceReadsIntegrationTest extends WalkerTest {
 
     @Test()
     public void testReduceReadsBase() {
-        RRTest("", "6c34409f19ba2e5b21f3bfe6847dadda");
+        RRTest("", "9aac475601d80eeb02400cbc73272b26");
     }
 
     @Test()
     public void testReduceReads50MaxReads() {
-        RRTest(" -mravs 50", "3a896ac6e2ea0fc0a3fb4348d31313b6");
+        RRTest(" -mravs 50", "eb2d8c2f1e66d7d0bf767ac55420027e");
     }
 
     @Test()
     public void testReduceReadsMinBasesForConsensus10000() {
-        RRTest(" -mbrc 10000", "d8edbc04fd47cd1d64f2ce08459f7dae");
+        RRTest(" -mbrc 10000", "b42706d9a2621b9b63502704af00e0da");
     }
 
 }
