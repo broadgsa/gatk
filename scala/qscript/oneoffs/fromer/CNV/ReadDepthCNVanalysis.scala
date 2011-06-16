@@ -40,6 +40,9 @@ class ReadDepthCNVanalysis extends QScript {
   @Input(doc = "Starting value of read-depth bins", shortName = "START_BIN", required = false)
   var START_BIN = 1
 
+  @Input(doc = "Minimum read mapping quality", shortName = "MMQ", required = false)
+  var minMappingQuality = 0
+
   val DOC_OUTPUT_SUFFIX: String = ".sample_interval_summary"
 
   val DOC_MEAN_COVERAGE_OUTPUT: String = ".sample_interval.averageCoverage.txt"
@@ -109,7 +112,7 @@ class ReadDepthCNVanalysis extends QScript {
     var intervalSampleOut: File = new File(t.DoC_output.getPath() + DOC_OUTPUT_SUFFIX)
 
     override def commandLine = super.commandLine +
-      " --omitDepthOutputAtEachBase --omitLocusTable --minBaseQuality 0 --minMappingQuality 0" +
+      " --omitDepthOutputAtEachBase --omitLocusTable --minBaseQuality 0 --minMappingQuality " + minMappingQuality +
       " --start " + START_BIN + " --stop " + MAX_DEPTH + " --nBins " + NUM_BINS +
       " -o " + new File(intervalSampleOut.getParentFile(), t.DoC_output.getName())
 
