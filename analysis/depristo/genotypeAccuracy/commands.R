@@ -15,7 +15,7 @@ if ( HAVE_RAW_DATA ) {
    + geom_abline(slope=1, linetype=2))
    #   + geom_smooth(se=T, size=1.5, aes(weight=Sum)))
 } else {
-  eByComp = read.table("~/Dropbox/Analysis/genotypeAccuracy/NA12878.hm3.vcf.cgl.table.eByComp.tsv", header=T)
+  eByComp = read.table("~/Dropbox/GSA members/Analysis/genotypeAccuracy/NA12878.hm3.vcf.cgl.table.eByComp.tsv", header=T)
 }
 
 #print(subset(countsByTech, pGGivenD > 18 & pGGivenD < 22 & pGGivenDType == "QofABGivenD"))
