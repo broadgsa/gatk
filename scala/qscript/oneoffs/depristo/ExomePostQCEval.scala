@@ -12,11 +12,15 @@ class ExomePostQCEval extends QScript {
   @Argument(shortName = "R", doc="ref", required=false)
   var referenceFile: File = new File("/humgen/1kg/reference/human_g1k_v37.fasta")
 
-  @Argument(shortName = "eval", doc="ref", required=true)
-  var evalVCF: File = _
+  // todo  -- should accept argument list as well
+  @Argument(shortName = "eval", doc="VCFs to evaluate", required=true)
+  var evalVCFs: List[File]= _
 
   @Argument(shortName = "intervals", doc="intervals", required=true)
   val myIntervals: String = null;
+
+  @Argument(shortName = "RPath", doc="RPath", required=false)
+  var RPath: File = new File("../R")
 
   @Argument(shortName = "dbSNP", doc="dbSNP", required=false)
   val dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/bundle/current/b37/dbsnp_132.b37.vcf")
@@ -31,23 +35,27 @@ class ExomePostQCEval extends QScript {
   // TODO -- should include "standard" eval for plotting expectations
 
   def script = {
-    // The basic summary eval
-    createEval(".summary",
-               List("TiTvVariantEvaluator", "CountVariants", "CompOverlap"),
-               List("EvalRod", "CompRod", "Novelty", "FunctionalClass"))
+    for ( evalVCF <- evalVCFs ) {
+      // The basic summary eval
+      createEval(evalVCF, ".summary",
+        List("TiTvVariantEvaluator", "CountVariants", "CompOverlap"),
+        List("EvalRod", "CompRod", "Novelty", "FunctionalClass"))
 
-    // The basic summary eval, by AF
-    createEval(".byAF",
-               List("TiTvVariantEvaluator", "CountVariants", "CompOverlap"),
-               List("EvalRod", "CompRod", "Novelty", "AlleleFrequency", "FunctionalClass"))
+      // The basic summary eval, by AF
+      createEval(evalVCF, ".byAF",
+        List("TiTvVariantEvaluator", "CountVariants", "CompOverlap"),
+        List("EvalRod", "CompRod", "Novelty", "AlleleFrequency", "FunctionalClass"))
 
-    // By sample
-    createEval(".bySample",
-               List("TiTvVariantEvaluator", "CountVariants", "CompOverlap"),
-               List("EvalRod", "CompRod", "Novelty", "Sample"))
+      // By sample
+      createEval(evalVCF, ".bySample",
+        List("TiTvVariantEvaluator", "CountVariants", "CompOverlap"),
+        List("EvalRod", "CompRod", "Novelty", "Sample"))
+
+      add(new ExomeQCRScript(evalVCF))
+    }
   }
 
-  def createEval(prefix: String, evalModules: List[String], extraStrats: List[String]) {
+  def createEval(evalVCF: File, prefix: String, evalModules: List[String], extraStrats: List[String]) {
     val eval = new Eval(evalVCF)
     eval.out = swapExt(evalVCF,".vcf", prefix + ".eval")
     eval.evalModule = evalModules
@@ -56,12 +64,18 @@ class ExomePostQCEval extends QScript {
   }
 
   class Eval(@Input vcf: File) extends VariantEval with UNIVERSAL_GATK_ARGS {
-    this.rodBind :+= RodBind("eval", "VCF", evalVCF)
+    this.rodBind :+= RodBind("eval", "VCF", vcf)
     if ( dbSNP.exists() )
       this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.doNotUseAllStandardStratifications = true
     this.doNotUseAllStandardModules = true
     this.intervalsString = List(myIntervals);
+  }
+
+  class ExomeQCRScript(vcf: File) extends CommandLineFunction {
+    @Output var pdf: File = swapExt(vcf,".vcf", ".pdf")
+    val root = swapExt(vcf,".vcf", "") // remove the prefix
+    def commandLine = "Rscript %s/exomeQC.R %s %s %s".format(RPath, root, root, pdf)
   }
 }
 
