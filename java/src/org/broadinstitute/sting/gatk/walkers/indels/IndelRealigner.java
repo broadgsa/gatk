@@ -163,7 +163,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Deprecated
     @Argument(fullName="realignReadsWithBadMates", doc="This argument is no longer used.", required=false)
     protected boolean DEPRECATED_REALIGN_MATES = false;
-    
+
+    @Deprecated
+    @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", doc="This argument is no longer used. See --consensusDeterminationModel instead.", required=false)
+    protected boolean DEPRECATED_KNOWNS_ONLY = false;
+
 
     // DEBUGGING OPTIONS FOLLOW
 
