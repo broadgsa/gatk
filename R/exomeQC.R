@@ -16,11 +16,13 @@ parseHighlightSamples <- function(s) {
   return(unlist(strsplit(s, ",", fixed=T)))
 }
 
+preQCFile = NA
 if ( onCMDLine ) {
   ProjectName = args[1]
   VariantEvalRoot = args[2]
-  preQCFile = args[3]
-  outputPDF = args[4]
+  outputPDF = args[3]
+  if ( ! is.na(args[4]) ) 
+    preQCFile = args[4]
   if ( ! is.na(args[5]) ) 
     highlightSamples = parseHighlightSamples(args[5])
   else
@@ -32,6 +34,13 @@ if ( onCMDLine ) {
   outputPDF = "bar.pdf"
   highlightSamples = c() # parseHighlightSamples("29029,47243")
 }
+
+print("Report")
+print(paste("Project          :", ProjectName))
+print(paste("VariantEvalRoot  :", VariantEvalRoot))
+print(paste("outputPDF        :", outputPDF))
+print(paste("preQCFile        :", preQCFile))
+print(paste("highlightSamples :", highlightSamples))
 
 expandVEReport <- function(d) {
   d$TiTvVariantEvaluator$tiTvRatio = round(d$TiTvVariantEvaluator$tiTvRatio,2) 
@@ -72,7 +81,8 @@ summaryPlots <- function(metricsBySites) {
   p <- ggplot(data=molten, aes(x=AC, y=value+1, color=Novelty, fill=Novelty), group=variable)
   p <- p + opts(title = name)
   p <- p + scale_y_log10("Number of variants")
-  p <- p + geom_area()
+  p <- p + geom_point(alpha=0.5, size=3)
+  p <- p + geom_line(size=1)
   p <- p + facet_grid(variable ~ ., scales="free")
   p <- p + scale_x_continuous("Allele count (AC)")
   print(p)
@@ -134,9 +144,11 @@ addSection <- function(name) {
  
 createMetricsBySamples <- function(VariantEvalRoot) {
   byAFEval <- expandVEReport(gsa.read.gatkreport(paste(VariantEvalRoot, ".bySample.eval", sep="")))
-  preQCMetrics <- read.table(preQCFile, header=T) 
-  r = merge(merge(byAFEval$TiTvVariantEvaluator, byAFEval$CountVariants), preQCMetrics)
-
+  r = merge(byAFEval$TiTvVariantEvaluator, byAFEval$CountVariants)
+  if ( ! is.na(preQCFile) ) {
+    preQCMetrics <- read.table(preQCFile, header=T) 
+    r = merge(merge(byAFEval$TiTvVariantEvaluator, byAFEval$CountVariants), preQCMetrics)
+  }
   # order the samples by nSNPs -- it's the natural ordering.
   x = subset(r, Novelty=="all")
   r$Sample <- factor(x$Sample, levels=x$Sample[order(x$nSNPs)])
@@ -146,12 +158,6 @@ createMetricsBySamples <- function(VariantEvalRoot) {
 
   #r = merge(merge(preQCMetrics, byAFEval$TiTvVariantEvaluator), byAFEval$CountVariants)
   return(subset(r, Sample != "all"))
-}
-
-# actually load the data.
-if ( onCMDLine || LOAD_DATA ) {
-  metricsBySites <- createMetricsBySites(VariantEvalRoot)
-  metricsBySamples <- createMetricsBySamples(VariantEvalRoot)
 }
 
 # -------------------------------------------------------
@@ -167,12 +173,21 @@ perSamplePlots <- function(metricsBySamples) {
   #myRug <- geom_rug(aes(x = NULL))
 
   measures = c("nSNPs", "tiTvRatio", "nSingletons", "nIndels", "nInsertions", "nDeletions", "deletionInsertionRatio")
-  # Counts vs. Allele frequency 
-  name = "Variant counts by allele count"
+  name = "by sample"
   for ( measure in measures ) {
     molten = melt(metricsBySamples, id.vars=c("Novelty", "Sample", "highlightTextSizes"), measure.vars=c(measure))
+
+    # distribution
+    p <- ggplot(data=molten, aes(x=value, group=Novelty, fill=Novelty))
+    p <- p + opts(title = paste(measure, name))
+    p <- p + geom_density(alpha=0.5)
+    p <- p + geom_rug(aes(y=NULL, color=Novelty, position="jitter"))
+    p <- p + scale_x_continuous(measure)
+    # how do we remove the labels?
+    print(p)
+
     p <- ggplot(data=molten, aes(x=Sample, y=value, group=Novelty, color=Novelty), y=value)
-    p <- p + opts(title = paste(name, ":", measure))
+    p <- p + opts(title = paste(measure, name))
     p <- p + geom_smooth(alpha=0.5, aes(group=Novelty))
     p <- p + sampleTextLabel + sampleTextLabelScale
     p <- p + myRug
@@ -202,6 +217,12 @@ perSamplePlots <- function(metricsBySamples) {
 # -------------------------------------------------------
 # Actually invoke the above plotting functions 
 # -------------------------------------------------------
+
+# load the data.
+if ( onCMDLine || LOAD_DATA ) {
+  metricsBySites <- createMetricsBySites(VariantEvalRoot)
+  metricsBySamples <- createMetricsBySamples(VariantEvalRoot)
+}
 
 if ( ! is.na(outputPDF) ) {
   pdf(outputPDF, height=8.5, width=11)
