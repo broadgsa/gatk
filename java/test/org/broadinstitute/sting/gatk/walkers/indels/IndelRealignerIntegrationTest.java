@@ -43,15 +43,30 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
     @Test
     public void testKnownsOnly() {
         WalkerTestSpec spec1 = new WalkerTestSpec(
-                baseCommand + "-knownsOnly -B:indels,vcf " + knownIndels,
+                baseCommand + "--consensusDeterminationModel KNOWNS_ONLY -B:indels,vcf " + knownIndels,
                 1,
                 Arrays.asList("3dd5d2c9931b375455af0bff1a2c4888"));
         executeTest("realigner known indels only from VCF", spec1);
 
         WalkerTestSpec spec2 = new WalkerTestSpec(
-                baseCommand + "-knownsOnly -D " + GATKDataLocation + "dbsnp_129_b36.rod",
+                baseCommand + "--consensusDeterminationModel KNOWNS_ONLY -D " + GATKDataLocation + "dbsnp_129_b36.rod",
                 1,
                 Arrays.asList("78850024ac9ff3ba51b6f097c7041c1d"));
+        executeTest("realigner known indels only from dbsnp", spec2);
+    }
+
+    @Test
+    public void testReadsOnly() {
+        WalkerTestSpec spec1 = new WalkerTestSpec(
+                baseCommand + "--consensusDeterminationModel USE_READS -B:indels,vcf " + knownIndels,
+                1,
+                Arrays.asList(base_md5));
+        executeTest("realigner known indels only from VCF", spec1);
+
+        WalkerTestSpec spec2 = new WalkerTestSpec(
+                baseCommand + "--consensusDeterminationModel USE_READS -D " + GATKDataLocation + "dbsnp_129_b36.rod",
+                1,
+                Arrays.asList("e041186bca9dccf360747c89be8417ad"));
         executeTest("realigner known indels only from dbsnp", spec2);
     }
 

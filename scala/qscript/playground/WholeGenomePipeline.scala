@@ -149,7 +149,7 @@ class WholeGenomePipeline extends QScript {
         clean.targetIntervals = target.out
         clean.rodBind :+= RodBind("dbsnp", "VCF", dbsnp)
         clean.rodBind :+= RodBind("indels", "VCF", indels)
-        clean.doNotUseSW = true
+        clean.consensusDeterminationModel = org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel.USE_READS
         clean.simplifyBAM = true
         clean.bam_compression = 1
         clean.out = tmpBase + ".cleaned.bam"

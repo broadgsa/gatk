@@ -76,6 +76,12 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     public static final String ORIGINAL_POSITION_TAG = "OP";
     public static final String PROGRAM_RECORD_NAME = "GATK IndelRealigner";
 
+    public enum ConsensusDeterminationModel {
+        KNOWNS_ONLY,
+        USE_READS,
+        USE_SW
+    }
+
     @Input(fullName="targetIntervals", shortName="targetIntervals", doc="intervals file output from RealignerTargetCreator", required=true)
     protected String intervalsFile = null;
 
@@ -89,12 +95,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected StingSAMFileWriter writer = null;
     protected ConstrainedMateFixingManager manager = null;
 
-    @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs for constructing the alternate references.")
-    protected boolean USE_KNOWN_INDELS_ONLY = false;
-
-    @Hidden
-    @Argument(fullName="doNotUseSW", shortName="doNotUseSW", required=false, doc="Don't run 'Smith-Waterman' to generate alternate consenses; use only known indels provided as RODs or indels in the reads for constructing the alternate references.")
-    protected boolean NO_SW = false;
+    @Argument(fullName = "consensusDeterminationModel", shortName = "model", doc = "How should we determine the possible alternate consenses? -- in the order of least permissive to most permissive there is KNOWNS_ONLY (use only indels from known indels provided in RODs), USE_READS (additionally use indels already present in the original alignments of the reads), and USE_SW (additionally use 'Smith-Waterman' to generate alternate consenses).  The default is USE_SW", required = false)
+    public ConsensusDeterminationModel consensusModel = ConsensusDeterminationModel.USE_SW;
 
 
     // ADVANCED OPTIONS FOLLOW
@@ -646,7 +648,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         long totalRawMismatchSum = determineReadsThatNeedCleaning(reads, refReads, altReads, altAlignmentsToTest, altConsenses, leftmostIndex, reference);
 
         // use 'Smith-Waterman' to create alternate consenses from reads that mismatch the reference, using totalRawMismatchSum as the random seed
-        if ( !USE_KNOWN_INDELS_ONLY && !NO_SW )
+        if ( consensusModel == ConsensusDeterminationModel.USE_SW )
             generateAlternateConsensesFromReads(altAlignmentsToTest, altConsenses, reference, leftmostIndex);
 
         // if ( debugOn ) System.out.println("------\nChecking consenses...\n--------\n");
@@ -723,7 +725,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 if ( !updateRead(bestConsensus.cigar, bestConsensus.positionOnReference, indexPair.second, aRead, leftmostIndex) )
                     return;
             }
-            if ( !USE_KNOWN_INDELS_ONLY && !alternateReducesEntropy(altReads, reference, leftmostIndex) ) {
+            if ( consensusModel != ConsensusDeterminationModel.KNOWNS_ONLY && !alternateReducesEntropy(altReads, reference, leftmostIndex) ) {
                 if ( statsOutput != null ) {
                     try {
                         statsOutput.write(currentInterval.toString());
@@ -885,7 +887,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 aRead.setAlignerMismatchScore(AlignmentUtils.mismatchingQualities(aRead.getRead(), reference, startOnRef));
 
                 // if it has an indel, let's see if that's the best consensus
-                if ( !USE_KNOWN_INDELS_ONLY && numBlocks == 2 )  {
+                if ( consensusModel != ConsensusDeterminationModel.KNOWNS_ONLY && numBlocks == 2 )  {
                     Consensus c = createAlternateConsensus(startOnRef, aRead.getCigar(), reference, aRead.getReadBases());
                     if ( c != null )
                         altConsenses.add(c);
