@@ -8,10 +8,7 @@ import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /*
  * Copyright (c) 2009 The Broad Institute
@@ -48,7 +45,7 @@ import java.util.Set;
  * on the reference genome, or is a dummy site that is only used to calculate insertion statistics
  */
 final class ConsensusSite {
-    final Set<PileupElement> overlappingReads = new HashSet<PileupElement>();
+    final Collection<PileupElement> overlappingReads = new LinkedList<PileupElement>();
     final int offset, position;
     final BaseCounts counts = new BaseCounts();
 
@@ -57,17 +54,21 @@ final class ConsensusSite {
     public ConsensusSite(int position, int offset) {
         this.position = position;
         this.offset = offset;
-
     }
 
     public int getPosition() {
         return position;
     }
 
-    public Set<PileupElement> getOverlappingReads() {
+    public Collection<PileupElement> getOverlappingReads() {
         return overlappingReads;
     }
 
+    /**
+     * Adds a pileup element (read / offset pair) to this consensus site.  Assumes
+     * that the same element isn't added to site more than once.
+     * @param elt
+     */
     public void addOverlappingRead(PileupElement elt) {
         overlappingReads.add(elt);
         counts.incr(elt.getBase());

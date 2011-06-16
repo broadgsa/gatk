@@ -37,7 +37,7 @@ class ReducedBAMEvaluation extends QScript {
   }
 
   trait CoFoJa extends JavaCommandLineFunction {
-    override def javaOpts = super.javaOpts + " -javaagent:lib/cofoja.jar"
+    override def javaOpts = super.javaOpts //  + " -javaagent:lib/cofoja.jar"
   }
 
   def script = {

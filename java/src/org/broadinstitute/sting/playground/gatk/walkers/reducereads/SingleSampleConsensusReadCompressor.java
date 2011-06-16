@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.reducereads;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.samtools.*;
 import org.apache.commons.math.stat.descriptive.summary.Sum;
 import org.apache.log4j.Logger;
@@ -323,7 +325,7 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
         List<SAMRecord> reads = new ArrayList<SAMRecord>();
 
         for ( ConsensusSpan span : spans ) {
-            logger.info("Span is " + span);
+            //logger.info("Span is " + span);
             if ( span.isConserved() )
                 reads.addAll(conservedSpanReads(sites, span));
             else
@@ -416,17 +418,25 @@ public class SingleSampleConsensusReadCompressor implements ConsensusReadCompres
         return Collections.singletonList(consensus);
     }
 
+    @Requires({"sites != null", "span.isVariable()"})
+    @Ensures("result != null")
     private Collection<SAMRecord> variableSpanReads(List<ConsensusSite> sites, ConsensusSpan span) {
-        Set<SAMRecord> reads = new HashSet<SAMRecord>();
+        Collection<SAMRecord> reads = new LinkedList<SAMRecord>();
+        Set<String> readNames = new HashSet<String>();
 
-        // todo -- this code is grossly inefficient, as it checks each variable read at each site in the span
         for ( int i = 0; i < span.size(); i++ ) {
             int refI = i + span.getOffsetFromStartOfSites();
-            ConsensusSite site = sites.get(refI);
-            for ( PileupElement p : site.getOverlappingReads() ) {
-                SAMRecord read = clipReadToSpan(p.getRead(), span);
-                if ( keepClippedReadInVariableSpan(p.getRead(), read) )
-                    reads.add(read);
+
+            for ( PileupElement p : sites.get(refI).getOverlappingReads() ) {
+                if ( readNames.contains(p.getRead().getReadName()) ) {
+                    ;
+                    //logger.info("Rejecting already seen read: " + p.getRead().getReadName());
+                } else {
+                    readNames.add(p.getRead().getReadName());
+                    SAMRecord read = clipReadToSpan(p.getRead(), span);
+                    if ( keepClippedReadInVariableSpan(p.getRead(), read) )
+                        reads.add(read);
+                }
             }
         }
 
