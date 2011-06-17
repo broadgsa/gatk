@@ -111,12 +111,16 @@ class ReadDepthCNVanalysis extends QScript {
     @Gather(classOf[org.broadinstitute.sting.queue.function.scattergather.SimpleTextGatherFunction])
     var intervalSampleOut: File = new File(t.DoC_output.getPath() + DOC_OUTPUT_SUFFIX)
 
+    val outFile = new File(intervalSampleOut.getParentFile(), t.DoC_output.getName())
+
     override def commandLine = super.commandLine +
       " --omitDepthOutputAtEachBase --omitLocusTable --minBaseQuality 0 --minMappingQuality " + minMappingQuality +
       " --start " + START_BIN + " --stop " + MAX_DEPTH + " --nBins " + NUM_BINS +
-      " -o " + new File(intervalSampleOut.getParentFile(), t.DoC_output.getName())
+      " -o " + outFile
 
     override def dotString = "DOC: " + t.DoC_output
+
+    this.jobOutputFile = outFile + ".out"
   }
 
   class combineDoC(DoCsToCombine: List[File]) extends CommandLineFunction {
