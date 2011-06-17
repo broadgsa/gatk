@@ -42,6 +42,7 @@ import org.broadinstitute.sting.utils.text.XReadLines;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -96,7 +97,7 @@ public class SliceBams extends CommandLineProgram {
      * @return
      */
     private SAMFileWriter createOutputBAM(List<File> inputBAMs) {
-        SAMFileHeader header = null;
+        Collection<SAMFileHeader> headers = new ArrayList<SAMFileHeader>();
 
         log.info("Reading headers");
         int fileCounter = 1;
@@ -105,19 +106,12 @@ public class SliceBams extends CommandLineProgram {
             final SAMFileReader inReader = new SAMFileReader(inFile, null); // null because we don't want it to look for the index
             final SAMFileHeader inHeader = inReader.getFileHeader();
             log.info("  Reading header from file " + inFile + " " + fileCounter++ + " of " + inputBAMs.size());
-
-            if (header == null) {
-                header = inHeader;
-            }
-            else {
-                for ( SAMReadGroupRecord rg : inHeader.getReadGroups() )
-                    header.addReadGroup(rg);
-            }
-
+            headers.add(inHeader);
             inReader.close();
         }
 
-        SAMFileWriter out = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, false, OUTPUT);
+        final SamFileHeaderMerger headerMerger = new SamFileHeaderMerger(SAMFileHeader.SortOrder.coordinate, headers, true);
+        SAMFileWriter out = new SAMFileWriterFactory().makeSAMOrBAMWriter(headerMerger.getMergedHeader(), false, OUTPUT);
         return new SimplifyingSAMFileWriter(out);
     }
 
