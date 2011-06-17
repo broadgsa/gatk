@@ -143,11 +143,12 @@ addSection <- function(name) {
 }
  
 createMetricsBySamples <- function(VariantEvalRoot) {
-  byAFEval <- expandVEReport(gsa.read.gatkreport(paste(VariantEvalRoot, ".bySample.eval", sep="")))
-  r = merge(byAFEval$TiTvVariantEvaluator, byAFEval$CountVariants)
+  bySampleEval <- expandVEReport(gsa.read.gatkreport(paste(VariantEvalRoot, ".bySample.eval", sep="")))
+  r = merge(bySampleEval$TiTvVariantEvaluator, bySampleEval$CountVariants)
+  r = merge(r, bySampleEval$CompOverlap)
   if ( ! is.na(preQCFile) ) {
-    preQCMetrics <- read.table(preQCFile, header=T) 
-    r = merge(merge(byAFEval$TiTvVariantEvaluator, byAFEval$CountVariants), preQCMetrics)
+    preQCMetrics <- read.table(preQCFile, header=T)
+    r = merge(r, preQCMetrics)
   }
   # order the samples by nSNPs -- it's the natural ordering.
   x = subset(r, Novelty=="all")
@@ -170,7 +171,7 @@ perSamplePlots <- function(metricsBySamples) {
   sampleTextLabelScale <- scale_size("Highlighted samples", to=c(3,5), breaks=c(1,2), labels=c("regular", "highlighted"))
   xAxis <- scale_x_discrete("Sample (ordered by nSNPs)", formatter=function(x) "")
   myRug <- geom_rug(position="jitter")
-  #myRug <- geom_rug(aes(x = NULL))
+  #myRug <- geom_rug(aes(x=NULL), position="jitter")
 
   measures = c("nSNPs", "tiTvRatio", "nSingletons", "nIndels", "nInsertions", "nDeletions", "deletionInsertionRatio")
   name = "by sample"
@@ -196,7 +197,31 @@ perSamplePlots <- function(metricsBySamples) {
     p <- p + xAxis
     print(p)
   }
-  
+
+  # known / novel ratio by sample
+  # TODO -- would ideally not conflate SNPs and Indels
+  d = subset(metricsBySamples, Novelty == "all" & CompRod == "dbsnp")
+  title <- opts(title = "Novelty rate by sample")
+
+  # distribution
+  p <- ggplot(data=d, aes(x=compRate))
+  p <- p + title
+  p <- p + geom_density(alpha=0.5)
+  p <- p + geom_rug(aes(y=NULL, position="jitter"))
+  p <- p + scale_x_continuous("Percent of variants in dbSNP")
+  # how do we remove the labels?
+  print(p)
+
+  p <- ggplot(data=d, aes(x=Sample, y=compRate))
+  p <- p + title
+  p <- p + geom_smooth(alpha=0.5, aes(group=Novelty))
+  p <- p + sampleTextLabel + sampleTextLabelScale
+  p <- p + geom_rug(aes(x=NULL, position="jitter"))
+  #p <- p + myRug
+  # how do we remove the labels?
+  p <- p + xAxis
+  print(p)
+
   for ( novelty in c("all", "known", "novel") ) {
     # TODO -- how can I color it as before?
     # TODO -- add marginal distributions?
