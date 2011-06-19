@@ -29,8 +29,9 @@ if ( onCMDLine ) {
     highlightSamples = c()
 } else {
   ProjectName = "InDevelopmentInR"
-  preQCFile <- "~/Desktop/broadLocal/GATK/trunk/qcTestData/GoT2D_exomes_batch_005_per_sample_metrics.tsv"
-  VariantEvalRoot <- "~/Desktop/broadLocal/GATK/trunk/qcTestData/GoT2D_exomes_batch_005.cleaned.snps_and_indels.filtered.annotated"
+  preQCFile <- NA # "~/Desktop/broadLocal/GATK/trunk/qcTestData/GoT2D_exomes_batch_005_per_sample_metrics.tsv"
+  #VariantEvalRoot <- "qcTestData//ESPGO_Gabriel_NHLBI_eomi_june_2011_batch1"
+  VariantEvalRoot <- "qcTestData/MC_Engle_11_Samples_06092011"
   outputPDF = "bar.pdf"
   highlightSamples = c() # parseHighlightSamples("29029,47243")
 }
@@ -52,15 +53,13 @@ expandVEReport <- function(d) {
 createMetricsBySites <- function(VariantEvalRoot, PreQCMetrics) {
   # Metrics by sites:
   #  bySite -> counts of SNPs and Indels by novelty, with expectations
-  #  byAF -> snps and indels (known / novel)
+  #  byAC -> snps and indels (known / novel)
   r = list( bySite = expandVEReport(gsa.read.gatkreport(paste(VariantEvalRoot, ".summary.eval", sep=""))),
-               byAF = gsa.read.gatkreport(paste(VariantEvalRoot, ".byAF.eval", sep="")))
-  r$byAF$CountVariants$nIndels = r$byAF$CountVariants$nInsertions + r$byAF$CountVariants$nDeletions
-
-  nChrom = 1 / min(r$byAF$TiTvVariantEvaluator$AlleleFrequency[r$byAF$TiTvVariantEvaluator$AlleleFrequency > 0])
-  r$byAF$TiTvVariantEvaluator$nSNPs = r$byAF$TiTvVariantEvaluator$nTi + r$byAF$TiTvVariantEvaluator$nTv
-  r$byAF$CountVariants$AC = r$byAF$CountVariants$AlleleFrequency * nChrom
-  r$byAF$TiTvVariantEvaluator$AC = r$byAF$TiTvVariantEvaluator$AlleleFrequency * nChrom
+               byAC = gsa.read.gatkreport(paste(VariantEvalRoot, ".byAC.eval", sep="")))
+  r$byAC$CountVariants$nIndels = r$byAC$CountVariants$nInsertions + r$byAC$CountVariants$nDeletions
+  r$byAC$TiTvVariantEvaluator$nSNPs = r$byAC$TiTvVariantEvaluator$nTi + r$byAC$TiTvVariantEvaluator$nTv
+  r$byAC$CountVariants$AC = r$byAC$CountVariants$AlleleCount
+  r$byAC$TiTvVariantEvaluator$AC = r$byAC$TiTvVariantEvaluator$AlleleCount
   return(r)
 }
 
@@ -77,7 +76,7 @@ summaryTable <- function(metricsBySites, metricsBySample) {
 
 summaryPlots <- function(metricsBySites) {
   name = "SNP and Indel count by novelty and allele frequency" 
-  molten = melt(subset(metricsBySites$byAF$CountVariants, FunctionalClass == "all" & Novelty != "all" & AC > 0), id.vars=c("Novelty", "AC"), measure.vars=c(c("nSNPs", "nIndels")))
+  molten = melt(subset(metricsBySites$byAC$CountVariants, Novelty != "all" & AC > 0), id.vars=c("Novelty", "AC"), measure.vars=c(c("nSNPs", "nIndels")))
   p <- ggplot(data=molten, aes(x=AC, y=value+1, color=Novelty, fill=Novelty), group=variable)
   p <- p + opts(title = name)
   p <- p + scale_y_log10("Number of variants")
@@ -92,7 +91,7 @@ summaryPlots <- function(metricsBySites) {
   # Counts vs. Allele frequency 
   name = "Variant counts by allele count"
   for ( measure in c("nSNPs", "nIndels")) {
-    molten = melt(subset(metricsBySites$byAF$CountVariants, FunctionalClass == "all" & AC > 0), id.vars=c("Novelty", "AC"), measure.vars=c(measure))
+    molten = melt(subset(metricsBySites$byAC$CountVariants, AC > 0), id.vars=c("Novelty", "AC"), measure.vars=c(measure))
     p <- ggplot(data=molten, aes(x=AC, y=value+1, color=Novelty), group=variable)
     p <- p + opts(title = paste(name, ":", measure))
     p <- p + scale_y_log10("Number of variants")
@@ -104,8 +103,10 @@ summaryPlots <- function(metricsBySites) {
   }
   
   name = "Transition / transversion ratio by allele count"
-  byAFNoAll = subset(metricsBySites$byAF$TiTvVariantEvaluator, Novelty != "all"  & FunctionalClass == "all" & AC > 0)
-  p <- ggplot(data=byAFNoAll, aes(x=AC, y=tiTvRatio, color=Novelty))
+  # nSNPs > 0 => requires that we have some data here, otherwise Ti/Tv is zero from VE  
+  minSNPsToInclude = 0
+  byACNoAll = subset(metricsBySites$byAC$TiTvVariantEvaluator, Novelty != "all" & AC > 0 & nSNPs > minSNPsToInclude)
+  p <- ggplot(data=byACNoAll, aes(x=AC, y=tiTvRatio, color=Novelty))
   p <- p + scale_y_continuous("Transition / transversion ratio", limits=c(0,4))
   p <- p + opts(title = name)
   p <- p + geom_smooth(size=2)
@@ -117,9 +118,9 @@ summaryPlots <- function(metricsBySites) {
   
   # SNPs to indels ratio by allele frequency
   name = "SNPs to indels ratio by allele frequency" 
-  metricsBySites$byAF$CountVariants$SNP.Indel.Ratio = metricsBySites$byAF$CountVariants$nSNPs / metricsBySites$byAF$CountVariants$nIndels
-  metricsBySites$byAF$CountVariants$SNP.Indel.Ratio[metricsBySites$byAF$CountVariants$nIndels == 0] = NaN
-  p <- ggplot(data=subset(metricsBySites$byAF$CountVariants, FunctionalClass == "all" & Novelty == "all"), aes(x=AC, y=SNP.Indel.Ratio))
+  metricsBySites$byAC$CountVariants$SNP.Indel.Ratio = metricsBySites$byAC$CountVariants$nSNPs / metricsBySites$byAC$CountVariants$nIndels
+  metricsBySites$byAC$CountVariants$SNP.Indel.Ratio[metricsBySites$byAC$CountVariants$nIndels == 0] = NaN
+  p <- ggplot(data=subset(metricsBySites$byAC$CountVariants, Novelty == "all" & nSNPs > 0), aes(x=AC, y=SNP.Indel.Ratio))
   p <- p + opts(title = name)
   p <- p + scale_y_continuous("SNP to indel ratio")
   #p <- p + scale_y_log10()
@@ -157,7 +158,7 @@ createMetricsBySamples <- function(VariantEvalRoot) {
   # add highlight info
   r$highlight = r$Sample %in% highlightSamples
 
-  #r = merge(merge(preQCMetrics, byAFEval$TiTvVariantEvaluator), byAFEval$CountVariants)
+  #r = merge(merge(preQCMetrics, byACEval$TiTvVariantEvaluator), byACEval$CountVariants)
   return(subset(r, Sample != "all"))
 }
 
