@@ -59,6 +59,7 @@ class VariantJEXLContext implements JexlContext {
     private static Map<String, AttributeGetter> x = new HashMap<String, AttributeGetter>();
 
     static {
+        x.put("vc",   new AttributeGetter() { public Object get(VariantContext vc) { return vc; }});
         x.put("CHROM",   new AttributeGetter() { public Object get(VariantContext vc) { return vc.getChr(); }});
         x.put("POS",     new AttributeGetter() { public Object get(VariantContext vc) { return vc.getStart(); }});
         x.put("TYPE",    new AttributeGetter() { public Object get(VariantContext vc) { return vc.getType().toString(); }});
@@ -133,10 +134,6 @@ class JEXLMap implements Map<VariantContextUtils.JexlVCMatchExp, Boolean> {
 
     public JEXLMap(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, VariantContext vc) {
         this(jexlCollection, vc, null);
-    }
-
-    public JEXLMap(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection, Genotype g) {
-        this(jexlCollection, null, g);
     }
 
     private void initialize(Collection<VariantContextUtils.JexlVCMatchExp> jexlCollection) {

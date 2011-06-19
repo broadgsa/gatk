@@ -7,6 +7,7 @@ import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.report.GATKReport;
 import org.broadinstitute.sting.gatk.report.GATKReportTable;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.StandardEval;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
@@ -62,7 +63,7 @@ public class VariantEvalUtils {
      * @param modulesToUse     the list of stratification modules to use
      * @return set of stratifications to use
      */
-    public TreeSet<VariantStratifier> initializeStratificationObjects(boolean noStandardStrats, String[] modulesToUse) {
+    public TreeSet<VariantStratifier> initializeStratificationObjects(VariantEvalWalker variantEvalWalker, boolean noStandardStrats, String[] modulesToUse) {
         TreeSet<VariantStratifier> strats = new TreeSet<VariantStratifier>();
         Set<String> stratsToUse = new HashSet<String>();
 
@@ -102,6 +103,7 @@ public class VariantEvalUtils {
 
                 try {
                     VariantStratifier vs = c.newInstance();
+                    vs.setVariantEvalWalker(variantEvalWalker);
                     vs.initialize(variantEvalWalker.getJexlExpressions(), variantEvalWalker.getCompNames(), variantEvalWalker.getKnownNames(), variantEvalWalker.getEvalNames(), variantEvalWalker.getSampleNamesForStratification(), variantEvalWalker.getContigNames());
 
                     strats.add(vs);

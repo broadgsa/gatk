@@ -194,7 +194,7 @@ public class VariantEvalWalker extends RodWalker<Integer, Integer> implements Tr
         }
 
         // Initialize the set of stratifications and evaluations to use
-        stratificationObjects = variantEvalUtils.initializeStratificationObjects(NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
+        stratificationObjects = variantEvalUtils.initializeStratificationObjects(this, NO_STANDARD_STRATIFICATIONS, STRATIFICATIONS_TO_USE);
         Set<Class<? extends VariantEvaluator>> evaluationObjects = variantEvalUtils.initializeEvaluationObjects(NO_STANDARD_MODULES, MODULES_TO_USE);
 
         // Initialize the evaluation contexts

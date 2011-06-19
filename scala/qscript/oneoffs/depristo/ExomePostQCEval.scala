@@ -39,18 +39,17 @@ class ExomePostQCEval extends QScript {
       // The basic summary eval
       createEval(evalVCF, ".summary",
         List("TiTvVariantEvaluator", "CountVariants", "CompOverlap"),
-        List("EvalRod", "CompRod", "Novelty", "FunctionalClass"))
+        List("FunctionalClass"))
 
       // The basic summary eval, by AF
-      createEval(evalVCF, ".byAF",
+      createEval(evalVCF, ".byAC",
         List("TiTvVariantEvaluator", "CountVariants", "CompOverlap"),
-        List("EvalRod", "CompRod", "Novelty", "AlleleFrequency", "FunctionalClass"))
+        List("AlleleCount"))
 
       // By sample
       createEval(evalVCF, ".bySample",
         List("TiTvVariantEvaluator", "CountVariants", "CompOverlap"),
-        List("EvalRod", "CompRod", "Novelty", "Sample"))
-
+        List("Sample"))
       add(new ExomeQCRScript(evalVCF))
     }
   }

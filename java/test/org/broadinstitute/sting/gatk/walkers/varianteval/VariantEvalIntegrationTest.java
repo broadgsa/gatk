@@ -373,4 +373,26 @@ public class VariantEvalIntegrationTest extends WalkerTest {
         );
         executeTestParallel("testPerSampleAndSubsettedSampleHaveSameResults-onesample", spec2);
     }
+
+
+    @Test
+    public void testAlleleCountStrat() {
+        WalkerTestSpec spec = new WalkerTestSpec(
+                                buildCommandLine(
+                                        "-T VariantEval",
+                                        "-R " + b37KGReference,
+                                        "-D " + b37dbSNP129,
+                                        "-B:eval,VCF " + fundamentalTestSNPsVCF,
+                                        "-noEV",
+                                        "-EV CountVariants",
+                                        "-noST",
+                                        "-ST AlleleCount",
+                                        "-BTI eval",
+                                        "-o %s"
+                                ),
+                                1,
+                                Arrays.asList("bf324e4c87fe0d21170fcd2a67a20371")
+                              );
+        executeTest("testAlleleCountStrat", spec);
+    }
 }
