@@ -164,7 +164,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="realignReadsWithBadMates", doc="This argument is no longer used.", required=false)
     protected boolean DEPRECATED_REALIGN_MATES = false;
 
-    @Deprecated
+    //    @Deprecated
+    @Hidden
     @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", doc="This argument is no longer used. See --consensusDeterminationModel instead.", required=false)
     protected boolean DEPRECATED_KNOWNS_ONLY = false;
 
@@ -228,6 +229,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private long SWalignmentSuccess = 0; // how many SW alignments were "successful" (i.e. found a workable indel and resulted in non-null consensus)
 
     public void initialize() {
+
+	if ( DEPRECATED_KNOWNS_ONLY )
+	    consensusModel = ConsensusDeterminationModel.KNOWNS_ONLY;
 
         if ( LOD_THRESHOLD < 0.0 )
             throw new RuntimeException("LOD threshold cannot be a negative number");
