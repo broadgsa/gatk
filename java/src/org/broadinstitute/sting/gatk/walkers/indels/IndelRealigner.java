@@ -51,6 +51,7 @@ import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
 import org.broadinstitute.sting.utils.interval.NwayIntervalMergingIterator;
+import org.broadinstitute.sting.utils.sam.NWaySAMFileWriter;
 import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.sam.AlignmentUtils;
@@ -91,9 +92,10 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="entropyThreshold", shortName="entropy", doc="percentage of mismatches at a locus to be considered having high entropy", required=false)
     protected double MISMATCH_THRESHOLD = 0.15;
 
-    @Output(required=true, doc="Output bam")
+    @Output(required=false, doc="Output bam")
     protected StingSAMFileWriter writer = null;
     protected ConstrainedMateFixingManager manager = null;
+    protected SAMFileWriter writerToUse = null;
 
     @Argument(fullName = "consensusDeterminationModel", shortName = "model", doc = "How should we determine the possible alternate consenses? -- in the order of least permissive to most permissive there is KNOWNS_ONLY (use only indels from known indels provided in RODs), USE_READS (additionally use indels already present in the original alignments of the reads), and USE_SW (additionally use 'Smith-Waterman' to generate alternate consenses).  The default is USE_SW", required = false)
     public ConsensusDeterminationModel consensusModel = ConsensusDeterminationModel.USE_SW;
@@ -219,7 +221,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private FileWriter statsOutput = null;
     private FileWriter snpsOutput = null;
 
-    protected Map<SAMReaderID, ConstrainedMateFixingManager> nwayWriters = null;
+    //###protected Map<SAMReaderID, ConstrainedMateFixingManager> nwayWriters = null;
 
 
     // debug info for lazy SW evaluation:
@@ -227,8 +229,43 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     private long SWalignmentRuns = 0; // how many times (=for how many reads) we ran SW alignment
     private long SWalignmentSuccess = 0; // how many SW alignments were "successful" (i.e. found a workable indel and resulted in non-null consensus)
 
+    private Map<String,String> loadFileNameMap(String mapFile) {
+        Map<String,String> fname_map = new HashMap<String,String>();
+
+        try {
+
+             XReadLines reader = new XReadLines(new File(mapFile),true);
+             for ( String line : reader ) {
+                 if ( line.length() == 0 ) continue;
+
+                 String fields[] = line.split("\t");
+
+                 if ( fields.length != 2 )
+                     throw new UserException.BadInput("Input-output map file must have exactly two columns. Offending line:\n"+line);
+                 if ( fields[0].length() == 0 || fields[1].length() == 0 )
+                     throw new UserException.BadInput("Input-output map file can not have empty strings in either column. Offending line:\n"+line);
+
+                 if ( fname_map.containsKey(fields[0]) )
+                     throw new UserException.BadInput("Input-output map file contains duplicate entries for input name "+fields[0]);
+                 if ( fname_map.containsValue(fields[1]) )
+                     throw new UserException.BadInput("Input-output map file maps multiple entries onto single output name "+fields[1]);
+
+                 fname_map.put(fields[0],fields[1]);
+             }
+        } catch (IOException e) {
+            throw new StingException("I/O Error while reading input-output map file "+N_WAY_OUT+": "+e.getMessage());
+        }
+       return fname_map;
+    }
+
     public void initialize() {
 
+        if ( N_WAY_OUT == null && writer == null ) {
+            throw new UserException.CommandLineException("Either -o or -nWayOut must be specified");
+        }
+        if ( N_WAY_OUT != null && writer != null ) {
+            throw new UserException.CommandLineException("-o and -nWayOut can not be used simultaneously");
+        }
         if ( LOD_THRESHOLD < 0.0 )
             throw new RuntimeException("LOD threshold cannot be a negative number");
         if ( MISMATCH_THRESHOLD <= 0.0 || MISMATCH_THRESHOLD > 1.0 )
@@ -268,78 +305,22 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         }
         currentInterval = intervals.hasNext() ? intervals.next() : null;
 
+        writerToUse = writer;
+
         if ( N_WAY_OUT != null ) {
 
-            //if ( writer != null ) throw new UserException.BadInput("-nWayOut and -o arguments are mutually exclusive");
-
-            nwayWriters = new HashMap<SAMReaderID, ConstrainedMateFixingManager>();
-
-            Map<String,String> fname_map = null;
-
             if ( N_WAY_OUT.toUpperCase().endsWith(".MAP") ) {
-
-                fname_map = new HashMap<String,String>();
-
-                try {
-
-                    XReadLines reader = new XReadLines(new File(N_WAY_OUT),true);
-                    for ( String line : reader ) {
-                        if ( line.length() == 0 ) continue;
-
-                        String fields[] = line.split("\t");
-
-                        if ( fields.length != 2 )
-                            throw new UserException.BadInput("Input-output map file must have exactly two columns. Offending line:\n"+line);
-                        if ( fields[0].length() == 0 || fields[1].length() == 0 )
-                            throw new UserException.BadInput("Input-output map file can not have empty strings in either column. Offending line:\n"+line);
-
-                        if ( fname_map.containsKey(fields[0]) )
-                            throw new UserException.BadInput("Input-output map file contains duplicate entries for input name "+fields[0]);
-                        if ( fname_map.containsValue(fields[1]) )
-                            throw new UserException.BadInput("Input-output map file maps multiple entries onto single output name "+fields[1]);
-
-                        fname_map.put(fields[0],fields[1]);
-                    }
-                } catch (IOException e) {
-                    throw new StingException("I/O Error while reading input-output map file "+N_WAY_OUT+": "+e.getMessage());
-                }
+                writerToUse = new NWaySAMFileWriter(getToolkit(),loadFileNameMap(N_WAY_OUT),SAMFileHeader.SortOrder.coordinate,true);
+            } else {
+                writerToUse = new NWaySAMFileWriter(getToolkit(),N_WAY_OUT,SAMFileHeader.SortOrder.coordinate,true);
             }
 
-            for ( SAMReaderID rid : getToolkit().getReadsDataSource().getReaderIDs() ) {
+        }   else {
 
-                String fName = getToolkit().getReadsDataSource().getSAMFile(rid).getName();
-
-                String outName;
-                if ( fname_map != null ) {
-                    if ( ! fname_map.containsKey(fName) )
-                        throw new UserException.BadInput("Input-output map file does not contain an entry for the input file "+fName);
-                    outName = fname_map.get(fName);
-                } else {
-                    int pos ;
-                    if ( fName.toUpperCase().endsWith(".BAM") ) pos = fName.toUpperCase().lastIndexOf(".BAM");
-                    else {
-                        if ( fName.toUpperCase().endsWith(".SAM") ) pos = fName.toUpperCase().lastIndexOf(".SAM");
-                        else throw new UserException.BadInput("Input file name "+fName+" does not end with .sam or .bam");
-                    }
-                    String prefix = fName.substring(0,pos);
-                    outName = prefix+N_WAY_OUT;
-                }
-
-                if ( nwayWriters.containsKey( rid ) )
-                    throw new StingException("nWayOut mode: Reader id for input sam file "+fName+" is already registered");
-
-                File f = new File(outName);
-                SAMFileHeader header = getToolkit().getSAMFileHeader(rid);
-                header.setSortOrder(SAMFileHeader.SortOrder.coordinate);
-                SAMFileWriter sw = new SAMFileWriterFactory().makeSAMOrBAMWriter(header, true, f);
-                nwayWriters.put(rid, new ConstrainedMateFixingManager(sw, getToolkit().getGenomeLocParser(), MAX_ISIZE_FOR_MOVEMENT, MAX_POS_MOVE_ALLOWED, MAX_RECORDS_IN_MEMORY));
-            }
-
+            // set up the output writer
+            setupWriter(getToolkit().getSAMFileHeader());
         }
-
-        // set up the output writer
-        setupWriter(getToolkit().getSAMFileHeader());
-        manager = new ConstrainedMateFixingManager(writer, getToolkit().getGenomeLocParser(), MAX_ISIZE_FOR_MOVEMENT, MAX_POS_MOVE_ALLOWED, MAX_RECORDS_IN_MEMORY);
+        manager = new ConstrainedMateFixingManager(writerToUse, getToolkit().getGenomeLocParser(), MAX_ISIZE_FOR_MOVEMENT, MAX_POS_MOVE_ALLOWED, MAX_RECORDS_IN_MEMORY);
 
         if ( OUT_INDELS != null ) {
             try {
@@ -401,18 +382,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         boolean wasModified = readsActuallyCleaned.contains(read);
 
         try {
-            if ( N_WAY_OUT != null ) {
-                SAMReaderID rid =  getToolkit().getReaderIDForRead(read);
-                ConstrainedMateFixingManager m = nwayWriters.get(rid);
-                // reset read's read group from merged to original if read group id collision has happened in merging:
-                if ( getToolkit().getReadsDataSource().hasReadGroupCollisions() ) {
-                    read.setAttribute("RG",
-                            getToolkit().getReadsDataSource().getOriginalReadGroupId((String)read.getAttribute("RG")));
-                }
-                m.addRead(read, wasModified);
-            } else {
-                manager.addRead(read, wasModified);
-            }
+            manager.addRead(read, wasModified);
         } catch (RuntimeIOException e) {
             throw new UserException.ErrorWritingBamFile(e.getMessage());
         }
@@ -422,16 +392,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         // pre-merge lists to sort them in preparation for constrained SAMFileWriter
         readsNotToClean.addAll(readsToClean.getReads());
         ReadUtils.coordinateSortReads(readsNotToClean);
-        if ( N_WAY_OUT == null ) {
-            manager.addReads(readsNotToClean, readsActuallyCleaned);
-        } else {
-            // in this case, it is possible to have the following scenario: the realigner gets permission to realign,
-            // the cache in the ConstrainedMateFixingManager gets filled up while emitting reads, and then the
-            // first-of-pair mates of realigned reads don't get fixed because they were flushed out of the queue too early.
-            // Since the N-way option is @hidden, I'm not interested in fixing this right now.
-            for ( SAMRecord read : readsNotToClean )
-                emit(read);
-        }
+        manager.addReads(readsNotToClean, readsActuallyCleaned);
         readsToClean.clear();
         readsNotToClean.clear();
         readsActuallyCleaned.clear();
@@ -570,16 +531,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
             }
         }
 
-        if ( N_WAY_OUT != null ) {
-            try {
-                for ( ConstrainedMateFixingManager m : nwayWriters.values() )
-                    m.close();
-            } catch (RuntimeIOException e) {
-                throw new UserException.ErrorWritingBamFile(e.getMessage());
-            }
-        } else {
-            manager.close();    
-        }
+        manager.close();
+        if ( N_WAY_OUT != null ) writerToUse.close();
 
         if ( CHECKEARLY ) {
             logger.info("SW alignments runs: "+SWalignmentRuns);
