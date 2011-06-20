@@ -74,6 +74,27 @@ summaryTable <- function(metricsBySites, metricsBySample) {
   return(table)
 }
 
+sampleSummaryTable <- function(metricsBySample) {
+  # SNP summary statistics
+  raw <- melt(metricsBySamples, id.vars=c("Novelty", "Sample"), measure.vars=c("nProcessedLoci", "nSNPs", "tiTvRatio", "nIndels", "deletionInsertionRatio"))
+  table = cast(raw, Novelty ~ variable, mean)
+  table$nSNPs <- round(table$nSNPs, 0)
+  table$nIndels <- round(table$nIndels, 0)
+  table$tiTvRatio <- round(table$tiTvRatio, 2)
+  table$deletionInsertionRatio <- round(table$deletionInsertionRatio, 2)
+  colnames(table) <- c("Novelty", "Target size (bp)", "No. SNPs", "Ti/Tv", "No. Indels", "deletion/insertion ratio")
+  return(table)
+}
+
+overallSummaryTable <- function(metricsBySites, metricsBySamples) {
+  sitesSummary <- as.data.frame(summaryTable(metricsBySites, metricsBySamples))
+  sitesSummary$Metric.Type <- "Sites"
+  sampleSummary <- as.data.frame(sampleSummaryTable(metricsBySamples))
+  sampleSummary$Metric.Type <- "Per-sample avg."
+  # that last item puts the metric.type second in the list
+  return(rbind(sitesSummary, sampleSummary)[, c(1,7,2,3,4,5,6)])
+}
+
 summaryPlots <- function(metricsBySites) {
   name = "SNP and Indel count by novelty and allele frequency" 
   molten = melt(subset(metricsBySites$byAC$CountVariants, Novelty != "all" & AC > 0), id.vars=c("Novelty", "AC"), measure.vars=c(c("nSNPs", "nIndels")))
@@ -255,14 +276,15 @@ if ( ! is.na(outputPDF) ) {
 } 
 
 # Table of overall counts and quality
-textplot(as.data.frame(summaryTable(metricsBySites)), show.rownames=F)
-title(paste("Overall summary metrics for project", ProjectName), cex=3)
- 
+textplot(overallSummaryTable(metricsBySites), show.rownames=F)
+title(paste("Summary metrics for project", ProjectName), cex=3)
+# textplot(as.data.frame(sampleSummaryTable(metricsBySamples)), show.rownames=F)
+# title(paste("Summary metrics per sample for project", ProjectName), cex=3)
+
 summaryPlots(metricsBySites)
 perSamplePlots(metricsBySamples)
 
 if ( ! is.na(outputPDF) ) {
   dev.off()
 } 
-
 
