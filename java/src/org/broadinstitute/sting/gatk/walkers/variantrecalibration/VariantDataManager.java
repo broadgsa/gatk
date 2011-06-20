@@ -27,7 +27,6 @@ public class VariantDataManager {
     public final ArrayList<String> annotationKeys;
     private final ExpandingArrayList<TrainingSet> trainingSets;
     private final VariantRecalibratorArgumentCollection VRAC;
-    private static boolean warnedUserMissingValue = false;
     protected final static Logger logger = Logger.getLogger(VariantDataManager.class);
 
 
@@ -55,7 +54,7 @@ public class VariantDataManager {
             final double theSTD = standardDeviation(theMean, iii);
             logger.info( annotationKeys.get(iii) + String.format(": \t mean = %.2f\t standard deviation = %.2f", theMean, theSTD) );
             if( Double.isNaN(theMean) ) {
-                throw new UserException.BadInput("Annotations values for " + annotationKeys.get(iii) + " annotation not detected for ANY training variant in the input callset. VariantAnnotator may be used to add these annotations. See http://www.broadinstitute.org/gsa/wiki/index.php/VariantAnnotator");
+                throw new UserException.BadInput("Values for " + annotationKeys.get(iii) + " annotation not detected for ANY training variant in the input callset. VariantAnnotator may be used to add these annotations. See http://www.broadinstitute.org/gsa/wiki/index.php/VariantAnnotator");
             }
 
             foundZeroVarianceAnnotation = foundZeroVarianceAnnotation || (theSTD < 1E-6);
@@ -224,12 +223,8 @@ public class VariantDataManager {
                 if( annotationKey.equalsIgnoreCase("FS") && MathUtils.compareDoubles(value, 0.0, 0.01) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
             }
 
-         } catch( final Exception e ) {
-            value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating clusters.
-            if( !warnedUserMissingValue ) {
-                logger.warn("WARNING: Missing value detected for " + annotationKey + ". The VQSR will work with missing data by marginalizing over this dimension for this variant. This warning message is only shown once so there may be other annotations missing as well.");
-                warnedUserMissingValue = true;
-            }
+        } catch( Exception e ) {
+            value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating Gaussians
         }
 
         return value;
