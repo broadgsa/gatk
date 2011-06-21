@@ -6,6 +6,7 @@ import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.ArrayList;
@@ -35,7 +36,12 @@ public class RefSeqCodec implements ReferenceDependentFeatureCodec<RefSeqFeature
         String fields[] = line.split("\t");
         if (fields.length < 3) throw new TribbleException("RefSeq (decodeLoc) : Unable to parse line -> " + line + ", we expected at least 3 columns, we saw " + fields.length);
         String contig_name = fields[2];
-        return new RefSeqFeature(genomeLocParser.createGenomeLoc(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5])));
+        try {
+            return new RefSeqFeature(genomeLocParser.createGenomeLoc(contig_name, Integer.parseInt(fields[4])+1, Integer.parseInt(fields[5])));
+        } catch ( UserException.MalformedGenomeLoc e ) {
+            Utils.warnUser("RefSeq file is potentially incorrect, as some transcripts or exons have a negative length ("+fields[2]+")");
+            return null;
+        }
     }
 
     /** Fills this object from a text line in RefSeq (UCSC) text dump file */
