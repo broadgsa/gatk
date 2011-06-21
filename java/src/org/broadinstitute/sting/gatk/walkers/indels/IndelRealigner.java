@@ -35,6 +35,7 @@ import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.arguments.ValidationExclusion;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
@@ -308,11 +309,15 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         writerToUse = writer;
 
         if ( N_WAY_OUT != null ) {
+ //           Map<String,String> args = getToolkit().getArguments().walkerArgs;
+            boolean createIndex =  true;
+
+ //           if ( args.containsKey("disable_bam_indexing") )  { System.out.println("NO INDEXING!!"); System.exit(1); createIndex = false; }
 
             if ( N_WAY_OUT.toUpperCase().endsWith(".MAP") ) {
-                writerToUse = new NWaySAMFileWriter(getToolkit(),loadFileNameMap(N_WAY_OUT),SAMFileHeader.SortOrder.coordinate,true);
+                writerToUse = new NWaySAMFileWriter(getToolkit(),loadFileNameMap(N_WAY_OUT),SAMFileHeader.SortOrder.coordinate,true, createIndex);
             } else {
-                writerToUse = new NWaySAMFileWriter(getToolkit(),N_WAY_OUT,SAMFileHeader.SortOrder.coordinate,true);
+                writerToUse = new NWaySAMFileWriter(getToolkit(),N_WAY_OUT,SAMFileHeader.SortOrder.coordinate,true, createIndex);
             }
 
         }   else {
