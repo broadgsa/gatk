@@ -72,7 +72,7 @@ import java.util.*;
  * only somatic calls, while --verbose output contains all calls annotated with GERMLINE/SOMATIC keywords.
  */
 @ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class, PlatformUnitFilter.class})
-public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
+public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 //    @Output
 //    PrintStream out;
     @Output(doc="File to which variants should be written",required=true)
@@ -101,9 +101,11 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
                 "to sort and keep it in memory (increases memory usage!).")
     protected boolean GENOTYPE_NOT_SORTED = false;
 
-	@Argument(fullName="somatic", shortName="somatic",
-			doc="Perform somatic calls; two input alignment files (-I option) must be specified. Calls are performed from the second file (\"tumor\") against the first one (\"normal\").", required=false)
-	boolean call_somatic = false;
+    @Hidden
+	@Argument(fullName="unpaired", shortName="unpaired",
+			doc="Perform unpaired calls (no somatic status detection)", required=false)
+    boolean call_unpaired = false;
+	boolean call_somatic ;
 
 	@Argument(fullName="verboseOutput", shortName="verbose",
 			doc="Verbose output file in text format", required=false)
@@ -236,6 +238,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 	@Override
 	public void initialize() {
 
+        call_somatic =  (call_unpaired ? false : true);
 		normal_context = new WindowContext(0,WINDOW_SIZE);
         normalSamples = new HashSet<String>();
 
@@ -263,7 +266,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
 		int nSams = getToolkit().getArguments().samFiles.size();
 
         if ( call_somatic ) {
-            if ( nSams < 2 ) throw new UserException.BadInput("At least two bam files (normal and tumor) must be specified in somatic mode");
+            if ( nSams < 2 ) throw new UserException.BadInput("In default (paired sample) mode at least two bam files (normal and tumor) must be specified");
             tumor_context = new WindowContext(0,WINDOW_SIZE);
             tumorSamples = new HashSet<String>();
         }
@@ -273,7 +276,7 @@ public class IndelGenotyperV2Walker extends ReadWalker<Integer,Integer> {
         for ( SAMReaderID rid : getToolkit().getReadsDataSource().getReaderIDs() ) {
              Tags tags = rid.getTags() ;
              if ( tags.getPositionalTags().isEmpty() && call_somatic )
-                 throw new UserException.BadInput("In somatic mode all input bam files must be tagged as either 'normal' or 'tumor'. Untagged file: "+
+                 throw new UserException.BadInput("In default (paired sample) mode all input bam files must be tagged as either 'normal' or 'tumor'. Untagged file: "+
                          getToolkit().getSourceFileForReaderID(rid));
              boolean normal = false;
              boolean tumor = false;
