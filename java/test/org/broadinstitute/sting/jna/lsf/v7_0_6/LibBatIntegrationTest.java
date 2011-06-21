@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.jna.lsf.v7_0_6;
 
-import com.sun.jna.StringArray;
+import com.sun.jna.*;
 import com.sun.jna.ptr.IntByReference;
 import org.apache.commons.io.FileUtils;
 import org.broadinstitute.sting.utils.Utils;
@@ -34,6 +34,7 @@ import org.testng.annotations.Test;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.jna.lsf.v7_0_6.LibBat.*;
 
+import javax.jws.soap.SOAPBinding;
 import java.io.File;
 
 /**
@@ -50,6 +51,29 @@ public class LibBatIntegrationTest extends BaseTest {
         String clusterName = LibLsf.ls_getclustername();
         System.out.println("Cluster name: " + clusterName);
         Assert.assertNotNull(clusterName);
+    }
+
+    @Test
+    public void testReadConfEnv() {
+        LibLsf.config_param[] unitsParam = (LibLsf.config_param[]) new LibLsf.config_param().toArray(4);
+
+        unitsParam[0].paramName = "LSF_UNIT_FOR_LIMITS";
+        unitsParam[1].paramName = "LSF_CONFDIR";
+        unitsParam[2].paramName = "MADE_UP_PARAMETER";
+
+        Structure.autoWrite(unitsParam);
+
+        if (LibLsf.ls_readconfenv(unitsParam[0], null) != 0) {
+            Assert.fail(LibLsf.ls_sysmsg());
+        }
+
+        Structure.autoRead(unitsParam);
+
+        System.out.println("LSF_UNIT_FOR_LIMITS: " + unitsParam[0].paramValue);
+        Assert.assertNotNull(unitsParam[1].paramValue);
+        Assert.assertNull(unitsParam[2].paramValue);
+        Assert.assertNull(unitsParam[3].paramName);
+        Assert.assertNull(unitsParam[3].paramValue);
     }
 
     @Test
