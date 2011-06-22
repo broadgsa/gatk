@@ -30,6 +30,7 @@ import cern.jet.math.Arithmetic;
 import java.math.BigDecimal;
 import java.util.*;
 
+import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
@@ -51,6 +52,19 @@ public class MathUtils {
 
     /** Private constructor.  No instantiating this class! */
     private MathUtils() {}
+
+    @Requires({"d > 0.0"})
+    public static int fastPositiveRound(double d) {
+        return (int) (d + 0.5);
+    }
+
+    public static int fastRound(double d) {
+        if ( d > 0.0 ) {
+            return fastPositiveRound(d);
+        } else {
+            return -1*fastPositiveRound(-1*d);
+        }
+    }
 
     public static double sum(Collection<Number> numbers) {
         return sum(numbers,false);
