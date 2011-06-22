@@ -14,6 +14,10 @@
 #
 from java.lang import *
 from java.io import File,FileReader
+
+from edu.mit.broad.picard.genotype.concordance import DbSnpMatchMetrics
+from net.sf.picard.analysis import AlignmentSummaryMetrics,InsertSizeMetrics
+from net.sf.picard.analysis.directed import HsMetrics
 from net.sf.picard.metrics import MetricsFile
 
 import os,string,sys
@@ -23,13 +27,26 @@ def median(l):
 def mean(l):
     return float(sum(l))/len(l)
 
-def get_metrics(filename):
+def get_all_metrics(filename):
     if not os.path.exists(filename):
         return None
     file_reader = FileReader(filename)
     metrics_file = MetricsFile()
     metrics_file.read(file_reader)
     metrics = metrics_file.getMetrics()
+    file_reader.close()
+    return metrics
+
+def get_sample_summary_metrics_fields(type):
+    return [field.getName() for field in type.getFields() if not field.getName().startswith('__')]
+
+def get_sample_summary_metrics(filename):
+    if not os.path.exists(filename):
+        return None
+    file_reader = FileReader(filename)
+    metrics_file = MetricsFile()
+    metrics_file.read(file_reader)
+    metrics = metrics_file.getMetrics()[0]
     file_reader.close()
     return metrics
 
@@ -42,12 +59,14 @@ if not os.path.exists(sys.argv[1]):
 
 bam_list_filename = sys.argv[1]
 
-header = ['sample','HAPLOTYPES_CONFIDENTLY_MATCHING.MIN','HAPLOTYPES_CONFIDENTLY_MATCHING.MAX','HAPLOTYPES_CONFIDENTLY_MATCHING.MEDIAN',
-          'BAIT_SET','GENOME_SIZE','PCT_SELECTED_BASES','MEAN_TARGET_COVERAGE','ZERO_CVG_TARGETS_PCT','FOLD_80_BASE_PENALTY','PCT_TARGET_BASES_2X',
-          'PCT_TARGET_BASES_10X','PCT_TARGET_BASES_20X','PCT_TARGET_BASES_30X','HS_LIBRARY_SIZE','PCT_PF_READS_ALIGNED','PF_HQ_ERROR_RATE',
-          'PF_INDEL_RATE','MEAN_READ_LENGTH','BAD_CYCLES','STRAND_BALANCE','PCT_CHIMERAS','PCT_ADAPTER','MEDIAN_INSERT_SIZE','TOTAL_SNPS']
-data = ['%s'] * len(header)
+sample_summary_metrics_types = [ (HsMetrics,'hybrid_selection_metrics'),
+                                 (AlignmentSummaryMetrics, 'alignment_summary_metrics'),
+                                 (InsertSizeMetrics, 'insert_size_metrics'),
+                                 (DbSnpMatchMetrics, 'dbsnp_matches') ]
 
+header = ['sample','HAPLOTYPES_CONFIDENTLY_MATCHING.MIN','HAPLOTYPES_CONFIDENTLY_MATCHING.MAX','HAPLOTYPES_CONFIDENTLY_MATCHING.MEDIAN']
+for metric_type in sample_summary_metrics_types:
+    header.extend(get_sample_summary_metrics_fields(metric_type[0]))
 print string.join(header,'\t')
 
 # get a representative BAM file for each sample, to use as a base path.  Note that this assumes every sample corresponds to the same base path.
@@ -66,7 +85,7 @@ bam_list.close()
 for sample_id,filename in samples.items():
     basepath = filename[:filename.rindex('.bam')]
     
-    fingerprinting_summary_metrics = get_metrics('%s.%s' % (basepath,'fingerprinting_summary_metrics'))
+    fingerprinting_summary_metrics = get_all_metrics('%s.%s' % (basepath,'fingerprinting_summary_metrics'))
 
     if fingerprinting_summary_metrics != None:
         haplotypes_confidently_matching = [metric.HAPLOTYPES_CONFIDENTLY_MATCHING for metric in fingerprinting_summary_metrics]
@@ -78,23 +97,9 @@ for sample_id,filename in samples.items():
         max_haplotypes_confidently_matching = 'NA'
         median_haplotypes_confidently_matching = 'NA'
 
-    insert_size_metrics = get_metrics('%s.%s' % (basepath,'insert_size_metrics'))
+    data = [sample_id,min_haplotypes_confidently_matching,max_haplotypes_confidently_matching,median_haplotypes_confidently_matching]
 
-    if insert_size_metrics != None:
-        median_insert_size = insert_size_metrics[0].MEDIAN_INSERT_SIZE
-    else:
-        median_insert_size = 'NA'
-
-
-    hybrid_selection_metrics = get_metrics('%s.%s' % (basepath,'hybrid_selection_metrics'))[0]
-    alignment_summary_metrics = get_metrics('%s.%s' % (basepath,'alignment_summary_metrics'))[0]
-    dbsnp_matches = get_metrics('%s.%s' % (basepath,'dbsnp_matches'))[0]
-
-    print string.join(data,'\t')%(sample_id,min_haplotypes_confidently_matching,max_haplotypes_confidently_matching,median_haplotypes_confidently_matching,
-                                  hybrid_selection_metrics.BAIT_SET,hybrid_selection_metrics.GENOME_SIZE,hybrid_selection_metrics.PCT_SELECTED_BASES,
-                                  hybrid_selection_metrics.MEAN_TARGET_COVERAGE,hybrid_selection_metrics.ZERO_CVG_TARGETS_PCT,hybrid_selection_metrics.FOLD_80_BASE_PENALTY,
-                                  hybrid_selection_metrics.PCT_TARGET_BASES_2X,hybrid_selection_metrics.PCT_TARGET_BASES_10X,hybrid_selection_metrics.PCT_TARGET_BASES_20X,
-                                  hybrid_selection_metrics.PCT_TARGET_BASES_30X,hybrid_selection_metrics.HS_LIBRARY_SIZE,alignment_summary_metrics.PCT_PF_READS_ALIGNED,
-                                  alignment_summary_metrics.PF_HQ_ERROR_RATE,alignment_summary_metrics.PF_INDEL_RATE,alignment_summary_metrics.MEAN_READ_LENGTH,
-                                  alignment_summary_metrics.BAD_CYCLES,alignment_summary_metrics.STRAND_BALANCE,alignment_summary_metrics.PCT_CHIMERAS,
-                                  alignment_summary_metrics.PCT_ADAPTER,median_insert_size,dbsnp_matches.TOTAL_SNPS)
+    for metrics_type,metrics_extension in sample_summary_metrics_types:
+        metrics = get_sample_summary_metrics('%s.%s' % (basepath,metrics_extension))
+        data.extend([getattr(metrics, metrics_field_name) for metrics_field_name in get_sample_summary_metrics_fields(metrics_type)])
+    print string.join(['%s']*len(header),'\t')%tuple(data)
