@@ -1,6 +1,14 @@
 require('ggplot2')
 
-data <- read.table('GoT2D_exomes_batch_005.tsv',header=T)
+args = commandArgs(TRUE)
+onCMDLine = ! is.na(args[1])
+
+if ( onCMDLine ) {
+  inputTSV = args[1]
+  outputPDF = args[2]
+}
+
+data <- read.table(inputTSV,header=T)
 
 fingerprint_lods = list()
 for(i in 1:nrow(data)) {
@@ -9,7 +17,7 @@ for(i in 1:nrow(data)) {
 
 fingerprint_lod_order = order(unlist(lapply(fingerprint_lods,median),use.names=F))
 
-pdf('T2D.pdf')
+pdf(outputPDF)
 boxplot(fingerprint_lods[fingerprint_lod_order],las=3,main='Fingerprint LOD Scores By Sample',xlab='Sample',ylab='LOD Score Distribution',cex.axis=0.65)
 qplot(sample,GENOME_SIZE,data=data) + opts(title='Genome Size per Sample')
 qplot(sample,PCT_SELECTED_BASES,data=data) + opts(title='On+Near Bait Bases/PF Bases Aligned per Sample')
