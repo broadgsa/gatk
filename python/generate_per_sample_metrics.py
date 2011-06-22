@@ -78,9 +78,16 @@ for sample_id,filename in samples.items():
         max_haplotypes_confidently_matching = 'NA'
         median_haplotypes_confidently_matching = 'NA'
 
+    insert_size_metrics = get_metrics('%s.%s' % (basepath,'insert_size_metrics'))
+
+    if insert_size_metrics != None:
+        median_insert_size = insert_size_metrics[0].MEDIAN_INSERT_SIZE
+    else:
+        median_insert_size = 'NA'
+
+
     hybrid_selection_metrics = get_metrics('%s.%s' % (basepath,'hybrid_selection_metrics'))[0]
     alignment_summary_metrics = get_metrics('%s.%s' % (basepath,'alignment_summary_metrics'))[0]
-    insert_size_metrics = get_metrics('%s.%s' % (basepath,'insert_size_metrics'))[0]
     dbsnp_matches = get_metrics('%s.%s' % (basepath,'dbsnp_matches'))[0]
 
     print string.join(data,'\t')%(sample_id,min_haplotypes_confidently_matching,max_haplotypes_confidently_matching,median_haplotypes_confidently_matching,
@@ -90,4 +97,4 @@ for sample_id,filename in samples.items():
                                   hybrid_selection_metrics.PCT_TARGET_BASES_30X,hybrid_selection_metrics.HS_LIBRARY_SIZE,alignment_summary_metrics.PCT_PF_READS_ALIGNED,
                                   alignment_summary_metrics.PF_HQ_ERROR_RATE,alignment_summary_metrics.PF_INDEL_RATE,alignment_summary_metrics.MEAN_READ_LENGTH,
                                   alignment_summary_metrics.BAD_CYCLES,alignment_summary_metrics.STRAND_BALANCE,alignment_summary_metrics.PCT_CHIMERAS,
-                                  alignment_summary_metrics.PCT_ADAPTER,insert_size_metrics.MEDIAN_INSERT_SIZE,dbsnp_matches.TOTAL_SNPS)
+                                  alignment_summary_metrics.PCT_ADAPTER,median_insert_size,dbsnp_matches.TOTAL_SNPS)
