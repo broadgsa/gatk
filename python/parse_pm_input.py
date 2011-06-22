@@ -4,8 +4,8 @@
 #
 # To run:
 #   /humgen/gsa-hpprojects/software/bin/jython2.5.2/jython \
-#     -J-classpath $STING_HOME/lib/poi-3.8-beta3.jar:$STING_HOME/lib/poi-ooxml-3.8-beta3.jar:$STING_HOME/lib/poi-ooxml-schemas-3.8-beta3.jar:$STING_HOME/lib/xmlbeans-2.3.0.jar:$STING_HOME/lib/dom4j-1.6.1.jar
-#     parse_pm_input.py > <bam.list>
+#     -J-classpath $STING_HOME/lib/poi-3.8-beta3.jar:$STING_HOME/lib/poi-ooxml-3.8-beta3.jar:$STING_HOME/lib/poi-ooxml-schemas-3.8-beta3.jar:$STING_HOME/lib/xmlbeans-2.3.0.jar:$STING_HOME/lib/dom4j-1.6.1.jar \
+#     parse_pm_input.py <input file.{xls|xlsx|txt|tsv}> > <bam.list>
 #
 from java.io import FileInputStream
 from org.apache.poi.ss.usermodel import Row,Sheet,Workbook,WorkbookFactory
