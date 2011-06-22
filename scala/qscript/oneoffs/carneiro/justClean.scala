@@ -45,7 +45,7 @@ class justClean extends QScript {
     target.mismatchFraction = 0.0
     target.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     target.rodBind :+= RodBind("indels", "VCF", indels)
-    target.memoryLimit = 6
+    target.memoryLimit = 4
     target.jobName = queueLogDir + tIntervals + ".atarget"
     target.jarFile = GATKjar
     target.scatterCount = 84
@@ -62,7 +62,7 @@ class justClean extends QScript {
     clean.doNotUseSW = false
     clean.jobName = queueLogDir + outBam + ".clean"
     clean.jarFile = GATKjar
-    clean.memoryLimit = 8
+    clean.memoryLimit = 6
     clean.scatterCount = 84
 
     add(target, clean);
