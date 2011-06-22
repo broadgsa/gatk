@@ -9,6 +9,7 @@ import net.sf.samtools.{SAMFileReader,SAMReadGroupRecord}
 
 import scala.io.Source._
 import collection.JavaConversions._
+import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
 
 
 class DataProcessingPipeline extends QScript {
@@ -77,11 +78,8 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="an intervals file to be used by GATK - output bams at intervals only", fullName="gatk_interval_file", shortName="intervals", required=false)
   var intervals: File = _
 
-  @Input(doc="Perform cleaning on knowns only", fullName="knowns_only", shortName="knowns", required=false)
-  var knownsOnly: Boolean = false
-
-  @Input(doc="Perform cleaning using Smith Waterman", fullName="use_smith_waterman", shortName="sw", required=false)
-  var useSW: Boolean = false
+  @Input(doc="Cleaning model: KNOWNS_ONLY, USE_READS or USE_SW", fullName="clean_model", shortName="cm", required=false)
+  var cleaningModel: String = "USE_READS"
 
   @Input(doc="Decompose input BAM file and fully realign it using BWA and assume Single Ended reads", fullName="use_bwa_single_ended", shortName="bwase", required=false)
   var useBWAse: Boolean = false
@@ -97,6 +95,14 @@ class DataProcessingPipeline extends QScript {
 
   val queueLogDir: String = ".qlog/"  // Gracefully hide Queue's output
   var nContigs: Int = 0               // Use the number of contigs for scatter gathering jobs
+  var cleanModelEnum: ConsensusDeterminationModel = ConsensusDeterminationModel.USE_READS
+
+  if (cleaningModel == "KNOWNS_ONLY")  {
+    cleanModelEnum = ConsensusDeterminationModel.KNOWNS_ONLY
+  }
+  else if (cleaningModel == "USE_SW") {
+    cleanModelEnum = ConsensusDeterminationModel.USE_SW
+  }
 
 
 
@@ -247,7 +253,7 @@ class DataProcessingPipeline extends QScript {
 
     // If this is a 'knowns only' indel realignment run, do it only once for all samples.
     val globalIntervals = new File(outputDir + projectName + ".intervals")
-    if (knownsOnly)
+    if (cleaningModel == ConsensusDeterminationModel.KNOWNS_ONLY)
       add(target(null, globalIntervals))
 
     // Put each sample through the pipeline
@@ -259,7 +265,7 @@ class DataProcessingPipeline extends QScript {
       val recalBam   = swapExt(bam, ".bam", ".clean.dedup.recal.bam")
 
       // Accessory files
-      val targetIntervals = if (knownsOnly) {globalIntervals} else {swapExt(bam, ".bam", ".intervals")}
+      val targetIntervals = if (cleaningModel == ConsensusDeterminationModel.KNOWNS_ONLY) {globalIntervals} else {swapExt(bam, ".bam", ".intervals")}
       val metricsFile     = swapExt(bam, ".bam", ".metrics")
       val preRecalFile    = swapExt(bam, ".bam", ".pre_recal.csv")
       val postRecalFile   = swapExt(bam, ".bam", ".post_recal.csv")
@@ -270,7 +276,7 @@ class DataProcessingPipeline extends QScript {
 
       add(validate(bam, preValidateLog))
 
-      if (!knownsOnly)
+      if (cleaningModel != ConsensusDeterminationModel.KNOWNS_ONLY)
         add(target(bam, targetIntervals))
 
       add(clean(bam, targetIntervals, cleanedBam),
@@ -306,7 +312,7 @@ class DataProcessingPipeline extends QScript {
   }
 
   case class target (inBams: File, outIntervals: File) extends RealignerTargetCreator with CommandLineGATKArgs {
-    if (!knownsOnly)
+    if (cleaningModel != ConsensusDeterminationModel.KNOWNS_ONLY)
       this.input_file :+= inBams
     this.out = outIntervals
     this.mismatchFraction = 0.0
@@ -323,8 +329,7 @@ class DataProcessingPipeline extends QScript {
     this.out = outBam
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
-    this.useOnlyKnownIndels = knownsOnly
-    this.doNotUseSW = !useSW
+    this.consensusDeterminationModel =  consensusDeterminationModel
     this.compress = 0
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outBam + ".clean"
