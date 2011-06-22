@@ -64,7 +64,7 @@ sample_summary_metrics_types = [ (HsMetrics,'hybrid_selection_metrics'),
                                  (InsertSizeMetrics, 'insert_size_metrics'),
                                  (DbSnpMatchMetrics, 'dbsnp_matches') ]
 
-header = ['sample','SUM_OF_FINGERPRINT_LODS','HAPLOTYPES_CONFIDENTLY_MATCHING.MIN','HAPLOTYPES_CONFIDENTLY_MATCHING.MAX','HAPLOTYPES_CONFIDENTLY_MATCHING.MEDIAN']
+header = ['sample','FINGERPRINT_LODS','HAPLOTYPES_CONFIDENTLY_MATCHING']
 for metric_type in sample_summary_metrics_types:
     header.extend(get_sample_summary_metrics_fields(metric_type[0]))
 print string.join(header,'\t')
@@ -88,18 +88,19 @@ for sample_id,filename in samples.items():
     fingerprinting_summary_metrics = get_all_metrics('%s.%s' % (basepath,'fingerprinting_summary_metrics'))
 
     if fingerprinting_summary_metrics != None:
-        haplotypes_confidently_matching = [metric.HAPLOTYPES_CONFIDENTLY_MATCHING for metric in fingerprinting_summary_metrics]
-        sum_of_fingerprint_lods = str(sum([metric.LOD_EXPECTED_SAMPLE for metric in fingerprinting_summary_metrics]))
-        min_haplotypes_confidently_matching = str(min(haplotypes_confidently_matching))
-        max_haplotypes_confidently_matching = str(max(haplotypes_confidently_matching))
-        median_haplotypes_confidently_matching = str(median(haplotypes_confidently_matching))
+        haplotypes_confidently_matching = [str(metric.HAPLOTYPES_CONFIDENTLY_MATCHING) for metric in fingerprinting_summary_metrics]
+        fingerprint_lods = [str(metric.LOD_EXPECTED_SAMPLE) for metric in fingerprinting_summary_metrics]
+#        min_haplotypes_confidently_matching = str(min(haplotypes_confidently_matching))
+#        max_haplotypes_confidently_matching = str(max(haplotypes_confidently_matching))
+#        median_haplotypes_confidently_matching = str(median(haplotypes_confidently_matching))
     else:
-        sum_of_fingerprint_lods = 'NA'
-        min_haplotypes_confidently_matching = 'NA'
-        max_haplotypes_confidently_matching = 'NA'
-        median_haplotypes_confidently_matching = 'NA'
+        haplotypes_confidently_matching = []
+        fingerprint_lods = []
+#        min_haplotypes_confidently_matching = 'NA'
+#        max_haplotypes_confidently_matching = 'NA'
+#        median_haplotypes_confidently_matching = 'NA'
 
-    data = [sample_id,sum_of_fingerprint_lods,min_haplotypes_confidently_matching,max_haplotypes_confidently_matching,median_haplotypes_confidently_matching]
+    data = [sample_id,'c('+string.join(fingerprint_lods,',')+')','c('+string.join(haplotypes_confidently_matching,',')+')']
 
     for metrics_type,metrics_extension in sample_summary_metrics_types:
         metrics = get_sample_summary_metrics('%s.%s' % (basepath,metrics_extension))
