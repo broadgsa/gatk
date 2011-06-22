@@ -9,8 +9,11 @@ import org.broadinstitute.sting.gatk.refdata.features.table.TableFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.Utils;
 
 import java.io.PrintStream;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
@@ -31,12 +34,14 @@ public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
     String probeName;
     StringBuilder sequence;
     boolean sequenceInvalid;
+    List<String> invReason;
 
     public Integer reduceInit() {
         prevInterval = null;
         sequence = null;
         sequenceInvalid = false;
         probeName = null;
+        invReason = null;
         return 0;
     }
 
@@ -63,7 +68,9 @@ public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
             allelePos = null;
             sequence = new StringBuilder();
             sequenceInvalid = false;
-            probeName = ((TableFeature) tracker.getReferenceMetaData("ProbeIntervals",true).get(0)).getAllValues().get(1);
+            invReason = new LinkedList<String>();
+            logger.debug(Utils.join("\t",((TableFeature) tracker.getReferenceMetaData("ProbeIntervals",true).get(0)).getAllValues()));
+            probeName = ((TableFeature) tracker.getReferenceMetaData("ProbeIntervals",true).get(0)).getValue(1);
         }
 
         // step 3 (or 1 if not new):
@@ -83,13 +90,18 @@ public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
             sequence.append(']');
             allelePos = ref.getLocus();
         } else /* (mask != null && validate == null ) */ {
-            if ( ! mask.isSNP() ) {
+            if ( ! mask.isSNP() && ! mask.isFiltered() && ! mask.isMonomorphic() ) {
                 logger.warn("Mask Variant Context on the following warning line is not a SNP. Currently we can only mask out SNPs. This probe will not be designed.");
-                logger.warn(mask.toString());
+                logger.warn(String.format("%s:%d-%d\t%s\t%s",mask.getChr(),mask.getStart(),mask.getEnd(),mask.isInsertion() ? "INS" : "DEL", Utils.join(",",mask.getAlleles())));
                 sequenceInvalid = true;
-                sequence.append((char) ref.getBase());
-            } else {
+                invReason.add(mask.isInsertion() ? "INSERTION" : "DELETION");
+                //sequence.append((char) ref.getBase());
+                sequence.append(mask.isInsertion() ? 'I' : 'D');
+            } else if ( ! mask.isFiltered() && ! mask.isMonomorphic() ){
+                logger.debug("SNP in mask found at " + ref.getLocus().toString());
                 sequence.append((char) BaseUtils.N);
+            } else if ( mask.isSNP() ) {
+                logger.debug("SNP in mask found at "+ref.getLocus().toString()+" but was either filtered or monomorphic");
             }
         }
 
@@ -107,34 +119,58 @@ public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
         String seq = sequence.toString();
         int start = seq.indexOf('[') - 4;
         int end = seq.indexOf(']') + 5;
-        boolean maskNearVariantSite = false;
-        for ( int i = start; i < end; i++ ) {
-            maskNearVariantSite |= (seq.charAt(i) == 'N');
-        }
 
-        if ( maskNearVariantSite ) {
-            logger.warn("There is one (or more) mask variants within 4 basepair of the variant given for validation. This site will not be designed.");
+        if ( start < 50 ) {
+            logger.warn("There is not enough sequence before the start position of the probed allele for adequate probe design. This site will not be designed.");
             sequenceInvalid = true;
+            invReason.add("START_TOO_CLOSE");
+        } else if ( end > seq.length() - 50 ) {
+            logger.warn("There is not enough sequence after the end position of the probed allele fore adequate probe design. This site will not be desinged. ");
+            sequenceInvalid = true;
+            invReason.add("END_TOO_CLOSE");
+        } else {
+            boolean maskNearVariantSite = false;
+            for ( int i = start; i < end; i++ ) {
+                maskNearVariantSite |= (seq.charAt(i) == 'N');
+            }
+
+            if ( maskNearVariantSite ) {
+                logger.warn("There is one (or more) mask variants within 4 basepair of the variant given for validation. This site will not be designed.");
+                sequenceInvalid = true;
+                invReason.add("VARIANT_TOO_NEAR_PROBE");
+            }
         }
 
         if ( seq.indexOf("[") != seq.lastIndexOf("[") ) {
             logger.warn("Multiple probe variants were found within this interval. Please fix the definitions of the intervals so they do not overlap.");
             sequenceInvalid = true;
+            invReason.add("MULTIPLE_PROBES");
+        }
+
+        if ( seq.indexOf("[") < 0 ) {
+            logger.warn("No variants in region were found. This site will not be designed.");
+            sequenceInvalid = true;
+            invReason.add("NO_VARIANTS_FOUND");
         }
     }
 
     public void lowerRepeats() {
         // convert to lower case low-complexity repeats, e.g. tandem k-mers
-        final int K_LIM = 6;
+        final int K_LIM = 8;
         String seq = sequence.toString();
         StringBuilder newSequence = new StringBuilder();
         int start_pos = 0;
         while( start_pos < seq.length() ) {
             boolean broke = false;
             for ( int length = K_LIM; length > 1; length -- ) {
+                //logger.debug(String.format("start1: %d end1: %d start2: %d end2: %d str: %d",start_pos,start_pos+length,start_pos+length,start_pos+2*length,seq.length()));
+                if ( start_pos + 2*length> seq.length() ) {
+                    continue;
+                }
                 if ( equalsIgnoreNs(seq.substring(start_pos,start_pos+length),seq.substring(start_pos+length,start_pos+2*length)) ) {
-                    newSequence.append(seq.substring(start_pos,start_pos+2*length).toLowerCase());
-                    start_pos += length;
+                    newSequence.append(seq.substring(start_pos,start_pos+length).toLowerCase());
+                    newSequence.append(seq.substring(start_pos+length,start_pos+2*length).toLowerCase());
+                    start_pos += 2*length;
                     broke = true;
                     break;
                 }
@@ -147,23 +183,47 @@ public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
 
         }
 
+        if ( seq.indexOf("[") != seq.lastIndexOf("[") ) {
+            return;
+        }
+
         sequence = newSequence;
     }
 
     public boolean equalsIgnoreNs(String one, String two) {
         if ( one.length() != two.length() ) { return false; }
         for ( int idx = 0; idx < one.length(); idx++ ) {
-            if ( one.charAt(idx) != two.charAt(idx) ) {
-                if ( one.charAt(idx) != 'N' && two.charAt(idx) != 'N' ) {
+            if ( Character.toUpperCase(one.charAt(idx)) != Character.toUpperCase(two.charAt(idx)) ) {
+                if ( Character.toUpperCase(one.charAt(idx)) != 'N' && Character.toUpperCase(two.charAt(idx)) != 'N' ) {
                     return false;
                 }
             }
         }
 
+        //logger.debug(String.format("one: %s two: %s",one,two));
+
         return true;
     }
 
     public void print() {
-        out.printf("%s\t%s\t%s%n",allelePos.toString(),probeName,sequence.toString());
+        String valid;
+        if ( sequenceInvalid ) {
+            valid = "";
+            while ( invReason.size() > 0 ) {
+                String reason = invReason.get(0);
+                invReason.remove(reason);
+                int num = 1;
+                while ( invReason.contains(reason) ) {
+                    num++;
+                    invReason.remove(reason);
+                }
+                valid += String.format("%s=%d,",reason,num);
+            }
+        } else {
+            valid = "Valid";
+        }
+
+        String seqIdentity = sequence.toString().replace('n', 'N').replace('i', 'I').replace('d', 'D');
+        out.printf("%s\t%s\t%s\t%s%n", allelePos != null ? allelePos.toString() : "multiple", valid, probeName, seqIdentity);
     }
 }
