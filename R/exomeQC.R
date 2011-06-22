@@ -50,6 +50,20 @@ expandVEReport <- function(d) {
   return(d)
 }
 
+# -------------------------------------------------------
+# Utilities for displaying multiple plots per page
+# -------------------------------------------------------
+
+# Viewport (layout 2 graphs top to bottom)
+distributePerSampleGraph <- function(distgraph, perSampleGraph, heights = c(2,1)) {
+  Layout <- grid.layout(nrow = 2, ncol = 1, heights=heights)
+  grid.newpage()
+  pushViewport(viewport(layout = Layout))
+  subplot <- function(x) viewport(layout.pos.row = x, layout.pos.col = 1)
+  print(perSampleGraph, vp = subplot(1))
+  print(distgraph, vp = subplot(2))
+}
+
 createMetricsBySites <- function(VariantEvalRoot, PreQCMetrics) {
   # Metrics by sites:
   #  bySite -> counts of SNPs and Indels by novelty, with expectations
@@ -105,9 +119,9 @@ summaryPlots <- function(metricsBySites) {
   p <- p + geom_line(size=1)
   p <- p + facet_grid(variable ~ ., scales="free")
   p <- p + scale_x_continuous("Allele count (AC)")
-  print(p)
-  p <- p + scale_x_log10("Allele count (AC)")
-  print(p)
+  p2 <- p + scale_x_log10("Allele count (AC)")
+  p2 <- p2 + opts(title = "")
+  distributePerSampleGraph(p2, p, c(1,1))
 
   # Counts vs. Allele frequency 
   name = "Variant counts by allele count"
@@ -133,9 +147,9 @@ summaryPlots <- function(metricsBySites) {
   p <- p + geom_smooth(size=2)
   p <- p + geom_point(aes(size=log10(nSNPs), weight=nSNPs), alpha=0.5)
   p <- p + scale_x_continuous("Allele count (AC)")
-  print(p)
-  p <- p + scale_x_log10("Allele count (AC)")
-  print(p)
+  p2 <- p + scale_x_log10("Allele count (AC)")
+  p2 <- p2 + opts(title = "")
+  distributePerSampleGraph(p2, p, c(1,1))
   
   # SNPs to indels ratio by allele frequency
   name = "SNPs to indels ratio by allele frequency" 
@@ -164,6 +178,10 @@ addSection <- function(name) {
     title(name, cex=2)
 }
  
+# -------------------------------------------------------
+# read functions
+# -------------------------------------------------------
+
 createMetricsBySamples <- function(VariantEvalRoot) {
   bySampleEval <- expandVEReport(gsa.read.gatkreport(paste(VariantEvalRoot, ".bySample.eval", sep="")))
   r = merge(bySampleEval$TiTvVariantEvaluator, bySampleEval$CountVariants)
@@ -192,57 +210,48 @@ perSamplePlots <- function(metricsBySamples) {
   sampleTextLabel <- geom_text(aes(label=Sample, size=highlightTextSizes)) 
   sampleTextLabelScale <- scale_size("Highlighted samples", to=c(3,5), breaks=c(1,2), labels=c("regular", "highlighted"))
   xAxis <- scale_x_discrete("Sample (ordered by nSNPs)", formatter=function(x) "")
-  myRug <- geom_rug(position="jitter")
-  #myRug <- geom_rug(aes(x=NULL), position="jitter")
 
-  measures = c("nSNPs", "tiTvRatio", "nSingletons", "nIndels", "nInsertions", "nDeletions", "deletionInsertionRatio")
+  measures = c("nSNPs", "tiTvRatio", "nSingletons", "nIndels", "deletionInsertionRatio")
   name = "by sample"
   for ( measure in measures ) {
     molten = melt(metricsBySamples, id.vars=c("Novelty", "Sample", "highlightTextSizes"), measure.vars=c(measure))
 
     # distribution
-    p <- ggplot(data=molten, aes(x=value, group=Novelty, fill=Novelty))
-    p <- p + opts(title = paste(measure, name))
-    p <- p + geom_density(alpha=0.5)
-    p <- p + geom_rug(aes(y=NULL, color=Novelty, position="jitter"))
-    p <- p + scale_x_continuous(measure)
-    # how do we remove the labels?
-    print(p)
+    p1 <- ggplot(data=molten, aes(x=value, group=Novelty, fill=Novelty))
+    #p1 <- p1 + opts(title = paste(measure, name))
+    p1 <- p1 + geom_density(alpha=0.5)
+    p1 <- p1 + geom_rug(aes(y=NULL, color=Novelty, position="jitter"))
+    p1 <- p1 + scale_x_continuous(measure)
 
-    p <- ggplot(data=molten, aes(x=Sample, y=value, group=Novelty, color=Novelty), y=value)
-    p <- p + opts(title = paste(measure, name))
-    p <- p + geom_smooth(alpha=0.5, aes(group=Novelty))
-    p <- p + sampleTextLabel + sampleTextLabelScale
-    p <- p + myRug
-    p <- p + facet_grid(Novelty ~ ., scales="free")
-    # how do we remove the labels?
-    p <- p + xAxis
-    print(p)
+    p2 <- ggplot(data=molten, aes(x=Sample, y=value, group=Novelty, color=Novelty), y=value)
+    p2 <- p2 + opts(title = paste(measure, name))
+    p2 <- p2 + geom_smooth(alpha=0.5, aes(group=Novelty))
+    p2 <- p2 + sampleTextLabel + sampleTextLabelScale
+    p2 <- p2 + facet_grid(Novelty ~ ., scales="free")
+    p2 <- p2 + xAxis
+    
+    distributePerSampleGraph(p1, p2)
   }
-
+    
   # known / novel ratio by sample
   # TODO -- would ideally not conflate SNPs and Indels
   d = subset(metricsBySamples, Novelty == "all" & CompRod == "dbsnp")
   title <- opts(title = "Novelty rate by sample")
 
   # distribution
-  p <- ggplot(data=d, aes(x=compRate))
-  p <- p + title
-  p <- p + geom_density(alpha=0.5)
-  p <- p + geom_rug(aes(y=NULL, position="jitter"))
-  p <- p + scale_x_continuous("Percent of variants in dbSNP")
-  # how do we remove the labels?
-  print(p)
+  p1 <- ggplot(data=d, aes(x=compRate))
+  p1 <- p1 + geom_density(alpha=0.5)
+  p1 <- p1 + geom_rug(aes(y=NULL, position="jitter"))
+  p1 <- p1 + scale_x_continuous("Percent of variants in dbSNP")
 
-  p <- ggplot(data=d, aes(x=Sample, y=compRate))
-  p <- p + title
-  p <- p + geom_smooth(alpha=0.5, aes(group=Novelty))
-  p <- p + sampleTextLabel + sampleTextLabelScale
-  p <- p + geom_rug(aes(x=NULL, position="jitter"))
-  #p <- p + myRug
-  # how do we remove the labels?
-  p <- p + xAxis
-  print(p)
+  p2 <- ggplot(data=d, aes(x=Sample, y=compRate))
+  p2 <- p2 + title
+  p2 <- p2 + geom_smooth(alpha=0.5, aes(group=Novelty))
+  p2 <- p2 + sampleTextLabel + sampleTextLabelScale
+  p2 <- p2 + geom_rug(aes(x=NULL, position="jitter"))
+  p2 <- p2 + xAxis
+  p2 <- p2 + scale_y_continuous("Percent of variants in dbSNP")
+  distributePerSampleGraph(p1, p2)
 
   for ( novelty in c("all", "known", "novel") ) {
     # TODO -- how can I color it as before?
@@ -253,7 +262,6 @@ perSamplePlots <- function(metricsBySamples) {
 #    p <- p + scale_y_log10("Number of variants")
 #    p <- p + geom_point(alpha=0.5, size=4)
     p <- p + sampleTextLabel + sampleTextLabelScale
-    p <- p + myRug
     p <- p + facet_grid(variable ~ ., scales="free")
     # how do we remove the labels?
     p <- p + xAxis
