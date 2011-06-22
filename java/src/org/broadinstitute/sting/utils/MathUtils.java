@@ -1270,4 +1270,12 @@ public class MathUtils {
         return log10MultinomialCoefficient(n, k) + log10Prod;
     }
 
+    public static double factorial (int x) {
+        return Math.pow(10, log10Gamma(x+1));
+    }
+
+    public static double log10Factorial (int x) {
+        return log10Gamma(x+1);
+    }
+
 }
