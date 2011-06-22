@@ -36,7 +36,9 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
 import java.util.*;
@@ -67,6 +69,8 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     @Argument(fullName="clusterWindowSize", shortName="window", doc="The window size (in bases) in which to evaluate clustered SNPs (to disable the clustered SNP filter, set this value to less than 1); [default:0]", required=false)
     protected Integer clusterWindow = 0;
 
+    @Argument(fullName="maskExtension", shortName="maskExtend", doc="How many bases beyond records from a provided 'mask' rod should variants be filtered; [default:0]", required=false)
+    protected Integer MASK_EXTEND = 0;
     @Argument(fullName="maskName", shortName="mask", doc="The text to put in the FILTER field if a 'mask' rod is provided and overlaps with a variant call; [default:'Mask']", required=false)
     protected String MASK_NAME = "Mask";
 
@@ -80,6 +84,7 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
     public static final String INPUT_VARIANT_ROD_BINDING_NAME = "variant";
     public static final String CLUSTERED_SNP_FILTER_NAME = "SnpCluster";
     private ClusteredSnps clusteredSNPs = null;
+    private GenomeLoc previousMaskPosition = null;
 
     // the structures necessary to initialize and maintain a windowed context
     private FiltrationContextWindow variantContextWindow;
@@ -121,6 +126,9 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
         if ( clusterWindow > 0 )
             clusteredSNPs = new ClusteredSnps(getToolkit().getGenomeLocParser(),clusterSize, clusterWindow);
 
+        if ( MASK_EXTEND < 0 )
+             throw new UserException.BadArgumentValue("maskExtension", "negative values are not allowed");
+
         filterExps = VariantContextUtils.initializeMatchExps(FILTER_NAMES, FILTER_EXPS);
         genotypeFilterExps = VariantContextUtils.initializeMatchExps(GENOTYPE_FILTER_NAMES, GENOTYPE_FILTER_EXPS);
 
@@ -143,26 +151,68 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
             return 0;
 
         Collection<VariantContext> VCs = tracker.getVariantContexts(ref, INPUT_VARIANT_ROD_BINDING_NAME, null, context.getLocation(), true, false);
-        if ( VCs.size() == 0 )
-            return 0;
+
+        // is there a SNP mask present?
+        boolean hasMask = tracker.getReferenceMetaData("mask").size() > 0;
+        if ( hasMask )
+            previousMaskPosition = ref.getLocus();  // multi-base masks will get triggered over all bases of the mask
 
         for ( VariantContext vc : VCs ) {
-            FiltrationContext varContext = new FiltrationContext(tracker, ref, vc);
+
+            // filter based on previous mask position
+            if ( previousMaskPosition != null &&                                       // we saw a previous mask site
+                 previousMaskPosition.getContig().equals(vc.getChr()) &&               // it's on the same contig
+                 vc.getStart() - previousMaskPosition.getStop() <= MASK_EXTEND &&      // it's within the mask area (multi-base masks that overlap this site will always give a negative distance)
+                 (vc.getFilters() == null || !vc.getFilters().contains(MASK_NAME)) ) { // the filter hasn't already been applied
+                Set<String> filters = new LinkedHashSet<String>(vc.getFilters());
+                filters.add(MASK_NAME);
+                vc = VariantContext.modifyFilters(vc, filters);
+            }
+
+            FiltrationContext varContext = new FiltrationContext(ref, vc);
 
             // if we're still initializing the context, do so
             if ( windowInitializer != null ) {
+
+                // if this is a mask position, filter previous records
+                if ( hasMask ) {
+                    for ( FiltrationContext prevVC : windowInitializer )
+                        prevVC.setVariantContext(checkMaskForPreviousLocation(prevVC.getVariantContext(), ref.getLocus()));
+                }
+
                 windowInitializer.add(varContext);
                 if ( windowInitializer.size() == windowSize ) {
                     variantContextWindow = new FiltrationContextWindow(windowInitializer);
                     windowInitializer = null;
                 }
             } else {
+
+                // if this is a mask position, filter previous records
+                if ( hasMask ) {
+                    for ( FiltrationContext prevVC : variantContextWindow.getWindow(10, 10) ) {
+                        if ( prevVC != null )
+                            prevVC.setVariantContext(checkMaskForPreviousLocation(prevVC.getVariantContext(), ref.getLocus()));
+                    }
+                }
+
                 variantContextWindow.moveWindow(varContext);
                 filter();
             }
         }
 
         return 1;
+    }
+
+    private VariantContext checkMaskForPreviousLocation(VariantContext vc, GenomeLoc maskLoc) {
+        if ( maskLoc.getContig().equals(vc.getChr()) &&               // it's on the same contig
+             maskLoc.getStart() - vc.getEnd() <= MASK_EXTEND &&       // it's within the mask area (multi-base VCs that overlap this site will always give a negative distance)
+             (vc.getFilters() == null || !vc.getFilters().contains(MASK_NAME)) ) { // the filter hasn't already been applied
+            Set<String> filters = new LinkedHashSet<String>(vc.getFilters());
+            filters.add(MASK_NAME);
+            vc = VariantContext.modifyFilters(vc, filters);
+        }
+
+        return vc;
     }
 
     private void filter() {
@@ -201,11 +251,6 @@ public class VariantFiltrationWalker extends RodWalker<Integer, Integer> {
 
         // make a new variant context based on filters
         Set<String> filters = new LinkedHashSet<String>(vc.getFilters());
-
-        // test for SNP mask, if present
-        List<Object> mask = context.getTracker().getReferenceMetaData("mask");
-        if ( mask.size() > 0 )
-            filters.add(MASK_NAME);
 
         // test for clustered SNPs if requested
         if ( clusteredSNPs != null && clusteredSNPs.filter(variantContextWindow) )

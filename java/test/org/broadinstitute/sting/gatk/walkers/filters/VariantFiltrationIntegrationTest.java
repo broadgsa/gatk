@@ -29,11 +29,21 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     }
 
     @Test
-    public void testMask() {
-        WalkerTestSpec spec = new WalkerTestSpec(
+    public void testMasks() {
+        WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseTestString() + " -mask foo -B:mask,VCF3 " + validationDataLocation + "vcfexample2.vcf -B:variant,VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("b0fcac4af3526e3b2a37602ab4c0e6ae"));
-        executeTest("test mask", spec);
+        executeTest("test mask all", spec1);
+
+        WalkerTestSpec spec2 = new WalkerTestSpec(
+                baseTestString() + " -mask foo -B:mask,VCF " + validationDataLocation + "vcfMask.vcf -B:variant,VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
+                Arrays.asList("b64baabe905a5d197cc1ab594147d3d5"));
+        executeTest("test mask some", spec2);
+
+        WalkerTestSpec spec3 = new WalkerTestSpec(
+                baseTestString() + " -mask foo -maskExtend 10 -B:mask,VCF " + validationDataLocation + "vcfMask.vcf -B:variant,VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
+                Arrays.asList("0eff92fe72024d535c44b98e1e9e1993"));
+        executeTest("test mask extend", spec3);
     }
 
     @Test
@@ -61,19 +71,16 @@ public class VariantFiltrationIntegrationTest extends WalkerTest {
     }
 
     @Test
-    public void testGenotypeFilter1() {
-        WalkerTestSpec spec = new WalkerTestSpec(
+    public void testGenotypeFilters() {
+        WalkerTestSpec spec1 = new WalkerTestSpec(
                 baseTestString() + " -G_filter 'GQ == 0.60' -G_filterName foo -B:variant,VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("6696e3f65a62ce912230d47cdb0c129b"));
-        executeTest("test genotype filter #1", spec);
-    }
+        executeTest("test genotype filter #1", spec1);
 
-    @Test
-    public void testGenotypeFilter2() {
-        WalkerTestSpec spec = new WalkerTestSpec(
+        WalkerTestSpec spec2 = new WalkerTestSpec(
                 baseTestString() + " -G_filter 'AF == 0.04 && isHomVar == 1' -G_filterName foo -B:variant,VCF3 " + validationDataLocation + "vcfexample2.vcf -L 1:10,020,000-10,021,000", 1,
                 Arrays.asList("26e5b4ee954c9e0b5eb044afd4b88ee9"));
-        executeTest("test genotype filter #2", spec);
+        executeTest("test genotype filter #2", spec2);
     }
 
     @Test

@@ -26,25 +26,22 @@
 package org.broadinstitute.sting.gatk.walkers.filters;
 
 import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 
 
 public class FiltrationContext {
 
-    private RefMetaDataTracker tracker;
     private ReferenceContext ref;
     private VariantContext vc;
 
-    public FiltrationContext(RefMetaDataTracker tracker, ReferenceContext ref, VariantContext vc) {
-        this.tracker = tracker;
+    public FiltrationContext(ReferenceContext ref, VariantContext vc) {
         this.ref = ref;
         this.vc = vc;
     }
 
-    public RefMetaDataTracker getTracker() { return tracker; }
-
     public ReferenceContext getReferenceContext() { return ref; }
 
     public VariantContext getVariantContext() { return vc; }
+
+    public void setVariantContext(VariantContext newVC) { vc = newVC; }
 }
