@@ -168,10 +168,10 @@ public class VCFUtils {
                             }
                         }
                         if ( ! compLine.getDescription().equals(compOther) )
-                            if ( logger != null ) logger.warn(String.format("Allowing unequal description fields through: keeping " + compOther + " excluding " + compLine));
+                            if ( logger != null ) logger.warn("Allowing unequal description fields through: keeping " + compOther + " excluding " + compLine);
                     } else {
                         // we are not equal, but we're not anything special either
-                        if ( logger != null ) logger.warn(String.format("Ignoring header line already in map: this header line = " + line + " already present header = " + other));
+                        if ( logger != null ) logger.warn("Ignoring header line already in map: this header line = " + line + " already present header = " + other);
                     }
                 } else {
                     map.put(key, line);
