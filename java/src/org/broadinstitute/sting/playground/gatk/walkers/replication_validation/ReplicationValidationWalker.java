@@ -8,13 +8,16 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.MathUtils;
 
 import java.io.PrintStream;
 import org.apache.commons.math.util.*;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.*;
@@ -30,8 +33,6 @@ import java.util.regex.Pattern;
  * A reference sample name must be provided and it must be barcoded uniquely.
  */
 public class ReplicationValidationWalker extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
-    @Argument(shortName="refSample", fullName="reference_sample_name", doc="reference sample name", required=true)
-    String referenceSampleName = "NA12878";
 
     @Argument(shortName="nsamples", fullName="number_of_samples", doc="Number of samples in the dataset (not counting the reference sample).", required=true)
     int nSamples = -1;
@@ -52,36 +53,28 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
     PrintStream out;
 
     int maxAlleleCount;
-    List<LaneData> lanes;
+    String referenceSampleName;
+    boolean USE_TRUTH_ROD;
 
-    private class LaneData {
-        String id;
-        List <String> sampleNames;
-        String referenceSample;
+    final String REFERENCE_ROD_NAME = "reference";
+    final String TRUTH_ROD_NAME = "truth";
 
-        public String getId() {
-            return id;
+
+    /**
+     * GATK Engine creates readgroups of the form XXX.Y.Z
+     * XXX.Y is the unique lane identifier.
+     *     Z is the id of the sample to make the read group id unique
+     * This function returns a list of unique lane identifiers.
+     * @param readGroups readGroups A collection of read group strings (obtained from the alignment context pileup)
+     * @return a collection of lane ids.
+     */
+    private Set<String> getLaneIDs(Collection<String> readGroups) {
+        HashSet<String> result = new HashSet<String>();
+        for (String rgid : readGroups) {
+            String [] parsedId = rgid.split("\\.");
+            result.add(parsedId[0] + "." + parsedId[1]);
         }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public List<String> getSampleNames() {
-            return sampleNames;
-        }
-
-        public void setSampleNames(List<String> sampleNames) {
-            this.sampleNames = sampleNames;
-        }
-
-        public String getReferenceSample() {
-            return referenceSample;
-        }
-
-        public void setReferenceSample(String referenceSample) {
-            this.referenceSample = referenceSample;
-        }
+        return result;
     }
 
     /**
@@ -107,7 +100,12 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
         return model;
     }
 
-    // buildErrorModel helper functions
+    /**
+     * Returns the number of mismatching bases in a pileup
+     * @param data the bases of a pileup
+     * @param refBase the reference sample base to compare to
+     * @return number of bases in data that are different from refBase
+     */
     private int getNumberOfMismatches(byte[] data, byte refBase) {
         int mismatches = 0;
         for (byte seqBase : data) {
@@ -117,40 +115,34 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
         return mismatches;
     }
 
-//    private String getLaneId (SAMReadGroupRecord rg) {
-//        String [] idParts = rg.getPlatformUnit().split("\\.");
-//        return idParts[0] + idParts[1];  // 0 is run_id, 1 is lane_number.
-//    }
-//
-//    private List<LaneData> createLanesList () {
-//        List<SAMReadGroupRecord> rgs = getToolkit().getSAMFileHeader().getReadGroups();
-//        for(SAMReadGroupRecord rg : rgs) {
-//            String laneId = getLaneId(rg);
-//        }
-//
-//        return new LinkedList<LaneData>();
-//    }
-//
-//    private int getNumberOfSamples() {
-//        int nSamples = 0;
-//        List<Set<String>> readers = getToolkit().getSamplesByReaders();
-//        for(Set<String> reader : readers) {
-//            nSamples += reader.size();
-//            if (reader.contains(referenceSampleName))
-//                nSamples--;
-//        }
-//        return nSamples;
-//    }
-
-
     public void initialize() {
-        if (overrideMaxAlleleCount > 0)
-            maxAlleleCount = overrideMaxAlleleCount;
-        else
-            maxAlleleCount = nSamples*nChromosomes;
+
+        // Set the max allele count (defines the size of the error model array)
+        maxAlleleCount = (overrideMaxAlleleCount > 0) ? overrideMaxAlleleCount : nSamples*nChromosomes;
+
+        // Look for the reference ROD and the optional truth ROD. If truth is provided, set the truth "test" mode ON.
+        List<ReferenceOrderedDataSource> rods = getToolkit().getRodDataSources();
+        if (rods.size() < 1) {
+            throw new IllegalArgumentException("You must provide a reference ROD.");
+        }
+        boolean foundReferenceROD = false;
+        boolean foundTruthROD = false;
+        for (ReferenceOrderedDataSource rod : rods) {
+            if (rod.getName().equals(REFERENCE_ROD_NAME)) {
+                foundReferenceROD = true;
+            }
+            if (rod.getName().equals(TRUTH_ROD_NAME)) {
+                foundReferenceROD = true;
+            }
+        }
+        if (!foundReferenceROD) {
+            throw new IllegalArgumentException("You haven't provided a reference ROD. Note that the reference ROD must be labeled " + REFERENCE_ROD_NAME + ".");
+        }
+        if (rods.size() > 1 && !foundTruthROD) {
+            throw new IllegalArgumentException("You haven't provided a truth ROD. Note that the reference ROD must be labeled " + TRUTH_ROD_NAME + ".");
+        }
+        USE_TRUTH_ROD = foundTruthROD;
     }
-
-
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
         ReadBackedPileup contextPileup = context.getBasePileup();
@@ -175,7 +167,9 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
             if (referenceSamplePileup != null && !referenceSamplePileup.isEmpty() && !poolPileup.isEmpty()) {
 
                 // Build error model
-                double [] errorModel = buildErrorModel(poolPileup.getBases(), referenceSamplePileup.getBases()[0], defaultPrior);
+                //TODO: Build a reference sample VCF and get true reference base from there.
+                byte trueReferenceBase = referenceSamplePileup.getBases()[0]; // THIS IS A QUICK FIX JUST TO BE ABLE TO TEST -- IT IS WRONG!
+                double [] errorModel = buildErrorModel(referenceSamplePileup.getBases(), trueReferenceBase, defaultPrior);
 
                 // Debug error model
                 System.out.println(laneID + ":");
@@ -191,44 +185,8 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
         return 1;
     }
 
-    /**
-     * GATK Engine creates readgroups of the form XXX.Y.Z
-     * XXX.Y is the unique lane identifier.
-     *     Z is the id of the sample to make the read group id unique
-     * This function returns a map that groups together all samples that were run in the same lane:
-     *     XXX.Y -> {Z1, Z2, Z3, ... Zn}
-     * @param readGroups A collection of read group strings (obtained from the alignment context pileup)
-     * @return A map of lanes and samples, as described above
-     */
-//    private HashMap<String, ArrayList<String>> decodeReadIDs(Collection<String> readGroups) {
-//        HashMap<String, ArrayList<String>> result = new HashMap<String, ArrayList<String>>();
-//        for (String rgid : readGroups) {
-//            String [] parsedId = rgid.split("\\.");
-//            String lane = parsedId[0] + "." + parsedId[1];
-//            String id = parsedId[2];
-//            ArrayList<String> idList = (result.get(lane) == null) ? (new ArrayList<String>()) : result.get(lane);
-//            idList.add(id);
-//            result.put(lane, idList);
-//        }
-//        return result;
-//    }
 
-    /**
-     * GATK Engine creates readgroups of the form XXX.Y.Z
-     * XXX.Y is the unique lane identifier.
-     *     Z is the id of the sample to make the read group id unique
-     * This function returns a list of unique lane identifiers.
-     * @param readGroups readGroups A collection of read group strings (obtained from the alignment context pileup)
-     * @return a collection of lane ids.
-     */
-    private Set<String> getLaneIDs(Collection<String> readGroups) {
-        HashSet<String> result = new HashSet<String>();
-        for (String rgid : readGroups) {
-            String [] parsedId = rgid.split("\\.");
-            result.add(parsedId[0] + "." + parsedId[1]);
-        }
-        return result;
-    }
+
 
 
     public Long reduceInit() {
