@@ -1,32 +1,23 @@
 package org.broadinstitute.sting.playground.gatk.walkers.replication_validation;
 
-import cern.jet.math.Arithmetic;
-import com.google.common.collect.ArrayListMultimap;
-import com.sun.xml.internal.ws.client.BindingProviderProperties;
-import net.sf.samtools.SAMFileHeader;
-import net.sf.samtools.SAMReadGroupRecord;
 import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
 import org.broadinstitute.sting.gatk.walkers.LocusWalker;
 import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.utils.MathUtils;
 
 import java.io.PrintStream;
-import org.apache.commons.math.util.*;
-import org.broadinstitute.sting.utils.exceptions.UserException;
+
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
 import java.util.*;
-import java.util.regex.Pattern;
 
 /**
  * Implementation of the replication and validation framework with reference based error model
@@ -91,13 +82,15 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
 
     /**
      * Calculates he probability of the data (reference sample reads) given the phred scaled site quality score.
-     * @param data - array of bases from the reference sample
-     * @param refBases - base from the reference sequence for this site
-     * @param phredScaledPrior - phred scaled expected site quality (prior)
+     * @param referenceSamplePileup reference sample pileup
+     * @param refBases base from the reference sequence for this site
+     * @param phredScaledPrior phred scaled expected site quality (prior)
      * @return an array of log10 probabilities of site qualities ranging from Q1-Q40.
      */
-    private double[] buildErrorModel (byte[] data, Collection<Byte> refBases, byte phredScaledPrior) {
+    private double[] buildErrorModel (ReadBackedPileup referenceSamplePileup, Collection<Byte> refBases, byte phredScaledPrior) {
         double [] model = new double[maxQualityScore+1];
+        byte [] data = referenceSamplePileup.getBases();
+
         int coverage = data.length;
         int mismatches = getNumberOfMismatches(data, refBases);
         int matches = coverage - mismatches;
@@ -118,13 +111,53 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
      * @param refBase the reference sample base to compare to
      * @return number of bases in data that are different from refBase
      */
-    private int getNumberOfMismatches(byte[] data, Collection<Byte> refBase) {
+    private int getNumberOfMismatches (byte[] data, Collection<Byte> refBase) {
         int mismatches = 0;
         for (byte seqBase : data) {
             if (!refBase.contains(seqBase))
                 mismatches++;
         }
         return mismatches;
+    }
+
+    /**
+     * Returns the true bases for the reference sample in this locus. Homozygous loci will return one base
+     * but heterozygous will return two bases (hence why it returns a collection).
+     *
+     * @param referenceSampleContext the variant context from the reference sample ROD track
+     * @param ref the reference sequence context
+     * @return the true bases for the reference sample.
+     */
+    private Collection<Byte> getTrueBases(VariantContext referenceSampleContext, ReferenceContext ref) {
+
+        ArrayList<Byte> trueReferenceBase = new ArrayList<Byte>();
+
+        // Site is not a variant, take from the reference
+        if (referenceSampleContext == null) {
+            trueReferenceBase.add(ref.getBase());
+        }
+
+        else if (referenceSampleContext.isIndel()) {
+            return null; // TODO: add special treatment for extended events. For Now just skip these altogether.
+        }
+
+        // Site has a VCF entry -- is variant
+        else {
+            // Site is filtered, don't mess with it if option is set
+            if (referenceSampleContext.isFiltered() && EXCLUDE_FILTERED_REFERENCE_SITES) {
+                return null;
+            }
+
+            Genotype referenceGenotype = referenceSampleContext.getGenotype(referenceSampleName);
+            List<Allele> referenceAlleles = referenceGenotype.getAlleles();
+            for (Allele allele : referenceAlleles) {
+                byte [] bases = allele.getBases();
+                for (byte b : bases) {
+                    trueReferenceBase.add(b);
+                }
+            }
+        }
+        return trueReferenceBase;
     }
 
     public void initialize() {
@@ -159,69 +192,46 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
 
         // Get reference base from VCF or Reference
-        VariantContext referenceContext = tracker.getVariantContext(ref, REFERENCE_ROD_NAME, context.getLocation());
-        ArrayList<Byte> trueReferenceBase = new ArrayList<Byte>();
+        VariantContext referenceSampleContext = tracker.getVariantContext(ref, REFERENCE_ROD_NAME, context.getLocation());
+        Collection<Byte> trueReferenceBases = getTrueBases(referenceSampleContext, ref);
 
-        if (referenceContext.isIndel()) {
-            return 0; // TODO: add special treatment for extended events. For Now just skip these altogether.
-        }
-
-        // Site is not a variant, take from the reference
-        if (referenceContext == null) {
-            trueReferenceBase.add(ref.getBase());
-        }
-
-        // Site has a VCF entry -- is variant
-        else {
-            // Site is filtered, don't mess with it if option is set
-            if (referenceContext.isFiltered() && EXCLUDE_FILTERED_REFERENCE_SITES) {
-                return 0;
-            }
-
-            Genotype referenceGenotype = referenceContext.getGenotype(referenceSampleName);
-            List<Allele> referenceAlleles = referenceGenotype.getAlleles();
-            for (Allele allele : referenceAlleles) {
-                byte [] bases = allele.getBases();
-                for (byte b : bases) {
-                    trueReferenceBase.add(b);
-                }
-            }
-        }
-
-
+        // If there is no true reference base in this locus, skip it.
+        if (trueReferenceBases == null)
+            return 0;
 
         ReadBackedPileup contextPileup = context.getBasePileup();
         Set<String> lanesInLocus = getLaneIDs(contextPileup.getReadGroups());
         for (String laneID : lanesInLocus) {
             // make a pileup for this lane
             ReadBackedPileup lanePileup = contextPileup.getPileupForLane(laneID);
+            Collection<String> samplesInLane = lanePileup.getSampleNames();
 
-            // make a pileup without the reference sample
-            HashSet<String> samples = new HashSet<String>(lanePileup.getSampleNames());
-            samples.remove(referenceSampleName);
+            // we can only analyze loci that have reads for the reference sample
+            if (samplesInLane.contains(referenceSampleName)) {
 
-            ReadBackedPileup poolPileup = lanePileup.getPileupForSampleNames(samples);
-
-            // create a reference pileup to build error model
-            ReadBackedPileup referenceSamplePileup = lanePileup.getPileupForSampleName(referenceSampleName);
-
-            // We can only analyze loci where we have reference sample coverage. And it only makes sense to build
-            // an error model if the site has reads in the pileup (other than the reference sample)
-            if (referenceSamplePileup != null && !referenceSamplePileup.isEmpty() && !poolPileup.isEmpty()) {
+                // build reference sample pileup
+                ReadBackedPileup referenceSamplePileup = lanePileup.getPileupForSampleName(referenceSampleName);
 
                 // Build error model
-                double [] errorModel = buildErrorModel(referenceSamplePileup.getBases(), trueReferenceBase, defaultPrior);
+                double [] errorModel = buildErrorModel(referenceSamplePileup, trueReferenceBases, defaultPrior);
 
-                // Debug error model
-                System.out.println(laneID + ":");
-                for (double v : errorModel)
-                    System.out.print(v + ", ");
-                System.out.println();
+                // iterate over all samples (pools) in this lane except the reference
+                samplesInLane.remove(referenceSampleName);
+                for (String pool : samplesInLane) {
+                    ReadBackedPileup poolPileup = lanePileup.getPileupForSampleName(pool);
 
-                // todo: call each pool for this site
-                // todo: merge pools
-                // todo: decide whether or not it's a variant
+                    // Debug error model
+                    if (referenceSamplePileup.getBases().length > 50) {
+                        System.out.println("\n" + laneID + " - " + pool + ": " + referenceSamplePileup.getBases().length);
+                        for (double v : errorModel)
+                            System.out.print(v + ", ");
+                        System.out.println();
+                    }
+                }
             }
+            // todo: call each pool for this site
+            // todo: merge pools
+            // todo: decide whether or not it's a variant
         }
         return 1;
     }
