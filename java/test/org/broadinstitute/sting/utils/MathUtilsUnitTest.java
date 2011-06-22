@@ -137,5 +137,22 @@ public class MathUtilsUnitTest extends BaseTest {
         Assert.assertTrue(r.mean()- 3224.625 < 2e-10 );
         Assert.assertTrue(r.stddev()-9072.6515881128 < 2e-10);
     }
-    
+
+    @Test
+    public void testLog10Gamma() {
+        logger.warn("Executing testLog10Gamma");
+
+        Assert.assertTrue(MathUtils.compareDoubles(MathUtils.log10Gamma(4.0), 0.7781513) == 0);
+        Assert.assertTrue(MathUtils.compareDoubles(MathUtils.log10Gamma(10), 5.559763) == 0);
+        Assert.assertTrue(MathUtils.compareDoubles(MathUtils.log10Gamma(10654), 38280.53, 1e-2) == 0);
+    }
+
+    @Test
+    public void testLog10BinomialCoefficient() {
+        logger.warn("Executing testLog10BinomialCoefficient");
+
+        Assert.assertTrue(MathUtils.compareDoubles(MathUtils.log10BinomialCoefficient(4, 2), 0.7781513) == 0);
+        Assert.assertTrue(MathUtils.compareDoubles(MathUtils.log10BinomialCoefficient(10,3), 2.079181) == 0);
+        Assert.assertTrue(MathUtils.compareDoubles(MathUtils.log10BinomialCoefficient(103928, 119 ), 400.2156, 1e-4) == 0);
+    }
 }
