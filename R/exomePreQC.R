@@ -3,8 +3,8 @@ onCMDLine = ! is.na(args[1])
 
 if ( onCMDLine ) {
   reference_dataset = '/Users/mhanna/metrics.perSample.formatted.table'
-  inputTSV = args[2]
-  outputPDF = args[3]
+  inputTSV = args[1]
+  outputPDF = args[2]
 } else {
   reference_dataset = '/Users/mhanna/metrics.perSample.formatted.table'
   inputTSV = 'GoT2D_exomes_batch_005.tsv'
@@ -13,7 +13,6 @@ if ( onCMDLine ) {
 
 require('ggplot2')
 
-inputTSV = "GoT2D_exomes_batch_005.tsv"
 data <- read.table(inputTSV,header=T)
 
 complete <- read.table(reference_dataset,header=T)

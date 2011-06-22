@@ -50,7 +50,7 @@ def create_reader(filename):
     extension = os.path.splitext(filename)[1]
     if extension == '.xls' or extension == '.xlsx':
         return excel_reader(filename)
-    elif extensions == '.tsv' or extension == '.txt':
+    elif extension == '.tsv' or extension == '.txt':
         return tsv_reader(filename)
     else:
         print 'Unrecognized file extension',extension
@@ -73,6 +73,8 @@ for project,sample in create_reader(input_filename):
             print 'Hit a path name that cannot be parsed: ',version_path
             sys.exit(1)
         versions.append(int(version_path[1:]))
+    if len(versions) == 0:
+        continue
     versions = sorted(versions)
     bam_file = '%s/v%d/%s.bam' % (sample_path,versions[-1],sample)
     if not os.path.exists(bam_file):

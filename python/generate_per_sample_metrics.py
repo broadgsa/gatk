@@ -90,19 +90,17 @@ for sample_id,filename in samples.items():
     if fingerprinting_summary_metrics != None:
         haplotypes_confidently_matching = [str(metric.HAPLOTYPES_CONFIDENTLY_MATCHING) for metric in fingerprinting_summary_metrics]
         fingerprint_lods = [str(metric.LOD_EXPECTED_SAMPLE) for metric in fingerprinting_summary_metrics]
-#        min_haplotypes_confidently_matching = str(min(haplotypes_confidently_matching))
-#        max_haplotypes_confidently_matching = str(max(haplotypes_confidently_matching))
-#        median_haplotypes_confidently_matching = str(median(haplotypes_confidently_matching))
     else:
         haplotypes_confidently_matching = []
         fingerprint_lods = []
-#        min_haplotypes_confidently_matching = 'NA'
-#        max_haplotypes_confidently_matching = 'NA'
-#        median_haplotypes_confidently_matching = 'NA'
 
     data = [sample_id,'c('+string.join(fingerprint_lods,',')+')','c('+string.join(haplotypes_confidently_matching,',')+')']
 
     for metrics_type,metrics_extension in sample_summary_metrics_types:
-        metrics = get_sample_summary_metrics('%s.%s' % (basepath,metrics_extension))
-        data.extend([getattr(metrics, metrics_field_name) for metrics_field_name in get_sample_summary_metrics_fields(metrics_type)])
+        metrics_pathname = '%s.%s' % (basepath,metrics_extension)
+        if os.path.exists(metrics_pathname):
+            metrics = get_sample_summary_metrics(metrics_pathname)
+            data.extend([getattr(metrics, metrics_field_name) for metrics_field_name in get_sample_summary_metrics_fields(metrics_type)])
+        else:
+            data.extend(['NA' for metrics_field_name in get_sample_summary_metrics_fields(metrics_type)])
     print string.join(['%s']*len(header),'\t')%tuple(data)
