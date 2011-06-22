@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.playground.gatk.walkers.replication_validation;
 
+import cern.jet.math.Arithmetic;
 import com.google.common.collect.ArrayListMultimap;
 import com.sun.xml.internal.ws.client.BindingProviderProperties;
 import net.sf.samtools.SAMFileHeader;
@@ -102,7 +103,7 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
         for (byte q=0; q<=maxQualityScore; q++) {
             double probMismatch = MathUtils.phredScaleToProbability(q);
             model[q] = MathUtils.phredScaleToLog10Probability(phredScaledPrior) +
-                       org.apache.commons.math.util.MathUtils.binomialCoefficientLog(coverage, mismatches) +
+                       Math.log10(Arithmetic.binomial(coverage, mismatches)) +
                        mismatches * Math.log10(probMismatch) +
                        matches * Math.log10(1-probMismatch);
         }
