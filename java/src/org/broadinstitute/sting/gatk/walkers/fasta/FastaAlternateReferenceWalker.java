@@ -55,7 +55,7 @@ public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
             return new Pair<GenomeLoc, String>(context.getLocation(), "");
         }
 
-        String refBase = String.valueOf(ref.getBaseAsChar());
+        String refBase = String.valueOf((char)ref.getBase());
 
         Collection<VariantContext> vcs = tracker.getAllVariantContexts(ref);
 

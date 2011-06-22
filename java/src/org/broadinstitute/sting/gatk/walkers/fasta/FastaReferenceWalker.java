@@ -56,7 +56,7 @@ public class FastaReferenceWalker extends RefWalker<Pair<GenomeLoc, String>, Gen
     }
 
 	public Pair<GenomeLoc, String> map(RefMetaDataTracker rodData, ReferenceContext ref, AlignmentContext context) {
-        return new Pair<GenomeLoc, String>(context.getLocation(), String.valueOf(ref.getBase()));
+        return new Pair<GenomeLoc, String>(context.getLocation(), String.valueOf((char)ref.getBase()));
 	}
 
     public GenomeLoc reduceInit() {
