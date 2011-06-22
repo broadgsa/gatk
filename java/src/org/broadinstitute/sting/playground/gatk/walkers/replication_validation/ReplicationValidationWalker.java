@@ -5,6 +5,8 @@ import com.google.common.collect.ArrayListMultimap;
 import com.sun.xml.internal.ws.client.BindingProviderProperties;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broad.tribble.util.variantcontext.Allele;
+import org.broad.tribble.util.variantcontext.Genotype;
 import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
@@ -90,20 +92,20 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
     /**
      * Calculates he probability of the data (reference sample reads) given the phred scaled site quality score.
      * @param data - array of bases from the reference sample
-     * @param refBase - base from the reference sequence for this site
+     * @param refBases - base from the reference sequence for this site
      * @param phredScaledPrior - phred scaled expected site quality (prior)
      * @return an array of log10 probabilities of site qualities ranging from Q1-Q40.
      */
-    private double[] buildErrorModel (byte[] data, byte refBase, byte phredScaledPrior) {
+    private double[] buildErrorModel (byte[] data, Collection<Byte> refBases, byte phredScaledPrior) {
         double [] model = new double[maxQualityScore+1];
         int coverage = data.length;
-        int mismatches = getNumberOfMismatches(data, refBase);
+        int mismatches = getNumberOfMismatches(data, refBases);
         int matches = coverage - mismatches;
 
         for (byte q=0; q<=maxQualityScore; q++) {
             double probMismatch = MathUtils.phredScaleToProbability(q);
             model[q] = MathUtils.phredScaleToLog10Probability(phredScaledPrior) +
-                       Math.log10(Arithmetic.binomial(coverage, mismatches)) +
+                       MathUtils.log10BinomialCoefficient(coverage, mismatches) +
                        mismatches * Math.log10(probMismatch) +
                        matches * Math.log10(1-probMismatch);
         }
@@ -116,10 +118,10 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
      * @param refBase the reference sample base to compare to
      * @return number of bases in data that are different from refBase
      */
-    private int getNumberOfMismatches(byte[] data, byte refBase) {
+    private int getNumberOfMismatches(byte[] data, Collection<Byte> refBase) {
         int mismatches = 0;
         for (byte seqBase : data) {
-            if (seqBase != refBase)
+            if (!refBase.contains(seqBase))
                 mismatches++;
         }
         return mismatches;
@@ -158,11 +160,15 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
 
         // Get reference base from VCF or Reference
         VariantContext referenceContext = tracker.getVariantContext(ref, REFERENCE_ROD_NAME, context.getLocation());
-        byte trueReferenceBase;
+        ArrayList<Byte> trueReferenceBase = new ArrayList<Byte>();
+
+        if (referenceContext.isIndel()) {
+            return 0; // TODO: add special treatment for extended events. For Now just skip these altogether.
+        }
 
         // Site is not a variant, take from the reference
         if (referenceContext == null) {
-            trueReferenceBase = ref.getBase();
+            trueReferenceBase.add(ref.getBase());
         }
 
         // Site has a VCF entry -- is variant
@@ -172,14 +178,13 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
                 return 0;
             }
 
-            // Site is HomVar -- easy, take the only alt allele.
-            else if (referenceContext.getGenotype(referenceSampleName).isHomVar()) {
-                trueReferenceBase = referenceContext.getAlternateAllele(0).getBases()[0];
-            }
-
-            // TODO: treat HET cases specially?
-            else {
-                return 0;
+            Genotype referenceGenotype = referenceContext.getGenotype(referenceSampleName);
+            List<Allele> referenceAlleles = referenceGenotype.getAlleles();
+            for (Allele allele : referenceAlleles) {
+                byte [] bases = allele.getBases();
+                for (byte b : bases) {
+                    trueReferenceBase.add(b);
+                }
             }
         }
 
@@ -196,8 +201,6 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
             samples.remove(referenceSampleName);
 
             ReadBackedPileup poolPileup = lanePileup.getPileupForSampleNames(samples);
-
-            //System.out.println(ref.getLocus().getContig() + ":" + ref.getLocus().getStart());
 
             // create a reference pileup to build error model
             ReadBackedPileup referenceSamplePileup = lanePileup.getPileupForSampleName(referenceSampleName);
