@@ -98,8 +98,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected ConstrainedMateFixingManager manager = null;
     protected SAMFileWriter writerToUse = null;
 
-    @Argument(fullName = "consensusDeterminationModel", shortName = "model", doc = "How should we determine the possible alternate consenses? -- in the order of least permissive to most permissive there is KNOWNS_ONLY (use only indels from known indels provided in RODs), USE_READS (additionally use indels already present in the original alignments of the reads), and USE_SW (additionally use 'Smith-Waterman' to generate alternate consenses).  The default is USE_SW", required = false)
-    public ConsensusDeterminationModel consensusModel = ConsensusDeterminationModel.USE_SW;
+    @Argument(fullName = "consensusDeterminationModel", shortName = "model", doc = "How should we determine the possible alternate consenses? -- in the order of least permissive to most permissive there is KNOWNS_ONLY (use only indels from known indels provided in RODs), USE_READS (additionally use indels already present in the original alignments of the reads), and USE_SW (additionally use 'Smith-Waterman' to generate alternate consenses).  The default is USE_READS", required = false)
+    public ConsensusDeterminationModel consensusModel = ConsensusDeterminationModel.USE_READS;
 
 
     // ADVANCED OPTIONS FOLLOW
