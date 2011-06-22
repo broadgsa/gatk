@@ -68,6 +68,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci.", required=false)
     private boolean EXCLUDE_FILTERED = false;
 
+
     @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track. Use -disc ROD_NAME", required=false)
     private String discordanceRodName = "";
 
@@ -209,68 +210,51 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         Collection<VariantContext> vcs = tracker.getVariantContexts(ref, variantRodName, null, context.getLocation(), true, false);
 
-        // If a discordance rod name was provided, we select the variants present in the discordance that
-        // are not present in the variant.
-        if (DISCORDANCE_ONLY) {
-            if (vcs == null || vcs.size() == 0) {
-                VariantContext compVC = tracker.getVariantContext(ref, discordanceRodName, context.getLocation());
-                if (compVC != null) {
-                    // if the genotype of any of the samples we're looking it is HET or HomVar, we write this variant
-                    for (String sample : samples) {
-                        Genotype g = compVC.getGenotype(sample);
-                        if ( g != null && (g.isHet() || g.isHomVar()) ) {
-                            vcfWriter.add(compVC, ref.getBase());
-                            return 1;
-                        }
-                    }
-                }
-            }
-        }
-
         if ( vcs == null || vcs.size() == 0) {
             return 0;
         }
 
         for (VariantContext vc : vcs) {
             if (MENDELIAN_VIOLATIONS) {
-                if (mv.isViolation(vc)) {
-                    vcfWriter.add(vc, ref.getBase());
+                if (!mv.isViolation(vc)) {
+                    break;
+                }
+            }
+            if (DISCORDANCE_ONLY) {
+                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, discordanceRodName, null, context.getLocation(), true, false);
+                if (!compVCs.isEmpty())
+                    return 0; // return is correct: no matter what vcs has, if compVC is not empty there's nothing more to do at this site
+            }
+            if (CONCORDANCE_ONLY) {
+                Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, concordanceRodName, null, context.getLocation(), true, false);
+                if (compVCs.isEmpty())
+                    return 0;  // return is correct: no matter what vcs has, if compVC is empty there's nothing more to do at this site
+            }
+
+            // TODO - add ability to also select MNPs
+            // TODO - move variant selection arguments to the engine so other walkers can also do this
+            if (SELECT_INDELS && !(vc.isIndel() || vc.isMixed()))
+                continue;
+
+            if (SELECT_SNPS && !vc.isSNP())
+                continue;
+
+            VariantContext sub = subsetRecord(vc, samples);
+            if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
+                    //System.out.printf("%s%n",sub.toString());
+                for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
+                    if ( !VariantContextUtils.match(sub, jexl) ) {
+                        return 0;
+                    }
+                }
+                if (SELECT_RANDOM_NUMBER) {
+                    randomlyAddVariant(++variantNumber, sub, ref.getBase());
+                }
+                else if (!SELECT_RANDOM_FRACTION || GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom) {
+                    vcfWriter.add(sub, ref.getBase());
                 }
             }
 
-            else if (CONCORDANCE_ONLY) {
-                VariantContext compVC = tracker.getVariantContext(ref, concordanceRodName, context.getLocation());
-                if (compVC != null) {
-                    vcfWriter.add(vc, ref.getBase());
-                    break; // we only want one line per event in this case.
-                }
-            }
-
-            else {
-                // TODO - add ability to also select MNPs
-                // TODO - move variant selection arguments to the engine so other walkers can also do this
-                if (SELECT_INDELS && vc.isSNP())
-                    return 0;
-
-                if (SELECT_SNPS && (vc.isIndel() || vc.isMixed()))
-                    return 0;
-
-                VariantContext sub = subsetRecord(vc, samples);
-                if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
-                        //System.out.printf("%s%n",sub.toString());
-                    for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
-                        if ( !VariantContextUtils.match(sub, jexl) ) {
-                            return 0;
-                        }
-                    }
-                    if (SELECT_RANDOM_NUMBER) {
-                        randomlyAddVariant(++variantNumber, sub, ref.getBase());
-                    }
-                    else if (!SELECT_RANDOM_FRACTION || GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom) {
-                        vcfWriter.add(sub, ref.getBase());
-                    }
-                }
-            }
         }
 
         return 1;
