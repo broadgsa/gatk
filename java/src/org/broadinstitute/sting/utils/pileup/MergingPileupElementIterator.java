@@ -41,7 +41,7 @@ class MergingPileupElementIterator<PE extends PileupElement> implements Iterator
     private final PriorityQueue<PeekableIterator<PE>> perSampleIterators;
 
     public MergingPileupElementIterator(PerSamplePileupElementTracker<PE> tracker) {
-        perSampleIterators = new PriorityQueue<PeekableIterator<PE>>(tracker.getSamples().size(),new PileupElementIteratorComparator());
+        perSampleIterators = new PriorityQueue<PeekableIterator<PE>>(Math.max(1,tracker.getSamples().size()),new PileupElementIteratorComparator());
         for(Sample sample: tracker.getSamples()) {
             PileupElementTracker<PE> trackerPerSample = tracker.getElements(sample);
             if(trackerPerSample.size() != 0)

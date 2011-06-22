@@ -130,6 +130,15 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      */
     public ReadBackedPileup getPileupForReadGroup(String readGroupId);
 
+    /**
+     * Gets all reads in a given lane id. (Lane ID is the read group
+     * id stripped of the last .XX sample identifier added by the GATK).
+     * @param laneID The read group ID without the sample identifier added by the GATK.
+     * @return A pileup containing the reads from all samples in the given lane.
+     */
+    public ReadBackedPileup getPileupForLane(String laneID);
+
+
      /**
      * Gets a collection of all the samples stored in this pileup.
      * @return Collection of samples in this pileup.
@@ -141,6 +150,15 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @return Collection of names
      */
     public Collection<String> getSampleNames();
+
+
+    /**
+     * Gets the particular subset of this pileup for all the given sample names.
+     * @param sampleNames Name of the sample to use.
+     * @return A subset of this pileup containing only reads with the given sample.
+     */
+    public ReadBackedPileup getPileupForSampleNames(Collection<String> sampleNames);
+
 
     /**
      * Gets the particular subset of this pileup with the given sample name.
@@ -169,6 +187,11 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @return the number of elements in this pileup
      */
     public int size();
+
+    /**
+     * @return true if there are 0 elements in the pileup, false otherwise
+     */
+    public boolean isEmpty();
 
     /**
      * @return the location of this pileup
@@ -214,4 +237,5 @@ public interface ReadBackedPileup extends Iterable<PileupElement>, HasGenomeLoca
      * @return
      */
     public byte[] getMappingQuals();
+
 }

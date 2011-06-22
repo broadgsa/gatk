@@ -520,6 +520,39 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
         }
     }
 
+    @Override
+    public RBP getPileupForLane(String laneID) {
+        if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
+            PerSamplePileupElementTracker<PE> filteredTracker = new PerSamplePileupElementTracker<PE>();
+
+            for(Sample sample: tracker.getSamples()) {
+                PileupElementTracker<PE> perSampleElements = tracker.getElements(sample);
+                AbstractReadBackedPileup<RBP,PE> pileup = createNewPileup(loc,perSampleElements).getPileupForLane(laneID);
+                if(pileup != null)
+                    filteredTracker.addElements(sample,pileup.pileupElementTracker);
+            }
+            return filteredTracker.size()>0 ? (RBP)createNewPileup(loc,filteredTracker) : null;
+        }
+        else {
+            UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+            for(PE p: pileupElementTracker) {
+                SAMRecord read = p.getRead();
+                if(laneID != null) {
+                    if(read.getReadGroup() != null &&
+                       (read.getReadGroup().getReadGroupId().startsWith(laneID + ".")) ||   // lane is the same, but sample identifier is different
+                       (read.getReadGroup().getReadGroupId().equals(laneID)))               // in case there is no sample identifier, they have to be exactly the same
+                        filteredTracker.add(p);
+                }
+                else {
+                    if(read.getReadGroup() == null || read.getReadGroup().getReadGroupId() == null)
+                        filteredTracker.add(p);
+                }
+            }
+            return filteredTracker.size()>0 ? (RBP)createNewPileup(loc,filteredTracker) : null;
+        }
+    }
+
     public Collection<String> getSampleNames() {
         if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
             PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
@@ -607,6 +640,32 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
             return (RBP)createNewPileup(getLocation(), filteredTracker);
         }
     }
+
+    @Override
+    public RBP getPileupForSampleNames(Collection<String> sampleNames) {
+        if(pileupElementTracker instanceof PerSamplePileupElementTracker) {
+            PerSamplePileupElementTracker<PE> tracker = (PerSamplePileupElementTracker<PE>)pileupElementTracker;
+            PileupElementTracker<PE> filteredElements = tracker.getElements(sampleNames);
+            return filteredElements != null ? (RBP)createNewPileup(loc,filteredElements) : null;
+        }
+        else {
+            HashSet<String> hashSampleNames = new HashSet<String>(sampleNames);    // to speed up the "contains" access in the for loop
+            UnifiedPileupElementTracker<PE> filteredTracker = new UnifiedPileupElementTracker<PE>();
+            for(PE p: pileupElementTracker) {
+                SAMRecord read = p.getRead();
+                if(sampleNames != null) {                                          // still checking on sampleNames because hashSampleNames will never be null. And empty means something else.
+                    if(read.getReadGroup() != null && hashSampleNames.contains(read.getReadGroup().getSample()))
+                        filteredTracker.add(p);
+                }
+                else {
+                    if(read.getReadGroup() == null || read.getReadGroup().getSample() == null)
+                        filteredTracker.add(p);
+                }
+            }
+            return filteredTracker.size()>0 ? (RBP)createNewPileup(loc,filteredTracker) : null;
+        }
+    }
+
 
     @Override
     public RBP getPileupForSampleName(String sampleName) {
@@ -715,6 +774,15 @@ public abstract class AbstractReadBackedPileup<RBP extends AbstractReadBackedPil
     public int size() {
         return size;
     }
+
+    /**
+     * @return true if there are 0 elements in the pileup, false otherwise
+     */
+    @Override
+    public boolean isEmpty() {
+        return size==0;
+    }
+
 
     /**
      * @return the location of this pileup

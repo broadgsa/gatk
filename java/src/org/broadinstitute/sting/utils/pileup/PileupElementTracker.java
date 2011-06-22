@@ -94,6 +94,15 @@ class PerSamplePileupElementTracker<PE extends PileupElement> extends PileupElem
         return pileup.get(sampleNames.get(sampleName));
     }
 
+    public PileupElementTracker<PE> getElements(final Collection<String> selectSampleNames) {
+        PerSamplePileupElementTracker<PE> result = new PerSamplePileupElementTracker<PE>();
+        for (String sample :  selectSampleNames) {
+            Sample sampleObject = sampleNames.get(sample);
+            result.addElements(sampleObject, pileup.get(sampleObject));
+        }
+        return result;
+    }
+
     public void addElements(final Sample sample, PileupElementTracker<PE> elements) {
         pileup.put(sample,elements);
         sampleNames.put(sample.getId(), sample);

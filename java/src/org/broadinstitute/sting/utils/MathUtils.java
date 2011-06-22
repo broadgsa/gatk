@@ -608,6 +608,14 @@ public class MathUtils {
         return average(vals, vals.size());
     }
 
+    public static byte average(byte[] vals) {
+        int sum = 0;
+        for (byte v : vals) {
+            sum += v;
+        }
+        return (byte) Math.floor(sum/vals.length);
+    }
+
     public static double averageDouble(List<Double> vals) {
         return averageDouble(vals, vals.size());
     }
@@ -1048,4 +1056,19 @@ public class MathUtils {
          // return Math.log10(Math.pow(10.0,x) + Math.pow(10.0,y));
      }
 
+    static public double phredScaleToProbability (byte q) {
+        return Math.pow(10,(-q)/10.0);
+    }
+
+    static public double phredScaleToLog10Probability (byte q) {
+        return ((-q)/10.0);
+    }
+
+    static public byte probabilityToPhredScale (double p) {
+        return (byte) ((-10) * Math.log10(p));
+    }
+
+    static public double log10ProbabilityToPhredScale (double log10p) {
+        return (-10) * log10p;
+    }
 }
