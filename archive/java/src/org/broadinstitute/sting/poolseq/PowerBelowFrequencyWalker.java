@@ -200,9 +200,9 @@ public class PowerBelowFrequencyWalker extends LocusWalker<Integer,Integer> {
                 // we will reject the null hypothesis if we see kaccept or more SNPs, the power is the probability that this occurs
                 // we can optimize this by checking to see which sum is smaller
                 if ( depth - kaccept < kaccept ) {// kaccept > depth/2 - calculate power as P[hits between kaccept and depth]
-                    power = MathUtils.cumBinomialProbLog(kaccept, depth, depth, snpProp);
+                    power = MathUtils.binomialCumulativeProbability(kaccept, depth, depth, snpProp);
                 } else { // kaccept < depth/2 - calculate power as 1-P[hits between 0 and kaccept]
-                    power = 1-MathUtils.cumBinomialProbLog(0,kaccept,depth,snpProp);
+                    power = 1-MathUtils.binomialCumulativeProbability(0, kaccept, depth, snpProp);
                 }
             }
         }

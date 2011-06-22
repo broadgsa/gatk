@@ -33,6 +33,8 @@ import java.util.*;
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.collections.PrimitivePair;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * MathUtils is a static class (no instantiation allowed!) with some useful math methods.
@@ -250,6 +252,9 @@ public class MathUtils {
         return a * b;
     }
 
+    public static double binomialCoefficient (int n, int k) {
+        return Math.pow(10, log10BinomialCoefficient(n, k));
+    }
     /**
      * Computes a binomial probability.  This is computed using the formula
      *
@@ -257,54 +262,14 @@ public class MathUtils {
      *
      * where n is the number of trials, k is the number of successes, and p is the probability of success
      *
-     * @param k  number of successes
      * @param n  number of Bernoulli trials
+     * @param k  number of successes
      * @param p  probability of success
      *
      * @return   the binomial probability of the specified configuration.  Computes values down to about 1e-237.
      */
-    public static double binomialProbability(int k, int n, double p) {
-        return Arithmetic.binomial(n, k)*Math.pow(p, k)*Math.pow(1.0 - p, n - k);
-        //return (new cern.jet.random.Binomial(n, p, cern.jet.random.engine.RandomEngine.makeDefault())).pdf(k);
-    }
-
-    /**
-     * Performs the calculation for a binomial probability in logspace, preventing the blowups of the binomial coefficient
-     * consistent with moderately large n and k.
-     *
-     * @param k - number of successes/observations
-     * @param n - number of Bernoulli trials
-     * @param p - probability of success/observations
-     *
-     * @return    the probability mass associated with a binomial mass function for the above configuration
-     */
-    public static double binomialProbabilityLog(int k, int n, double p) {
-
-        double log_coef = 0.0;
-        int min;
-        int max;
-
-        if(k < n - k) {
-            min = k;
-            max = n-k;
-        } else {
-            min = n - k;
-            max = k;
-        }
-
-        for(int i=2; i <= min; i++) {
-            log_coef -= Math.log((double)i);
-        }
-
-        for(int i = max+1; i <= n; i++) {
-            log_coef += Math.log((double)i);
-        }
-
-        return Math.exp(log_coef + ((double)k)*Math.log(p) + ((double)(n-k))*Math.log(1-p));
-
-        // in the future, we may want to precompile a table of exact values, where the entry (a,b) indicates
-        // the sum of log(i) from i = (1+(50*a)) to i = 50+(50*b) to increase performance on binomial coefficients
-        // which may require many sums.
+    public static double binomialProbability (int n, int k, double p) {
+        return Math.pow(10, log10BinomialProbability(n, k, Math.log10(p)));
     }
 
     /**
@@ -315,14 +280,14 @@ public class MathUtils {
      * @param probHit - probability of a successful hit
      * @return - returns the cumulative probability
      */
-    public static double cumBinomialProbLog(int start, int end, int total, double probHit) {
+    public static double binomialCumulativeProbability(int start, int end, int total, double probHit) {
         double cumProb = 0.0;
         double prevProb;
         BigDecimal probCache = BigDecimal.ZERO;
 
         for(int hits = start; hits < end; hits++) {
             prevProb = cumProb;
-            double probability = binomialProbabilityLog(hits,total,probHit);
+            double probability = binomialProbability(total, hits, probHit);
             cumProb += probability;
             if ( probability > 0 && cumProb - prevProb < probability/2 ) { // loss of precision
                 probCache = probCache.add(new BigDecimal(prevProb));
@@ -336,36 +301,29 @@ public class MathUtils {
     }
   
     /**
-     * Computes a multinomial.  This is computed using the formula
+     * Computes a multinomial coefficient efficiently avoiding overflow even for large numbers.
+     * This is computed using the formula:
      *
      *   M(x1,x2,...,xk; n) = [ n! / (x1! x2! ... xk!) ]
      *
      * where xi represents the number of times outcome i was observed, n is the number of total observations.
      * In this implementation, the value of n is inferred as the sum over i of xi.
      *
-     * @param x  an int[] of counts, where each element represents the number of times a certain outcome was observed
+     * @param k  an int[] of counts, where each element represents the number of times a certain outcome was observed
      * @return   the multinomial of the specified configuration.
      */
-    public static double multinomial(int[] x) {
-        // In order to avoid overflow in computing large factorials in the multinomial
-        // coefficient, we split the calculation up into the product of a bunch of
-        // binomial coefficients.
-
-        double multinomialCoefficient = 1.0;
-
-        for (int i = 0; i < x.length; i++) {
-            int n = 0;
-            for (int j = 0; j <= i; j++) { n += x[j]; }
-
-            double multinomialTerm = Arithmetic.binomial(n, x[i]);
-            multinomialCoefficient *= multinomialTerm;
+    public static double multinomialCoefficient (int [] k) {
+        int n = 0;
+        for (int xi : k) {
+            n += xi;
         }
 
-        return multinomialCoefficient;
+        return Math.pow(10, log10MultinomialCoefficient(n, k));
     }
 
     /**
-     * Computes a multinomial probability.  This is computed using the formula
+     * Computes a multinomial probability efficiently avoiding overflow even for large numbers.
+     * This is computed using the formula:
      *
      *   M(x1,x2,...,xk; n; p1,p2,...,pk) = [ n! / (x1! x2! ... xk!) ] (p1^x1)(p2^x2)(...)(pk^xk)
      *
@@ -373,25 +331,21 @@ public class MathUtils {
      * pi represents the probability of the i-th outcome to occur.  In this implementation, the value of n is
      * inferred as the sum over i of xi.
      *
-     * @param x  an int[] of counts, where each element represents the number of times a certain outcome was observed
+     * @param k  an int[] of counts, where each element represents the number of times a certain outcome was observed
      * @param p  a double[] of probabilities, where each element represents the probability a given outcome can occur
      * @return   the multinomial probability of the specified configuration.
      */
-    public static double multinomialProbability(int[] x, double[] p) {
-        // In order to avoid overflow in computing large factorials in the multinomial
-        // coefficient, we split the calculation up into the product of a bunch of
-        // binomial coefficients.
-        double multinomialCoefficient = multinomial(x);
+    public static double multinomialProbability (int[] k, double[] p) {
+        if (p.length != k.length)
+            throw new UserException.BadArgumentValue("p and k", "Array of log10 probabilities must have the same size as the array of number of sucesses: " + p.length + ", " + k.length);
 
-        double probs = 1.0, totalprob = 0.0;
-        for (int obsCountsIndex = 0; obsCountsIndex < x.length; obsCountsIndex++) {
-            probs *= Math.pow(p[obsCountsIndex], x[obsCountsIndex]);
-            totalprob += p[obsCountsIndex];
+        int n = 0;
+        double [] log10P = new double[p.length];
+        for (int i=0; i<p.length; i++) {
+            log10P[i] = Math.log10(p[i]);
+            n += k[i];
         }
-
-        assert(MathUtils.compareDoubles(totalprob, 1.0, 0.01) == 0);
-
-        return multinomialCoefficient*probs;
+        return Math.pow(10,log10MultinomialProbability(n, k, log10P));
     }
 
     /**
@@ -1154,7 +1108,7 @@ public class MathUtils {
      * Efficient rounding functions to simplify the log gamma function calculation
      *   double to long with 32 bit shift
      */
-    private static final int HI(double x) {
+    private static final int HI (double x) {
         return (int)(Double.doubleToLongBits(x) >> 32);
     }
 
@@ -1162,7 +1116,7 @@ public class MathUtils {
      * Efficient rounding functions to simplify the log gamma function calculation
      *   double to long without shift
      */
-    private static final int LO(double x) {
+    private static final int LO (double x) {
         return (int)Double.doubleToLongBits(x);
     }
 
@@ -1170,7 +1124,7 @@ public class MathUtils {
      * Most efficent implementation of the lnGamma (FDLIBM)
      * Use via the log10Gamma wrapper method.
      */
-    private static double lnGamma(double x) {
+    private static double lnGamma (double x) {
         double t,y,z,p,p1,p2,p3,q,r,w;
         int i;
 
@@ -1259,33 +1213,61 @@ public class MathUtils {
      * @param x the x parameter
      * @return the log10 of the gamma function at x.
      */
-    public static double log10Gamma(double x) {
+    public static double log10Gamma (double x) {
         return lnToLog10(lnGamma(x));
     }
 
     /**
-     * Calculates the log10 of the binomial coefficient avoiding overflows
+     * Calculates the log10 of the binomial coefficient. Designed to prevent
+     * overflows even with very large numbers.
      *
-     * @param n total number of samples
+     * @param n total number of trials
      * @param k number of successes
      * @return the log10 of the binomial coefficient
      */
-    public static double log10BinomialCoefficient (double n, double k) {
+    public static double log10BinomialCoefficient (int n, int k) {
         return log10Gamma(n+1) - log10Gamma(k+1) - log10Gamma(n-k+1);
     }
 
+    public static double log10BinomialProbability (int n, int k, double log10p) {
+        double log10OneMinusP = Math.log10(1-Math.pow(10,log10p));
+        return log10BinomialCoefficient(n, k) + log10p*k + log10OneMinusP*(n-k);
+    }
+
+
     /**
-     * Calculates the log10 of the multinomial coefficient avoiding overflows
+     * Calculates the log10 of the multinomial coefficient. Designed to prevent
+     * overflows even with very large numbers.
      *
-     * @param n total number of samples
+     * @param n total number of trials
      * @param k array of any size with the number of successes for each grouping (k1, k2, k3, ..., km)
      * @return
      */
-    public static double log10MultinomialCoefficient (double n, double [] k) {
+    public static double log10MultinomialCoefficient (int n, int [] k) {
         double denominator = 0.0;
-        for (double x : k) {
+        for (int x : k) {
             denominator += log10Gamma(x+1);
         }
         return log10Gamma(n+1) - denominator;
     }
+
+    /**
+     * Computes the log10 of the multinomial distribution probability given a vector
+     * of log10 probabilities. Designed to prevent overflows even with very large numbers.
+     *
+     * @param n number of trials
+     * @param k array of number of successes for each possibility
+     * @param log10p array of log10 probabilities
+     * @return
+     */
+    public static double log10MultinomialProbability (int n, int [] k, double [] log10p) {
+        if (log10p.length != k.length)
+            throw new UserException.BadArgumentValue("p and k", "Array of log10 probabilities must have the same size as the array of number of sucesses: " + log10p.length + ", " + k.length);
+        double log10Prod = 0.0;
+        for (int i=0; i<log10p.length; i++) {
+            log10Prod += log10p[i]*k[i];
+        }
+        return log10MultinomialCoefficient(n, k) + log10Prod;
+    }
+
 }
