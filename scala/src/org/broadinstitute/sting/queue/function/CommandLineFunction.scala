@@ -71,7 +71,10 @@ trait CommandLineFunction extends QFunction with Logging {
    */
   protected def repeat(prefix: String, params: Traversable[_], suffix: String = "", separator: String = "",
                        format: (String, Any, String) => String = formatValue("%s")) =
-    params.filter(param => hasValue(param)).map(param => format(prefix, param, suffix)).mkString(separator)
+    if (params == null)
+      ""
+    else
+      params.filter(param => hasValue(param)).map(param => format(prefix, param, suffix)).mkString(separator)
 
   /**
    * Returns parameter with a prefix/suffix if it is set otherwise returns "".
@@ -103,4 +106,15 @@ trait CommandLineFunction extends QFunction with Logging {
         case x => format.format(x)
       }) + suffix
 
+  /**
+   * Returns the parameter if the condition is true. Useful for long string of parameters
+   * @param condition the condition to validate
+   * @param param the string to be returned in case condition is true
+   * @return param if condition is true, "" otherwise
+   */
+  protected def conditionalParameter(condition: Boolean, param: String): String =
+    if (condition == true)
+      param
+    else
+      ""
 }

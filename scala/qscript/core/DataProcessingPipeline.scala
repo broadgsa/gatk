@@ -1,7 +1,6 @@
 package core
 
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.extensions.picard.PicardBamFunction
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 
@@ -10,6 +9,7 @@ import net.sf.samtools.{SAMFileReader,SAMReadGroupRecord}
 import scala.io.Source._
 import collection.JavaConversions._
 import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
+import org.broadinstitute.sting.queue.extensions.picard._
 
 
 class DataProcessingPipeline extends QScript {
@@ -23,26 +23,27 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="input BAM file - or list of BAM files", fullName="input", shortName="i", required=true)
   var input: File = _
 
-  @Input(doc="path to GenomeAnalysisTK.jar", fullName="path_to_gatk_jar", shortName="gatk", required=true)
-  var GATKjar: File = _
-
-  @Input(doc="path to AnalyzeCovariates.jar", fullName="path_to_ac_jar", shortName="ac", required=true)
-  var ACJar: File = _
-
   @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=true)
   var R: String = _
 
-  @Input(doc="path to Picard's MarkDuplicates.jar", fullName="path_to_dedup_jar", shortName="dedup", required=false)
-  var dedupJar: File = new File("/seq/software/picard/current/bin/MarkDuplicates.jar")
+  @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=true)
+  var reference: File = _
 
-  @Input(doc="path to Picard's MergeSamFiles.jar", fullName="path_to_merge_jar", shortName="merge", required=false)
-  var mergeBamJar: File = new File("/seq/software/picard/current/bin/MergeSamFiles.jar")
+//  @Input(doc="path to GenomeAnalysisTK.jar", fullName="path_to_gatk_jar", shortName="gatk", required=false)
+//  var GATKjar: File = _
+//
+//  @Input(doc="path to AnalyzeCovariates.jar", fullName="path_to_ac_jar", shortName="ac", required=false)
+//  var ACJar: File = _
+//
+//  @Input(doc="path to Picard's MarkDuplicates.jar", fullName="path_to_dedup_jar", shortName="dedup", required=false)
+//  var dedupJar: File = _
+//
+//  @Input(doc="path to Picard's MergeSamFiles.jar", fullName="path_to_merge_jar", shortName="merge", required=false)
+//  var mergeBamJar: File = _
+//
+//  @Input(doc="path to Picard's ValidateSamFile.jar", fullName="path_to_validate_jar", shortName="validate", required=false)
+//  var validateSamJar: File = _
 
-  @Input(doc="path to Picard's ValidateSamFile.jar", fullName="path_to_validate_jar", shortName="validate", required=false)
-  var validateSamJar: File = new File("/seq/software/picard/current/bin/ValidateSamFile.jar")
-
-  @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=false)
-  var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
 
 
@@ -51,12 +52,9 @@ class DataProcessingPipeline extends QScript {
   ****************************************************************************/
 
 
-  @Input(doc="path to Picard's RevertSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_revert_jar", shortName="revert", required=false)
-  var revertSamJar: File = _
-
-  @Input(doc="path to Picard's SortSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_sort_jar", shortName="sort", required=false)
-  var sortSamJar: File = _
-
+//  @Input(doc="path to Picard's SortSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_sort_jar", shortName="sort", required=false)
+//  var sortSamJar: File = _
+//
   @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
 
@@ -110,6 +108,14 @@ class DataProcessingPipeline extends QScript {
   * Helper classes and methods
   ****************************************************************************/
 
+  class ReadGroup (val id: String,
+                   val lb: String,
+                   val pl: String,
+                   val pu: String,
+                   val sm: String,
+                   val cn: String,
+                   val ds: String)
+  {}
 
   // Utility function to check if there are multiple samples in a BAM file (currently we can't deal with that)
   def hasMultipleSamples(readGroups: java.util.List[SAMReadGroupRecord]): Boolean = {
@@ -123,14 +129,13 @@ class DataProcessingPipeline extends QScript {
     return false
   }
 
-  // Utility function to merge all bam files of similar samples. Generates on BAM file per sample.
+  // Utility function to merge all bam files of similar samples. Generates one BAM file per sample.
   // It uses the sample information on the header of the input BAM files.
   //
   // Because the realignment only happens after these scripts are executed, in case you are using
   // bwa realignment, this function will operate over the original bam files and output over the
   // (to be realigned) bam files.
-  def createSampleFiles(bamFiles: List[File], realignedBamFiles: List[File] = null): Map[String, File] = {
-    assert(bamFiles.length == realignedBamFiles.length, "List of orignal files must have the same number of files than the list of realigned bam files: " + bamFiles.length + " / " + realignedBamFiles.length)
+  def createSampleFiles(bamFiles: List[File], realignedBamFiles: List[File]): Map[String, File] = {
 
     // Creating a table with SAMPLE information from each input BAM file
     val sampleTable = scala.collection.mutable.Map.empty[String, List[File]]
@@ -173,41 +178,42 @@ class DataProcessingPipeline extends QScript {
   }
 
   // Rebuilds the Read Group string to give BWA
-  def buildReadGroupString(samReader: SAMFileReader): List[String] = {
+  def addReadGroups(inBam: File, outBam: File, samReader: SAMFileReader) {
     val readGroups = samReader.getFileHeader.getReadGroups
-    var l: List[String] = List()
+    var index: Int = readGroups.length
     for (rg <- readGroups) {
-      l :+= "@RG\t" +
-        SAMReadGroupRecord.READ_GROUP_ID_TAG     + ":" + rg.getReadGroupId      + "\t" +
-        SAMReadGroupRecord.PLATFORM_TAG          + ":" + rg.getPlatformUnit     + "\t" +
-        SAMReadGroupRecord.LIBRARY_TAG           + ":" + rg.getLibrary          + "\t" +
-        SAMReadGroupRecord.READ_GROUP_SAMPLE_TAG + ":" + rg.getSample           + "\t" +
-        SAMReadGroupRecord.SEQUENCING_CENTER_TAG + ":" + rg.getSequencingCenter
+      val intermediateInBam: File = if (index == readGroups.length) { inBam } else { swapExt(outBam, ".bam", index+1 + "-rg.bam") }
+      val intermediateOutBam: File = if (index > 1) {swapExt(outBam, ".bam", index + "-rg.bam") } else { outBam}
+      val readGroup = new ReadGroup(rg.getReadGroupId, rg.getPlatform, rg.getLibrary, rg.getPlatformUnit, rg.getSample, rg.getSequencingCenter, rg.getDescription)
+      add(addReadGroup(intermediateInBam, intermediateOutBam, readGroup))
+      index = index - 1
     }
-    return l
-}
+  }
 
   // Takes a list of processed BAM files and realign them using the BWA option requested  (bwase or bwape).
   // Returns a list of realigned BAM files.
   def performAlignment(bams: List[File]): List[File] = {
     var realignedBams: List[File] = List()
+    var index = 1
     for (bam <- bams) {
-      val saiFile1 = swapExt(bam, ".bam", "1.sai")
-      val saiFile2 = swapExt(bam, ".bam", "2.sai")
-      val realignedSamFile = swapExt(bam, ".bam", ".realigned.sam")
-      val realignedBamFile = swapExt(bam, ".bam", ".realigned.bam")
-      val readGroupString = buildReadGroupString(new SAMFileReader(bam))
+      val saiFile1 = swapExt(bam, ".bam", "." + index + ".1.sai")
+      val saiFile2 = swapExt(bam, ".bam", "." + index + ".2.sai")
+      val realignedSamFile = swapExt(bam, ".bam", "." + index + ".realigned.sam")
+      val realignedBamFile = swapExt(bam, ".bam", "." + index + ".realigned.bam")
+      val rgRealignedBamFile = swapExt(bam, ".bam", "." + index + ".realigned.rg.bam")
       if (useBWAse) {
         add(bwa_aln_se(bam, saiFile1),
-            bwa_sam_se(bam, saiFile1, realignedSamFile, readGroupString))
+            bwa_sam_se(bam, saiFile1, realignedSamFile))
       }
       else {
         add(bwa_aln_pe(bam, saiFile1, 1),
             bwa_aln_pe(bam, saiFile2, 2),
-            bwa_sam_pe(bam, saiFile1, saiFile2, realignedSamFile, readGroupString))
+            bwa_sam_pe(bam, saiFile1, saiFile2, realignedSamFile))
       }
       add(sortSam(realignedSamFile, realignedBamFile))
-      realignedBams :+= realignedBamFile
+      addReadGroups(realignedBamFile, rgRealignedBamFile, new SAMFileReader(bam))
+      realignedBams :+= rgRealignedBamFile
+      index = index + 1
     }
     return realignedBams
   }
@@ -299,13 +305,12 @@ class DataProcessingPipeline extends QScript {
 
 
   /****************************************************************************
-  * Classes (Walkers and non-GATK programs)
+  * Classes (GATK Walkers)
   ****************************************************************************/
 
 
   // General arguments to GATK walkers
   trait CommandLineGATKArgs extends CommandLineGATK {
-    this.jarFile = qscript.GATKjar
     this.reference_sequence = qscript.reference
     this.memoryLimit = 4
     this.isIntermediate = true
@@ -364,10 +369,12 @@ class DataProcessingPipeline extends QScript {
 
 
 
-  // Outside tools (not GATK walkers)
+  /****************************************************************************
+   * Classes (non-GATK programs)
+   ****************************************************************************/
+
 
   case class analyzeCovariates (inRecalFile: File, outPath: File) extends AnalyzeCovariates {
-    this.jarFile = qscript.ACJar
     this.resources = qscript.R
     this.recal_file = inRecalFile
     this.output_dir = outPath.toString
@@ -375,73 +382,56 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + inRecalFile + ".analyze_covariates"
   }
 
-  case class dedup (inBam: File, outBam: File, metricsFile: File) extends PicardBamFunction {
-    @Input(doc="fixed bam") var clean = inBam
-    @Output(doc="deduped bam") var deduped = outBam
-    @Output(doc="deduped bam index") var dedupedIndex = new File(outBam + "bai")
-    @Output(doc="metrics file") var metrics = metricsFile
-    override def inputBams = List(clean)
-    override def outputBam = deduped
-    override def commandLine = super.commandLine + " M=" + metricsFile
-    this.sortOrder = null
-    this.createIndex = true
+  case class dedup (inBam: File, outBam: File, metricsFile: File) extends MarkDuplicates {
+    this.input = List(inBam)
+    this.output = outBam
+    this.metrics = metricsFile
     this.memoryLimit = 6
     this.isIntermediate = true
-    this.jarFile = qscript.dedupJar
     this.analysisName = queueLogDir + outBam + ".dedup"
     this.jobName = queueLogDir + outBam + ".dedup"
   }
 
-  case class joinBams (inBams: List[File], outBam: File) extends PicardBamFunction {
-    @Input(doc="input bam list") var join = inBams
-    @Output(doc="joined bam") var joined = outBam
-    @Output(doc="joined bam index") var joinedIndex = new File(outBam + "bai")
-    override def inputBams = join
-    override def outputBam = joined
-    override def commandLine = super.commandLine + " CREATE_INDEX=true"
-    this.jarFile = qscript.mergeBamJar
+  case class joinBams (inBams: List[File], outBam: File) extends MergeSamFiles {
+    this.input = inBams
+    this.output = outBam
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".joinBams"
     this.jobName = queueLogDir + outBam + ".joinBams"
   }
 
-  case class sortSam (inSam: File, outBam: File) extends PicardBamFunction {
-    @Input(doc="input unsorted sam file") var sam = inSam
-    @Output(doc="sorted bam") var bam = outBam
-    @Output(doc="sorted bam index") var bamIndex = new File(outBam + "bai")
-    override def inputBams = List(sam)
-    override def outputBam = bam
-    override def commandLine = super.commandLine + " CREATE_INDEX=true"
-    this.jarFile = qscript.sortSamJar
+  case class sortSam (inSam: File, outBam: File) extends SortSam {
+    this.input = List(inSam)
+    this.output = outBam
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".sortSam"
     this.jobName = queueLogDir + outBam + ".sortSam"
   }
 
-  case class validate (inBam: File, outLog: File) extends PicardBamFunction {
-    @Input(doc="input bam list") var toValidate = inBam
-    @Output(doc="validation log") var validate = outLog
-    override def inputBams = List(inBam)
-    override def outputBam = outLog
-    override def commandLine = super.commandLine + " VALIDATE_INDEX=true MAX_RECORDS_IN_RAM=100000 MODE=SUMMARY REFERENCE_SEQUENCE=" + qscript.reference
-    sortOrder = null
-    this.jarFile = qscript.validateSamJar
+  case class validate (inBam: File, outLog: File) extends ValidateSamFile {
+    this.input = List(inBam)
+    this.output = outLog
+    this.maxRecordsInRam = 100000
+    this.REFERENCE_SEQUENCE = qscript.reference
     this.isIntermediate = false
     this.analysisName = queueLogDir + outLog + ".validate"
     this.jobName = queueLogDir + outLog + ".validate"
   }
 
-  case class revert (inBam: File, outBam: File) extends PicardBamFunction {
-    @Input(doc="old annotated bam") var oldBam = inBam
-    @Output(doc="reverted bam") var revertedBam = outBam
-    @Output(doc="reverted bam index") var revertedBamIndex = new File(outBam + ".bai")
-    override def inputBams = List(oldBam)
-    override def outputBam = revertedBam
-    override def commandLine = super.commandLine + " CREATE_INDEX=true"
+
+  case class addReadGroup (inBam: File, outBam: File, readGroup: ReadGroup) extends AddOrReplaceReadGroups {
+    this.input = List(inBam)
+    this.output = outBam
+    this.RGID = readGroup.id
+    this.RGCN = readGroup.cn
+    this.RGDS = readGroup.ds
+    this.RGLB = readGroup.lb
+    this.RGPL = readGroup.pl
+    this.RGPU = readGroup.pu
+    this.RGSM = readGroup.sm
     this.isIntermediate = true
-    this.jarFile = qscript.dedupJar
-    this.analysisName = queueLogDir + outBam + ".dedup"
-    this.jobName = queueLogDir + outBam + ".dedup"
+    this.analysisName = queueLogDir + outBam + ".rg"
+    this.jobName = queueLogDir + outBam + ".rg"
   }
 
   case class bwa_aln_se (inBam: File, outSai: File) extends CommandLineFunction {
@@ -462,30 +452,22 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outSai1 + ".bwa_aln_pe1"
   }
 
-  case class bwa_sam_se (inBam: File, inSai: File, outBam: File, readGroup: List[String]) extends CommandLineFunction {
+  case class bwa_sam_se (inBam: File, inSai: File, outBam: File) extends CommandLineFunction {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Input(doc="bwa alignment index file") var sai = inSai
     @Output(doc="output aligned bam file") var alignedBam = outBam
-    var readGroupParameters = ""
-    for (rg <- readGroup) {
-      readGroupParameters += " -r \'" + rg + "\'"
-    }
-    def commandLine = bwaPath + " samse " + readGroupParameters + " " + reference + " " + sai + " " + bam + " > " + alignedBam
+    def commandLine = bwaPath + " samse " + reference + " " + sai + " " + bam + " > " + alignedBam
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".bwa_sam_se"
     this.jobName = queueLogDir + outBam + ".bwa_sam_se"
   }
 
-  case class bwa_sam_pe (inBam: File, inSai1: File, inSai2:File, outBam: File, readGroup: List[String]) extends CommandLineFunction {
+  case class bwa_sam_pe (inBam: File, inSai1: File, inSai2:File, outBam: File) extends CommandLineFunction {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Input(doc="bwa alignment index file for 1st mating pair") var sai1 = inSai1
     @Input(doc="bwa alignment index file for 2nd mating pair") var sai2 = inSai2
     @Output(doc="output aligned bam file") var alignedBam = outBam
-    var readGroupParameters = ""
-    for (rg <- readGroup) {
-      readGroupParameters += " -r \'" + rg + "\'"
-    }
-    def commandLine = bwaPath + " sampe " + readGroupParameters + " " + reference + " " + sai1 + " " + sai2 + " " + bam + " " + bam + " > " + alignedBam
+    def commandLine = bwaPath + " sampe " + reference + " " + sai1 + " " + sai2 + " " + bam + " " + bam + " > " + alignedBam
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".bwa_sam_pe"
     this.jobName = queueLogDir + outBam + ".bwa_sam_pe"
