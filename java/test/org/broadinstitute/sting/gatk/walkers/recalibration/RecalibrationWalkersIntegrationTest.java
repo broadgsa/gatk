@@ -30,7 +30,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
                 WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                         "-R " + b36KGReference +
-                                " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                                " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                                 " -T CountCovariates" +
                                 " -I " + bam +
                                 ( bam.equals( validationDataLocation + "NA12878.1kg.p2.chr1_10mb_11_mb.allTechs.bam" )
@@ -97,7 +97,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -standard" +
                             " -OQ" +
                             " -recalFile %s" +
-                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod",
+                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod",
                     1, // just one output file
                     Arrays.asList(md5));
             executeTest("testCountCovariatesUseOriginalQuals", spec);
@@ -146,7 +146,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -standard" +
@@ -254,7 +254,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
                             " -B:anyNameABCD,VCF3 " + validationDataLocation + "vcfexample3.vcf" +
                             " -T CountCovariates" +
                             " -I " + bam +
-                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                             " -L 1:10,000,000-10,200,000" +
                             " -cov ReadGroupCovariate" +
                             " -cov QualityScoreCovariate" +
@@ -279,7 +279,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -L 1:10,000,000-10,200,000" +
@@ -338,7 +338,7 @@ public class RecalibrationWalkersIntegrationTest extends WalkerTest {
 
             WalkerTest.WalkerTestSpec spec = new WalkerTest.WalkerTestSpec(
                     "-R " + b36KGReference +
-                            " --DBSNP /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+                            " --DBSNP " + GATKDataLocation + "dbsnp_129_b36.rod" +
                             " -T CountCovariates" +
                             " -I " + bam +
                             " -cov ReadGroupCovariate" +

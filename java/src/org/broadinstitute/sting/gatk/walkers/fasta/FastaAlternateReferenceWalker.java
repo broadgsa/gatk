@@ -42,7 +42,7 @@ import java.util.Collection;
  * allows for a "snpmask" ROD to set overlapping bases to 'N'.
  */
 @WalkerName("FastaAlternateReferenceMaker")
-@Reference(window=@Window(start=0,stop=50))
+@Reference(window=@Window(start=-1,stop=50))
 @Requires(value={DataSource.REFERENCE})
 public class FastaAlternateReferenceWalker extends FastaReferenceWalker {
 

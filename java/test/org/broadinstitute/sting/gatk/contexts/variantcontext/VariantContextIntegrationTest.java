@@ -14,18 +14,18 @@ public class VariantContextIntegrationTest extends WalkerTest {
             " -R " + b36KGReference;
 
     private static String root = cmdRoot +
-            " -D /humgen/gsa-scr1/GATK_Data/dbsnp_129_b36.rod" +
+            " -D " + GATKDataLocation + "dbsnp_129_b36.rod" +
             " -B:vcf,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.vcf";
 
     static HashMap<String, String> expectations = new HashMap<String, String>();
     static {
-        expectations.put("-L 1:1-10000 --printPerLocus", "26ad6d6695a45c45e8451477fd9476a6");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "47772be91e4392d68aba901438aecdf2");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "e34688fa2450b0898ce55d0a5323db9a");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "06505d1b90680862613ad374218b0d25");
+        expectations.put("-L 1:1-10000 --printPerLocus", "493bf9bcde93c08c8c46f72c8e98cf2f");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "bd9e062b23c2c48fef8c299dc1d294d5");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "ceced3f270b4fe407ee83bc9028becde");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "9a9b9e283553c28bf58de1cafa38fe92");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "2097e32988d603d3b353b50218c86d3b");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "8559d91b3f347c059d829fca1ada439e");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "358330e2b373a38269abdf6e65180c0a");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "91c6a9489256d9ce77c8fedf7221a961");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "5e40980c02797f90821317874426a87a");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "e5a00766f8c1ff9cf92310bafdec3126");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
     }

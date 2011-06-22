@@ -13,8 +13,11 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
+import javax.xml.stream.events.Attribute;
 import java.util.*;
+import java.util.jar.Attributes;
 
 /**
  * A terrible but temporary approach to converting objects to VariantContexts.  If you want to add a converter,
@@ -123,10 +126,16 @@ public class VariantContextAdaptors {
                     alleles.add(Allele.create(alt, false));
                 }
 
-                Map<String, String> attributes = new HashMap<String, String>();
+                Map<String, Object> attributes = new HashMap<String, Object>();
                 attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
+                if ( DbSNPHelper.isDeletion(dbsnp) ) {
+                    int index = ref.getLocus().getStart() - ref.getWindow().getStart() - 1;
+                    if ( index < 0 )
+                        throw new ReviewedStingException("DbSNP conversion requested using a reference context with no window; we will fail to convert deletions");
+                    attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte(ref.getBases()[index]));
+                }
                 Collection<Genotype> genotypes = null;
-                VariantContext vc = new VariantContext(name, dbsnp.getChr(),dbsnp.getStart(),dbsnp.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
+                VariantContext vc = new VariantContext(name, dbsnp.getChr(),dbsnp.getStart() - (DbSNPHelper.isDeletion(dbsnp) ? 1 : 0),dbsnp.getEnd(), alleles, genotypes, VariantContext.NO_NEG_LOG_10PERROR, null, attributes);
                 return vc;
             } else
                 return null; // can't handle anything else
