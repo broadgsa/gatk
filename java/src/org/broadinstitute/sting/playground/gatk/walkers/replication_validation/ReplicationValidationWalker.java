@@ -1,8 +1,10 @@
 package org.broadinstitute.sting.playground.gatk.walkers.replication_validation;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.sun.xml.internal.ws.client.BindingProviderProperties;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMReadGroupRecord;
+import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -34,26 +36,33 @@ import java.util.regex.Pattern;
  */
 public class ReplicationValidationWalker extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
 
+
+    @Argument(shortName="refsample", fullName="reference_sample_name", doc="Reference sample name.", required=true)
+    String referenceSampleName;
+
     @Argument(shortName="nsamples", fullName="number_of_samples", doc="Number of samples in the dataset (not counting the reference sample).", required=true)
     int nSamples = -1;
 
     @Argument(shortName="nchr", fullName="number_of_chromosomes", doc="Number of chromosomes per sample (in case you're not dealing with diploids). Default: 2.", required=false)
     int nChromosomes = 2;
 
-    @Argument(shortName="maxac", fullName="max_allele_count", doc="Max number of alleles expected in a site. Default: 2 * number of samples. Smaller numbers process faster.", required=false)
+    @Argument(shortName="maxac", fullName="max_allele_count", doc="Max number of alleles expected in a site. Smaller numbers process faster. Default: 2 * number of samples. ", required=false)
     int overrideMaxAlleleCount = -1;
 
-    @Argument(shortName="maxqs", fullName="max_quality_score", doc="Max quality score to consider. Default: Q40. Smaller numbers process faster.", required=false)
+    @Argument(shortName="maxqs", fullName="max_quality_score", doc="Max quality score to consider. Smaller numbers process faster. Default: Q40.", required=false)
     int maxQualityScore= 40;
 
     @Argument(shortName="prior", fullName="site_quality_prior", doc="Phred-Scaled prior quality of the site. Default: Q20.", required=false)
     byte defaultPrior= 20;
 
+    @Argument(shortName="ef", fullName="exclude_filtered_reference_sites", doc="Don't include in the analysis sites where the reference sample VCF is filtered. Default: false.", required=false)
+    boolean EXCLUDE_FILTERED_REFERENCE_SITES = false;
+
+
     @Output(doc="Write output to this file instead of STDOUT")
     PrintStream out;
 
     int maxAlleleCount;
-    String referenceSampleName;
     boolean USE_TRUTH_ROD;
 
     final String REFERENCE_ROD_NAME = "reference";
@@ -145,6 +154,36 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
+
+        // Get reference base from VCF or Reference
+        VariantContext referenceContext = tracker.getVariantContext(ref, REFERENCE_ROD_NAME, context.getLocation());
+        byte trueReferenceBase;
+
+        // Site is not a variant, take from the reference
+        if (referenceContext == null) {
+            trueReferenceBase = ref.getBase();
+        }
+
+        // Site has a VCF entry -- is variant
+        else {
+            // Site is filtered, don't mess with it if option is set
+            if (referenceContext.isFiltered() && EXCLUDE_FILTERED_REFERENCE_SITES) {
+                return 0;
+            }
+
+            // Site is HomVar -- easy, take the only alt allele.
+            else if (referenceContext.getGenotype(referenceSampleName).isHomVar()) {
+                trueReferenceBase = referenceContext.getAlternateAllele(0).getBases()[0];
+            }
+
+            // TODO: treat HET cases specially?
+            else {
+                return 0;
+            }
+        }
+
+
+
         ReadBackedPileup contextPileup = context.getBasePileup();
         Set<String> lanesInLocus = getLaneIDs(contextPileup.getReadGroups());
         for (String laneID : lanesInLocus) {
@@ -167,8 +206,6 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
             if (referenceSamplePileup != null && !referenceSamplePileup.isEmpty() && !poolPileup.isEmpty()) {
 
                 // Build error model
-                //TODO: Build a reference sample VCF and get true reference base from there.
-                byte trueReferenceBase = referenceSamplePileup.getBases()[0]; // THIS IS A QUICK FIX JUST TO BE ABLE TO TEST -- IT IS WRONG!
                 double [] errorModel = buildErrorModel(referenceSamplePileup.getBases(), trueReferenceBase, defaultPrior);
 
                 // Debug error model
@@ -185,10 +222,6 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
         return 1;
     }
 
-
-
-
-
     public Long reduceInit() {
         return 0l;
     }
@@ -197,10 +230,6 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
         return value + sum;
     }
 
-    /**
-     * Reduces two subtrees together.  In this case, the implementation of the tree reduce
-     * is exactly the same as the implementation of the single reduce.
-     */
     public Long treeReduce(Long lhs, Long rhs) {
         return lhs + rhs;
     }
