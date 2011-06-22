@@ -72,6 +72,10 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
     @Ensures("result != null")
     public final GenomeLoc getLocation() { return this; }
 
+    public final GenomeLoc getStartLocation() { return new GenomeLoc(getContig(),getContigIndex(),getStart(),getStart()); }
+
+    public final GenomeLoc getStopLocation() { return new GenomeLoc(getContig(),getContigIndex(),getStop(),getStop()); }
+
     /**
      * @return the name of the contig of this GenomeLoc
      */
@@ -140,6 +144,24 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
         return new GenomeLoc(getContig(), this.contigIndex,
                              Math.min(getStart(), that.getStart()),
                              Math.max( getStop(), that.getStop()) );
+    }
+
+    /**
+     * Returns a new GenomeLoc that represents the region between the endpoints of this and that. Requires that
+     * this and that GenomeLoc are both mapped.
+     */
+    @Requires({"that != null", "isUnmapped(this) == isUnmapped(that)"})
+    @Ensures("result != null")
+    public GenomeLoc endpointSpan(GenomeLoc that) throws ReviewedStingException {
+        if(GenomeLoc.isUnmapped(this) || GenomeLoc.isUnmapped(that)) {
+            throw new ReviewedStingException("Cannot get endpoint span for unmerged genome locs");
+        }
+
+        if ( ! this.getContig().equals(that.getContig()) ) {
+            throw new ReviewedStingException("Cannot get endpoint span for genome locs on different contigs");
+        }
+
+        return new GenomeLoc(getContig(),this.contigIndex,Math.min(getStart(),that.getStart()),Math.max(getStop(),that.getStop()));
     }
 
     /**
@@ -328,6 +350,11 @@ public class GenomeLoc implements Comparable<GenomeLoc>, Serializable, HasGenome
         }
 
         return result;
+    }
+
+    @Requires("that != null")
+    public boolean endsAt(GenomeLoc that) {
+        return (this.compareContigs(that) == 0) && ( this.getStop() == that.getStop() );
     }
 
     /**
