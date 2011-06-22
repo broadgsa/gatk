@@ -25,7 +25,8 @@ public class PrintReadsIntegrationTest extends WalkerTest {
         return new Object[][]{
                 {new PRTest("",  "dc8e5451dd29757c336013146010f73a")},
                 {new PRTest(" -compress 0",  "fde82269c78c9e91e57286433531b4af")},
-                {new PRTest(" -simplifyBAM",  "0531717b32a7e21c0de70b1526b0751f")} };
+                {new PRTest(" -simplifyBAM",  "0531717b32a7e21c0de70b1526b0751f")},
+                {new PRTest(" -n 10",  "cdc4ddf9ee1d2ecf37168da8ef23c270")} };
     }
 
     @Test(dataProvider = "PRTest")
