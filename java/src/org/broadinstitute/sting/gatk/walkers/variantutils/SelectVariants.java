@@ -164,7 +164,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         samples.addAll(samplesFromFile);
         samples.addAll(samplesFromExpressions);
-        samples.addAll(sampleNames);
+        if (sampleNames != null)
+            samples.addAll(sampleNames);
 
         if(samples.isEmpty()) {
             samples.addAll(vcfSamples);
