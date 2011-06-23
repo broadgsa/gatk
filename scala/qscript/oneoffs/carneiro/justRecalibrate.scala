@@ -2,6 +2,7 @@ package oneoffs.carneiro
 
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
+import net.sf.samtools.SAMFileReader
 
 /**
  * Created by IntelliJ IDEA.
@@ -19,9 +20,6 @@ class justRecalibrate extends QScript {
   @Input(doc="input BAM file - or list of BAM files", shortName="i", required=true)
   var input: File = _
 
-  @Input(doc="path to AnalyzeCovariates.jar", fullName="path_to_ac_jar", shortName="ac", required=false)
-  var ACJar: File = new File("/humgen/gsa-scr1/carneiro/stable/dist/AnalyzeCovariates.jar")
-
   @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=false)
   var R: String = new File("/humgen/gsa-scr1/carneiro/stable/R")
 
@@ -32,21 +30,26 @@ class justRecalibrate extends QScript {
   var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   val queueLogDir: String = ".qlog/"
-  val nContigs: Int = 85    // Take it from the BAM file if you want to be more sophisticated!
+  var nContigs: Int = 0
+
+  def getNumberOfContigs(bamFile: File): Int = {
+    val samReader = new SAMFileReader(new File(bamFile))
+    return samReader.getFileHeader.getSequenceDictionary.getSequences.size()
+  }
 
   def script = {
 
-    val first: Boolean = true
+    nContigs = getNumberOfContigs(input)
 
     val recalFile1: File = new File("recal1.csv")
     val recalFile2: File = new File("recal2.csv")
-    val bam: File        = new File("recal.bam")
+    val recalBam: File        = swapExt(input, ".bam", "recal.bam")
     val path1: String    = "before"
     val path2: String    = "after"
     
-    add(cov(input, recalFile1, first),
-        recal(input, recalFile1, bam),
-        cov(bam, recalFile2, !first),
+    add(cov(input, recalFile1),
+        recal(input, recalFile1, recalBam),
+        cov(recalBam, recalFile2),
         analyzeCovariates(recalFile1, path1),
         analyzeCovariates(recalFile2, path2))
   }
@@ -58,12 +61,11 @@ class justRecalibrate extends QScript {
     this.isIntermediate = true
   }
 
-  case class cov (inBam: File, outRecalFile: File, FIRST: Boolean) extends CountCovariates with CommandLineGATKArgs {
+  case class cov (inBam: File, outRecalFile: File) extends CountCovariates with CommandLineGATKArgs {
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
     this.covariate ++= List("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "DinucCovariate")
     this.input_file :+= inBam
     this.recal_file = outRecalFile
-    this.useOriginalQualities = FIRST
     this.analysisName = queueLogDir + outRecalFile + ".covariates"
     this.jobName = queueLogDir + outRecalFile + ".covariates"
     this.scatterCount = nContigs
@@ -80,7 +82,6 @@ class justRecalibrate extends QScript {
   }
 
   case class analyzeCovariates (inRecalFile: File, outPath: String) extends AnalyzeCovariates {
-    this.jarFile = ACJar
     this.resources = R
     this.recal_file = inRecalFile
     this.output_dir = outPath.toString
