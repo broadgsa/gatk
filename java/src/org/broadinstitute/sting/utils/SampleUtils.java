@@ -270,4 +270,51 @@ public class SampleUtils {
 
         return samples;
     }
+
+    /**
+     * Given a collection of samples and a collection of regular expressions, generates the set of samples that match each expression
+     * @param originalSamples list of samples to select samples from
+     * @param sampleExpressions list of expressions to use for matching samples
+     * @return the set of samples from originalSamples that satisfy at least one of the expressions in sampleExpressions
+     */
+    public static Collection<String> matchSamplesExpressions (Collection<String> originalSamples, Collection<String> sampleExpressions) {
+        // Now, check the expressions that weren't used in the previous step, and use them as if they're regular expressions
+        Set<String> samples = new HashSet<String>();
+        if (sampleExpressions != null) {
+            for (String expression : sampleExpressions) {
+                Pattern p = Pattern.compile(expression);
+
+                for (String originalSample : originalSamples) {
+                    Matcher m = p.matcher(originalSample);
+                    if (m.find()) {
+                        samples.add(originalSample);
+                    }
+                }
+            }
+        }
+        return samples;
+    }
+
+    /**
+     * Given a list of files with sample names it reads all files and creates a list of unique samples from all these files.
+     * @param files list of files with sample names in
+     * @return a collection of unique samples from all files
+     */
+    public static Collection<String> getSamplesFromFiles (Collection<File> files) {
+        Set<String> samplesFromFiles = new HashSet<String>();
+        if (files != null) {
+            for (File file : files) {
+                try {
+                    XReadLines reader = new XReadLines(file);
+                    List<String> lines = reader.readLines();
+                    for (String line : lines) {
+                        samplesFromFiles.add(line);
+                    }
+                } catch (FileNotFoundException e) {
+                    // ignore exception
+                }
+            }
+        }
+        return samplesFromFiles;
+    }
 }

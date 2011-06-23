@@ -7,6 +7,7 @@ import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.Assert;
 
+import javax.swing.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -65,6 +66,10 @@ public abstract class BaseTest {
     public static final String b36dbSNP129 = dbsnpDataLocation + "dbsnp_129_b36.rod";
     public static final String b37dbSNP129 = dbsnpDataLocation + "dbsnp_129_b37.rod";
     public static final String b37dbSNP132 = dbsnpDataLocation + "dbsnp_132_b37.vcf";
+
+    public static final String hapmapDataLocation = comparisonDataLocation + "Validated/HapMap/3.3/";
+    public static final String b37hapmapGenotypes = hapmapDataLocation + "genotypes_r27_nr.b37_fwd.vcf";
+    public static final String b37hapmapSites = hapmapDataLocation + "sites_r27_nr.b37_fwd.vcf";
 
     public static final String intervalsLocation = GATKDataLocation;
     public static final String hg19Intervals = intervalsLocation + "whole_exome_agilent_1.1_refseq_plus_3_boosters.Homo_sapiens_assembly19.targets.interval_list";

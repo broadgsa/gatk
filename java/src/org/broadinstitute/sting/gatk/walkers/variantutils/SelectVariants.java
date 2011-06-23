@@ -24,6 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broad.tribble.util.variantcontext.Allele;
 import org.broad.tribble.util.variantcontext.Genotype;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
@@ -44,6 +45,7 @@ import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.vcf.VCFUtils;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -56,8 +58,14 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Output(doc="File to which variants should be written",required=true)
     protected VCFWriter vcfWriter = null;
 
-    @Argument(fullName="sample", shortName="sn", doc="Sample(s) to include.  Can be a single sample, specified multiple times for many samples, a file containing sample names, a regular expression to select many samples, or any combination thereof.", required=false)
-    public Set<String> SAMPLE_EXPRESSIONS;
+    @Argument(fullName="sample_name", shortName="sn", doc="Sample name to be included in the analysis. Can be specified multiple times.", required=false)
+    public Set<String> sampleNames;
+
+    @Argument(fullName="sample_expressions", shortName="se", doc="Regular expression to select many samples from the ROD tracks provided. Can be specified multiple times.", required=false)
+    public Set<String> sampleExpressions;
+
+    @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line). Can be specified multiple times", required=false)
+    public Set<File> sampleFiles;
 
     @Argument(shortName="select", doc="One or more criteria to use when selecting the data.  Evaluated *after* the specified samples are extracted and the INFO-field annotations are updated.", required=false)
     public ArrayList<String> SELECT_EXPRESSIONS = new ArrayList<String>();
@@ -65,9 +73,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="excludeNonVariants", shortName="env", doc="Don't include loci found to be non-variant after the subsetting procedure.", required=false)
     private boolean EXCLUDE_NON_VARIANTS = false;
 
-    @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci.", required=false)
+    @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci in the analysis.", required=false)
     private boolean EXCLUDE_FILTERED = false;
-
 
     @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track. Use -disc ROD_NAME", required=false)
     private String discordanceRodName = "";
@@ -117,7 +124,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private ArrayList<String> selectNames = new ArrayList<String>();
     private List<VariantContextUtils.JexlVCMatchExp> jexls = null;
 
-    private Set<String> samples = new HashSet<String>();
+    private TreeSet<String> samples = new TreeSet<String>();
+    private boolean NO_SAMPLES_SPECIFIED = false;
 
     private boolean DISCORDANCE_ONLY = false;
     private boolean CONCORDANCE_ONLY = false;
@@ -149,11 +157,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         rodNames.add(variantRodName);
 
         Map<String, VCFHeader> vcfRods = VCFUtils.getVCFHeadersFromRods(getToolkit(), rodNames);
-        Set<String> vcfSamples = SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE);
+        TreeSet<String> vcfSamples = new TreeSet<String>(SampleUtils.getSampleList(vcfRods, VariantContextUtils.GenotypeMergeType.REQUIRE_UNIQUE));
 
-        // TODO -- This causes the sample ordering in the VCF to be "random" (i.e. whatever order they are pulled from the HashSet).
-        // TODO -- We should either enforce alphabetical ordering here (as with other walkers) or base it on the order from the command-line - but we shouldn't leave this up to Java to decide.
-        samples = SampleUtils.getSamplesFromCommandLineInput(vcfSamples, SAMPLE_EXPRESSIONS);
+        Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
+        Collection<String> samplesFromExpressions = SampleUtils.matchSamplesExpressions(vcfSamples, sampleExpressions);
+
+        samples.addAll(samplesFromFile);
+        samples.addAll(samplesFromExpressions);
+        samples.addAll(sampleNames);
+
+        if(samples.isEmpty()) {
+            samples.addAll(vcfSamples);
+            NO_SAMPLES_SPECIFIED = true;
+        }
+
         for (String sample : samples) {
             logger.info("Including sample '" + sample + "'");
         }
@@ -192,7 +209,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         }
 
         SELECT_RANDOM_FRACTION = fractionRandom > 0;
-        if (SELECT_RANDOM_FRACTION) logger.info("Selecting " + fractionRandom + " variants at random from the variant track");
+        if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + fractionRandom + "% of the variants at random from the variant track");
     }
 
     /**
@@ -222,13 +239,13 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             }
             if (DISCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, discordanceRodName, null, context.getLocation(), true, false);
-                if (!compVCs.isEmpty())
-                    return 0; // return is correct: no matter what vcs has, if compVC is not empty there's nothing more to do at this site
+                if (!isDiscordant(vc, compVCs))
+                    return 0;
             }
             if (CONCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, concordanceRodName, null, context.getLocation(), true, false);
-                if (compVCs.isEmpty())
-                    return 0;  // return is correct: no matter what vcs has, if compVC is empty there's nothing more to do at this site
+                if (!isConcordant(vc, compVCs))
+                    return 0;
             }
 
             // TODO - add ability to also select MNPs
@@ -241,7 +258,6 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
             VariantContext sub = subsetRecord(vc, samples);
             if ( (sub.isPolymorphic() || !EXCLUDE_NON_VARIANTS) && (!sub.isFiltered() || !EXCLUDE_FILTERED) ) {
-                    //System.out.printf("%s%n",sub.toString());
                 for ( VariantContextUtils.JexlVCMatchExp jexl : jexls ) {
                     if ( !VariantContextUtils.match(sub, jexl) ) {
                         return 0;
@@ -260,7 +276,88 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         return 1;
     }
 
+    /**
+     * Checks if vc has a variant call for (at least one of) the samples.
+     * @param vc the variant rod VariantContext. Here, the variant is the dataset you're looking for discordances to (e.g. HapMap)
+     * @param compVCs the comparison VariantContext (discordance
+     * @return
+     */
+    private boolean isDiscordant (VariantContext vc, Collection<VariantContext> compVCs) {
+        if (vc == null)
+            return false;
 
+        // if we're not looking at specific samples then the absense of a compVC means discordance
+        if (NO_SAMPLES_SPECIFIED && (compVCs == null || compVCs.isEmpty()))
+            return true;
+
+        // check if we find it in the variant rod
+        Map<String, Genotype> genotypes = vc.getGenotypes(samples);
+        for (Genotype g : genotypes.values()) {
+            if (sampleHasVariant(g)) {
+                // There is a variant called (or filtered with not exclude filtered option set) that is not HomRef for at least one of the samples.
+                if (compVCs == null)
+                    return true;
+                // Look for this sample in the all vcs of the comp ROD track.
+                boolean foundVariant = false;
+                for (VariantContext compVC : compVCs) {
+                    if (sampleHasVariant(compVC.getGenotype(g.getSampleName()))) {
+                        foundVariant = true;
+                        break;
+                    }
+                }
+                // if (at least one sample) was not found in all VCs of the comp ROD, we have discordance
+                if (!foundVariant)
+                    return true;
+            }
+        }
+        return false; // we only get here if all samples have a variant in the comp rod.
+    }
+
+    private boolean isConcordant (VariantContext vc, Collection<VariantContext> compVCs) {
+        if (vc == null || compVCs == null || compVCs.isEmpty())
+            return false;
+
+        // if we're not looking for specific samples then the fact that we have both VCs is enough to call it concordant.
+        if (NO_SAMPLES_SPECIFIED)
+            return true;
+
+        // make a list of all samples contained in this variant VC that are being tracked by the user command line arguments.
+        Set<String> variantSamples = vc.getSampleNames();
+        variantSamples.retainAll(samples);
+
+        // check if we can find all samples from the variant rod in the comp rod.
+        for (String sample : variantSamples) {
+            boolean foundSample = false;
+            for (VariantContext compVC : compVCs) {
+                Genotype varG = vc.getGenotype(sample);
+                Genotype compG = compVC.getGenotype(sample);
+                if (haveSameGenotypes(varG, compG)) {
+                    foundSample = true;
+                    break;
+                }
+            }
+            // if at least one sample doesn't have the same genotype, we don't have concordance
+            if (!foundSample) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean sampleHasVariant(Genotype g) {
+        return (g !=null && !g.isHomRef() && (g.isCalled() || (g.isFiltered() && !EXCLUDE_FILTERED)));
+    }
+
+    private boolean haveSameGenotypes(Genotype g1, Genotype g2) {
+        if ((g1.isCalled() && g2.isFiltered()) ||
+            (g2.isCalled() && g1.isFiltered()) ||
+            (g1.isFiltered() && g2.isFiltered() && EXCLUDE_FILTERED))
+            return false;
+
+        List<Allele> a1s = g1.getAlleles();
+        List<Allele> a2s = g2.getAlleles();
+        return (a1s.containsAll(a2s) && a2s.containsAll(a1s));
+    }
     @Override
     public Integer reduceInit() { return 0; }
 
