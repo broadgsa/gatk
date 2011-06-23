@@ -29,22 +29,6 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=true)
   var reference: File = _
 
-//  @Input(doc="path to GenomeAnalysisTK.jar", fullName="path_to_gatk_jar", shortName="gatk", required=false)
-//  var GATKjar: File = _
-//
-//  @Input(doc="path to AnalyzeCovariates.jar", fullName="path_to_ac_jar", shortName="ac", required=false)
-//  var ACJar: File = _
-//
-//  @Input(doc="path to Picard's MarkDuplicates.jar", fullName="path_to_dedup_jar", shortName="dedup", required=false)
-//  var dedupJar: File = _
-//
-//  @Input(doc="path to Picard's MergeSamFiles.jar", fullName="path_to_merge_jar", shortName="merge", required=false)
-//  var mergeBamJar: File = _
-//
-//  @Input(doc="path to Picard's ValidateSamFile.jar", fullName="path_to_validate_jar", shortName="validate", required=false)
-//  var validateSamJar: File = _
-
-
 
 
   /****************************************************************************
@@ -395,6 +379,7 @@ class DataProcessingPipeline extends QScript {
   case class joinBams (inBams: List[File], outBam: File) extends MergeSamFiles {
     this.input = inBams
     this.output = outBam
+    this.memoryLimit = 4
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".joinBams"
     this.jobName = queueLogDir + outBam + ".joinBams"
@@ -403,6 +388,7 @@ class DataProcessingPipeline extends QScript {
   case class sortSam (inSam: File, outBam: File) extends SortSam {
     this.input = List(inSam)
     this.output = outBam
+    this.memoryLimit = 4
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".sortSam"
     this.jobName = queueLogDir + outBam + ".sortSam"
@@ -413,6 +399,7 @@ class DataProcessingPipeline extends QScript {
     this.output = outLog
     this.maxRecordsInRam = 100000
     this.REFERENCE_SEQUENCE = qscript.reference
+    this.memoryLimit = 4
     this.isIntermediate = false
     this.analysisName = queueLogDir + outLog + ".validate"
     this.jobName = queueLogDir + outLog + ".validate"
@@ -429,46 +416,48 @@ class DataProcessingPipeline extends QScript {
     this.RGPL = readGroup.pl
     this.RGPU = readGroup.pu
     this.RGSM = readGroup.sm
+    this.memoryLimit = 4
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".rg"
     this.jobName = queueLogDir + outBam + ".rg"
   }
 
-  case class bwa_aln_se (inBam: File, outSai: File) extends CommandLineFunction {
+  trait BWACommonArgs extends CommandLineFunction {
+    this.memoryLimit = 4
+    this.isIntermediate = true
+  }
+
+  case class bwa_aln_se (inBam: File, outSai: File) extends CommandLineFunction with BWACommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Output(doc="output sai file") var sai = outSai
     def commandLine = bwaPath + " aln -q 5 " + reference + " -b " + bam + " > " + sai
-    this.isIntermediate = true
     this.analysisName = queueLogDir + outSai + ".bwa_aln_se"
     this.jobName = queueLogDir + outSai + ".bwa_aln_se"
   }
 
-  case class bwa_aln_pe (inBam: File, outSai1: File, index: Int) extends CommandLineFunction {
+  case class bwa_aln_pe (inBam: File, outSai1: File, index: Int) extends CommandLineFunction with BWACommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Output(doc="output sai file for 1st mating pair") var sai = outSai1
     def commandLine = bwaPath + " aln -q 5 " + reference + " -b" + index + " " + bam + " > " + sai
-    this.isIntermediate = true
     this.analysisName = queueLogDir + outSai1 + ".bwa_aln_pe1"
     this.jobName = queueLogDir + outSai1 + ".bwa_aln_pe1"
   }
 
-  case class bwa_sam_se (inBam: File, inSai: File, outBam: File) extends CommandLineFunction {
+  case class bwa_sam_se (inBam: File, inSai: File, outBam: File) extends CommandLineFunction with BWACommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Input(doc="bwa alignment index file") var sai = inSai
     @Output(doc="output aligned bam file") var alignedBam = outBam
     def commandLine = bwaPath + " samse " + reference + " " + sai + " " + bam + " > " + alignedBam
-    this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".bwa_sam_se"
     this.jobName = queueLogDir + outBam + ".bwa_sam_se"
   }
 
-  case class bwa_sam_pe (inBam: File, inSai1: File, inSai2:File, outBam: File) extends CommandLineFunction {
+  case class bwa_sam_pe (inBam: File, inSai1: File, inSai2:File, outBam: File) extends CommandLineFunction with BWACommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Input(doc="bwa alignment index file for 1st mating pair") var sai1 = inSai1
     @Input(doc="bwa alignment index file for 2nd mating pair") var sai2 = inSai2
     @Output(doc="output aligned bam file") var alignedBam = outBam
     def commandLine = bwaPath + " sampe " + reference + " " + sai1 + " " + sai2 + " " + bam + " " + bam + " > " + alignedBam
-    this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".bwa_sam_pe"
     this.jobName = queueLogDir + outBam + ".bwa_sam_pe"
   }
