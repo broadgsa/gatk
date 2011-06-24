@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broad.tribble.util.variantcontext.Allele;
-import org.broad.tribble.vcf.VCFHeaderLineType;
-import org.broad.tribble.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.walkers.genotyper.IndelGenotypeLikelihoodsCalculationModel;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;

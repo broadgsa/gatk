@@ -27,8 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.SAMRecord;
-import org.broad.tribble.util.variantcontext.Allele;
-import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.walkers.genotyper.ExactAFCalculationModel;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;

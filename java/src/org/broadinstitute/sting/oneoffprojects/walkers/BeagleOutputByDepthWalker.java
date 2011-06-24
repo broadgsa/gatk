@@ -25,11 +25,10 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers;
 
-import org.broad.tribble.util.variantcontext.Allele;
-import org.broad.tribble.util.variantcontext.Genotype;
-import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFConstants;
-import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;

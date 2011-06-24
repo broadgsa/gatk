@@ -21,11 +21,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.contexts.variantcontext;
+package org.broadinstitute.sting.utils.variantcontext;
 
 import net.sf.samtools.SAMFileHeader;
-import org.broad.tribble.util.variantcontext.Allele;
-import org.broad.tribble.util.variantcontext.VariantContext;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 import org.broadinstitute.sting.utils.GenomeLoc;

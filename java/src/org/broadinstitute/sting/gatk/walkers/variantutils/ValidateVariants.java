@@ -25,8 +25,8 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broad.tribble.dbsnp.DbSNPFeature;
 import org.broad.tribble.TribbleException;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;

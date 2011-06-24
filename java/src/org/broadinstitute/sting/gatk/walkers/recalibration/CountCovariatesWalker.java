@@ -27,9 +27,8 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broad.tribble.bed.BEDCodec;
 import org.broad.tribble.dbsnp.DbSNPCodec;
-import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCF3Codec;
-import org.broad.tribble.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.commandline.Gather;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;

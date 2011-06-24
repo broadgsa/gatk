@@ -21,7 +21,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.contexts.variantcontext;
+package org.broadinstitute.sting.utils.variantcontext;
 
 import java.io.Serializable;
 import java.util.*;
@@ -31,11 +31,10 @@ import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.util.StringUtil;
 import org.apache.commons.jexl2.*;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
-import org.broad.tribble.util.variantcontext.*;
-import org.broad.tribble.vcf.AbstractVCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.utils.*;
-import org.broad.tribble.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 

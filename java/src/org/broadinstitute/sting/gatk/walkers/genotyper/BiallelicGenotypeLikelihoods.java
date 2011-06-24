@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 public class BiallelicGenotypeLikelihoods {
 

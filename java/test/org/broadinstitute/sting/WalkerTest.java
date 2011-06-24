@@ -28,7 +28,7 @@ package org.broadinstitute.sting;
 import org.apache.commons.lang.StringUtils;
 import org.broad.tribble.Tribble;
 import org.broad.tribble.index.IndexFactory;
-import org.broad.tribble.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.CommandLineGATK;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;

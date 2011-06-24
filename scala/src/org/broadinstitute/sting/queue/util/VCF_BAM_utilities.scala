@@ -5,7 +5,7 @@ import org.apache.commons.io.FilenameUtils
 import scala.io.Source._
 import net.sf.samtools.SAMFileReader
 import org.broad.tribble.source.BasicFeatureSource
-import org.broad.tribble.vcf.{VCFHeader, VCFCodec}
+import org.broadinstitute.sting.utils.codecs.vcf.{VCFHeader, VCFCodec}
 import scala.collection.JavaConversions._
 
 object VCF_BAM_utilities {

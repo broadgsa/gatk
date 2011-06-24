@@ -1,18 +1,17 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broad.tribble.readers.AsciiLineReader;
-import org.broad.tribble.vcf.VCFCodec;
-import org.broad.tribble.vcf.VCFHeader;
-import org.broad.tribble.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
 import org.testng.Assert;
 import org.broadinstitute.sting.utils.genotype.vcf.VCFHeaderUnitTest;
-import org.broadinstitute.sting.utils.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 
 import org.testng.annotations.Test;
 
 import java.io.StringBufferInputStream;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 /**

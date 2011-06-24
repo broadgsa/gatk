@@ -30,7 +30,7 @@ import net.sf.samtools.*;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.ArgumentException;
 import org.broadinstitute.sting.commandline.ArgumentSource;
-import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
 import org.broadinstitute.sting.commandline.ParsingEngine;
 import org.broadinstitute.sting.commandline.Tags;

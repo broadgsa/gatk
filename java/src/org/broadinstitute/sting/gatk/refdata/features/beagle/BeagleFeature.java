@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import net.sf.samtools.util.StringUtil;
-import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 
 public class BeagleFeature implements Feature {
 

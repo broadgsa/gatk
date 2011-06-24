@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.readers.AsciiLineReader;
-import org.broad.tribble.vcf.*;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 
@@ -11,8 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringBufferInputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.

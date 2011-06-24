@@ -24,7 +24,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.phasing;
 
-import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 

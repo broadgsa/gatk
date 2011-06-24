@@ -25,7 +25,7 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
-import org.broad.tribble.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;

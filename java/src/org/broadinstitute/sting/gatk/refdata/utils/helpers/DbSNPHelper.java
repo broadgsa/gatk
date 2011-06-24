@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.refdata.utils.helpers;
 import net.sf.samtools.util.SequenceUtil;
 import org.broad.tribble.annotation.Strand;
 import org.broad.tribble.dbsnp.DbSNPFeature;
-import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.util.ArrayList;

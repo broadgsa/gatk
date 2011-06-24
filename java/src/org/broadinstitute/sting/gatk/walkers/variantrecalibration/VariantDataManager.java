@@ -2,7 +2,7 @@ package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import cern.jet.random.Normal;
 import org.apache.log4j.Logger;
-import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;

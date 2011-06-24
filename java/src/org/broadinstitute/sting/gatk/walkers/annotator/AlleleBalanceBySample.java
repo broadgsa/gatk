@@ -1,12 +1,11 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
-import org.broad.tribble.vcf.VCFFormatHeaderLine;
-import org.broad.tribble.vcf.VCFHeaderLineType;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.gatk.contexts.*;
-import org.broad.tribble.util.variantcontext.*;
+import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
-import org.broadinstitute.sting.utils.pileup.*;
 import org.broadinstitute.sting.utils.*;
 
 import java.util.*;

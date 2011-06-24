@@ -29,7 +29,7 @@ import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
-import org.broad.tribble.util.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 /*import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Covariate;
 import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDataManager;

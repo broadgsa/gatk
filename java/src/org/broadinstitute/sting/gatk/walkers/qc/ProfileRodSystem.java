@@ -24,10 +24,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.qc;
 
-import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broad.tribble.util.ParsingUtils;
-import org.broad.tribble.vcf.VCFConstants;
-import org.broad.tribble.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;

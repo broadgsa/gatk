@@ -2,8 +2,8 @@ package org.broadinstitute.sting.gatk.io.storage;
 
 import org.apache.log4j.Logger;
 import org.broad.tribble.source.BasicFeatureSource;
-import org.broad.tribble.vcf.*;
-import org.broad.tribble.util.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 

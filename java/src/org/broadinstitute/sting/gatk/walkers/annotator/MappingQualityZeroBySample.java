@@ -31,11 +31,11 @@ import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.util.variantcontext.Genotype;
-import org.broad.tribble.vcf.VCFConstants;
-import org.broad.tribble.vcf.VCFHeaderLineType;
-import org.broad.tribble.vcf.VCFFormatHeaderLine;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
 
 import java.util.Map;
 import java.util.HashMap;

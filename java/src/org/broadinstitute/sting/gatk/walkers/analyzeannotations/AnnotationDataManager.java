@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.gatk.walkers.analyzeannotations;
 
-import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 

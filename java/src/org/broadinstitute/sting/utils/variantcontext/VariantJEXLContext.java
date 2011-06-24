@@ -21,14 +21,12 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.contexts.variantcontext;
+package org.broadinstitute.sting.utils.variantcontext;
 
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
-import org.broad.tribble.util.variantcontext.Genotype;
-import org.broad.tribble.util.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.Utils;
-import org.broad.tribble.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.util.*;

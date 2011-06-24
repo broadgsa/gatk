@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
-import org.broad.tribble.util.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.HashMap;

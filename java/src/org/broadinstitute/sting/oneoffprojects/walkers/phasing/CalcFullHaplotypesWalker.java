@@ -24,9 +24,9 @@
 
 package org.broadinstitute.sting.oneoffprojects.walkers.phasing;
 
-import org.broad.tribble.util.variantcontext.Genotype;
-import org.broad.tribble.util.variantcontext.VariantContext;
-import org.broad.tribble.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -40,7 +40,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import java.io.PrintStream;
 import java.util.*;
 
-import static org.broadinstitute.sting.utils.vcf.VCFUtils.getVCFHeadersFromRods;
+import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFromRods;
 
 /**
  * Walks along all variant ROD loci and verifies the phasing from the reads for user-defined pairs of sites.

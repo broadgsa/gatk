@@ -403,7 +403,11 @@
 
     <target name="sting-utils.jar" depends="gatk.compile, init.jar">
         <jar jarfile="${dist.dir}/StingUtils.jar">
-            <fileset dir="${java.classes}" includes="**/utils/**/*.class"/>
+            <fileset dir="${java.classes}">
+              <include name="**/utils/**/*.class"/>
+              <exclude name="**/utils/codecs/**/*.class"/>
+              <exclude name="**/utils/variantcontext/**/*.class"/>
+            </fileset>
             <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/datasources/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/jna/**/*.class"/>
@@ -412,6 +416,15 @@
             <manifest>
                 <attribute name="Premain-Class" value="org.broadinstitute.sting.utils.instrumentation.Sizeof" />
             </manifest>
+        </jar>
+    </target>
+
+    <target name="vcf.jar" depends="gatk.compile,init.jar">
+        <jar jarfile="${dist.dir}/vcf.jar">
+            <fileset dir="${java.classes}">
+              <include name="**/utils/codecs/**/*.class"/>
+              <include name="**/utils/variantcontext/**/*.class"/>
+            </fileset>
         </jar>
     </target>
 
@@ -497,7 +510,7 @@
         </jar>
     </target>
 
-    <target name="sting.jar" depends="sting-utils.jar, gatk.jar, gatk.oneoffs.jar, queue.jar" />
+    <target name="sting.jar" depends="sting-utils.jar, vcf.jar, gatk.jar, gatk.oneoffs.jar, queue.jar" />
 
     <target name="init.manifests" depends="sting.jar">
         <pathconvert property="jar.classpath" pathsep=" ">
