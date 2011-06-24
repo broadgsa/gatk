@@ -137,7 +137,7 @@ class HybridSelectionPipeline extends QScript {
     combineSNPsIndels.rodBind :+= RodBind("indels", "VCF", filterIndels.out)
     combineSNPsIndels.rodBind :+= RodBind("snps", "VCF", filterSNPs.out)
     combineSNPsIndels.rod_priority_list = "indels,snps"
-    combineSNPsIndels.filteredrecordsmergetype = org.broadinstitute.sting.gatk.contexts.variantcontext.VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED
+    combineSNPsIndels.filteredrecordsmergetype = org.broadinstitute.sting.utils.variantcontext.VariantContextUtils.FilteredRecordMergeType.KEEP_IF_ANY_UNFILTERED
     combineSNPsIndels.assumeIdenticalSamples = true
     combineSNPsIndels.out = projectBase + ".unannotated.vcf"
     combineSNPsIndels.jobOutputFile = combineSNPsIndels.out + ".out"
