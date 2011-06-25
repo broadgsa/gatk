@@ -1,5 +1,7 @@
 package org.broadinstitute.sting.playground.gatk.walkers.replication_validation;
 
+import org.broadinstitute.sting.gatk.walkers.RMD;
+import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -28,6 +30,7 @@ import java.util.*;
  *
  * A reference sample name must be provided and it must be barcoded uniquely.
  */
+@Requires(value={},referenceMetaData={@RMD(name="reference", type=VariantContext.class)})
 public class ReplicationValidationWalker extends LocusWalker<Integer, Long> implements TreeReducible<Long> {
 
 
@@ -57,10 +60,8 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
     PrintStream out;
 
     int maxAlleleCount;
-    boolean USE_TRUTH_ROD;
 
     final String REFERENCE_ROD_NAME = "reference";
-    final String TRUTH_ROD_NAME = "truth";
 
 
     /**
@@ -164,29 +165,6 @@ public class ReplicationValidationWalker extends LocusWalker<Integer, Long> impl
 
         // Set the max allele count (defines the size of the error model array)
         maxAlleleCount = (overrideMaxAlleleCount > 0) ? overrideMaxAlleleCount : nSamples*nChromosomes;
-
-        // Look for the reference ROD and the optional truth ROD. If truth is provided, set the truth "test" mode ON.
-        List<ReferenceOrderedDataSource> rods = getToolkit().getRodDataSources();
-        if (rods.size() < 1) {
-            throw new IllegalArgumentException("You must provide a reference ROD.");
-        }
-        boolean foundReferenceROD = false;
-        boolean foundTruthROD = false;
-        for (ReferenceOrderedDataSource rod : rods) {
-            if (rod.getName().equals(REFERENCE_ROD_NAME)) {
-                foundReferenceROD = true;
-            }
-            if (rod.getName().equals(TRUTH_ROD_NAME)) {
-                foundReferenceROD = true;
-            }
-        }
-        if (!foundReferenceROD) {
-            throw new IllegalArgumentException("You haven't provided a reference ROD. Note that the reference ROD must be labeled " + REFERENCE_ROD_NAME + ".");
-        }
-        if (rods.size() > 1 && !foundTruthROD) {
-            throw new IllegalArgumentException("You haven't provided a truth ROD. Note that the reference ROD must be labeled " + TRUTH_ROD_NAME + ".");
-        }
-        USE_TRUTH_ROD = foundTruthROD;
     }
 
     public Integer map(RefMetaDataTracker tracker, ReferenceContext ref, AlignmentContext context) {
