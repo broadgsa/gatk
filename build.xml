@@ -91,11 +91,9 @@
     <!-- the path for resources that need to go into the GATK jar;
          any additional resources should go into this set. -->
     <path id="gatk.resources">
-        <fileset dir="${java.public.source.dir}">
-            <include name="**/**/templates/*" />
-        </fileset>
-        <fileset dir="${java.private.source.dir}">
-            <include name="**/**/templates/*" />
+        <fileset dir="${basedir}">
+            <include name="${java.public.source.dir}/**/templates/*" />
+            <include name="${java.private.source.dir}/**/templates/*" if="include.private" />
         </fileset>
     </path>
 
@@ -264,27 +262,32 @@
         </taskdef>
     </target>
 
-    <target name="gatk.compile.source" depends="tribble,init,resolve"
-            description="compile the source">
-        <!-- Compile the java code from ${src} into build -->
+    <target name="gatk.compile.public.source" depends="tribble,init,resolve">
         <javac fork="true" srcdir="${java.public.source.dir}" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
           <compilerarg value="-proc:none"/>
-        </javac>
+        </javac>    
+    </target>
 
+    <target name="gatk.compile.private.source" depends="gatk.compile.public.source" if="include.private">
         <javac fork="true" srcdir="${java.private.source.dir}" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
-          <exclude name="**" unless="include.private" />
           <compilerarg value="-proc:none"/>
-        </javac>
+        </javac>    
+    </target>
 
+    <target name="gatk.compile.external.source" depends="gatk.compile.public.source,gatk.compile.private.source">
         <subant target="compile" genericantfile="build.xml">
             <property name="build.dir" value="${external.build.dir}" />
             <property name="dist.dir" value="${external.dist.dir}" />
             <property name="gatk.classpath" value="${external.gatk.classpath}" />
             <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
-        </subant>
+        </subant>    
     </target>
 
-    <target name="gatk.contracts" depends="gatk.compile.source" description="create GATK contracts" if="use.contracts">
+    <target name="gatk.compile.source" 
+            depends="gatk.compile.public.source,gatk.compile.private.source,gatk.compile.external.source" 
+            description="compile the GATK source" />
+
+   <target name="gatk.contracts.public" depends="gatk.compile.source">
         <javac fork="true" memoryMaximumSize="512m" srcdir="${java.public.source.dir}" destdir="${java.contracts}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
             <classpath>
                 <path refid="external.dependencies" />
@@ -293,9 +296,11 @@
             <compilerarg value="-Acom.google.java.contract.debug"/>
             <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
             <compilerarg value="-proc:only"/>
-        </javac>
+        </javac>   
+   </target>
+
+   <target name="gatk.contracts.private" depends="gatk.compile.source" if="include.private">
         <javac fork="true" memoryMaximumSize="512m" srcdir="${java.private.source.dir}" destdir="${java.contracts}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
-            <exclude name="**" unless="include.private" />
             <classpath>
                 <path refid="external.dependencies" />
                 <pathelement path="${java.classes}" />
@@ -303,8 +308,11 @@
             <compilerarg value="-Acom.google.java.contract.debug"/>
             <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
             <compilerarg value="-proc:only"/>
-        </javac>
-    </target>
+        </javac>   
+   </target>
+
+    <target name="gatk.contracts" depends="gatk.contracts.public,gatk.contracts.private" 
+            description="create GATK contracts" if="use.contracts" />
     
     <target name="gatk.compile" depends="tribble,init,resolve,gatk.compile.source,gatk.contracts" />
 
@@ -342,17 +350,35 @@
     </target>
 
     <!-- Scala depends on the java compile -->
-    <target name="scala.compile" depends="init,resolve,gatk.compile,queue-extensions.generate,init.scala.compile" if="scala.include" description="compile Scala">
+    <target name="scala.compile.public" depends="init,resolve,gatk.compile,queue-extensions.generate,init.scala.compile" if="scala.include">
         <mkdir dir="${scala.classes}"/>
         <echo>Building Scala...</echo>
         <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
             <src path="${scala.public.source.dir}" />
-            <src path="${scala.private.source.dir}" />
             <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala"/>
             <exclude name="**/gridengine/**" unless="include.gridengine" />
-        </scalac>
+        </scalac>    
     </target>
+    
+    <target name="check.scala.private" depends="scala.compile.public">
+        <condition property="include.scala.private">
+          <and>
+            <isset property="include.private" />
+            <isset property="scala.include" />
+          </and>
+        </condition>
+    </target>
+    
+    <target name="scala.compile.private" depends="check.scala.private" if="include.scala.private">
+        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
+            <src path="${scala.private.source.dir}" />
+            <include name="**/*.scala"/>
+            <exclude name="**/gridengine/**" unless="include.gridengine" />
+        </scalac>       
+    </target>
+
+    <target name="scala.compile" depends="scala.compile.public,scala.compile.private" if="scala.include" description="compile Scala" />
 
     <target name="init.extracthelp" depends="gatk.compile">
         <loadfile property="properties.version" srcfile="${basedir}/${resource.path}" failonerror="false" quiet="true">
@@ -652,7 +678,7 @@
         <antcall target="resolve">
           <param name="ivy.conf" value="test"/>
         </antcall>          
-        <scalac fork="true" jvmargs="-Xmx512m" srcdir="${scala.test.sources}" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
+        <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
 	        <src path="${scala.public.test.sources}" />
 	        <src path="${scala.private.test.sources}" />
             <include name="**/*.scala"/>
