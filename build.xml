@@ -167,12 +167,29 @@
         <property name="scala.target" value="core"/>
     </target>
 
-    <!-- define some key locations that might change based on how the build is run -->
-    <target name="init">
-      <!-- define build version and timestamp -->
-      <exec executable="git" outputproperty="build.version" failonerror="true">
-        <arg line="rev-parse HEAD"/>
+    <target name="git.describe">
+      <exec executable="git" outputproperty="git.describe.output" resultproperty="git.describe.exit.value" failonerror="false">
+        <arg line="describe" />
       </exec>
+      <condition property="git.describe.succeeded">
+        <equals arg1="${git.describe.exit.value}" arg2="0" />
+      </condition>
+    </target>
+    
+    <target name="tagged.build.version" depends="git.describe" if="git.describe.succeeded">
+        <property name="build.version" value="${git.describe.output}" />
+    </target>
+    
+    <target name="untagged.build.version" depends="git.describe" unless="git.describe.succeeded">
+      <exec executable="git" outputproperty="build.version" failonerror="true">
+        <arg line="rev-parse HEAD" />
+      </exec>
+    </target>
+    
+    <target name="generate.build.version" depends="tagged.build.version, untagged.build.version" />
+
+    <!-- define some key locations that might change based on how the build is run -->
+    <target name="init" depends="generate.build.version">
       <tstamp>
         <format property="build.timestamp" pattern="yyyy/MM/dd HH:mm:ss"/>
       </tstamp>
@@ -394,7 +411,7 @@
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
-                 additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -version-suffix .${build.version} -out ${basedir}/${resource.path} -quiet">
+                 additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -out ${basedir}/${resource.path} -quiet">
             <sourcefiles>
                 <union>
                     <fileset refid="modified.source.files"/>

@@ -66,7 +66,7 @@ public class ResourceBundleExtractorDoclet {
      */
     public static boolean start(RootDoc rootDoc) throws IOException {
         PrintStream out = System.out;
-        String buildTimestamp = null, versionPrefix = null, versionSuffix = null;
+        String buildTimestamp = null, versionPrefix = null, versionSuffix = null, absoluteVersion = null;
 
         for(String[] options: rootDoc.options()) {
             if(options[0].equals("-out")) {
@@ -79,6 +79,8 @@ public class ResourceBundleExtractorDoclet {
                 versionPrefix = options[1];
             if(options[0].equals("-version-suffix"))
                 versionSuffix = options[1];
+            if (options[0].equals("-absolute-version"))
+                absoluteVersion = options[1];
         }
 
         resourceText.setProperty("build.timestamp",buildTimestamp);
@@ -93,11 +95,11 @@ public class ResourceBundleExtractorDoclet {
             if(isRequiredJavadocMissing(currentClass) && isWalker(currentClass))
                 undocumentedWalkers.add(currentClass.name());
 
-            renderHelpText(getClassName(currentClass),currentClass,versionPrefix,versionSuffix);
+            renderHelpText(getClassName(currentClass),currentClass,versionPrefix,versionSuffix,absoluteVersion);
         }
 
         for(PackageDoc currentPackage: packages)
-            renderHelpText(currentPackage.name(),currentPackage,versionPrefix,versionSuffix);
+            renderHelpText(currentPackage.name(),currentPackage,versionPrefix,versionSuffix,absoluteVersion);
 
         resourceText.store(out,"Strings displayed by the Sting help system");
 
@@ -117,7 +119,7 @@ public class ResourceBundleExtractorDoclet {
      * @return Number of potential parameters; 0 if not supported.
      */
     public static int optionLength(String option) {
-        if(option.equals("-build-timestamp") || option.equals("-version-prefix") || option.equals("-version-suffix") || option.equals("-out")) {
+        if(option.equals("-build-timestamp") || option.equals("-version-prefix") || option.equals("-version-suffix") || option.equals("-out") || option.equals("-absolute-version") ) {
             return 2;
         }
         return 0;
@@ -194,7 +196,7 @@ public class ResourceBundleExtractorDoclet {
      * @param versionPrefix Text to add to the start of the version string.
      * @param versionSuffix Text to add to the end of the version string.
      */
-    private static void renderHelpText(String elementName, Doc element, String versionPrefix, String versionSuffix) {
+    private static void renderHelpText(String elementName, Doc element, String versionPrefix, String versionSuffix, String absoluteVersion) {
         // Extract overrides from the doc tags.
         String name = null;
         String version = null;
@@ -210,10 +212,16 @@ public class ResourceBundleExtractorDoclet {
                     throw new ReviewedStingException("Only one display name tag can be used per package / walker.");
                 name = tag.text();
             }
-            else if(tag.name().equals("@"+VERSION_TAGLET_NAME))
-                version = String.format("%s%s%s", (versionPrefix != null) ? versionPrefix : "",
-                                                  tag.text(),
-                                                  (versionSuffix != null) ? versionSuffix : "");
+            else if(tag.name().equals("@"+VERSION_TAGLET_NAME)) {
+                if ( absoluteVersion != null ) {
+                    version = absoluteVersion;
+                }
+                else {
+                    version = String.format("%s%s%s", (versionPrefix != null) ? versionPrefix : "",
+                                                      tag.text(),
+                                                      (versionSuffix != null) ? versionSuffix : "");
+                }
+            }
             else if(tag.name().equals("@"+SummaryTaglet.NAME))
                 summary = tag.text();
             else if(tag.name().equals("@"+DescriptionTaglet.NAME))
