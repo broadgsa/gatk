@@ -1,9 +1,0 @@
-Before sync'ing 1000 Genomes, you need to be logged in as gsa-dev:
-% sudo -s -u gsa-dev
-[Note that this step needs to be done before subsequent steps for stability]
-
-To use Aspera, you'll need to ssh into one of the appropriate machines:
-% ssh vbigtube or mirror
-
-[The NCBI Aspera source is: anonftp@ftp-private.ncbi.nih.gov:/1000genomes/ftp/]
-

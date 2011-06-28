@@ -29,12 +29,16 @@
     <property name="build.dir" value="build" />
     <property name="dist.dir" value="dist" />
     <property name="external.dir" value="external" />
-    <property name="java.source.dir" value="java/src" />
+    <property name="public.dir" value="public" />
+    <property name="private.dir" value="private" />
+    <property name="java.public.source.dir" value="${public.dir}/java/src" />
+    <property name="java.private.source.dir" value="${private.dir}/java/src" />
     <property name="java.classes" value="${build.dir}/java/classes" />
     <property name="resource.file" value="StingText.properties" />
     <property name="resource.path" value="${java.classes}/StingText.properties" />
 
-    <property name="scala.source.dir" value="scala/src" />
+    <property name="scala.public.source.dir" value="${public.dir}/scala/src" />
+    <property name="scala.private.source.dir" value="${private.dir}/scala/src" />    
     <property name="scala.classes" value="${build.dir}/scala/classes" />
 
     <property name="queue-extensions.source.dir" value="${build.dir}/queue-extensions/src" />
@@ -68,17 +72,16 @@
     <property name="drmaa.jar" value="${env.SGE_ROOT}/lib/drmaa.jar" />
 
     <patternset id="java.source.pattern">
-        <include name="**/*.java"/>
-        <exclude name="**/playground/**" unless="include.playground" />
-        <exclude name="**/oneoffprojects/**" unless="include.oneoffs" />
+        <include name="${java.public.source.dir}/**/*.java" />
+        <include name="${java.private.source.dir}/**/*.java" if="include.private" />
     </patternset>
 
-    <fileset id="java.source.files" dir="${java.source.dir}">
+    <fileset id="java.source.files" dir="${basedir}">
         <patternset refid="java.source.pattern" />
     </fileset>
 
     <fileset id="external.source.files" dir="${external.dir}" erroronmissingdir="false">
-        <patternset refid="java.source.pattern" />
+        <include name="**/*.java" />
     </fileset>
 
     <fileset id="java.class.files" dir="${java.classes}" erroronmissingdir="false">
@@ -88,7 +91,10 @@
     <!-- the path for resources that need to go into the GATK jar;
          any additional resources should go into this set. -->
     <path id="gatk.resources">
-        <fileset dir="${java.source.dir}">
+        <fileset dir="${java.public.source.dir}">
+            <include name="**/**/templates/*" />
+        </fileset>
+        <fileset dir="${java.private.source.dir}">
             <include name="**/**/templates/*" />
         </fileset>
     </path>
@@ -157,15 +163,15 @@
 
     <target name="init.buildall">
         <!-- Set the properties needed to build everything -->
-        <property name="gatk.target" value="oneoffs"/>
+        <property name="gatk.target" value="private"/>
         <property name="scala.target" value="core"/>
     </target>
 
     <!-- define some key locations that might change based on how the build is run -->
     <target name="init">
       <!-- define build version and timestamp -->
-      <exec executable="svnversion" outputproperty="build.version" failonerror="true">
-        <arg value="--no-newline"/>
+      <exec executable="git" outputproperty="build.version" failonerror="true">
+        <arg line="rev-parse HEAD"/>
       </exec>
       <tstamp>
         <format property="build.timestamp" pattern="yyyy/MM/dd HH:mm:ss"/>
@@ -204,15 +210,8 @@
       <echo message="source revision : ${build.version}"/>
       <echo message="build time      : ${build.timestamp}" />
       
-      <condition property="include.oneoffs">
-        <equals arg1="${gatk.target}" arg2="oneoffs" casesensitive="false" />
-      </condition>
-      
-      <condition property="include.playground">
-        <or>
-          <equals arg1="${gatk.target}" arg2="playground" casesensitive="false"/>
-          <equals arg1="${gatk.target}" arg2="oneoffs" casesensitive="false" />
-        </or>
+      <condition property="include.private">
+        <equals arg1="${gatk.target}" arg2="private" casesensitive="false" />
       </condition>
 
       <!-- Create the build directory structure used by compile -->
@@ -251,10 +250,13 @@
     <target name="gatk.compile.source" depends="tribble,init,resolve"
             description="compile the source">
         <!-- Compile the java code from ${src} into build -->
-        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.source.dir}" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
-            <exclude name="**/playground/**" unless="include.playground"/>
-            <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
-            <compilerarg value="-proc:none"/>
+        <javac fork="true" srcdir="${java.public.source.dir}" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
+          <compilerarg value="-proc:none"/>
+        </javac>
+
+        <javac fork="true" srcdir="${java.private.source.dir}" memoryMaximumSize="512m" destdir="${java.classes}" debug="true" debuglevel="lines,vars,source" classpathref="external.dependencies" tempdir="${java.io.tmpdir}">
+          <exclude name="**" unless="include.private" />
+          <compilerarg value="-proc:none"/>
         </javac>
 
         <subant target="compile" genericantfile="build.xml">
@@ -266,9 +268,17 @@
     </target>
 
     <target name="gatk.contracts" depends="gatk.compile.source" description="create GATK contracts" if="use.contracts">
-        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.source.dir}" destdir="${java.contracts}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
-            <exclude name="**/playground/**" unless="include.playground"/>
-            <exclude name="**/oneoffprojects/**" unless="include.oneoffs"/>
+        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.public.source.dir}" destdir="${java.contracts}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
+            <classpath>
+                <path refid="external.dependencies" />
+                <pathelement path="${java.classes}" />
+            </classpath>
+            <compilerarg value="-Acom.google.java.contract.debug"/>
+            <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
+            <compilerarg value="-proc:only"/>
+        </javac>
+        <javac fork="true" memoryMaximumSize="512m" srcdir="${java.private.source.dir}" destdir="${java.contracts}" debug="true" debuglevel="lines,vars,source" tempdir="${java.io.tmpdir}" >
+            <exclude name="**" unless="include.private" />
             <classpath>
                 <path refid="external.dependencies" />
                 <pathelement path="${java.classes}" />
@@ -319,7 +329,8 @@
         <mkdir dir="${scala.classes}"/>
         <echo>Building Scala...</echo>
         <scalac fork="true" jvmargs="-Xmx512m" destdir="${scala.classes}" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
-            <src path="${scala.source.dir}" />
+            <src path="${scala.public.source.dir}" />
+            <src path="${scala.private.source.dir}" />
             <src path="${queue-extensions.source.dir}" />
             <include name="**/*.scala"/>
             <exclude name="**/gridengine/**" unless="include.gridengine" />
@@ -342,7 +353,7 @@
         <!-- This fileset will contain only source files modified since the resource file was last generated,
              or all source files if the resource file doesn't exist -->
         <fileset dir="${basedir}" id="modified.source.files">
-            <include name="${java.source.dir}/**/*.java"/>
+            <patternset refid="java.source.pattern" />
             <include name="${external.dir}/**/*.java"/>
             <depend targetdir="${basedir}">
                 <mapper type="merge" to="${resource.path}"/>
@@ -354,7 +365,8 @@
 
         <!-- Due to a limitation in the doclet API, we always need to pass package-info files to javadoc -->
         <fileset dir="${basedir}" id="package.info.files">
-            <include name="${java.source.dir}/**/package-info.java"/>
+            <include name="${java.public.source.dir}/**/package-info.java"/>
+            <include name="${java.private.source.dir}/**/package-info.java" if="include.private" />
             <include name="${external.dir}/**/package-info.java"/>
         </fileset>
 
@@ -437,8 +449,6 @@
 	          <include name="${resource.file}" />
               <include name="**/gatk/**/*.class" />
               <include name="**/alignment/**/*.class"/>
-              <include name="**/oneoffprojects/**/*.class" />
-              <include name="**/playground/**/*.class" />
             </fileset>
             <manifest>
                 <attribute name="Main-Class" value="org.broadinstitute.sting.gatk.CommandLineGATK" />
@@ -466,7 +476,7 @@
             <fileset dir="${external.dir}" includes="*/build.xml" erroronmissingdir="false" />
         </subant>
     </target>
-
+<!--
     <target name="gatk.oneoffs.jar" depends="gatk.compile, init.jar"
             description="generate the GATK oneoffs distribution" if="include.oneoffs">
         <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" whenmanifestonly="skip">
@@ -487,7 +497,7 @@
           </manifest>
         </jar>
     </target>
-
+-->
     <target name="scala.jar" depends="scala.compile, init.jar" if="scala.include">
         <jar jarfile="${dist.dir}/GATKScala.jar">
           <fileset dir="${scala.classes}">
@@ -510,7 +520,7 @@
         </jar>
     </target>
 
-    <target name="sting.jar" depends="sting-utils.jar, vcf.jar, gatk.jar, gatk.oneoffs.jar, queue.jar" />
+    <target name="sting.jar" depends="sting-utils.jar, vcf.jar, gatk.jar, queue.jar" />
 
     <target name="init.manifests" depends="sting.jar">
         <pathconvert property="jar.classpath" pathsep=" ">
@@ -543,7 +553,7 @@
         </jar>
 
     </target>
-
+<!--
     <target name="gatk.oneoffs.manifests" depends="gatk.oneoffs.jar, init.manifests" if="include.oneoffs">
         <jar jarfile="${dist.dir}/CompareBAMAlignments.jar" update="true" whenmanifestonly="skip">
             <manifest>
@@ -556,7 +566,7 @@
             </manifest>
         </jar>
     </target>
-
+-->
     <target name="queue.manifests" depends="queue.jar, init.manifests" if="scala.include">
         <jar jarfile="${dist.dir}/Queue.jar" update="true" >
             <manifest>
@@ -565,7 +575,7 @@
         </jar>
     </target>
 
-    <target name="sting.manifests" depends="sting-utils.manifests, gatk.manifests, gatk.oneoffs.manifests, queue.manifests" />
+    <target name="sting.manifests" depends="sting-utils.manifests, gatk.manifests, queue.manifests" />
 
     <target name="dist" depends="sting.manifests" />
 
@@ -575,16 +585,10 @@
         </antcall>
     </target>
 
-    <target name="playground" description="force a build of the Sting experimental code">
+    <target name="private" description="force a build of the Sting private code">
       <antcall target="dist" inheritAll="false">
-        <param name="sting.target" value="playground" />
-	 </antcall>
-    </target>
-
-    <target name="oneoffs" description="force a build of the Sting experimental code and one-offs">
-      <antcall target="dist" inheritAll="false">
-        <param name="sting.target" value="oneoffs" />
-      </antcall>
+        <param name="sting.target" value="private" />
+	  </antcall>
     </target>
 
     <target name="queue" description="force a build of Queue">
@@ -610,13 +614,15 @@
     <target name="test.java.compile" depends="init.buildall,dist,test.init.compile">
         <echo message="Sting: Compiling test cases!"/>
         <javac fork="true" memoryMaximumSize="512m" destdir="${java.test.classes}" debug="true" optimize="on" tempdir="${java.io.tmpdir}">
-            <src path="${java.test.sources}"/>
+            <src path="${java.public.test.sources}"/>
+            <src path="${java.private.test.sources}"/>
             <classpath>
                 <path refid="external.dependencies" />
                 <pathelement location="${java.classes}"/>
                 <pathelement location="${java.contracts}"/>
                 <pathelement location="lib/testng-5.14.1.jar"/>
             </classpath>
+            <compilerarg value="-proc:none"/>
 <!-- 
             <compilerarg value="-Acom.google.java.contract.debug"/>
             <compilerarg value="-Acom.google.java.contract.dump=dump/"/>
@@ -630,6 +636,8 @@
           <param name="ivy.conf" value="test"/>
         </antcall>          
         <scalac fork="true" jvmargs="-Xmx512m" srcdir="${scala.test.sources}" destdir="${scala.test.classes}" deprecation="yes" unchecked="yes">
+	        <src path="${scala.public.test.sources}" />
+	        <src path="${scala.private.test.sources}" />
             <include name="**/*.scala"/>
             <exclude name="**/gridengine/**" unless="include.gridengine" />
             <classpath>
@@ -659,9 +667,11 @@
     <property name="report" value="${build.dir}/report"/>
     <property name="java.test.classes" value="${build.dir}/java/testclasses"/>
     <property name="test.output" value="${dist.dir}/test"/>
-    <property name="java.test.sources" value="java/test"/>
+    <property name="java.public.test.sources" value="public/java/test"/>
+    <property name="java.private.test.sources" value="private/java/test"/>
     <property name="scala.test.classes" value="${build.dir}/scala/testclasses"/>
-    <property name="scala.test.sources" value="scala/test"/>
+    <property name="scala.public.test.sources" value="public/scala/test"/>
+    <property name="scala.private.test.sources" value="private/scala/test"/>
     <!-- provide a ceiling on the memory that unit/integration tests can consume. -->
     <property name="test.maxmemory" value="4g"/>
 
@@ -813,12 +823,18 @@
         <mkdir dir="javadoc"/>
         <javadoc destdir="javadoc"
                  classpathref="external.dependencies">
-            <sourcepath path="${java.source.dir}"/>
+            <sourcepath path="${java.public.source.dir}"/>
             <sourcepath path="${external.dir}"/>
         </javadoc>
+        <javadoc destdir="javadoc"
+                 classpathref="external.dependencies">
+            <sourcepath path="${java.private.source.dir}"/>
+            <exclude name="**" unless="include.private" />
+        </javadoc>        
         <mkdir dir="scaladoc"/>
         <scaladoc srcdir="" destdir="scaladoc" classpathref="scala.dependencies" deprecation="yes" unchecked="yes">
-            <src path="${scala.source.dir}"/>
+            <src path="${scala.public.source.dir}"/>
+            <src path="${scala.private.source.dir}"/>
             <src path="${queue-extensions.source.dir}"/>
             <include name="**/*.scala"/>
         </scaladoc>
