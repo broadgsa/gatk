@@ -39,7 +39,7 @@ import java.io.IOException;
  */
 public class HapMapUnitTest {
     // our sample hapmap file
-    private final static File hapMapFile = new File("testdata/genotypes_chr1_ASW_phase3.3_first500.hapmap");
+    private final static File hapMapFile = new File("public/testdata/genotypes_chr1_ASW_phase3.3_first500.hapmap");
     private final static String knownLine = "rs2185539 C/T chr1 556738 + ncbi_b36 bbs urn:lsid:bbs.hapmap.org:Protocol:Phase3.r3:1 urn:lsid:bbs.hapmap.org:Assay:Phase3.r3_r" +
             "s2185539:1 urn:lsid:dcc.hapmap.org:Panel:US_African-30-trios:4 QC+ CC TC TT CT CC CC CC CC CC CC CC CC CC";
     /**

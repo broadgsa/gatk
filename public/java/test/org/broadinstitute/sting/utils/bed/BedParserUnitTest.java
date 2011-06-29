@@ -21,7 +21,7 @@ public class BedParserUnitTest extends BaseTest {
 
     private static IndexedFastaSequenceFile seq;
     private GenomeLocParser genomeLocParser;
-    private File bedFile = new File("testdata/sampleBedFile.bed");
+    private File bedFile = new File("public/testdata/sampleBedFile.bed");
 
     @BeforeClass
     public void beforeTests() {
