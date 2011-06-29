@@ -29,7 +29,7 @@ public class GenomeLocProcessingTrackerUnitTest extends BaseTest {
     IndexedFastaSequenceFile fasta = null;
     GenomeLocParser genomeLocParser = null;
     String chr1 = null;
-    private final static String FILE_ROOT = "testdata/GLPTFile";
+    private final static String FILE_ROOT = "public/testdata/GLPTFile";
 
     @BeforeTest
     public void before() {

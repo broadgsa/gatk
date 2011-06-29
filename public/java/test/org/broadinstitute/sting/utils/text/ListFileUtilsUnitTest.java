@@ -49,12 +49,12 @@ public class ListFileUtilsUnitTest extends BaseTest {
     public void testIgnoreBlankLinesInBAMListFiles() throws Exception {
         File tempListFile = createTempListFile("testIgnoreBlankLines",
                                                "",
-                                               "testdata/exampleBAM.bam",
+                                               "public/testdata/exampleBAM.bam",
                                                "         "
                                               );
 
         List<SAMReaderID> expectedBAMFileListAfterUnpacking = new ArrayList<SAMReaderID>();
-        expectedBAMFileListAfterUnpacking.add(new SAMReaderID(new File("testdata/exampleBAM.bam"), new Tags()));
+        expectedBAMFileListAfterUnpacking.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"), new Tags()));
 
         performBAMListFileUnpackingTest(tempListFile, expectedBAMFileListAfterUnpacking);
     }
@@ -63,13 +63,13 @@ public class ListFileUtilsUnitTest extends BaseTest {
     public void testCommentSupportInBAMListFiles() throws Exception {
         File tempListFile = createTempListFile("testCommentSupport",
                                                "#",
-                                               "testdata/exampleBAM.bam",
-                                               "#testdata/foo.bam",
-                                               "      # testdata/bar.bam"
+                                               "public/testdata/exampleBAM.bam",
+                                               "#public/testdata/foo.bam",
+                                               "      # public/testdata/bar.bam"
                                               );
 
         List<SAMReaderID> expectedBAMFileListAfterUnpacking = new ArrayList<SAMReaderID>();
-        expectedBAMFileListAfterUnpacking.add(new SAMReaderID(new File("testdata/exampleBAM.bam"), new Tags()));
+        expectedBAMFileListAfterUnpacking.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"), new Tags()));
 
         performBAMListFileUnpackingTest(tempListFile, expectedBAMFileListAfterUnpacking);
     }
