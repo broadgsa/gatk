@@ -60,8 +60,8 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
-        samFiles.add(new SAMReaderID(new File("testdata/exampleBAM.bam"), new Tags()));
-        samFiles.add(new SAMReaderID(new File("testdata/exampleBAM.bam"), new Tags()));
+        samFiles.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"), new Tags()));
+        samFiles.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"), new Tags()));
 
         testEngine.setSAMFileIDs(samFiles);
         testEngine.checkForDuplicateSamFiles();
@@ -72,10 +72,10 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         GenomeAnalysisEngine testEngine = new GenomeAnalysisEngine();
 
         Collection<SAMReaderID> samFiles = new ArrayList<SAMReaderID>();
-        samFiles.add(new SAMReaderID(new File("testdata/exampleBAM.bam"),  new Tags()));
-        samFiles.add(new SAMReaderID(new File("testdata/exampleNORG.bam"), new Tags()));
-        samFiles.add(new SAMReaderID(new File("testdata/exampleBAM.bam"),  new Tags()));
-        samFiles.add(new SAMReaderID(new File("testdata/exampleNORG.bam"), new Tags()));
+        samFiles.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"),  new Tags()));
+        samFiles.add(new SAMReaderID(new File("public/testdata/exampleNORG.bam"), new Tags()));
+        samFiles.add(new SAMReaderID(new File("public/testdata/exampleBAM.bam"),  new Tags()));
+        samFiles.add(new SAMReaderID(new File("public/testdata/exampleNORG.bam"), new Tags()));
 
         testEngine.setSAMFileIDs(samFiles);
         testEngine.checkForDuplicateSamFiles();
@@ -97,7 +97,7 @@ public class GenomeAnalysisEngineUnitTest extends BaseTest {
         GATKArgumentCollection argCollection = new GATKArgumentCollection();
         testEngine.setArguments(argCollection);
 
-        File fastaFile = new File("testdata/exampleFASTA.fasta");
+        File fastaFile = new File("public/testdata/exampleFASTA.fasta");
         GenomeLocParser genomeLocParser = new GenomeLocParser(new IndexedFastaSequenceFile(fastaFile));
         testEngine.setGenomeLocParser(genomeLocParser);
 
