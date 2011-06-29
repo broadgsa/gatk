@@ -161,7 +161,7 @@ public class AnnotateMNPsWalker extends RodWalker<Integer, Integer> {
             boolean atStartOfVc = curLocus.getStart() == vcLoc.getStart();
             boolean atEndOfVc = curLocus.getStart() == vcLoc.getStop();
 
-            if (vc.getType() == VariantContext.Type.MNP) {
+            if (vc.isMNP()) {
                 logger.debug("Observed MNP at " + vcLoc);
 
                 if (isChrM(vc)) {

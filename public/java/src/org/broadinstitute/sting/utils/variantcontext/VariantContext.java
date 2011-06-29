@@ -566,8 +566,19 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return getType() == Type.INDEL && getAlternateAllele(0).isNull();
     }
 
+    /**
+     * @return true if the alleles indicate neither a simple deletion nor a simple insertion
+     */
+    public boolean isComplexIndel() {
+        return isIndel() && !isDeletion() && !isInsertion();
+    }
+
     public boolean isSymbolic() {
         return getType() == Type.SYMBOLIC;
+    }
+
+    public boolean isMNP() {
+        return getType() == Type.MNP;
     }
 
     /**
