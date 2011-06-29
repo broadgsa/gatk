@@ -25,6 +25,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -303,13 +304,20 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                                     String[] afs = afo.split(",");
                                     afs[0] = afs[0].substring(1,afs[0].length());
                                     afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
-                                    af = Double.valueOf(afs[0]);
+
+                                    double[] afd = new double[afs.length];
+
+                                    for (int k=0; k < afd.length; k++)
+                                        afd[k] = Double.valueOf(afs[k]);
+
+                                    af = MathUtils.arrayMax(afd);
+                                    //af = Double.valueOf(afs[0]);
 
                                 }
                                 else
                                     af = Double.valueOf(afo);
 
-                                System.out.format("%s .. %4.1f\n",afo.toString(), af);
+                                //System.out.format("%s .. %4.4f\n",afo.toString(), af);
                                 if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * af)
                                     vcfWriter.add(sub, ref.getBase());
                             }
