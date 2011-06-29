@@ -157,10 +157,10 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
                  GATKSAMRecord read = ReadUtils.hardClipAdaptorSequence(p.getRead());
                 if (read == null)
                     continue;     
-                if(ReadUtils.is454Read(read)) {
+         /*       if(ReadUtils.is454Read(read)) {
                     continue;
                 }
-
+            */
                 if (DEBUG && p.isIndel()) {
                     System.out.format("Read: %s, cigar: %s, aln start: %d, aln end: %d, p.len:%d, Type:%s, EventBases:%s\n",
                             read.getReadName(),read.getCigar().toString(),read.getAlignmentStart(),read.getAlignmentEnd(),
