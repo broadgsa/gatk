@@ -209,7 +209,7 @@ public class PickSequenomProbes extends RodWalker<String, String> {
             String assay_sequence;
             if ( vc.isSNP() )
                 assay_sequence = leading_bases + "[" + (char)ref.getBase() + "/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
-            else if ( vc.getType() == VariantContext.Type.MNP )
+            else if ( vc.isMNP() )
                 assay_sequence = leading_bases + "[" + new String(vc.getReference().getBases()) + "/" + new String(vc.getAlternateAllele(0).getBases())+"]"+trailing_bases.substring(vc.getReference().length()-1);
             else if ( vc.isInsertion() )
                 assay_sequence = leading_bases + (char)ref.getBase() + "[-/" + vc.getAlternateAllele(0).toString() + "]" + trailing_bases;
