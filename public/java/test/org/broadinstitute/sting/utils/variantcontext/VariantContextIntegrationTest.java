@@ -1,6 +1,6 @@
 
 
-package org.broadinstitute.sting.gatk.contexts.variantcontext;
+package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broadinstitute.sting.WalkerTest;
 import org.testng.annotations.Test;
