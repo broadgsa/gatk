@@ -24,14 +24,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -42,9 +40,10 @@ import org.broadinstitute.sting.gatk.walkers.RMD;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
 import org.broadinstitute.sting.utils.SampleUtils;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.lang.annotation.AnnotationFormatError;
 import java.util.*;
 
 /**
@@ -75,11 +74,23 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered loci in the analysis.", required=false)
     private boolean EXCLUDE_FILTERED = false;
 
+    @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC", doc="Don't include filtered loci.", required=false)
+    private boolean KEEP_ORIGINAL_CHR_COUNTS = false;
+
     @Argument(fullName="discordance", shortName =  "disc", doc="Output variants that were not called on a ROD comparison track. Use -disc ROD_NAME", required=false)
     private String discordanceRodName = "";
 
     @Argument(fullName="concordance", shortName =  "conc", doc="Output variants that were also called on a ROD comparison track. Use -conc ROD_NAME", required=false)
     private String concordanceRodName = "";
+
+    @Hidden
+    @Argument(fullName="inputAF", shortName =  "inputAF", doc="", required=false)
+    private String inputAFRodName = "";
+
+    @Hidden
+    @Argument(fullName="keepAFSpectrum", shortName="keepAF", doc="Don't include loci found to be non-variant after the subsetting procedure.", required=false)
+    private boolean KEEP_AF_SPECTRUM = false;
+
 
     @Argument(fullName="family_structure", shortName="family", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
     private String FAMILY_STRUCTURE = "";
@@ -178,6 +189,12 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         // Initialize VCF header
         Set<VCFHeaderLine> headerLines = VCFUtils.smartMergeHeaders(vcfRods.values(), logger);
         headerLines.add(new VCFHeaderLine("source", "SelectVariants"));
+
+        if (KEEP_ORIGINAL_CHR_COUNTS) {
+            headerLines.add(new VCFFormatHeaderLine("AC_Orig", 1, VCFHeaderLineType.Integer, "Original AC"));
+            headerLines.add(new VCFFormatHeaderLine("AF_Orig", 1, VCFHeaderLineType.Float, "Original AF"));
+            headerLines.add(new VCFFormatHeaderLine("AN_Orig", 1, VCFHeaderLineType.Integer, "Original AN"));
+        }
         vcfWriter.writeHeader(new VCFHeader(headerLines, samples));
 
         for (int i = 0; i < SELECT_EXPRESSIONS.size(); i++) {
@@ -268,6 +285,38 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 }
                 else if (!SELECT_RANDOM_FRACTION || GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom) {
                     vcfWriter.add(sub, ref.getBase());
+                }
+                else {
+                    if (SELECT_RANDOM_FRACTION && KEEP_AF_SPECTRUM ) {
+                        Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, inputAFRodName, null, context.getLocation(), true, false);
+                        if (compVCs.isEmpty())
+                            return 0;
+
+                        // ok we have a comp VC and we need to match the AF spectrum of inputAFRodName.
+                        // We then pick a variant with probablity AF*desiredFraction
+                        for (VariantContext compVC : compVCs) {
+                            if ( compVC.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
+                                String afo = compVC.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY);
+
+                                double af;
+                                if (afo.contains(",")) {
+                                    String[] afs = afo.split(",");
+                                    afs[0] = afs[0].substring(1,afs[0].length());
+                                    afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
+                                    af = Double.valueOf(afs[0]);
+
+                                }
+                                else
+                                    af = Double.valueOf(afo);
+
+                                System.out.format("%s .. %4.1f\n",afo.toString(), af);
+                                if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * af)
+                                    vcfWriter.add(sub, ref.getBase());
+                            }
+                            break; // do only one vc
+                        }
+
+                    }
                 }
             }
 
@@ -412,6 +461,16 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             }
         }
 
+
+        if (KEEP_ORIGINAL_CHR_COUNTS) {
+            if ( attributes.containsKey(VCFConstants.ALLELE_COUNT_KEY) )
+                attributes.put("AC_Orig",attributes.get(VCFConstants.ALLELE_COUNT_KEY));
+            if ( attributes.containsKey(VCFConstants.ALLELE_FREQUENCY_KEY) )
+                attributes.put("AF_Orig",attributes.get(VCFConstants.ALLELE_FREQUENCY_KEY));
+            if ( attributes.containsKey(VCFConstants.ALLELE_NUMBER_KEY) )
+                attributes.put("AN_Orig",attributes.get(VCFConstants.ALLELE_NUMBER_KEY));
+
+        }
 
         VariantContextUtils.calculateChromosomeCounts(sub,attributes,false);
         attributes.put("DP", depth);
