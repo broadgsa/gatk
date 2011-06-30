@@ -99,7 +99,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     protected SAMFileWriter writerToUse = null;
 
     @Argument(fullName = "consensusDeterminationModel", shortName = "model", doc = "How should we determine the possible alternate consenses? -- in the order of least permissive to most permissive there is KNOWNS_ONLY (use only indels from known indels provided in RODs), USE_READS (additionally use indels already present in the original alignments of the reads), and USE_SW (additionally use 'Smith-Waterman' to generate alternate consenses).  The default is USE_READS", required = false)
-    public ConsensusDeterminationModel consensusModel = ConsensusDeterminationModel.USE_READS;
+    public ConsensusDeterminationModel consensusModel = ConsensusDeterminationModel.USE_SW;
 
 
     // ADVANCED OPTIONS FOLLOW
@@ -167,7 +167,8 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     @Argument(fullName="realignReadsWithBadMates", doc="This argument is no longer used.", required=false)
     protected boolean DEPRECATED_REALIGN_MATES = false;
 
-    @Deprecated
+    //@Deprecated
+    @Hidden
     @Argument(fullName="useOnlyKnownIndels", shortName="knownsOnly", doc="This argument is no longer used. See --consensusDeterminationModel instead.", required=false)
     protected boolean DEPRECATED_KNOWNS_ONLY = false;
 
@@ -260,6 +261,9 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     public void initialize() {
+
+        if ( DEPRECATED_KNOWNS_ONLY )
+            consensusModel = ConsensusDeterminationModel.KNOWNS_ONLY;
 
         if ( N_WAY_OUT == null && writer == null ) {
             throw new UserException.CommandLineException("Either -o or -nWayOut must be specified");
