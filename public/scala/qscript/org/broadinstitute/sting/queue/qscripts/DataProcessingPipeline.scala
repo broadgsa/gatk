@@ -4,12 +4,12 @@ import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 
-import net.sf.samtools.{SAMFileReader,SAMReadGroupRecord}
-
 import scala.io.Source._
 import collection.JavaConversions._
 import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
 import org.broadinstitute.sting.queue.extensions.picard._
+import net.sf.samtools.{SAMFileReader, SAMReadGroupRecord}
+import net.sf.samtools.SAMFileHeader.SortOrder
 
 
 class DataProcessingPipeline extends QScript {
@@ -180,6 +180,7 @@ class DataProcessingPipeline extends QScript {
     var realignedBams: List[File] = List()
     var index = 1
     for (bam <- bams) {
+      val readSortedBam = swapExt(bam, ".bam", "." + index + ".sorted.bam" )
       val saiFile1 = swapExt(bam, ".bam", "." + index + ".1.sai")
       val saiFile2 = swapExt(bam, ".bam", "." + index + ".2.sai")
       val realignedSamFile = swapExt(bam, ".bam", "." + index + ".realigned.sam")
@@ -190,11 +191,12 @@ class DataProcessingPipeline extends QScript {
             bwa_sam_se(bam, saiFile1, realignedSamFile))
       }
       else {
-        add(bwa_aln_pe(bam, saiFile1, 1),
-            bwa_aln_pe(bam, saiFile2, 2),
-            bwa_sam_pe(bam, saiFile1, saiFile2, realignedSamFile))
+        add(sortSam(bam, readSortedBam, SortOrder.queryname),
+            bwa_aln_pe(readSortedBam, saiFile1, 1),
+            bwa_aln_pe(readSortedBam, saiFile2, 2),
+            bwa_sam_pe(readSortedBam, saiFile1, saiFile2, realignedSamFile))
       }
-      add(sortSam(realignedSamFile, realignedBamFile))
+      add(sortSam(realignedSamFile, realignedBamFile, SortOrder.coordinate))
       addReadGroups(realignedBamFile, rgRealignedBamFile, new SAMFileReader(bam))
       realignedBams :+= rgRealignedBamFile
       index = index + 1
@@ -385,9 +387,10 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".joinBams"
   }
 
-  case class sortSam (inSam: File, outBam: File) extends SortSam {
+  case class sortSam (inSam: File, outBam: File, sortOrderP: SortOrder) extends SortSam {
     this.input = List(inSam)
     this.output = outBam
+    this.sortOrder = sortOrderP
     this.memoryLimit = 4
     this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".sortSam"
