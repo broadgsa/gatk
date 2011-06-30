@@ -60,7 +60,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
                     " --NO_HEADER" +
                     " -o %s",
             1,
-            Arrays.asList("995c07ccd593fe1c35d0d28155112a55")
+            Arrays.asList("debbbf3e661b6857cc8d99ff7635bb1d")
         );
 
         executeTest("testSimpleVCFStreaming", spec);
@@ -98,7 +98,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
             " -EV CompOverlap -noEV -noST" +
             " -o %s",
             1,
-            Arrays.asList("f60729c900bc8368717653b3fad80d1e")
+            Arrays.asList("f60729c900bc8368717653b3fad80d1e")           //"f60729c900bc8368717653b3fad80d1e"
         );
         executeTest("testVCFStreamingChain", selectTestSpec);
 
