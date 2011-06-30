@@ -69,6 +69,8 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="Decompose input BAM file and fully realign it using BWA and assume Pair Ended reads", fullName="use_bwa_pair_ended", shortName="bwape", required=false)
   var useBWApe: Boolean = false
 
+  @Input(doc="Number of threads BWA should use", fullName="bwa_threads", shortName="bt", required=false)
+  var bwaThreads: Int = 1
 
 
   /****************************************************************************
@@ -433,7 +435,7 @@ class DataProcessingPipeline extends QScript {
   case class bwa_aln_se (inBam: File, outSai: File) extends CommandLineFunction with BWACommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Output(doc="output sai file") var sai = outSai
-    def commandLine = bwaPath + " aln -q 5 " + reference + " -b " + bam + " > " + sai
+    def commandLine = bwaPath + " aln -t " + bwaThreads + " -q 5 " + reference + " -b " + bam + " > " + sai
     this.analysisName = queueLogDir + outSai + ".bwa_aln_se"
     this.jobName = queueLogDir + outSai + ".bwa_aln_se"
   }
@@ -441,7 +443,7 @@ class DataProcessingPipeline extends QScript {
   case class bwa_aln_pe (inBam: File, outSai1: File, index: Int) extends CommandLineFunction with BWACommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Output(doc="output sai file for 1st mating pair") var sai = outSai1
-    def commandLine = bwaPath + " aln -q 5 " + reference + " -b" + index + " " + bam + " > " + sai
+    def commandLine = bwaPath + " aln -t " + bwaThreads + " -q 5 " + reference + " -b" + index + " " + bam + " > " + sai
     this.analysisName = queueLogDir + outSai1 + ".bwa_aln_pe1"
     this.jobName = queueLogDir + outSai1 + ".bwa_aln_pe1"
   }
