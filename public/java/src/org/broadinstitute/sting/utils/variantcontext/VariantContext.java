@@ -414,7 +414,7 @@ public class VariantContext implements Feature { // to enable tribble intergrati
      * @return vc subcontext
      */
     public VariantContext subContextFromGenotypes(Collection<Genotype> genotypes, Set<Allele> alleles) {
-        return new VariantContext(getSource(), contig, start, stop, alleles, genotypes, getNegLog10PError(), getFilters(), getAttributes());
+        return new VariantContext(getSource(), contig, start, stop, alleles, genotypes, getNegLog10PError(), filtersWereApplied() ? getFilters() : null, getAttributes());
     }
 
 
@@ -566,8 +566,19 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return getType() == Type.INDEL && getAlternateAllele(0).isNull();
     }
 
+    /**
+     * @return true if the alleles indicate neither a simple deletion nor a simple insertion
+     */
+    public boolean isComplexIndel() {
+        return isIndel() && !isDeletion() && !isInsertion();
+    }
+
     public boolean isSymbolic() {
         return getType() == Type.SYMBOLIC;
+    }
+
+    public boolean isMNP() {
+        return getType() == Type.MNP;
     }
 
     /**

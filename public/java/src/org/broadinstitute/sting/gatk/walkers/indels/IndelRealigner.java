@@ -798,11 +798,11 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
 
     private void generateAlternateConsensesFromKnownIndels(final Set<Consensus> altConsensesToPopulate, final int leftmostIndex, final byte[] reference) {
         for ( VariantContext knownIndel : knownIndelsToTry ) {
-            if ( knownIndel == null || !knownIndel.isIndel() )
+            if ( knownIndel == null || !knownIndel.isIndel() || knownIndel.isComplexIndel() )
                 continue;
             byte[] indelStr = knownIndel.isInsertion() ? knownIndel.getAlternateAllele(0).getBases() : Utils.dupBytes((byte)'-', knownIndel.getReference().length());
             int start = knownIndel.getStart() - leftmostIndex + 1;
-            Consensus c = createAlternateConsensus(start, reference, indelStr, knownIndel.isDeletion());
+            Consensus c = createAlternateConsensus(start, reference, indelStr, knownIndel);
             if ( c != null )
                 altConsensesToPopulate.add(c);
         }
@@ -988,7 +988,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
     }
 
     // create a Consensus from just the indel string that falls on the reference
-    private Consensus createAlternateConsensus(final int indexOnRef, final byte[] reference, final byte[] indelStr, final boolean isDeletion) {
+    private Consensus createAlternateConsensus(final int indexOnRef, final byte[] reference, final byte[] indelStr, final VariantContext indel) {
         if ( indexOnRef < 0 || indexOnRef >= reference.length )
             return null;
 
@@ -1002,14 +1002,16 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
         if ( indexOnRef > 0 )
             cigar.add(new CigarElement(indexOnRef, CigarOperator.M));
 
-        if ( isDeletion ) {
+        if ( indel.isDeletion() ) {
             refIdx += indelStr.length;
             cigar.add(new CigarElement(indelStr.length, CigarOperator.D));
         }
-        else {
+        else if ( indel.isInsertion() ) {
             for ( byte b : indelStr )
                 sb.append((char)b);
             cigar.add(new CigarElement(indelStr.length, CigarOperator.I));
+        } else {
+            throw new IllegalStateException("Creating an alternate consensus from a complex indel is not allows");
         }
 
         if ( reference.length - refIdx > 0 )

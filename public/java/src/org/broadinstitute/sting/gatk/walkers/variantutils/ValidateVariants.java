@@ -113,7 +113,7 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
             observedRefAllele = Allele.create(Allele.NULL_ALLELE_STRING);
         }
         // deletions
-        else if ( vc.isDeletion() || vc.isMixed() || vc.getType() == VariantContext.Type.MNP ) {
+        else if ( vc.isDeletion() || vc.isMixed() || vc.isMNP() ) {
             // we can't validate arbitrarily long deletions
             if ( reportedRefAllele.length() > 100 ) {
                 logger.info(String.format("Reference allele is too long (%d) at position %s:%d; skipping that record.", reportedRefAllele.length(), vc.getChr(), vc.getStart()));
@@ -123,7 +123,7 @@ public class ValidateVariants extends RodWalker<Integer, Integer> {
             // deletions are associated with the (position of) the last (preceding) non-deleted base;
             // hence to get actually deleted bases we need offset = 1
             int offset = 1 ;
-            if ( vc.getType() == VariantContext.Type.MNP ) offset = 0; // if it's an MNP, the reported position IS the first modified base
+            if ( vc.isMNP() ) offset = 0; // if it's an MNP, the reported position IS the first modified base
             byte[] refBytes = ref.getBases();
             byte[] trueRef = new byte[reportedRefAllele.length()];
             for (int i = 0; i < reportedRefAllele.length(); i++)

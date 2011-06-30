@@ -83,7 +83,7 @@ public abstract class BaseTest {
      */
     public static final String MD5_FILE_DB_SUBDIR = "integrationtests";
 
-    public static final String testDir = "testdata/";
+    public static final String testDir = "public/testdata/";
 
     /** before the class starts up */
     static {
