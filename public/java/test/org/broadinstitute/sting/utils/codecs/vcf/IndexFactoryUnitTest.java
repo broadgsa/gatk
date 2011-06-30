@@ -17,8 +17,8 @@ import java.util.*;
  */
 public class IndexFactoryUnitTest {
 
-    File inputFile = new File("testdata/HiSeq.10000.vcf");
-    File outputFile = new File("testdata/onTheFlyOutputTest.vcf");
+    File inputFile = new File("public/testdata/HiSeq.10000.vcf");
+    File outputFile = new File("public/testdata/onTheFlyOutputTest.vcf");
     File outputFileIndex = Tribble.indexFile(outputFile);
 
     /**

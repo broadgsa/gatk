@@ -127,9 +127,9 @@ public class VariantContextAdaptors {
                 Map<String, Object> attributes = new HashMap<String, Object>();
                 attributes.put(VariantContext.ID_KEY, dbsnp.getRsID());
                 if ( DbSNPHelper.isDeletion(dbsnp) ) {
-                    int index = ref.getLocus().getStart() - ref.getWindow().getStart() - 1;
+                    int index = dbsnp.getStart() - ref.getWindow().getStart() - 1;
                     if ( index < 0 )
-                        throw new ReviewedStingException("DbSNP conversion requested using a reference context with no window; we will fail to convert deletions");
+                        return null; // we weren't given enough reference context to create the VariantContext
                     attributes.put(VariantContext.REFERENCE_BASE_FOR_INDEL_KEY, new Byte(ref.getBases()[index]));
                 }
                 Collection<Genotype> genotypes = null;

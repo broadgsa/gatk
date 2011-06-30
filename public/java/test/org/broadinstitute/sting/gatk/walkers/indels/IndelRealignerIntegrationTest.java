@@ -52,7 +52,7 @@ public class IndelRealignerIntegrationTest extends WalkerTest {
         WalkerTestSpec spec2 = new WalkerTestSpec(
                 baseCommand + "--consensusDeterminationModel KNOWNS_ONLY -D " + GATKDataLocation + "dbsnp_129_b36.rod",
                 1,
-                Arrays.asList("78850024ac9ff3ba51b6f097c7041c1d"));
+                Arrays.asList("05a114623c126b0398fbc1703437461e"));
         executeTest("realigner known indels only from dbsnp", spec2);
     }
 

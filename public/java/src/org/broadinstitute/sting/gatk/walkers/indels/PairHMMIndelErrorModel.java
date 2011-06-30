@@ -32,9 +32,9 @@ import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 /*import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.Covariate;
-import org.broadinstitute.sting.walkers.IndelCountCovariates.RecalDataManager;
-import org.broadinstitute.sting.walkers.IndelCountCovariates.RecalDatum;
-import org.broadinstitute.sting.walkers.IndelCountCovariates.RecalibrationArgumentCollection;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDataManager;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalDatum;
+import org.broadinstitute.sting.oneoffprojects.walkers.IndelCountCovariates.RecalibrationArgumentCollection;
 */import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
@@ -57,7 +57,7 @@ import java.util.regex.Pattern;
 public class PairHMMIndelErrorModel {
 
 
-    private final int BASE_QUAL_THRESHOLD = 10;
+    public static final int BASE_QUAL_THRESHOLD = 20;
 
 
     private static final int MATCH_OFFSET = 0;

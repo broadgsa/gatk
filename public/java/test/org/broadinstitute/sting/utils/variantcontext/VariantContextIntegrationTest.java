@@ -1,6 +1,6 @@
 
 
-package org.broadinstitute.sting.gatk.contexts.variantcontext;
+package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broadinstitute.sting.WalkerTest;
 import org.testng.annotations.Test;
@@ -19,12 +19,12 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
     static HashMap<String, String> expectations = new HashMap<String, String>();
     static {
-        expectations.put("-L 1:1-10000 --printPerLocus", "493bf9bcde93c08c8c46f72c8e98cf2f");
-        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "bd9e062b23c2c48fef8c299dc1d294d5");
+        expectations.put("-L 1:1-10000 --printPerLocus", "e4ee2eaa3114888e918a1c82df7a027a");
+        expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly", "5b5635e4877d82e8a27d70dac24bda2f");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsStartinAtCurrentPosition", "ceced3f270b4fe407ee83bc9028becde");
         expectations.put("-L 1:1-10000 --printPerLocus --takeFirstOnly --onlyContextsStartinAtCurrentPosition", "9a9b9e283553c28bf58de1cafa38fe92");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType SNP", "2097e32988d603d3b353b50218c86d3b");
-        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "91c6a9489256d9ce77c8fedf7221a961");
+        expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL", "033bd952fca048fe1a4f6422b57ab2ed");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType INDEL --onlyContextsStartinAtCurrentPosition", "5e40980c02797f90821317874426a87a");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType MIXED", "e5a00766f8c1ff9cf92310bafdec3126");
         expectations.put("-L 1:1-10000 --printPerLocus --onlyContextsOfType NO_VARIATION", "39335acdb34c8a2af433dc50d619bcbc");
@@ -58,7 +58,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
         // this really just tests that we are seeing the same number of objects over all of chr1
         WalkerTestSpec spec = new WalkerTestSpec( root + " -L 1" + " -o %s",
                 1, // just one output file
-                Arrays.asList("d2a3f2fe329a0a64145cfd19fde45b99"));
+                Arrays.asList("529f936aa6c303658b23caf4e527782f"));
          executeTest("testLargeScaleConversion", spec);
     }
 }
