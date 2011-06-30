@@ -1011,7 +1011,7 @@ public class IndelRealigner extends ReadWalker<Integer, Integer> {
                 sb.append((char)b);
             cigar.add(new CigarElement(indelStr.length, CigarOperator.I));
         } else {
-            throw new ReviewedStingException("Creating an alternate consensus from a complex indel is not allowed");
+            throw new IllegalStateException("Creating an alternate consensus from a complex indel is not allows");
         }
 
         if ( reference.length - refIdx > 0 )
