@@ -173,7 +173,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
             if (field.equals("AF")) {
                      String afo = val;
 
-                     double af;
+                     double af=0;
                      if (afo.contains(",")) {
                          String[] afs = afo.split(",");
                          afs[0] = afs[0].substring(1,afs[0].length());
@@ -189,7 +189,8 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
 
                      }
                      else
-                         af = Double.valueOf(afo);
+                         if (!afo.equals("NA"))
+                             af = Double.valueOf(afo);
 
                 val = Double.toString(af);
 
