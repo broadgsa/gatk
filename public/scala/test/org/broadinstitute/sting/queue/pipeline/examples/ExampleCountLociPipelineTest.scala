@@ -35,7 +35,7 @@ class ExampleCountLociPipelineTest {
     val spec = new PipelineTestSpec
     spec.name = "countloci"
     spec.args = Array(
-      " -S public/scala/qscript/examples/ExampleCountLoci.scala",
+      " -S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/ExampleCountLoci.scala",
       " -R " + BaseTest.hg18Reference,
       " -I " + BaseTest.validationDataLocation + "small_bam_for_countloci.bam",
       " -o " + testOut).mkString

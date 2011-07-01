@@ -32,7 +32,7 @@ class HelloWorldPipelineTest {
   def testHelloWorld {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorld"
-    spec.args = "-S public/scala/qscript/examples/HelloWorld.scala"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala"
     PipelineTest.executeTest(spec)
   }
 
@@ -40,7 +40,7 @@ class HelloWorldPipelineTest {
   def testHelloWorldWithPrefix {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithPrefix"
-    spec.args = "-S public/scala/qscript/examples/HelloWorld.scala -jobPrefix HelloWorld"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -jobPrefix HelloWorld"
     PipelineTest.executeTest(spec)
   }
 
@@ -48,7 +48,7 @@ class HelloWorldPipelineTest {
   def testHelloWorldWithPriority {
     val spec = new PipelineTestSpec
     spec.name = "HelloWorldWithPriority"
-    spec.args = "-S public/scala/qscript/examples/HelloWorld.scala -jobPriority 100"
+    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -jobPriority 100"
     PipelineTest.executeTest(spec)
   }
 }
