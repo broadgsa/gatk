@@ -68,13 +68,13 @@ public class CachingIndexedFastaSequenceFile extends IndexedFastaSequenceFile {
         ReferenceSequence seq = null;
     }
 
-    private static ThreadLocal<Cache> cache;
+    private ThreadLocal<Cache> cache;
 
-    static {
+    {
         resetThreadLocalCache();
-    };
+    }
 
-    protected static void resetThreadLocalCache() {
+    protected void resetThreadLocalCache() {
         cache = new ThreadLocal<Cache> () {
             @Override protected Cache initialValue() {
                 return new Cache();
