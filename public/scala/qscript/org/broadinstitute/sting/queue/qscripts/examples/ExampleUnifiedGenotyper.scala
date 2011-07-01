@@ -1,3 +1,5 @@
+package org.broadinstitute.sting.queue.qscripts.examples
+
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 
