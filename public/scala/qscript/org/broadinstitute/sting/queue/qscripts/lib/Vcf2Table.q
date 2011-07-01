@@ -1,3 +1,5 @@
+package org.broadinstitute.sting.queue.qscripts.lib
+
 import org.broadinstitute.sting.commandline.Hidden
 import org.broadinstitute.sting.queue.extensions.gatk.{RodBind, VariantsToTable}
 import org.broadinstitute.sting.queue.QScript
