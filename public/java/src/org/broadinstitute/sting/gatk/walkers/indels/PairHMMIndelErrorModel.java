@@ -105,7 +105,6 @@ public class PairHMMIndelErrorModel {
     private static final double MIN_GAP_CONT_PENALTY = 10.0;
     private static final double GAP_PENALTY_HRUN_STEP = 1.0; // each increase in hrun decreases gap penalty by this.
 
-    private static final double GOP_454_DELTA = 15.0; // lower gap penalty for 454 reads
 
     private boolean doViterbi = false;
 
@@ -772,10 +771,10 @@ public class PairHMMIndelErrorModel {
                 if (read == null)
                     continue;
 
-         /*       if(ReadUtils.is454Read(read) && !getGapPenaltiesFromFile) {
+                if(ReadUtils.is454Read(read) && !getGapPenaltiesFromFile) {
                     continue;
                 }
-            */
+
                 double[] recalQuals = null;
 
  /*
@@ -991,10 +990,6 @@ public class PairHMMIndelErrorModel {
                                }  else {
                                    currentContextGOP = Arrays.copyOfRange(gapOpenProbabilityMap.get(a), (int)indStart, (int)indStop);
                                    currentContextGCP = Arrays.copyOfRange(gapContProbabilityMap.get(a), (int)indStart, (int)indStop);
-                                   if(ReadUtils.is454Read(read)) {
-                                       for (int k=0; k <currentContextGOP.length; k++ )
-                                           currentContextGOP[k] += GOP_454_DELTA/10;
-                                   }
                                    readLikelihood = computeReadLikelihoodGivenHaplotypeAffineGaps(haplotypeBases, readBases, readQuals, currentContextGOP, currentContextGCP);
                                }
                             }
