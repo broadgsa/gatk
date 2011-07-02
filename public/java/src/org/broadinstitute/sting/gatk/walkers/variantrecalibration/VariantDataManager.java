@@ -151,13 +151,13 @@ public class VariantDataManager {
         int index = 0, numAdded = 0;
         while( numAdded < numToAdd ) {
             final VariantDatum datum = data.get(index++);
-            if( !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
+            if( !datum.atAntiTrainingSite && !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
                 datum.atAntiTrainingSite = true;
                 trainingData.add( datum );
                 numAdded++;
             }
         }
-        logger.info( "Additionally training with worst " + (float) bottomPercentage * 100.0f + "% of passing data --> " + (trainingData.size() - numBadSitesAdded) + " variants with LOD <= " + String.format("%.4f", data.get(index).lod) + "." );
+        logger.info( "Additionally training with worst " + String.format("%0.3f", (float) bottomPercentage * 100.0f) + "% of passing data --> " + (trainingData.size() - numBadSitesAdded) + " variants with LOD <= " + String.format("%.4f", data.get(index).lod) + "." );
         return trainingData;
     }
 
@@ -243,6 +243,7 @@ public class VariantDataManager {
         datum.isKnown = false;
         datum.atTruthSite = false;
         datum.atTrainingSite = false;
+        datum.atAntiTrainingSite = false;
         datum.prior = 2.0;
         datum.consensusCount = 0;
 
