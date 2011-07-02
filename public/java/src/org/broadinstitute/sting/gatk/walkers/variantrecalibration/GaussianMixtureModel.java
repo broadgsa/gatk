@@ -190,6 +190,19 @@ public class GaussianMixtureModel {
         return MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
     }
 
+    public Double evaluateDatumInOneDimension( final VariantDatum datum, final int iii ) {
+        if(datum.isNull[iii]) { return null; }
+
+        final Normal normal = new Normal(0.0, 1.0, null);
+        final double[] pVarInGaussianLog10 = new double[gaussians.size()];
+        int gaussianIndex = 0;
+        for( final MultivariateGaussian gaussian : gaussians ) {
+            normal.setState( gaussian.mu[iii], gaussian.sigma.get(iii, iii) );
+            pVarInGaussianLog10[gaussianIndex++] = gaussian.pMixtureLog10 + Math.log10( normal.pdf( datum.annotations[iii] ) );
+        }
+        return MathUtils.log10sumLog10(pVarInGaussianLog10); // Sum(pi_k * p(v|n,k))
+    }
+
     public double evaluateDatumMarginalized( final VariantDatum datum ) {
         int numVals = 0;
         double sumPVarInGaussian = 0.0;

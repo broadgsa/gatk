@@ -55,7 +55,6 @@ import java.util.*;
 
 public class ApplyRecalibration extends RodWalker<Integer, Integer> {
 
-
     /////////////////////////////
     // Inputs
     /////////////////////////////
@@ -86,6 +85,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
     final private List<Tranche> tranches = new ArrayList<Tranche>();
     final private Set<String> inputNames = new HashSet<String>();
     final private NestedHashMap lodMap = new NestedHashMap();
+    final private NestedHashMap annotationMap = new NestedHashMap();
     final private Set<String> ignoreInputFilterSet = new TreeSet<String>();
 
     //---------------------------------------------------------------------------------------------------------------
@@ -124,6 +124,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
         final Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
         hInfo.addAll(VCFUtils.getHeaderFields(getToolkit(), inputNames));
         hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.VQS_LOD_KEY, 1, VCFHeaderLineType.Float, "Log odds ratio of being a true variant versus being false under the trained gaussian mixture model"));
+        hInfo.add(new VCFInfoHeaderLine(VariantRecalibrator.CULPRIT_KEY, 1, VCFHeaderLineType.String, "The annotation which was the worst performing in the Gaussian mixture model, likely the reason why the variant was filtered out"));
         final TreeSet<String> samples = new TreeSet<String>();
         samples.addAll(SampleUtils.getUniqueSamplesFromRods(getToolkit(), inputNames));
 
@@ -149,6 +150,7 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
             for ( final String line : new XReadLines( RECAL_FILE ) ) {
                 final String[] vals = line.split(",");
                 lodMap.put( Double.parseDouble(vals[3]), vals[0], Integer.parseInt(vals[1]), Integer.parseInt(vals[2]) ); // value comes before the keys
+                annotationMap.put( vals[4], vals[0], Integer.parseInt(vals[1]), Integer.parseInt(vals[2]) ); // value comes before the keys
             }
         } catch ( FileNotFoundException e ) {
             throw new UserException.CouldNotReadInputFile(RECAL_FILE, e);
@@ -174,11 +176,15 @@ public class ApplyRecalibration extends RodWalker<Integer, Integer> {
                     String filterString = null;
                     final Map<String, Object> attrs = new HashMap<String, Object>(vc.getAttributes());
                     final Double lod = (Double) lodMap.get( vc.getChr(), vc.getStart(), vc.getEnd() );
+                    final String worstAnnotation = (String) annotationMap.get( vc.getChr(), vc.getStart(), vc.getEnd() );
                     if( lod == null ) {
                         throw new UserException("Encountered input variant which isn't found in the input recal file. Please make sure VariantRecalibrator and ApplyRecalibration were run on the same set of input variants. First seen at: " + vc );
                     }
 
+                    // Annotate the new record with its VQSLOD and the worst performing annotation
                     attrs.put(VariantRecalibrator.VQS_LOD_KEY, String.format("%.4f", lod));
+                    attrs.put(VariantRecalibrator.CULPRIT_KEY, worstAnnotation);
+
                     for( int i = tranches.size() - 1; i >= 0; i-- ) {
                         final Tranche tranche = tranches.get(i);
                         if( lod >= tranche.minVQSLod ) {

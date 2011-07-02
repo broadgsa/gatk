@@ -24,6 +24,7 @@ public class VariantDatum implements Comparable<VariantDatum> {
     public String contig;
     public int start;
     public int stop;
+    public int worstAnnotation;
     public MultivariateGaussian assignment; // used in K-means implementation 
 
     public int compareTo( final VariantDatum other ) {

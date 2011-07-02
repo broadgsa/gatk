@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, The Broad Institute
+ * Copyright (c) 2010, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,33 +22,41 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.queue.pipeline.examples
+package org.broadinstitute.sting.pipeline;
 
-import org.testng.annotations.Test
-import org.broadinstitute.sting.queue.pipeline.{PipelineTest, PipelineTestSpec}
+import java.io.File;
+import java.util.Map;
+import java.util.TreeMap;
 
-class HelloWorldPipelineTest {
-  @Test
-  def testHelloWorld {
-    val spec = new PipelineTestSpec
-    spec.name = "HelloWorld"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala"
-    PipelineTest.executeTest(spec)
-  }
+/**
+ * Java bean defining a sample for a pipeline.
+ */
+public class PipelineSample {
+    private String id;
+    private Map<String, File> bamFiles = new TreeMap<String, File>();
+    private Map<String, String> tags = new TreeMap<String, String>();
 
-  @Test
-  def testHelloWorldWithPrefix {
-    val spec = new PipelineTestSpec
-    spec.name = "HelloWorldWithPrefix"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -jobPrefix HelloWorld"
-    PipelineTest.executeTest(spec)
-  }
+    public String getId() {
+        return id;
+    }
 
-  @Test(enabled=false)
-  def testHelloWorldWithPriority {
-    val spec = new PipelineTestSpec
-    spec.name = "HelloWorldWithPriority"
-    spec.args = "-S public/scala/qscript/org/broadinstitute/sting/queue/qscripts/examples/HelloWorld.scala -jobPriority 100"
-    PipelineTest.executeTest(spec)
-  }
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public Map<String, File> getBamFiles() {
+        return bamFiles;
+    }
+
+    public void setBamFiles(Map<String, File> bamFiles) {
+        this.bamFiles = bamFiles;
+    }
+
+    public Map<String, String> getTags() {
+        return tags;
+    }
+
+    public void setTags(Map<String, String> tags) {
+        this.tags = tags;
+    }
 }
