@@ -60,6 +60,7 @@ import java.util.*;
 public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> implements TreeReducible<ExpandingArrayList<VariantDatum>> {
 
     public static final String VQS_LOD_KEY = "VQSLOD";
+    public static final String CULPRIT_KEY = "culprit";
 
     @ArgumentCollection private VariantRecalibratorArgumentCollection VRAC = new VariantRecalibratorArgumentCollection();
 
@@ -232,6 +233,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         engine.evaluateData( dataManager.getData(), goodModel, false );
         final GaussianMixtureModel badModel = engine.generateModel( dataManager.selectWorstVariants( VRAC.PERCENT_BAD_VARIANTS, VRAC.MIN_NUM_BAD_VARIANTS ) );
         engine.evaluateData( dataManager.getData(), badModel, true );
+        engine.calculateWorstPerformingAnnotation( dataManager.getData(), goodModel, badModel );
 
         final ExpandingArrayList<VariantDatum> randomData = dataManager.getRandomDataForPlotting( 6000 );
 

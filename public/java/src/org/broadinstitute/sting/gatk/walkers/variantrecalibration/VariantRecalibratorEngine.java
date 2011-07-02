@@ -57,6 +57,23 @@ public class VariantRecalibratorEngine {
         }
     }
 
+    public void calculateWorstPerformingAnnotation( final List<VariantDatum> data, final GaussianMixtureModel goodModel, final GaussianMixtureModel badModel ) {
+        for( final VariantDatum datum : data ) {
+            int worstAnnotation = -1;
+            double minProb = Double.MAX_VALUE;
+            for( int iii = 0; iii < datum.annotations.length; iii++ ) {
+                final Double goodProbLog10 = goodModel.evaluateDatumInOneDimension(datum, iii);
+                final Double badProbLog10 = badModel.evaluateDatumInOneDimension(datum, iii);
+                if( goodProbLog10 != null && badProbLog10 != null ) {
+                    final double prob = goodProbLog10 - badProbLog10;
+                    if(prob < minProb) { minProb = prob; worstAnnotation = iii; }
+                }
+            }
+            datum.worstAnnotation = worstAnnotation;
+        }
+    }
+
+
     /////////////////////////////
     // Private Methods used for generating a GaussianMixtureModel
     /////////////////////////////
