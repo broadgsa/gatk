@@ -22,7 +22,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.datasources.pipeline;
+package org.broadinstitute.sting.pipeline;
 
 import java.util.ArrayList;
 import java.util.List;
