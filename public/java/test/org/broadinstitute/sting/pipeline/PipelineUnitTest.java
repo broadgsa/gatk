@@ -22,8 +22,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.datasources.pipeline;
+package org.broadinstitute.sting.pipeline;
 
+import org.broadinstitute.sting.pipeline.Pipeline;
+import org.broadinstitute.sting.pipeline.PipelineSample;
 import org.testng.Assert;
 import org.broadinstitute.sting.utils.yaml.YamlUtils;
 
