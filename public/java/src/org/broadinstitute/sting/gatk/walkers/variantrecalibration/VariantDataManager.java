@@ -84,7 +84,6 @@ public class VariantDataManager {
                 remove = remove || (Math.abs(val) > VRAC.STD_THRESHOLD);
             }
             datum.failingSTDThreshold = remove;
-            datum.usedForTraining = 0;
         }
     }
 
@@ -118,38 +117,47 @@ public class VariantDataManager {
         for( final VariantDatum datum : data ) {
             if( datum.atTrainingSite && !datum.failingSTDThreshold && datum.originalQual > VRAC.QUAL_THRESHOLD ) {
                 trainingData.add( datum );
-                datum.usedForTraining = 1;
             }
         }
         logger.info( "Training with " + trainingData.size() + " variants after standard deviation thresholding." );
         if( trainingData.size() < VRAC.MIN_NUM_BAD_VARIANTS ) {
-            logger.warn("WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable.");
+            logger.warn( "WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable." );
         }
         return trainingData;
     }
 
     public ExpandingArrayList<VariantDatum> selectWorstVariants( double bottomPercentage, final int minimumNumber ) {
-        Collections.sort( data );
+        // The return value is the list of training variants
         final ExpandingArrayList<VariantDatum> trainingData = new ExpandingArrayList<VariantDatum>();
-        final int numToAdd = Math.max( minimumNumber, Math.round((float)bottomPercentage * data.size()) );
-        if( numToAdd > data.size() ) {
-            throw new UserException.BadInput("Error during negative model training. Minimum number of variants to use in training is larger than the whole call set. One can attempt to lower the --minNumBadVariants arugment but this is unsafe.");
+
+        // First add to the training list all sites overlapping any bad sites training tracks
+        for( final VariantDatum datum : data ) {
+            if( datum.atAntiTrainingSite && !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
+                trainingData.add( datum );
+            }
         }
-        if( numToAdd == minimumNumber ) {
-            logger.warn("WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable.");
+        final int numBadSitesAdded = trainingData.size();
+        logger.info( "Found " + numBadSitesAdded + " variants overlapping bad sites training tracks." );
+
+        // Next, sort the variants by the LOD coming from the positive model and add to the list the bottom X percent of variants
+        Collections.sort( data );
+        final int numToAdd = Math.max( minimumNumber - trainingData.size(), Math.round((float)bottomPercentage * data.size()) );
+        if( numToAdd > data.size() ) {
+            throw new UserException.BadInput( "Error during negative model training. Minimum number of variants to use in training is larger than the whole call set. One can attempt to lower the --minNumBadVariants arugment but this is unsafe." );
+        } else if( numToAdd == minimumNumber - trainingData.size() ) {
+            logger.warn( "WARNING: Training with very few variant sites! Please check the model reporting PDF to ensure the quality of the model is reliable." );
             bottomPercentage = ((float) numToAdd) / ((float) data.size());
         }
-        int index = 0;
-        int numAdded = 0;
+        int index = 0, numAdded = 0;
         while( numAdded < numToAdd ) {
             final VariantDatum datum = data.get(index++);
             if( !datum.failingSTDThreshold && !Double.isInfinite(datum.lod) ) {
+                datum.atAntiTrainingSite = true;
                 trainingData.add( datum );
-                datum.usedForTraining = -1;
                 numAdded++;
             }
         }
-        logger.info("Training with worst " + (float) bottomPercentage * 100.0f + "% of passing data --> " + trainingData.size() + " variants with LOD <= " + String.format("%.4f", data.get(index).lod) + ".");
+        logger.info( "Additionally training with worst " + (float) bottomPercentage * 100.0f + "% of passing data --> " + (trainingData.size() - numBadSitesAdded) + " variants with LOD <= " + String.format("%.4f", data.get(index).lod) + "." );
         return trainingData;
     }
 
@@ -162,10 +170,11 @@ public class VariantDataManager {
                 returnData.add(datum);
             }
         }
-        // add an extra 5% of points from bad training set, since that set is small but interesting
+
+        // Add an extra 5% of points from bad training set, since that set is small but interesting
         for( int iii = 0; iii < Math.floor(0.05*numToAdd); iii++) {
             final VariantDatum datum = data.get(GenomeAnalysisEngine.getRandomGenerator().nextInt(data.size()));
-            if( datum.usedForTraining == -1 && !datum.failingSTDThreshold ) { returnData.add(datum); }
+            if( datum.atAntiTrainingSite && !datum.failingSTDThreshold ) { returnData.add(datum); }
             else { iii--; }
         }
 
@@ -236,6 +245,7 @@ public class VariantDataManager {
         datum.atTrainingSite = false;
         datum.prior = 2.0;
         datum.consensusCount = 0;
+
         for( final TrainingSet trainingSet : trainingSets ) {
             for( final VariantContext trainVC : tracker.getVariantContexts( ref, trainingSet.name, null, context.getLocation(), false, false ) ) {
                 if( trainVC != null && trainVC.isNotFiltered() && trainVC.isVariant() &&
@@ -248,6 +258,10 @@ public class VariantDataManager {
                     datum.prior = Math.max( datum.prior, trainingSet.prior );
                     datum.consensusCount += ( trainingSet.isConsensus ? 1 : 0 );
                 }
+                if( trainVC != null ) {
+                    datum.atAntiTrainingSite = datum.atAntiTrainingSite || trainingSet.isAntiTraining;
+                }
+
             }
         }
     }
