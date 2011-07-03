@@ -42,5 +42,5 @@ public class LowMQ implements InfoFieldAnnotation {
 
     public List<String> getKeyNames() { return Arrays.asList("LowMQ"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 3, VCFHeaderLineType.Integer, "3-tuple: <fraction of reads with MQ=0>,<fraction of reads with MQ<=10>,<total nubmer of reads>")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine(getKeyNames().get(0), 3, VCFHeaderLineType.Float, "3-tuple: <fraction of reads with MQ=0>,<fraction of reads with MQ<=10>,<total number of reads>")); }
 }
