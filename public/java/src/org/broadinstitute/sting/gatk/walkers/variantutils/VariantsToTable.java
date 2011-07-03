@@ -170,7 +170,7 @@ public class VariantsToTable extends RodWalker<Integer, Integer> {
                 throw new UserException(String.format("Missing field %s in vc %s at %s", field, vc.getSource(), vc));
             }
 
-            if (field.equals("AF")) {
+            if (field.equals("AF") || field.equals("AC")) {
                      String afo = val;
 
                      double af=0;
