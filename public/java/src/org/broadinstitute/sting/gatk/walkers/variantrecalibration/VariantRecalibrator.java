@@ -60,6 +60,7 @@ import java.util.*;
 public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDatum>, ExpandingArrayList<VariantDatum>> implements TreeReducible<ExpandingArrayList<VariantDatum>> {
 
     public static final String VQS_LOD_KEY = "VQSLOD";
+    public static final String CULPRIT_KEY = "culprit";
 
     @ArgumentCollection private VariantRecalibratorArgumentCollection VRAC = new VariantRecalibratorArgumentCollection();
 
@@ -174,7 +175,6 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
                     datum.originalQual = vc.getPhredScaledQual();
                     datum.isSNP = vc.isSNP() && vc.isBiallelic();
                     datum.isTransition = datum.isSNP && VariantContextUtils.isTransition(vc);
-                    datum.usedForTraining = 0;
 
                     // Loop through the training data sets and if they overlap this loci then update the prior and training status appropriately
                     dataManager.parseTrainingSets( tracker, ref, context, vc, datum, TRUST_ALL_POLYMORPHIC );
@@ -232,6 +232,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         engine.evaluateData( dataManager.getData(), goodModel, false );
         final GaussianMixtureModel badModel = engine.generateModel( dataManager.selectWorstVariants( VRAC.PERCENT_BAD_VARIANTS, VRAC.MIN_NUM_BAD_VARIANTS ) );
         engine.evaluateData( dataManager.getData(), badModel, true );
+        engine.calculateWorstPerformingAnnotation( dataManager.getData(), goodModel, badModel );
 
         final ExpandingArrayList<VariantDatum> randomData = dataManager.getRandomDataForPlotting( 6000 );
 
@@ -326,7 +327,8 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
 
                 stream.print("data <- c(");
                 for( final VariantDatum datum : randomData ) {
-                    stream.print(String.format("%.3f, %.3f, %.3f, %d, %d,", datum.annotations[iii], datum.annotations[jjj], (datum.lod < lodCutoff ? -1.0 : 1.0), datum.usedForTraining, (datum.isKnown ? 1 : -1)));
+                    stream.print(String.format("%.3f, %.3f, %.3f, %d, %d,", datum.annotations[iii], datum.annotations[jjj], (datum.lod < lodCutoff ? -1.0 : 1.0),
+                            (datum.atAntiTrainingSite ? -1 : (datum.atTrainingSite ? 1 : 0)), (datum.isKnown ? 1 : -1)));
                 }
                 stream.println("NA,NA,NA,NA,1)");
                 stream.println("d <- matrix(data,ncol=5,byrow=T)");

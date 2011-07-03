@@ -34,11 +34,6 @@ public class CachingIndexedFastaSequenceFileUnitTest extends BaseTest {
     private static final List<Integer> QUERY_SIZES = Arrays.asList(1, 10, 100, 1000);
     private static final List<Integer> CACHE_SIZES = Arrays.asList(-1, 10, 1000);
 
-    @BeforeMethod
-    public void clearCache() {
-        CachingIndexedFastaSequenceFile.resetThreadLocalCache();
-    }
-
     @DataProvider(name = "fastas")
     public Object[][] createData1() {
         List<Object[]> params = new ArrayList<Object[]>();

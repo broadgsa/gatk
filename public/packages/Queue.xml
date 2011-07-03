@@ -33,7 +33,7 @@
             <package name="org.broadinstitute.sting.queue.**" />
 
             <!-- Pipeline + Utils -->
-            <package name="org.broadinstitute.sting.datasources.pipeline.**" />
+            <package name="org.broadinstitute.sting.pipeline.**" />
             <package name="org.broadinstitute.sting.utils.**" />
 
             <!-- Scala -->
