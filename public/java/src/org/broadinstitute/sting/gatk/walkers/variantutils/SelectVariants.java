@@ -246,8 +246,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 afBoosts = new ArrayList<Double>();
                 logger.info("Reading in AF boost table...");
                 for ( final String line : new XReadLines( AF_FILE ) ) {
-                    System.out.println(line);
+                    //System.out.println(line);
                     final String[] vals = line.split("\t");
+                    if (vals[0].matches("midpoints"))
+                        continue;
                     double bkp = Double.valueOf(vals[0]);
                     double afb = Double.valueOf(vals[1]);
                     afBreakpoints.add(bkp);
