@@ -19,7 +19,7 @@ import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
 class MethodsDevelopmentCallingPipeline extends QScript {
   qscript =>
 
-  @Argument(shortName="outputDir", doc="output directory", required=true)
+  @Argument(shortName="outputDir", doc="output directory", required=false)
   var outputDir: String = "./"
 
   @Argument(shortName="skipCalling", doc="skip the calling part of the pipeline and only run VQSR on preset, gold standard VCF files", required=false)
