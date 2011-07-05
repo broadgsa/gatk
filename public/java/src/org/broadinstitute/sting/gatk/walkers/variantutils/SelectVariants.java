@@ -251,7 +251,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                         firstLine = true;
                         continue;
                     }
-                    final String[] vals = line.split("\t");
+                    final String[] vals = line.split(" ");
 
                     double bkp = Double.valueOf(vals[0]);
                     double afb = Double.valueOf(vals[1]);
