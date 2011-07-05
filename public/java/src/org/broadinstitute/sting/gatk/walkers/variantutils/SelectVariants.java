@@ -265,7 +265,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             }
 
         }
-   }
+    }
 
     /**
      * Subset VC record if necessary and emit the modified record (provided it satisfies criteria for printing)
@@ -326,57 +326,52 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 }
                 else {
                     if (SELECT_RANDOM_FRACTION && KEEP_AF_SPECTRUM ) {
-                        Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, inputAFRodName, null, context.getLocation(), true, false);
-                        if (compVCs.isEmpty())
-                            return 0;
-
                         // ok we have a comp VC and we need to match the AF spectrum of inputAFRodName.
                         // We then pick a variant with probablity AF*desiredFraction
-                        for (VariantContext compVC : compVCs) {
-                            if ( compVC.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
-                                String afo = compVC.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY);
 
-                                double af;
-                                double afBoost = 1.0;
-                                if (afo.contains(",")) {
-                                    String[] afs = afo.split(",");
-                                    afs[0] = afs[0].substring(1,afs[0].length());
-                                    afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
+                        if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
+                            String afo = sub.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY);
 
-                                    double[] afd = new double[afs.length];
+                            double af;
+                            double afBoost = 1.0;
+                            if (afo.contains(",")) {
+                                String[] afs = afo.split(",");
+                                afs[0] = afs[0].substring(1,afs[0].length());
+                                afs[afs.length-1] = afs[afs.length-1].substring(0,afs[afs.length-1].length()-1);
 
-                                    for (int k=0; k < afd.length; k++)
-                                        afd[k] = Double.valueOf(afs[k]);
+                                double[] afd = new double[afs.length];
 
-                                    af = MathUtils.arrayMax(afd);
-                                    //af = Double.valueOf(afs[0]);
+                                for (int k=0; k < afd.length; k++)
+                                    afd[k] = Double.valueOf(afs[k]);
 
-                                }
-                                else
-                                    af = Double.valueOf(afo);
+                                af = MathUtils.arrayMax(afd);
+                                //af = Double.valueOf(afs[0]);
 
-                                // now boost af by table read from file if desired
-                                //double bkpt = 0.0;
-                                int bkidx = 0;
-                                if (AF_FILE != null) {
-                                    for ( Double bkpt : afBreakpoints) {
-                                        if (af < bkpt + bkDelta)
-                                            break;
-                                        else bkidx++;
-                                    }
-                                    afBoost = afBreakpoints.get(bkidx);
-                                    System.out.format("af:%f bkidx:%d afboost:%f\n",af,bkidx,afBoost);
-
-
-
-                                }
-
-                                //System.out.format("%s .. %4.4f\n",afo.toString(), af);
-                                if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * af * afBoost)
-                                    vcfWriter.add(sub, ref.getBase());
                             }
-                            break; // do only one vc
+                            else
+                                af = Double.valueOf(afo);
+
+                            // now boost af by table read from file if desired
+                            //double bkpt = 0.0;
+                            int bkidx = 0;
+                            if (AF_FILE != null) {
+                                for ( Double bkpt : afBreakpoints) {
+                                    if (af < bkpt + bkDelta)
+                                        break;
+                                    else bkidx++;
+                                }
+                                afBoost = afBreakpoints.get(bkidx);
+                                System.out.format("af:%f bkidx:%d afboost:%f\n",af,bkidx,afBoost);
+
+
+
+                            }
+
+                            //System.out.format("%s .. %4.4f\n",afo.toString(), af);
+                            if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * af * afBoost)
+                                vcfWriter.add(sub, ref.getBase());
                         }
+
 
                     }
                 }
@@ -461,8 +456,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
     private boolean haveSameGenotypes(Genotype g1, Genotype g2) {
         if ((g1.isCalled() && g2.isFiltered()) ||
-            (g2.isCalled() && g1.isFiltered()) ||
-            (g1.isFiltered() && g2.isFiltered() && EXCLUDE_FILTERED))
+                (g2.isCalled() && g1.isFiltered()) ||
+                (g1.isFiltered() && g2.isFiltered() && EXCLUDE_FILTERED))
             return false;
 
         List<Allele> a1s = g1.getAlleles();
@@ -495,7 +490,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
      * @param vc       the VariantContext record to subset
      * @param samples  the samples to extract
      * @return the subsetted VariantContext
-     */                                                             
+     */
     private VariantContext subsetRecord(VariantContext vc, Set<String> samples) {
         if ( samples == null || samples.isEmpty() )
             return vc;
@@ -505,7 +500,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             if ( samples.contains(genotypePair.getKey()) )
                 genotypes.add(genotypePair.getValue());
         }
-        
+
         VariantContext sub = vc.subContextFromGenotypes(genotypes, vc.getAlleles());
 
         HashMap<String, Object> attributes = new HashMap<String, Object>(sub.getAttributes());
@@ -515,7 +510,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
             Genotype g = sub.getGenotype(sample);
 
             if (g.isNotFiltered() && g.isCalled()) {
-                
+
                 String dp = (String) g.getAttribute("DP");
                 if (dp != null && ! dp.equals(VCFConstants.MISSING_DEPTH_v3) && ! dp.equals(VCFConstants.MISSING_VALUE_v4) ) {
                     depth += Integer.valueOf(dp);
