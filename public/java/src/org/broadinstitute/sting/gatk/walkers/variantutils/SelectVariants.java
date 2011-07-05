@@ -321,7 +321,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                 if (SELECT_RANDOM_NUMBER) {
                     randomlyAddVariant(++variantNumber, sub, ref.getBase());
                 }
-                else if (!SELECT_RANDOM_FRACTION || GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom) {
+                else if (!SELECT_RANDOM_FRACTION || (!KEEP_AF_SPECTRUM && GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom)) {
                     vcfWriter.add(sub, ref.getBase());
                 }
                 else {
