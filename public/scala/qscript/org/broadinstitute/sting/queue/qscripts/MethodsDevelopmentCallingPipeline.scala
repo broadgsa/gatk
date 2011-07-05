@@ -19,9 +19,6 @@ import org.broadinstitute.sting.gatk.phonehome.GATKRunReport
 class MethodsDevelopmentCallingPipeline extends QScript {
   qscript =>
 
-  @Argument(shortName="gatk", doc="gatk jar file", required=true)
-  var gatkJarFile: File = _
-
   @Argument(shortName="outputDir", doc="output directory", required=true)
   var outputDir: String = "./"
 
@@ -185,7 +182,6 @@ class MethodsDevelopmentCallingPipeline extends QScript {
 
   trait UNIVERSAL_GATK_ARGS extends CommandLineGATK {
     logging_level = "INFO";
-    jarFile = gatkJarFile;
     memoryLimit = 4;
     phone_home = if ( LOCAL_ET ) GATKRunReport.PhoneHomeOption.STANDARD else GATKRunReport.PhoneHomeOption.AWS_S3
   }
