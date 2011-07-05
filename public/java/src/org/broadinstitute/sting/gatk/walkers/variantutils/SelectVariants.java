@@ -25,8 +25,11 @@
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
 import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.commandline.Input;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.text.XReadLines;
 import org.broadinstitute.sting.utils.variantcontext.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MendelianViolation;
@@ -44,6 +47,7 @@ import org.broadinstitute.sting.utils.SampleUtils;
 import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.lang.annotation.AnnotationFormatError;
 import java.util.*;
 
@@ -92,6 +96,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="keepAFSpectrum", shortName="keepAF", doc="Don't include loci found to be non-variant after the subsetting procedure.", required=false)
     private boolean KEEP_AF_SPECTRUM = false;
 
+    @Argument(fullName="afFile", shortName="afFile", doc="The output recal file used by ApplyRecalibration", required=false)
+    private File AF_FILE = null;
 
     @Argument(fullName="family_structure", shortName="family", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
     private String FAMILY_STRUCTURE = "";
@@ -156,6 +162,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private RandomVariantStructure [] variantArray;
 
 
+    /* Variables used for random selection with AF boosting */
+    private ArrayList<Double> afBreakpoints = null;
+    private ArrayList<Double> afBoosts = null;
+    double bkDelta = 0.0;
 
 
 
@@ -228,7 +238,29 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         SELECT_RANDOM_FRACTION = fractionRandom > 0;
         if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + fractionRandom + "% of the variants at random from the variant track");
-    }
+
+
+        if (AF_FILE != null) {
+            try {
+                afBreakpoints = new ArrayList<Double>();
+                afBoosts = new ArrayList<Double>();
+                logger.info("Reading in AF boost table...");
+                for ( final String line : new XReadLines( AF_FILE ) ) {
+                    System.out.println(line);
+                    final String[] vals = line.split("\t");
+                    double bkp = Double.valueOf(vals[0]);
+                    double afb = Double.valueOf(vals[1]);
+                    afBreakpoints.add(bkp);
+                    afBoosts.add(afb);
+
+                }
+                bkDelta = afBreakpoints.get(0);
+            } catch ( FileNotFoundException e ) {
+                throw new UserException.CouldNotReadInputFile(AF_FILE, e);
+            }
+
+        }
+   }
 
     /**
      * Subset VC record if necessary and emit the modified record (provided it satisfies criteria for printing)
@@ -300,6 +332,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                                 String afo = compVC.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY);
 
                                 double af;
+                                double afBoost = 1.0;
                                 if (afo.contains(",")) {
                                     String[] afs = afo.split(",");
                                     afs[0] = afs[0].substring(1,afs[0].length());
@@ -317,8 +350,24 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                                 else
                                     af = Double.valueOf(afo);
 
+                                // now boost af by table read from file if desired
+                                //double bkpt = 0.0;
+                                int bkidx = 0;
+                                if (AF_FILE != null) {
+                                    for ( Double bkpt : afBreakpoints) {
+                                        if (af < bkpt + bkDelta)
+                                            break;
+                                        else bkidx++;
+                                    }
+                                    afBoost = afBreakpoints.get(bkidx);
+                                    System.out.format("af:%f bkidx:%d afboost:%f\n",af,bkidx,afBoost);
+
+
+
+                                }
+
                                 //System.out.format("%s .. %4.4f\n",afo.toString(), af);
-                                if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * af)
+                                if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * af * afBoost)
                                     vcfWriter.add(sub, ref.getBase());
                             }
                             break; // do only one vc
