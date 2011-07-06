@@ -25,5 +25,6 @@
     <module organisation="javax.activation" resolver="java.net" />
     <module organisation="net.java.dev.jna" resolver="maven2-repository.dev.java.net" />
     <module organisation="com.google.code.caliper" resolver="projects" />
+    <module organisation="net.sf.gridscheduler" resolver="projects" />
   </modules>
 </ivysettings>
