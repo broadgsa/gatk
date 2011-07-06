@@ -460,7 +460,7 @@
               <exclude name="**/utils/variantcontext/**/*.class"/>
             </fileset>
             <fileset dir="${java.classes}" includes="**/commandline/**/*.class"/>
-            <fileset dir="${java.classes}" includes="**/sting/datasources/**/*.class"/>
+            <fileset dir="${java.classes}" includes="**/sting/pipeline/**/*.class"/>
             <fileset dir="${java.classes}" includes="**/sting/jna/**/*.class"/>
             <fileset dir="${java.classes}" includes="net/sf/picard/**/*.class"/>
             <fileset dir="${java.classes}" includes="net/sf/samtools/**/*.class"/>
