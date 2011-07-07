@@ -26,6 +26,7 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import Jama.Matrix;
+import cern.jet.random.Normal;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.MathUtils;
