@@ -92,25 +92,31 @@ public class UnifiedArgumentCollection {
     @Argument(fullName = "indel_heterozygosity", shortName = "indelHeterozygosity", doc = "Heterozygosity for indel calling", required = false)
     public double INDEL_HETEROZYGOSITY = 1.0/8000;
 
+    @Hidden
     @Argument(fullName = "indelGapContinuationPenalty", shortName = "indelGCP", doc = "Indel gap continuation penalty", required = false)
     public double INDEL_GAP_CONTINUATION_PENALTY = 10.0;
 
+    @Hidden
     @Argument(fullName = "indelGapOpenPenalty", shortName = "indelGOP", doc = "Indel gap open penalty", required = false)
     public double INDEL_GAP_OPEN_PENALTY = 45.0;
 
+    @Hidden
     @Argument(fullName = "indelHaplotypeSize", shortName = "indelHSize", doc = "Indel haplotype size", required = false)
     public int INDEL_HAPLOTYPE_SIZE = 80;
+    @Hidden
     @Argument(fullName = "doContextDependentGapPenalties", shortName = "doCDP", doc = "Vary gap penalties by context", required = false)
      public boolean DO_CONTEXT_DEPENDENT_PENALTIES = true;
     //gdebug+
-    @Hidden
     // experimental arguments, NOT TO BE USED BY ANYONE WHOSE INITIALS AREN'T GDA!!!
+    @Hidden
     @Argument(fullName = "getGapPenaltiesFromData", shortName = "dataGP", doc = "Vary gap penalties by context - EXPERIMENTAL, DO NO USE", required = false)
     public boolean GET_GAP_PENALTIES_FROM_DATA = false;
 
+    @Hidden
     @Argument(fullName="indel_recal_file", shortName="recalFile", required=false, doc="Filename for the input covariates table recalibration .csv file - EXPERIMENTAL, DO NO USE")
     public File INDEL_RECAL_FILE = new File("indel.recal_data.csv");
 
+    @Hidden
     @Argument(fullName = "indelDebug", shortName = "indelDebug", doc = "Output indel debug info", required = false)
     public boolean OUTPUT_DEBUG_INDEL_INFO = false;
     @Hidden

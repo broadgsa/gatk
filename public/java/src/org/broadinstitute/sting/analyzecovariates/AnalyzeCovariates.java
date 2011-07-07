@@ -61,7 +61,7 @@ public class AnalyzeCovariates extends CommandLineProgram {
     @Argument(fullName = "path_to_Rscript", shortName = "Rscript", doc = "The path to your implementation of Rscript. For Broad users this is maybe /broad/tools/apps/R-2.6.0/bin/Rscript", required = false)
     private String PATH_TO_RSCRIPT = "Rscript";
     @Argument(fullName = "path_to_resources", shortName = "resources", doc = "Path to resources folder holding the Sting R scripts.", required = false)
-    private String PATH_TO_RESOURCES = "R/";
+    private String PATH_TO_RESOURCES = "public/R/";
     @Argument(fullName = "ignoreQ", shortName = "ignoreQ", doc = "Ignore bases with reported quality less than this number.", required = false)
     private int IGNORE_QSCORES_LESS_THAN = 5;
     @Argument(fullName = "numRG", shortName = "numRG", doc = "Only process N read groups. Default value: -1 (process all read groups)", required = false)            
