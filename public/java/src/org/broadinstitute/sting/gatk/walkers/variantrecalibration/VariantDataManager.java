@@ -25,7 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
-import cern.jet.random.Normal;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -91,7 +90,7 @@ public class VariantDataManager {
             meanVector[iii] = theMean;
             varianceVector[iii] = theSTD;
             for( final VariantDatum datum : data ) {
-                datum.annotations[iii] = ( datum.isNull[iii] ? Normal.staticNextDouble(0.0, 1.0) : ( datum.annotations[iii] - theMean ) / theSTD );
+                datum.annotations[iii] = ( datum.isNull[iii] ? GenomeAnalysisEngine.getRandomGenerator().nextGaussian() : ( datum.annotations[iii] - theMean ) / theSTD );
                 // Each data point is now [ (x - mean) / standard deviation ]
                 if( annotationKeys.get(iii).toLowerCase().contains("ranksum") && datum.isNull[iii] && datum.annotations[iii] > 0.0 ) {
                     datum.annotations[iii] /= 3.0;
