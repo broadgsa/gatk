@@ -96,8 +96,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="keepAFSpectrum", shortName="keepAF", doc="Don't include loci found to be non-variant after the subsetting procedure.", required=false)
     private boolean KEEP_AF_SPECTRUM = false;
 
+    @Hidden
     @Argument(fullName="afFile", shortName="afFile", doc="The output recal file used by ApplyRecalibration", required=false)
-    private File AF_FILE = null;
+    private File AF_FILE = new File("");
 
     @Argument(fullName="family_structure", shortName="family", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
     private String FAMILY_STRUCTURE = "";
@@ -240,7 +241,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         if (SELECT_RANDOM_FRACTION) logger.info("Selecting approximately " + fractionRandom + "% of the variants at random from the variant track");
 
 
-        if (AF_FILE != null) {
+        if (KEEP_AF_SPECTRUM) {
             try {
                 afBreakpoints = new ArrayList<Double>();
                 afBoosts = new ArrayList<Double>();
@@ -328,8 +329,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     if (SELECT_RANDOM_FRACTION && KEEP_AF_SPECTRUM ) {
                         // ok we have a comp VC and we need to match the AF spectrum of inputAFRodName.
                         // We then pick a variant with probablity AF*desiredFraction
-
-                        if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
+                         if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
                             String afo = sub.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY);
 
                             double af;
@@ -354,21 +354,23 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                             // now boost af by table read from file if desired
                             //double bkpt = 0.0;
                             int bkidx = 0;
-                            if (AF_FILE != null) {
+                            if (!afBreakpoints.isEmpty()) {
                                 for ( Double bkpt : afBreakpoints) {
                                     if (af < bkpt + bkDelta)
                                         break;
                                     else bkidx++;
                                 }
-                                afBoost = afBreakpoints.get(bkidx);
-                                System.out.format("af:%f bkidx:%d afboost:%f\n",af,bkidx,afBoost);
+                                if (bkidx >=afBoosts.size())
+                                    bkidx = afBoosts.size()-1;
+                                afBoost = afBoosts.get(bkidx);
+                                //System.out.formatPrin("af:%f bkidx:%d afboost:%f\n",af,bkidx,afBoost);
 
 
 
                             }
 
                             //System.out.format("%s .. %4.4f\n",afo.toString(), af);
-                            if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * af * afBoost)
+                            if (GenomeAnalysisEngine.getRandomGenerator().nextDouble() < fractionRandom * afBoost *   afBoost)
                                 vcfWriter.add(sub, ref.getBase());
                         }
 
