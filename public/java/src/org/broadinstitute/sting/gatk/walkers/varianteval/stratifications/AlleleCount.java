@@ -43,9 +43,9 @@ public class AlleleCount extends VariantStratifier {
 
         if (eval != null) {
             int AC = -1;
-            if ( eval.hasAttribute("AC") )
+            if ( eval.hasAttribute("AC") && eval.getAttribute("AC") instanceof Integer ) {
                 AC = eval.getAttributeAsInt("AC");
-            else if ( eval.isVariant() ) {
+            } else if ( eval.isVariant() ) {
                 for (Allele allele : eval.getAlternateAlleles())
                     AC = Math.max(AC, eval.getChromosomeCount(allele));
             } else
