@@ -63,6 +63,10 @@
     <dependency org="net.sourceforge.findbugs" name="jsr305" rev="1.3.2" conf="test"/>
     <dependency org="com.google.code.caliper" name="caliper" rev="1.0-SNAPSHOT" conf="test" />
 
+    <!-- Contracts for Java and dependencies -->
+    <dependency org="com.google.code.cofoja" name="cofoja" rev="1.0-20110609" />
+    <dependency org="asm" name="asm-all" rev="3.3.1" />
+
     <!-- POI, for reading pipeline files -->
     <dependency org="org.apache.poi" name="poi" rev="3.8-beta3" />
     <dependency org="org.apache.poi" name="poi-ooxml" rev="3.8-beta3" />
