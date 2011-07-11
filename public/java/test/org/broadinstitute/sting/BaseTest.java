@@ -12,6 +12,10 @@ import java.io.*;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -104,6 +108,57 @@ public abstract class BaseTest {
         if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
             logger.fatal("We can't locate the reference directories.  Aborting!");
             throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
+        }
+    }
+
+    /**
+     * Simple generic utility class to creating TestNG data providers:
+     *
+     * 1: inherit this class, as in
+     *
+     *      private class SummarizeDifferenceTest extends TestDataProvider {
+     *         public SummarizeDifferenceTest() {
+     *           super(SummarizeDifferenceTest.class);
+     *         }
+     *         ...
+     *      }
+     *
+     * Provide a reference to your class to the TestDataProvider constructor.
+     *
+     * 2: Create instances of your subclass.  Return from it the call to getTests, providing
+     * the class type of your test
+     *
+     * @DataProvider(name = "summaries")
+     * public Object[][] createSummaries() {
+     *   new SummarizeDifferenceTest().addDiff("A", "A").addSummary("A:2");
+     *   new SummarizeDifferenceTest().addDiff("A", "B").addSummary("A:1", "B:1");
+     *   return SummarizeDifferenceTest.getTests(SummarizeDifferenceTest.class);
+     * }
+     *
+     * This class magically tracks created objects of this
+     */
+    public static class TestDataProvider {
+        private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
+
+        /**
+         * Create a new TestDataProvider instance bound to the class variable C
+         * @param c
+         */
+        public TestDataProvider(Class c) {
+            if ( ! tests.containsKey(c) )
+                tests.put(c, new ArrayList<Object>());
+            tests.get(c).add(this);
+        }
+
+        /**
+         * Return all of the data providers in the form expected by TestNG of type class C
+         * @param c
+         * @return
+         */
+        public static Object[][] getTests(Class c) {
+            List<Object[]> params2 = new ArrayList<Object[]>();
+            for ( Object x : tests.get(c) ) params2.add(new Object[]{x});
+            return params2.toArray(new Object[][]{});
         }
     }
 

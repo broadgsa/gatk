@@ -133,8 +133,12 @@ public class Haplotype {
 
 
         byte[] basesBeforeVariant = Arrays.copyOfRange(refBases,startIdxInReference,startIdxInReference+numPrefBases);
+        int startAfter = startIdxInReference+numPrefBases+ refAllele.getBases().length;
+        // protect against long events that overrun available reference context
+        if (startAfter > refBases.length)
+            startAfter = refBases.length;
         byte[] basesAfterVariant = Arrays.copyOfRange(refBases,
-                startIdxInReference+numPrefBases+ refAllele.getBases().length, refBases.length);
+                startAfter, refBases.length);
 
 
         // Create location for all haplotypes
