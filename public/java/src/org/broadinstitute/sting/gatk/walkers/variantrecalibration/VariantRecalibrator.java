@@ -284,7 +284,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             throw new UserException.CouldNotCreateOutputFile(RSCRIPT_FILE, "", e);
         }
 
-        // We make extensive use of the ggplot2 library: http://had.co.nz/ggplot2/
+        // We make extensive use of the ggplot2 R library: http://had.co.nz/ggplot2/
         stream.println("library(ggplot2)");
 
         createArrangeFunction( stream );
@@ -378,6 +378,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
      }
 
+    // The Arrange function is how we place the 4 model plots on one page
     // from http://gettinggeneticsdone.blogspot.com/2010/03/arrange-multiple-ggplot2-plots-in-same.html
     private void createArrangeFunction( final PrintStream stream ) {
         stream.println("vp.layout <- function(x, y) viewport(layout.pos.row=x, layout.pos.col=y)");
@@ -402,5 +403,4 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         stream.println("}");
         stream.println("}");
     }
-
- }
+}

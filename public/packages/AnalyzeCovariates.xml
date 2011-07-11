@@ -10,7 +10,6 @@
       <class name="org.broadinstitute.sting.gatk.walkers.recalibration.QualityScoreCovariate" />
       <class name="org.broadinstitute.sting.gatk.walkers.recalibration.CycleCovariate" />
       <class name="org.broadinstitute.sting.gatk.walkers.recalibration.ReadGroupCovariate" />
-      <class name="org.broadinstitute.sting.gatk.walkers.recalibration.TileCovariate" />
     </dependencies>
   </executable>
   <resources>
