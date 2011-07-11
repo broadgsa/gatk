@@ -360,14 +360,7 @@ public class StandardVCFWriter implements VCFWriter {
             if ( !entry.getValue().equals("") ) {
                 int numVals = 1;
                 VCFInfoHeaderLine metaData = mHeader.getInfoHeaderLine(key);
-                if ( metaData != null )
-                    numVals = metaData.getCount();
-
-                // take care of unbounded encoding
-                if ( numVals == VCFInfoHeaderLine.UNBOUNDED )
-                    numVals = 1;
-
-                if ( numVals > 0 ) {
+                if ( metaData != null && (metaData.getCountType() != VCFHeaderLineCount.INTEGER || metaData.getCount() > 0) ) {
                     mWriter.write("=");
                     mWriter.write(entry.getValue());
                 }
@@ -423,7 +416,7 @@ public class StandardVCFWriter implements VCFWriter {
 
                 VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(key);
                 if ( metaData != null ) {
-                    int numInFormatField = metaData.getCount();
+                    int numInFormatField = metaData.getCount(vc.getAlternateAlleles().size());
                     if ( numInFormatField > 1 && val.equals(VCFConstants.MISSING_VALUE_v4) ) {
                         // If we have a missing field but multiple values are expected, we need to construct a new string with all fields.
                         // For example, if Number=2, the string has to be ".,."

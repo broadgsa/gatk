@@ -24,6 +24,8 @@
 
 package org.broadinstitute.sting.utils.codecs.vcf;
 
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,25 +45,42 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
 
     // the field types
     private String name;
-    private int count;
+    private int count = -1;
+    private VCFHeaderLineCount countType;
     private String description;
     private VCFHeaderLineType type;
 
     // access methods
     public String getName() { return name; }
-    public int getCount() { return count; }
     public String getDescription() { return description; }
     public VCFHeaderLineType getType() { return type; }
+    public VCFHeaderLineCount getCountType() { return countType; }
+    public int getCount() {
+        if ( countType != VCFHeaderLineCount.INTEGER )
+            throw new ReviewedStingException("Asking for header line count when type is not an integer");
+        return count;
+    }
 
-    //
-    public void setNumberToUnbounded() { this.count = UNBOUNDED; }
+    // utility method
+    public int getCount(int numAltAlleles) {
+        int myCount;
+        switch ( countType ) {
+            case INTEGER: myCount = count; break;
+            case UNBOUNDED: myCount = -1; break;
+            case A: myCount = numAltAlleles; break;
+            case G: myCount = ((numAltAlleles + 1) * (numAltAlleles + 2) / 2); break;
+            default: throw new ReviewedStingException("Unknown count type: " + countType);
+        }
+        return myCount;
+    }
+
+    public void setNumberToUnbounded() {
+        countType = VCFHeaderLineCount.UNBOUNDED;
+        count = -1;
+    }
 
     // our type of line, i.e. format, info, etc
     private final SupportedHeaderLineType lineType;
-
-    // line numerical values are allowed to be unbounded (or unknown), which is
-    // marked with a dot (.)
-    public static final int UNBOUNDED = -1;    // the value we store internally for unbounded types
 
     /**
      * create a VCF format header line
@@ -74,7 +93,26 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
     protected VCFCompoundHeaderLine(String name, int count, VCFHeaderLineType type, String description, SupportedHeaderLineType lineType) {
         super(lineType.toString(), "");
         this.name = name;
+        this.countType = VCFHeaderLineCount.INTEGER;
         this.count = count;
+        this.type = type;
+        this.description = description;
+        this.lineType = lineType;
+        validate();
+    }
+
+    /**
+     * create a VCF format header line
+     *
+     * @param name         the name for this header line
+     * @param count        the count type for this header line
+     * @param type         the type for this header line
+     * @param description  the description for this header line
+     */
+    protected VCFCompoundHeaderLine(String name, VCFHeaderLineCount count, VCFHeaderLineType type, String description, SupportedHeaderLineType lineType) {
+        super(lineType.toString(), "");
+        this.name = name;
+        this.countType = count;
         this.type = type;
         this.description = description;
         this.lineType = lineType;
@@ -92,9 +130,22 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
         super(lineType.toString(), "");
         Map<String,String> mapping = VCFHeaderLineTranslator.parseLine(version,line, Arrays.asList("ID","Number","Type","Description"));
         name = mapping.get("ID");
-        count = (version == VCFHeaderVersion.VCF4_0 || version == VCFHeaderVersion.VCF4_1) ?
-                        mapping.get("Number").equals(VCFConstants.UNBOUNDED_ENCODING_v4) ? UNBOUNDED : Integer.valueOf(mapping.get("Number")) :
-                        mapping.get("Number").equals(VCFConstants.UNBOUNDED_ENCODING_v3) ? UNBOUNDED : Integer.valueOf(mapping.get("Number"));
+        count = -1;
+        final String numberStr = mapping.get("Number");
+        if ( numberStr.equals(VCFConstants.PER_ALLELE_COUNT) ) {
+            countType = VCFHeaderLineCount.A;
+        } else if ( numberStr.equals(VCFConstants.PER_GENOTYPE_COUNT) ) {
+            countType = VCFHeaderLineCount.G;
+        } else if ( ((version == VCFHeaderVersion.VCF4_0 || version == VCFHeaderVersion.VCF4_1) &&
+                     numberStr.equals(VCFConstants.UNBOUNDED_ENCODING_v4)) ||
+                    ((version == VCFHeaderVersion.VCF3_2 || version == VCFHeaderVersion.VCF3_3) &&
+                     numberStr.equals(VCFConstants.UNBOUNDED_ENCODING_v3)) ) {
+            countType = VCFHeaderLineCount.UNBOUNDED;
+        } else {
+            countType = VCFHeaderLineCount.INTEGER;
+            count = Integer.valueOf(numberStr);
+
+        }
         type = VCFHeaderLineType.valueOf(mapping.get("Type"));
         if (type == VCFHeaderLineType.Flag && !allowFlagValues())
             throw new IllegalArgumentException("Flag is an unsupported type for this kind of field");
@@ -121,7 +172,15 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
     protected String toStringEncoding() {
         Map<String,Object> map = new LinkedHashMap<String,Object>();
         map.put("ID", name);
-        map.put("Number", count == UNBOUNDED ? VCFConstants.UNBOUNDED_ENCODING_v4 : count);
+        Object number;
+        switch ( countType ) {
+            case A: number = VCFConstants.PER_ALLELE_COUNT; break;
+            case G: number = VCFConstants.PER_GENOTYPE_COUNT; break;
+            case UNBOUNDED: number = VCFConstants.UNBOUNDED_ENCODING_v4; break;
+            case INTEGER:
+            default: number = count;
+        }
+        map.put("Number", number);
         map.put("Type", type);
         map.put("Description", description);
         return lineType.toString() + "=" + VCFHeaderLine.toStringEncoding(map);
@@ -136,15 +195,13 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
         if ( !(o instanceof VCFCompoundHeaderLine) )
             return false;
         VCFCompoundHeaderLine other = (VCFCompoundHeaderLine)o;
-        return name.equals(other.name) &&
-                count == other.count &&
-                description.equals(other.description) &&
-                type == other.type &&
-                lineType == other.lineType;
+        return equalsExcludingDescription(other) &&
+                description.equals(other.description);
     }
 
     public boolean equalsExcludingDescription(VCFCompoundHeaderLine other) {
         return count == other.count &&
+                countType == other.countType &&
                 type == other.type &&
                 lineType == other.lineType &&
                 name.equals(other.name);
