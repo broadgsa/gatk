@@ -48,6 +48,7 @@ import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.lang.annotation.AnnotationFormatError;
 import java.util.*;
 
@@ -100,6 +101,10 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="afFile", shortName="afFile", doc="The output recal file used by ApplyRecalibration", required=false)
     private File AF_FILE = new File("");
 
+    @Hidden
+    @Argument(fullName="family_structure_file", shortName="familyFile", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+    private File FAMILY_STRUCTURE_FILE = null;
+
     @Argument(fullName="family_structure", shortName="family", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
     private String FAMILY_STRUCTURE = "";
 
@@ -121,6 +126,9 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     @Argument(fullName="selectIndels", shortName="indels", doc="Select only Indels.", required=false)
     private boolean SELECT_INDELS = false;
 
+    @Hidden
+     @Argument(fullName="outMVFile", shortName="outMVFile", doc="USE YAML FILE INSTEAD (-SM) !!! string formatted as dad+mom=child where these parameters determine which sample names are examined", required=false)
+      private String outMVFile = null;
 
     /* Private class used to store the intermediate variants in the integer random selection process */
     private class RandomVariantStructure {
@@ -148,7 +156,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private boolean DISCORDANCE_ONLY = false;
     private boolean CONCORDANCE_ONLY = false;
 
-    private MendelianViolation mv;
+    private Set<MendelianViolation> mvSet = new HashSet<MendelianViolation>();
 
     /* default name for the variant dataset (VCF) */
     private final String variantRodName = "variant";
@@ -168,6 +176,8 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
     private ArrayList<Double> afBoosts = null;
     double bkDelta = 0.0;
 
+
+        private PrintStream outMVFileStream = null;
 
 
     /**
@@ -224,10 +234,29 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
         CONCORDANCE_ONLY = concordanceRodName.length() > 0;
         if (CONCORDANCE_ONLY) logger.info("Selecting only variants concordant with the track: " + concordanceRodName);
 
-        if (MENDELIAN_VIOLATIONS)
-            mv = new MendelianViolation(getToolkit(), MENDELIAN_VIOLATION_QUAL_THRESHOLD);
+        if (MENDELIAN_VIOLATIONS) {
+            if ( FAMILY_STRUCTURE_FILE != null) {
+                try {
+                    for ( final String line : new XReadLines( FAMILY_STRUCTURE_FILE ) ) {
+                        MendelianViolation mv = new MendelianViolation(line, MENDELIAN_VIOLATION_QUAL_THRESHOLD);
+                        if (samples.contains(mv.getSampleChild()) &&  samples.contains(mv.getSampleDad()) && samples.contains(mv.getSampleMom()))
+                            mvSet.add(mv);
+                    }
+                } catch ( FileNotFoundException e ) {
+                    throw new UserException.CouldNotReadInputFile(AF_FILE, e);
+                }
+                if (outMVFile != null)
+                    try {
+                        outMVFileStream = new PrintStream(outMVFile);
+                    }
+                    catch (FileNotFoundException e) {
+                        throw new UserException.CouldNotCreateOutputFile(outMVFile, "Can't open output file", e);   }
+            }
+            else
+                mvSet.add(new MendelianViolation(getToolkit(), MENDELIAN_VIOLATION_QUAL_THRESHOLD));
+        }
         else if (!FAMILY_STRUCTURE.isEmpty()) {
-            mv = new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD);
+            mvSet.add(new MendelianViolation(FAMILY_STRUCTURE, MENDELIAN_VIOLATION_QUAL_THRESHOLD));
             MENDELIAN_VIOLATIONS = true;
         }
 
@@ -289,9 +318,24 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
 
         for (VariantContext vc : vcs) {
             if (MENDELIAN_VIOLATIONS) {
-                if (!mv.isViolation(vc)) {
-                    break;
+                boolean foundMV = false;
+                for (MendelianViolation mv : mvSet) {
+                    if (mv.isViolation(vc)) {
+                        foundMV = true;
+                        //System.out.println(vc.toString());
+                        if (outMVFile != null)
+                            outMVFileStream.format("MV@%s:%d. REF=%s, ALT=%s, AC=%d, momID=%s, dadID=%s, childID=%s, momG=%s, momGL=%s, dadG=%s, dadGL=%s, " +
+                                "childG=%s childGL=%s\n",vc.getChr(), vc.getStart(),
+                                vc.getReference().getDisplayString(), vc.getAlternateAllele(0).getDisplayString(),  vc.getChromosomeCount(vc.getAlternateAllele(0)),
+                                mv.getSampleMom(), mv.getSampleDad(), mv.getSampleChild(),
+                                vc.getGenotype(mv.getSampleMom()).toBriefString(), vc.getGenotype(mv.getSampleMom()).getLikelihoods().getAsString(),
+                                vc.getGenotype(mv.getSampleDad()).toBriefString(), vc.getGenotype(mv.getSampleMom()).getLikelihoods().getAsString(),
+                                vc.getGenotype(mv.getSampleChild()).toBriefString(),vc.getGenotype(mv.getSampleChild()).getLikelihoods().getAsString()  );
+                    }
                 }
+
+                if (!foundMV)
+                    break;
             }
             if (DISCORDANCE_ONLY) {
                 Collection<VariantContext> compVCs = tracker.getVariantContexts(ref, discordanceRodName, null, context.getLocation(), true, false);
@@ -329,7 +373,7 @@ public class SelectVariants extends RodWalker<Integer, Integer> {
                     if (SELECT_RANDOM_FRACTION && KEEP_AF_SPECTRUM ) {
                         // ok we have a comp VC and we need to match the AF spectrum of inputAFRodName.
                         // We then pick a variant with probablity AF*desiredFraction
-                         if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
+                        if ( sub.hasAttribute(VCFConstants.ALLELE_FREQUENCY_KEY) )  {
                             String afo = sub.getAttributeAsString(VCFConstants.ALLELE_FREQUENCY_KEY);
 
                             double af;
