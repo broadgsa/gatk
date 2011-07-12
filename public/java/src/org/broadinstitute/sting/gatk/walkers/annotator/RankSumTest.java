@@ -106,6 +106,9 @@ public abstract class RankSumTest implements InfoFieldAnnotation, StandardAnnota
     protected abstract void fillIndelQualsFromPileup(ReadBackedPileup pileup, List<Double> refQuals, List<Double> altQuals);
 
     protected static boolean isUsableBase( final PileupElement p ) {
-        return !( p.isDeletion() || p.getMappingQual() == 0 || ((int)p.getQual()) < 6 ); // need the unBAQed quality score here
+        return !( p.isDeletion() ||
+                  p.getMappingQual() == 0 ||
+                  p.getMappingQual() == QualityUtils.MAPPING_QUALITY_UNAVAILABLE ||
+                  ((int)p.getQual()) < QualityUtils.MIN_USABLE_Q_SCORE ); // need the unBAQed quality score here
     }
 }
