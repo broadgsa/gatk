@@ -55,10 +55,14 @@ public class TableFeature implements Feature {
     }
 
     public List<String> getAllValues() {
-        return getValuesTo(values.size()-1);
+        return getValuesTo(values.size());
     }
 
     public List<String> getValuesTo(int columnPosition) {
         return values.subList(0,columnPosition);
+    }
+
+    public List<String> getHeader() {
+        return keys;
     }
 }

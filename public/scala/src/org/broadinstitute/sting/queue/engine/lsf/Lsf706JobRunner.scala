@@ -286,11 +286,11 @@ object Lsf706JobRunner extends Logging {
     // LSB_SHAREDIR/cluster_name/logdir/lsb.acct (man bacct)
     // LSB_SHAREDIR/cluster_name/logdir/lsb.events (man bhist)
     logger.debug("Job Id %s status / exitStatus / exitInfo: ??? / ??? / ???".format(runner.jobId))
-    val unknownStatusSeconds = (System.currentTimeMillis - runner.lastStatusUpdate)
-    if (unknownStatusSeconds > (unknownStatusMaxSeconds * 1000L)) {
+    val unknownStatusMillis = (System.currentTimeMillis - runner.lastStatusUpdate)
+    if (unknownStatusMillis > (unknownStatusMaxSeconds * 1000L)) {
       // Unknown status has been returned for a while now.
       runner.updateStatus(RunnerStatus.FAILED)
-      logger.error("Unable to read LSF status for %d minutes: job id %d: %s".format(unknownStatusSeconds/60, runner.jobId, runner.function.description))
+      logger.error("Unable to read LSF status for %0.2f minutes: job id %d: %s".format(unknownStatusMillis/(60 * 1000D), runner.jobId, runner.function.description))
     }
   }
 
