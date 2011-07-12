@@ -867,7 +867,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
         for ( String name : sampleNames ) {
             if ( map.containsKey(name) ) throw new IllegalArgumentException("Duplicate names detected in requested samples " + sampleNames);
-            map.put(name, getGenotype(name));
+            final Genotype g = getGenotype(name);
+            if ( g != null ) {
+                map.put(name, g);
+            }
         }
 
         return map;
