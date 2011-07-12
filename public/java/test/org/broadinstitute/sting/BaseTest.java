@@ -4,6 +4,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.gatk.walkers.diffengine.DiffEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.Assert;
 
@@ -334,10 +335,13 @@ public abstract class BaseTest {
         
         if (parameterize || expectedMD5.equals("")) {
             // Don't assert
-        } else {
-            Assert.assertEquals(filemd5sum, expectedMD5, name + " Mismatching MD5s");
+        } else if ( filemd5sum.equals(expectedMD5) ) {
             System.out.println(String.format("  => %s PASSED", name));
+        } else {
+            Assert.fail(String.format("%s has mismatching MD5s: expected=%s observed=%s", name, expectedMD5, filemd5sum));
         }
+
+
 
         return filemd5sum;
     }
@@ -381,7 +385,12 @@ public abstract class BaseTest {
                     System.out.printf("##### Path to calculated file (MD5=%s): %s%n", filemd5sum, pathToFileMD5File);
                     System.out.printf("##### Diff command: diff %s %s%n", pathToExpectedMD5File, pathToFileMD5File);
 
-                    // todo -- add support for simple inline display of the first N differences for text file
+                    // inline differences
+                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(System.out, 20, 10, 0);
+                    boolean success = DiffEngine.simpleDiffFiles(new File(pathToExpectedMD5File), new File(pathToFileMD5File), params);
+                    if ( success )
+                        System.out.printf("Note that the above list is not comprehensive.  At most 20 lines of output, and 10 specific differences will be listed.  Please use -T DiffObjects -R public/testdata/exampleFASTA.fasta -m %s -t %s to explore the differences more freely%n",
+                                pathToExpectedMD5File, pathToFileMD5File);
                 }
             }
 

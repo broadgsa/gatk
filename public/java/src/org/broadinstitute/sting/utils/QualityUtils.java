@@ -9,9 +9,13 @@ import net.sf.samtools.SAMUtils;
  * @author Kiran Garimella
  */
 public class QualityUtils {
+
     public final static byte MAX_QUAL_SCORE = SAMUtils.MAX_PHRED_SCORE;
     public final static double MIN_REASONABLE_ERROR = 0.0001;
     public final static byte MAX_REASONABLE_Q_SCORE = 40;
+    public final static byte MIN_USABLE_Q_SCORE = 6;
+
+    public final static int MAPPING_QUALITY_UNAVAILABLE = 255;
 
     /**
      * Private constructor.  No instantiating this class!

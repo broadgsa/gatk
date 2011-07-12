@@ -29,6 +29,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
@@ -200,8 +201,8 @@ public class ReadDepthAndAllelicFractionBySample implements GenotypeAnnotation {
                             1,
                             VCFHeaderLineType.Integer,
                             "Total read depth per sample, including MQ0"),
-                    new VCFFormatHeaderLine(getKeyNames().get(1),
-                            VCFCompoundHeaderLine.UNBOUNDED,
+                            new VCFFormatHeaderLine(getKeyNames().get(1),
+                            VCFHeaderLineCount.UNBOUNDED,
                             VCFHeaderLineType.Float,
                             "Fractions of reads (excluding MQ0 from both ref and alt) supporting each reported alternative allele, per sample"));
         }

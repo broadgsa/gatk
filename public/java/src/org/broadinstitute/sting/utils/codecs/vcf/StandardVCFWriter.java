@@ -123,12 +123,10 @@ public class StandardVCFWriter implements VCFWriter {
         
         try {
             // the file format field needs to be written first
-            mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_0.getFormatString() + "=" + VCFHeaderVersion.VCF4_0.getVersionString() + "\n");
+            mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_1.getFormatString() + "=" + VCFHeaderVersion.VCF4_1.getVersionString() + "\n");
 
             for ( VCFHeaderLine line : mHeader.getMetaData() ) {
-                if ( line.getKey().equals(VCFHeaderVersion.VCF4_0.getFormatString()) ||
-                        line.getKey().equals(VCFHeaderVersion.VCF3_3.getFormatString()) ||
-                        line.getKey().equals(VCFHeaderVersion.VCF3_2.getFormatString()) )
+                if ( VCFHeaderVersion.isFormatString(line.getKey()) )
                     continue;
 
                 // are the records filtered (so we know what to put in the FILTER column of passing records) ?
@@ -358,16 +356,8 @@ public class StandardVCFWriter implements VCFWriter {
             mWriter.write(key);
 
             if ( !entry.getValue().equals("") ) {
-                int numVals = 1;
                 VCFInfoHeaderLine metaData = mHeader.getInfoHeaderLine(key);
-                if ( metaData != null )
-                    numVals = metaData.getCount();
-
-                // take care of unbounded encoding
-                if ( numVals == VCFInfoHeaderLine.UNBOUNDED )
-                    numVals = 1;
-
-                if ( numVals > 0 ) {
+                if ( metaData == null || metaData.getCountType() != VCFHeaderLineCount.INTEGER || metaData.getCount() != 0 ) {
                     mWriter.write("=");
                     mWriter.write(entry.getValue());
                 }
@@ -423,7 +413,7 @@ public class StandardVCFWriter implements VCFWriter {
 
                 VCFFormatHeaderLine metaData = mHeader.getFormatHeaderLine(key);
                 if ( metaData != null ) {
-                    int numInFormatField = metaData.getCount();
+                    int numInFormatField = metaData.getCount(vc.getAlternateAlleles().size());
                     if ( numInFormatField > 1 && val.equals(VCFConstants.MISSING_VALUE_v4) ) {
                         // If we have a missing field but multiple values are expected, we need to construct a new string with all fields.
                         // For example, if Number=2, the string has to be ".,."
