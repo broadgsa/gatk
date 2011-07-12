@@ -27,6 +27,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 
 import org.broad.tribble.bed.BEDCodec;
 import org.broad.tribble.dbsnp.DbSNPCodec;
+import org.broadinstitute.sting.gatk.filters.MappingQualityUnavailableReadFilter;
 import org.broadinstitute.sting.utils.codecs.vcf.VCF3Codec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.commandline.Gather;
@@ -75,7 +76,7 @@ import java.util.Map;
 
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By( DataSource.READS ) // Only look at covered loci, not every loci of the reference file
-@ReadFilters( {MappingQualityZeroReadFilter.class} ) // Filter out all reads with zero mapping quality
+@ReadFilters( {MappingQualityZeroReadFilter.class, MappingQualityUnavailableReadFilter.class} ) // Filter out all reads with zero or unavailable mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
 @PartitionBy(PartitionType.LOCUS)
 public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.CountedData, CountCovariatesWalker.CountedData> implements TreeReducible<CountCovariatesWalker.CountedData> {
