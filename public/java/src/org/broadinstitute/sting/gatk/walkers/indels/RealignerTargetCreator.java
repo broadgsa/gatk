@@ -30,7 +30,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.filters.BadCigarFilter;
 import org.broadinstitute.sting.gatk.filters.Platform454Filter;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
 import org.broadinstitute.sting.gatk.filters.BadMateFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -50,7 +50,7 @@ import java.io.PrintStream;
 /**
  * Emits intervals for the Local Indel Realigner to target for cleaning.  Ignores 454 reads, MQ0 reads, and reads with consecutive indel operators in the CIGAR string.
  */
-@ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class, BadCigarFilter.class})
+@ReadFilters({Platform454Filter.class, MappingQualityZeroReadFilter.class, BadCigarFilter.class})
 @Reference(window=@Window(start=-1,stop=50))
 @Allows(value={DataSource.READS, DataSource.REFERENCE})
 @By(DataSource.REFERENCE)

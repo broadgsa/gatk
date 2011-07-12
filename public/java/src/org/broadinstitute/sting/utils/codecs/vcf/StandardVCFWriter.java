@@ -123,12 +123,10 @@ public class StandardVCFWriter implements VCFWriter {
         
         try {
             // the file format field needs to be written first
-            mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_0.getFormatString() + "=" + VCFHeaderVersion.VCF4_0.getVersionString() + "\n");
+            mWriter.write(VCFHeader.METADATA_INDICATOR + VCFHeaderVersion.VCF4_1.getFormatString() + "=" + VCFHeaderVersion.VCF4_1.getVersionString() + "\n");
 
             for ( VCFHeaderLine line : mHeader.getMetaData() ) {
-                if ( line.getKey().equals(VCFHeaderVersion.VCF4_0.getFormatString()) ||
-                        line.getKey().equals(VCFHeaderVersion.VCF3_3.getFormatString()) ||
-                        line.getKey().equals(VCFHeaderVersion.VCF3_2.getFormatString()) )
+                if ( VCFHeaderVersion.isFormatString(line.getKey()) )
                     continue;
 
                 // are the records filtered (so we know what to put in the FILTER column of passing records) ?
