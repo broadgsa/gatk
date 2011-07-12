@@ -62,5 +62,5 @@ public class AlleleBalanceBySample implements GenotypeAnnotation, ExperimentalAn
 
     public List<String> getKeyNames() { return Arrays.asList("AB"); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), -1, VCFHeaderLineType.Float, "Allele balance for each het genotype")); }
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Float, "Allele balance for each het genotype")); }
 }

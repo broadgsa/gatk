@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2011, The Broad Institute
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,7 +12,6 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,21 +22,37 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.filters;
-
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMRecord;
+package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 /**
- * Filter out zero mapping quality reads.
+ * Created by IntelliJ IDEA.
+ * User: depristo
+ * Date: 7/4/11
+ * Time: 12:53 PM
  *
- * @author hanna
- * @version 0.1
+ * Represents a specific difference between two specific DiffElements
  */
+public class Difference {
+    DiffElement master, test;
 
-public class ZeroMappingQualityReadFilter extends ReadFilter {
-    public boolean filterOut(SAMRecord rec) {
-        return (rec.getMappingQuality() == 0);
+    public Difference(DiffElement master, DiffElement test) {
+        if ( master == null && test == null ) throw new IllegalArgumentException("Master and test both cannot be null");
+        this.master = master;
+        this.test = test;
+    }
+
+    public String toString() {
+        return String.format("%s:%s!=%s",
+                getFullyQualifiedName(),
+                getOneLineString(master),
+                getOneLineString(test));
+    }
+
+    public String getFullyQualifiedName() {
+        return (master == null ? test : master).fullyQualifiedName();
+    }
+
+    private static String getOneLineString(DiffElement elt) {
+        return elt == null ? "MISSING" : elt.getValue().toOneLineString();
     }
 }
-

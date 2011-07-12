@@ -60,7 +60,7 @@ public class VCFStreamingIntegrationTest extends WalkerTest {
                     " --NO_HEADER" +
                     " -o %s",
             1,
-            Arrays.asList("debbbf3e661b6857cc8d99ff7635bb1d")
+            Arrays.asList("658f580f7a294fd334bd897102616fed")
         );
 
         executeTest("testSimpleVCFStreaming", spec);

@@ -108,7 +108,7 @@ public class Allele implements Comparable<Allele> {
         this.bases = bases;
 
         if ( ! acceptableAlleleBases(bases) )
-            throw new IllegalArgumentException("Unexpected base in allele bases " + new String(bases));
+            throw new IllegalArgumentException("Unexpected base in allele bases \'" + new String(bases)+"\'");
     }
 
     private Allele(String bases, boolean isRef) {
