@@ -32,7 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -58,7 +58,7 @@ import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFr
 @Requires(value = {DataSource.READS, DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
 @By(DataSource.READS)
 
-@ReadFilters({ZeroMappingQualityReadFilter.class})
+@ReadFilters({MappingQualityZeroReadFilter.class})
 // Filter out all reads with zero mapping quality
 
 public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, PhasingStats> {

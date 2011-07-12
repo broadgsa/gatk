@@ -34,7 +34,7 @@ import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -75,7 +75,7 @@ import java.util.Map;
 
 @BAQMode(ApplicationTime = BAQ.ApplicationTime.FORBIDDEN)
 @By( DataSource.READS ) // Only look at covered loci, not every loci of the reference file
-@ReadFilters( {ZeroMappingQualityReadFilter.class} ) // Filter out all reads with zero mapping quality
+@ReadFilters( {MappingQualityZeroReadFilter.class} ) // Filter out all reads with zero mapping quality
 @Requires( {DataSource.READS, DataSource.REFERENCE, DataSource.REFERENCE_BASES} ) // This walker requires both -I input.bam and -R reference.fasta
 @PartitionBy(PartitionType.LOCUS)
 public class CountCovariatesWalker extends LocusWalker<CountCovariatesWalker.CountedData, CountCovariatesWalker.CountedData> implements TreeReducible<CountCovariatesWalker.CountedData> {
