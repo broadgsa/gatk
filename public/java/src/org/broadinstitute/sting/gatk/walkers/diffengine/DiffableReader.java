@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 The Broad Institute
+ * Copyright (c) 2011, The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -12,47 +12,39 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
  * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
  * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
  * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
+package org.broadinstitute.sting.gatk.walkers.diffengine;
+
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
+
+import java.io.File;
 
 /**
  * Created by IntelliJ IDEA.
- * User: rpoplin
- * Date: Mar 4, 2011
+ * User: depristo
+ * Date: 7/4/11
+ * Time: 1:09 PM
+ *
+ * Interface for readers creating diffable objects from a file
  */
+public interface DiffableReader {
+    @Ensures("result != null")
+    public String getName();
 
-public class VariantDatum implements Comparable<VariantDatum> {
+    @Ensures("result != null")
+    @Requires("file != null")
+    public DiffElement readFromFile(File file);
 
-    public double[] annotations;
-    public boolean[] isNull;
-    public boolean isKnown;
-    public double lod;
-    public boolean atTruthSite;
-    public boolean atTrainingSite;
-    public boolean atAntiTrainingSite;
-    public boolean isTransition;
-    public boolean isSNP;
-    public boolean failingSTDThreshold;
-    public double originalQual;
-    public double prior;
-    public int consensusCount;
-    public String contig;
-    public int start;
-    public int stop;
-    public int worstAnnotation;
-    public MultivariateGaussian assignment; // used in K-means implementation 
-
-    public int compareTo( final VariantDatum other ) {
-        return Double.compare(this.lod, other.lod);
-    }
+    @Requires("file != null")
+    public boolean canRead(File file);
 }

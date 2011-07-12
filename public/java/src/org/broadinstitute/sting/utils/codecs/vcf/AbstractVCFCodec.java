@@ -225,7 +225,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             loc = pos + alleles.get(0).length() - 1;
         } else if ( !isSingleNucleotideEvent(alleles) ) {
             ArrayList<Allele> newAlleles = new ArrayList<Allele>();
-            loc = clipAlleles(pos, ref, alleles, newAlleles);
+            loc = clipAlleles(pos, ref, alleles, newAlleles, lineNo);
             alleles = newAlleles;
         }
 
@@ -504,7 +504,7 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
      * @param clippedAlleles output list of clipped alleles
      * @return a list of alleles, clipped to the reference
      */
-    protected static long clipAlleles(long position, String ref, List<Allele> unclippedAlleles, List<Allele> clippedAlleles) {
+    protected static long clipAlleles(long position, String ref, List<Allele> unclippedAlleles, List<Allele> clippedAlleles, int lineNo) {
 
         // Note that the computation of forward clipping here is meant only to see whether there is a common
         // base to all alleles, and to correctly compute reverse clipping,
@@ -522,6 +522,8 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
                 }
                 if (a.length() - reverseClipped <= forwardClipping || a.length() - forwardClipping == 0)
                     clipping = false;
+                else if (ref.length() == reverseClipped)
+                    generateException("bad alleles encountered", lineNo);
                 else if (a.getBases()[a.length()-reverseClipped-1] != ref.getBytes()[ref.length()-reverseClipped-1])
                     clipping = false;
             }

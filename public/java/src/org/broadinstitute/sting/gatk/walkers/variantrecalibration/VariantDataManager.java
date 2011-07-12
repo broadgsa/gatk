@@ -1,6 +1,30 @@
+/*
+ * Copyright (c) 2011 The Broad Institute
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
-import cern.jet.random.Normal;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
@@ -58,19 +82,11 @@ public class VariantDataManager {
             }
 
             foundZeroVarianceAnnotation = foundZeroVarianceAnnotation || (theSTD < 1E-6);
-            if( annotationKeys.get(iii).toLowerCase().contains("ranksum") ) { // BUGBUG: to clean up
-                for( final VariantDatum datum : data ) {
-                    if( datum.annotations[iii] > 0.0 ) { datum.annotations[iii] /= 3.0; }
-                }
-            }
             meanVector[iii] = theMean;
             varianceVector[iii] = theSTD;
             for( final VariantDatum datum : data ) {
-                datum.annotations[iii] = ( datum.isNull[iii] ? Normal.staticNextDouble(0.0, 1.0) : ( datum.annotations[iii] - theMean ) / theSTD );
-                // Each data point is now [ (x - mean) / standard deviation ]
-                if( annotationKeys.get(iii).toLowerCase().contains("ranksum") && datum.isNull[iii] && datum.annotations[iii] > 0.0 ) {
-                    datum.annotations[iii] /= 3.0;
-                }
+                // Transform each data point via: (x - mean) / standard deviation
+                datum.annotations[iii] = ( datum.isNull[iii] ? GenomeAnalysisEngine.getRandomGenerator().nextGaussian() : ( datum.annotations[iii] - theMean ) / theSTD );
             }
         }
         if( foundZeroVarianceAnnotation ) {
@@ -139,7 +155,7 @@ public class VariantDataManager {
         final int numBadSitesAdded = trainingData.size();
         logger.info( "Found " + numBadSitesAdded + " variants overlapping bad sites training tracks." );
 
-        // Next, sort the variants by the LOD coming from the positive model and add to the list the bottom X percent of variants
+        // Next sort the variants by the LOD coming from the positive model and add to the list the bottom X percent of variants
         Collections.sort( data );
         final int numToAdd = Math.max( minimumNumber - trainingData.size(), Math.round((float)bottomPercentage * data.size()) );
         if( numToAdd > data.size() ) {
@@ -217,23 +233,15 @@ public class VariantDataManager {
         double value;
 
         try {
-            if( annotationKey.equalsIgnoreCase("QUAL") ) {
-                value = vc.getPhredScaledQual();
-            } else if( annotationKey.equalsIgnoreCase("DP") ) {
-                value = Double.parseDouble( (String)vc.getAttribute( "DP" ) ) / Double.parseDouble( (String)vc.getAttribute( "AN" ) );
-            } else {
-                value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
-                if( Double.isInfinite(value) ) { value = Double.NaN; }
-                if( annotationKey.equalsIgnoreCase("InbreedingCoeff") && value > 0.05 ) { value = Double.NaN; }
-                if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
-                      value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
-                }
-                if( annotationKey.equalsIgnoreCase("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
-                if( annotationKey.equalsIgnoreCase("FS") && MathUtils.compareDoubles(value, 0.0, 0.01) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
+            value = Double.parseDouble( (String)vc.getAttribute( annotationKey ) );
+            if( Double.isInfinite(value) ) { value = Double.NaN; }
+            if( jitter && annotationKey.equalsIgnoreCase("HRUN") ) { // Integer valued annotations must be jittered a bit to work in this GMM
+                  value += -0.25 + 0.5 * GenomeAnalysisEngine.getRandomGenerator().nextDouble();
             }
-
+            if( jitter && annotationKey.equalsIgnoreCase("HaplotypeScore") && MathUtils.compareDoubles(value, 0.0, 0.0001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
+            if( jitter && annotationKey.equalsIgnoreCase("FS") && MathUtils.compareDoubles(value, 0.0, 0.001) == 0 ) { value = -0.2 + 0.4*GenomeAnalysisEngine.getRandomGenerator().nextDouble(); }
         } catch( Exception e ) {
-            value = Double.NaN; // The VQSR works with missing data now by marginalizing over the missing dimension when evaluating Gaussians
+            value = Double.NaN; // The VQSR works with missing data by marginalizing over the missing dimension when evaluating the Gaussian mixture model
         }
 
         return value;

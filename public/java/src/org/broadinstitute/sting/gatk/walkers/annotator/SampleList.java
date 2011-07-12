@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -65,5 +66,5 @@ public class SampleList implements InfoFieldAnnotation {
 
     public List<String> getKeyNames() { return Arrays.asList("Samples"); }
 
-    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("Samples", VCFInfoHeaderLine.UNBOUNDED, VCFHeaderLineType.String, "List of polymorphic samples")); }
+    public List<VCFInfoHeaderLine> getDescriptions() { return Arrays.asList(new VCFInfoHeaderLine("Samples", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.String, "List of polymorphic samples")); }
 }
