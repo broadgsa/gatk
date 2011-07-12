@@ -51,12 +51,11 @@ import java.util.zip.GZIPInputStream;
  * Class implementing diffnode reader for VCF
  */
 public class BAMDiffableReader implements DiffableReader {
-    private final static int MAX_RECORDS_TO_READ = 1000;
     @Override
     public String getName() { return "BAM"; }
 
     @Override
-    public DiffElement readFromFile(File file) {
+    public DiffElement readFromFile(File file, int maxElementsToRead) {
         final SAMFileReader reader = new SAMFileReader(file, null); // null because we don't want it to look for the index
         reader.setValidationStringency(SAMFileReader.ValidationStringency.SILENT);
 
@@ -65,7 +64,7 @@ public class BAMDiffableReader implements DiffableReader {
 
         int count = 0;
         while ( iterator.hasNext() ) {
-            if ( count++ > MAX_RECORDS_TO_READ )
+            if ( count++ > maxElementsToRead && maxElementsToRead != -1)
                 break;
             final SAMRecord record = iterator.next();
 

@@ -80,7 +80,7 @@ public class DiffableReaderUnitTest extends BaseTest {
         Assert.assertTrue(vcfReader.canRead(vcfFile));
         Assert.assertFalse(vcfReader.canRead(bamFile));
 
-        DiffElement diff = vcfReader.readFromFile(vcfFile);
+        DiffElement diff = vcfReader.readFromFile(vcfFile, -1);
         Assert.assertNotNull(diff);
 
         Assert.assertEquals(diff.getName(), vcfFile.getName());
@@ -110,7 +110,7 @@ public class DiffableReaderUnitTest extends BaseTest {
         Assert.assertTrue(bamReader.canRead(bamFile));
         Assert.assertFalse(bamReader.canRead(vcfFile));
 
-        DiffElement diff = bamReader.readFromFile(bamFile);
+        DiffElement diff = bamReader.readFromFile(bamFile, -1);
         Assert.assertNotNull(diff);
 
         Assert.assertEquals(diff.getName(), bamFile.getName());

@@ -385,12 +385,17 @@ public class DiffEngine {
         return findReaderForFile(file) != null;
     }
 
+
     public DiffElement createDiffableFromFile(File file) {
+        return createDiffableFromFile(file, -1);
+    }
+
+    public DiffElement createDiffableFromFile(File file, int maxElementsToRead) {
         DiffableReader reader = findReaderForFile(file);
         if ( reader == null )
             throw new UserException("Unsupported file type: " + file);
         else
-            return reader.readFromFile(file);
+            return reader.readFromFile(file, maxElementsToRead);
     }
 
     public static boolean simpleDiffFiles(File masterFile, File testFile, DiffEngine.SummaryReportParams params) {

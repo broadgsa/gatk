@@ -43,7 +43,7 @@ public interface DiffableReader {
 
     @Ensures("result != null")
     @Requires("file != null")
-    public DiffElement readFromFile(File file);
+    public DiffElement readFromFile(File file, int maxElementsToRead);
 
     @Requires("file != null")
     public boolean canRead(File file);
