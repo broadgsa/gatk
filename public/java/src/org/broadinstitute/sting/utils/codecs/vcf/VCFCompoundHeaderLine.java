@@ -89,6 +89,7 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
      * @param count        the count for this header line
      * @param type         the type for this header line
      * @param description  the description for this header line
+     * @param lineType     the header line type
      */
     protected VCFCompoundHeaderLine(String name, int count, VCFHeaderLineType type, String description, SupportedHeaderLineType lineType) {
         super(lineType.toString(), "");
@@ -108,6 +109,7 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
      * @param count        the count type for this header line
      * @param type         the type for this header line
      * @param description  the description for this header line
+     * @param lineType     the header line type
      */
     protected VCFCompoundHeaderLine(String name, VCFHeaderLineCount count, VCFHeaderLineType type, String description, SupportedHeaderLineType lineType) {
         super(lineType.toString(), "");
@@ -124,6 +126,7 @@ public abstract class VCFCompoundHeaderLine extends VCFHeaderLine implements VCF
      *
      * @param line   the header line
      * @param version      the VCF header version
+     * @param lineType     the header line type
      *
      */
     protected VCFCompoundHeaderLine(String line, VCFHeaderVersion version, SupportedHeaderLineType lineType) {

@@ -17,7 +17,7 @@ public class VCFFormatHeaderLine extends VCFCompoundHeaderLine {
     }
 
     public VCFFormatHeaderLine(String name, VCFHeaderLineCount count, VCFHeaderLineType type, String description) {
-        super(name, count, type, description, SupportedHeaderLineType.INFO);
+        super(name, count, type, description, SupportedHeaderLineType.FORMAT);
     }
 
     protected VCFFormatHeaderLine(String line, VCFHeaderVersion version) {

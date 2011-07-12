@@ -358,9 +358,8 @@ public class StandardVCFWriter implements VCFWriter {
             mWriter.write(key);
 
             if ( !entry.getValue().equals("") ) {
-                int numVals = 1;
                 VCFInfoHeaderLine metaData = mHeader.getInfoHeaderLine(key);
-                if ( metaData != null && (metaData.getCountType() != VCFHeaderLineCount.INTEGER || metaData.getCount() > 0) ) {
+                if ( metaData == null || metaData.getCountType() != VCFHeaderLineCount.INTEGER || metaData.getCount() != 0 ) {
                     mWriter.write("=");
                     mWriter.write(entry.getValue());
                 }
