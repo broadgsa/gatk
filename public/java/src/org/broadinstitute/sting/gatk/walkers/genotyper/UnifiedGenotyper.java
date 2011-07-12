@@ -37,7 +37,6 @@ import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.commandline.*;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
 
 import java.util.*;
 import java.io.PrintStream;
@@ -158,13 +157,27 @@ public class UnifiedGenotyper extends LocusWalker<VariantCallContext, UnifiedGen
         }
 
         // FORMAT and INFO fields
-        headerInfo.addAll(VCFUtils.getSupportedHeaderStrings());
+        headerInfo.addAll(getSupportedHeaderStrings());
 
         // FILTER fields
         if ( UAC.STANDARD_CONFIDENCE_FOR_EMITTING < UAC.STANDARD_CONFIDENCE_FOR_CALLING )
             headerInfo.add(new VCFFilterHeaderLine(UnifiedGenotyperEngine.LOW_QUAL_FILTER_NAME, "Low quality"));
 
         return headerInfo;
+    }
+
+    /**
+     * return a set of supported format lines; what we currently support for output in the genotype fields of a VCF
+     * @return a set of VCF format lines
+     */
+    private static Set<VCFFormatHeaderLine> getSupportedHeaderStrings() {
+        Set<VCFFormatHeaderLine> result = new HashSet<VCFFormatHeaderLine>();
+        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_KEY, 1, VCFHeaderLineType.String, "Genotype"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.GENOTYPE_QUALITY_KEY, 1, VCFHeaderLineType.Float, "Genotype Quality"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.DEPTH_KEY, 1, VCFHeaderLineType.Integer, "Read Depth (only filtered reads used for calling)"));
+        result.add(new VCFFormatHeaderLine(VCFConstants.PHRED_GENOTYPE_LIKELIHOODS_KEY, VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Float, "Normalized, Phred-scaled likelihoods for AA,AB,BB genotypes where A=ref and B=alt; if site is not biallelic, number of likelihoods if n*(n+1)/2"));
+
+        return result;
     }
 
     /**
