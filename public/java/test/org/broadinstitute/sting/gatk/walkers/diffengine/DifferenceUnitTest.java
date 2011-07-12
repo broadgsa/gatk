@@ -87,7 +87,7 @@ public class DifferenceUnitTest extends BaseTest {
         logger.warn("Test tree1: " + (test.tree1 == null ? "null" : test.tree1.toOneLineString()));
         logger.warn("Test tree2: " + (test.tree2 == null ? "null" : test.tree2.toOneLineString()));
         logger.warn("Test expected diff : " + test.difference);
-        Difference diff = new Difference(test.tree1, test.tree2);
+        SpecificDifference diff = new SpecificDifference(test.tree1, test.tree2);
         logger.warn("Observed diffs     : " + diff);
         Assert.assertEquals(diff.toString(), test.difference, "Observed diff string " + diff + " not equal to expected difference string " + test.difference );
 

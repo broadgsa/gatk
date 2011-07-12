@@ -115,4 +115,8 @@ public class DiffElement {
         else
             throw new ReviewedStingException("Illegal request conversion of a DiffValue into a DiffNode: " + this);
     }
+
+    public int size() {
+        return 1 + getValue().size();
+    }
 }

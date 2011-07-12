@@ -153,6 +153,13 @@ public class DiffNode extends DiffValue {
         add(new DiffElement(name, this.getBinding(), new DiffValue(value)));
     }
 
+    public int size() {
+        int count = 0;
+        for ( DiffElement value : getElements() )
+            count += value.size();
+        return count;
+    }
+
     // ---------------------------------------------------------------------------
     //
     // toString

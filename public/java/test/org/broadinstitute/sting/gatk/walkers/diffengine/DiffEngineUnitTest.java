@@ -99,7 +99,7 @@ public class DiffEngineUnitTest extends BaseTest {
         logger.warn("Test tree1: " + test.tree1.toOneLineString());
         logger.warn("Test tree2: " + test.tree2.toOneLineString());
 
-        List<Difference> diffs = engine.diff(test.tree1, test.tree2);
+        List<SpecificDifference> diffs = engine.diff(test.tree1, test.tree2);
         logger.warn("Test expected diff : " + test.differences);
         logger.warn("Observed diffs     : " + diffs);
     }
@@ -185,12 +185,12 @@ public class DiffEngineUnitTest extends BaseTest {
             List<String[]> diffPaths = new ArrayList<String[]>(diffs.size());
             for ( String diff : diffs ) { diffPaths.add(DiffEngine.diffNameToPath(diff)); }
 
-            List<DiffEngine.SummarizedDifference> sumDiffs = engine.summarizedDifferencesOfPaths(diffPaths);
+            List<Difference> sumDiffs = engine.summarizedDifferencesOfPathsFromString(diffs);
 
             Assert.assertEquals(sumDiffs.size(), expecteds.size(), "Unexpected number of summarized differences: " + sumDiffs);
 
             for ( int i = 0; i < sumDiffs.size(); i++ ) {
-                DiffEngine.SummarizedDifference sumDiff = sumDiffs.get(i);
+                Difference sumDiff = sumDiffs.get(i);
                 String expected = expecteds.get(i);
                 String[] pathCount = expected.split(":");
                 String path = pathCount[0];

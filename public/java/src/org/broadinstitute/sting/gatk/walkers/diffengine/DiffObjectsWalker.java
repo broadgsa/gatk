@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
-import org.apache.xmlbeans.impl.tool.Diff;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
@@ -95,18 +94,20 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
     public void onTraversalDone(Integer sum) {
         out.printf("Reading master file %s%n", masterFile);
         DiffElement master = diffEngine.createDiffableFromFile(masterFile, MAX_OBJECTS_TO_READ);
+        out.printf("  Read %d objects%n", master.size());
         out.printf("Reading test file %s%n", testFile);
         DiffElement test = diffEngine.createDiffableFromFile(testFile, MAX_OBJECTS_TO_READ);
+        out.printf("  Read %d objects%n", test.size());
 
 //        out.printf("Master diff objects%n");
 //        out.println(master.toString());
 //        out.printf("Test diff objects%n");
 //        out.println(test.toString());
 
-        List<Difference> diffs = diffEngine.diff(master, test);
+        List<SpecificDifference> diffs = diffEngine.diff(master, test);
         if ( showItemizedDifferences ) {
             out.printf("Itemized results%n");
-            for ( Difference diff : diffs )
+            for ( SpecificDifference diff : diffs )
                 out.printf("DIFF: %s%n", diff.toString());
         }
 
