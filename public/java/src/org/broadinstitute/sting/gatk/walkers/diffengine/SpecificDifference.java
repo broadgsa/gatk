@@ -24,27 +24,36 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
-import com.google.java.contract.Ensures;
-import com.google.java.contract.Requires;
-
-import java.io.File;
-
 /**
  * Created by IntelliJ IDEA.
  * User: depristo
  * Date: 7/4/11
- * Time: 1:09 PM
+ * Time: 12:53 PM
  *
- * Interface for readers creating diffable objects from a file
+ * Represents a specific difference between two specific DiffElements
  */
-public interface DiffableReader {
-    @Ensures("result != null")
-    public String getName();
+public class SpecificDifference extends Difference {
+    DiffElement master, test;
 
-    @Ensures("result != null")
-    @Requires("file != null")
-    public DiffElement readFromFile(File file, int maxElementsToRead);
+    public SpecificDifference(DiffElement master, DiffElement test) {
+        super(createName(master, test));
+        if ( master == null && test == null ) throw new IllegalArgumentException("Master and test both cannot be null");
+        this.master = master;
+        this.test = test;
+    }
 
-    @Requires("file != null")
-    public boolean canRead(File file);
+    public String toString() {
+        return String.format("%s:%s!=%s",
+                getPath(),
+                getOneLineString(master),
+                getOneLineString(test));
+    }
+
+    private static String createName(DiffElement master, DiffElement test) {
+        return (master == null ? test : master).fullyQualifiedName();
+    }
+
+    private static String getOneLineString(DiffElement elt) {
+        return elt == null ? "MISSING" : elt.getValue().toOneLineString();
+    }
 }
