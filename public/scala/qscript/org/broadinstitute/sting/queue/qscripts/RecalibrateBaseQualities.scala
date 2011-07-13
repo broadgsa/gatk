@@ -41,11 +41,11 @@ class RecalibrateBaseQualities extends QScript {
 
     nContigs = getNumberOfContigs(input)
 
-    val recalFile1: File = swapExt(input, ".bam", "recal1.csv")
-    val recalFile2: File = swapExt(input, ".bam", "recal2.csv")
-    val recalBam: File   = swapExt(input, ".bam", "recal.bam")
-    val path1: String    = "before"
-    val path2: String    = "after"
+    val recalFile1: File = swapExt(input, ".bam", ".recal1.csv")
+    val recalFile2: File = swapExt(input, ".bam", ".recal2.csv")
+    val recalBam: File   = swapExt(input, ".bam", ".recal.bam")
+    val path1: String    = input + "before"
+    val path2: String    = input + "after"
     
     add(cov(input, recalFile1),
         recal(input, recalFile1, recalBam),
