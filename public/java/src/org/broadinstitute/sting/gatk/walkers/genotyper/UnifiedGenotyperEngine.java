@@ -634,17 +634,27 @@ public class UnifiedGenotyperEngine {
                 if (vcInput == null)
                     return null;
 
-                if (vcInput.isSNP() &&  ( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH || UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.SNP))
-                    return GenotypeLikelihoodsCalculationModel.Model.SNP;
+                // todo - no support to genotype MNP's yet
+                if  (vcInput.isMNP())
+                    return null;
+
+                if (vcInput.isSNP())  {
+                    if (( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH || UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.SNP))
+                        return GenotypeLikelihoodsCalculationModel.Model.SNP;
+                    else
+                        // ignore SNP's if user chose INDEL mode
+                        return null;
+                }
                 else if ((vcInput.isIndel() || vcInput.isMixed()) && (UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH || UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.INDEL))
                     return GenotypeLikelihoodsCalculationModel.Model.INDEL;
-            }   else {
+            }
+            else {
                 // todo - this assumes SNP's take priority when BOTH is selected, should do a smarter way once extended events are removed
                 if( UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.BOTH || UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.SNP)
                     return GenotypeLikelihoodsCalculationModel.Model.SNP;
                 else if (UAC.GLmodel == GenotypeLikelihoodsCalculationModel.Model.INDEL)
                     return GenotypeLikelihoodsCalculationModel.Model.INDEL;
-                }
+            }
         }
         return null;
     }

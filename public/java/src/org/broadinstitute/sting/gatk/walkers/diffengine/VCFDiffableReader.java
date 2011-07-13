@@ -51,15 +51,21 @@ public class VCFDiffableReader implements DiffableReader {
     public String getName() { return "VCF"; }
 
     @Override
-    public DiffElement readFromFile(File file) {
+    public DiffElement readFromFile(File file, int maxElementsToRead) {
         DiffNode root = DiffNode.rooted(file.getName());
         try {
             LineReader lineReader = new AsciiLineReader(new FileInputStream(file));
             VCFCodec vcfCodec = new VCFCodec();
-            VCFHeader header = (VCFHeader)vcfCodec.readHeader(lineReader);
+
+            // must be read as state is stored in reader itself
+            vcfCodec.readHeader(lineReader);
 
             String line = lineReader.readLine();
+            int count = 0;
             while ( line != null ) {
+                if ( count++ > maxElementsToRead && maxElementsToRead != -1)
+                    break;
+
                 VariantContext vc = (VariantContext)vcfCodec.decode(line);
                 String name = vc.getChr() + ":" + vc.getStart();
                 DiffNode vcRoot = DiffNode.empty(name, root);

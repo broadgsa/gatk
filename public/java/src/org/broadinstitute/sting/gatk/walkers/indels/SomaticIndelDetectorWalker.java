@@ -72,7 +72,7 @@ import java.util.*;
  * if first bam has coverage at the site but no indication for an indel. In the --somatic mode, BED output contains
  * only somatic calls, while --verbose output contains all calls annotated with GERMLINE/SOMATIC keywords.
  */
-@ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class, PlatformUnitFilter.class})
+@ReadFilters({Platform454Filter.class, MappingQualityZeroReadFilter.class, PlatformUnitFilter.class})
 public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 //    @Output
 //    PrintStream out;

@@ -24,35 +24,72 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
-/**
- * Created by IntelliJ IDEA.
- * User: depristo
- * Date: 7/4/11
- * Time: 12:53 PM
- *
- * Represents a specific difference between two specific DiffElements
- */
-public class Difference {
-    DiffElement master, test;
+public class Difference implements Comparable<Difference> {
+    final String path; // X.Y.Z
+    final String[] parts;
+    int count = 0;
 
-    public Difference(DiffElement master, DiffElement test) {
-        if ( master == null && test == null ) throw new IllegalArgumentException("Master and test both cannot be null");
-        this.master = master;
-        this.test = test;
+    public Difference(String path) {
+        this.path = path;
+        this.parts = DiffEngine.diffNameToPath(path);
     }
 
+    public String[] getParts() {
+        return parts;
+    }
+
+    public void incCount() { count++; }
+
+    public int getCount() {
+        return count;
+    }
+
+    /**
+     * The fully qualified path object A.B.C etc
+     * @return
+     */
+    public String getPath() {
+        return path;
+    }
+
+    /**
+     * @return the length of the parts of this summary
+     */
+    public int length() {
+        return this.parts.length;
+    }
+
+    /**
+     * Returns true if the string parts matches this summary.  Matches are
+     * must be equal() everywhere where this summary isn't *.
+     * @param otherParts
+     * @return
+     */
+    public boolean matches(String[] otherParts) {
+        if ( otherParts.length != length() )
+            return false;
+
+        // TODO optimization: can start at right most non-star element
+        for ( int i = 0; i < length(); i++ ) {
+            String part = parts[i];
+            if ( ! part.equals("*") && ! part.equals(otherParts[i]) )
+                return false;
+        }
+
+        return true;
+    }
+
+    @Override
     public String toString() {
-        return String.format("%s:%s!=%s",
-                getFullyQualifiedName(),
-                getOneLineString(master),
-                getOneLineString(test));
+        return String.format("%s:%d", getPath(), getCount());
     }
 
-    public String getFullyQualifiedName() {
-        return (master == null ? test : master).fullyQualifiedName();
+    @Override
+    public int compareTo(Difference other) {
+        // sort first highest to lowest count, then by lowest to highest path
+        int countCmp = Integer.valueOf(count).compareTo(other.count);
+        return countCmp != 0 ? -1 * countCmp : path.compareTo(other.path);
     }
 
-    private static String getOneLineString(DiffElement elt) {
-        return elt == null ? "MISSING" : elt.getValue().toOneLineString();
-    }
+
 }

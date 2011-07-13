@@ -49,7 +49,7 @@ public class VariantContextIntegrationTest extends WalkerTest {
 
         WalkerTestSpec spec = new WalkerTestSpec( cmdRoot + " -NO_HEADER -B:vcf,VCF3 " + validationDataLocation + "yri.trio.gatk_glftrio.intersection.annotated.filtered.chr1.500.vcf -L 1:1-1000000 -o %s --outputVCF %s",
                 2, // just one output file
-                Arrays.asList("e3c35d0c4b5d4935c84a270f9df0951f", "e6673737acbb6bfabfcd92c4b2268241"));
+                Arrays.asList("e3c35d0c4b5d4935c84a270f9df0951f", "ff91731213fd0bbdc200ab6fd1c93e63"));
          executeTest("testToVCF", spec);
     }
 
