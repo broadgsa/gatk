@@ -199,8 +199,8 @@ public class VariantsToVCF extends RodWalker<Integer, Integer> {
             // setup the header fields
             Set<VCFHeaderLine> hInfo = new HashSet<VCFHeaderLine>();
             hInfo.addAll(VCFUtils.getHeaderFields(getToolkit()));
-            hInfo.add(new VCFHeaderLine("source", "VariantsToVCF"));
-            hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
+            //hInfo.add(new VCFHeaderLine("source", "VariantsToVCF"));
+            //hInfo.add(new VCFHeaderLine("reference", getToolkit().getArguments().referenceFile.getName()));
 
             allowedGenotypeFormatStrings.add(VCFConstants.GENOTYPE_KEY);
             for ( VCFHeaderLine field : hInfo ) {
