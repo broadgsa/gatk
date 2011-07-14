@@ -26,16 +26,12 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 
 /**
@@ -51,15 +47,27 @@ public class VCFDiffableReader implements DiffableReader {
     public String getName() { return "VCF"; }
 
     @Override
-    public DiffElement readFromFile(File file) {
+    public DiffElement readFromFile(File file, int maxElementsToRead) {
         DiffNode root = DiffNode.rooted(file.getName());
         try {
             LineReader lineReader = new AsciiLineReader(new FileInputStream(file));
             VCFCodec vcfCodec = new VCFCodec();
+
+            // must be read as state is stored in reader itself
             VCFHeader header = (VCFHeader)vcfCodec.readHeader(lineReader);
+            for ( VCFHeaderLine headerLine : header.getMetaData() ) {
+                String key = headerLine.getKey();
+                if ( headerLine instanceof VCFNamedHeaderLine )
+                    key += "_" + ((VCFNamedHeaderLine) headerLine).getName();
+                root.add(key, headerLine.toString());
+            }
 
             String line = lineReader.readLine();
+            int count = 0;
             while ( line != null ) {
+                if ( count++ > maxElementsToRead && maxElementsToRead != -1)
+                    break;
+
                 VariantContext vc = (VariantContext)vcfCodec.decode(line);
                 String name = vc.getChr() + ":" + vc.getStart();
                 DiffNode vcRoot = DiffNode.empty(name, root);

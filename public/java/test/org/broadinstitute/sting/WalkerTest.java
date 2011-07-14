@@ -26,7 +26,9 @@
 package org.broadinstitute.sting;
 
 import org.apache.commons.lang.StringUtils;
+import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.Tribble;
+import org.broad.tribble.index.Index;
 import org.broad.tribble.index.IndexFactory;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
@@ -64,9 +66,18 @@ public class WalkerTest extends BaseTest {
             }
 
             System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
-            Assert.assertTrue(IndexFactory.onDiskIndexEqualToNewlyCreatedIndex(resultFile, indexFile, new VCFCodec()), "Index on disk from indexing on the fly not equal to the index created after the run completed");
+            Index indexFromOutputFile = IndexFactory.createIndex(resultFile, new VCFCodec());
+            Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
+
+            if ( ! indexFromOutputFile.equals(dynamicIndex) ) {
+                Assert.fail(String.format("Index on disk from indexing on the fly not equal to the index created after the run completed.  FileIndex %s vs. on-the-fly %s%n",
+                        indexFromOutputFile.getProperties(),
+                        dynamicIndex.getProperties()));
+            }
         }
     }
+
+
 
     public List<String> assertMatchingMD5s(final String name, List<File> resultFiles, List<String> expectedMD5s) {
         List<String> md5s = new ArrayList<String>();

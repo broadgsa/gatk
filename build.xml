@@ -981,6 +981,7 @@
         <delete dir="out"/>
         <delete dir="${build.dir}"/>
         <delete dir="${lib.dir}"/>
+        <delete dir="dump"/>
         <delete dir="staging"/>
         <delete dir="${dist.dir}"/>
         <delete dir="pipelinetests"/>

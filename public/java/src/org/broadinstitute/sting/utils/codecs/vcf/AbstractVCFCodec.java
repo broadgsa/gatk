@@ -7,6 +7,8 @@ import org.broad.tribble.NameAwareCodec;
 import org.broad.tribble.TribbleException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
@@ -96,6 +98,9 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
         for ( String str : headerStrings ) {
             if ( !str.startsWith(VCFHeader.METADATA_INDICATOR) ) {
                 String[] strings = str.substring(1).split(VCFConstants.FIELD_SEPARATOR);
+                if ( strings.length < VCFHeader.HEADER_FIELDS.values().length )
+                    throw new TribbleException.InvalidHeader("there are not enough columns present in the header line: " + str);
+
                 int arrayIndex = 0;
                 for (VCFHeader.HEADER_FIELDS field : VCFHeader.HEADER_FIELDS.values()) {
                     try {
@@ -159,12 +164,11 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
     }
 
     private Feature reallyDecode(String line) {
-        try {
             // the same line reader is not used for parsing the header and parsing lines, if we see a #, we've seen a header line
             if (line.startsWith(VCFHeader.HEADER_INDICATOR)) return null;
 
             // our header cannot be null, we need the genotype sample names and counts
-            if (header == null) throw new IllegalStateException("VCF Header cannot be null when decoding a record");
+            if (header == null) throw new ReviewedStingException("VCF Header cannot be null when decoding a record");
 
             if (parts == null)
                 parts = new String[Math.min(header.getColumnCount(), NUM_STANDARD_FIELDS+1)];
@@ -174,17 +178,18 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
             // if we have don't have a header, or we have a header with no genotyping data check that we have eight columns.  Otherwise check that we have nine (normal colummns + genotyping data)
             if (( (header == null || (header != null && !header.hasGenotypingData())) && nParts != NUM_STANDARD_FIELDS) ||
                  (header != null && header.hasGenotypingData() && nParts != (NUM_STANDARD_FIELDS + 1)) )
-                throw new IllegalArgumentException("There aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
-                        " tokens, and saw " + nParts + " )");
+                throw new UserException.MalformedVCF("there aren't enough columns for line " + line + " (we expected " + (header == null ? NUM_STANDARD_FIELDS : NUM_STANDARD_FIELDS + 1) +
+                        " tokens, and saw " + nParts + " )", lineNo);
 
             return parseVCFLine(parts);
-        } catch (TribbleException e) {
-            throw new TribbleException.InvalidDecodeLine(e.getMessage(), line);
-        }
     }
 
     protected void generateException(String message) {
-        throw new TribbleException.InvalidDecodeLine(message, lineNo);
+        throw new UserException.MalformedVCF(message, lineNo);
+    }
+
+    private static void generateException(String message, int lineNo) {
+        throw new UserException.MalformedVCF(message, lineNo);
     }
 
     /**
@@ -470,10 +475,6 @@ public abstract class AbstractVCFCodec implements FeatureCodec, NameAwareCodec, 
                 return false;
         }
         return true;
-    }
-
-    private static void generateException(String message, int lineNo) {
-        throw new TribbleException.InvalidDecodeLine(message, lineNo);
     }
 
     private static int computeForwardClipping(List<Allele> unclippedAlleles, String ref) {
