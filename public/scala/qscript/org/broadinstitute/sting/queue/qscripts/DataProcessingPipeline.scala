@@ -4,13 +4,13 @@ import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.function.ListWriterFunction
 
-import scala.io.Source._
 import collection.JavaConversions._
 import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
 import org.broadinstitute.sting.queue.extensions.picard._
-import net.sf.samtools.{SAMFileReader, SAMReadGroupRecord}
+import net.sf.samtools.{SAMFileReader}
 import net.sf.samtools.SAMFileHeader.SortOrder
 
+import org.broadinstitute.sting.queue.qscripts.utils.Utils
 
 class DataProcessingPipeline extends QScript {
   qscript =>
@@ -103,18 +103,6 @@ class DataProcessingPipeline extends QScript {
                    val ds: String)
   {}
 
-  // Utility function to check if there are multiple samples in a BAM file (currently we can't deal with that)
-  def hasMultipleSamples(readGroups: java.util.List[SAMReadGroupRecord]): Boolean = {
-    var sample: String = ""
-    for (r <- readGroups) {
-      if (sample.isEmpty)
-        sample = r.getSample
-      else if (sample != r.getSample)
-          return true;
-    }
-    return false
-  }
-
   // Utility function to merge all bam files of similar samples. Generates one BAM file per sample.
   // It uses the sample information on the header of the input BAM files.
   //
@@ -135,7 +123,7 @@ class DataProcessingPipeline extends QScript {
 
       // only allow one sample per file. Bam files with multiple samples would require pre-processing of the file
       // with PrintReads to separate the samples. Tell user to do it himself!
-      assert(!hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
+      assert(!Utils.hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
 
       // Fill out the sample table with the readgroups in this file
       for (rg <- readGroups) {
@@ -155,12 +143,6 @@ class DataProcessingPipeline extends QScript {
       add(joinBams(flist, sampleFileName))
     }
     return sampleBamFiles.toMap
-  }
-
-  // Checks how many contigs are in the dataset. Uses the BAM file header information.
-  def getNumberOfContigs(bamFile: File): Int = {
-    val samReader = new SAMFileReader(new File(bamFile))
-    return samReader.getFileHeader.getSequenceDictionary.getSequences.size()
   }
 
   // Rebuilds the Read Group string to give BWA
@@ -206,15 +188,7 @@ class DataProcessingPipeline extends QScript {
     return realignedBams
   }
 
-  // Reads a BAM LIST file and creates a scala list with all the files
-  def createListFromFile(in: File):List[File] = {
-    if (in.toString.endsWith("bam"))
-      return List(in)
-    var l: List[File] = List()
-    for (bam <- fromFile(in).getLines)
-      l :+= new File(bam)
-    return l
-  }
+
 
 
 
@@ -226,8 +200,8 @@ class DataProcessingPipeline extends QScript {
   def script = {
 
     // keep a record of the number of contigs in the first bam file in the list
-    val bams = createListFromFile(input)
-    nContigs = getNumberOfContigs(bams(0))
+    val bams = Utils.createListFromFile(input)
+    nContigs = Utils.getNumberOfContigs(bams(0))
 
     val realignedBams = if (useBWApe || useBWAse) {performAlignment(bams)} else {bams}
 
