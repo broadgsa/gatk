@@ -444,9 +444,10 @@ public class StandardVCFWriter implements VCFWriter {
                     break;
             }
 
-            for (String s : attrs ) {
-                mWriter.write(VCFConstants.GENOTYPE_FIELD_SEPARATOR);
-                mWriter.write(s);
+            for (int i = 0; i < attrs.size(); i++) {
+                if ( i > 0 || genotypeFormatKeys.contains(VCFConstants.GENOTYPE_KEY) )
+                    mWriter.write(VCFConstants.GENOTYPE_FIELD_SEPARATOR);
+                mWriter.write(attrs.get(i));
             }
         }
     }

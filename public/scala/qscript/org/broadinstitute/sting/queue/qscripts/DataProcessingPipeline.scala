@@ -147,13 +147,22 @@ class DataProcessingPipeline extends QScript {
       }
     }
 
+    println("\n\n*** DEBUG ***\n")
     // Creating one file for each sample in the dataset
     val sampleBamFiles = scala.collection.mutable.Map.empty[String, File]
     for ((sample, flist) <- sampleTable) {
+
+      println(sample + ":")
+      for (f <- flist)
+        println (f)
+      println()
+
       val sampleFileName = new File(qscript.outputDir + qscript.projectName + "." + sample + ".bam")
       sampleBamFiles(sample) = sampleFileName
       add(joinBams(flist, sampleFileName))
     }
+    println("*** DEBUG ***\n\n")
+
     return sampleBamFiles.toMap
   }
 
@@ -211,8 +220,10 @@ class DataProcessingPipeline extends QScript {
     if (in.toString.endsWith("bam"))
       return List(in)
     var l: List[File] = List()
-    for (bam <- fromFile(in).getLines)
-      l :+= new File(bam)
+    for (bam <- fromFile(in).getLines) {
+      if (!bam.startsWith("#") && !bam.isEmpty)
+        l :+= new File(bam.trim)
+    }
     return l
   }
 
@@ -234,9 +245,6 @@ class DataProcessingPipeline extends QScript {
     // Generate a BAM file per sample joining all per lane files if necessary
     val sampleBamFiles: Map[String, File] = createSampleFiles(bams, realignedBams)
 
-
-    println("nContigs: " + nContigs)
-
     // Final output list of processed bam files
     var cohortList: List[File] = List()
 
@@ -244,6 +252,7 @@ class DataProcessingPipeline extends QScript {
     println("\nFound the following samples: ")
     for ((sample, file) <- sampleBamFiles)
       println("\t" + sample + " -> " + file)
+    println("\n")
 
     // If this is a 'knowns only' indel realignment run, do it only once for all samples.
     val globalIntervals = new File(outputDir + projectName + ".intervals")

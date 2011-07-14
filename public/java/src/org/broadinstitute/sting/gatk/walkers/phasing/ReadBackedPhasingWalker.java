@@ -220,6 +220,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
             else {
                 unprocessedList.add(vc); // Finished with the unprocessed variant, and writer can enforce sorting on-the-fly
+
+                if (DEBUG)
+                    logger.debug("Unprocessed variant = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
             }
 
             int numReads = 0;
@@ -1105,7 +1108,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.alleles = vc.getAlleles();
             this.genotypes = new HashMap<String, Genotype>(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
             this.negLog10PError = vc.getNegLog10PError();
-            this.filters = vc.getFilters();
+            this.filters = vc.filtersWereApplied() ? vc.getFilters() : null;
             this.attributes = new HashMap<String, Object>(vc.getAttributes());
         }
 
