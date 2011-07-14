@@ -3,6 +3,7 @@ package org.broadinstitute.sting.queue.qscripts
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 import net.sf.samtools.SAMFileReader
+import io.Source._
 
 /**
  * Created by IntelliJ IDEA.
@@ -37,21 +38,35 @@ class RecalibrateBaseQualities extends QScript {
     return samReader.getFileHeader.getSequenceDictionary.getSequences.size()
   }
 
+  // Reads a BAM LIST file and creates a scala list with all the files
+  def createListFromFile(in: File):List[File] = {
+    if (in.toString.endsWith("bam"))
+      return List(in)
+    var l: List[File] = List()
+    for (bam <- fromFile(in).getLines)
+      l :+= new File(bam)
+    return l
+  }
+
   def script = {
 
-    nContigs = getNumberOfContigs(input)
+    val bamList = createListFromFile(input)
+    nContigs = getNumberOfContigs(bamList(0))
 
-    val recalFile1: File = swapExt(input, ".bam", ".recal1.csv")
-    val recalFile2: File = swapExt(input, ".bam", ".recal2.csv")
-    val recalBam: File   = swapExt(input, ".bam", ".recal.bam")
-    val path1: String    = input + "before"
-    val path2: String    = input + "after"
-    
-    add(cov(input, recalFile1),
-        recal(input, recalFile1, recalBam),
-        cov(recalBam, recalFile2),
-        analyzeCovariates(recalFile1, path1),
-        analyzeCovariates(recalFile2, path2))
+    for (bam <- bamList) {
+
+      val recalFile1: File = swapExt(bam, ".bam", ".recal1.csv")
+      val recalFile2: File = swapExt(bam, ".bam", ".recal2.csv")
+      val recalBam: File   = swapExt(bam, ".bam", ".recal.bam")
+      val path1: String    = bam + "before"
+      val path2: String    = bam + "after"
+
+      add(cov(bam, recalFile1),
+          recal(bam, recalFile1, recalBam),
+          cov(recalBam, recalFile2),
+          analyzeCovariates(recalFile1, path1),
+          analyzeCovariates(recalFile2, path2))
+    }
   }
 
   trait CommandLineGATKArgs extends CommandLineGATK {
