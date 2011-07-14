@@ -32,6 +32,7 @@ import org.broad.tribble.index.IndexFactory;
 import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broad.tribble.util.ParsingUtils;
 import org.broad.tribble.util.PositionalStream;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
@@ -300,10 +301,7 @@ public class StandardVCFWriter implements VCFWriter {
             } else {
                 List<String> genotypeAttributeKeys = new ArrayList<String>();
                 if ( vc.hasGenotypes() ) {
-                    genotypeAttributeKeys.add(VCFConstants.GENOTYPE_KEY);
-                    for ( String key : calcVCFGenotypeKeys(vc) ) {
-                        genotypeAttributeKeys.add(key);
-                    }
+                    genotypeAttributeKeys.addAll(calcVCFGenotypeKeys(vc));
                 } else if ( mHeader.hasGenotypingData() ) {
                     // this needs to be done in case all samples are no-calls
                     genotypeAttributeKeys.add(VCFConstants.GENOTYPE_KEY);
@@ -387,16 +385,22 @@ public class StandardVCFWriter implements VCFWriter {
                 continue;
             }
 
-            writeAllele(g.getAllele(0), alleleMap);
-            for (int i = 1; i < g.getPloidy(); i++) {
-                mWriter.write(g.isPhased() ? VCFConstants.PHASED : VCFConstants.UNPHASED);
-                writeAllele(g.getAllele(i), alleleMap);
-            }
-
             List<String> attrs = new ArrayList<String>(genotypeFormatKeys.size());
             for ( String key : genotypeFormatKeys ) {
-                if ( key.equals(VCFConstants.GENOTYPE_KEY) )
+
+                if ( key.equals(VCFConstants.GENOTYPE_KEY) ) {
+                    if ( !g.isAvailable() ) {
+                        throw new ReviewedStingException("GTs cannot be missing for some samples if they are available for others in the record");
+                    }
+
+                    writeAllele(g.getAllele(0), alleleMap);
+                    for (int i = 1; i < g.getPloidy(); i++) {
+                        mWriter.write(g.isPhased() ? VCFConstants.PHASED : VCFConstants.UNPHASED);
+                        writeAllele(g.getAllele(i), alleleMap);
+                    }
+
                     continue;
+                }
 
                 Object val = g.hasAttribute(key) ? g.getAttribute(key) : VCFConstants.MISSING_VALUE_v4;
 
@@ -440,9 +444,10 @@ public class StandardVCFWriter implements VCFWriter {
                     break;
             }
 
-            for (String s : attrs ) {
-                mWriter.write(VCFConstants.GENOTYPE_FIELD_SEPARATOR);
-                mWriter.write(s);
+            for (int i = 0; i < attrs.size(); i++) {
+                if ( i > 0 || genotypeFormatKeys.contains(VCFConstants.GENOTYPE_KEY) )
+                    mWriter.write(VCFConstants.GENOTYPE_FIELD_SEPARATOR);
+                mWriter.write(attrs.get(i));
             }
         }
     }
@@ -488,10 +493,13 @@ public class StandardVCFWriter implements VCFWriter {
     private static List<String> calcVCFGenotypeKeys(VariantContext vc) {
         Set<String> keys = new HashSet<String>();
 
+        boolean sawGoodGT = false;
         boolean sawGoodQual = false;
         boolean sawGenotypeFilter = false;
         for ( Genotype g : vc.getGenotypes().values() ) {
             keys.addAll(g.getAttributes().keySet());
+            if ( g.isAvailable() )
+                sawGoodGT = true;
             if ( g.hasNegLog10PError() )
                 sawGoodQual = true;
             if (g.isFiltered() && g.isCalled())
@@ -504,7 +512,17 @@ public class StandardVCFWriter implements VCFWriter {
         if (sawGenotypeFilter)
             keys.add(VCFConstants.GENOTYPE_FILTER_KEY);
 
-        return ParsingUtils.sortList(new ArrayList<String>(keys));
+        List<String> sortedList = ParsingUtils.sortList(new ArrayList<String>(keys));
+
+        // make sure the GT is first
+        if ( sawGoodGT ) {
+            List<String> newList = new ArrayList<String>(sortedList.size()+1);
+            newList.add(VCFConstants.GENOTYPE_KEY);
+            newList.addAll(sortedList);
+            sortedList = newList;
+        }
+
+        return sortedList;
     }
 
 
