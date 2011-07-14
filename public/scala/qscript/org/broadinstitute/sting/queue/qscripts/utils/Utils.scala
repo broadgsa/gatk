@@ -37,7 +37,6 @@ object Utils {
   /**
    * Returns the number of contigs in the BAM file header.
    */
-
   def getNumberOfContigs(bamFile: File): Int = {
     val samReader = new SAMFileReader(new File(bamFile))
     samReader.getFileHeader.getSequenceDictionary.getSequences.size()
@@ -46,7 +45,6 @@ object Utils {
   /**
    * Check if there are multiple samples in a BAM file
    */
-
   def hasMultipleSamples(readGroups: java.util.List[SAMReadGroupRecord]): Boolean = {
     var sample: String = ""
     for (r <- readGroups) {
