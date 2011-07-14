@@ -26,16 +26,12 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 
 /**
@@ -58,7 +54,11 @@ public class VCFDiffableReader implements DiffableReader {
             VCFCodec vcfCodec = new VCFCodec();
 
             // must be read as state is stored in reader itself
-            vcfCodec.readHeader(lineReader);
+            VCFHeader header = (VCFHeader)vcfCodec.readHeader(lineReader);
+            for ( VCFHeaderLine headerLine : header.getMetaData() ) {
+                final String key = (headerLine instanceof VCFNamedHeaderLine ? headerLine.getKey() + "." + ((VCFNamedHeaderLine) headerLine).getName() : headerLine.getKey());
+                root.add(key, headerLine.toString());
+            }
 
             String line = lineReader.readLine();
             int count = 0;
