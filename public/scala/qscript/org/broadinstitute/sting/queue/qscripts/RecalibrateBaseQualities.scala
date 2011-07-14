@@ -4,6 +4,7 @@ import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
 import net.sf.samtools.SAMFileReader
 import io.Source._
+import org.broadinstitute.sting.queue.qscripts.utils.Utils
 
 /**
  * Created by IntelliJ IDEA.
@@ -33,25 +34,10 @@ class RecalibrateBaseQualities extends QScript {
   val queueLogDir: String = ".qlog/"
   var nContigs: Int = 0
 
-  def getNumberOfContigs(bamFile: File): Int = {
-    val samReader = new SAMFileReader(new File(bamFile))
-    return samReader.getFileHeader.getSequenceDictionary.getSequences.size()
-  }
-
-  // Reads a BAM LIST file and creates a scala list with all the files
-  def createListFromFile(in: File):List[File] = {
-    if (in.toString.endsWith("bam"))
-      return List(in)
-    var l: List[File] = List()
-    for (bam <- fromFile(in).getLines)
-      l :+= new File(bam)
-    return l
-  }
-
   def script = {
 
-    val bamList = createListFromFile(input)
-    nContigs = getNumberOfContigs(bamList(0))
+    val bamList = Utils.createListFromFile(input)
+    nContigs = Utils.getNumberOfContigs(bamList(0))
 
     for (bam <- bamList) {
 
