@@ -56,7 +56,9 @@ public class VCFDiffableReader implements DiffableReader {
             // must be read as state is stored in reader itself
             VCFHeader header = (VCFHeader)vcfCodec.readHeader(lineReader);
             for ( VCFHeaderLine headerLine : header.getMetaData() ) {
-                final String key = (headerLine instanceof VCFNamedHeaderLine ? headerLine.getKey() + "." + ((VCFNamedHeaderLine) headerLine).getName() : headerLine.getKey());
+                String key = headerLine.getKey();
+                if ( headerLine instanceof VCFNamedHeaderLine )
+                    key += "_" + ((VCFNamedHeaderLine) headerLine).getName();
                 root.add(key, headerLine.toString());
             }
 
