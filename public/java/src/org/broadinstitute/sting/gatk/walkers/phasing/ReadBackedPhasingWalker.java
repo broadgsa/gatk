@@ -242,7 +242,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         return new PhasingStatsAndOutput(phaseStats, completedList);
     }
 
-    private static final Set<String> KEYS_TO_KEEP_IN_REDUCED_VCF = new HashSet<String>(Arrays.asList("PQ"));
+    private static final Set<String> KEYS_TO_KEEP_IN_REDUCED_VCF = new HashSet<String>(Arrays.asList(PQ_KEY));
 
     private VariantContext reduceVCToSamples(VariantContext vc, List<String> samplesToPhase) {
 //        for ( String sample : samplesToPhase )
