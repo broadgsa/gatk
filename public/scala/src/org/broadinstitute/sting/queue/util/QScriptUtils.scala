@@ -38,7 +38,7 @@ object QScriptUtils {
    * Returns the number of contigs in the BAM file header.
    */
   def getNumberOfContigs(bamFile: File): Int = {
-    val samReader = new SAMFileReader(new File(bamFile))
+    val samReader = new SAMFileReader(bamFile)
     samReader.getFileHeader.getSequenceDictionary.getSequences.size()
   }
 
