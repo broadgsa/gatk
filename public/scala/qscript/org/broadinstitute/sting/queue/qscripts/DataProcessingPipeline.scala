@@ -10,7 +10,7 @@ import org.broadinstitute.sting.queue.extensions.picard._
 import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMFileHeader.SortOrder
 
-import org.broadinstitute.sting.queue.util.Utils
+import org.broadinstitute.sting.queue.util.QScriptUtils
 
 class DataProcessingPipeline extends QScript {
   qscript =>
@@ -123,7 +123,7 @@ class DataProcessingPipeline extends QScript {
 
       // only allow one sample per file. Bam files with multiple samples would require pre-processing of the file
       // with PrintReads to separate the samples. Tell user to do it himself!
-      assert(!Utils.hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
+      assert(!QScriptUtils.hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
 
       // Fill out the sample table with the readgroups in this file
       for (rg <- readGroups) {
@@ -200,8 +200,8 @@ class DataProcessingPipeline extends QScript {
   def script = {
 
     // keep a record of the number of contigs in the first bam file in the list
-    val bams = Utils.createListFromFile(input)
-    nContigs = Utils.getNumberOfContigs(bams(0))
+    val bams = QScriptUtils.createListFromFile(input)
+    nContigs = QScriptUtils.getNumberOfContigs(bams(0))
 
     val realignedBams = if (useBWApe || useBWAse) {performAlignment(bams)} else {bams}
 

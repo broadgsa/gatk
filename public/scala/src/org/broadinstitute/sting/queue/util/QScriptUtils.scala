@@ -15,7 +15,7 @@ import collection.JavaConversions._
  * To change this template use File | Settings | File Templates.
  */
 
-object Utils {
+object QScriptUtils {
 
   /**
    * Takes a bam list file and produces a scala list with each file allowing the bam list

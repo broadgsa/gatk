@@ -2,7 +2,7 @@ package org.broadinstitute.sting.queue.qscripts
 
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
-import org.broadinstitute.sting.queue.util.Utils
+import org.broadinstitute.sting.queue.util.QScriptUtils
 
 /**
  * Created by IntelliJ IDEA.
@@ -34,8 +34,8 @@ class RecalibrateBaseQualities extends QScript {
 
   def script = {
 
-    val bamList = Utils.createListFromFile(input)
-    nContigs = Utils.getNumberOfContigs(bamList(0))
+    val bamList = QScriptUtils.createListFromFile(input)
+    nContigs = QScriptUtils.getNumberOfContigs(bamList(0))
 
     for (bam <- bamList) {
 
