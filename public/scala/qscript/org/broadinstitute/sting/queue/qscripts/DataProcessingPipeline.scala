@@ -7,10 +7,10 @@ import org.broadinstitute.sting.queue.function.ListWriterFunction
 import collection.JavaConversions._
 import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
 import org.broadinstitute.sting.queue.extensions.picard._
-import net.sf.samtools.{SAMFileReader}
+import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMFileHeader.SortOrder
 
-import org.broadinstitute.sting.queue.qscripts.utils.Utils
+import org.broadinstitute.sting.queue.util.Utils
 
 class DataProcessingPipeline extends QScript {
   qscript =>

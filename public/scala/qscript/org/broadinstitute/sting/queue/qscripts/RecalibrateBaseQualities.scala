@@ -2,9 +2,7 @@ package org.broadinstitute.sting.queue.qscripts
 
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
-import net.sf.samtools.SAMFileReader
-import io.Source._
-import org.broadinstitute.sting.queue.qscripts.utils.Utils
+import org.broadinstitute.sting.queue.util.Utils
 
 /**
  * Created by IntelliJ IDEA.

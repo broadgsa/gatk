@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.queue.qscripts.utils
+package org.broadinstitute.sting.queue.util
 
 import java.io.File
 import io.Source._
