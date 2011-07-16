@@ -33,10 +33,6 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=true)
   var dbSNP: File = _
 
-  @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=true)
-  var indels: File = _
-
-
   /****************************************************************************
   * Optional Parameters
   ****************************************************************************/
@@ -45,6 +41,10 @@ class DataProcessingPipeline extends QScript {
 //  @Input(doc="path to Picard's SortSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_sort_jar", shortName="sort", required=false)
 //  var sortSamJar: File = _
 //
+
+  @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
+  var indels: File = _
+
   @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
   var bwaPath: File = _
 
@@ -284,7 +284,8 @@ class DataProcessingPipeline extends QScript {
     this.out = outIntervals
     this.mismatchFraction = 0.0
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels", "VCF", indels)
+    if (!indels.isEmpty)
+      this.rodBind :+= RodBind("indels", "VCF", indels)
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outIntervals + ".target"
     this.jobName = queueLogDir + outIntervals + ".target"
@@ -295,7 +296,8 @@ class DataProcessingPipeline extends QScript {
     this.targetIntervals = tIntervals
     this.out = outBam
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels", "VCF", indels)
+    if (!indels.isEmpty)
+      this.rodBind :+= RodBind("indels", "VCF", indels)
     this.consensusDeterminationModel =  consensusDeterminationModel
     this.compress = 0
     this.scatterCount = nContigs
