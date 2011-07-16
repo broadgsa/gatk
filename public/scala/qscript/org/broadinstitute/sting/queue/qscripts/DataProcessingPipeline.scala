@@ -3,10 +3,11 @@ package org.broadinstitute.sting.queue.qscripts
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.function.ListWriterFunction
+import org.broadinstitute.sting.queue.extensions.picard._
+import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
+import org.broadinstitute.sting.utils.baq.BAQ.CalculationMode
 
 import collection.JavaConversions._
-import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
-import org.broadinstitute.sting.queue.extensions.picard._
 import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMFileHeader.SortOrder
 
@@ -29,7 +30,8 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=true)
   var reference: File = _
 
-
+  @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=true)
+  var dbSNP: File = _
 
   /****************************************************************************
   * Optional Parameters
@@ -39,14 +41,12 @@ class DataProcessingPipeline extends QScript {
 //  @Input(doc="path to Picard's SortSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_sort_jar", shortName="sort", required=false)
 //  var sortSamJar: File = _
 //
-  @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
-  var bwaPath: File = _
-
-  @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=false)
-  var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
-  var indels: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf")
+  var indels: File = _
+
+  @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
+  var bwaPath: File = _
 
   @Input(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", fullName="project", shortName="p", required=false)
   var projectName: String = "project"
@@ -288,7 +288,8 @@ class DataProcessingPipeline extends QScript {
     this.out = outIntervals
     this.mismatchFraction = 0.0
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels", "VCF", indels)
+    if (!indels.isEmpty)
+      this.rodBind :+= RodBind("indels", "VCF", indels)
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outIntervals + ".target"
     this.jobName = queueLogDir + outIntervals + ".target"
@@ -299,7 +300,8 @@ class DataProcessingPipeline extends QScript {
     this.targetIntervals = tIntervals
     this.out = outBam
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
+    if (!indels.isEmpty)
+      this.rodBind :+= RodBind("indels", "VCF", indels)
     this.consensusDeterminationModel =  consensusDeterminationModel
     this.compress = 0
     this.scatterCount = nContigs
@@ -322,7 +324,7 @@ class DataProcessingPipeline extends QScript {
   case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
     this.input_file :+= inBam
     this.recal_file = inRecalFile
-    this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY
+    this.baq = CalculationMode.CALCULATE_AS_NECESSARY
     this.out = outBam
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals

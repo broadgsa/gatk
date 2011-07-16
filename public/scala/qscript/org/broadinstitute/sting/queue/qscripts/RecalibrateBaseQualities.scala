@@ -42,8 +42,8 @@ class RecalibrateBaseQualities extends QScript {
       val recalFile1: File = swapExt(bam, ".bam", ".recal1.csv")
       val recalFile2: File = swapExt(bam, ".bam", ".recal2.csv")
       val recalBam: File   = swapExt(bam, ".bam", ".recal.bam")
-      val path1: String    = bam + "before"
-      val path2: String    = bam + "after"
+      val path1: String    = bam + ".before"
+      val path2: String    = bam + ".after"
 
       add(cov(bam, recalFile1),
           recal(bam, recalFile1, recalBam),
@@ -83,7 +83,7 @@ class RecalibrateBaseQualities extends QScript {
   case class analyzeCovariates (inRecalFile: File, outPath: String) extends AnalyzeCovariates {
     this.resources = R
     this.recal_file = inRecalFile
-    this.output_dir = outPath.toString
+    this.output_dir = outPath
     this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"
     this.jobName = queueLogDir + inRecalFile + ".analyze_covariates"
   }
