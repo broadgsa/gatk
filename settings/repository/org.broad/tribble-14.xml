@@ -1,4 +1,4 @@
 <ivy-module version="1.0">
-    <info organisation="org.broad" module="tribble" revision="4" 
+    <info organisation="org.broad" module="tribble" revision="14" 
           status="integration" publication="" />
 </ivy-module>
