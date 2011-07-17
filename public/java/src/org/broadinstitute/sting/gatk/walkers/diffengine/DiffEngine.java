@@ -209,7 +209,7 @@ public class DiffEngine {
     protected void printSummaryReport(List<Difference> sortedSummaries, SummaryReportParams params ) {
         GATKReport report = new GATKReport();
         final String tableName = "diffences";
-        report.addTable(tableName, "Summarized differences between the master and test files.\nSee http://www.broadinstitute.org/gsa/wiki/index.php/DiffObjectsWalker_and_SummarizedDifferences for more information");
+        report.addTable(tableName, "Summarized differences between the master and test files.\nSee http://www.broadinstitute.org/gsa/wiki/index.php/DiffEngine for more information");
         GATKReportTable table = report.getTable(tableName);
         table.addPrimaryKey("Difference", true);
         table.addColumn("NumberOfOccurrences", 0);
