@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
@@ -41,8 +42,8 @@ import java.util.*;
 public class ChromosomeCounts implements InfoFieldAnnotation, StandardAnnotation {
 
     private String[] keyNames = { VCFConstants.ALLELE_NUMBER_KEY, VCFConstants.ALLELE_COUNT_KEY, VCFConstants.ALLELE_FREQUENCY_KEY };
-    private VCFInfoHeaderLine[] descriptions = { new VCFInfoHeaderLine(VCFConstants.ALLELE_FREQUENCY_KEY, -1, VCFHeaderLineType.Float, "Allele Frequency, for each ALT allele, in the same order as listed"),
-            new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, -1, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"),
+    private VCFInfoHeaderLine[] descriptions = { new VCFInfoHeaderLine(VCFConstants.ALLELE_FREQUENCY_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Float, "Allele Frequency, for each ALT allele, in the same order as listed"),
+            new VCFInfoHeaderLine(VCFConstants.ALLELE_COUNT_KEY, VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "Allele count in genotypes, for each ALT allele, in the same order as listed"),
             new VCFInfoHeaderLine(VCFConstants.ALLELE_NUMBER_KEY, 1, VCFHeaderLineType.Integer, "Total number of alleles in called genotypes") };
 
     public Map<String, Object> annotate(RefMetaDataTracker tracker, ReferenceContext ref, Map<String, AlignmentContext> stratifiedContexts, VariantContext vc) {

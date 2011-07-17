@@ -867,7 +867,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
         for ( String name : sampleNames ) {
             if ( map.containsKey(name) ) throw new IllegalArgumentException("Duplicate names detected in requested samples " + sampleNames);
-            map.put(name, getGenotype(name));
+            final Genotype g = getGenotype(name);
+            if ( g != null ) {
+                map.put(name, g);
+            }
         }
 
         return map;
@@ -1203,9 +1206,11 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
             if ( ! name.equals(g.getSampleName()) ) throw new IllegalStateException("Bound sample name " + name + " does not equal the name of the genotype " + g.getSampleName());
 
-            for ( Allele gAllele : g.getAlleles() ) {
-                if ( ! hasAllele(gAllele) && gAllele.isCalled() )
-                    throw new IllegalStateException("Allele in genotype " + gAllele + " not in the variant context " + alleles);
+            if ( g.isAvailable() ) {
+                for ( Allele gAllele : g.getAlleles() ) {
+                    if ( ! hasAllele(gAllele) && gAllele.isCalled() )
+                        throw new IllegalStateException("Allele in genotype " + gAllele + " not in the variant context " + alleles);
+                }
             }
         }
     }

@@ -32,7 +32,7 @@ import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
-import org.broadinstitute.sting.gatk.filters.ZeroMappingQualityReadFilter;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.walkers.*;
@@ -58,7 +58,7 @@ import static org.broadinstitute.sting.utils.codecs.vcf.VCFUtils.getVCFHeadersFr
 @Requires(value = {DataSource.READS, DataSource.REFERENCE}, referenceMetaData = @RMD(name = "variant", type = ReferenceOrderedDatum.class))
 @By(DataSource.READS)
 
-@ReadFilters({ZeroMappingQualityReadFilter.class})
+@ReadFilters({MappingQualityZeroReadFilter.class})
 // Filter out all reads with zero mapping quality
 
 public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, PhasingStats> {
@@ -220,6 +220,9 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             }
             else {
                 unprocessedList.add(vc); // Finished with the unprocessed variant, and writer can enforce sorting on-the-fly
+
+                if (DEBUG)
+                    logger.debug("Unprocessed variant = " + VariantContextUtils.getLocation(getToolkit().getGenomeLocParser(), vc));
             }
 
             int numReads = 0;
@@ -239,7 +242,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
         return new PhasingStatsAndOutput(phaseStats, completedList);
     }
 
-    private static final Set<String> KEYS_TO_KEEP_IN_REDUCED_VCF = new HashSet<String>(Arrays.asList("PQ"));
+    private static final Set<String> KEYS_TO_KEEP_IN_REDUCED_VCF = new HashSet<String>(Arrays.asList(PQ_KEY));
 
     private VariantContext reduceVCToSamples(VariantContext vc, List<String> samplesToPhase) {
 //        for ( String sample : samplesToPhase )
@@ -1105,7 +1108,7 @@ public class ReadBackedPhasingWalker extends RodWalker<PhasingStatsAndOutput, Ph
             this.alleles = vc.getAlleles();
             this.genotypes = new HashMap<String, Genotype>(vc.getGenotypes()); // since vc.getGenotypes() is unmodifiable
             this.negLog10PError = vc.getNegLog10PError();
-            this.filters = vc.getFilters();
+            this.filters = vc.filtersWereApplied() ? vc.getFilters() : null;
             this.attributes = new HashMap<String, Object>(vc.getAttributes());
         }
 

@@ -20,7 +20,7 @@ import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.walkers.Window;
 import org.broadinstitute.sting.gatk.walkers.varianteval.evaluators.VariantEvaluator;
 import org.broadinstitute.sting.gatk.walkers.varianteval.stratifications.VariantStratifier;
-import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.Tranche;
 import org.broadinstitute.sting.gatk.walkers.variantrecalibration.VariantRecalibrator;
@@ -30,10 +30,9 @@ import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.TableType;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
-import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import net.sf.picard.reference.ReferenceSequence;
+
 import java.io.FileNotFoundException;
 
 import java.io.File;

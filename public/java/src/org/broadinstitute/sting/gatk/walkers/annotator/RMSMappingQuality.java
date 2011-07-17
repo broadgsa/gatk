@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
@@ -38,8 +39,10 @@ public class RMSMappingQuality implements InfoFieldAnnotation, StandardAnnotatio
                 pileup = context.getBasePileup();
 
             if (pileup != null) {
-                for (PileupElement p : pileup )
-                    qualities[index++] = p.getRead().getMappingQuality();
+                for (PileupElement p : pileup ) {
+                    if ( p.getMappingQual() != QualityUtils.MAPPING_QUALITY_UNAVAILABLE )
+                        qualities[index++] = p.getMappingQual();
+                }
             }
         }
 

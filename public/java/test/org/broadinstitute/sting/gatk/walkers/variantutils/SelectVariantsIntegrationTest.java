@@ -18,7 +18,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
             baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -select 'DP < 250' -B:variant,VCF3 " + testfile + " -NO_HEADER"),
             1,
-            Arrays.asList("1b9d551298dc048c7d36b60440ff4d50")
+            Arrays.asList("d18516c1963802e92cb9e425c0b75fd6")
         );
 
         executeTest("testComplexSelection--" + testfile, spec);
@@ -31,7 +31,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 baseTestString(" -sn A -sn B -sn C -B:variant,VCF3 " + testfile + " -NO_HEADER"),
                 1,
-                Arrays.asList("5ba7536a0819421b330350a160e4261a")
+                Arrays.asList("b74038779fe6485dbb8734ae48178356")
         );
 
         executeTest("testRepeatedLineSelection--" + testfile, spec);
@@ -44,7 +44,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -disc myvar -L 20:1012700-1020000 -B:variant,VCF " + b37hapmapGenotypes + " -B:myvar,VCF " + testFile + " -o %s -NO_HEADER",
                 1,
-                Arrays.asList("97621ae8f29955eedfc4e0be3515fcb9")
+                Arrays.asList("78e6842325f1f1bc9ab30d5e7737ee6e")
         );
 
         executeTest("testDiscordance--" + testFile, spec);
@@ -57,7 +57,7 @@ public class SelectVariantsIntegrationTest extends WalkerTest {
         WalkerTestSpec spec = new WalkerTestSpec(
                 "-T SelectVariants -R " + hg19Reference + " -sn NA12878 -conc hapmap -L 20:1012700-1020000 -B:hapmap,VCF " + b37hapmapGenotypes + " -B:variant,VCF " + testFile + " -o %s -NO_HEADER",
                 1,
-                Arrays.asList("a0ae016fdffcbe7bfb99fd3dbc311407")
+                Arrays.asList("d2ba3ea30a810f6f0fbfb1b643292b6a")
         );
 
         executeTest("testConcordance--" + testFile, spec);
