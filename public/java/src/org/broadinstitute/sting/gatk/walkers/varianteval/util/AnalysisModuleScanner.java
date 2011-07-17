@@ -23,8 +23,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.varianteval.util;
 
-import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
-import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.annotation.Annotation;
