@@ -25,9 +25,8 @@
 
 package org.broadinstitute.sting.utils.interval;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
+import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.Iterator;
 

@@ -24,7 +24,9 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
-import com.google.java.contract.*;
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
+import com.google.java.contract.Requires;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 

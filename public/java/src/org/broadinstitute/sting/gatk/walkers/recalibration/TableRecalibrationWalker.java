@@ -25,31 +25,33 @@
 
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.util.regex.Pattern;
-
 import net.sf.samtools.*;
 import net.sf.samtools.util.SequenceUtil;
-
+import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.classloader.PluginManager;
-import org.broadinstitute.sting.utils.collections.NestedHashMap;
 import org.broadinstitute.sting.utils.QualityUtils;
-import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.commandline.*;
+import org.broadinstitute.sting.utils.classloader.PluginManager;
+import org.broadinstitute.sting.utils.collections.NestedHashMap;
+import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.GATKSAMRecord;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
+import org.broadinstitute.sting.utils.text.XReadLines;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+import java.util.regex.Pattern;
 
 /**
  * This walker is designed to work as the second pass in a two-pass processing step, doing a by-read traversal.

@@ -25,22 +25,16 @@
 
 package org.broadinstitute.sting.utils.help;
 
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.commandline.ArgumentDefinition;
 import org.broadinstitute.sting.commandline.ArgumentDefinitionGroup;
 import org.broadinstitute.sting.commandline.ArgumentDefinitions;
-import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 import org.broadinstitute.sting.utils.Utils;
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.text.TextFormattingUtils;
 
-import java.util.Formatter;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Comparator;
-import java.util.Collection;
-import java.util.Collections;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.*;
 /**
  * Print out help for Sting command-line applications.
  */

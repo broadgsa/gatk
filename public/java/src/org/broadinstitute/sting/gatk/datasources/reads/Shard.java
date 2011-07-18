@@ -2,17 +2,13 @@ package org.broadinstitute.sting.gatk.datasources.reads;
 
 import net.sf.samtools.SAMFileSpan;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.ReadProperties;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

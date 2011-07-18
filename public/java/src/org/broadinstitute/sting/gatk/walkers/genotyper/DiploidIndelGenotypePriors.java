@@ -4,8 +4,6 @@ import org.broadinstitute.sting.gatk.walkers.indels.HaplotypeIndelErrorModel;
 import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
 
-import java.util.Arrays;
-
 /**
  * Created by IntelliJ IDEA.
  * User: delangel

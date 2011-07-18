@@ -25,16 +25,15 @@
 
 package org.broadinstitute.sting.gatk.datasources.reference;
 
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import net.sf.picard.reference.FastaSequenceIndexBuilder;
-import net.sf.picard.sam.CreateSequenceDictionary;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.FastaSequenceIndex;
+import net.sf.picard.reference.FastaSequenceIndexBuilder;
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.picard.sam.CreateSequenceDictionary;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 import org.broadinstitute.sting.utils.file.FSLockWithShared;
 import org.broadinstitute.sting.utils.file.FileSystemInabilityToLockException;
-import org.broadinstitute.sting.utils.fasta.CachingIndexedFastaSequenceFile;
 
 import java.io.File;
 

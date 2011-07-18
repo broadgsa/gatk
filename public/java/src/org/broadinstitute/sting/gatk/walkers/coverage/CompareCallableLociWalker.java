@@ -22,19 +22,19 @@
 
 package org.broadinstitute.sting.gatk.walkers.coverage;
 
+import org.broad.tribble.bed.FullBEDFeature;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
-import org.broad.tribble.bed.FullBEDFeature;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.*;
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Test routine for new VariantContext object

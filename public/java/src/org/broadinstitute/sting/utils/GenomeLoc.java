@@ -2,7 +2,6 @@ package org.broadinstitute.sting.utils;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.Serializable;

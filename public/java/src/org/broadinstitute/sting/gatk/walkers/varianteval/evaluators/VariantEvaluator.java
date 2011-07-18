@@ -1,12 +1,12 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.NewEvaluationContext;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.StateKey;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 public abstract class VariantEvaluator {
     public void initialize(VariantEvalWalker walker) {}

@@ -27,16 +27,15 @@ package org.broadinstitute.sting.gatk.io.storage;
 
 import net.sf.samtools.*;
 import net.sf.samtools.util.CloseableIterator;
-
-import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 import net.sf.samtools.util.RuntimeIOException;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.sam.SimplifyingSAMFileWriter;
+
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * Provides temporary storage for SAMFileWriters.

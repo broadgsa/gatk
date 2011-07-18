@@ -27,9 +27,9 @@ package org.broadinstitute.sting.utils.instrumentation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Array;
 import java.util.IdentityHashMap;
 
 /**

@@ -24,8 +24,8 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broad.tribble.TribbleException;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 
 public class GenotypeLikelihoods {
     public static final boolean CAP_PLS = false;

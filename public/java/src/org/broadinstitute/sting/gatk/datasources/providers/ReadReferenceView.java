@@ -1,9 +1,8 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.GenomeLoc;
 /*
  * Copyright (c) 2009 The Broad Institute
  *

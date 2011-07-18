@@ -24,15 +24,13 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
 
-import java.util.Iterator;
-import java.util.List;
 import java.util.Collection;
-
-import net.sf.samtools.SAMRecord;
+import java.util.List;
 
 /**
  * A clean interface for working with extended event pileups.

@@ -24,22 +24,15 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
-import net.sf.samtools.*;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.util.BlockCompressedInputStream;
-import org.broad.tribble.readers.AsciiLineReader;
-import org.broad.tribble.readers.LineReader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 
 /**

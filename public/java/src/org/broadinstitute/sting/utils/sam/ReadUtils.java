@@ -25,13 +25,14 @@
 
 package org.broadinstitute.sting.utils.sam;
 
-import com.google.java.contract.*;
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.*;
 import java.io.File;
+import java.util.*;
 
 /**
  * A miscellaneous collection of utilities for working with SAM files, headers, etc.

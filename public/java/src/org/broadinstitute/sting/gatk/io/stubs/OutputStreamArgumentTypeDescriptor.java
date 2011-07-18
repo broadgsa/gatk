@@ -30,8 +30,8 @@ import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.io.OutputStream;
 import java.io.File;
+import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 
 /**
