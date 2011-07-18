@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.List;
 

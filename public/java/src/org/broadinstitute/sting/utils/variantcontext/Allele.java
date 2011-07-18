@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.utils.variantcontext;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Immutable representation of an allele
@@ -108,7 +108,7 @@ public class Allele implements Comparable<Allele> {
         this.bases = bases;
 
         if ( ! acceptableAlleleBases(bases) )
-            throw new IllegalArgumentException("Unexpected base in allele bases " + new String(bases));
+            throw new IllegalArgumentException("Unexpected base in allele bases \'" + new String(bases)+"\'");
     }
 
     private Allele(String bases, boolean isRef) {

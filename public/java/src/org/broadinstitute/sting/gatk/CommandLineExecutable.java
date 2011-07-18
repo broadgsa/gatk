@@ -25,30 +25,21 @@
 
 package org.broadinstitute.sting.gatk;
 
-import org.broadinstitute.sting.commandline.Tags;
-import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
-import org.broadinstitute.sting.commandline.CommandLineProgram;
 import org.broadinstitute.sting.commandline.ArgumentTypeDescriptor;
-import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
+import org.broadinstitute.sting.commandline.CommandLineProgram;
+import org.broadinstitute.sting.gatk.arguments.GATKArgumentCollection;
 import org.broadinstitute.sting.gatk.filters.ReadFilter;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileReaderArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterArgumentTypeDescriptor;
 import org.broadinstitute.sting.gatk.phonehome.GATKRunReport;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet;
-import org.broadinstitute.sting.gatk.refdata.utils.RMDTriplet.RMDStorageType;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.*;
-
-import net.sf.picard.filter.SamRecordFilter;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.ListFileUtils;
-import org.broadinstitute.sting.utils.text.XReadLines;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * @author aaron

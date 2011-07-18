@@ -24,8 +24,10 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.*;
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMRecord;
 
 /**
  * Filter out reads with wonky cigar strings.

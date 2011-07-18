@@ -3,6 +3,7 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broad.tribble.util.ParsingUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.*;
 
@@ -19,12 +20,14 @@ public class Genotype {
     protected InferredGeneticContext commonInfo;
     public final static double NO_NEG_LOG_10PERROR = InferredGeneticContext.NO_NEG_LOG_10PERROR;
     protected List<Allele> alleles = null; // new ArrayList<Allele>();
+    protected Type type = null;
 
     protected boolean isPhased = false;
-    private boolean filtersWereAppliedToContext;
+    protected boolean filtersWereAppliedToContext;
 
     public Genotype(String sampleName, List<Allele> alleles, double negLog10PError, Set<String> filters, Map<String, ?> attributes, boolean isPhased) {
-        this.alleles = Collections.unmodifiableList(alleles);
+        if ( alleles != null )
+            this.alleles = Collections.unmodifiableList(alleles);
         commonInfo = new InferredGeneticContext(sampleName, negLog10PError, filters, attributes);
         filtersWereAppliedToContext = filters != null;
         this.isPhased = isPhased;
@@ -66,6 +69,9 @@ public class Genotype {
     }
 
     public List<Allele> getAlleles(Allele allele) {
+        if ( getType() == Type.UNAVAILABLE )
+            throw new ReviewedStingException("Requesting alleles for an UNAVAILABLE genotype");
+
         List<Allele> al = new ArrayList<Allele>();
         for ( Allele a : alleles )
             if ( a.equals(allele) )
@@ -75,6 +81,8 @@ public class Genotype {
     }
 
     public Allele getAllele(int i) {
+        if ( getType() == Type.UNAVAILABLE )
+            throw new ReviewedStingException("Requesting alleles for an UNAVAILABLE genotype");
         return alleles.get(i);
     }
 
@@ -89,10 +97,21 @@ public class Genotype {
         NO_CALL,
         HOM_REF,
         HET,
-        HOM_VAR
+        HOM_VAR,
+        UNAVAILABLE
     }
 
     public Type getType() {
+        if ( type == null ) {
+            type = determineType();
+        }
+        return type;
+    }
+
+    protected Type determineType() {
+        if ( alleles == null )
+            return Type.UNAVAILABLE;
+
         Allele firstAllele = alleles.get(0);
 
         if ( firstAllele.isNoCall() ) {
@@ -122,7 +141,8 @@ public class Genotype {
      * @return true if this genotype is not actually a genotype but a "no call" (e.g. './.' in VCF)
      */
     public boolean isNoCall() { return getType() == Type.NO_CALL; }
-    public boolean isCalled() { return getType() != Type.NO_CALL; }
+    public boolean isCalled() { return getType() != Type.NO_CALL && getType() != Type.UNAVAILABLE; }
+    public boolean isAvailable() { return getType() != Type.UNAVAILABLE; }
 
     //
     // Useful methods for getting genotype likelihoods for a genotype object, if present
@@ -157,8 +177,8 @@ public class Genotype {
     }
 
     public void validate() {
-        if ( alleles == null ) throw new IllegalArgumentException("BUG: alleles cannot be null in setAlleles");
-        if ( alleles.size() == 0) throw new IllegalArgumentException("BUG: alleles cannot be of size 0 in setAlleles");
+        if ( alleles == null ) return;
+        if ( alleles.size() == 0) throw new IllegalArgumentException("BUG: alleles cannot be of size 0");
 
         int nNoCalls = 0;
         for ( Allele allele : alleles ) {
@@ -175,6 +195,9 @@ public class Genotype {
     }
 
     public String getGenotypeString(boolean ignoreRefState) {
+        if ( alleles == null )
+            return null;
+
         // Notes:
         // 1. Make sure to use the appropriate separator depending on whether the genotype is phased
         // 2. If ignoreRefState is true, then we want just the bases of the Alleles (ignoring the '*' indicating a ref Allele)

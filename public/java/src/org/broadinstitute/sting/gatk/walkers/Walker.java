@@ -25,14 +25,14 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import java.util.List;
-
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.filters.MalformedReadFilter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.apache.log4j.Logger;
+
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.

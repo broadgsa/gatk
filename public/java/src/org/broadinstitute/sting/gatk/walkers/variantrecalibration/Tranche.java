@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 The Broad Institute
+ * Copyright (c) 2011 The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,11 +25,14 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
-import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.*;
 
 /**

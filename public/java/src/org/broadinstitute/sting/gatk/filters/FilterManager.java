@@ -25,10 +25,7 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.classloader.PluginManager;
-
-import net.sf.picard.filter.SamRecordFilter;
 
 import java.util.Collection;
 

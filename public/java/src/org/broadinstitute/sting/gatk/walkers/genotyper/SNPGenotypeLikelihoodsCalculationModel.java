@@ -25,23 +25,25 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContextUtils;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.genotype.DiploidGenotype;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class SNPGenotypeLikelihoodsCalculationModel extends GenotypeLikelihoodsCalculationModel {
 

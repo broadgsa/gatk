@@ -25,29 +25,29 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import net.sf.samtools.*;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.clipreads.ClippingOp;
 import org.broadinstitute.sting.utils.clipreads.ClippingRepresentation;
 import org.broadinstitute.sting.utils.clipreads.ReadClipper;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.io.File;
 import java.io.PrintStream;
-
-import net.sf.samtools.util.StringUtil;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * This ReadWalker provides simple, yet powerful read clipping capabilities.  It allows the user to clip bases in reads

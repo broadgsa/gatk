@@ -24,14 +24,14 @@
 
 package org.broadinstitute.sting.utils.genotype;
 
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 public class Haplotype {
     protected byte[] bases = null;
@@ -133,8 +133,12 @@ public class Haplotype {
 
 
         byte[] basesBeforeVariant = Arrays.copyOfRange(refBases,startIdxInReference,startIdxInReference+numPrefBases);
+        int startAfter = startIdxInReference+numPrefBases+ refAllele.getBases().length;
+        // protect against long events that overrun available reference context
+        if (startAfter > refBases.length)
+            startAfter = refBases.length;
         byte[] basesAfterVariant = Arrays.copyOfRange(refBases,
-                startIdxInReference+numPrefBases+ refAllele.getBases().length, refBases.length);
+                startAfter, refBases.length);
 
 
         // Create location for all haplotypes

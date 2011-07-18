@@ -1,16 +1,16 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.utils.*;
-
-import java.util.Collections;
-import java.util.Collection;
-import java.util.Arrays;
-
-import net.sf.samtools.SAMSequenceRecord;
-import net.sf.samtools.SAMRecord;
-import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.picard.reference.ReferenceSequence;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceRecord;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 /**
  * User: hanna
  * Date: May 22, 2009

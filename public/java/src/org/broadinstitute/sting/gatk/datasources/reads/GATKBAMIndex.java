@@ -23,24 +23,18 @@
  */
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.samtools.Bin;
-
-import net.sf.samtools.GATKBAMFileSpan;
-import net.sf.samtools.GATKBin;
-import net.sf.samtools.GATKChunk;
-import net.sf.samtools.LinearIndex;
-import net.sf.samtools.SAMException;
-import net.sf.samtools.util.RuntimeIOException;
+import net.sf.samtools.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * A basic interface for querying BAM indices.

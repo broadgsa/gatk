@@ -27,10 +27,10 @@ package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.List;
-import java.util.Collections;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * A group of argument definitions.

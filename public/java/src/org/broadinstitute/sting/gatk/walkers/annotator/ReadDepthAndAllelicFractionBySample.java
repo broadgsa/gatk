@@ -26,24 +26,24 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineCount;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
+import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
 import org.broadinstitute.sting.utils.pileup.PileupElement;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
-import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCompoundHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.Map;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Created by IntelliJ IDEA.
@@ -200,8 +200,8 @@ public class ReadDepthAndAllelicFractionBySample implements GenotypeAnnotation {
                             1,
                             VCFHeaderLineType.Integer,
                             "Total read depth per sample, including MQ0"),
-                    new VCFFormatHeaderLine(getKeyNames().get(1),
-                            VCFCompoundHeaderLine.UNBOUNDED,
+                            new VCFFormatHeaderLine(getKeyNames().get(1),
+                            VCFHeaderLineCount.UNBOUNDED,
                             VCFHeaderLineType.Float,
                             "Fractions of reads (excluding MQ0 from both ref and alt) supporting each reported alternative allele, per sample"));
         }

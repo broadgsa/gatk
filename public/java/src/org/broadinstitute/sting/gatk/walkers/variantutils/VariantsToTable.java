@@ -24,18 +24,17 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.Requires;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
-import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.PrintStream;
 import java.util.*;

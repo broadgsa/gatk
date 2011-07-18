@@ -4,6 +4,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.*;
 import org.apache.log4j.spi.LoggingEvent;
 import org.broadinstitute.sting.commandline.CommandLineUtils;
+import org.broadinstitute.sting.gatk.walkers.diffengine.DiffEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.Assert;
 
@@ -12,6 +13,10 @@ import java.io.*;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -104,6 +109,57 @@ public abstract class BaseTest {
         if (!fileExist(hg18Reference) || !fileExist(hg19Reference) || !fileExist(b36KGReference)) {
             logger.fatal("We can't locate the reference directories.  Aborting!");
             throw new RuntimeException("BaseTest setup failed: unable to locate the reference directories");
+        }
+    }
+
+    /**
+     * Simple generic utility class to creating TestNG data providers:
+     *
+     * 1: inherit this class, as in
+     *
+     *      private class SummarizeDifferenceTest extends TestDataProvider {
+     *         public SummarizeDifferenceTest() {
+     *           super(SummarizeDifferenceTest.class);
+     *         }
+     *         ...
+     *      }
+     *
+     * Provide a reference to your class to the TestDataProvider constructor.
+     *
+     * 2: Create instances of your subclass.  Return from it the call to getTests, providing
+     * the class type of your test
+     *
+     * @DataProvider(name = "summaries")
+     * public Object[][] createSummaries() {
+     *   new SummarizeDifferenceTest().addDiff("A", "A").addSummary("A:2");
+     *   new SummarizeDifferenceTest().addDiff("A", "B").addSummary("A:1", "B:1");
+     *   return SummarizeDifferenceTest.getTests(SummarizeDifferenceTest.class);
+     * }
+     *
+     * This class magically tracks created objects of this
+     */
+    public static class TestDataProvider {
+        private static final Map<Class, List<Object>> tests = new HashMap<Class, List<Object>>();
+
+        /**
+         * Create a new TestDataProvider instance bound to the class variable C
+         * @param c
+         */
+        public TestDataProvider(Class c) {
+            if ( ! tests.containsKey(c) )
+                tests.put(c, new ArrayList<Object>());
+            tests.get(c).add(this);
+        }
+
+        /**
+         * Return all of the data providers in the form expected by TestNG of type class C
+         * @param c
+         * @return
+         */
+        public static Object[][] getTests(Class c) {
+            List<Object[]> params2 = new ArrayList<Object[]>();
+            for ( Object x : tests.get(c) ) params2.add(new Object[]{x});
+            return params2.toArray(new Object[][]{});
         }
     }
 
@@ -279,10 +335,13 @@ public abstract class BaseTest {
         
         if (parameterize || expectedMD5.equals("")) {
             // Don't assert
-        } else {
-            Assert.assertEquals(filemd5sum, expectedMD5, name + " Mismatching MD5s");
+        } else if ( filemd5sum.equals(expectedMD5) ) {
             System.out.println(String.format("  => %s PASSED", name));
+        } else {
+            Assert.fail(String.format("%s has mismatching MD5s: expected=%s observed=%s", name, expectedMD5, filemd5sum));
         }
+
+
 
         return filemd5sum;
     }
@@ -326,7 +385,12 @@ public abstract class BaseTest {
                     System.out.printf("##### Path to calculated file (MD5=%s): %s%n", filemd5sum, pathToFileMD5File);
                     System.out.printf("##### Diff command: diff %s %s%n", pathToExpectedMD5File, pathToFileMD5File);
 
-                    // todo -- add support for simple inline display of the first N differences for text file
+                    // inline differences
+                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(System.out, 20, 10, 0);
+                    boolean success = DiffEngine.simpleDiffFiles(new File(pathToExpectedMD5File), new File(pathToFileMD5File), params);
+                    if ( success )
+                        System.out.printf("Note that the above list is not comprehensive.  At most 20 lines of output, and 10 specific differences will be listed.  Please use -T DiffObjects -R public/testdata/exampleFASTA.fasta -m %s -t %s to explore the differences more freely%n",
+                                pathToExpectedMD5File, pathToFileMD5File);
                 }
             }
 

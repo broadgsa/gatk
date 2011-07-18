@@ -1,7 +1,10 @@
 package org.broadinstitute.sting.gatk.walkers.indels;
 
 import net.sf.picard.sam.SamPairUtil;
-import net.sf.samtools.*;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordComparator;
+import net.sf.samtools.SAMRecordCoordinateComparator;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
@@ -113,9 +116,10 @@ public class ConstrainedMateFixingManager {
     HashMap<String, SAMRecordHashObject> forMateMatching = new HashMap<String, SAMRecordHashObject>();
     TreeSet<SAMRecord> waitingReads = new TreeSet<SAMRecord>(comparer);
 
-    private <T> T remove(TreeSet<T> treeSet) {
-        final T first = treeSet.first();
-        treeSet.remove(first);
+    private SAMRecord remove(TreeSet<SAMRecord> treeSet) {
+        final SAMRecord first = treeSet.first();
+        if ( !treeSet.remove(first) )
+            throw new UserException("Error caching SAM record " + first.getReadName() + ", which is usually caused by malformed SAM/BAM files in which multiple identical copies of a read are present.");
         return first;
     }
 

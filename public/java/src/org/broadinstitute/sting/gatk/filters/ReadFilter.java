@@ -1,7 +1,6 @@
 package org.broadinstitute.sting.gatk.filters;
 
 import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMFileHeader;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 /**

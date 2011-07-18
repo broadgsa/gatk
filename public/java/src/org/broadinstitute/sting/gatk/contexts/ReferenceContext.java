@@ -25,11 +25,12 @@
 
 package org.broadinstitute.sting.gatk.contexts;
 
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.BaseUtils;
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.samtools.util.StringUtil;
-import com.google.java.contract.*;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 /**
  * The section of the reference that overlaps with the given

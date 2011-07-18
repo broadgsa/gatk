@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.datasources.providers;
 
-import org.broadinstitute.sting.gatk.refdata.*;
-import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.utils.GenomeLoc;

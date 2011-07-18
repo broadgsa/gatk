@@ -1,12 +1,16 @@
 package org.broadinstitute.sting.gatk.walkers.annotator;
 
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.ExperimentalAnnotation;
+import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.GenotypeAnnotation;
+import org.broadinstitute.sting.utils.MathUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
-import org.broadinstitute.sting.gatk.contexts.*;
-import org.broadinstitute.sting.utils.variantcontext.*;
-import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.*;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 
@@ -62,5 +66,5 @@ public class AlleleBalanceBySample implements GenotypeAnnotation, ExperimentalAn
 
     public List<String> getKeyNames() { return Arrays.asList("AB"); }
 
-    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), -1, VCFHeaderLineType.Float, "Allele balance for each het genotype")); }
+    public List<VCFFormatHeaderLine> getDescriptions() { return Arrays.asList(new VCFFormatHeaderLine(getKeyNames().get(0), 1, VCFHeaderLineType.Float, "Allele balance for each het genotype")); }
 }

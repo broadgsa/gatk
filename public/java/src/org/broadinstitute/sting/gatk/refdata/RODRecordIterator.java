@@ -25,17 +25,17 @@
 
 package org.broadinstitute.sting.gatk.refdata;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
-import org.broadinstitute.sting.gatk.iterators.PushbackIterator;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.lang.reflect.Constructor;
 import java.util.Iterator;
 import java.util.regex.Pattern;
-import java.io.FileNotFoundException;
-import java.io.File;
-import java.lang.reflect.Constructor;
 
 /**
  * This is a low-level iterator designed to provide system-wide generic support for reading record-oriented data
