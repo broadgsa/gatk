@@ -26,19 +26,19 @@ package org.broadinstitute.sting.gatk.refdata.features.beagle;
 
 
 import org.broad.tribble.Feature;
+import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broad.tribble.readers.LineReader;
+import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.broad.tribble.exception.CodecLineParsingException;
-import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 
 public class BeagleCodec implements ReferenceDependentFeatureCodec<BeagleFeature> {
     private String[] header;

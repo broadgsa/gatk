@@ -26,10 +26,10 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
 import java.io.FileNotFoundException;

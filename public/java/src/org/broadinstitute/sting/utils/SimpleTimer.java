@@ -1,7 +1,10 @@
 package org.broadinstitute.sting.utils;
 
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Invariant;
+import com.google.java.contract.Requires;
+
 import java.io.PrintStream;
-import com.google.java.contract.*;
 
 /**
  * A useful simple system for timing code.  This code is not thread safe!

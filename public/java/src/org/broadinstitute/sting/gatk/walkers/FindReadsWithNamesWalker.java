@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import net.sf.samtools.SAMFileWriter;
-import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;

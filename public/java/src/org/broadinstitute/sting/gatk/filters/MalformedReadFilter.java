@@ -24,8 +24,8 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 

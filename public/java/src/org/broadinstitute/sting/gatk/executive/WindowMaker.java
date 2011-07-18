@@ -1,16 +1,19 @@
 package org.broadinstitute.sting.gatk.executive;
 
-import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.iterators.*;
+import net.sf.picard.util.PeekableIterator;
 import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-
-import java.util.*;
-
-import net.sf.picard.util.PeekableIterator;
+import org.broadinstitute.sting.gatk.datasources.reads.Shard;
+import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
+import org.broadinstitute.sting.gatk.iterators.LocusIterator;
+import org.broadinstitute.sting.gatk.iterators.LocusIteratorByState;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * Buffer shards of data which may or may not contain multiple loci into

@@ -25,15 +25,21 @@
 
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
+import net.sf.samtools.*;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Hidden;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.commandline.Tags;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMReaderID;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
-import org.broadinstitute.sting.gatk.filters.*;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.filters.MappingQualityZeroReadFilter;
+import org.broadinstitute.sting.gatk.filters.Platform454Filter;
+import org.broadinstitute.sting.gatk.filters.PlatformUnitFilter;
+import org.broadinstitute.sting.gatk.filters.PlatformUnitFilterHelper;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
+import org.broadinstitute.sting.gatk.refdata.Transcript;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqCodec;
 import org.broadinstitute.sting.gatk.refdata.features.refseq.RefSeqFeature;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
@@ -42,22 +48,22 @@ import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODItera
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
 import org.broadinstitute.sting.gatk.walkers.ReadFilters;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.*;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
-import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
-import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
-import org.broadinstitute.sting.utils.interval.OverlappingIntervalIterator;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.exceptions.StingException;
-import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.collections.CircularArray;
 import org.broadinstitute.sting.utils.collections.PrimitivePair;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.commandline.Hidden;
-
-import net.sf.samtools.*;
+import org.broadinstitute.sting.utils.exceptions.StingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.interval.IntervalFileMergingIterator;
+import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
+import org.broadinstitute.sting.utils.interval.IntervalUtils;
+import org.broadinstitute.sting.utils.interval.OverlappingIntervalIterator;
+import org.broadinstitute.sting.utils.sam.AlignmentUtils;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
 import java.util.*;
@@ -72,7 +78,7 @@ import java.util.*;
  * if first bam has coverage at the site but no indication for an indel. In the --somatic mode, BED output contains
  * only somatic calls, while --verbose output contains all calls annotated with GERMLINE/SOMATIC keywords.
  */
-@ReadFilters({Platform454Filter.class, ZeroMappingQualityReadFilter.class, PlatformUnitFilter.class})
+@ReadFilters({Platform454Filter.class, MappingQualityZeroReadFilter.class, PlatformUnitFilter.class})
 public class SomaticIndelDetectorWalker extends ReadWalker<Integer,Integer> {
 //    @Output
 //    PrintStream out;

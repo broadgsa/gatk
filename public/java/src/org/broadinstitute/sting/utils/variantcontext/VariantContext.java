@@ -2,8 +2,8 @@ package org.broadinstitute.sting.utils.variantcontext;
 
 import org.broad.tribble.Feature;
 import org.broad.tribble.TribbleException;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broad.tribble.util.ParsingUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFParser;
 
 import java.util.*;
@@ -867,7 +867,10 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
         for ( String name : sampleNames ) {
             if ( map.containsKey(name) ) throw new IllegalArgumentException("Duplicate names detected in requested samples " + sampleNames);
-            map.put(name, getGenotype(name));
+            final Genotype g = getGenotype(name);
+            if ( g != null ) {
+                map.put(name, g);
+            }
         }
 
         return map;
@@ -1203,9 +1206,11 @@ public class VariantContext implements Feature { // to enable tribble intergrati
 
             if ( ! name.equals(g.getSampleName()) ) throw new IllegalStateException("Bound sample name " + name + " does not equal the name of the genotype " + g.getSampleName());
 
-            for ( Allele gAllele : g.getAlleles() ) {
-                if ( ! hasAllele(gAllele) && gAllele.isCalled() )
-                    throw new IllegalStateException("Allele in genotype " + gAllele + " not in the variant context " + alleles);
+            if ( g.isAvailable() ) {
+                for ( Allele gAllele : g.getAlleles() ) {
+                    if ( ! hasAllele(gAllele) && gAllele.isCalled() )
+                        throw new IllegalStateException("Allele in genotype " + gAllele + " not in the variant context " + alleles);
+                }
             }
         }
     }
@@ -1343,6 +1348,15 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         return (int)stop;
     }
 
+    private boolean hasSymbolicAlleles() {
+        for (Allele a: getAlleles()) {
+            if (a.isSymbolic()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static VariantContext createVariantContextWithPaddedAlleles(VariantContext inputVC, byte inputRefBase, boolean refBaseShouldBeAppliedToEndOfAlleles) {
         Allele refAllele = inputVC.getReference();
 
@@ -1352,7 +1366,9 @@ public class VariantContext implements Feature { // to enable tribble intergrati
         // We need to pad a VC with a common base if the length of the reference allele is less than the length of the VariantContext.
         // This happens because the position of e.g. an indel is always one before the actual event (as per VCF convention).
         long locLength = (inputVC.getEnd() - inputVC.getStart()) + 1;
-        if (refAllele.length() == locLength)
+        if (inputVC.hasSymbolicAlleles())
+            padVC = true;
+        else if (refAllele.length() == locLength)
             padVC = false;
         else if (refAllele.length() == locLength-1)
             padVC = true;

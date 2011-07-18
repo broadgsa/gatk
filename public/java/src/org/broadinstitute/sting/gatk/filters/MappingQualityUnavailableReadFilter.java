@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2010, The Broad Institute
- *
+ * Copyright (c) 2009 The Broad Institute
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -12,6 +11,7 @@
  *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -22,25 +22,21 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.broadinstitute.sting.gatk.walkers.variantutils;
+package org.broadinstitute.sting.gatk.filters;
 
-import org.broadinstitute.sting.WalkerTest;
-import org.testng.annotations.Test;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.QualityUtils;
 
-import java.io.File;
-import java.util.Arrays;
+/**
+ * Filter out mapping quality zero reads.
+ *
+ * @author ebanks
+ * @version 0.1
+ */
 
-public class BatchMergeIntegrationTest extends WalkerTest {
-    @Test
-    public void testBatchMerge1() {
-        String bam = validationDataLocation + "NA12878.HiSeq.b37.chr20.10_11mb.bam";
-        String alleles = validationDataLocation +  "batch.merge.alleles.vcf";
-        WalkerTestSpec spec = new WalkerTestSpec(
-                "-T UnifiedGenotyper -NO_HEADER -BTI alleles -stand_call_conf 0.0 -glm BOTH -G none -nsl -gt_mode GENOTYPE_GIVEN_ALLELES -out_mode EMIT_ALL_SITES -o %s -R " + b37KGReference
-                        + " -B:alleles,VCF " + alleles
-                        + " -I " + bam,
-                1,
-                Arrays.asList("f4ed8f4ef2cba96823c06e90e9d0de35"));
-        executeTest("testBatchMerge UG genotype given alleles:" + new File(bam).getName() + " with " + new File(alleles).getName(), spec);
+public class MappingQualityUnavailableReadFilter extends ReadFilter {
+    public boolean filterOut(SAMRecord rec) {
+        return (rec.getMappingQuality() == QualityUtils.MAPPING_QUALITY_UNAVAILABLE);
     }
 }
+

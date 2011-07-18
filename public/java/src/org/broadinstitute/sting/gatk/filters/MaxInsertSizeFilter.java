@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.commandline.Argument;
 

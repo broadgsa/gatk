@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.util.CloseableIterator;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 import java.util.Iterator;
-
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 
 /**
  * Iterator that traverses a SAM File, accumulating information on a per-locus basis

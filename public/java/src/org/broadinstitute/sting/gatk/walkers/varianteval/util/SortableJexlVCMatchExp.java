@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.util;
 
-import org.apache.commons.jexl2.*;
+import org.apache.commons.jexl2.Expression;
 import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 public class SortableJexlVCMatchExp extends VariantContextUtils.JexlVCMatchExp implements Comparable<SortableJexlVCMatchExp> {

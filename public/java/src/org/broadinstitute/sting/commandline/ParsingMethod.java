@@ -27,10 +27,8 @@ package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.Utils;
 
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 /**
  * Holds a pattern, along with how to get to the argument definitions that could match that pattern.

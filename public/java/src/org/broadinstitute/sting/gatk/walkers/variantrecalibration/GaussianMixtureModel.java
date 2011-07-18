@@ -97,7 +97,7 @@ public class GaussianMixtureModel {
 
         int ttt = 0;
         while( ttt++ < numIterations ) {
-            // Estep: assign each variant to the nearest cluster
+            // E step: assign each variant to the nearest cluster
             for( final VariantDatum datum : data ) {
                 double minDistance = Double.MAX_VALUE;
                 MultivariateGaussian minGaussian = null;
@@ -112,7 +112,7 @@ public class GaussianMixtureModel {
                 datum.assignment = minGaussian;
             }
 
-            // Mstep: update gaussian means based on assigned variants
+            // M step: update gaussian means based on assigned variants
             for( final MultivariateGaussian gaussian : gaussians ) {
                 gaussian.zeroOutMu();
                 int numAssigned = 0;
@@ -229,26 +229,29 @@ public class GaussianMixtureModel {
     }
 
     public double evaluateDatumMarginalized( final VariantDatum datum ) {
-        int numVals = 0;
+        int numSamples = 0;
         double sumPVarInGaussian = 0.0;
-        int numIter = 10;
+        final int numIterPerMissingAnnotation = 10; // Trade off here between speed of computation and accuracy of the marginalization
         final double[] pVarInGaussianLog10 = new double[gaussians.size()];
+        // for each dimension
         for( int iii = 0; iii < datum.annotations.length; iii++ ) {
-            // marginalize over the missing dimension by drawing X random values for the missing annotation and averaging the lod
+            // if it is missing marginalize over the missing dimension by drawing X random values for the missing annotation and averaging the lod
             if( datum.isNull[iii] ) {
-                for( int ttt = 0; ttt < numIter; ttt++ ) {
-                    datum.annotations[iii] = Normal.staticNextDouble(0.0, 1.0);
+                for( int ttt = 0; ttt < numIterPerMissingAnnotation; ttt++ ) {
+                    datum.annotations[iii] = GenomeAnalysisEngine.getRandomGenerator().nextGaussian(); // draw a random sample from the standard normal distribution
 
+                    // evaluate this random data point
                     int gaussianIndex = 0;
                     for( final MultivariateGaussian gaussian : gaussians ) {
                         pVarInGaussianLog10[gaussianIndex++] = gaussian.pMixtureLog10 + gaussian.evaluateDatumLog10( datum );
                     }
 
-                    sumPVarInGaussian += Math.pow(10.0, MathUtils.log10sumLog10(pVarInGaussianLog10));
-                    numVals++;
+                    // add this sample's probability to the pile in order to take an average in the end
+                    sumPVarInGaussian += Math.pow(10.0, MathUtils.log10sumLog10(pVarInGaussianLog10)); // p = 10 ^ Sum(pi_k * p(v|n,k))
+                    numSamples++;
                 }
             }
         }
-        return Math.log10( sumPVarInGaussian / ((double) numVals) );
+        return Math.log10( sumPVarInGaussian / ((double) numSamples) );
     }
 }

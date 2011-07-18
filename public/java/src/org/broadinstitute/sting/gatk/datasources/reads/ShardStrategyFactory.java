@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLocSortedSet;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  *

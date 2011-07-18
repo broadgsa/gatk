@@ -23,7 +23,9 @@
  */
 package org.broadinstitute.sting.utils;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class DisjointSet {
     private ItemNode[] nodes;

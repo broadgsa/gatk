@@ -25,6 +25,9 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator;
 
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.UserException;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -32,9 +35,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
 /**
  * This is a container that holds all data corresponding to a single join table as specified by one -J arg (ex: -J bindingName1,/path/to/file,bindingName1.columnName=bindingName2.columnName2).

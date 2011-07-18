@@ -25,14 +25,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RodWalker;
@@ -42,6 +40,8 @@ import org.broadinstitute.sting.utils.QualityUtils;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -284,7 +284,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
             throw new UserException.CouldNotCreateOutputFile(RSCRIPT_FILE, "", e);
         }
 
-        // We make extensive use of the ggplot2 library: http://had.co.nz/ggplot2/
+        // We make extensive use of the ggplot2 R library: http://had.co.nz/ggplot2/
         stream.println("library(ggplot2)");
 
         createArrangeFunction( stream );
@@ -378,6 +378,7 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         }
      }
 
+    // The Arrange function is how we place the 4 model plots on one page
     // from http://gettinggeneticsdone.blogspot.com/2010/03/arrange-multiple-ggplot2-plots-in-same.html
     private void createArrangeFunction( final PrintStream stream ) {
         stream.println("vp.layout <- function(x, y) viewport(layout.pos.row=x, layout.pos.col=y)");
@@ -402,5 +403,4 @@ public class VariantRecalibrator extends RodWalker<ExpandingArrayList<VariantDat
         stream.println("}");
         stream.println("}");
     }
-
- }
+}

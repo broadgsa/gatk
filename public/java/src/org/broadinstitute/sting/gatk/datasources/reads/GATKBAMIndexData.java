@@ -24,11 +24,7 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import net.sf.samtools.Bin;
-import net.sf.samtools.GATKBAMFileSpan;
-import net.sf.samtools.GATKBin;
-import net.sf.samtools.GATKChunk;
-import net.sf.samtools.LinearIndex;
+import net.sf.samtools.*;
 
 import java.util.ArrayList;
 import java.util.Collections;

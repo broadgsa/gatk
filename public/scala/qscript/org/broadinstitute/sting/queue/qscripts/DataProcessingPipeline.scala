@@ -3,14 +3,15 @@ package org.broadinstitute.sting.queue.qscripts
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.function.ListWriterFunction
-
-import scala.io.Source._
-import collection.JavaConversions._
-import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
 import org.broadinstitute.sting.queue.extensions.picard._
-import net.sf.samtools.{SAMFileReader, SAMReadGroupRecord}
+import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
+import org.broadinstitute.sting.utils.baq.BAQ.CalculationMode
+
+import collection.JavaConversions._
+import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMFileHeader.SortOrder
 
+import org.broadinstitute.sting.queue.util.QScriptUtils
 
 class DataProcessingPipeline extends QScript {
   qscript =>
@@ -29,7 +30,8 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=true)
   var reference: File = _
 
-
+  @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=true)
+  var dbSNP: File = _
 
   /****************************************************************************
   * Optional Parameters
@@ -39,14 +41,12 @@ class DataProcessingPipeline extends QScript {
 //  @Input(doc="path to Picard's SortSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_sort_jar", shortName="sort", required=false)
 //  var sortSamJar: File = _
 //
-  @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
-  var bwaPath: File = _
-
-  @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=false)
-  var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
-  var indels: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf")
+  var indels: File = _
+
+  @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
+  var bwaPath: File = _
 
   @Input(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", fullName="project", shortName="p", required=false)
   var projectName: String = "project"
@@ -103,18 +103,6 @@ class DataProcessingPipeline extends QScript {
                    val ds: String)
   {}
 
-  // Utility function to check if there are multiple samples in a BAM file (currently we can't deal with that)
-  def hasMultipleSamples(readGroups: java.util.List[SAMReadGroupRecord]): Boolean = {
-    var sample: String = ""
-    for (r <- readGroups) {
-      if (sample.isEmpty)
-        sample = r.getSample
-      else if (sample != r.getSample)
-          return true;
-    }
-    return false
-  }
-
   // Utility function to merge all bam files of similar samples. Generates one BAM file per sample.
   // It uses the sample information on the header of the input BAM files.
   //
@@ -135,7 +123,7 @@ class DataProcessingPipeline extends QScript {
 
       // only allow one sample per file. Bam files with multiple samples would require pre-processing of the file
       // with PrintReads to separate the samples. Tell user to do it himself!
-      assert(!hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
+      assert(!QScriptUtils.hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
 
       // Fill out the sample table with the readgroups in this file
       for (rg <- readGroups) {
@@ -147,20 +135,23 @@ class DataProcessingPipeline extends QScript {
       }
     }
 
+    println("\n\n*** DEBUG ***\n")
     // Creating one file for each sample in the dataset
     val sampleBamFiles = scala.collection.mutable.Map.empty[String, File]
     for ((sample, flist) <- sampleTable) {
+
+      println(sample + ":")
+      for (f <- flist)
+        println (f)
+      println()
+
       val sampleFileName = new File(qscript.outputDir + qscript.projectName + "." + sample + ".bam")
       sampleBamFiles(sample) = sampleFileName
       add(joinBams(flist, sampleFileName))
     }
-    return sampleBamFiles.toMap
-  }
+    println("*** DEBUG ***\n\n")
 
-  // Checks how many contigs are in the dataset. Uses the BAM file header information.
-  def getNumberOfContigs(bamFile: File): Int = {
-    val samReader = new SAMFileReader(new File(bamFile))
-    return samReader.getFileHeader.getSequenceDictionary.getSequences.size()
+    return sampleBamFiles.toMap
   }
 
   // Rebuilds the Read Group string to give BWA
@@ -206,17 +197,6 @@ class DataProcessingPipeline extends QScript {
     return realignedBams
   }
 
-  // Reads a BAM LIST file and creates a scala list with all the files
-  def createListFromFile(in: File):List[File] = {
-    if (in.toString.endsWith("bam"))
-      return List(in)
-    var l: List[File] = List()
-    for (bam <- fromFile(in).getLines)
-      l :+= new File(bam)
-    return l
-  }
-
-
 
   /****************************************************************************
   * Main script
@@ -226,16 +206,13 @@ class DataProcessingPipeline extends QScript {
   def script = {
 
     // keep a record of the number of contigs in the first bam file in the list
-    val bams = createListFromFile(input)
-    nContigs = getNumberOfContigs(bams(0))
+    val bams = QScriptUtils.createListFromFile(input)
+    nContigs = QScriptUtils.getNumberOfContigs(bams(0))
 
     val realignedBams = if (useBWApe || useBWAse) {performAlignment(bams)} else {bams}
 
     // Generate a BAM file per sample joining all per lane files if necessary
     val sampleBamFiles: Map[String, File] = createSampleFiles(bams, realignedBams)
-
-
-    println("nContigs: " + nContigs)
 
     // Final output list of processed bam files
     var cohortList: List[File] = List()
@@ -244,6 +221,7 @@ class DataProcessingPipeline extends QScript {
     println("\nFound the following samples: ")
     for ((sample, file) <- sampleBamFiles)
       println("\t" + sample + " -> " + file)
+    println("\n")
 
     // If this is a 'knowns only' indel realignment run, do it only once for all samples.
     val globalIntervals = new File(outputDir + projectName + ".intervals")
@@ -310,7 +288,8 @@ class DataProcessingPipeline extends QScript {
     this.out = outIntervals
     this.mismatchFraction = 0.0
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels", "VCF", indels)
+    if (!indels.isEmpty)
+      this.rodBind :+= RodBind("indels", "VCF", indels)
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outIntervals + ".target"
     this.jobName = queueLogDir + outIntervals + ".target"
@@ -321,7 +300,8 @@ class DataProcessingPipeline extends QScript {
     this.targetIntervals = tIntervals
     this.out = outBam
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
+    if (!indels.isEmpty)
+      this.rodBind :+= RodBind("indels", "VCF", indels)
     this.consensusDeterminationModel =  consensusDeterminationModel
     this.compress = 0
     this.scatterCount = nContigs
@@ -344,7 +324,7 @@ class DataProcessingPipeline extends QScript {
   case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
     this.input_file :+= inBam
     this.recal_file = inRecalFile
-    this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY
+    this.baq = CalculationMode.CALCULATE_AS_NECESSARY
     this.out = outBam
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
