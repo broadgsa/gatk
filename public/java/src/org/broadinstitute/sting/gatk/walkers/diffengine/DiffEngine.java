@@ -58,7 +58,7 @@ public class DiffEngine {
     //
     // --------------------------------------------------------------------------------
 
-    public List<SpecificDifference> diff(DiffElement master, DiffElement test) {
+    public List<Difference> diff(DiffElement master, DiffElement test) {
         DiffValue masterValue = master.getValue();
         DiffValue testValue = test.getValue();
 
@@ -68,14 +68,14 @@ public class DiffEngine {
             return diff(masterValue, testValue);
         } else {
             // structural difference in types.  one is node, other is leaf
-            return Arrays.asList(new SpecificDifference(master, test));
+            return Arrays.asList(new Difference(master, test));
         }
     }
 
-    public List<SpecificDifference> diff(DiffNode master, DiffNode test) {
+    public List<Difference> diff(DiffNode master, DiffNode test) {
         Set<String> allNames = new HashSet<String>(master.getElementNames());
         allNames.addAll(test.getElementNames());
-        List<SpecificDifference> diffs = new ArrayList<SpecificDifference>();
+        List<Difference> diffs = new ArrayList<Difference>();
 
         for ( String name : allNames ) {
             DiffElement masterElt = master.getElement(name);
@@ -84,7 +84,7 @@ public class DiffEngine {
                 throw new ReviewedStingException("BUG: unexceptedly got two null elements for field: " + name);
             } else if ( masterElt == null || testElt == null ) { // if either is null, we are missing a value
                 // todo -- should one of these be a special MISSING item?
-                diffs.add(new SpecificDifference(masterElt, testElt));
+                diffs.add(new Difference(masterElt, testElt));
             } else {
                 diffs.addAll(diff(masterElt, testElt));
             }
@@ -93,11 +93,11 @@ public class DiffEngine {
         return diffs;
     }
 
-    public List<SpecificDifference> diff(DiffValue master, DiffValue test) {
+    public List<Difference> diff(DiffValue master, DiffValue test) {
         if ( master.getValue().equals(test.getValue()) ) {
             return Collections.emptyList();
         } else {
-            return Arrays.asList(new SpecificDifference(master.getBinding(), test.getBinding()));
+            return Arrays.asList(new Difference(master.getBinding(), test.getBinding()));
         }
     }
 
@@ -145,11 +145,11 @@ public class DiffEngine {
      * @param params determines how we display the items
      * @param diffs
      */
-    public void reportSummarizedDifferences(List<SpecificDifference> diffs, SummaryReportParams params ) {
+    public void reportSummarizedDifferences(List<Difference> diffs, SummaryReportParams params ) {
         printSummaryReport(summarizeDifferences(diffs), params );
     }
 
-    public List<Difference> summarizeDifferences(List<SpecificDifference> diffs) {
+    public List<Difference> summarizeDifferences(List<Difference> diffs) {
         return summarizedDifferencesOfPaths(diffs);
     }
 
@@ -177,8 +177,12 @@ public class DiffEngine {
                 Difference diffPath2 = singletonDiffs.get(j);
                 if ( diffPath1.length() == diffPath2.length() ) {
                     int lcp = longestCommonPostfix(diffPath1.getParts(), diffPath2.getParts());
-                    String path = lcp > 0 ? summarizedPath(diffPath2.getParts(), lcp) : diffPath2.getPath();
-                    addSummary(summaries, path, true);
+                    String path = diffPath2.getPath();
+                    if ( lcp != 0 && lcp != diffPath1.length() )
+                        path = summarizedPath(diffPath2.getParts(), lcp);
+                    Difference sumDiff = new Difference(path, diffPath2.getMaster(), diffPath2.getTest());
+                    sumDiff.setCount(0);
+                    addSummaryIfMissing(summaries, sumDiff);
                 }
             }
         }
@@ -187,7 +191,7 @@ public class DiffEngine {
         for ( Difference diffPath : singletonDiffs ) {
             for ( Difference sumDiff : summaries.values() ) {
                 if ( sumDiff.matches(diffPath.getParts()) )
-                    addSummary(summaries, sumDiff.getPath(), false);
+                    sumDiff.incCount();
             }
         }
 
@@ -196,13 +200,9 @@ public class DiffEngine {
         return sortedSummaries;
     }
 
-    private static void addSummary(Map<String, Difference> summaries, String path, boolean onlyCatalog) {
-        if ( summaries.containsKey(path) ) {
-            if ( ! onlyCatalog )
-                summaries.get(path).incCount();
-        } else {
-            Difference sumDiff = new Difference(path);
-            summaries.put(sumDiff.getPath(), sumDiff);
+    protected void addSummaryIfMissing(Map<String, Difference> summaries, Difference diff) {
+        if ( ! summaries.containsKey(diff.getPath()) ) {
+            summaries.put(diff.getPath(), diff);
         }
     }
 
@@ -213,6 +213,7 @@ public class DiffEngine {
         GATKReportTable table = report.getTable(tableName);
         table.addPrimaryKey("Difference", true);
         table.addColumn("NumberOfOccurrences", 0);
+        table.addColumn("SpecificDifference", 0);
 
         int count = 0, count1 = 0;
         for ( Difference diff : sortedSummaries ) {
@@ -230,6 +231,7 @@ public class DiffEngine {
             }
 
             table.set(diff.getPath(), "NumberOfOccurrences", diff.getCount());
+            table.set(diff.getPath(), "SpecificDifference", diff.valueDiffString());
         }
 
         table.write(params.out);
@@ -336,7 +338,7 @@ public class DiffEngine {
         if ( diffEngine.canRead(masterFile) && diffEngine.canRead(testFile) ) {
             DiffElement master = diffEngine.createDiffableFromFile(masterFile);
             DiffElement test = diffEngine.createDiffableFromFile(testFile);
-            List<SpecificDifference> diffs = diffEngine.diff(master, test);
+            List<Difference> diffs = diffEngine.diff(master, test);
             diffEngine.reportSummarizedDifferences(diffs, params);
             return true;
         } else {

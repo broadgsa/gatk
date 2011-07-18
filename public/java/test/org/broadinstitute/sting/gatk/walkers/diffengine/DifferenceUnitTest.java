@@ -75,10 +75,10 @@ public class DifferenceUnitTest extends BaseTest {
 
     @DataProvider(name = "data")
     public Object[][] createTrees() {
-        new DifferenceTest("A=X", "A=Y", "A:X!=Y");
-        new DifferenceTest("A=Y", "A=X", "A:Y!=X");
-        new DifferenceTest(DiffNode.fromString("A=X"), null, "A:X!=MISSING");
-        new DifferenceTest(null, DiffNode.fromString("A=X"), "A:MISSING!=X");
+        new DifferenceTest("A=X", "A=Y", "A:1:X!=Y");
+        new DifferenceTest("A=Y", "A=X", "A:1:Y!=X");
+        new DifferenceTest(DiffNode.fromString("A=X"), null, "A:1:X!=MISSING");
+        new DifferenceTest(null, DiffNode.fromString("A=X"), "A:1:MISSING!=X");
         return DifferenceTest.getTests(DifferenceTest.class);
     }
 
@@ -87,7 +87,7 @@ public class DifferenceUnitTest extends BaseTest {
         logger.warn("Test tree1: " + (test.tree1 == null ? "null" : test.tree1.toOneLineString()));
         logger.warn("Test tree2: " + (test.tree2 == null ? "null" : test.tree2.toOneLineString()));
         logger.warn("Test expected diff : " + test.difference);
-        SpecificDifference diff = new SpecificDifference(test.tree1, test.tree2);
+        Difference diff = new Difference(test.tree1, test.tree2);
         logger.warn("Observed diffs     : " + diff);
         Assert.assertEquals(diff.toString(), test.difference, "Observed diff string " + diff + " not equal to expected difference string " + test.difference );
 

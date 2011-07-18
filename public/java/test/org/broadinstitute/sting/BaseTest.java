@@ -13,10 +13,7 @@ import java.io.*;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  *
@@ -83,11 +80,6 @@ public abstract class BaseTest {
     public static final String networkTempDir = "/broad/shptmp/";
     public static final File networkTempDirFile = new File(networkTempDir);
 
-    /**
-     * Subdirectory under the ant build directory where we store integration test md5 results
-     */
-    public static final String MD5_FILE_DB_SUBDIR = "integrationtests";
-
     public static final String testDir = "public/testdata/";
 
     /** before the class starts up */
@@ -129,7 +121,7 @@ public abstract class BaseTest {
      * 2: Create instances of your subclass.  Return from it the call to getTests, providing
      * the class type of your test
      *
-     * @DataProvider(name = "summaries")
+     * @DataProvider(name = "summaries"
      * public Object[][] createSummaries() {
      *   new SummarizeDifferenceTest().addDiff("A", "A").addSummary("A:2");
      *   new SummarizeDifferenceTest().addDiff("A", "B").addSummary("A:1", "B:1");
@@ -203,200 +195,6 @@ public abstract class BaseTest {
 
         public boolean foundString() {
             return foundString;
-        }
-    }
-
-    /**
-     * a little utility function for all tests to md5sum a file
-     * Shameless taken from:
-     *
-     * http://www.javalobby.org/java/forums/t84420.html
-     *
-     * @param file the file
-     * @return a string
-     */
-    public static String md5SumFile(File file) {
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            throw new ReviewedStingException("Unable to find MD5 digest");
-        }
-        InputStream is;
-        try {
-            is = new FileInputStream(file);
-        } catch (FileNotFoundException e) {
-            throw new ReviewedStingException("Unable to open file " + file);
-        }
-        byte[] buffer = new byte[8192];
-        int read;
-        try {
-            while ((read = is.read(buffer)) > 0) {
-                digest.update(buffer, 0, read);
-            }
-            byte[] md5sum = digest.digest();
-            BigInteger bigInt = new BigInteger(1, md5sum);
-            return bigInt.toString(16);
-
-        }
-        catch (IOException e) {
-            throw new ReviewedStingException("Unable to process file for MD5", e);
-        }
-        finally {
-            try {
-                is.close();
-            }
-            catch (IOException e) {
-                throw new ReviewedStingException("Unable to close input stream for MD5 calculation", e);
-            }
-        }
-    }
-
-    protected static void ensureMd5DbDirectory() {
-        // todo -- make path
-        File dir = new File(MD5_FILE_DB_SUBDIR);
-        if ( ! dir.exists() ) {
-            System.out.printf("##### Creating MD5 db %s%n", MD5_FILE_DB_SUBDIR);
-            if ( ! dir.mkdir() ) {
-                throw new ReviewedStingException("Infrastructure failure: failed to create md5 directory " + MD5_FILE_DB_SUBDIR);
-            }
-        }
-    }
-
-    protected static File getFileForMD5(final String md5) {
-        final String basename = String.format("%s.integrationtest", md5);
-        return new File(MD5_FILE_DB_SUBDIR + "/" + basename);
-    }
-
-    private static void updateMD5Db(final String md5, final File resultsFile) {
-        // todo -- copy results file to DB dir if needed under filename for md5
-        final File dbFile = getFileForMD5(md5);
-        if ( ! dbFile.exists() ) {
-            // the file isn't already in the db, copy it over
-            System.out.printf("##### Updating MD5 file: %s%n", dbFile.getPath());
-            try {
-                FileUtils.copyFile(resultsFile, dbFile);
-            } catch ( IOException e ) {
-                throw new ReviewedStingException(e.getMessage());
-            }
-        } else {
-            System.out.printf("##### MD5 file is up to date: %s%n", dbFile.getPath());
-
-        }
-    }
-
-    private static String getMD5Path(final String md5, final String valueIfNotFound) {
-        // todo -- look up the result in the directory and return the path if it exists
-        final File dbFile = getFileForMD5(md5);
-        return dbFile.exists() ? dbFile.getPath() : valueIfNotFound;
-    }
-
-    public static byte[] getBytesFromFile(File file) throws IOException {
-        InputStream is = new FileInputStream(file);
-
-        // Get the size of the file
-        long length = file.length();
-
-        if (length > Integer.MAX_VALUE) {
-            // File is too large
-        }
-
-        // Create the byte array to hold the data
-        byte[] bytes = new byte[(int) length];
-
-        // Read in the bytes
-        int offset = 0;
-        int numRead = 0;
-        while (offset < bytes.length
-                && (numRead = is.read(bytes, offset, bytes.length - offset)) >= 0) {
-            offset += numRead;
-        }
-
-        // Ensure all the bytes have been read in
-        if (offset < bytes.length) {
-            throw new IOException("Could not completely read file " + file.getName());
-        }
-
-        // Close the input stream and return bytes
-        is.close();
-        return bytes;
-    }
-
-    /**
-     * Tests a file MD5 against an expected value, returning the MD5.  NOTE: This function WILL throw an exception if the MD5s are different.
-     * @param name Name of the test.
-     * @param resultsFile File to MD5.
-     * @param expectedMD5 Expected MD5 value.
-     * @param parameterize If true or if expectedMD5 is an empty string, will print out the calculated MD5 instead of error text.
-     * @return The calculated MD5.
-     */
-    public static String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
-        String filemd5sum = testFileMD5(name, resultsFile, expectedMD5, parameterize);
-        
-        if (parameterize || expectedMD5.equals("")) {
-            // Don't assert
-        } else if ( filemd5sum.equals(expectedMD5) ) {
-            System.out.println(String.format("  => %s PASSED", name));
-        } else {
-            Assert.fail(String.format("%s has mismatching MD5s: expected=%s observed=%s", name, expectedMD5, filemd5sum));
-        }
-
-
-
-        return filemd5sum;
-    }
-
-
-    /**
-     * Tests a file MD5 against an expected value, returning the MD5.  NOTE: This function WILL NOT throw an exception if the MD5s are different.
-     * @param name Name of the test.
-     * @param resultsFile File to MD5.
-     * @param expectedMD5 Expected MD5 value.
-     * @param parameterize If true or if expectedMD5 is an empty string, will print out the calculated MD5 instead of error text.
-     * @return The calculated MD5.
-     */
-    public static String testFileMD5(final String name, final File resultsFile, final String expectedMD5, final boolean parameterize) {
-        try {
-            byte[] bytesOfMessage = getBytesFromFile(resultsFile);
-            byte[] thedigest = MessageDigest.getInstance("MD5").digest(bytesOfMessage);
-            BigInteger bigInt = new BigInteger(1, thedigest);
-            String filemd5sum = bigInt.toString(16);
-            while (filemd5sum.length() < 32) filemd5sum = "0" + filemd5sum; // pad to length 32
-
-            //
-            // copy md5 to integrationtests
-            //
-            updateMD5Db(filemd5sum, resultsFile);
-
-            if (parameterize || expectedMD5.equals("")) {
-                System.out.println(String.format("PARAMETERIZATION[%s]: file %s has md5 = %s, stated expectation is %s, equal? = %b",
-                                                 name, resultsFile, filemd5sum, expectedMD5, filemd5sum.equals(expectedMD5)));
-            } else {
-                System.out.println(String.format("Checking MD5 for %s [calculated=%s, expected=%s]", resultsFile, filemd5sum, expectedMD5));
-                System.out.flush();
-
-                if ( ! expectedMD5.equals(filemd5sum) ) {
-                    // we are going to fail for real in assertEquals (so we are counted by the testing framework).
-                    // prepare ourselves for the comparison
-                    System.out.printf("##### Test %s is going fail #####%n", name);
-                    String pathToExpectedMD5File = getMD5Path(expectedMD5, "[No DB file found]");
-                    String pathToFileMD5File = getMD5Path(filemd5sum, "[No DB file found]");
-                    System.out.printf("##### Path to expected   file (MD5=%s): %s%n", expectedMD5, pathToExpectedMD5File);
-                    System.out.printf("##### Path to calculated file (MD5=%s): %s%n", filemd5sum, pathToFileMD5File);
-                    System.out.printf("##### Diff command: diff %s %s%n", pathToExpectedMD5File, pathToFileMD5File);
-
-                    // inline differences
-                    DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(System.out, 20, 10, 0);
-                    boolean success = DiffEngine.simpleDiffFiles(new File(pathToExpectedMD5File), new File(pathToFileMD5File), params);
-                    if ( success )
-                        System.out.printf("Note that the above list is not comprehensive.  At most 20 lines of output, and 10 specific differences will be listed.  Please use -T DiffObjects -R public/testdata/exampleFASTA.fasta -m %s -t %s to explore the differences more freely%n",
-                                pathToExpectedMD5File, pathToFileMD5File);
-                }
-            }
-
-            return filemd5sum;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to read bytes from calls file: " + resultsFile, e);
         }
     }
 
