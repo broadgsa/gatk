@@ -17,6 +17,9 @@ import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 
 import java.util.*;
 
+/**
+ * Merges read-back-phased and phase-by-transmission files.
+ */
 public class MergeAndMatchHaplotypes extends RodWalker<Integer, Integer> {
     @Output
     protected VCFWriter vcfWriter = null;
