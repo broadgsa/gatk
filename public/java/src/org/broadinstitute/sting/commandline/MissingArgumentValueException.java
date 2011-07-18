@@ -26,8 +26,6 @@ package org.broadinstitute.sting.commandline;
 
 import org.broadinstitute.sting.utils.Utils;
 
-import java.util.Collection;
-
 /**
  * Specifies that a value was missing when attempting to populate an argument.
  */

@@ -26,10 +26,9 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.SAMFileReader;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  * Allows the user to steadily accumulate information about what

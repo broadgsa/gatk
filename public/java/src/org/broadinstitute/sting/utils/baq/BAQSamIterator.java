@@ -2,11 +2,10 @@ package org.broadinstitute.sting.utils.baq;
 
 import com.google.java.contract.Ensures;
 import com.google.java.contract.Requires;
-import net.sf.samtools.SAMRecord;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.baq.BAQ;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Iterator;
 

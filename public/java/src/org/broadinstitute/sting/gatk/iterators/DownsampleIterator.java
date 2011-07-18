@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 import java.util.Iterator;
-
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 
 
 public class DownsampleIterator implements StingSAMIterator {

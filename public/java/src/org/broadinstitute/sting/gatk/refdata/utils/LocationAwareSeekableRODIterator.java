@@ -2,11 +2,7 @@ package org.broadinstitute.sting.gatk.refdata.utils;
 
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.utils.GenomeLoc;
-
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * @author aaron

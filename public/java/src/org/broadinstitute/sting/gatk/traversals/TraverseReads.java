@@ -2,14 +2,16 @@ package org.broadinstitute.sting.gatk.traversals;
 
 import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.ReadMetrics;
+import org.broadinstitute.sting.gatk.WalkerManager;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.datasources.providers.*;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadBasedReferenceOrderedView;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadReferenceView;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadShardDataProvider;
+import org.broadinstitute.sting.gatk.datasources.providers.ReadView;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.DataSource;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 /*

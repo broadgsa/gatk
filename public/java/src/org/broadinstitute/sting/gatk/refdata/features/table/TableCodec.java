@@ -1,16 +1,14 @@
 package org.broadinstitute.sting.gatk.refdata.features.table;
 
 import org.broad.tribble.Feature;
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.readers.LineReader;
 import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * implementation of a simple table (tab or comma delimited format) input files

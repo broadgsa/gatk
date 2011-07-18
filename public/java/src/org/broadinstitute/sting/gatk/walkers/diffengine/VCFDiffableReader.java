@@ -30,7 +30,10 @@ import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Map;
 
 
@@ -50,7 +53,13 @@ public class VCFDiffableReader implements DiffableReader {
     public DiffElement readFromFile(File file, int maxElementsToRead) {
         DiffNode root = DiffNode.rooted(file.getName());
         try {
+            // read the version line from the file
             LineReader lineReader = new AsciiLineReader(new FileInputStream(file));
+            final String version = lineReader.readLine();
+            root.add("VERSION", version);
+            lineReader.close();
+
+            lineReader = new AsciiLineReader(new FileInputStream(file));
             VCFCodec vcfCodec = new VCFCodec();
 
             // must be read as state is stored in reader itself

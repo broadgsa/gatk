@@ -27,7 +27,6 @@ package org.broadinstitute.sting.gatk.walkers.genotyper;
 
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
-import org.broadinstitute.sting.commandline.Input;
 
 import java.io.File;
 

@@ -99,7 +99,7 @@ public class DiffEngineUnitTest extends BaseTest {
         logger.warn("Test tree1: " + test.tree1.toOneLineString());
         logger.warn("Test tree2: " + test.tree2.toOneLineString());
 
-        List<SpecificDifference> diffs = engine.diff(test.tree1, test.tree2);
+        List<Difference> diffs = engine.diff(test.tree1, test.tree2);
         logger.warn("Test expected diff : " + test.differences);
         logger.warn("Observed diffs     : " + diffs);
     }

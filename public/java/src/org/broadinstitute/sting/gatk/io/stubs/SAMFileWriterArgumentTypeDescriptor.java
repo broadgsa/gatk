@@ -25,18 +25,17 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
+import net.sf.samtools.SAMFileWriter;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import net.sf.samtools.SAMFileWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.lang.annotation.Annotation;
-import java.util.List;
-import java.util.Arrays;
 import java.io.File;
 import java.io.OutputStream;
+import java.lang.annotation.Annotation;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Insert a SAMFileWriterStub  instead of a full-fledged concrete OutputStream implementations.

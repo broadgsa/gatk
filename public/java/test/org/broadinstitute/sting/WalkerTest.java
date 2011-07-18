@@ -53,7 +53,7 @@ public class WalkerTest extends BaseTest {
     }
 
     public String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
-        return assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
+        return MD5DB.assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
     }
 
     public void maybeValidateSupplementaryFile(final String name, final File resultFile) {
@@ -65,19 +65,22 @@ public class WalkerTest extends BaseTest {
                 throw new StingException("Found an index created for file " + resultFile + " but we can only validate VCF files.  Extend this code!");
             }
 
-            System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
-            Index indexFromOutputFile = IndexFactory.createIndex(resultFile, new VCFCodec());
-            Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
-
-            if ( ! indexFromOutputFile.equals(dynamicIndex) ) {
-                Assert.fail(String.format("Index on disk from indexing on the fly not equal to the index created after the run completed.  FileIndex %s vs. on-the-fly %s%n",
-                        indexFromOutputFile.getProperties(),
-                        dynamicIndex.getProperties()));
-            }
+            assertOnDiskIndexEqualToNewlyCreatedIndex(indexFile, name, resultFile);
         }
     }
 
 
+    public static void assertOnDiskIndexEqualToNewlyCreatedIndex(final File indexFile, final String name, final File resultFile) {
+        System.out.println("Verifying on-the-fly index " + indexFile + " for test " + name + " using file " + resultFile);
+        Index indexFromOutputFile = IndexFactory.createIndex(resultFile, new VCFCodec());
+        Index dynamicIndex = IndexFactory.loadIndex(indexFile.getAbsolutePath());
+
+        if ( ! indexFromOutputFile.equalsIgnoreTimestamp(dynamicIndex) ) {
+            Assert.fail(String.format("Index on disk from indexing on the fly not equal to the index created after the run completed.  FileIndex %s vs. on-the-fly %s%n",
+                    indexFromOutputFile.getProperties(),
+                    dynamicIndex.getProperties()));
+        }
+    }
 
     public List<String> assertMatchingMD5s(final String name, List<File> resultFiles, List<String> expectedMD5s) {
         List<String> md5s = new ArrayList<String>();
@@ -188,7 +191,7 @@ public class WalkerTest extends BaseTest {
     }
 
     protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec) {
-        ensureMd5DbDirectory(); // ensure the md5 directory exists
+        MD5DB.ensureMd5DbDirectory(); // ensure the md5 directory exists
 
         List<File> tmpFiles = new ArrayList<File>();
         for (int i = 0; i < spec.nOutputFiles; i++) {

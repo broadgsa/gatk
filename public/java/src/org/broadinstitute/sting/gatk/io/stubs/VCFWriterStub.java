@@ -25,19 +25,19 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
-import java.io.File;
-import java.io.PrintStream;
-import java.io.OutputStream;
-import java.util.Collection;
-
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.gatk.CommandLineExecutable;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+
+import java.io.File;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.Collection;
 
 /**
  * A stub for routing and management of genotype reading and writing.

@@ -31,7 +31,7 @@ object QScriptUtils {
     for (bam <- fromFile(in).getLines)
       if (!bam.startsWith("#") && !bam.isEmpty )
         list :+= new File(bam.trim())
-    list
+    list.sortWith(_.compareTo(_) < 0)
   }
 
   /**
