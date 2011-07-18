@@ -25,15 +25,16 @@
 
 package org.broadinstitute.sting.gatk.io;
 
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
-import org.broadinstitute.sting.gatk.io.storage.Storage;
 import org.broadinstitute.sting.gatk.executive.OutputMergeTask;
+import org.broadinstitute.sting.gatk.io.storage.Storage;
+import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
+import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * An output tracker that can either track its output per-thread or directly,

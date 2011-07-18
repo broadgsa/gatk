@@ -1,15 +1,17 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.*;
-
-import java.io.InputStream;
-import java.io.ByteArrayInputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.*;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 /**
  * User: hanna
  * Date: Jun 11, 2009

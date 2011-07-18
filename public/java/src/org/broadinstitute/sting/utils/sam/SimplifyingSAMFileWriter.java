@@ -3,13 +3,6 @@ package org.broadinstitute.sting.utils.sam;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.exceptions.UserException;
-
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 /**
  * XXX

@@ -23,20 +23,25 @@
 
 package org.broadinstitute.sting.utils.variantcontext;
 
-import java.io.Serializable;
-import java.util.*;
-
-import com.google.java.contract.*;
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.samtools.util.StringUtil;
-import org.apache.commons.jexl2.*;
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlEngine;
 import org.broad.tribble.util.popgen.HardyWeinbergCalculation;
-import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.codecs.vcf.AbstractVCFCodec;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFConstants;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+
+import java.io.Serializable;
+import java.util.*;
 
 public class VariantContextUtils {
     final public static JexlEngine engine = new JexlEngine();

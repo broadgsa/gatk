@@ -25,14 +25,20 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import net.sf.samtools.*;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.utils.sam.ReadUtils;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Divides the input data set into separate BAM files, one for each sample in the input data set.  The split

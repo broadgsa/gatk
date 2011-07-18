@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.io;
 
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
 import org.broadinstitute.sting.gatk.io.storage.Storage;
+import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
+import org.broadinstitute.sting.gatk.io.stubs.Stub;
 
 /**
  * Maps creation of storage directly to output streams in parent.

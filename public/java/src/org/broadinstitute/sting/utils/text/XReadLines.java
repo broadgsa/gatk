@@ -25,10 +25,10 @@
 
 package org.broadinstitute.sting.utils.text;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.LinkedList;
 import java.io.*;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Support for Python-like xreadlines() function as a class.  This is an iterator and iterable over

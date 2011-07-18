@@ -25,8 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers.indels;
 
-import net.sf.samtools.*;
-import org.broadinstitute.sting.commandline.*;
+import net.sf.samtools.Cigar;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;

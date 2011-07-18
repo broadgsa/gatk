@@ -26,14 +26,16 @@
 package org.broadinstitute.sting.utils.help;
 
 import com.sun.javadoc.*;
+import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.*;
-import java.util.*;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.gatk.walkers.Walker;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Scanner;
+import java.util.Set;
 
 /**
  * Extracts certain types of javadoc (specifically package and class descriptions) and makes them available

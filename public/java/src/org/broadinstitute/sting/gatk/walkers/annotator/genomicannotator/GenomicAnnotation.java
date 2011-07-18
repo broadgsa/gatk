@@ -25,13 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.annotator.genomicannotator;
 
-import java.util.*;
-import java.util.Map.Entry;
-
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -39,7 +32,14 @@ import org.broadinstitute.sting.gatk.refdata.features.annotator.AnnotatorInputTa
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.walkers.annotator.VariantAnnotatorEngine;
 import org.broadinstitute.sting.gatk.walkers.annotator.interfaces.InfoFieldAnnotation;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeaderLineType;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * This plugin for {@link VariantAnnotatorEngine} serves as the core

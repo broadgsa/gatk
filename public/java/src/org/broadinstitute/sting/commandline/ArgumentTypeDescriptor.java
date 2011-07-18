@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.commandline;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.walkers.Multiplex;
 import org.broadinstitute.sting.gatk.walkers.Multiplexer;
-import org.apache.log4j.Logger;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.exceptions.DynamicClassResolutionException;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
 import java.lang.annotation.Annotation;

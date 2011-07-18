@@ -26,11 +26,10 @@
 package org.broadinstitute.sting.utils.interval;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 
-import java.util.PriorityQueue;
 import java.util.Iterator;
+import java.util.PriorityQueue;
 
 /**
  * Created by IntelliJ IDEA.
