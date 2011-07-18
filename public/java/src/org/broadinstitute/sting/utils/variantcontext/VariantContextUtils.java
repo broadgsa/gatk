@@ -492,7 +492,7 @@ public class VariantContextUtils {
             if ( ! filteredAreUncalled || vc.isNotFiltered() )
                 VCs.add(VariantContext.createVariantContextWithPaddedAlleles(vc,inputRefBase,false));
         }
-        if ( VCs.size() == 0 ) // everything is filtered out and we're filteredareUncalled
+        if ( VCs.size() == 0 ) // everything is filtered out and we're filteredAreUncalled
             return null;
 
         // establish the baseline info from the first VC
@@ -635,6 +635,17 @@ public class VariantContextUtils {
 
         if ( printMessages && remapped ) System.out.printf("Remapped => %s%n", merged);
         return merged;
+    }
+
+    public static Map<VariantContext.Type, List<VariantContext>> separateVariantContextsByType(Collection<VariantContext> VCs) {
+        HashMap<VariantContext.Type, List<VariantContext>> mappedVCs = new HashMap<VariantContext.Type, List<VariantContext>>();
+        for ( VariantContext vc : VCs ) {
+            if ( !mappedVCs.containsKey(vc.getType()) )
+                mappedVCs.put(vc.getType(), new ArrayList<VariantContext>());
+            mappedVCs.get(vc.getType()).add(vc);
+        }
+
+        return mappedVCs;
     }
 
     private static class AlleleMapper {

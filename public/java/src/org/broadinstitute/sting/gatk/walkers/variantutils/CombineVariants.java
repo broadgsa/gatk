@@ -172,17 +172,24 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
         if (minimumN > 1 && (vcs.size() - numFilteredRecords < minimumN))
             return 0;
         
-        VariantContext mergedVC;
+        List<VariantContext> mergedVCs = new ArrayList<VariantContext>();
         if ( master ) {
-             mergedVC = VariantContextUtils.masterMerge(vcs, "master");
+            mergedVCs.add(VariantContextUtils.masterMerge(vcs, "master"));
         } else {
-            mergedVC = VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(),vcs, priority, filteredRecordsMergeType,
-                    genotypeMergeOption, true, printComplexMerges, ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC);
+            Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
+            // iterate over the keys (and not the values) so that it's deterministic
+            for ( VariantContext.Type type : VCsByType.keySet() ) {
+                mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
+                        priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                        ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+            }
         }
 
-        //out.printf("   merged => %s%nannotated => %s%n", mergedVC, annotatedMergedVC);
+        for ( VariantContext mergedVC : mergedVCs ) {
+            // only operate at the start of events
+            if ( mergedVC == null )
+                continue;
 
-        if ( mergedVC != null ) { // only operate at the start of events
             HashMap<String, Object> attributes = new HashMap<String, Object>(mergedVC.getAttributes());
             // re-compute chromosome counts
             VariantContextUtils.calculateChromosomeCounts(mergedVC, attributes, false);
