@@ -25,13 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.RefWalker;
 import org.broadinstitute.sting.utils.collections.ExpandingArrayList;
 import org.broadinstitute.sting.utils.collections.Pair;
-import org.broadinstitute.sting.commandline.Argument;
 
 /**
  * Prints out counts of the number of reference ordered data objects are

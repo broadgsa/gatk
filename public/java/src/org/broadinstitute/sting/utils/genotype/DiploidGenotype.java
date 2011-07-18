@@ -26,7 +26,6 @@
 package org.broadinstitute.sting.utils.genotype;
 
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.utils.MathUtils;
 
 /**
  * Created by IntelliJ IDEA.

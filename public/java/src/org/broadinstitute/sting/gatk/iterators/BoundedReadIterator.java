@@ -1,12 +1,10 @@
 package org.broadinstitute.sting.gatk.iterators;
 
+import net.sf.picard.sam.MergingSamRecordIterator;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
-import net.sf.picard.sam.MergingSamRecordIterator;
 
 import java.util.Iterator;
-
-import org.broadinstitute.sting.gatk.ReadProperties;
 
 /*
  * Copyright (c) 2009 The Broad Institute

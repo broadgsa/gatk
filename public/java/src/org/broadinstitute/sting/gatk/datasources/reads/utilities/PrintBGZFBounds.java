@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.gatk.datasources.reads.utilities;
 
-import net.sf.samtools.SAMFileReader;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
 

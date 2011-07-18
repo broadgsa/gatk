@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
-import net.sf.samtools.SAMFileWriter;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;

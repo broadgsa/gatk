@@ -27,10 +27,13 @@ package org.broadinstitute.sting.utils.collections;
 
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.PriorityQueue;
 
 public class RODMergingIterator implements Iterator<RODRecordList>, Iterable<RODRecordList> {
     PriorityQueue<Element> queue = new PriorityQueue<Element>();

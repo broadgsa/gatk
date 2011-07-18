@@ -26,8 +26,6 @@
 package org.broadinstitute.sting.utils.sam;
 
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 
 public class ComparableSAMRecord implements Comparable<ComparableSAMRecord> {
 

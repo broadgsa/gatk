@@ -26,20 +26,20 @@
 package org.broadinstitute.sting.gatk.io;
 
 import net.sf.samtools.SAMFileReader;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.commandline.ArgumentSource;
-import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
-import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.gatk.io.storage.Storage;
+import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.stubs.Stub;
-import org.broadinstitute.sting.gatk.io.storage.StorageFactory;
-import org.broadinstitute.sting.gatk.io.storage.Storage;
+import org.broadinstitute.sting.gatk.walkers.Walker;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.sam.SAMFileReaderBuilder;
 
-import java.io.*;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Manages the output and err streams that are created specifically for walker

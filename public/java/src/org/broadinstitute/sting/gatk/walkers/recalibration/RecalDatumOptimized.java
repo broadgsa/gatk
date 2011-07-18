@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.walkers.recalibration;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.QualityUtils;
 
-import java.util.*;
+import java.util.List;
 
 /*
  * Copyright (c) 2010 The Broad Institute

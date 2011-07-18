@@ -119,7 +119,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         executeTest("combineComplexSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
     }
 
-//    @Test public void complexTestFull() { combineComplexSites("", "64b991fd3850f83614518f7d71f0532f"); }
+    @Test public void complexTestFull() { combineComplexSites("", "64b991fd3850f83614518f7d71f0532f"); }
     @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "df96cb3beb2dbb5e02f80abec7d3571e"); }
     @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "f72a178137e25dbe0b931934cdc0079d"); }
     @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "f704caeaaaed6711943014b847fe381a"); }

@@ -1,9 +1,5 @@
 package org.broadinstitute.sting.utils.threading;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;

@@ -1,16 +1,16 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.walkers.LocusWalker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 
-import java.util.List;
-import java.util.Arrays;
 import java.io.PrintStream;
-
-import net.sf.samtools.SAMRecord;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * At each locus in the input data set, prints the reference base, genomic location, and

@@ -24,14 +24,13 @@
 
 package org.broadinstitute.sting.utils;
 
+import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
-import net.sf.samtools.Cigar;
-
-import java.util.*;
-
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.StingException;
+
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.

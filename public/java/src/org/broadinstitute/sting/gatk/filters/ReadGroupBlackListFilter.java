@@ -25,16 +25,15 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.io.File;
-import java.io.FileNotFoundException;
-
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * Removes records matching the read group tag and exact match string.

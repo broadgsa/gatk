@@ -1,9 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.walkers.varianteval.util.*;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
@@ -12,8 +9,12 @@ import org.broadinstitute.sting.gatk.walkers.phasing.ReadBackedPhasingWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.VariantEvalWalker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.NewEvaluationContext;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.TableType;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.HashMap;
 import java.util.HashSet;

@@ -26,12 +26,11 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.Queue;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import java.util.Queue;
 
 /**
  * Buffers access to a large stream of reads, replenishing the buffer only when the reads  
