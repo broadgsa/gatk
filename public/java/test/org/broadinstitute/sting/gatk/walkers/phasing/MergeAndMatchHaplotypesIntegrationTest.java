@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 import java.util.Arrays;
 
 public class MergeAndMatchHaplotypesIntegrationTest extends WalkerTest {
-    private static String mergeAndMatchHaplotypesTestDataRoot = validationDataLocation + "/MergeByHaplotypes";
+    private static String mergeAndMatchHaplotypesTestDataRoot = validationDataLocation + "/MergeAndMatchHaplotypes";
     private static String fundamentalTestPBTVCF = mergeAndMatchHaplotypesTestDataRoot + "/" + "FundamentalsTest.pbt.vcf";
     private static String fundamentalTestRBPVCF = mergeAndMatchHaplotypesTestDataRoot + "/" + "FundamentalsTest.pbt.rbp.vcf";
 
