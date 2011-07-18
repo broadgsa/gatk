@@ -2,15 +2,16 @@ package org.broadinstitute.sting.utils.genotype.vcf;
 
 import org.broad.tribble.readers.AsciiLineReader;
 import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.testng.Assert;
 import org.broadinstitute.sting.BaseTest;
 
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringBufferInputStream;
+import java.io.*;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -38,6 +39,52 @@ public class VCFHeaderUnitTest extends BaseTest {
     public void testVCF4ToVCF4_alternate() {
         VCFHeader header = createHeader(VCF4headerStrings_with_negativeOne);
         checkMD5ofHeaderFile(header, "ad8c4cf85e868b0261ab49ee2c613088");
+    }
+
+        /**
+     * a little utility function for all tests to md5sum a file
+     * Shameless taken from:
+     *
+     * http://www.javalobby.org/java/forums/t84420.html
+     *
+     * @param file the file
+     * @return a string
+     */
+    private static String md5SumFile(File file) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new ReviewedStingException("Unable to find MD5 digest");
+        }
+        InputStream is;
+        try {
+            is = new FileInputStream(file);
+        } catch (FileNotFoundException e) {
+            throw new ReviewedStingException("Unable to open file " + file);
+        }
+        byte[] buffer = new byte[8192];
+        int read;
+        try {
+            while ((read = is.read(buffer)) > 0) {
+                digest.update(buffer, 0, read);
+            }
+            byte[] md5sum = digest.digest();
+            BigInteger bigInt = new BigInteger(1, md5sum);
+            return bigInt.toString(16);
+
+        }
+        catch (IOException e) {
+            throw new ReviewedStingException("Unable to process file for MD5", e);
+        }
+        finally {
+            try {
+                is.close();
+            }
+            catch (IOException e) {
+                throw new ReviewedStingException("Unable to close input stream for MD5 calculation", e);
+            }
+        }
     }
 
     private void checkMD5ofHeaderFile(VCFHeader header, String md5sum) {

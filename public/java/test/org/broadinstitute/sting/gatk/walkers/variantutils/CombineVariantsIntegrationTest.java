@@ -70,7 +70,6 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         executeTest("combineSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
     }
 
-
     @Test public void test1SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "c608b9fc1e36dba6cebb4f259883f9f0", true); }
     @Test public void test2SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "20caad94411d6ab48153b214de916df8", " -setKey foo", true); }
     @Test public void test3SNP() { test1InOut("pilot2.snps.vcf4.genotypes.vcf", "004f3065cb1bc2ce2f9afd695caf0b48", " -setKey null", true); }
@@ -119,7 +118,7 @@ public class CombineVariantsIntegrationTest extends WalkerTest {
         executeTest("combineComplexSites 1:" + new File(file1).getName() + " 2:" + new File(file2).getName() + " args = " + args, spec);
     }
 
-    @Test public void complexTestFull() { combineComplexSites("", "64b991fd3850f83614518f7d71f0532f"); }
+    @Test public void complexTestFull() { combineComplexSites("", "b5a53ee92bdaacd2bb3327e9004ae058"); }
     @Test public void complexTestMinimal() { combineComplexSites(" -minimalVCF", "df96cb3beb2dbb5e02f80abec7d3571e"); }
     @Test public void complexTestSitesOnly() { combineComplexSites(" -sites_only", "f72a178137e25dbe0b931934cdc0079d"); }
     @Test public void complexTestSitesOnlyMinimal() { combineComplexSites(" -sites_only -minimalVCF", "f704caeaaaed6711943014b847fe381a"); }
