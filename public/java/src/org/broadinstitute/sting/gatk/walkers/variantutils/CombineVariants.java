@@ -25,6 +25,7 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
+import org.apache.poi.hpsf.Variant;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Hidden;
 import org.broadinstitute.sting.commandline.Output;
@@ -177,11 +178,12 @@ public class CombineVariants extends RodWalker<Integer, Integer> {
             mergedVCs.add(VariantContextUtils.masterMerge(vcs, "master"));
         } else {
             Map<VariantContext.Type, List<VariantContext>> VCsByType = VariantContextUtils.separateVariantContextsByType(vcs);
-            // iterate over the keys (and not the values) so that it's deterministic
-            for ( VariantContext.Type type : VCsByType.keySet() ) {
-                mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
-                        priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
-                        ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
+            // iterate over the types so that it's deterministic
+            for ( VariantContext.Type type : VariantContext.Type.values() ) {
+                if ( VCsByType.containsKey(type) )
+                    mergedVCs.add(VariantContextUtils.simpleMerge(getToolkit().getGenomeLocParser(), VCsByType.get(type),
+                            priority, filteredRecordsMergeType, genotypeMergeOption, true, printComplexMerges,
+                            ref.getBase(), SET_KEY, filteredAreUncalled, MERGE_INFO_WITH_MAX_AC));
             }
         }
 
