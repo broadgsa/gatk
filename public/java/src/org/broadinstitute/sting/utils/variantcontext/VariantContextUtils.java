@@ -289,8 +289,8 @@ public class VariantContextUtils {
 
     /**
      * Returns a newly allocated VC that is the same as VC, but without genotypes
-     * @param vc
-     * @return
+     * @param vc  variant context
+     * @return  new VC without genotypes
      */
     @Requires("vc != null")
     @Ensures("result != null")
@@ -303,8 +303,8 @@ public class VariantContextUtils {
 
     /**
      * Returns a newly allocated list of VC, where each VC is the same as the input VCs, but without genotypes
-     * @param vcs
-     * @return
+     * @param vcs  collection of VCs
+     * @return new VCs without genotypes
      */
     @Requires("vcs != null")
     @Ensures("result != null")
@@ -362,9 +362,9 @@ public class VariantContextUtils {
      * information per genotype.  The master merge will add the PQ information from each genotype record, where
      * appropriate, to the master VC.
      *
-     * @param unsortedVCs
-     * @param masterName
-     * @return
+     * @param unsortedVCs   collection of VCs
+     * @param masterName    name of master VC
+     * @return  master-merged VC
      */
     public static VariantContext masterMerge(Collection<VariantContext> unsortedVCs, String masterName) {
         VariantContext master = findMaster(unsortedVCs, masterName);
@@ -435,11 +435,15 @@ public class VariantContextUtils {
      * If uniqifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
      * the sample name
      *
-     * @param unsortedVCs
-     * @param priorityListOfVCs
-     * @param filteredRecordMergeType
-     * @param genotypeMergeOptions
-     * @return
+     * @param genomeLocParser           loc parser
+     * @param unsortedVCs               collection of unsorted VCs
+     * @param priorityListOfVCs         priority list detailing the order in which we should grab the VCs
+     * @param filteredRecordMergeType   merge type for filtered records
+     * @param genotypeMergeOptions      merge option for genotypes
+     * @param annotateOrigin            should we annotate the set it came from?
+     * @param printMessages             should we print messages?
+     * @param inputRefBase              the ref base
+     * @return new VariantContext
      */
     public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
                                              FilteredRecordMergeType filteredRecordMergeType, GenotypeMergeType genotypeMergeOptions,
@@ -448,6 +452,24 @@ public class VariantContextUtils {
         return simpleMerge(genomeLocParser, unsortedVCs, priorityListOfVCs, filteredRecordMergeType, genotypeMergeOptions, annotateOrigin, printMessages, inputRefBase, "set", false, false);
     }
 
+    /**
+     * Merges VariantContexts into a single hybrid.  Takes genotypes for common samples in priority order, if provided.
+     * If uniqifySamples is true, the priority order is ignored and names are created by concatenating the VC name with
+     * the sample name
+     *
+     * @param genomeLocParser           loc parser
+     * @param unsortedVCs               collection of unsorted VCs
+     * @param priorityListOfVCs         priority list detailing the order in which we should grab the VCs
+     * @param filteredRecordMergeType   merge type for filtered records
+     * @param genotypeMergeOptions      merge option for genotypes
+     * @param annotateOrigin            should we annotate the set it came from?
+     * @param printMessages             should we print messages?
+     * @param inputRefBase              the ref base
+     * @param setKey                    the key name of the set
+     * @param filteredAreUncalled       are filtered records uncalled?
+     * @param mergeInfoWithMaxAC        should we merge in info from the VC with maximum allele count?
+     * @return new VariantContext
+     */
     public static VariantContext simpleMerge(GenomeLocParser genomeLocParser, Collection<VariantContext> unsortedVCs, List<String> priorityListOfVCs,
                                              FilteredRecordMergeType filteredRecordMergeType, GenotypeMergeType genotypeMergeOptions,
                                              boolean annotateOrigin, boolean printMessages, byte inputRefBase, String setKey,
@@ -834,6 +856,7 @@ public class VariantContextUtils {
 
     /**
      * create a genome location, given a variant context
+     * @param genomeLocParser parser
      * @param vc the variant context
      * @return the genomeLoc
      */
