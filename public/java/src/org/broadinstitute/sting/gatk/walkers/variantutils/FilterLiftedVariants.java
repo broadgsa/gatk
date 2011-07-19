@@ -24,18 +24,21 @@
 
 package org.broadinstitute.sting.gatk.walkers.variantutils;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
-import org.broadinstitute.sting.utils.SampleUtils;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFUtils;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Filters a lifted-over VCF file for ref bases that have been changed.

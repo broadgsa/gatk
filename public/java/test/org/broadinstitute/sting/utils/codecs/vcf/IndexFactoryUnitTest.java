@@ -4,6 +4,7 @@ import org.broad.tribble.Tribble;
 import org.broad.tribble.index.*;
 import org.broad.tribble.iterators.CloseableTribbleIterator;
 import org.broad.tribble.source.BasicFeatureSource;
+import org.broadinstitute.sting.WalkerTest;
 import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -75,7 +76,7 @@ public class IndexFactoryUnitTest {
 
             // test that the input index is the same as the one created from the identical input file
             // test that the dynamic index is the same as the output index, which is equal to the input index
-            Assert.assertTrue(IndexFactory.onDiskIndexEqualToNewlyCreatedIndex(outputFile, outputFileIndex, new VCFCodec()));
+            WalkerTest.assertOnDiskIndexEqualToNewlyCreatedIndex(outputFileIndex, "unittest", outputFile);
         }
     }
 }

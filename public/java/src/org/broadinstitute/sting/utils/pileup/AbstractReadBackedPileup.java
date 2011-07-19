@@ -24,18 +24,15 @@
 
 package org.broadinstitute.sting.utils.pileup;
 
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
-import org.broadinstitute.sting.utils.HasGenomeLocation;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.BaseUtils;
-import org.broadinstitute.sting.gatk.iterators.IterableIterator;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import org.broadinstitute.sting.utils.exceptions.StingException;
 
 import java.util.*;
-
-import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.utils.exceptions.StingException;
 
 /**
  * A generic implementation of read-backed pileups.

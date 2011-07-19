@@ -1,11 +1,10 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 
-import java.util.Collection;
 import java.util.Arrays;
-
-import net.sf.samtools.SAMRecord;
+import java.util.Collection;
 /**
  * User: hanna
  * Date: May 22, 2009

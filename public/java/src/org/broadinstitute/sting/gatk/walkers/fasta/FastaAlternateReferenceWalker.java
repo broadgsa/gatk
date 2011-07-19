@@ -25,13 +25,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.fasta;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.collections.Pair;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.Collection;
 

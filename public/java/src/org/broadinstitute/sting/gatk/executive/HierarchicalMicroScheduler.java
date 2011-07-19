@@ -1,26 +1,26 @@
 package org.broadinstitute.sting.gatk.executive;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.gatk.datasources.reads.SAMDataSource;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.walkers.TreeReducible;
 import org.broadinstitute.sting.gatk.datasources.reads.ShardStrategy;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
-import org.broadinstitute.sting.gatk.io.*;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.io.OutputTracker;
+import org.broadinstitute.sting.gatk.io.ThreadLocalOutputTracker;
+import org.broadinstitute.sting.gatk.walkers.TreeReducible;
+import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.threading.ThreadPoolMonitor;
 
-import java.util.Queue;
-import java.util.LinkedList;
 import java.util.Collection;
-import java.util.concurrent.Executors;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
-
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 /**
  * A microscheduler that schedules shards according to a tree-like structure.

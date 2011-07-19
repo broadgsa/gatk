@@ -25,29 +25,27 @@
 
 package org.broadinstitute.sting.gatk.walkers.sequenom;
 
-import net.sf.samtools.util.CloseableIterator;
 import org.broad.tribble.bed.BEDCodec;
-import org.broad.tribble.dbsnp.DbSNPCodec;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.gatk.refdata.*;
+import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
+import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedData;
+import org.broadinstitute.sting.gatk.refdata.SeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.tracks.RMDTrack;
 import org.broadinstitute.sting.gatk.refdata.tracks.builders.RMDTrackBuilder;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.gatk.refdata.utils.RODRecordList;
-import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
-import java.util.*;
 import java.io.PrintStream;
+import java.util.*;
 
 
 /**

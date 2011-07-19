@@ -29,19 +29,11 @@ import net.sf.samtools.GATKBAMFileSpan;
 import net.sf.samtools.SAMFileSpan;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.interval.IntervalMergingRule;
 import org.broadinstitute.sting.utils.interval.IntervalUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Represents a small section of a BAM file, and every associated interval.

@@ -1,14 +1,14 @@
 package org.broadinstitute.sting.gatk.walkers.varianteval.stratifications;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.varianteval.util.SortableJexlVCMatchExp;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Set;
 import java.util.HashSet;
+import java.util.Set;
 
 public class Degeneracy extends VariantStratifier {
     private ArrayList<String> states;

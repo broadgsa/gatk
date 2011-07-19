@@ -25,19 +25,27 @@
 
 package org.broadinstitute.sting.gatk.iterators;
 
-import net.sf.samtools.*;
 import net.sf.picard.util.PeekableIterator;
+import net.sf.samtools.Cigar;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMRecord;
 import org.apache.log4j.Logger;
-import org.broadinstitute.sting.gatk.ReadProperties;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.gatk.DownsamplingMethod;
 import org.broadinstitute.sting.gatk.DownsampleType;
+import org.broadinstitute.sting.gatk.DownsamplingMethod;
+import org.broadinstitute.sting.gatk.ReadProperties;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.gatk.datasources.sample.SampleDataSource;
-import org.broadinstitute.sting.utils.*;
+import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.MathUtils;
+import org.broadinstitute.sting.utils.ReservoirDownsampler;
 import org.broadinstitute.sting.utils.exceptions.UserException;
-import org.broadinstitute.sting.utils.pileup.*;
+import org.broadinstitute.sting.utils.pileup.ExtendedEventPileupElement;
+import org.broadinstitute.sting.utils.pileup.PileupElement;
+import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileupImpl;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileupImpl;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 import java.util.*;

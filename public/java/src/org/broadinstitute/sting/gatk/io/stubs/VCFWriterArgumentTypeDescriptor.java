@@ -25,14 +25,17 @@
 
 package org.broadinstitute.sting.gatk.io.stubs;
 
-import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
 import java.io.OutputStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * Injects new command-line arguments into the system providing support for the genotype writer.

@@ -24,12 +24,12 @@
 
 package org.broadinstitute.sting.gatk.walkers.varianteval.evaluators;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
-import org.broadinstitute.sting.gatk.walkers.varianteval.tags.Analysis;
-import org.broadinstitute.sting.gatk.walkers.varianteval.tags.DataPoint;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.Analysis;
+import org.broadinstitute.sting.gatk.walkers.varianteval.util.DataPoint;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 @Analysis(name = "PrintMissingComp", description = "the overlap between eval and comp sites")
 public class PrintMissingComp extends VariantEvaluator {

@@ -28,11 +28,7 @@ import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A pool of open resources, all of which can create a closeable iterator.
