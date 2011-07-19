@@ -1,9 +1,10 @@
 package org.broadinstitute.sting.utils.pileup;
 
-import org.broadinstitute.sting.utils.*;
+import com.google.java.contract.Ensures;
+import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.sam.ReadUtils;
-import com.google.java.contract.*;
 
 /**
  * Created by IntelliJ IDEA.

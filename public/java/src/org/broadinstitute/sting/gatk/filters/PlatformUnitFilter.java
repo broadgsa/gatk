@@ -1,13 +1,11 @@
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.picard.filter.SamRecordFilter;
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMReadGroupRecord;
-
-import java.util.Set;
-import java.util.HashSet;
-
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.

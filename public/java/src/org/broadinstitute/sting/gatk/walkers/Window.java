@@ -25,7 +25,10 @@
 
 package org.broadinstitute.sting.gatk.walkers;
 
-import java.lang.annotation.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * Describes the size of the window into the genome.  Has differing semantics based on

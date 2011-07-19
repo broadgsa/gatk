@@ -24,8 +24,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
-import org.broadinstitute.sting.utils.Utils;
-
 /**
  * Created by IntelliJ IDEA.
  * User: depristo

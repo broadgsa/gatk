@@ -5,17 +5,17 @@ import net.sf.picard.util.IntervalList;
 import net.sf.samtools.SAMFileHeader;
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.gatk.datasources.reference.ReferenceDataSource;
-import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.GenomeLocSortedSet;
 import org.broadinstitute.sting.utils.bed.BedParser;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.broadinstitute.sting.utils.text.XReadLines;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.io.File;
 
 /**
  * Parse text representations of interval strings that

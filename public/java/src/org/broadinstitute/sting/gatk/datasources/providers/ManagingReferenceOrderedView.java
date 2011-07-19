@@ -5,10 +5,10 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.utils.LocationAwareSeekableRODIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 /**
  * User: hanna
  * Date: May 21, 2009

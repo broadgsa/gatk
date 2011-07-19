@@ -25,12 +25,11 @@
 
 package org.broadinstitute.sting.utils;
 
-import java.util.*;
-
 import net.sf.samtools.util.StringUtil;
-
 import org.apache.log4j.Logger;
 import org.broadinstitute.sting.utils.collections.Pair;
+
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.

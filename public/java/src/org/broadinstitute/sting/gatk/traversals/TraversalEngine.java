@@ -25,11 +25,11 @@
 package org.broadinstitute.sting.gatk.traversals;
 
 import org.apache.log4j.Logger;
+import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
+import org.broadinstitute.sting.gatk.ReadMetrics;
 import org.broadinstitute.sting.gatk.datasources.providers.ShardDataProvider;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.walkers.Walker;
-import org.broadinstitute.sting.gatk.ReadMetrics;
-import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.*;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
@@ -38,7 +38,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public abstract class TraversalEngine<M,T,WalkerType extends Walker<M,T>,ProviderType extends ShardDataProvider> {
     // Time in milliseconds since we initialized this engine

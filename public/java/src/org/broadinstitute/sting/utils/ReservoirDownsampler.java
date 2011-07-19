@@ -3,7 +3,9 @@ package org.broadinstitute.sting.utils;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 
 /**
  * Randomly downsample from a stream of elements.  This algorithm is a direct,

@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.queue.qscripts.utils
+package org.broadinstitute.sting.queue.util
 
 import java.io.File
 import io.Source._
@@ -15,7 +15,7 @@ import collection.JavaConversions._
  * To change this template use File | Settings | File Templates.
  */
 
-object Utils {
+object QScriptUtils {
 
   /**
    * Takes a bam list file and produces a scala list with each file allowing the bam list
@@ -31,14 +31,14 @@ object Utils {
     for (bam <- fromFile(in).getLines)
       if (!bam.startsWith("#") && !bam.isEmpty )
         list :+= new File(bam.trim())
-    list
+    list.sortWith(_.compareTo(_) < 0)
   }
 
   /**
    * Returns the number of contigs in the BAM file header.
    */
   def getNumberOfContigs(bamFile: File): Int = {
-    val samReader = new SAMFileReader(new File(bamFile))
+    val samReader = new SAMFileReader(bamFile)
     samReader.getFileHeader.getSequenceDictionary.getSequences.size()
   }
 

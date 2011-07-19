@@ -25,8 +25,6 @@
 
 package org.broadinstitute.sting.gatk.walkers.genotyper;
 
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
 import org.broadinstitute.sting.commandline.ArgumentCollection;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.DownsampleType;
@@ -36,8 +34,12 @@ import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.*;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
+import org.broadinstitute.sting.utils.codecs.vcf.*;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
 
 
 /**

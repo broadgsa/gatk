@@ -25,9 +25,9 @@
 
 package org.broadinstitute.sting.gatk.io.storage;
 
-import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.stubs.OutputStreamStub;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterStub;
+import org.broadinstitute.sting.gatk.io.stubs.Stub;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 

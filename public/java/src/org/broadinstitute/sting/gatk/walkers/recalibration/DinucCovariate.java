@@ -1,10 +1,9 @@
 package org.broadinstitute.sting.gatk.walkers.recalibration;
 
-import java.util.HashMap;
-
 import net.sf.samtools.SAMRecord;
-
 import org.broadinstitute.sting.utils.BaseUtils;
+
+import java.util.HashMap;
 
 /*
  * Copyright (c) 2009 The Broad Institute

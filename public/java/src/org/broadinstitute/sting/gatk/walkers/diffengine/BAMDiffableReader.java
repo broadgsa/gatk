@@ -24,22 +24,13 @@
 
 package org.broadinstitute.sting.gatk.walkers.diffengine;
 
-import net.sf.samtools.*;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.util.BlockCompressedInputStream;
-import org.broad.tribble.readers.AsciiLineReader;
-import org.broad.tribble.readers.LineReader;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 
 /**
@@ -109,8 +100,10 @@ public class BAMDiffableReader implements DiffableReader {
         final byte[] BAM_MAGIC = "BAM\1".getBytes();
         final byte[] buffer = new byte[BAM_MAGIC.length];
         try {
-            FileInputStream fstream = new FileInputStream(file);
-            new BlockCompressedInputStream(fstream).read(buffer,0,BAM_MAGIC.length);
+            InputStream fstream = new BufferedInputStream(new FileInputStream(file));
+            if ( !BlockCompressedInputStream.isValidFile(fstream) )
+                return false;
+            new BlockCompressedInputStream(fstream).read(buffer, 0, BAM_MAGIC.length);
             return Arrays.equals(buffer, BAM_MAGIC);
         } catch ( IOException e ) {
             return false;

@@ -4,11 +4,11 @@ import org.broad.tribble.Feature;
 import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.NameAwareCodec;
 import org.broad.tribble.TribbleException;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.Allele;
-import org.broadinstitute.sting.utils.variantcontext.Genotype;
 import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.readers.LineReader;
+import org.broadinstitute.sting.utils.variantcontext.Allele;
+import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.util.*;
 

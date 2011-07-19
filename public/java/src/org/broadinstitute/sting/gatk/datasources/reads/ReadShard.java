@@ -1,14 +1,16 @@
 package org.broadinstitute.sting.gatk.datasources.reads;
 
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
-
-import java.util.*;
-
 import net.sf.samtools.SAMFileSpan;
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIteratorAdapter;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
  *

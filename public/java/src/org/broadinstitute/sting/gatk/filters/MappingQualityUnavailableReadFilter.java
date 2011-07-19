@@ -24,7 +24,6 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.picard.util.QualityUtil;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.QualityUtils;
 

@@ -26,13 +26,13 @@
 package org.broadinstitute.sting.gatk.contexts;
 
 import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.GenomeLoc;
-import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
+import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * Useful class for forwarding on locusContext data from this iterator

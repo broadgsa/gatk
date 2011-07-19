@@ -780,6 +780,50 @@
         </sequential>
     </macrodef>
 
+    <!-- FAILED-TEST -->
+    <macrodef name="run-failed-test">
+        <attribute name="xmlfailedtestfile" />
+        <sequential>
+            <!-- Get the pipeline run type.  Default to dry.  -->
+            <condition property="pipeline.run" value="dry" else="${pipeline.run}">
+                <equals arg1="${pipeline.run}" arg2="$${pipeline.run}" />
+            </condition>
+
+            <condition property="cofoja.jvm.args" value="-javaagent:${cofoja.jar} -Dcom.google.java.contract.log.contract=false" else="">
+                <isset property="include.contracts" />
+            </condition>
+
+            <mkdir dir="${report}/failed_rerun" />
+            <echo message="Sting: Running @{xmlfailedtestfile} test cases!"/>
+            <taskdef resource="testngtasks" classpath="${lib.dir}/testng-5.14.1.jar"/>
+            <testng outputDir="${report}/failed_rerun"
+                    haltOnFailure="false" failureProperty="test.failure"
+                    verbose="2"
+                    workingDir="${basedir}"
+                    useDefaultListeners="false"
+                    listeners="org.testng.reporters.FailedReporter,org.testng.reporters.JUnitXMLReporter,org.broadinstitute.sting.StingTextReporter">
+                <jvmarg value="-Xmx${test.maxmemory}" />
+                <jvmarg value="-Djava.awt.headless=true" />
+                <jvmarg value="-Dpipeline.run=${pipeline.run}" />
+                <jvmarg value="-Djava.io.tmpdir=${java.io.tmpdir}" />
+                <jvmarg line="${cofoja.jvm.args}"/>
+<!--                 <jvmarg value="-Xdebug"/> -->
+<!--                 <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/> -->
+                <classpath>
+                    <path refid="external.dependencies" />
+                    <pathelement location="${java.classes}" />
+                    <pathelement location="${scala.classes}" />
+                    <pathelement location="${java.contracts}" />
+                    <pathelement location="${java.test.classes}" />
+                    <pathelement location="${scala.test.classes}" />
+                </classpath>
+
+                <xmlfileset dir="${basedir}" includes="@{xmlfailedtestfile}" />
+            </testng>
+
+            <fail message="test failed" if="test.failure" />
+        </sequential>
+    </macrodef>
 
     <!-- our three different test conditions: Test, IntegrationTest, PerformanceTest -->
     <target name="test" depends="test.compile,tribble.test" description="Run unit tests">
@@ -812,6 +856,22 @@
             <not><isset property="single"/></not>
         </condition>
         <run-test testtype="${pipetype}"/>
+    </target>
+
+    <target name="failed-test" depends="test.compile">
+        <run-failed-test xmlfailedtestfile="${report}/*UnitTest/testng-failed.xml" />
+    </target>
+
+    <target name="failed-integration" depends="test.compile">
+        <run-failed-test xmlfailedtestfile="${report}/*IntegrationTest/testng-failed.xml" />
+    </target>
+
+    <target name="failed-performance" depends="test.compile">
+        <run-failed-test xmlfailedtestfile="${report}/*PerformanceTest/testng-failed.xml" />
+    </target>
+
+    <target name="failed-pipeline" depends="test.compile">
+        <run-failed-test xmlfailedtestfile="${report}/*PipelineTest/testng-failed.xml" />
     </target>
 
     <!-- ***************************************************************************** -->

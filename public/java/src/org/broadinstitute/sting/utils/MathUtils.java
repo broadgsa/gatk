@@ -25,16 +25,13 @@
 
 package org.broadinstitute.sting.utils;
 
-import cern.jet.math.Arithmetic;
-
-import java.math.BigDecimal;
-import java.util.*;
-
 import com.google.java.contract.Requires;
 import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.GenomeAnalysisEngine;
-import org.broadinstitute.sting.utils.collections.PrimitivePair;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+
+import java.math.BigDecimal;
+import java.util.*;
 
 /**
  * MathUtils is a static class (no instantiation allowed!) with some useful math methods.

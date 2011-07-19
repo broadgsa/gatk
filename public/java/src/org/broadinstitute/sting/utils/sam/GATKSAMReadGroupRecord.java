@@ -1,6 +1,6 @@
 package org.broadinstitute.sting.utils.sam;
 
-import net.sf.samtools.*;
+import net.sf.samtools.SAMReadGroupRecord;
 
 /**
  * @author ebanks

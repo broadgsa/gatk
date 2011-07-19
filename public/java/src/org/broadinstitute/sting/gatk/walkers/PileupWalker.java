@@ -26,22 +26,22 @@
 package org.broadinstitute.sting.gatk.walkers;
 
 import org.broad.tribble.dbsnp.DbSNPFeature;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
 import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.RefMetaDataTracker;
 import org.broadinstitute.sting.gatk.refdata.ReferenceOrderedDatum;
 import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.gatk.refdata.utils.helpers.DbSNPHelper;
-import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.pileup.ReadBackedExtendedEventPileup;
 import org.broadinstitute.sting.utils.pileup.ReadBackedPileup;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.io.PrintStream;
 
 /**
  * Prints the alignment in the pileup format. In the pileup format, each line represents a genomic position,

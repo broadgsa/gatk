@@ -28,19 +28,18 @@ package org.broadinstitute.sting.gatk.walkers;
 import net.sf.samtools.SAMFileWriter;
 import net.sf.samtools.SAMReadGroupRecord;
 import net.sf.samtools.SAMRecord;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.commandline.Argument;
 import org.broadinstitute.sting.commandline.Output;
 import org.broadinstitute.sting.utils.SampleUtils;
 import org.broadinstitute.sting.utils.baq.BAQ;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 /**
  * Renders, in SAM/BAM format, all reads from the input data set in the order in which they appear
  * in the input file.  It can dynamically merge the contents of multiple input BAM files, resulting

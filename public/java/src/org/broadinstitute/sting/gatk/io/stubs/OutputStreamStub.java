@@ -27,9 +27,9 @@ package org.broadinstitute.sting.gatk.io.stubs;
 
 import org.broadinstitute.sting.gatk.io.OutputTracker;
 
-import java.io.OutputStream;
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * A stub for routing and management of anything backed by an OutputStream.

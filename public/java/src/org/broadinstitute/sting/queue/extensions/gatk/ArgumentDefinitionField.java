@@ -27,13 +27,16 @@ package org.broadinstitute.sting.queue.extensions.gatk;
 import net.sf.samtools.BAMIndex;
 import net.sf.samtools.SAMFileWriter;
 import org.broad.tribble.Tribble;
-import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 import org.broadinstitute.sting.commandline.*;
 import org.broadinstitute.sting.gatk.io.stubs.SAMFileWriterArgumentTypeDescriptor;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public abstract class ArgumentDefinitionField extends ArgumentField {
 

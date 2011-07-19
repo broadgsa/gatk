@@ -3,14 +3,15 @@ package org.broadinstitute.sting.queue.qscripts
 import org.broadinstitute.sting.queue.extensions.gatk._
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.function.ListWriterFunction
+import org.broadinstitute.sting.queue.extensions.picard._
+import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
+import org.broadinstitute.sting.utils.baq.BAQ.CalculationMode
 
 import collection.JavaConversions._
-import org.broadinstitute.sting.gatk.walkers.indels.IndelRealigner.ConsensusDeterminationModel
-import org.broadinstitute.sting.queue.extensions.picard._
-import net.sf.samtools.{SAMFileReader}
+import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMFileHeader.SortOrder
 
-import org.broadinstitute.sting.queue.qscripts.utils.Utils
+import org.broadinstitute.sting.queue.util.QScriptUtils
 
 class DataProcessingPipeline extends QScript {
   qscript =>
@@ -29,7 +30,8 @@ class DataProcessingPipeline extends QScript {
   @Input(doc="Reference fasta file", fullName="reference", shortName="R", required=true)
   var reference: File = _
 
-
+  @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=true)
+  var dbSNP: File = _
 
   /****************************************************************************
   * Optional Parameters
@@ -39,14 +41,12 @@ class DataProcessingPipeline extends QScript {
 //  @Input(doc="path to Picard's SortSam.jar (if re-aligning a previously processed BAM file)", fullName="path_to_sort_jar", shortName="sort", required=false)
 //  var sortSamJar: File = _
 //
-  @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
-  var bwaPath: File = _
-
-  @Input(doc="dbsnp ROD to use (must be in VCF format)", fullName="dbsnp", shortName="D", required=false)
-  var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   @Input(doc="extra VCF files to use as reference indels for Indel Realignment", fullName="extra_indels", shortName="indels", required=false)
-  var indels: File = new File("/humgen/gsa-hpprojects/GATK/data/Comparisons/Unvalidated/AFR+EUR+ASN+1KG.dindel_august_release_merged_pilot1.20110126.sites.vcf")
+  var indels: File = _
+
+  @Input(doc="The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName="path_to_bwa", shortName="bwa", required=false)
+  var bwaPath: File = _
 
   @Input(doc="the project name determines the final output (BAM file) base name. Example NA12878 yields NA12878.processed.bam", fullName="project", shortName="p", required=false)
   var projectName: String = "project"
@@ -71,6 +71,9 @@ class DataProcessingPipeline extends QScript {
 
   @Input(doc="Number of threads BWA should use", fullName="bwa_threads", shortName="bt", required=false)
   var bwaThreads: Int = 1
+
+  @Input(doc="Dont perform validation on the BAM files", fullName="no_validation", shortName="nv", required=false)
+  var noValidation: Boolean = false
 
 
   /****************************************************************************
@@ -123,7 +126,7 @@ class DataProcessingPipeline extends QScript {
 
       // only allow one sample per file. Bam files with multiple samples would require pre-processing of the file
       // with PrintReads to separate the samples. Tell user to do it himself!
-      assert(!Utils.hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
+      assert(!QScriptUtils.hasMultipleSamples(readGroups), "The pipeline requires that only one sample is present in a BAM file. Please separate the samples in " + bam)
 
       // Fill out the sample table with the readgroups in this file
       for (rg <- readGroups) {
@@ -135,7 +138,7 @@ class DataProcessingPipeline extends QScript {
       }
     }
 
-    println("\n\n*** DEBUG ***\n")
+    println("\n\n*** INPUT FILES ***\n")
     // Creating one file for each sample in the dataset
     val sampleBamFiles = scala.collection.mutable.Map.empty[String, File]
     for ((sample, flist) <- sampleTable) {
@@ -149,7 +152,7 @@ class DataProcessingPipeline extends QScript {
       sampleBamFiles(sample) = sampleFileName
       add(joinBams(flist, sampleFileName))
     }
-    println("*** DEBUG ***\n\n")
+    println("*** INPUT FILES ***\n\n")
 
     return sampleBamFiles.toMap
   }
@@ -206,8 +209,8 @@ class DataProcessingPipeline extends QScript {
   def script = {
 
     // keep a record of the number of contigs in the first bam file in the list
-    val bams = Utils.createListFromFile(input)
-    nContigs = Utils.getNumberOfContigs(bams(0))
+    val bams = QScriptUtils.createListFromFile(input)
+    nContigs = QScriptUtils.getNumberOfContigs(bams(0))
 
     val realignedBams = if (useBWApe || useBWAse) {performAlignment(bams)} else {bams}
 
@@ -246,7 +249,12 @@ class DataProcessingPipeline extends QScript {
       val preValidateLog  = swapExt(bam, ".bam", ".pre.validation")
       val postValidateLog = swapExt(bam, ".bam", ".post.validation")
 
-      add(validate(bam, preValidateLog))
+      // Validation is an optional step for the BAM file generated after
+      // alignment and the final bam file of the pipeline.
+      if (!noValidation) {
+        add(validate(bam, preValidateLog),
+            validate(recalBam, postValidateLog))
+      }
 
       if (cleaningModel != ConsensusDeterminationModel.KNOWNS_ONLY)
         add(target(bam, targetIntervals))
@@ -257,8 +265,8 @@ class DataProcessingPipeline extends QScript {
           recal(dedupedBam, preRecalFile, recalBam),
           cov(recalBam, postRecalFile),
           analyzeCovariates(preRecalFile, preOutPath),
-          analyzeCovariates(postRecalFile, postOutPath),
-          validate(recalBam, postValidateLog))
+          analyzeCovariates(postRecalFile, postOutPath))
+
 
       cohortList :+= recalBam
     }
@@ -282,13 +290,21 @@ class DataProcessingPipeline extends QScript {
     this.isIntermediate = true
   }
 
+  // General arguments to non-GATK tools
+  trait ExternalCommonArgs extends CommandLineFunction {
+    this.memoryLimit = 4
+    this.isIntermediate = true
+  }
+
+
   case class target (inBams: File, outIntervals: File) extends RealignerTargetCreator with CommandLineGATKArgs {
     if (cleaningModel != ConsensusDeterminationModel.KNOWNS_ONLY)
       this.input_file :+= inBams
     this.out = outIntervals
     this.mismatchFraction = 0.0
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels", "VCF", indels)
+    if (!indels.isEmpty)
+      this.rodBind :+= RodBind("indels", "VCF", indels)
     this.scatterCount = nContigs
     this.analysisName = queueLogDir + outIntervals + ".target"
     this.jobName = queueLogDir + outIntervals + ".target"
@@ -299,7 +315,8 @@ class DataProcessingPipeline extends QScript {
     this.targetIntervals = tIntervals
     this.out = outBam
     this.rodBind :+= RodBind("dbsnp", "VCF", dbSNP)
-    this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
+    if (!qscript.indels.isEmpty)
+      this.rodBind :+= RodBind("indels", "VCF", qscript.indels)
     this.consensusDeterminationModel =  consensusDeterminationModel
     this.compress = 0
     this.scatterCount = nContigs
@@ -322,7 +339,7 @@ class DataProcessingPipeline extends QScript {
   case class recal (inBam: File, inRecalFile: File, outBam: File) extends TableRecalibration with CommandLineGATKArgs {
     this.input_file :+= inBam
     this.recal_file = inRecalFile
-    this.baq = org.broadinstitute.sting.utils.baq.BAQ.CalculationMode.CALCULATE_AS_NECESSARY
+    this.baq = CalculationMode.CALCULATE_AS_NECESSARY
     this.out = outBam
     if (!qscript.intervalString.isEmpty()) this.intervalsString ++= List(qscript.intervalString)
     else if (qscript.intervals != null) this.intervals :+= qscript.intervals
@@ -330,7 +347,6 @@ class DataProcessingPipeline extends QScript {
     this.isIntermediate = false
     this.analysisName = queueLogDir + outBam + ".recalibration"
     this.jobName = queueLogDir + outBam + ".recalibration"
-
   }
 
 
@@ -348,48 +364,41 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + inRecalFile + ".analyze_covariates"
   }
 
-  case class dedup (inBam: File, outBam: File, metricsFile: File) extends MarkDuplicates {
+  case class dedup (inBam: File, outBam: File, metricsFile: File) extends MarkDuplicates with ExternalCommonArgs {
     this.input = List(inBam)
     this.output = outBam
     this.metrics = metricsFile
-    this.memoryLimit = 6
-    this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".dedup"
     this.jobName = queueLogDir + outBam + ".dedup"
   }
 
-  case class joinBams (inBams: List[File], outBam: File) extends MergeSamFiles {
+  case class joinBams (inBams: List[File], outBam: File) extends MergeSamFiles with ExternalCommonArgs {
     this.input = inBams
     this.output = outBam
-    this.memoryLimit = 4
-    this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".joinBams"
     this.jobName = queueLogDir + outBam + ".joinBams"
   }
 
-  case class sortSam (inSam: File, outBam: File, sortOrderP: SortOrder) extends SortSam {
+  case class sortSam (inSam: File, outBam: File, sortOrderP: SortOrder) extends SortSam with ExternalCommonArgs {
     this.input = List(inSam)
     this.output = outBam
     this.sortOrder = sortOrderP
-    this.memoryLimit = 4
-    this.isIntermediate = true
     this.analysisName = queueLogDir + outBam + ".sortSam"
     this.jobName = queueLogDir + outBam + ".sortSam"
   }
 
-  case class validate (inBam: File, outLog: File) extends ValidateSamFile {
+  case class validate (inBam: File, outLog: File) extends ValidateSamFile with ExternalCommonArgs {
     this.input = List(inBam)
     this.output = outLog
     this.maxRecordsInRam = 100000
     this.REFERENCE_SEQUENCE = qscript.reference
-    this.memoryLimit = 4
     this.isIntermediate = false
     this.analysisName = queueLogDir + outLog + ".validate"
     this.jobName = queueLogDir + outLog + ".validate"
   }
 
 
-  case class addReadGroup (inBam: File, outBam: File, readGroup: ReadGroup) extends AddOrReplaceReadGroups {
+  case class addReadGroup (inBam: File, outBam: File, readGroup: ReadGroup) extends AddOrReplaceReadGroups with ExternalCommonArgs {
     this.input = List(inBam)
     this.output = outBam
     this.RGID = readGroup.id
@@ -405,12 +414,7 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".rg"
   }
 
-  trait BWACommonArgs extends CommandLineFunction {
-    this.memoryLimit = 4
-    this.isIntermediate = true
-  }
-
-  case class bwa_aln_se (inBam: File, outSai: File) extends CommandLineFunction with BWACommonArgs {
+  case class bwa_aln_se (inBam: File, outSai: File) extends CommandLineFunction with ExternalCommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Output(doc="output sai file") var sai = outSai
     def commandLine = bwaPath + " aln -t " + bwaThreads + " -q 5 " + reference + " -b " + bam + " > " + sai
@@ -418,7 +422,7 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outSai + ".bwa_aln_se"
   }
 
-  case class bwa_aln_pe (inBam: File, outSai1: File, index: Int) extends CommandLineFunction with BWACommonArgs {
+  case class bwa_aln_pe (inBam: File, outSai1: File, index: Int) extends CommandLineFunction with ExternalCommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Output(doc="output sai file for 1st mating pair") var sai = outSai1
     def commandLine = bwaPath + " aln -t " + bwaThreads + " -q 5 " + reference + " -b" + index + " " + bam + " > " + sai
@@ -426,7 +430,7 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outSai1 + ".bwa_aln_pe1"
   }
 
-  case class bwa_sam_se (inBam: File, inSai: File, outBam: File) extends CommandLineFunction with BWACommonArgs {
+  case class bwa_sam_se (inBam: File, inSai: File, outBam: File) extends CommandLineFunction with ExternalCommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Input(doc="bwa alignment index file") var sai = inSai
     @Output(doc="output aligned bam file") var alignedBam = outBam
@@ -435,7 +439,7 @@ class DataProcessingPipeline extends QScript {
     this.jobName = queueLogDir + outBam + ".bwa_sam_se"
   }
 
-  case class bwa_sam_pe (inBam: File, inSai1: File, inSai2:File, outBam: File) extends CommandLineFunction with BWACommonArgs {
+  case class bwa_sam_pe (inBam: File, inSai1: File, inSai2:File, outBam: File) extends CommandLineFunction with ExternalCommonArgs {
     @Input(doc="bam file to be aligned") var bam = inBam
     @Input(doc="bwa alignment index file for 1st mating pair") var sai1 = inSai1
     @Input(doc="bwa alignment index file for 2nd mating pair") var sai2 = inSai2
