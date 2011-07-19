@@ -20,14 +20,14 @@ class RecalibrateBaseQualities extends QScript {
   @Input(doc="input BAM file - or list of BAM files", shortName="i", required=true)
   var input: File = _
 
-  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=false)
-  var R: String = new File("/humgen/gsa-scr1/carneiro/stable/R")
+  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=true)
+  var R: String = _
 
-  @Input(doc="Reference fasta file", shortName="R", required=false)
-  var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
+  @Input(doc="Reference fasta file", shortName="R", required=true)
+  var reference: File = _ // new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
-  @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)
-  var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
+  @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=true)
+  var dbSNP: File = _     // new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   val queueLogDir: String = ".qlog/"
   var nContigs: Int = 0
