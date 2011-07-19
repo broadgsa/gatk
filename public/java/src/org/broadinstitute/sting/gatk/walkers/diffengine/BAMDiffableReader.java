@@ -29,9 +29,7 @@ import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMRecordIterator;
 import net.sf.samtools.util.BlockCompressedInputStream;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 
 
@@ -102,8 +100,10 @@ public class BAMDiffableReader implements DiffableReader {
         final byte[] BAM_MAGIC = "BAM\1".getBytes();
         final byte[] buffer = new byte[BAM_MAGIC.length];
         try {
-            FileInputStream fstream = new FileInputStream(file);
-            new BlockCompressedInputStream(fstream).read(buffer,0,BAM_MAGIC.length);
+            InputStream fstream = new BufferedInputStream(new FileInputStream(file));
+            if ( !BlockCompressedInputStream.isValidFile(fstream) )
+                return false;
+            new BlockCompressedInputStream(fstream).read(buffer, 0, BAM_MAGIC.length);
             return Arrays.equals(buffer, BAM_MAGIC);
         } catch ( IOException e ) {
             return false;

@@ -3,9 +3,7 @@ package org.broadinstitute.sting.gatk.report;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.PrintStream;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -96,8 +94,9 @@ public class GATKReportTable {
     private String tableDescription;
 
     private String primaryKeyName;
-    private TreeSet<Object> primaryKeyColumn;
+    private Collection<Object> primaryKeyColumn;
     private boolean primaryKeyDisplay;
+    boolean sortByPrimaryKey = true;
 
     private LinkedHashMap<String, GATKReportColumn> columns;
 
@@ -121,12 +120,17 @@ public class GATKReportTable {
      * @param tableDescription  the description of the table
      */
     public GATKReportTable(String tableName, String tableDescription) {
-        if (!isValidName(tableName)) {
+        this(tableName, tableDescription, true);
+    }
+
+    public GATKReportTable(String tableName, String tableDescription, boolean sortByPrimaryKey) {
+         if (!isValidName(tableName)) {
             throw new ReviewedStingException("Attempted to set a GATKReportTable name of '" + tableName + "'.  GATKReportTable names must be purely alphanumeric - no spaces or special characters are allowed.");
         }
 
         this.tableName = tableName;
         this.tableDescription = tableDescription;
+        this.sortByPrimaryKey = sortByPrimaryKey;
 
         columns = new LinkedHashMap<String, GATKReportColumn>();
     }
@@ -137,20 +141,14 @@ public class GATKReportTable {
      * @param primaryKeyName  the name of the primary key column
      */
     public void addPrimaryKey(String primaryKeyName) {
-        if (!isValidName(primaryKeyName)) {
-            throw new ReviewedStingException("Attempted to set a GATKReportTable primary key name of '" + primaryKeyName + "'.  GATKReportTable primary key names must be purely alphanumeric - no spaces or special characters are allowed.");
-        }
-
-        this.primaryKeyName = primaryKeyName;
-
-        primaryKeyColumn = new TreeSet<Object>();
-        primaryKeyDisplay = true;
+        addPrimaryKey(primaryKeyName, true);
     }
 
     /**
      * Add an optionally visible primary key column.  This becomes the unique identifier for every column in the table, and will always be printed as the first column.
      *
      * @param primaryKeyName  the name of the primary key column
+     * @param display should this primary key be displayed?
      */
     public void addPrimaryKey(String primaryKeyName, boolean display) {
         if (!isValidName(primaryKeyName)) {
@@ -159,7 +157,7 @@ public class GATKReportTable {
 
         this.primaryKeyName = primaryKeyName;
 
-        primaryKeyColumn = new TreeSet<Object>();
+        primaryKeyColumn = sortByPrimaryKey ? new TreeSet<Object>() : new LinkedList<Object>();
         primaryKeyDisplay = display;
     }
 

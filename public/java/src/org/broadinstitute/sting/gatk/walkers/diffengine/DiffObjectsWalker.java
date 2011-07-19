@@ -112,6 +112,7 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
         }
 
         DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out, MAX_DIFFS, MAX_COUNT1_DIFFS, minCountForDiff);
+        params.setDescending(false);
         diffEngine.reportSummarizedDifferences(diffs, params);
     }
 }
