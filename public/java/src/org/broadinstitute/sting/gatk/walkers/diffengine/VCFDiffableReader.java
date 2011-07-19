@@ -53,7 +53,13 @@ public class VCFDiffableReader implements DiffableReader {
     public DiffElement readFromFile(File file, int maxElementsToRead) {
         DiffNode root = DiffNode.rooted(file.getName());
         try {
+            // read the version line from the file
             LineReader lineReader = new AsciiLineReader(new FileInputStream(file));
+            final String version = lineReader.readLine();
+            root.add("VERSION", version);
+            lineReader.close();
+
+            lineReader = new AsciiLineReader(new FileInputStream(file));
             VCFCodec vcfCodec = new VCFCodec();
 
             // must be read as state is stored in reader itself
@@ -66,13 +72,19 @@ public class VCFDiffableReader implements DiffableReader {
             }
 
             String line = lineReader.readLine();
-            int count = 0;
+            int count = 0, nRecordsAtPos = 1;
+            String prevName = "";
             while ( line != null ) {
                 if ( count++ > maxElementsToRead && maxElementsToRead != -1)
                     break;
 
                 VariantContext vc = (VariantContext)vcfCodec.decode(line);
                 String name = vc.getChr() + ":" + vc.getStart();
+                if ( name.equals(prevName) ) {
+                    name += "_" + ++nRecordsAtPos;
+                } else {
+                    prevName = name;
+                }
                 DiffNode vcRoot = DiffNode.empty(name, root);
 
                 // add fields

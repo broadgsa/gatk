@@ -27,11 +27,22 @@ package org.broadinstitute.sting.gatk.walkers.diffengine;
 public class Difference implements Comparable<Difference> {
     final String path; // X.Y.Z
     final String[] parts;
-    int count = 0;
+    int count = 1;
+    DiffElement master = null , test = null;
 
     public Difference(String path) {
         this.path = path;
         this.parts = DiffEngine.diffNameToPath(path);
+    }
+
+    public Difference(DiffElement master, DiffElement test) {
+        this(createPath(master, test), master, test);
+    }
+
+    public Difference(String path, DiffElement master, DiffElement test) {
+        this(path);
+        this.master = master;
+        this.test = test;
     }
 
     public String[] getParts() {
@@ -42,6 +53,10 @@ public class Difference implements Comparable<Difference> {
 
     public int getCount() {
         return count;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
     }
 
     /**
@@ -81,7 +96,7 @@ public class Difference implements Comparable<Difference> {
 
     @Override
     public String toString() {
-        return String.format("%s:%d", getPath(), getCount());
+        return String.format("%s:%d:%s", getPath(), getCount(), valueDiffString());
     }
 
     @Override
@@ -91,5 +106,31 @@ public class Difference implements Comparable<Difference> {
         return countCmp != 0 ? -1 * countCmp : path.compareTo(other.path);
     }
 
+    public String valueDiffString() {
+        if ( hasSpecificDifference() ) {
+            return String.format("%s!=%s", getOneLineString(master), getOneLineString(test));
+        } else {
+            return "N/A";
+        }
+    }
 
+    private static String createPath(DiffElement master, DiffElement test) {
+        return (master == null ? test : master).fullyQualifiedName();
+    }
+
+    private static String getOneLineString(DiffElement elt) {
+        return elt == null ? "MISSING" : elt.getValue().toOneLineString();
+    }
+
+    public boolean hasSpecificDifference() {
+        return master != null || test != null;
+    }
+
+    public DiffElement getMaster() {
+        return master;
+    }
+
+    public DiffElement getTest() {
+        return test;
+    }
 }

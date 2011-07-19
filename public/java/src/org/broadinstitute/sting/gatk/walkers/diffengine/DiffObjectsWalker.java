@@ -104,14 +104,15 @@ public class DiffObjectsWalker extends RodWalker<Integer, Integer> {
 //        out.printf("Test diff objects%n");
 //        out.println(test.toString());
 
-        List<SpecificDifference> diffs = diffEngine.diff(master, test);
+        List<Difference> diffs = diffEngine.diff(master, test);
         if ( showItemizedDifferences ) {
             out.printf("Itemized results%n");
-            for ( SpecificDifference diff : diffs )
+            for ( Difference diff : diffs )
                 out.printf("DIFF: %s%n", diff.toString());
         }
 
         DiffEngine.SummaryReportParams params = new DiffEngine.SummaryReportParams(out, MAX_DIFFS, MAX_COUNT1_DIFFS, minCountForDiff);
+        params.setDescending(false);
         diffEngine.reportSummarizedDifferences(diffs, params);
     }
 }
