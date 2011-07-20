@@ -64,7 +64,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     public Set<String> sampleNames = new TreeSet<String>();
 
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
-    private boolean NO_SAMPLES_SPECIFIED = false;
+    private boolean SAMPLES_SPECIFIED = false;
 
     /**
      * The initialize function.
@@ -82,8 +82,8 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
         if (!sampleNames.isEmpty())
             samplesToChoose.addAll(sampleNames);
 
-        if(samplesToChoose.isEmpty()) {
-            NO_SAMPLES_SPECIFIED = true;
+        if(!samplesToChoose.isEmpty()) {
+            SAMPLES_SPECIFIED = true;
         }
 
     }
@@ -112,7 +112,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
             if ( readPlatformAttr == null || !readPlatformAttr.toString().toUpperCase().contains(platform))
                 return false;
         }
-        if (!NO_SAMPLES_SPECIFIED )  {
+        if (SAMPLES_SPECIFIED )  {
             // user specified samples to select
             String readSample = read.getReadGroup().getSample();
             boolean  found = false;
