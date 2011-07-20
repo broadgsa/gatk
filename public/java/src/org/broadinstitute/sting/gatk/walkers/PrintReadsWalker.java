@@ -114,17 +114,9 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
         }
         if (SAMPLES_SPECIFIED )  {
             // user specified samples to select
-            String readSample = read.getReadGroup().getSample();
-            boolean  found = false;
-            for (String sampleSelected : samplesToChoose) {
-                if (readSample.equalsIgnoreCase(sampleSelected)) {
-                    found = true;
-                    break;
-                }
-
-            }
-
-            if (!found)
+            // todo - should be case-agnostic  but for simplicity and speed this is ignored.
+            // todo - can check at initialization intersection of requested samples and samples in BAM header to further speedup.
+            if (!samplesToChoose.contains(read.getReadGroup().getSample()))
                 return false;
         }
 
