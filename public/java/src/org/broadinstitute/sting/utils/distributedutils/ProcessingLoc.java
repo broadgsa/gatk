@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.threading;
+package org.broadinstitute.sting.utils.distributedutils;
 
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.HasGenomeLocation;

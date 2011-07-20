@@ -1,5 +1,5 @@
 // our package
-package org.broadinstitute.sting.utils.threading;
+package org.broadinstitute.sting.utils.distributedutils;
 
 
 // the imports for unit testing.
@@ -7,9 +7,9 @@ package org.broadinstitute.sting.utils.threading;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.BaseTest;
-import org.broadinstitute.sting.gatk.iterators.GenomeLocusIterator;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
+import org.broadinstitute.sting.utils.distributedutils.*;
 import org.broadinstitute.sting.utils.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.*;

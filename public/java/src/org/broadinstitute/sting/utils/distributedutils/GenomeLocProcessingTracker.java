@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.threading;
+package org.broadinstitute.sting.utils.distributedutils;
 
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.apache.log4j.Logger;

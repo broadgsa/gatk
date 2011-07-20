@@ -1,4 +1,4 @@
-package org.broadinstitute.sting.utils.threading;
+package org.broadinstitute.sting.utils.distributedutils;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
