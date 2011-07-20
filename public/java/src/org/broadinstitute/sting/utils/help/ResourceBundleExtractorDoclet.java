@@ -186,8 +186,6 @@ public class ResourceBundleExtractorDoclet {
      * @return True if the JavaDoc is missing.  False otherwise.
      */
     private static boolean isRequiredJavadocMissing(ClassDoc classDoc) {
-        if(classDoc.containingPackage().name().contains("oneoffprojects"))
-            return false;
         return classDoc.commentText().length() == 0 || classDoc.commentText().contains("Created by IntelliJ");
     }
 
