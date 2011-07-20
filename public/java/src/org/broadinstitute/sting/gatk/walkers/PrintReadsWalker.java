@@ -59,9 +59,9 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     @Argument(fullName = "number", shortName = "n", doc="Print the first n reads from the file, discarding the rest", required = false)
     int nReadsToPrint = -1;
     @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line). Can be specified multiple times", required=false)
-    public Set<File> sampleFile;
+    public Set<File> sampleFile = new TreeSet<File>();
     @Argument(fullName="sample_name", shortName="sn", doc="Sample name to be included in the analysis. Can be specified multiple times.", required=false)
-    public Set<String> sampleNames;
+    public Set<String> sampleNames = new TreeSet<String>();
 
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
     private boolean NO_SAMPLES_SPECIFIED = false;
