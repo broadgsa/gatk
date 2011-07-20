@@ -28,9 +28,8 @@ import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.variantcontext.VariantContextUtils;
 import org.broadinstitute.sting.utils.GenomeLoc;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.File;
 import java.util.Arrays;
@@ -151,6 +150,16 @@ public class UserException extends ReviewedStingException {
     public static class MalformedBAM extends UserException {
         public MalformedBAM(SAMRecord read, String message) {
             super(String.format("SAM/BAM file %s is malformed: %s", read.getFileSource() != null ? read.getFileSource().getReader() : "(none)", message));
+        }
+    }
+
+    public static class MalformedVCF extends UserException {
+        public MalformedVCF(String message, String line) {
+            super(String.format("The provided VCF file is malformed at line %s: %s", line, message));
+        }
+
+        public MalformedVCF(String message, int lineNo) {
+            super(String.format("The provided VCF file is malformed at line nmber %d: %s", lineNo, message));
         }
     }
 

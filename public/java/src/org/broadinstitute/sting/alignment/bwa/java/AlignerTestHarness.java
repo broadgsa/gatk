@@ -1,15 +1,14 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
+import net.sf.samtools.*;
 import org.broadinstitute.sting.alignment.Aligner;
 import org.broadinstitute.sting.alignment.Alignment;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.BaseUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-
-import net.sf.samtools.*;
-import net.sf.picard.reference.IndexedFastaSequenceFile;
 
 /**
  * A test harness to ensure that the perfect aligner works.

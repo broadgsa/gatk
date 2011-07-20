@@ -1,11 +1,14 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedInputStream;
 import org.broadinstitute.sting.alignment.reference.packing.BasePackedInputStream;
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
+import org.broadinstitute.sting.alignment.reference.packing.UnsignedIntPackedInputStream;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.ByteOrder;
 /**
  * Reads a BWT from a given file.

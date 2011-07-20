@@ -1,11 +1,10 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
+import net.sf.samtools.util.StringUtil;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.Comparator;
 import java.util.TreeSet;
-
-import net.sf.samtools.util.StringUtil;
 
 /**
  * An in-memory representation of a suffix array.

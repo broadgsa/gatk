@@ -3,10 +3,10 @@ package org.broadinstitute.sting.alignment.reference.bwt;
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 
-import java.io.PrintStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintStream;
 
 /**
  * Writes .amb files - a file indicating where 'holes' (indeterminant bases)

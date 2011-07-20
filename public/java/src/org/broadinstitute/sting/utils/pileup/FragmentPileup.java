@@ -1,6 +1,9 @@
 package org.broadinstitute.sting.utils.pileup;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * An easy to access fragment-based pileup, which contains two separate pileups.  The first

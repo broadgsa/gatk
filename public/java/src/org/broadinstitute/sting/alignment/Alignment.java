@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.alignment;
 
 import net.sf.samtools.*;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 /**
  * Represents an alignment of a read to a site in the reference genome.

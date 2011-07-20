@@ -25,14 +25,14 @@
 
 package org.broadinstitute.sting.alignment.reference.bwt;
 
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.picard.reference.ReferenceSequence;
-
-import java.io.*;
-
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Create a suffix array data structure.

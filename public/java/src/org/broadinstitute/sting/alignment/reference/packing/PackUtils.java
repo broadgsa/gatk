@@ -3,9 +3,9 @@ package org.broadinstitute.sting.alignment.reference.packing;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.FileOutputStream;
 import java.nio.ByteOrder;
 
 /**

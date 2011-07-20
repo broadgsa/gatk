@@ -1,6 +1,5 @@
 package org.broadinstitute.sting.gatk;
 
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;

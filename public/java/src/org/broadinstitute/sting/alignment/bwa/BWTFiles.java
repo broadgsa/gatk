@@ -1,21 +1,15 @@
 package org.broadinstitute.sting.alignment.bwa;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.Utils;
-import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
-import org.broadinstitute.sting.alignment.reference.bwt.BWT;
-import org.broadinstitute.sting.alignment.reference.bwt.BWTWriter;
-import org.broadinstitute.sting.alignment.reference.bwt.SuffixArray;
-import org.broadinstitute.sting.alignment.reference.bwt.SuffixArrayWriter;
-import org.broadinstitute.sting.alignment.reference.bwt.ANNWriter;
-import org.broadinstitute.sting.alignment.reference.bwt.AMBWriter;
-
-import java.io.File;
-import java.io.IOException;
-
 import net.sf.samtools.SAMSequenceDictionary;
 import net.sf.samtools.SAMSequenceRecord;
 import net.sf.samtools.util.StringUtil;
+import org.broadinstitute.sting.alignment.reference.bwt.*;
+import org.broadinstitute.sting.alignment.reference.packing.PackUtils;
+import org.broadinstitute.sting.utils.Utils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Support files for BWT.

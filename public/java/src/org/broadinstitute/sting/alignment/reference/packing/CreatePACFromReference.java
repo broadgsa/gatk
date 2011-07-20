@@ -25,12 +25,12 @@
 
 package org.broadinstitute.sting.alignment.reference.packing;
 
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.picard.reference.ReferenceSequenceFile;
 import net.sf.picard.reference.ReferenceSequenceFileFactory;
-import net.sf.picard.reference.ReferenceSequence;
 
-import java.io.*;
-import java.nio.ByteOrder;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Generate a .PAC file from a given reference.

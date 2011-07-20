@@ -1,16 +1,13 @@
 package org.broadinstitute.sting.gatk.walkers;
 
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.contexts.AlignmentContext;
-import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.gatk.filters.NotPrimaryAlignmentReadFilter;
+import org.broadinstitute.sting.gatk.filters.UnmappedReadFilter;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.util.List;
 import java.util.Set;
-import java.util.Arrays;
-
-import net.sf.samtools.SAMRecord;
-import net.sf.picard.filter.SamRecordFilter;
 
 /**
  * Created by IntelliJ IDEA.

@@ -3,7 +3,7 @@ package org.broadinstitute.sting.gatk.refdata.features.table;
 import org.broad.tribble.Feature;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * A feature representing a single row out of a text table

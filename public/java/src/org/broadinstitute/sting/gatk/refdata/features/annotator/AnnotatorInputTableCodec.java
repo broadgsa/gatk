@@ -25,12 +25,6 @@
 
 package org.broadinstitute.sting.gatk.refdata.features.annotator;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.StringTokenizer;
-
 import org.apache.log4j.Logger;
 import org.broad.tribble.Feature;
 import org.broad.tribble.exception.CodecLineParsingException;
@@ -40,6 +34,12 @@ import org.broadinstitute.sting.gatk.refdata.ReferenceDependentFeatureCodec;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.Utils;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.StringTokenizer;
 
 public class AnnotatorInputTableCodec implements ReferenceDependentFeatureCodec<AnnotatorInputTableFeature> {
 

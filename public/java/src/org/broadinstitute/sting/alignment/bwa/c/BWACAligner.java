@@ -1,14 +1,15 @@
 package org.broadinstitute.sting.alignment.bwa.c;
 
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.alignment.Alignment;
+import org.broadinstitute.sting.alignment.bwa.BWAAligner;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
-import org.broadinstitute.sting.alignment.bwa.BWAAligner;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
 
 /**
  * An aligner using the BWA/C implementation.

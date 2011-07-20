@@ -23,16 +23,15 @@
  */
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.samtools.util.CloserUtil;
-
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Collection;
-
+import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
-import net.sf.picard.filter.SamRecordFilter;
+import net.sf.samtools.util.CloserUtil;
 import org.broadinstitute.sting.gatk.ReadMetrics;
+
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * Filtering Iterator which takes a filter and an iterator and iterates

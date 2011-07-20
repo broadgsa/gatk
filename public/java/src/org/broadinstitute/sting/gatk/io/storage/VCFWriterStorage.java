@@ -1,16 +1,21 @@
 package org.broadinstitute.sting.gatk.io.storage;
 
+import net.sf.samtools.util.BlockCompressedOutputStream;
 import org.apache.log4j.Logger;
 import org.broad.tribble.source.BasicFeatureSource;
-import org.broadinstitute.sting.utils.codecs.vcf.*;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub;
-
-import java.io.*;
-
-import net.sf.samtools.util.BlockCompressedOutputStream;
+import org.broadinstitute.sting.utils.codecs.vcf.StandardVCFWriter;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFCodec;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFHeader;
+import org.broadinstitute.sting.utils.codecs.vcf.VCFWriter;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
 /**
  * Provides temporary and permanent storage for genotypes in VCF format.

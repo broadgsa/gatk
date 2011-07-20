@@ -1,14 +1,13 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-
-import java.util.Deque;
-import java.util.ArrayDeque;
-import java.util.Iterator;
-
 import net.sf.samtools.Cigar;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Iterator;
 
 /**
  * Represents a sequence of matches.

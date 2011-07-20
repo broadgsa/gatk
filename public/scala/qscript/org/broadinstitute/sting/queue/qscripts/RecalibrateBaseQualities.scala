@@ -2,7 +2,7 @@ package org.broadinstitute.sting.queue.qscripts
 
 import org.broadinstitute.sting.queue.QScript
 import org.broadinstitute.sting.queue.extensions.gatk._
-import net.sf.samtools.SAMFileReader
+import org.broadinstitute.sting.queue.util.QScriptUtils
 
 /**
  * Created by IntelliJ IDEA.
@@ -20,38 +20,37 @@ class RecalibrateBaseQualities extends QScript {
   @Input(doc="input BAM file - or list of BAM files", shortName="i", required=true)
   var input: File = _
 
-  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=false)
-  var R: String = new File("/humgen/gsa-scr1/carneiro/stable/R")
+  @Input(doc="path to R resources folder inside the Sting repository", fullName="path_to_r", shortName="r", required=true)
+  var R: String = _
 
-  @Input(doc="Reference fasta file", shortName="R", required=false)
-  var reference: File = new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
+  @Input(doc="Reference fasta file", shortName="R", required=true)
+  var reference: File = _ // new File("/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta")
 
-  @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=false)
-  var dbSNP: File = new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
+  @Input(doc="dbsnp ROD to use (VCF)", shortName="D", required=true)
+  var dbSNP: File = _     // new File("/humgen/gsa-hpprojects/GATK/data/dbsnp_132_b37.leftAligned.vcf")
 
   val queueLogDir: String = ".qlog/"
   var nContigs: Int = 0
 
-  def getNumberOfContigs(bamFile: File): Int = {
-    val samReader = new SAMFileReader(new File(bamFile))
-    return samReader.getFileHeader.getSequenceDictionary.getSequences.size()
-  }
-
   def script = {
 
-    nContigs = getNumberOfContigs(input)
+    val bamList = QScriptUtils.createListFromFile(input)
+    nContigs = QScriptUtils.getNumberOfContigs(bamList(0))
 
-    val recalFile1: File = swapExt(input, ".bam", "recal1.csv")
-    val recalFile2: File = swapExt(input, ".bam", "recal2.csv")
-    val recalBam: File   = swapExt(input, ".bam", "recal.bam")
-    val path1: String    = "before"
-    val path2: String    = "after"
-    
-    add(cov(input, recalFile1),
-        recal(input, recalFile1, recalBam),
-        cov(recalBam, recalFile2),
-        analyzeCovariates(recalFile1, path1),
-        analyzeCovariates(recalFile2, path2))
+    for (bam <- bamList) {
+
+      val recalFile1: File = swapExt(bam, ".bam", ".recal1.csv")
+      val recalFile2: File = swapExt(bam, ".bam", ".recal2.csv")
+      val recalBam: File   = swapExt(bam, ".bam", ".recal.bam")
+      val path1: String    = bam + ".before"
+      val path2: String    = bam + ".after"
+
+      add(cov(bam, recalFile1),
+          recal(bam, recalFile1, recalBam),
+          cov(recalBam, recalFile2),
+          analyzeCovariates(recalFile1, path1),
+          analyzeCovariates(recalFile2, path2))
+    }
   }
 
   trait CommandLineGATKArgs extends CommandLineGATK {
@@ -84,7 +83,7 @@ class RecalibrateBaseQualities extends QScript {
   case class analyzeCovariates (inRecalFile: File, outPath: String) extends AnalyzeCovariates {
     this.resources = R
     this.recal_file = inRecalFile
-    this.output_dir = outPath.toString
+    this.output_dir = outPath
     this.analysisName = queueLogDir + inRecalFile + ".analyze_covariates"
     this.jobName = queueLogDir + inRecalFile + ".analyze_covariates"
   }

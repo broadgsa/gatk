@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
-import java.util.List;
-import java.util.ArrayList;
-
 import org.broadinstitute.sting.alignment.reference.bwt.BWT;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * At any point along the given read, what is a good lower bound for the

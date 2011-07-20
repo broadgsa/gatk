@@ -1,17 +1,18 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
-import org.broadinstitute.sting.alignment.reference.bwt.*;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.alignment.bwa.BWAAligner;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
-import org.broadinstitute.sting.alignment.Alignment;
+import org.broadinstitute.sting.alignment.reference.bwt.*;
 import org.broadinstitute.sting.utils.BaseUtils;
 import org.broadinstitute.sting.utils.Utils;
 
 import java.io.File;
-import java.util.*;
-
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileHeader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.PriorityQueue;
 
 /**
  * Create imperfect alignments from the read to the genome represented by the given BWT / suffix array. 

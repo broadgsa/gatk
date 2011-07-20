@@ -3,8 +3,8 @@ package org.broadinstitute.sting.gatk.iterators;
 import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 
-import java.util.NoSuchElementException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 /**
  * User: hanna
  * Date: May 12, 2009

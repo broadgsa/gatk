@@ -29,7 +29,7 @@ import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 import org.broadinstitute.sting.jna.clibrary.JNAUtils;
-import org.broadinstitute.sting.jna.clibrary.LibC.*;
+import org.broadinstitute.sting.jna.clibrary.LibC.timeval;
 
 /*
   NOTE: This library uses Pointer for some Struct.ByReference members going

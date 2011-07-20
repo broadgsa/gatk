@@ -25,11 +25,9 @@
 
 package org.broadinstitute.sting.gatk.filters;
 
-import net.sf.picard.filter.SamRecordFilter;
 import net.sf.samtools.SAMRecord;
-
-import org.broadinstitute.sting.utils.sam.ReadUtils;
 import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.utils.sam.ReadUtils;
 
 /**
  * Filter out PL matching reads.

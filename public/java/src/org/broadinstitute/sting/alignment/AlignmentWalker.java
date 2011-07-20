@@ -25,21 +25,22 @@
 
 package org.broadinstitute.sting.alignment;
 
-import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
-import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
-import org.broadinstitute.sting.commandline.Argument;
-import org.broadinstitute.sting.commandline.Output;
-import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.walkers.WalkerName;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
-import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import net.sf.samtools.SAMFileHeader;
+import net.sf.samtools.SAMRecord;
+import net.sf.samtools.SAMSequenceDictionary;
 import org.broadinstitute.sting.alignment.bwa.BWAConfiguration;
 import org.broadinstitute.sting.alignment.bwa.BWTFiles;
-import net.sf.samtools.*;
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
+import org.broadinstitute.sting.alignment.bwa.c.BWACAligner;
+import org.broadinstitute.sting.commandline.Argument;
+import org.broadinstitute.sting.commandline.Output;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
+import org.broadinstitute.sting.gatk.io.StingSAMFileWriter;
+import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
+import org.broadinstitute.sting.gatk.walkers.ReadWalker;
+import org.broadinstitute.sting.gatk.walkers.WalkerName;
 
 import java.io.File;
-import java.io.PrintStream;
 
 /**
  * Aligns reads to a given reference using Heng Li's BWA aligner, presenting the resulting alignments in SAM or BAM format.

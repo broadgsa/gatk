@@ -1,10 +1,7 @@
 package org.broadinstitute.sting.alignment;
 
-import net.sf.samtools.SAMRecord;
 import net.sf.samtools.SAMFileHeader;
-
-import java.util.List;
-import java.util.Iterator;
+import net.sf.samtools.SAMRecord;
 
 /**
  * Create perfect alignments from the read to the genome represented by the given BWT / suffix array. 

@@ -23,9 +23,9 @@
  */
 package org.broadinstitute.sting.utils.pileup;
 
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.gatk.datasources.sample.Sample;
 import org.broadinstitute.sting.utils.GenomeLoc;
-import net.sf.samtools.SAMRecord;
 
 import java.util.List;
 import java.util.Map;

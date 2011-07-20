@@ -1,7 +1,7 @@
 package org.broadinstitute.sting.alignment.reference.bwt;
 
-import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.picard.reference.ReferenceSequenceFile;
+import net.sf.picard.reference.ReferenceSequenceFileFactory;
 import net.sf.samtools.SAMSequenceDictionary;
 
 import java.io.File;

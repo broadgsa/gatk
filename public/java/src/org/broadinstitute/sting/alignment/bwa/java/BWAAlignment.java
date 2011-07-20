@@ -1,8 +1,8 @@
 package org.broadinstitute.sting.alignment.bwa.java;
 
+import net.sf.samtools.Cigar;
 import org.broadinstitute.sting.alignment.Alignment;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import net.sf.samtools.Cigar;
 
 /**
  * An alignment object to be used incrementally as the BWA aligner

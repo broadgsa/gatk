@@ -1,9 +1,9 @@
 package org.broadinstitute.sting.gatk.executive;
 
-import java.util.Queue;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.Future;
 /**
  * User: hanna

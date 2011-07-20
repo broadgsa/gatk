@@ -25,15 +25,15 @@
 
 package org.broadinstitute.sting.gatk.refdata.features.sampileup;
 
-import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.Feature;
+import org.broad.tribble.FeatureCodec;
 import org.broad.tribble.exception.CodecLineParsingException;
 import org.broad.tribble.readers.LineReader;
 import org.broad.tribble.util.ParsingUtils;
 
 import java.util.ArrayList;
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.broadinstitute.sting.gatk.refdata.features.sampileup.SAMPileupFeature.VariantType;
 
