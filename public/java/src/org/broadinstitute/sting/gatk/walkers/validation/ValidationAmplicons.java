@@ -34,7 +34,7 @@ import java.util.List;
  */
 @Requires(value={DataSource.REFERENCE}, referenceMetaData={@RMD(name="ProbeIntervals",type=TableFeature.class),
 @RMD(name="ValidateAlleles",type=VariantContext.class),@RMD(name="MaskAlleles",type=VariantContext.class)})
-public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
+public class ValidationAmplicons extends RodWalker<Integer,Integer> {
 
     @Argument(doc="Lower case SNPs rather than replacing with 'N'",fullName="lowerCaseSNPs",required=false)
     boolean lowerCaseSNPs = false;
@@ -44,6 +44,9 @@ public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
 
     @Argument(doc="Monomorphic sites in the mask file will be treated as filtered",fullName="filterMonomorphic",required=false)
     boolean filterMonomorphic = false;
+
+    @Argument(doc="Do not use BWA, lower-case repeats only",fullName="doNotUseBWA",required=false)
+    boolean doNotUseBWA = false;
 
     GenomeLoc prevInterval;
     GenomeLoc allelePos;
@@ -67,16 +70,18 @@ public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
     private SAMFileHeader header = null;
 
     public void initialize() {
-        if(targetReferenceFile == null)
-            targetReferenceFile = getToolkit().getArguments().referenceFile;
-        BWTFiles bwtFiles = new BWTFiles(targetReferenceFile.getAbsolutePath());
-        BWAConfiguration configuration = new BWAConfiguration();
-        aligner = new BWACAligner(bwtFiles,configuration);
-        header = new SAMFileHeader();
-        SAMSequenceDictionary referenceDictionary =
-                ReferenceSequenceFileFactory.getReferenceSequenceFile(targetReferenceFile).getSequenceDictionary();
-        header.setSequenceDictionary(referenceDictionary);
-        header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+        if ( ! doNotUseBWA ) {
+            if(targetReferenceFile == null)
+                targetReferenceFile = getToolkit().getArguments().referenceFile;
+            BWTFiles bwtFiles = new BWTFiles(targetReferenceFile.getAbsolutePath());
+            BWAConfiguration configuration = new BWAConfiguration();
+            aligner = new BWACAligner(bwtFiles,configuration);
+            header = new SAMFileHeader();
+            SAMSequenceDictionary referenceDictionary =
+                    ReferenceSequenceFileFactory.getReferenceSequenceFile(targetReferenceFile).getSequenceDictionary();
+            header.setSequenceDictionary(referenceDictionary);
+            header.setSortOrder(SAMFileHeader.SortOrder.unsorted);
+        }
     }
 
     public Integer reduceInit() {
@@ -106,8 +111,11 @@ public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
                 // there was a previous interval
                 validateSequence(); // ensure the sequence in the region is valid
                 // next line removed in favor of the one after
-                //lowerRepeats(); // change repeats in sequence to lower case
-                lowerNonUniqueSegments();
+                if ( doNotUseBWA ) {
+                    lowerRepeats(); // change repeats in sequence to lower case
+                } else {
+                    lowerNonUniqueSegments();
+                }
                 print(); // print out the fasta sequence
             }
 
@@ -218,7 +226,11 @@ public class PickSequenomProbes2 extends RodWalker<Integer,Integer> {
 
     public void onTraversalDone(Integer fin ) {
         validateSequence();
-        lowerNonUniqueSegments();
+        if ( doNotUseBWA ) {
+            lowerRepeats();
+        } else {
+            lowerNonUniqueSegments();
+        }
         print();
     }
 
