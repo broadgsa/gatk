@@ -59,12 +59,12 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     @Argument(fullName = "number", shortName = "n", doc="Print the first n reads from the file, discarding the rest", required = false)
     int nReadsToPrint = -1;
     @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line). Can be specified multiple times", required=false)
-    public Set<File> sampleFiles;
+    public Set<File> sampleFile = new TreeSet<File>();
     @Argument(fullName="sample_name", shortName="sn", doc="Sample name to be included in the analysis. Can be specified multiple times.", required=false)
-    public Set<String> sampleNames;
+    public Set<String> sampleNames = new TreeSet<String>();
 
     private TreeSet<String> samplesToChoose = new TreeSet<String>();
-    private boolean NO_SAMPLES_SPECIFIED = false;
+    private boolean SAMPLES_SPECIFIED = false;
 
     /**
      * The initialize function.
@@ -73,14 +73,17 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
         if  ( platform != null )
             platform = platform.toUpperCase();
 
-        Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
-        samplesToChoose.addAll(samplesFromFile);
+        Collection<String> samplesFromFile;
+        if (!sampleFile.isEmpty())  {
+            samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFile);
+            samplesToChoose.addAll(samplesFromFile);
+        }
 
-        if (sampleNames != null)
+        if (!sampleNames.isEmpty())
             samplesToChoose.addAll(sampleNames);
 
-        if(samplesToChoose.isEmpty()) {
-            NO_SAMPLES_SPECIFIED = true;
+        if(!samplesToChoose.isEmpty()) {
+            SAMPLES_SPECIFIED = true;
         }
 
     }
@@ -109,19 +112,11 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
             if ( readPlatformAttr == null || !readPlatformAttr.toString().toUpperCase().contains(platform))
                 return false;
         }
-        if (!NO_SAMPLES_SPECIFIED )  {
+        if (SAMPLES_SPECIFIED )  {
             // user specified samples to select
-            String readSample = read.getReadGroup().getSample();
-            boolean  found = false;
-            for (String sampleSelected : samplesToChoose) {
-                if (readSample.equalsIgnoreCase(sampleSelected)) {
-                    found = true;
-                    break;
-                }
-
-            }
-
-            if (!found)
+            // todo - should be case-agnostic  but for simplicity and speed this is ignored.
+            // todo - can check at initialization intersection of requested samples and samples in BAM header to further speedup.
+            if (!samplesToChoose.contains(read.getReadGroup().getSample()))
                 return false;
         }
 
