@@ -59,7 +59,7 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
     @Argument(fullName = "number", shortName = "n", doc="Print the first n reads from the file, discarding the rest", required = false)
     int nReadsToPrint = -1;
     @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples (one per line). Can be specified multiple times", required=false)
-    public Set<File> sampleFiles;
+    public Set<File> sampleFile;
     @Argument(fullName="sample_name", shortName="sn", doc="Sample name to be included in the analysis. Can be specified multiple times.", required=false)
     public Set<String> sampleNames;
 
@@ -73,10 +73,13 @@ public class PrintReadsWalker extends ReadWalker<SAMRecord, SAMFileWriter> {
         if  ( platform != null )
             platform = platform.toUpperCase();
 
-        Collection<String> samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFiles);
-        samplesToChoose.addAll(samplesFromFile);
+        Collection<String> samplesFromFile;
+        if (!sampleFile.isEmpty())  {
+            samplesFromFile = SampleUtils.getSamplesFromFiles(sampleFile);
+            samplesToChoose.addAll(samplesFromFile);
+        }
 
-        if (sampleNames != null)
+        if (!sampleNames.isEmpty())
             samplesToChoose.addAll(sampleNames);
 
         if(samplesToChoose.isEmpty()) {
