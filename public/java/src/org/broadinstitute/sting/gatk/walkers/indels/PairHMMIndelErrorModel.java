@@ -1047,8 +1047,8 @@ public class PairHMMIndelErrorModel {
 
         int k=0;
         double maxElement = Double.NEGATIVE_INFINITY;
-        for (int i=0; i < hSize; i++) {
-            for (int j=i; j < hSize; j++){
+        for (int j=0; j < hSize; j++) {
+            for (int i=0; i <= j; i++){
                 genotypeLikelihoods[k++] = haplotypeLikehoodMatrix[i][j];
                 if (haplotypeLikehoodMatrix[i][j] > maxElement)
                     maxElement = haplotypeLikehoodMatrix[i][j];
