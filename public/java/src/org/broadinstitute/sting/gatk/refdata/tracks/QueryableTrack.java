@@ -28,7 +28,6 @@ import org.broadinstitute.sting.gatk.refdata.utils.GATKFeature;
 import org.broadinstitute.sting.utils.GenomeLoc;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 /**
  * @author aaron

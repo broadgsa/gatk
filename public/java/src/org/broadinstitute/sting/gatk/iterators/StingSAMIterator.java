@@ -2,7 +2,6 @@ package org.broadinstitute.sting.gatk.iterators;
 
 import net.sf.samtools.SAMRecord;
 import net.sf.samtools.util.CloseableIterator;
-import org.broadinstitute.sting.gatk.ReadProperties;
 /**
  *
  * User: aaron

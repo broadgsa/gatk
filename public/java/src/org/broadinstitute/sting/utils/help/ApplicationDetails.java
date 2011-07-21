@@ -25,13 +25,13 @@
 
 package org.broadinstitute.sting.utils.help;
 
-import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.commandline.CommandLineProgram;
+import org.broadinstitute.sting.utils.classloader.JVMUtils;
+import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
-import java.util.List;
-import java.util.Collections;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Contains details additional details that the program can

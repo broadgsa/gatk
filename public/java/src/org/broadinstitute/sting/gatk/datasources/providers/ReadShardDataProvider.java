@@ -1,13 +1,12 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
-import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
+import org.broadinstitute.sting.gatk.iterators.StingSAMIterator;
+import org.broadinstitute.sting.utils.GenomeLocParser;
 
 import java.util.Collection;
-
-import net.sf.picard.reference.IndexedFastaSequenceFile;
-import org.broadinstitute.sting.utils.GenomeLocParser;
 
 /**
  * Present data sharded by read to a traversal engine.

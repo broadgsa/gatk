@@ -25,12 +25,11 @@
 package org.broadinstitute.sting.gatk;
 
 import net.sf.picard.filter.SamRecordFilter;
-
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Collections;
-
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Holds a bunch of basic information about the traversal.

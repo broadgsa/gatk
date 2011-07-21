@@ -1,16 +1,16 @@
 package org.broadinstitute.sting.gatk.walkers.qc;
 
+import net.sf.samtools.SAMFileWriter;
+import net.sf.samtools.SAMRecord;
+import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.gatk.refdata.ReadMetaDataTracker;
 import org.broadinstitute.sting.gatk.walkers.ReadWalker;
-import org.broadinstitute.sting.gatk.contexts.ReferenceContext;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.SAMFileWriter;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 
 /*

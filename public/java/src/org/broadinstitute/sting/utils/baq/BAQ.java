@@ -1,10 +1,10 @@
 package org.broadinstitute.sting.utils.baq;
 
-import net.sf.samtools.SAMRecord;
-import net.sf.samtools.CigarElement;
-import net.sf.samtools.CigarOperator;
 import net.sf.picard.reference.IndexedFastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
+import net.sf.samtools.CigarElement;
+import net.sf.samtools.CigarOperator;
+import net.sf.samtools.SAMRecord;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import org.broadinstitute.sting.utils.exceptions.UserException;

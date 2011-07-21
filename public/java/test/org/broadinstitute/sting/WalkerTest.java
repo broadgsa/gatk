@@ -53,7 +53,7 @@ public class WalkerTest extends BaseTest {
     }
 
     public String assertMatchingMD5(final String name, final File resultsFile, final String expectedMD5) {
-        return assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
+        return MD5DB.assertMatchingMD5(name, resultsFile, expectedMD5, parameterize());
     }
 
     public void maybeValidateSupplementaryFile(final String name, final File resultFile) {
@@ -191,7 +191,7 @@ public class WalkerTest extends BaseTest {
     }
 
     protected Pair<List<File>, List<String>> executeTest(final String name, WalkerTestSpec spec) {
-        ensureMd5DbDirectory(); // ensure the md5 directory exists
+        MD5DB.ensureMd5DbDirectory(); // ensure the md5 directory exists
 
         List<File> tmpFiles = new ArrayList<File>();
         for (int i = 0; i < spec.nOutputFiles; i++) {

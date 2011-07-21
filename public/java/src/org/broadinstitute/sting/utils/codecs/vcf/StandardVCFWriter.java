@@ -33,13 +33,13 @@ import org.broad.tribble.util.LittleEndianOutputStream;
 import org.broad.tribble.util.ParsingUtils;
 import org.broad.tribble.util.PositionalStream;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
-import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 import org.broadinstitute.sting.utils.variantcontext.Allele;
 import org.broadinstitute.sting.utils.variantcontext.Genotype;
+import org.broadinstitute.sting.utils.variantcontext.VariantContext;
 
 import java.io.*;
-import java.util.*;
 import java.lang.reflect.Array;
+import java.util.*;
 
 /**
  * this class writes VCF files

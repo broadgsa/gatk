@@ -24,7 +24,10 @@
 
 package org.broadinstitute.sting.jna.clibrary;
 
-import com.sun.jna.*;
+import com.sun.jna.LastErrorException;
+import com.sun.jna.Native;
+import com.sun.jna.NativeLong;
+import com.sun.jna.Structure;
 import com.sun.jna.ptr.NativeLongByReference;
 
 /**

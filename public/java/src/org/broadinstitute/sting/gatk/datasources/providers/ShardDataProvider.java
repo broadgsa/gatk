@@ -1,15 +1,14 @@
 package org.broadinstitute.sting.gatk.datasources.providers;
 
+import net.sf.picard.reference.IndexedFastaSequenceFile;
 import org.broadinstitute.sting.gatk.datasources.reads.Shard;
 import org.broadinstitute.sting.gatk.datasources.rmd.ReferenceOrderedDataSource;
 import org.broadinstitute.sting.utils.GenomeLocParser;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Collection;
-
-import net.sf.picard.reference.IndexedFastaSequenceFile;
+import java.util.List;
 /**
  * User: hanna
  * Date: May 8, 2009

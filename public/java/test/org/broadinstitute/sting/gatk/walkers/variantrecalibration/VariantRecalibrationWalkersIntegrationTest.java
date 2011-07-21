@@ -1,5 +1,6 @@
 package org.broadinstitute.sting.gatk.walkers.variantrecalibration;
 
+import org.broadinstitute.sting.MD5DB;
 import org.broadinstitute.sting.WalkerTest;
 import org.testng.annotations.Test;
 import org.testng.annotations.DataProvider;
@@ -65,8 +66,8 @@ public class VariantRecalibrationWalkersIntegrationTest extends WalkerTest {
                         " -NO_HEADER" +
                         " -B:input,VCF " + params.inVCF +
                         " -o %s" +
-                        " -tranchesFile " + getFileForMD5(params.tranchesMD5) +
-                        " -recalFile " + getFileForMD5(params.recalMD5),
+                        " -tranchesFile " + MD5DB.getMD5FilePath(params.tranchesMD5, null) +
+                        " -recalFile " + MD5DB.getMD5FilePath(params.recalMD5, null),
                 Arrays.asList(params.cutVCFMD5));
         executeTest("testApplyRecalibration-"+params.inVCF, spec);
     }
