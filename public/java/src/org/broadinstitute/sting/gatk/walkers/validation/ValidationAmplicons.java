@@ -228,6 +228,9 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
     }
 
     public void onTraversalDone(Integer fin ) {
+        if(aligner != null)
+            aligner.close();
+
         validateSequence();
         if ( doNotUseBWA ) {
             lowerRepeats();
