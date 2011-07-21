@@ -1,0 +1,43 @@
+<#macro argumentlist myargs>
+    <table border="1" span=100>
+    <tr>
+        <th>Short name</th>
+        <th>Full name</th>
+        <th>Description</th>
+    </tr>
+    <#list myargs as arg>
+        <tr>
+            <td>${arg.shortName}</td>
+            <td>${arg.fullName}</td>
+            <td>${arg.doc}</td>
+        </tr>
+        <#--
+            <td>${arg.required}</td>
+        -->
+    </#list>
+    </table>
+</#macro>    
+   
+<html>
+<head>
+  <title>${name} documentation</title>
+</head>
+<body>
+  <h1>${name}<h1>
+  <h2>Summary</h2>
+  ${summary}
+  <h2>Version</h2>
+  ${version!"unknown version"}
+  <#if author??>
+      <h2>Author</h2>
+      ${author}
+  </#if>
+  <h2>Description</h2>
+  ${description}
+  <h2>Arguments</h2>
+  <h3>Required</h3> <@argumentlist myargs=arguments.required/>
+  <h3>Optional</h3> <@argumentlist myargs=arguments.optional/>
+  <h3>Hidden</h3> <@argumentlist myargs=arguments.hidden/>
+  <h3>Depreciated</h3> <@argumentlist myargs=arguments.depreciated/>
+</body>
+</html>

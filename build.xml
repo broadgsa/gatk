@@ -457,6 +457,26 @@
         </javadoc>
     </target>
 
+    <target name="walkerdocs" unless="uptodate.extracthelp"
+	        description="Extract help key/value pair file from the JavaDoc tags.">
+        <path id="doclet.classpath">
+            <path refid="external.dependencies" />
+            <pathelement location="${java.classes}" />
+        </path>
+
+        <javadoc doclet="org.broadinstitute.sting.utils.help.GATKDoclet"
+                 docletpathref="doclet.classpath"
+                 classpathref="external.dependencies"
+                 classpath="${java.classes}"
+                 additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -out ${basedir}/${resource.path} -quiet">
+            <sourcefiles>
+                <union>
+                    <fileset refid="java.source.files"/>
+                </union>
+            </sourcefiles>
+        </javadoc>
+    </target>
+
     <target name="sting.compile" depends="gatk.compile, scala.compile" />
 
     <target name="init.jar" depends="sting.compile,extracthelp">

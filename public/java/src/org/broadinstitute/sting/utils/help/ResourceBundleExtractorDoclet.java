@@ -30,12 +30,10 @@ import org.broadinstitute.sting.gatk.walkers.Walker;
 import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
+import sun.tools.java.ClassNotFound;
 
 import java.io.*;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Extracts certain types of javadoc (specifically package and class descriptions) and makes them available
@@ -48,17 +46,19 @@ public class ResourceBundleExtractorDoclet {
     /**
      * Taglet for the particular version number.
      */
-    private static final String VERSION_TAGLET_NAME = "version";
+    protected static final String VERSION_TAGLET_NAME = "version";
 
     /**
      * Maintains a collection of resources in memory as they're accumulated.
      */
-    private static final Properties resourceText = new Properties();
+    protected final Properties resourceText = new Properties();
 
     /**
      * Maintains a collection of classes that should really be documented.
      */
-    private static final Set<String> undocumentedWalkers = new HashSet<String>();
+    protected final Set<String> undocumentedWalkers = new HashSet<String>();
+
+    protected String buildTimestamp = null, versionPrefix = null, versionSuffix = null, absoluteVersion = null;
 
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
@@ -67,13 +67,26 @@ public class ResourceBundleExtractorDoclet {
      * @throws IOException if output can't be written.
      */
     public static boolean start(RootDoc rootDoc) throws IOException {
+        ResourceBundleExtractorDoclet doclet = new ResourceBundleExtractorDoclet();
+        PrintStream out = doclet.loadData(rootDoc, true);
+        doclet.processDocs(rootDoc, out);
+        return true;
+    }
+
+    protected PrintStream loadData(RootDoc rootDoc, boolean overwriteResourcesFile) {
         PrintStream out = System.out;
-        String buildTimestamp = null, versionPrefix = null, versionSuffix = null, absoluteVersion = null;
 
         for(String[] options: rootDoc.options()) {
             if(options[0].equals("-out")) {
-                loadExistingResourceFile(options[1], rootDoc);
-                out = new PrintStream(options[1]);
+                try {
+                    loadExistingResourceFile(options[1], rootDoc);
+                    if ( overwriteResourcesFile )
+                        out = new PrintStream(options[1]);
+                } catch ( FileNotFoundException e ) {
+                    throw new RuntimeException(e);
+                } catch ( IOException e ) {
+                    throw new RuntimeException(e);
+                }
             }
             if(options[0].equals("-build-timestamp"))
                 buildTimestamp = options[1];
@@ -86,7 +99,10 @@ public class ResourceBundleExtractorDoclet {
         }
 
         resourceText.setProperty("build.timestamp",buildTimestamp);
+        return out;
+    }
 
+    protected void processDocs(RootDoc rootDoc, PrintStream out) {
         // Cache packages as we see them, since there's no direct way to iterate over packages.
         Set<PackageDoc> packages = new HashSet<PackageDoc>();
 
@@ -97,13 +113,19 @@ public class ResourceBundleExtractorDoclet {
             if(isRequiredJavadocMissing(currentClass) && isWalker(currentClass))
                 undocumentedWalkers.add(currentClass.name());
 
-            renderHelpText(getClassName(currentClass),currentClass,versionPrefix,versionSuffix,absoluteVersion);
+            renderHelpText(getClassName(currentClass),currentClass);
         }
 
         for(PackageDoc currentPackage: packages)
-            renderHelpText(currentPackage.name(),currentPackage,versionPrefix,versionSuffix,absoluteVersion);
+            renderHelpText(currentPackage.name(),currentPackage);
 
-        resourceText.store(out,"Strings displayed by the Sting help system");
+        try {
+            resourceText.store(out,"Strings displayed by the Sting help system");
+        } catch ( FileNotFoundException e ) {
+            throw new RuntimeException(e);
+        } catch ( IOException e ) {
+            throw new RuntimeException(e);
+        }
 
         // ASCII codes for making text blink
         final String blink = "\u001B\u005B\u0035\u006D";
@@ -111,8 +133,6 @@ public class ResourceBundleExtractorDoclet {
 
         if(undocumentedWalkers.size() > 0)
             Utils.warnUser(String.format("The following walkers are currently undocumented: %s%s%s", blink, Utils.join(" ",undocumentedWalkers), reset));
-
-        return true;
     }
 
     /**
@@ -137,7 +157,7 @@ public class ResourceBundleExtractorDoclet {
      * @throws IOException       if there is an I/O-related error other than FileNotFoundException
      *                           while attempting to read the resource file.
      */
-    private static void loadExistingResourceFile( String resourceFileName, RootDoc rootDoc ) throws IOException {
+    private void loadExistingResourceFile( String resourceFileName, RootDoc rootDoc ) throws IOException {
         try {
             BufferedReader resourceFile = new BufferedReader(new FileReader(resourceFileName));
             try {
@@ -157,10 +177,21 @@ public class ResourceBundleExtractorDoclet {
      * @param classDoc the type of the given class.
      * @return True if the class of the given name is a walker.  False otherwise.
      */
-    private static boolean isWalker(ClassDoc classDoc) {
+    protected static boolean isWalker(ClassDoc classDoc) {
+        return assignableToClass(classDoc, Walker.class, true);
+    }
+
+    protected static boolean implementsInterface(ProgramElementDoc classDoc, Class... interfaceClasses) {
+        for ( Class interfaceClass : interfaceClasses )
+            if ( assignableToClass(classDoc, interfaceClass, false) )
+                return true;
+        return false;
+    }
+
+    protected static boolean assignableToClass(ProgramElementDoc classDoc, Class lhsClass, boolean requireConcrete) {
         try {
-            Class type = Class.forName(getClassName(classDoc));
-            return Walker.class.isAssignableFrom(type) && JVMUtils.isConcrete(type);
+            Class type = getClassForDoc(classDoc);
+            return lhsClass.isAssignableFrom(type) && (!requireConcrete || JVMUtils.isConcrete(type));
         }
         catch(Throwable t) {
             // Ignore errors.
@@ -168,16 +199,20 @@ public class ResourceBundleExtractorDoclet {
         }
     }
 
+    protected static Class getClassForDoc(ProgramElementDoc doc) throws ClassNotFoundException {
+        return Class.forName(getClassName(doc));
+    }
+
     /**
      * Reconstitute the class name from the given class JavaDoc object.
-     * @param classDoc the Javadoc model for the given class.
+     * @param doc the Javadoc model for the given class.
      * @return The (string) class name of the given class.
      */
-    private static String getClassName(ClassDoc classDoc) {
-        PackageDoc containingPackage = classDoc.containingPackage();
+    protected static String getClassName(ProgramElementDoc doc) {
+        PackageDoc containingPackage = doc.containingPackage();
         return containingPackage.name().length() > 0 ?
-                String.format("%s.%s",containingPackage.name(),classDoc.name()) :
-                String.format("%s",classDoc.name());
+                String.format("%s.%s",containingPackage.name(),doc.name()) :
+                String.format("%s",doc.name());
     }
 
     /**
@@ -193,10 +228,8 @@ public class ResourceBundleExtractorDoclet {
      * Renders all the help text required for a given name.
      * @param elementName element name to use as the key
      * @param element Doc element to process.
-     * @param versionPrefix Text to add to the start of the version string.
-     * @param versionSuffix Text to add to the end of the version string.
      */
-    private static void renderHelpText(String elementName, Doc element, String versionPrefix, String versionSuffix, String absoluteVersion) {
+    private void renderHelpText(String elementName, Doc element) {
         // Extract overrides from the doc tags.
         String name = null;
         String version = null;
