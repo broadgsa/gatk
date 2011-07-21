@@ -47,7 +47,7 @@ import java.util.*;
  *
  */
 public class GATKDoclet extends ResourceBundleExtractorDoclet {
-    RootDoc root;
+    RootDoc rootDoc;
 
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
@@ -69,7 +69,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
     @Override
     protected void processDocs(RootDoc rootDoc, PrintStream ignore) {
         // setup the global access to the root
-        root = rootDoc;
+        this.rootDoc = rootDoc;
 
         try {
             /* ------------------------------------------------------------------- */
@@ -83,15 +83,14 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             // but just use this:
             cfg.setObjectWrapper(new DefaultObjectWrapper());
 
+            List<Map<String, Object>> indexData = new ArrayList<Map<String, Object>>();
             for ( ClassDoc doc : rootDoc.classes() ) {
                 if ( ResourceBundleExtractorDoclet.isWalker(doc) ) { //  && getClassName(doc).contains("UGCalcLikelihoods")) {
                     System.out.printf("Walker class %s%n", doc);
-                    processWalkerDocs(cfg, doc);
-                    //return;
+                    indexData.add(processWalkerDocs(cfg, doc));
                 }
-//                else
-//                    System.out.printf("Excluding non-walker class %s%n", doc);
             }
+            processWalkerIndex(indexData,cfg);
         } catch ( FileNotFoundException e ) {
             throw new RuntimeException(e);
         } catch ( IOException e ) {
@@ -99,24 +98,46 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         }
     }
 
-    private void processWalkerDocs(Configuration cfg, ClassDoc doc) throws IOException {
-        /* ------------------------------------------------------------------- */
-        /* You usually do these for many times in the application life-cycle:  */
-
-        // Create the root hash
-        Map root = buildWalkerDataModel(doc);
-
+    private void processWalkerIndex(List<Map<String, Object>> indexData, Configuration cfg) throws IOException {
         /* Get or create a template */
-        Template temp = cfg.getTemplate("test.html");
+        Template temp = cfg.getTemplate("walker.index.template.html");
 
         /* Merge data-model with template */
-        Writer out = new OutputStreamWriter(new FileOutputStream(new File("testdoc/" + getClassName(doc).replace(".", "_") + ".html")));
+        Writer out = new OutputStreamWriter(new FileOutputStream(new File("testdoc/index.html")));
         try {
+            Map<String, Object> root = new HashMap<String, Object>();
+            root.put("walkers", indexData);
             temp.process(root, out);
             out.flush();
         } catch ( TemplateException e ) {
             throw new ReviewedStingException("Failed to create GATK documentation", e);
         }
+    }
+
+    private Map<String, Object> processWalkerDocs(Configuration cfg, ClassDoc doc) throws IOException {
+        // Create the root hash
+        Map root = buildWalkerDataModel(doc);
+
+        /* Get or create a template */
+        Template temp = cfg.getTemplate("walker.template.html");
+
+        /* Merge data-model with template */
+        File outputFile = new File(getClassName(doc).replace(".", "_") + ".html");
+        File outputPath = new File("testdoc/" + outputFile);
+        try {
+            Writer out = new OutputStreamWriter(new FileOutputStream(outputPath));
+            temp.process(root, out);
+            out.flush();
+        } catch ( TemplateException e ) {
+            throw new ReviewedStingException("Failed to create GATK documentation", e);
+        }
+
+        // add index data
+        Map<String, Object> indexData = new HashMap<String, Object>();
+        indexData.put("filename", outputFile.toString());
+        indexData.put("name", doc.name());
+        indexData.put("summary", root.get("summary"));
+        return indexData;
     }
 
 
@@ -195,7 +216,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
 
             Field field = getFieldForFieldDoc(fieldDoc);
             if ( field.isAnnotationPresent(ArgumentCollection.class) ) {
-                ClassDoc typeDoc = root.classNamed(fieldDoc.type().qualifiedTypeName());
+                ClassDoc typeDoc = this.rootDoc.classNamed(fieldDoc.type().qualifiedTypeName());
                 if ( typeDoc == null )
                     throw new ReviewedStingException("Tried to get javadocs for ArgumentCollection field " + fieldDoc + " but could't find the class in the RootDoc");
                 else {

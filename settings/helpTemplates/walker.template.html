@@ -1,13 +1,6 @@
 <#macro argumentlist name myargs>
     <#if myargs?size != 0> 
-        <h3>${name}</h3> 
-        <table border="1" span=100>
-        <tr>
-            <th>Name</th>
-            <th>Synonyms</th>
-            <th>Type</th>
-            <th>Summary</th>
-        </tr>
+        <tr><th colspan="4" align="left">${name}</th></tr>
         <#list myargs as arg>
             <tr>
                 <td><a href="#${arg.name}">${arg.name}</a></td>
@@ -19,7 +12,6 @@
                 <td>${arg.required}</td>
             -->
         </#list>
-        </table>
     </#if>
 </#macro>    
    
@@ -40,8 +32,6 @@
   <h1>${name}<h1>
   <h2>Summary</h2>
   ${summary}
-  <h2>Version</h2>
-  ${version!"unknown version"}
   <#if author??>
       <h2>Author</h2>
       ${author}
@@ -50,10 +40,18 @@
   ${description}
   <#-- Create the argument summary -->
   <h2>Arguments</h2>
-  <@argumentlist name="Required" myargs=arguments.required/>
-  <@argumentlist name="Optional" myargs=arguments.optional/>
-  <@argumentlist name="Hidden" myargs=arguments.hidden/>
-  <@argumentlist name="Depreciated" myargs=arguments.depreciated/>
+    <table border="1" cellpadding="2">
+    <tr>
+       <th>Name</th>
+       <th>Synonyms</th>
+       <th>Type</th>
+       <th>Summary</th>
+    </tr>
+       <@argumentlist name="Required" myargs=arguments.required/>
+       <@argumentlist name="Optional" myargs=arguments.optional/>
+       <@argumentlist name="Hidden" myargs=arguments.hidden/>
+       <@argumentlist name="Depreciated" myargs=arguments.depreciated/>
+    </table>
 
   <#-- Create the argument details -->
   <h2>Argument details</h2>
