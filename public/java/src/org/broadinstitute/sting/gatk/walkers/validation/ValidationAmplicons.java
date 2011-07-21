@@ -233,6 +233,7 @@ public class ValidationAmplicons extends RodWalker<Integer,Integer> {
             lowerRepeats();
         } else {
             lowerNonUniqueSegments();
+            aligner.close();
         }
         print();
     }
