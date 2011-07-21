@@ -468,7 +468,7 @@
                  docletpathref="doclet.classpath"
                  classpathref="external.dependencies"
                  classpath="${java.classes}"
-                 additionalparam="-build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -out ${basedir}/${resource.path} -quiet">
+                 additionalparam="-private -build-timestamp &quot;${build.timestamp}&quot; -absolute-version ${build.version} -out ${basedir}/${resource.path} -quiet -J-Xdebug -J-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005">
             <sourcefiles>
                 <union>
                     <fileset refid="java.source.files"/>

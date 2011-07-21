@@ -1,22 +1,36 @@
-<#macro argumentlist myargs>
-    <table border="1" span=100>
-    <tr>
-        <th>Short name</th>
-        <th>Full name</th>
-        <th>Description</th>
-    </tr>
-    <#list myargs as arg>
+<#macro argumentlist name myargs>
+    <#if myargs?size != 0> 
+        <h3>${name}</h3> 
+        <table border="1" span=100>
         <tr>
-            <td>${arg.shortName}</td>
-            <td>${arg.fullName}</td>
-            <td>${arg.doc}</td>
+            <th>Name</th>
+            <th>Synonyms</th>
+            <th>Type</th>
+            <th>Summary</th>
         </tr>
-        <#--
-            <td>${arg.required}</td>
-        -->
-    </#list>
-    </table>
+        <#list myargs as arg>
+            <tr>
+                <td><a href="#${arg.name}">${arg.name}</a></td>
+                <td><a href="#${arg.name}">${arg.synonyms}</a></td>
+                <td>${arg.type}</td>
+                <td>${arg.summary}</td>
+            </tr>
+            <#--
+                <td>${arg.required}</td>
+            -->
+        </#list>
+        </table>
+    </#if>
 </#macro>    
+   
+<#macro argumentDetails arg>
+    <h3><a name="${arg.name}">${arg.name} / ${arg.synonyms}</a></h3>
+    Summary: ${arg.summary}<br>
+    Attributes: ${arg.attributes}<br>
+    Type: ${arg.type}<br> 
+    Options: ${arg.options}<br> 
+    Details: ${arg.fulltext}<br>
+</#macro>     
    
 <html>
 <head>
@@ -34,10 +48,18 @@
   </#if>
   <h2>Description</h2>
   ${description}
+  <#-- Create the argument summary -->
   <h2>Arguments</h2>
-  <h3>Required</h3> <@argumentlist myargs=arguments.required/>
-  <h3>Optional</h3> <@argumentlist myargs=arguments.optional/>
-  <h3>Hidden</h3> <@argumentlist myargs=arguments.hidden/>
-  <h3>Depreciated</h3> <@argumentlist myargs=arguments.depreciated/>
+  <@argumentlist name="Required" myargs=arguments.required/>
+  <@argumentlist name="Optional" myargs=arguments.optional/>
+  <@argumentlist name="Hidden" myargs=arguments.hidden/>
+  <@argumentlist name="Depreciated" myargs=arguments.depreciated/>
+
+  <#-- Create the argument details -->
+  <h2>Argument details</h2>
+  <#list arguments.all as arg>
+    <@argumentDetails arg=arg/>
+  </#list>
+  
 </body>
 </html>

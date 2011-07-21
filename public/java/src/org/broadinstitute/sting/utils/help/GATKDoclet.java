@@ -37,14 +37,18 @@ import org.broadinstitute.sting.utils.Utils;
 import org.broadinstitute.sting.utils.classloader.JVMUtils;
 import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import scala.reflect.Print;
+import sun.tools.java.ClassNotFound;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.util.*;
 
 /**
  *
  */
 public class GATKDoclet extends ResourceBundleExtractorDoclet {
+    RootDoc root;
+
     /**
      * Extracts the contents of certain types of javadoc and adds them to an XML file.
      * @param rootDoc The documentation root.
@@ -64,6 +68,9 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
 
     @Override
     protected void processDocs(RootDoc rootDoc, PrintStream ignore) {
+        // setup the global access to the root
+        root = rootDoc;
+
         try {
             /* ------------------------------------------------------------------- */
             /* You should do this ONLY ONCE in the whole application life-cycle:   */
@@ -77,7 +84,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             cfg.setObjectWrapper(new DefaultObjectWrapper());
 
             for ( ClassDoc doc : rootDoc.classes() ) {
-                if ( ResourceBundleExtractorDoclet.isWalker(doc) ) {
+                if ( ResourceBundleExtractorDoclet.isWalker(doc) ) { //  && getClassName(doc).contains("UGCalcLikelihoods")) {
                     System.out.printf("Walker class %s%n", doc);
                     processWalkerDocs(cfg, doc);
                     //return;
@@ -135,30 +142,23 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
 
         Map<String, List<Object>> args = new HashMap<String, List<Object>>();
         root.put("arguments", args);
+        args.put("all", new ArrayList<Object>());
         args.put("required", new ArrayList<Object>());
         args.put("optional", new ArrayList<Object>());
         args.put("hidden", new ArrayList<Object>());
         args.put("depreciated", new ArrayList<Object>());
         try {
             for ( ArgumentSource argumentSource : parsingEngine.extractArgumentSources(getClassForDoc(classdoc)) ) {
+                ArgumentDefinition argDef = argumentSource.createArgumentDefinitions().get(0);
+                FieldDoc fieldDoc = getFieldDoc(classdoc, argumentSource.field.getName());
+                GATKDoc doc = docForArgument(fieldDoc, argDef); // todo -- why can you have multiple ones?
                 String kind = "optional";
                 if ( argumentSource.isRequired() ) kind = "required";
                 else if ( argumentSource.isHidden() ) kind = "hidden";
                 else if ( argumentSource.isDeprecated() ) kind = "depreciated";
-                args.get(kind).add(argumentDataModel(argumentSource.createArgumentDefinitions().get(0)));
+                args.get(kind).add(doc.toDataModel());
+                args.get("all").add(doc.toDataModel());
                 System.out.printf("Processing %s%n", argumentSource);
-
-//            for(FieldDoc fieldDoc: classdoc.fields()) {
-//                //for ( AnnotationDesc desc : fieldDoc.annotations() ) {
-//                    System.out.printf("AnnotationDesc %s%n", desc);
-//                    if ( implementsInterface(desc.annotationType(), Argument.class, Output.class, Input.class) ) {
-//                        (requiredAnnotation(desc) ? requiredArgs : optionalArgs).add(dataModelForArgument(desc));
-//                        System.out.printf("Processing %s%n", desc);
-//                    } else {
-//                        System.out.printf("Skipping %s%n", desc);
-//                    }
-//                }
-//            }
             }
         } catch ( ClassNotFoundException e ) {
             throw new RuntimeException(e);
@@ -168,19 +168,9 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         return root;
     }
 
-    protected String withDefault(String val, String def) {
-        return val == null ? def : val;
-    }
-
-    protected Map<String, Object> argumentDataModel(ArgumentDefinition argumentDefinition) {
-        Map<String, Object> root = new HashMap<String, Object>();
-        root.put("shortName", withDefault(argumentDefinition.shortName, "None provided"));
-        root.put("required", argumentDefinition.required);
-        root.put("fullName", withDefault(argumentDefinition.fullName, "None provided"));
-        root.put("argumentType", argumentDefinition.argumentType);
-        root.put("doc", withDefault(argumentDefinition.doc, "None provided"));
-        return root;
-    }
+//    protected String withDefault(String val, String def) {
+//        return val == null ? def : val;
+//    }
 
     protected ParsingEngine createStandardGATKParsingEngine() {
         CommandLineProgram clp = new CommandLineGATK();
@@ -192,24 +182,66 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
         }
     }
 
-    protected Map<String, Object> dataModelForArgument(AnnotationDesc desc) {
-        Map<String, Object> root = new HashMap<String, Object>();
-        root.put("shortName", "None provided");
-        root.put("required", false);
-        root.put("fullName", "None provided");
-        root.put("doc", "None provided");
-
-        for ( AnnotationDesc.ElementValuePair keyvalue : desc.elementValues() ) {
-            root.put(keyvalue.element().name(), keyvalue.value().value());
-        }
-        return root;
+    private FieldDoc getFieldDoc(ClassDoc classDoc, String name) {
+        return getFieldDoc(classDoc, name, true);
     }
 
-    protected boolean requiredAnnotation(AnnotationDesc desc) {
-        for ( AnnotationDesc.ElementValuePair keyvalue : desc.elementValues() ) {
-            if ( keyvalue.element().name().equals("required") )
-                return keyvalue.value().toString().equals("true");
+    private FieldDoc getFieldDoc(ClassDoc classDoc, String name, boolean primary) {
+        System.out.printf("Looking for %s in %s%n", name, classDoc.name());
+        for ( FieldDoc fieldDoc : classDoc.fields(false) ) {
+            System.out.printf("fieldDoc " + fieldDoc + " name " + fieldDoc.name());
+            if ( fieldDoc.name().equals(name) )
+                return fieldDoc;
+
+            Field field = getFieldForFieldDoc(fieldDoc);
+            if ( field.isAnnotationPresent(ArgumentCollection.class) ) {
+                ClassDoc typeDoc = root.classNamed(fieldDoc.type().qualifiedTypeName());
+                if ( typeDoc == null )
+                    throw new ReviewedStingException("Tried to get javadocs for ArgumentCollection field " + fieldDoc + " but could't find the class in the RootDoc");
+                else {
+                    FieldDoc result = getFieldDoc(typeDoc, name, false);
+                    if ( result != null )
+                        return result;
+                    // else keep searching
+                }
+            }
         }
-        return false;
+
+        // if we didn't find it here, wander up to the superclass to find the field
+        if ( classDoc.superclass() != null ) {
+            return getFieldDoc(classDoc.superclass(), name, false);
+        }
+
+        if ( primary )
+            throw new RuntimeException("No field found for expected field " + name);
+        else
+            return null;
+    }
+
+    protected GATKDoc docForArgument(FieldDoc fieldDoc, ArgumentDefinition def) {
+        final String name = def.fullName != null ? "--" + def.fullName : "-" + def.shortName;
+        GATKDoc doc = new GATKDoc(GATKDoc.DocType.WALKER_ARG, name);
+
+        if ( def.fullName != null && def.shortName != null)
+            doc.addSynonym("-" + def.shortName);
+
+        doc.addTag("required", def.required ? "yes" : "no");
+        doc.addTag("type", def.argumentType.getSimpleName());
+        if ( def.doc != null ) doc.setSummary(def.doc);
+
+        List<String> attributes = new ArrayList<String>();
+        attributes.add(def.ioType.annotationClass.getSimpleName());
+        if ( def.required ) attributes.add("required");
+        if ( def.isFlag ) attributes.add("flag");
+        if ( def.isHidden ) attributes.add("hidden");
+        doc.addTag("attributes", Utils.join(",", attributes));
+
+        // todo -- need depreciated value
+
+        doc.addTag("options", def.validOptions == null ? GATKDoc.NA_STRING : Utils.join(",", def.validOptions));
+
+        doc.setFulltext(fieldDoc.commentText());
+
+        return doc;
     }
 }

@@ -33,6 +33,7 @@ import org.broadinstitute.sting.utils.exceptions.ReviewedStingException;
 import sun.tools.java.ClassNotFound;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -191,7 +192,7 @@ public class ResourceBundleExtractorDoclet {
     protected static boolean assignableToClass(ProgramElementDoc classDoc, Class lhsClass, boolean requireConcrete) {
         try {
             Class type = getClassForDoc(classDoc);
-            return lhsClass.isAssignableFrom(type) && (!requireConcrete || JVMUtils.isConcrete(type));
+            return lhsClass.isAssignableFrom(type) && (! requireConcrete || JVMUtils.isConcrete(type));
         }
         catch(Throwable t) {
             // Ignore errors.
@@ -201,6 +202,15 @@ public class ResourceBundleExtractorDoclet {
 
     protected static Class getClassForDoc(ProgramElementDoc doc) throws ClassNotFoundException {
         return Class.forName(getClassName(doc));
+    }
+
+    protected static Field getFieldForFieldDoc(FieldDoc fieldDoc) {
+        try {
+            Class clazz = getClassForDoc(fieldDoc.containingClass());
+            return JVMUtils.findField(clazz, fieldDoc.name());
+        } catch ( ClassNotFoundException e ) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
