@@ -40,7 +40,7 @@ public class BatchMergeIntegrationTest extends WalkerTest {
                         + " -B:alleles,VCF " + alleles
                         + " -I " + bam,
                 1,
-                Arrays.asList("f4ed8f4ef2cba96823c06e90e9d0de35"));
+                Arrays.asList("8bd114ceaf6a94e96a677fcc52350713"));
         executeTest("testBatchMerge UG genotype given alleles:" + new File(bam).getName() + " with " + new File(alleles).getName(), spec);
     }
 }
