@@ -391,7 +391,7 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
         if (DEBUG)
             System.out.format("hsize: %d eventLength: %d refSize: %d, locStart: %d numpr: %d\n",hsize,eventLength,
                     (int)ref.getWindow().size(), loc.getStart(), numPrefBases);
-
+        //System.out.println(eventLength);
         haplotypeMap = Haplotype.makeHaplotypeListFromAlleles( alleleList, loc.getStart(),
             ref, hsize, numPrefBases);
 
@@ -418,8 +418,8 @@ public class IndelGenotypeLikelihoodsCalculationModel extends GenotypeLikelihood
 
 
 
-                // which genotype likelihoods correspond to two most likely alleles? By convention, likelihood vector is lexically ordered, for example
-                // for 3 alleles it's 00 01 02 11 12 22
+                // which genotype likelihoods correspond to two most likely alleles? By convention, likelihood vector is ordered as for example
+                // for 3 alleles it's 00 01 11 02 12 22
                  GLs.put(sample.getKey(), new MultiallelicGenotypeLikelihoods(sample.getKey(),
                         alleleList,
                         genotypeLikelihoods,
