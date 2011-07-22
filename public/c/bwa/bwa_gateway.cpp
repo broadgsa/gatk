@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 
 #include "bwase.h"
 #include "bwa_gateway.h"
@@ -26,6 +27,9 @@ BWA::BWA(const char* ann_filename,
   bwts[1] = bwt_restore_bwt(reverse_bwt_filename);
   bwt_restore_sa(reverse_sa_filename, bwts[1]);
   load_default_options();
+
+  // Always reinitialize the random seed whenever a new set of files are loaded.
+  initialize_random_seed();
 
   // initialize the bwase subsystem
   bwase_initialize();
@@ -205,6 +209,11 @@ void BWA::load_default_options()
   options.n_threads = 1; 
   options.max_top2 = 30; 
   options.trim_qual = 0;
+}
+
+void BWA::initialize_random_seed()
+{
+  srand48(bns->seed);  
 }
 
 void BWA::set_max_edit_distance(float edit_distance) { 
