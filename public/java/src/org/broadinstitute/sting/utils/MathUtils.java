@@ -727,6 +727,17 @@ public class MathUtils {
         return count;
     }
 
+    public static <T> int countOccurrences(byte element, byte [] array) {
+        int count = 0;
+        for (byte y : array) {
+            if (element == y)
+                count++;
+        }
+
+        return count;
+    }
+
+
     /**
      * Returns n random indices drawn with replacement from the range 0..(k-1)
      *
