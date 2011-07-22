@@ -49,6 +49,7 @@ import java.util.Map;
  */
 public abstract class DocumentedGATKFeatureHandler {
     private GATKDoclet doclet;
+    private String groupName;
 
     protected RootDoc getRootDoc() {
         return this.doclet.rootDoc;
@@ -64,7 +65,14 @@ public abstract class DocumentedGATKFeatureHandler {
         return ResourceBundleExtractorDoclet.getClassName(doc).replace(".", "_") + ".html";
     }
 
-    public abstract String getGroupName();
+    final public String getGroupName() {
+        return groupName;
+    }
+
+    final public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
+
     public abstract String getTemplateName(ClassDoc doc) throws IOException;
     public abstract GATKDoclet.DocumentationData processOne(ClassDoc doc);
 }

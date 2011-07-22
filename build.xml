@@ -457,8 +457,9 @@
         </javadoc>
     </target>
 
-    <target name="walkerdocs" unless="uptodate.extracthelp"
+    <target name="gatkdocs" unless="uptodate.extracthelp" depends="gatk.compile"
 	        description="Extract help key/value pair file from the JavaDoc tags.">
+        <property name="gatk.target" value="private"/>
         <path id="doclet.classpath">
             <path refid="external.dependencies" />
             <pathelement location="${java.classes}" />

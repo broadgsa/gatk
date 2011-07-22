@@ -110,6 +110,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
 
             List<DocumentationData> indexData = new ArrayList<DocumentationData>();
             for ( ClassDoc doc : rootDoc.classes() ) {
+                System.out.printf("Considering %s%n", doc);
                 DocumentedGATKFeatureHandler handler = getHandlerForClassDoc(doc);
                 if ( handler != null && handler.shouldBeProcessed(doc) ) {
                     DocumentationData docData = processDocumentationWithHandler(cfg, handler, doc);
@@ -132,6 +133,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
             if ( docClass.isAnnotationPresent(DocumentedGATKFeature.class) ) {
                 DocumentedGATKFeature feature = docClass.getAnnotation(DocumentedGATKFeature.class);
                 DocumentedGATKFeatureHandler handler = feature.handler().newInstance();
+                handler.setGroupName(feature.groupName());
                 handler.setDoclet(this);
                 return handler;
             } else {
@@ -152,7 +154,7 @@ public class GATKDoclet extends ResourceBundleExtractorDoclet {
 
     private void processIndex(Configuration cfg, List<DocumentationData> indexData) throws IOException {
         /* Get or create a template */
-        Template temp = cfg.getTemplate("walker.index.template.html");
+        Template temp = cfg.getTemplate("generic.index.template.html");
 
         /* Merge data-model with template */
         Writer out = new OutputStreamWriter(new FileOutputStream(new File("testdoc/index.html")));

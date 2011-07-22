@@ -32,7 +32,7 @@ import org.broadinstitute.sting.utils.GenomeLoc;
 import org.broadinstitute.sting.utils.baq.BAQ;
 import org.broadinstitute.sting.utils.collections.Pair;
 import org.broadinstitute.sting.utils.help.DocumentedGATKFeature;
-import org.broadinstitute.sting.utils.help.WalkerDocumentationHandler;
+import org.broadinstitute.sting.utils.help.GenericDocumentationHandler;
 
 import java.util.List;
 
@@ -46,7 +46,7 @@ import java.util.List;
 @ReadFilters(MalformedReadFilter.class)
 @PartitionBy(PartitionType.NONE)
 @BAQMode(QualityMode = BAQ.QualityMode.OVERWRITE_QUALS, ApplicationTime = BAQ.ApplicationTime.ON_INPUT)
-@DocumentedGATKFeature( handler = WalkerDocumentationHandler.class )
+@DocumentedGATKFeature( groupName = "GATK walkers" )
 public abstract class Walker<MapType, ReduceType> {
     final protected static Logger logger = Logger.getLogger(Walker.class);
     private GenomeAnalysisEngine toolkit;

@@ -48,7 +48,7 @@ import java.util.Map;
 /**
  *
  */
-public class WalkerDocumentationHandler extends DocumentedGATKFeatureHandler {
+public class GenericDocumentationHandler extends DocumentedGATKFeatureHandler {
     @Override
     public boolean shouldBeProcessed(ClassDoc doc) {
         try {
@@ -60,16 +60,13 @@ public class WalkerDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     @Override
-    public String getGroupName() { return "GATK Walkers"; }
-
-    @Override
     public String getTemplateName(ClassDoc doc) throws IOException {
-        return "walker.template.html";
+        return "generic.template.html";
     }
 
     @Override
     public GATKDoclet.DocumentationData processOne(ClassDoc doc) {
-        System.out.printf("Walker class %s%n", doc);
+        System.out.printf("%s class %s%n", getGroupName(), doc);
         Map<String, Object> root = buildWalkerDataModel(doc); // Create the root hash
         return new GATKDoclet.DocumentationData(doc.name(), (String)root.get("summary"), root);
     }
@@ -136,9 +133,9 @@ public class WalkerDocumentationHandler extends DocumentedGATKFeatureHandler {
     }
 
     private FieldDoc getFieldDoc(ClassDoc classDoc, String name, boolean primary) {
-        System.out.printf("Looking for %s in %s%n", name, classDoc.name());
+        //System.out.printf("Looking for %s in %s%n", name, classDoc.name());
         for ( FieldDoc fieldDoc : classDoc.fields(false) ) {
-            System.out.printf("fieldDoc " + fieldDoc + " name " + fieldDoc.name());
+            //System.out.printf("fieldDoc " + fieldDoc + " name " + fieldDoc.name());
             if ( fieldDoc.name().equals(name) )
                 return fieldDoc;
 
