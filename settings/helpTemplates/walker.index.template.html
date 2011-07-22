@@ -1,0 +1,21 @@
+<html>
+<head>
+  <title>GATK walker index</title>
+</head>
+<body>
+  <h1>GATK walker index<h1>
+  <table border="1" cellpadding="2">
+  <tr>
+     <th>Name</th>
+     <th>Summary</th>
+  </tr>
+  <#list walkers as walker>
+    <tr>
+       <td><a href="${walker.filename}">${walker.name}</a></td>
+       <td>${walker.summary}</td>
+    </tr>
+  </#list>
+  </table>
+</body>
+</html>
+
